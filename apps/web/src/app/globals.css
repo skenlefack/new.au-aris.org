@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --aris-primary: 27 94 32;
+    --aris-secondary: 0 96 100;
+    --aris-accent: 230 81 0;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}
+
+@layer utilities {
+  .sidebar-transition {
+    @apply transition-all duration-200 ease-in-out;
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@aris/db-schemas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ARIS 3.0 — Prisma schemas and migrations (one schema per service)",
+  "scripts": {
+    "generate": "prisma generate --schema=prisma",
+    "migrate:dev": "prisma migrate dev --schema=prisma",
+    "migrate:deploy": "prisma migrate deploy --schema=prisma",
+    "db:push": "prisma db push --schema=prisma",
+    "db:seed": "tsx prisma/seed-tenant.ts",
+    "studio": "prisma studio --schema=prisma",
+    "build": "echo 'db-schemas: generate only'",
+    "clean": "rm -rf node_modules/.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.14.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.14.0",
+    "tsx": "^4.11.0",
+    "typescript": "^5.4.0"
+  }
+}

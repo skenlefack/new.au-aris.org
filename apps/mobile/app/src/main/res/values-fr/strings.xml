@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ARIS</string>
+    <string name="app_subtitle">Systeme d\'Information sur les Ressources Animales</string>
+    <string name="email">Email</string>
+    <string name="password">Mot de passe</string>
+    <string name="login">Se connecter</string>
+    <string name="campaigns">Campagnes</string>
+    <string name="submissions">Mes soumissions</string>
+    <string name="no_campaigns">Aucune campagne active</string>
+    <string name="no_submissions">Aucune soumission</string>
+    <string name="sync">Synchroniser</string>
+    <string name="logout">Deconnexion</string>
+    <string name="pending">En attente</string>
+    <string name="synced">Synchronise</string>
+    <string name="failed">Echoue</string>
+    <string name="conflict">Conflit</string>
+</resources>

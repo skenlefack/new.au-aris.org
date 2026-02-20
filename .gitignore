@@ -1,7 +1,19 @@
 ﻿node_modules/
 .env
+.env.*
+!.env.example
+!.env.local.example
 keys/
 dist/
 coverage/
 .turbo/
 *.log
+
+# Next.js
+.next/
+
+# Build info
+*.tsbuildinfo
+
+# Claude Code local settings
+.claude/

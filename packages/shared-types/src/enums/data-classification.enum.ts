@@ -1,0 +1,6 @@
+export enum DataClassification {
+  PUBLIC = 'PUBLIC',
+  PARTNER = 'PARTNER',
+  RESTRICTED = 'RESTRICTED',
+  CONFIDENTIAL = 'CONFIDENTIAL',
+}

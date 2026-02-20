@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="aris_primary">#1B5E20</color>
+    <color name="aris_primary_light">#4C8C4A</color>
+    <color name="aris_primary_dark">#003300</color>
+    <color name="aris_secondary">#FF8F00</color>
+    <color name="aris_secondary_light">#FFC046</color>
+    <color name="aris_secondary_dark">#C56000</color>
+    <color name="aris_error">#D32F2F</color>
+    <color name="aris_on_primary">#FFFFFF</color>
+    <color name="aris_background">#F5F5F5</color>
+</resources>

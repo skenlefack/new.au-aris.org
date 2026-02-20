@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ARIS</string>
+    <string name="app_subtitle">Animal Resources Information System</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="login">Sign In</string>
+    <string name="campaigns">Campaigns</string>
+    <string name="submissions">My Submissions</string>
+    <string name="no_campaigns">No active campaigns</string>
+    <string name="no_submissions">No submissions yet</string>
+    <string name="sync">Sync</string>
+    <string name="logout">Logout</string>
+    <string name="pending">Pending</string>
+    <string name="synced">Synced</string>
+    <string name="failed">Failed</string>
+    <string name="conflict">Conflict</string>
+</resources>

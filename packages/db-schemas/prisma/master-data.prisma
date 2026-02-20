@@ -1,0 +1,273 @@
+// ARIS 3.0 — Master Data Models
+// 7 Referential Tables: Geography, Species, Disease, Unit, Temporality, Identifier, Denominator
+// All versioned with audit trail. PostGIS geometry for GeoEntity.
+
+// ── Enums ──
+
+enum GeoLevel {
+  COUNTRY
+  ADMIN1
+  ADMIN2
+  ADMIN3
+  SPECIAL_ZONE
+
+  @@map("geo_level")
+}
+
+enum SpeciesCategory {
+  DOMESTIC
+  WILDLIFE
+  AQUATIC
+  APICULTURE
+
+  @@map("species_category")
+}
+
+enum DenominatorSource {
+  FAOSTAT
+  NATIONAL_CENSUS
+  ESTIMATE
+
+  @@map("denominator_source")
+}
+
+enum IdentifierType {
+  LAB
+  MARKET
+  BORDER_POINT
+  PROTECTED_AREA
+  SLAUGHTERHOUSE
+  QUARANTINE_STATION
+
+  @@map("identifier_type")
+}
+
+enum UnitCategory {
+  COUNT
+  WEIGHT
+  VOLUME
+  AREA
+  LENGTH
+  DOSE
+  CURRENCY
+  PROPORTION
+  TIME
+
+  @@map("unit_category")
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  VALIDATE
+  REJECT
+  EXPORT
+
+  @@map("audit_action")
+}
+
+// ── Geography — ISO 3166 + admin levels + PostGIS ──
+
+model GeoEntity {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(20)
+  name        String   @db.VarChar(255)
+  nameEn      String   @map("name_en") @db.VarChar(255)
+  nameFr      String   @map("name_fr") @db.VarChar(255)
+  level       GeoLevel
+  parentId    String?  @map("parent_id") @db.Uuid
+  countryCode String   @map("country_code") @db.VarChar(3)
+  centroidLat Float?   @map("centroid_lat")
+  centroidLng Float?   @map("centroid_lng")
+  isActive    Boolean  @default(true) @map("is_active")
+  version     Int      @default(1)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Note: PostGIS geometry column managed via raw SQL migration
+  // geometry geometry(MultiPolygon, 4326) — not representable in Prisma
+
+  parent   GeoEntity?  @relation("GeoHierarchy", fields: [parentId], references: [id])
+  children GeoEntity[] @relation("GeoHierarchy")
+
+  denominators Denominator[]
+  identifiers  Identifier[]
+
+  @@index([parentId], map: "idx_geo_parent_id")
+  @@index([level], map: "idx_geo_level")
+  @@index([countryCode], map: "idx_geo_country_code")
+  @@index([isActive], map: "idx_geo_is_active")
+  @@map("geo_entities")
+}
+
+// ── Species — WOAH + FAO aligned ──
+
+model Species {
+  id                   String          @id @default(uuid()) @db.Uuid
+  code                 String          @unique @db.VarChar(20)
+  scientificName       String          @map("scientific_name") @db.VarChar(255)
+  commonNameEn         String          @map("common_name_en") @db.VarChar(255)
+  commonNameFr         String          @map("common_name_fr") @db.VarChar(255)
+  category             SpeciesCategory
+  productionCategories String[]        @map("production_categories") @db.VarChar(50)
+  isWoahListed         Boolean         @default(false) @map("is_woah_listed")
+  isActive             Boolean         @default(true) @map("is_active")
+  version              Int             @default(1)
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  denominators Denominator[]
+
+  @@index([category], map: "idx_species_category")
+  @@index([isWoahListed], map: "idx_species_woah_listed")
+  @@index([isActive], map: "idx_species_is_active")
+  @@map("species")
+}
+
+// ── Disease — WOAH list + emerging ──
+
+model Disease {
+  id              String   @id @default(uuid()) @db.Uuid
+  code            String   @unique @db.VarChar(20)
+  nameEn          String   @map("name_en") @db.VarChar(255)
+  nameFr          String   @map("name_fr") @db.VarChar(255)
+  isWoahListed    Boolean  @default(false) @map("is_woah_listed")
+  affectedSpecies String[] @map("affected_species") @db.VarChar(20)
+  isNotifiable    Boolean  @default(false) @map("is_notifiable")
+  wahisCategory   String?  @map("wahis_category") @db.VarChar(50)
+  isActive        Boolean  @default(true) @map("is_active")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([isWoahListed], map: "idx_disease_woah_listed")
+  @@index([isNotifiable], map: "idx_disease_notifiable")
+  @@index([isActive], map: "idx_disease_is_active")
+  @@map("diseases")
+}
+
+// ── Unit — SI + sectoral ──
+
+model Unit {
+  id           String       @id @default(uuid()) @db.Uuid
+  code         String       @unique @db.VarChar(20)
+  nameEn       String       @map("name_en") @db.VarChar(100)
+  nameFr       String       @map("name_fr") @db.VarChar(100)
+  symbol       String       @db.VarChar(20)
+  category     UnitCategory
+  siConversion Float?       @map("si_conversion")
+  isActive     Boolean      @default(true) @map("is_active")
+  version      Int          @default(1)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([category], map: "idx_unit_category")
+  @@index([isActive], map: "idx_unit_is_active")
+  @@map("units")
+}
+
+// ── Temporality — Epidemiological calendars ──
+
+model Temporality {
+  id            String   @id @default(uuid()) @db.Uuid
+  code          String   @unique @db.VarChar(30)
+  nameEn        String   @map("name_en") @db.VarChar(255)
+  nameFr        String   @map("name_fr") @db.VarChar(255)
+  calendarType  String   @map("calendar_type") @db.VarChar(50)
+  periodStart   DateTime @map("period_start") @db.Date
+  periodEnd     DateTime @map("period_end") @db.Date
+  year          Int
+  weekNumber    Int?     @map("week_number")
+  monthNumber   Int?     @map("month_number")
+  quarterNumber Int?     @map("quarter_number")
+  countryCode   String?  @map("country_code") @db.VarChar(3)
+  isActive      Boolean  @default(true) @map("is_active")
+  version       Int      @default(1)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([calendarType], map: "idx_temporality_calendar_type")
+  @@index([year], map: "idx_temporality_year")
+  @@index([countryCode], map: "idx_temporality_country_code")
+  @@index([isActive], map: "idx_temporality_is_active")
+  @@map("temporalities")
+}
+
+// ── Identifier — Labs, markets, border points, protected areas ──
+
+model Identifier {
+  id          String         @id @default(uuid()) @db.Uuid
+  code        String         @unique @db.VarChar(50)
+  nameEn      String         @map("name_en") @db.VarChar(255)
+  nameFr      String         @map("name_fr") @db.VarChar(255)
+  type        IdentifierType
+  geoEntityId String?        @map("geo_entity_id") @db.Uuid
+  latitude    Float?
+  longitude   Float?
+  address     String?        @db.Text
+  contactInfo Json?          @map("contact_info") @default("{}")
+  isActive    Boolean        @default(true) @map("is_active")
+  version     Int            @default(1)
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+
+  geoEntity GeoEntity? @relation(fields: [geoEntityId], references: [id])
+
+  @@index([type], map: "idx_identifier_type")
+  @@index([geoEntityId], map: "idx_identifier_geo_entity_id")
+  @@index([isActive], map: "idx_identifier_is_active")
+  @@map("identifiers")
+}
+
+// ── Denominator — FAOSTAT vs national census (versioned!) ──
+
+model Denominator {
+  id          String            @id @default(uuid()) @db.Uuid
+  countryCode String            @map("country_code") @db.VarChar(3)
+  geoEntityId String?           @map("geo_entity_id") @db.Uuid
+  speciesId   String            @map("species_id") @db.Uuid
+  year        Int
+  source      DenominatorSource
+  population  BigInt
+  assumptions String?           @db.Text
+  validatedAt DateTime?         @map("validated_at") @db.Timestamptz
+  validatedBy String?           @map("validated_by") @db.Uuid
+  isActive    Boolean           @default(true) @map("is_active")
+  version     Int               @default(1)
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  geoEntity GeoEntity? @relation(fields: [geoEntityId], references: [id])
+  species   Species    @relation(fields: [speciesId], references: [id])
+
+  @@unique([countryCode, speciesId, year, source], map: "uq_denominator_country_species_year_source")
+  @@index([countryCode], map: "idx_denominator_country_code")
+  @@index([speciesId], map: "idx_denominator_species_id")
+  @@index([year], map: "idx_denominator_year")
+  @@index([source], map: "idx_denominator_source")
+  @@index([isActive], map: "idx_denominator_is_active")
+  @@map("denominators")
+}
+
+// ── Audit Trail — Every mutation tracked ──
+
+model MasterDataAudit {
+  id                 String      @id @default(uuid()) @db.Uuid
+  entityType         String      @map("entity_type") @db.VarChar(50)
+  entityId           String      @map("entity_id") @db.Uuid
+  action             AuditAction
+  actorUserId        String      @map("actor_user_id") @db.Uuid
+  actorRole          String      @map("actor_role") @db.VarChar(30)
+  actorTenantId      String      @map("actor_tenant_id") @db.Uuid
+  reason             String?     @db.Text
+  previousVersion    Json?       @map("previous_version")
+  newVersion         Json?       @map("new_version")
+  dataClassification String      @default("RESTRICTED") @map("data_classification") @db.VarChar(20)
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([entityType, entityId], map: "idx_audit_entity")
+  @@index([actorUserId], map: "idx_audit_actor")
+  @@index([createdAt], map: "idx_audit_created_at")
+  @@map("master_data_audits")
+}

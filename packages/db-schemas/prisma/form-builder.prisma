@@ -1,0 +1,42 @@
+// ARIS 3.0 — Form Builder Schema
+// JSON Schema-based form template system with inheritance
+
+enum FormTemplateStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+
+  @@schema("form_builder")
+}
+
+model FormTemplate {
+  id                String             @id @default(uuid()) @db.Uuid
+  tenant_id         String             @db.Uuid
+  name              String             @db.VarChar(255)
+  domain            String             @db.VarChar(50)
+  version           Int                @default(1)
+  parent_template_id String?           @db.Uuid
+  schema            Json
+  ui_schema         Json               @default("{}")
+  data_contract_id  String?            @db.Uuid
+  status            FormTemplateStatus @default(DRAFT)
+  data_classification String           @default("RESTRICTED") @db.VarChar(20)
+  created_by        String             @db.Uuid
+  updated_by        String?            @db.Uuid
+  published_at      DateTime?
+  archived_at       DateTime?
+  created_at        DateTime           @default(now())
+  updated_at        DateTime           @updatedAt
+
+  // Self-relation for inheritance chain
+  parent            FormTemplate?      @relation("TemplateInheritance", fields: [parent_template_id], references: [id])
+  children          FormTemplate[]     @relation("TemplateInheritance")
+
+  @@unique([tenant_id, name, version])
+  @@index([tenant_id])
+  @@index([domain])
+  @@index([status])
+  @@index([parent_template_id])
+  @@map("form_templates")
+  @@schema("form_builder")
+}

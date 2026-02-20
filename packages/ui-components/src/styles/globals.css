@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --aris-primary: 27 94 32;
+    --aris-secondary: 0 96 100;
+    --aris-accent: 230 81 0;
+  }
+}

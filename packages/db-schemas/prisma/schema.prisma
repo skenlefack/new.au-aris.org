@@ -1,0 +1,12 @@
+// ARIS 3.0 — Shared Prisma Configuration
+// Generator + Datasource only. Models are in separate .prisma files.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["prismaSchemaFolder"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
