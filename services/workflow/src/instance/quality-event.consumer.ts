@@ -25,10 +25,12 @@ export class QualityEventConsumer implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     try {
       await this.kafkaConsumer.subscribe(
-        TOPIC_AU_QUALITY_RECORD_VALIDATED,
-        CONSUMER_GROUP,
-        async (message) => {
-          await this.handleQualityValidated(message);
+        {
+          topic: TOPIC_AU_QUALITY_RECORD_VALIDATED,
+          groupId: CONSUMER_GROUP,
+        },
+        async (payload) => {
+          await this.handleQualityValidated(payload as { value: string | Buffer | null });
         },
       );
       this.logger.log(

@@ -46,7 +46,7 @@ export class FaqService {
     dto: CreateFaqDto,
     user: AuthenticatedUser,
   ): Promise<ApiResponse<FaqEntity>> {
-    const faq = await this.prisma.faq.create({
+    const faq = await this.prisma.fAQ.create({
       data: {
         question: dto.question,
         answer: dto.answer,
@@ -90,13 +90,13 @@ export class FaqService {
     };
 
     const [data, total] = await Promise.all([
-      this.prisma.faq.findMany({
+      this.prisma.fAQ.findMany({
         where,
         skip,
         take: limit,
         orderBy,
       }),
-      this.prisma.faq.count({ where }),
+      this.prisma.fAQ.count({ where }),
     ]);
 
     return {
@@ -109,7 +109,7 @@ export class FaqService {
     id: string,
     user: AuthenticatedUser,
   ): Promise<ApiResponse<FaqEntity>> {
-    const faq = await this.prisma.faq.findUnique({
+    const faq = await this.prisma.fAQ.findUnique({
       where: { id },
     });
 
@@ -127,7 +127,7 @@ export class FaqService {
     dto: UpdateFaqDto,
     user: AuthenticatedUser,
   ): Promise<ApiResponse<FaqEntity>> {
-    const existing = await this.prisma.faq.findUnique({
+    const existing = await this.prisma.fAQ.findUnique({
       where: { id },
     });
 
@@ -135,7 +135,7 @@ export class FaqService {
       throw new NotFoundException(`FAQ ${id} not found`);
     }
 
-    const faq = await this.prisma.faq.update({
+    const faq = await this.prisma.fAQ.update({
       where: { id },
       data: {
         ...(dto.question !== undefined && { question: dto.question }),
