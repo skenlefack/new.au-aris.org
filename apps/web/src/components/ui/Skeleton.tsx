@@ -107,3 +107,14 @@ export function DetailSkeleton() {
     </div>
   );
 }
+
+export function ChartSkeleton() {
+  return (
+    <div className="flex h-64 items-center justify-center rounded-card border border-gray-200 bg-white p-6">
+      <div className="text-center">
+        <Skeleton className="mx-auto h-8 w-8 rounded-full" />
+        <p className="mt-2 text-sm text-gray-400">Loading chart...</p>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,97 @@
+// ARIS 3.0 — Trade, Markets & SPS domain schema
+// Service: trade-sps (port 3025)
+// Owner: CC-4
+
+model TradeFlow {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  exportCountryId    String   @map("export_country_id") @db.Uuid
+  importCountryId    String   @map("import_country_id") @db.Uuid
+  speciesId          String   @map("species_id") @db.Uuid
+  commodity          String
+  flowDirection      String   @map("flow_direction")       // IMPORT | EXPORT | TRANSIT
+  quantity           Float
+  unit               String
+  valueFob           Float?   @map("value_fob")
+  currency           String
+  periodStart        DateTime @map("period_start") @db.Timestamptz
+  periodEnd          DateTime @map("period_end") @db.Timestamptz
+  hsCode             String?  @map("hs_code")
+  spsStatus          String?  @map("sps_status")
+  dataClassification String   @default("PARTNER") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([exportCountryId])
+  @@index([importCountryId])
+  @@index([speciesId])
+  @@index([flowDirection])
+  @@map("trade_flows")
+  @@schema("trade_sps")
+}
+
+model SpsCertificate {
+  id                   String    @id @default(uuid()) @db.Uuid
+  tenantId             String    @map("tenant_id") @db.Uuid
+  certificateNumber    String    @unique @map("certificate_number")
+  consignmentId        String    @map("consignment_id")
+  exporterId           String    @map("exporter_id")
+  importerId           String    @map("importer_id")
+  speciesId            String    @map("species_id") @db.Uuid
+  commodity            String
+  quantity             Float
+  unit                 String
+  originCountryId      String    @map("origin_country_id") @db.Uuid
+  destinationCountryId String    @map("destination_country_id") @db.Uuid
+  inspectionResult     String    @map("inspection_result")      // PASS | FAIL | CONDITIONAL | PENDING
+  inspectionDate       DateTime  @map("inspection_date") @db.Timestamptz
+  certifiedBy          String    @map("certified_by") @db.Uuid
+  certifiedAt          DateTime? @map("certified_at") @db.Timestamptz
+  status               String                                    // DRAFT | ISSUED | REVOKED | EXPIRED
+  validUntil           DateTime? @map("valid_until") @db.Timestamptz
+  remarks              String?   @db.Text
+  dataClassification   String    @default("RESTRICTED") @map("data_classification")
+  createdBy            String    @map("created_by") @db.Uuid
+  updatedBy            String    @map("updated_by") @db.Uuid
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([speciesId])
+  @@index([status])
+  @@index([inspectionDate])
+  @@index([originCountryId])
+  @@index([destinationCountryId])
+  @@map("sps_certificates")
+  @@schema("trade_sps")
+}
+
+model MarketPrice {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  marketId           String   @map("market_id") @db.Uuid
+  speciesId          String   @map("species_id") @db.Uuid
+  commodity          String
+  priceType          String   @map("price_type")               // WHOLESALE | RETAIL | FARM_GATE | EXPORT
+  price              Float
+  currency           String
+  unit               String
+  date               DateTime @db.Timestamptz
+  source             String?
+  dataClassification String   @default("PARTNER") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([marketId])
+  @@index([speciesId])
+  @@index([date])
+  @@index([priceType])
+  @@map("market_prices")
+  @@schema("trade_sps")
+}

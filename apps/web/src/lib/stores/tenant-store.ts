@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { apiClient } from '@/lib/api/client';
 
 export type TenantLevel = 'CONTINENTAL' | 'REC' | 'MEMBER_STATE';
 
@@ -17,9 +18,11 @@ interface TenantState {
   selectedTenantId: string | null;
   selectedTenant: TenantNode | null;
   tenantTree: TenantNode[];
+  isLoading: boolean;
   setSelectedTenant: (tenantId: string, tenant: TenantNode) => void;
   setTenantTree: (tree: TenantNode[]) => void;
   clearTenant: () => void;
+  fetchTenantTree: () => Promise<void>;
 }
 
 export const PLACEHOLDER_TENANT_TREE: TenantNode[] = [
@@ -90,15 +93,45 @@ export const PLACEHOLDER_TENANT_TREE: TenantNode[] = [
 
 export const useTenantStore = create<TenantState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       selectedTenantId: 'au-ibar',
       selectedTenant: PLACEHOLDER_TENANT_TREE[0],
       tenantTree: PLACEHOLDER_TENANT_TREE,
+      isLoading: false,
       setSelectedTenant: (tenantId, tenant) =>
         set({ selectedTenantId: tenantId, selectedTenant: tenant }),
       setTenantTree: (tree) => set({ tenantTree: tree }),
       clearTenant: () =>
         set({ selectedTenantId: null, selectedTenant: null }),
+      fetchTenantTree: async () => {
+        // Avoid duplicate fetches
+        if (get().isLoading) return;
+
+        set({ isLoading: true });
+        try {
+          const response = await apiClient.get<{ data: TenantNode[] }>(
+            '/tenants',
+          );
+          const tree = response?.data;
+          if (tree && Array.isArray(tree) && tree.length > 0) {
+            set({ tenantTree: tree });
+
+            // If no tenant is currently selected, default to root
+            const { selectedTenantId } = get();
+            if (!selectedTenantId) {
+              set({
+                selectedTenantId: tree[0].id,
+                selectedTenant: tree[0],
+              });
+            }
+          }
+          // If the API returns empty/invalid data, keep the placeholder
+        } catch {
+          // On error, keep the existing placeholder tree
+        } finally {
+          set({ isLoading: false });
+        }
+      },
     }),
     {
       name: 'aris-tenant',

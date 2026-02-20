@@ -10,6 +10,8 @@ import { TemporalityModule } from './temporality/temporality.module';
 import { IdentifierModule } from './identifier/identifier.module';
 import { DenominatorModule } from './denominator/denominator.module';
 import { VersionModule } from './version/version.module';
+import { ImportExportModule } from './import-export/import-export.module';
+import { HistoryModule } from './history/history.module';
 import { AuditService } from './audit/audit.service';
 
 @Module({
@@ -29,6 +31,8 @@ import { AuditService } from './audit/audit.service';
     IdentifierModule,
     DenominatorModule,
     VersionModule,
+    ImportExportModule,
+    HistoryModule,
   ],
   providers: [PrismaService, AuditService],
   exports: [PrismaService, AuditService],

@@ -1,10 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Test } from '@nestjs/testing';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 import { DenominatorService } from './denominator.service';
-import { PrismaService } from '../prisma.service';
-import { AuditService } from '../audit/audit.service';
-import { KafkaProducerService } from '@aris/kafka-client';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { UserRole, TenantLevel } from '@aris/shared-types';
 
@@ -55,7 +51,7 @@ describe('DenominatorService', () => {
   let audit: { log: ReturnType<typeof vi.fn> };
   let kafkaProducer: { send: ReturnType<typeof vi.fn> };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     prisma = {
       species: { findUnique: vi.fn() },
       geoEntity: { findUnique: vi.fn() },
@@ -71,16 +67,7 @@ describe('DenominatorService', () => {
     audit = { log: vi.fn() };
     kafkaProducer = { send: vi.fn() };
 
-    const module = await Test.createTestingModule({
-      providers: [
-        DenominatorService,
-        { provide: PrismaService, useValue: prisma },
-        { provide: AuditService, useValue: audit },
-        { provide: KafkaProducerService, useValue: kafkaProducer },
-      ],
-    }).compile();
-
-    service = module.get(DenominatorService);
+    service = new DenominatorService(prisma as any, kafkaProducer as any, audit as any);
   });
 
   describe('create', () => {

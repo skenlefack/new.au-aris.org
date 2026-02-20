@@ -3,6 +3,14 @@
     <string name="app_name">ARIS</string>
     <string name="app_subtitle">Animal Resources Information System</string>
 
+    <!-- Splash / Branding -->
+    <string name="au_ibar_branding">African Union \u2014 Inter-African Bureau for Animal Resources</string>
+
+    <!-- Error -->
+    <string name="error_something_wrong">Something went wrong</string>
+    <string name="retry">Retry</string>
+    <string name="go_back">Go Back</string>
+
     <!-- Auth -->
     <string name="email">Email</string>
     <string name="password">Password</string>
@@ -141,4 +149,13 @@
     <string name="biometric_prompt_negative">Use PIN</string>
     <string name="unlock_required">Authentication required</string>
     <string name="wrong_pin">Wrong PIN. Try again.</string>
+
+    <!-- Additional error strings -->
+    <string name="error_network">Network error. Please check your connection.</string>
+    <string name="error_server">Server error. Please try again later.</string>
+    <string name="error_unknown">An unexpected error occurred.</string>
+
+    <!-- Release -->
+    <string name="loading">Loading\u2026</string>
+    <string name="version_format">Version %s</string>
 </resources>

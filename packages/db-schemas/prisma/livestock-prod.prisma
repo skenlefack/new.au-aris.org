@@ -1,0 +1,92 @@
+// ARIS 3.0 — Livestock Production domain schema
+// Service: livestock-prod (port 3021)
+// Owner: CC-4
+
+model LivestockCensus {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  geoEntityId        String   @map("geo_entity_id") @db.Uuid
+  speciesId          String   @map("species_id") @db.Uuid
+  year               Int
+  population         Int
+  methodology        String
+  source             String
+  dataClassification String   @default("PARTNER") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([tenantId, geoEntityId, speciesId, year])
+  @@index([tenantId])
+  @@index([geoEntityId])
+  @@index([speciesId])
+  @@map("livestock_census")
+  @@schema("livestock_prod")
+}
+
+model ProductionRecord {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  speciesId          String   @map("species_id") @db.Uuid
+  productType        String   @map("product_type")
+  quantity           Float
+  unit               String
+  periodStart        DateTime @map("period_start") @db.Timestamptz
+  periodEnd          DateTime @map("period_end") @db.Timestamptz
+  geoEntityId        String   @map("geo_entity_id") @db.Uuid
+  dataClassification String   @default("PARTNER") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([speciesId])
+  @@index([geoEntityId])
+  @@map("production_records")
+  @@schema("livestock_prod")
+}
+
+model SlaughterRecord {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  speciesId          String   @map("species_id") @db.Uuid
+  facilityId         String   @map("facility_id") @db.Uuid
+  count              Int
+  condemnations      Int      @default(0)
+  periodStart        DateTime @map("period_start") @db.Timestamptz
+  periodEnd          DateTime @map("period_end") @db.Timestamptz
+  geoEntityId        String   @map("geo_entity_id") @db.Uuid
+  dataClassification String   @default("PARTNER") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([speciesId])
+  @@index([facilityId])
+  @@map("slaughter_records")
+  @@schema("livestock_prod")
+}
+
+model TranshumanceCorridor {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  name               String
+  route              Json
+  speciesId          String   @map("species_id") @db.Uuid
+  seasonality        String
+  crossBorder        Boolean  @default(false) @map("cross_border")
+  dataClassification String   @default("PARTNER") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([speciesId])
+  @@map("transhumance_corridors")
+  @@schema("livestock_prod")
+}

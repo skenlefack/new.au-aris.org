@@ -50,22 +50,22 @@ describe('AuthGuard', () => {
     guard = new AuthGuard(options);
   });
 
-  it('should throw UnauthorizedException when no authorization header', () => {
+  it('should throw UnauthorizedException when no authorization header', async () => {
     const context = createMockContext();
-    expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
+    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
   });
 
-  it('should throw UnauthorizedException for malformed header', () => {
+  it('should throw UnauthorizedException for malformed header', async () => {
     const context = createMockContext('Basic abc123');
-    expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
+    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
   });
 
-  it('should throw UnauthorizedException for invalid token', () => {
+  it('should throw UnauthorizedException for invalid token', async () => {
     const context = createMockContext('Bearer invalid.token.here');
-    expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
+    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
   });
 
-  it('should throw UnauthorizedException for expired token', () => {
+  it('should throw UnauthorizedException for expired token', async () => {
     const token = signToken({
       sub: 'user-1',
       email: 'test@aris.africa',
@@ -75,10 +75,10 @@ describe('AuthGuard', () => {
       exp: Math.floor(Date.now() / 1000) - 3600, // expired 1h ago
     });
     const context = createMockContext(`Bearer ${token}`);
-    expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
+    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
   });
 
-  it('should allow valid token and set user on request', () => {
+  it('should allow valid token and set user on request', async () => {
     const token = signToken({
       sub: 'user-1',
       email: 'test@aris.africa',
@@ -87,7 +87,7 @@ describe('AuthGuard', () => {
       tenantLevel: TenantLevel.MEMBER_STATE,
     });
     const context = createMockContext(`Bearer ${token}`);
-    const result = guard.canActivate(context);
+    const result = await guard.canActivate(context);
 
     expect(result).toBe(true);
     const request = context.switchToHttp().getRequest() as { user: unknown };

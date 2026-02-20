@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore, type UserRole } from '@/lib/stores/auth-store';
@@ -14,6 +14,7 @@ import {
   Globe,
   Building2,
   MapPin,
+  Loader2,
 } from 'lucide-react';
 import type { TenantNode, TenantLevel } from '@/lib/stores/tenant-store';
 import { ConnectionIndicator } from '@/components/realtime/ConnectionIndicator';
@@ -64,7 +65,8 @@ function findTenantById(
 export function Header() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
-  const { selectedTenantId, tenantTree, setSelectedTenant } = useTenantStore();
+  const { selectedTenantId, tenantTree, isLoading: isTenantLoading, setSelectedTenant } =
+    useTenantStore();
 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [tenantMenuOpen, setTenantMenuOpen] = useState(false);
@@ -81,14 +83,12 @@ export function Header() {
     ? findTenantById(tenantTree, selectedTenantId)
     : null;
 
-  // Use placeholder user for demo
-  const displayUser = user ?? {
-    firstName: 'Dr. Amina',
-    lastName: 'Mwangi',
-    email: 'a.mwangi@au-ibar.org',
-    role: 'CONTINENTAL_ADMIN' as UserRole,
-  };
+  // Fetch tenant tree on mount
+  useEffect(() => {
+    useTenantStore.getState().fetchTenantTree();
+  }, []);
 
+  // Click outside handler
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -107,6 +107,22 @@ export function Header() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Keyboard support: Escape closes dropdowns
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (userMenuOpen) setUserMenuOpen(false);
+        if (tenantMenuOpen) setTenantMenuOpen(false);
+      }
+    },
+    [userMenuOpen, tenantMenuOpen],
+  );
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   function toggleExpand(id: string) {
     setExpandedIds((prev) => {
@@ -133,12 +149,20 @@ export function Header() {
     return (
       <div key={node.id}>
         <div
+          role="menuitem"
+          tabIndex={0}
           className={cn(
             'flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50',
             isSelected && 'bg-aris-primary-50 font-medium text-aris-primary-700',
           )}
           style={{ paddingLeft: `${depth * 16 + 12}px` }}
           onClick={() => handleTenantSelect(node)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleTenantSelect(node);
+            }
+          }}
         >
           {hasChildren ? (
             <button
@@ -147,6 +171,7 @@ export function Header() {
                 toggleExpand(node.id);
               }}
               className="p-0.5"
+              aria-label={isExpanded ? `Collapse ${node.name}` : `Expand ${node.name}`}
             >
               <ChevronDown
                 className={cn(
@@ -174,17 +199,38 @@ export function Header() {
     router.push('/login');
   }
 
+  // User skeleton when user is null (loading / not yet hydrated)
+  function renderUserSkeleton() {
+    return (
+      <div className="flex items-center gap-3 rounded-lg px-2 py-1.5">
+        <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />
+        <div className="hidden md:block">
+          <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
+          <div className="mt-1 h-3 w-16 animate-pulse rounded bg-gray-200" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
       {/* Tenant selector */}
       <div ref={tenantMenuRef} className="relative">
         <button
           onClick={() => setTenantMenuOpen(!tenantMenuOpen)}
+          aria-expanded={tenantMenuOpen}
+          aria-haspopup="true"
           className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:border-gray-300 hover:bg-gray-50"
         >
-          {selectedTenant && LEVEL_ICON[selectedTenant.level]}
+          {isTenantLoading ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />
+          ) : (
+            selectedTenant && LEVEL_ICON[selectedTenant.level]
+          )}
           <span className="font-medium">
-            {selectedTenant?.name ?? 'Select tenant'}
+            {isTenantLoading
+              ? 'Loading...'
+              : selectedTenant?.name ?? 'Select tenant'}
           </span>
           <ChevronDown
             className={cn(
@@ -195,18 +241,30 @@ export function Header() {
         </button>
 
         {tenantMenuOpen && (
-          <div className="absolute left-0 z-50 mt-2 max-h-80 w-72 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+          <div
+            role="menu"
+            className="absolute left-0 z-50 mt-2 max-h-80 w-72 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+          >
             <div className="border-b border-gray-100 px-3 py-2">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                 Tenant hierarchy
               </p>
             </div>
-            {tenantTree.map((t) => renderTenantNode(t))}
+            {isTenantLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                <span className="ml-2 text-sm text-gray-500">
+                  Loading tenants...
+                </span>
+              </div>
+            ) : (
+              tenantTree.map((t) => renderTenantNode(t))
+            )}
           </div>
         )}
       </div>
 
-      {/* Right side — connection status + notifications + user */}
+      {/* Right side -- connection status + notifications + user */}
       <div className="flex items-center gap-4">
         <ConnectionIndicator />
 
@@ -230,39 +288,49 @@ export function Header() {
 
         {/* User menu */}
         <div ref={userMenuRef} className="relative">
-          <button
-            onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-gray-50"
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-aris-primary-100 text-sm font-semibold text-aris-primary-700">
-              {displayUser.firstName[0]}
-              {displayUser.lastName[0]}
-            </div>
-            <div className="hidden text-left md:block">
-              <p className="text-sm font-medium text-gray-900">
-                {displayUser.firstName} {displayUser.lastName}
-              </p>
-              <span
-                className={cn(
-                  'inline-block rounded-full px-2 py-0.5 text-[10px] font-medium',
-                  ROLE_COLORS[displayUser.role],
-                )}
-              >
-                {ROLE_LABELS[displayUser.role]}
-              </span>
-            </div>
-            <ChevronDown className="hidden h-3.5 w-3.5 text-gray-400 md:block" />
-          </button>
+          {user ? (
+            <button
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              aria-expanded={userMenuOpen}
+              aria-haspopup="true"
+              className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-gray-50"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-aris-primary-100 text-sm font-semibold text-aris-primary-700">
+                {user.firstName[0]}
+                {user.lastName[0]}
+              </div>
+              <div className="hidden text-left md:block">
+                <p className="text-sm font-medium text-gray-900">
+                  {user.firstName} {user.lastName}
+                </p>
+                <span
+                  className={cn(
+                    'inline-block rounded-full px-2 py-0.5 text-[10px] font-medium',
+                    ROLE_COLORS[user.role],
+                  )}
+                >
+                  {ROLE_LABELS[user.role]}
+                </span>
+              </div>
+              <ChevronDown className="hidden h-3.5 w-3.5 text-gray-400 md:block" />
+            </button>
+          ) : (
+            renderUserSkeleton()
+          )}
 
-          {userMenuOpen && (
-            <div className="absolute right-0 z-50 mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+          {userMenuOpen && user && (
+            <div
+              role="menu"
+              className="absolute right-0 z-50 mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+            >
               <div className="border-b border-gray-100 px-4 py-2 md:hidden">
                 <p className="text-sm font-medium text-gray-900">
-                  {displayUser.firstName} {displayUser.lastName}
+                  {user.firstName} {user.lastName}
                 </p>
-                <p className="text-xs text-gray-500">{displayUser.email}</p>
+                <p className="text-xs text-gray-500">{user.email}</p>
               </div>
               <button
+                role="menuitem"
                 onClick={() => {
                   setUserMenuOpen(false);
                   router.push('/settings');
@@ -273,6 +341,7 @@ export function Header() {
                 Profile & Settings
               </button>
               <button
+                role="menuitem"
                 onClick={handleLogout}
                 className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
               >

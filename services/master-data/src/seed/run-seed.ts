@@ -1,11 +1,53 @@
 import { PrismaClient } from '@prisma/client';
 import { REC_SEEDS, COUNTRY_SEEDS, ADMIN1_SEEDS } from './geo-seed-data';
+import { ADMIN1_EXTENDED_SEEDS } from './geo-admin1-seed-data';
+import { ADMIN1_MZ_SEEDS } from './geo-admin1-mz-seed-data';
+import { ADMIN2_SEEDS } from './geo-admin2-seed-data';
 import { SPECIES_SEEDS } from './species-seed-data';
 import { DISEASE_SEEDS } from './disease-seed-data';
 import { UNIT_SEEDS } from './unit-seed-data';
 import { DENOMINATOR_SEEDS } from './denominator-seed-data';
+import { IDENTIFIER_SEEDS } from './identifier-seed-data';
 
 const prisma = new PrismaClient();
+
+async function seedGeoEntity(entity: {
+  code: string;
+  name: string;
+  nameEn: string;
+  nameFr: string;
+  level: string;
+  parentCode?: string;
+  countryCode: string;
+  centroidLat?: number;
+  centroidLng?: number;
+}, resolveParent: boolean): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const level = entity.level as any;
+  let parentId: string | null = null;
+  if (resolveParent && entity.parentCode) {
+    const parent = await prisma.geoEntity.findUnique({
+      where: { code: entity.parentCode },
+    });
+    parentId = parent?.id ?? null;
+  }
+
+  await prisma.geoEntity.upsert({
+    where: { code: entity.code },
+    update: {},
+    create: {
+      code: entity.code,
+      name: entity.name,
+      nameEn: entity.nameEn,
+      nameFr: entity.nameFr,
+      level,
+      parentId,
+      countryCode: entity.countryCode,
+      centroidLat: entity.centroidLat ?? null,
+      centroidLng: entity.centroidLng ?? null,
+    },
+  });
+}
 
 async function main(): Promise<void> {
   console.log('🌱 Seeding master data...\n');
@@ -15,67 +57,44 @@ async function main(): Promise<void> {
 
   // RECs (stored as SPECIAL_ZONE)
   for (const rec of REC_SEEDS) {
-    await prisma.geoEntity.upsert({
-      where: { code: rec.code },
-      update: {},
-      create: {
-        code: rec.code,
-        name: rec.name,
-        nameEn: rec.nameEn,
-        nameFr: rec.nameFr,
-        level: 'SPECIAL_ZONE',
-        countryCode: rec.countryCode,
-        centroidLat: rec.centroidLat ?? null,
-        centroidLng: rec.centroidLng ?? null,
-      },
-    });
+    await seedGeoEntity({ ...rec, level: 'SPECIAL_ZONE' as string }, false);
   }
   console.log(`  ✓ ${REC_SEEDS.length} RECs`);
 
   // Countries
   for (const country of COUNTRY_SEEDS) {
-    await prisma.geoEntity.upsert({
-      where: { code: country.code },
-      update: {},
-      create: {
-        code: country.code,
-        name: country.name,
-        nameEn: country.nameEn,
-        nameFr: country.nameFr,
-        level: 'COUNTRY',
-        countryCode: country.countryCode,
-        centroidLat: country.centroidLat ?? null,
-        centroidLng: country.centroidLng ?? null,
-      },
-    });
+    await seedGeoEntity(country, false);
   }
   console.log(`  ✓ ${COUNTRY_SEEDS.length} AU Member States`);
 
-  // Admin Level 1 (need to resolve parent IDs)
-  let admin1Count = 0;
+  // Admin Level 1 — pilot countries (from geo-seed-data.ts)
   for (const admin1 of ADMIN1_SEEDS) {
-    const parent = await prisma.geoEntity.findUnique({
-      where: { code: admin1.parentCode! },
-    });
-
-    await prisma.geoEntity.upsert({
-      where: { code: admin1.code },
-      update: {},
-      create: {
-        code: admin1.code,
-        name: admin1.name,
-        nameEn: admin1.nameEn,
-        nameFr: admin1.nameFr,
-        level: 'ADMIN1',
-        parentId: parent?.id ?? null,
-        countryCode: admin1.countryCode,
-        centroidLat: admin1.centroidLat ?? null,
-        centroidLng: admin1.centroidLng ?? null,
-      },
-    });
-    admin1Count++;
+    await seedGeoEntity(admin1, true);
   }
-  console.log(`  ✓ ${admin1Count} Admin-1 entities (5 pilot countries)`);
+  console.log(`  ✓ ${ADMIN1_SEEDS.length} Admin-1 (5 pilot countries)`);
+
+  // Admin Level 1 — countries A-L (remaining)
+  for (const admin1 of ADMIN1_EXTENDED_SEEDS) {
+    await seedGeoEntity(admin1, true);
+  }
+  console.log(`  ✓ ${ADMIN1_EXTENDED_SEEDS.length} Admin-1 (countries A-L)`);
+
+  // Admin Level 1 — countries M-Z (remaining)
+  for (const admin1 of ADMIN1_MZ_SEEDS) {
+    await seedGeoEntity(admin1, true);
+  }
+  console.log(`  ✓ ${ADMIN1_MZ_SEEDS.length} Admin-1 (countries M-Z)`);
+
+  // Admin Level 2 — 5 pilot countries
+  for (const admin2 of ADMIN2_SEEDS) {
+    await seedGeoEntity(admin2, true);
+  }
+  console.log(`  ✓ ${ADMIN2_SEEDS.length} Admin-2 (5 pilot countries)`);
+
+  const totalGeo = REC_SEEDS.length + COUNTRY_SEEDS.length +
+    ADMIN1_SEEDS.length + ADMIN1_EXTENDED_SEEDS.length + ADMIN1_MZ_SEEDS.length +
+    ADMIN2_SEEDS.length;
+  console.log(`  Total geo entities: ${totalGeo}`);
 
   // ── 2. Species ──
   console.log('\n🐄 Seeding species...');
@@ -137,7 +156,6 @@ async function main(): Promise<void> {
   console.log('\n📊 Seeding FAOSTAT denominators...');
   let denomCount = 0;
   for (const denom of DENOMINATOR_SEEDS) {
-    // Resolve species ID from code
     const species = await prisma.species.findUnique({
       where: { code: denom.speciesCode },
     });
@@ -146,7 +164,6 @@ async function main(): Promise<void> {
       continue;
     }
 
-    // Resolve geoEntity from country code
     const geoEntity = await prisma.geoEntity.findUnique({
       where: { code: denom.countryCode },
     });
@@ -177,6 +194,37 @@ async function main(): Promise<void> {
   }
   console.log(`  ✓ ${denomCount} denominators`);
 
+  // ── 6. Identifiers ──
+  console.log('\n🏷️  Seeding identifiers (labs, markets, borders, etc.)...');
+  let idCount = 0;
+  for (const ident of IDENTIFIER_SEEDS) {
+    // Resolve geo entity if provided
+    let geoEntityId: string | null = null;
+    if (ident.geoEntityCode) {
+      const geo = await prisma.geoEntity.findUnique({
+        where: { code: ident.geoEntityCode },
+      });
+      geoEntityId = geo?.id ?? null;
+    }
+
+    await prisma.identifier.upsert({
+      where: { code: ident.code },
+      update: {},
+      create: {
+        code: ident.code,
+        nameEn: ident.nameEn,
+        nameFr: ident.nameFr,
+        type: ident.type,
+        geoEntityId,
+        latitude: ident.latitude ?? null,
+        longitude: ident.longitude ?? null,
+        address: ident.address ?? null,
+      },
+    });
+    idCount++;
+  }
+  console.log(`  ✓ ${idCount} identifiers`);
+
   // ── Summary ──
   const counts = await Promise.all([
     prisma.geoEntity.count(),
@@ -184,6 +232,7 @@ async function main(): Promise<void> {
     prisma.disease.count(),
     prisma.unit.count(),
     prisma.denominator.count(),
+    prisma.identifier.count(),
   ]);
 
   console.log('\n═══════════════════════════════════════');
@@ -194,6 +243,7 @@ async function main(): Promise<void> {
   console.log(`  Diseases:       ${counts[2]}`);
   console.log(`  Units:          ${counts[3]}`);
   console.log(`  Denominators:   ${counts[4]}`);
+  console.log(`  Identifiers:    ${counts[5]}`);
   console.log('═══════════════════════════════════════');
   console.log('\n✅ Seed completed successfully!');
 }

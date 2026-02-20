@@ -23,7 +23,7 @@ export class AuthGuard implements CanActivate {
     private readonly options: AuthModuleOptions,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<{
       headers: Record<string, string | undefined>;
       user?: AuthenticatedUser;
@@ -46,6 +46,13 @@ export class AuthGuard implements CanActivate {
         algorithms: (this.options.algorithms as jwt.Algorithm[]) ?? ['RS256'],
       }) as JwtPayload;
 
+      // Check if token has been blacklisted (e.g. after logout)
+      if (this.options.isTokenBlacklisted) {
+        if (await this.options.isTokenBlacklisted(token)) {
+          throw new UnauthorizedException('Token has been revoked');
+        }
+      }
+
       const user: AuthenticatedUser = {
         userId: payload.sub,
         email: payload.email,
@@ -57,6 +64,9 @@ export class AuthGuard implements CanActivate {
       request.user = user;
       return true;
     } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
       this.logger.warn(
         `JWT verification failed: ${error instanceof Error ? error.message : String(error)}`,
       );

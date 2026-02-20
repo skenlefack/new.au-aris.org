@@ -33,7 +33,7 @@ import org.auibar.aris.mobile.data.local.entity.SubmissionEntity
         PhotoEntity::class,
         GpsTrackEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class ArisDatabase : RoomDatabase() {

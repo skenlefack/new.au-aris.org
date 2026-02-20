@@ -5,6 +5,7 @@ import { PrismaService } from './prisma.service';
 import { RedisService } from './redis.service';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
+import { MfaModule } from './mfa/mfa.module';
 
 @Module({
   imports: [
@@ -12,11 +13,19 @@ import { UserModule } from './user/user.module';
       clientId: process.env['KAFKA_CLIENT_ID'] ?? 'aris-credential-service',
       brokers: (process.env['KAFKA_BROKERS'] ?? 'localhost:9092').split(','),
     }),
-    AuthMiddlewareModule.forRoot({
-      publicKey: process.env['JWT_PUBLIC_KEY'] ?? '',
+    AuthMiddlewareModule.forRootAsync({
+      useFactory: (redis: RedisService) => ({
+        publicKey: process.env['JWT_PUBLIC_KEY'] ?? '',
+        isTokenBlacklisted: async (token: string): Promise<boolean> => {
+          const exists = await redis.exists(`blacklist:${token}`);
+          return exists > 0;
+        },
+      }),
+      inject: [RedisService],
     }),
     AuthModule,
     UserModule,
+    MfaModule,
   ],
   providers: [PrismaService, RedisService],
   exports: [PrismaService, RedisService],

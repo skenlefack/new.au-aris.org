@@ -1,0 +1,95 @@
+// ARIS 3.0 — Climate & Environment domain schema
+// Service: climate-env (port 3027)
+// Owner: CC-4
+
+model WaterStressIndex {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  geoEntityId        String   @map("geo_entity_id") @db.Uuid
+  period             String
+  index              Float
+  waterAvailability  String   @map("water_availability")
+  irrigatedAreaPct   Float    @map("irrigated_area_pct")
+  source             String
+  dataClassification String   @default("PUBLIC") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([tenantId, geoEntityId, period])
+  @@index([tenantId])
+  @@index([geoEntityId])
+  @@map("water_stress_indices")
+  @@schema("climate_env")
+}
+
+model RangelandCondition {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  geoEntityId        String   @map("geo_entity_id") @db.Uuid
+  assessmentDate     DateTime @map("assessment_date") @db.Timestamptz
+  ndviIndex          Float    @map("ndvi_index")
+  biomassTonsPerHa   Float    @map("biomass_tons_per_ha")
+  degradationLevel   String   @map("degradation_level")
+  carryingCapacity   Float    @map("carrying_capacity")
+  dataClassification String   @default("PUBLIC") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([geoEntityId])
+  @@index([assessmentDate])
+  @@index([degradationLevel])
+  @@map("rangeland_conditions")
+  @@schema("climate_env")
+}
+
+model EnvironmentalHotspot {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  geoEntityId        String   @map("geo_entity_id") @db.Uuid
+  type               String
+  severity           String
+  detectedDate       DateTime @map("detected_date") @db.Timestamptz
+  satelliteSource    String?  @map("satellite_source")
+  affectedSpecies    String[] @map("affected_species")
+  dataClassification String   @default("PUBLIC") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([geoEntityId])
+  @@index([type])
+  @@index([severity])
+  @@index([detectedDate])
+  @@map("environmental_hotspots")
+  @@schema("climate_env")
+}
+
+model ClimateDataPoint {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  geoEntityId        String   @map("geo_entity_id") @db.Uuid
+  date               DateTime @db.Timestamptz
+  temperature        Float?
+  rainfall           Float?
+  humidity           Float?
+  windSpeed          Float?   @map("wind_speed")
+  source             String
+  dataClassification String   @default("PUBLIC") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([geoEntityId])
+  @@index([date])
+  @@map("climate_data_points")
+  @@schema("climate_env")
+}

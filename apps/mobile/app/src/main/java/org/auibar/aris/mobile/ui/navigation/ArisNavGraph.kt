@@ -39,6 +39,7 @@ import org.auibar.aris.mobile.ui.livestock.LivestockCensusScreen
 import org.auibar.aris.mobile.ui.livestock.ProductionRecordScreen
 import org.auibar.aris.mobile.ui.login.LoginScreen
 import org.auibar.aris.mobile.ui.notification.NotificationListScreen
+import org.auibar.aris.mobile.ui.splash.SplashScreen
 import org.auibar.aris.mobile.ui.notification.NotificationListViewModel
 import org.auibar.aris.mobile.ui.photo.PhotoGalleryScreen
 import org.auibar.aris.mobile.ui.reports.MiniReportsScreen
@@ -46,6 +47,7 @@ import org.auibar.aris.mobile.ui.settings.SettingsScreen
 import org.auibar.aris.mobile.ui.submission.SubmissionListScreen
 
 object ArisRoutes {
+    const val SPLASH = "splash"
     const val LOGIN = "login"
     const val DASHBOARD = "dashboard"
     const val CAMPAIGNS = "campaigns"
@@ -85,7 +87,7 @@ private val bottomNavRoutes = bottomNavItems.map { it.route }.toSet()
 @Composable
 fun ArisNavGraph(
     navController: NavHostController,
-    startDestination: String = ArisRoutes.LOGIN,
+    startDestination: String = ArisRoutes.SPLASH,
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -103,6 +105,21 @@ fun ArisNavGraph(
             startDestination = startDestination,
             modifier = Modifier.padding(innerPadding),
         ) {
+            composable(ArisRoutes.SPLASH) {
+                SplashScreen(
+                    onNavigateToDashboard = {
+                        navController.navigate(ArisRoutes.DASHBOARD) {
+                            popUpTo(ArisRoutes.SPLASH) { inclusive = true }
+                        }
+                    },
+                    onNavigateToLogin = {
+                        navController.navigate(ArisRoutes.LOGIN) {
+                            popUpTo(ArisRoutes.SPLASH) { inclusive = true }
+                        }
+                    },
+                )
+            }
+
             composable(ArisRoutes.LOGIN) {
                 LoginScreen(
                     onLoginSuccess = {

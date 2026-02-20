@@ -1,0 +1,94 @@
+// ARIS 3.0 — Apiculture & Pollination domain schema
+// Service: apiculture (port 3024)
+// Owner: CC-4
+
+model Apiary {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  name               String
+  geoEntityId        String   @map("geo_entity_id") @db.Uuid
+  latitude           Float?
+  longitude          Float?
+  hiveCount          Int      @map("hive_count") @default(0)
+  hiveType           String   @map("hive_type")
+  ownerName          String   @map("owner_name")
+  dataClassification String   @default("PARTNER") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  productions       HoneyProduction[]
+  healthInspections ColonyHealth[]
+
+  @@index([tenantId])
+  @@index([geoEntityId])
+  @@map("apiaries")
+  @@schema("apiculture")
+}
+
+model HoneyProduction {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  apiaryId           String   @map("apiary_id") @db.Uuid
+  harvestDate        DateTime @map("harvest_date") @db.Timestamptz
+  quantity           Float
+  unit               String
+  quality            String
+  floralSource       String   @map("floral_source")
+  dataClassification String   @default("PARTNER") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  apiary             Apiary   @relation(fields: [apiaryId], references: [id])
+
+  @@index([tenantId])
+  @@index([apiaryId])
+  @@index([harvestDate])
+  @@map("honey_production")
+  @@schema("apiculture")
+}
+
+model ColonyHealth {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  apiaryId           String   @map("apiary_id") @db.Uuid
+  inspectionDate     DateTime @map("inspection_date") @db.Timestamptz
+  colonyStrength     String   @map("colony_strength")
+  diseases           String[]
+  treatments         String[]
+  dataClassification String   @default("PARTNER") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  apiary             Apiary   @relation(fields: [apiaryId], references: [id])
+
+  @@index([tenantId])
+  @@index([apiaryId])
+  @@index([inspectionDate])
+  @@map("colony_health")
+  @@schema("apiculture")
+}
+
+model BeekeeperTraining {
+  id                  String    @id @default(uuid()) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  beekeeperId         String    @map("beekeeper_id") @db.Uuid
+  trainingType        String    @map("training_type")
+  completedDate       DateTime  @map("completed_date") @db.Timestamptz
+  certificationNumber String?   @map("certification_number")
+  dataClassification  String    @default("PUBLIC") @map("data_classification")
+  createdBy           String    @map("created_by") @db.Uuid
+  updatedBy           String    @map("updated_by") @db.Uuid
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([beekeeperId])
+  @@map("beekeeper_training")
+  @@schema("apiculture")
+}

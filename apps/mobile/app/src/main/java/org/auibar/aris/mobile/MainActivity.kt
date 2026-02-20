@@ -73,12 +73,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        val startDestination = if (tokenManager.isLoggedIn) {
-            ArisRoutes.DASHBOARD
-        } else {
-            ArisRoutes.LOGIN
-        }
-
         setContent {
             ArisTheme {
                 val isOnline by connectivityObserver.isOnline.collectAsStateWithLifecycle(
@@ -89,7 +83,7 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     ArisNavGraph(
                         navController = navController,
-                        startDestination = startDestination,
+                        startDestination = ArisRoutes.SPLASH,
                     )
                 }
             }

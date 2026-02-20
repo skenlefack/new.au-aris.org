@@ -22,6 +22,9 @@
     "docker:reset": "docker compose down -v && docker compose up -d",
     "db:migrate": "turbo run db:migrate",
     "db:seed": "turbo run db:seed",
+    "db:seed:all": "tsx scripts/db-seed-all.ts",
+    "db:setup": "bash scripts/db-setup.sh",
+    "db:reset": "bash scripts/db-reset.sh",
     "kafka:topics": "docker compose up kafka-init",
     "generate:keys": "mkdir -p keys && openssl genrsa -out keys/private.pem 2048 && openssl rsa -in keys/private.pem -pubout -out keys/public.pem",
     "prepare": "husky install"

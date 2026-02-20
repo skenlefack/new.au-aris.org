@@ -1,9 +1,15 @@
 package org.auibar.aris.mobile.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "form_templates")
+@Entity(
+    tableName = "form_templates",
+    indices = [
+        Index("domain"),
+    ],
+)
 data class FormTemplateEntity(
     @PrimaryKey val id: String,
     val name: String,

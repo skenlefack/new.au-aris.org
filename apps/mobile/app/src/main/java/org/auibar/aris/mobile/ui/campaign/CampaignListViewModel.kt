@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.auibar.aris.mobile.data.cache.CampaignRefresher
 import org.auibar.aris.mobile.data.repository.Campaign
 import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
@@ -26,6 +27,7 @@ class CampaignListViewModel @Inject constructor(
     private val campaignRepository: CampaignRepository,
     private val submissionRepository: SubmissionRepository,
     private val syncRepository: SyncRepository,
+    private val campaignRefresher: CampaignRefresher,
     private val tokenManager: TokenManager,
 ) : ViewModel() {
 
@@ -44,12 +46,16 @@ class CampaignListViewModel @Inject constructor(
         get() = tokenManager.lastSyncAt
 
     init {
+        viewModelScope.launch {
+            campaignRefresher.refreshIfNeeded()
+        }
         refresh()
     }
 
     fun refresh() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
+            campaignRefresher.forceRefresh()
             val result = campaignRepository.refreshCampaigns()
             _uiState.value = _uiState.value.copy(
                 isRefreshing = false,

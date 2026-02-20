@@ -3,10 +3,11 @@ import { PrismaService } from '../prisma.service';
 import { RedisService } from '../redis.service';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AccountLockoutService } from './account-lockout.service';
 
 @Module({
   controllers: [AuthController],
-  providers: [PrismaService, RedisService, AuthService],
+  providers: [PrismaService, RedisService, AuthService, AccountLockoutService],
   exports: [AuthService],
 })
 export class AuthModule {}

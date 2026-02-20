@@ -1,0 +1,305 @@
+// ADMIN1 for remaining 50 AU Member States (not in geo-seed-data.ts)
+// Kenya, Ethiopia, Nigeria, Senegal, South Africa already covered in geo-seed-data.ts
+
+import type { GeoSeed } from './geo-seed-data';
+
+export const ADMIN1_EXTENDED_SEEDS: GeoSeed[] = [
+  // ── Algeria (48 wilayas, top 20) ──
+  { code: 'DZ-01', name: 'Adrar', nameEn: 'Adrar', nameFr: 'Adrar', level: 'ADMIN1', parentCode: 'DZ', countryCode: 'DZ', centroidLat: 27.87, centroidLng: -0.29 },
+  { code: 'DZ-09', name: 'Blida', nameEn: 'Blida', nameFr: 'Blida', level: 'ADMIN1', parentCode: 'DZ', countryCode: 'DZ', centroidLat: 36.47, centroidLng: 2.83 },
+  { code: 'DZ-16', name: 'Alger', nameEn: 'Algiers', nameFr: 'Alger', level: 'ADMIN1', parentCode: 'DZ', countryCode: 'DZ', centroidLat: 36.75, centroidLng: 3.06 },
+  { code: 'DZ-19', name: 'Sétif', nameEn: 'Sétif', nameFr: 'Sétif', level: 'ADMIN1', parentCode: 'DZ', countryCode: 'DZ', centroidLat: 36.19, centroidLng: 5.41 },
+  { code: 'DZ-23', name: 'Annaba', nameEn: 'Annaba', nameFr: 'Annaba', level: 'ADMIN1', parentCode: 'DZ', countryCode: 'DZ', centroidLat: 36.90, centroidLng: 7.77 },
+  { code: 'DZ-25', name: 'Constantine', nameEn: 'Constantine', nameFr: 'Constantine', level: 'ADMIN1', parentCode: 'DZ', countryCode: 'DZ', centroidLat: 36.37, centroidLng: 6.61 },
+  { code: 'DZ-31', name: 'Oran', nameEn: 'Oran', nameFr: 'Oran', level: 'ADMIN1', parentCode: 'DZ', countryCode: 'DZ', centroidLat: 35.70, centroidLng: -0.63 },
+  { code: 'DZ-42', name: 'Tipaza', nameEn: 'Tipaza', nameFr: 'Tipaza', level: 'ADMIN1', parentCode: 'DZ', countryCode: 'DZ', centroidLat: 36.59, centroidLng: 2.45 },
+  { code: 'DZ-06', name: 'Béjaïa', nameEn: 'Béjaïa', nameFr: 'Béjaïa', level: 'ADMIN1', parentCode: 'DZ', countryCode: 'DZ', centroidLat: 36.76, centroidLng: 5.08 },
+  { code: 'DZ-15', name: 'Tizi Ouzou', nameEn: 'Tizi Ouzou', nameFr: 'Tizi Ouzou', level: 'ADMIN1', parentCode: 'DZ', countryCode: 'DZ', centroidLat: 36.71, centroidLng: 4.05 },
+  { code: 'DZ-05', name: 'Batna', nameEn: 'Batna', nameFr: 'Batna', level: 'ADMIN1', parentCode: 'DZ', countryCode: 'DZ', centroidLat: 35.56, centroidLng: 6.17 },
+  { code: 'DZ-34', name: 'Bordj Bou Arréridj', nameEn: 'Bordj Bou Arréridj', nameFr: 'Bordj Bou Arréridj', level: 'ADMIN1', parentCode: 'DZ', countryCode: 'DZ', centroidLat: 36.07, centroidLng: 4.76 },
+  { code: 'DZ-03', name: 'Laghouat', nameEn: 'Laghouat', nameFr: 'Laghouat', level: 'ADMIN1', parentCode: 'DZ', countryCode: 'DZ', centroidLat: 33.80, centroidLng: 2.88 },
+  { code: 'DZ-17', name: 'Djelfa', nameEn: 'Djelfa', nameFr: 'Djelfa', level: 'ADMIN1', parentCode: 'DZ', countryCode: 'DZ', centroidLat: 34.67, centroidLng: 3.25 },
+  { code: 'DZ-47', name: 'Ghardaïa', nameEn: 'Ghardaïa', nameFr: 'Ghardaïa', level: 'ADMIN1', parentCode: 'DZ', countryCode: 'DZ', centroidLat: 32.49, centroidLng: 3.67 },
+
+  // ── Angola (18 provinces) ──
+  { code: 'AO-LUA', name: 'Luanda', nameEn: 'Luanda', nameFr: 'Luanda', level: 'ADMIN1', parentCode: 'AO', countryCode: 'AO', centroidLat: -8.84, centroidLng: 13.23 },
+  { code: 'AO-HUA', name: 'Huambo', nameEn: 'Huambo', nameFr: 'Huambo', level: 'ADMIN1', parentCode: 'AO', countryCode: 'AO', centroidLat: -12.78, centroidLng: 15.73 },
+  { code: 'AO-BGO', name: 'Benguela', nameEn: 'Benguela', nameFr: 'Benguela', level: 'ADMIN1', parentCode: 'AO', countryCode: 'AO', centroidLat: -12.58, centroidLng: 13.41 },
+  { code: 'AO-HUI', name: 'Huíla', nameEn: 'Huíla', nameFr: 'Huíla', level: 'ADMIN1', parentCode: 'AO', countryCode: 'AO', centroidLat: -14.93, centroidLng: 14.66 },
+  { code: 'AO-BGU', name: 'Bié', nameEn: 'Bié', nameFr: 'Bié', level: 'ADMIN1', parentCode: 'AO', countryCode: 'AO', centroidLat: -12.37, centroidLng: 17.67 },
+  { code: 'AO-UIG', name: 'Uíge', nameEn: 'Uíge', nameFr: 'Uíge', level: 'ADMIN1', parentCode: 'AO', countryCode: 'AO', centroidLat: -7.61, centroidLng: 15.06 },
+  { code: 'AO-ZAI', name: 'Zaire', nameEn: 'Zaire', nameFr: 'Zaïre', level: 'ADMIN1', parentCode: 'AO', countryCode: 'AO', centroidLat: -6.27, centroidLng: 14.24 },
+  { code: 'AO-CAB', name: 'Cabinda', nameEn: 'Cabinda', nameFr: 'Cabinda', level: 'ADMIN1', parentCode: 'AO', countryCode: 'AO', centroidLat: -5.55, centroidLng: 12.19 },
+  { code: 'AO-CNN', name: 'Cunene', nameEn: 'Cunene', nameFr: 'Cunene', level: 'ADMIN1', parentCode: 'AO', countryCode: 'AO', centroidLat: -16.28, centroidLng: 16.16 },
+  { code: 'AO-MOX', name: 'Moxico', nameEn: 'Moxico', nameFr: 'Moxico', level: 'ADMIN1', parentCode: 'AO', countryCode: 'AO', centroidLat: -13.43, centroidLng: 20.43 },
+  { code: 'AO-LNO', name: 'Lunda Norte', nameEn: 'Lunda Norte', nameFr: 'Lunda Nord', level: 'ADMIN1', parentCode: 'AO', countryCode: 'AO', centroidLat: -8.35, centroidLng: 19.17 },
+  { code: 'AO-MAL', name: 'Malanje', nameEn: 'Malanje', nameFr: 'Malanje', level: 'ADMIN1', parentCode: 'AO', countryCode: 'AO', centroidLat: -9.54, centroidLng: 16.34 },
+  { code: 'AO-NAM', name: 'Namibe', nameEn: 'Namibe', nameFr: 'Namibe', level: 'ADMIN1', parentCode: 'AO', countryCode: 'AO', centroidLat: -15.20, centroidLng: 12.15 },
+  { code: 'AO-CCU', name: 'Cuando Cubango', nameEn: 'Cuando Cubango', nameFr: 'Cuando Cubango', level: 'ADMIN1', parentCode: 'AO', countryCode: 'AO', centroidLat: -16.58, centroidLng: 18.81 },
+
+  // ── Benin (12 departments) ──
+  { code: 'BJ-AK', name: 'Atacora', nameEn: 'Atacora', nameFr: 'Atacora', level: 'ADMIN1', parentCode: 'BJ', countryCode: 'BJ', centroidLat: 10.80, centroidLng: 1.39 },
+  { code: 'BJ-AQ', name: 'Atlantique', nameEn: 'Atlantique', nameFr: 'Atlantique', level: 'ADMIN1', parentCode: 'BJ', countryCode: 'BJ', centroidLat: 6.66, centroidLng: 2.23 },
+  { code: 'BJ-BO', name: 'Borgou', nameEn: 'Borgou', nameFr: 'Borgou', level: 'ADMIN1', parentCode: 'BJ', countryCode: 'BJ', centroidLat: 9.83, centroidLng: 2.87 },
+  { code: 'BJ-CO', name: 'Collines', nameEn: 'Collines', nameFr: 'Collines', level: 'ADMIN1', parentCode: 'BJ', countryCode: 'BJ', centroidLat: 8.03, centroidLng: 2.30 },
+  { code: 'BJ-DO', name: 'Donga', nameEn: 'Donga', nameFr: 'Donga', level: 'ADMIN1', parentCode: 'BJ', countryCode: 'BJ', centroidLat: 9.69, centroidLng: 1.68 },
+  { code: 'BJ-LI', name: 'Littoral', nameEn: 'Littoral', nameFr: 'Littoral', level: 'ADMIN1', parentCode: 'BJ', countryCode: 'BJ', centroidLat: 6.35, centroidLng: 2.43 },
+  { code: 'BJ-MO', name: 'Mono', nameEn: 'Mono', nameFr: 'Mono', level: 'ADMIN1', parentCode: 'BJ', countryCode: 'BJ', centroidLat: 6.62, centroidLng: 1.79 },
+  { code: 'BJ-OU', name: 'Ouémé', nameEn: 'Ouémé', nameFr: 'Ouémé', level: 'ADMIN1', parentCode: 'BJ', countryCode: 'BJ', centroidLat: 6.58, centroidLng: 2.60 },
+  { code: 'BJ-PL', name: 'Plateau', nameEn: 'Plateau', nameFr: 'Plateau', level: 'ADMIN1', parentCode: 'BJ', countryCode: 'BJ', centroidLat: 7.35, centroidLng: 2.59 },
+  { code: 'BJ-ZO', name: 'Zou', nameEn: 'Zou', nameFr: 'Zou', level: 'ADMIN1', parentCode: 'BJ', countryCode: 'BJ', centroidLat: 7.35, centroidLng: 2.15 },
+  { code: 'BJ-AL', name: 'Alibori', nameEn: 'Alibori', nameFr: 'Alibori', level: 'ADMIN1', parentCode: 'BJ', countryCode: 'BJ', centroidLat: 11.13, centroidLng: 2.83 },
+  { code: 'BJ-KO', name: 'Couffo', nameEn: 'Couffo', nameFr: 'Couffo', level: 'ADMIN1', parentCode: 'BJ', countryCode: 'BJ', centroidLat: 7.00, centroidLng: 1.76 },
+
+  // ── Botswana (10 districts) ──
+  { code: 'BW-CE', name: 'Central', nameEn: 'Central', nameFr: 'Central', level: 'ADMIN1', parentCode: 'BW', countryCode: 'BW', centroidLat: -22.33, centroidLng: 27.13 },
+  { code: 'BW-GH', name: 'Ghanzi', nameEn: 'Ghanzi', nameFr: 'Ghanzi', level: 'ADMIN1', parentCode: 'BW', countryCode: 'BW', centroidLat: -21.70, centroidLng: 21.70 },
+  { code: 'BW-KG', name: 'Kgalagadi', nameEn: 'Kgalagadi', nameFr: 'Kgalagadi', level: 'ADMIN1', parentCode: 'BW', countryCode: 'BW', centroidLat: -24.00, centroidLng: 21.50 },
+  { code: 'BW-KL', name: 'Kgatleng', nameEn: 'Kgatleng', nameFr: 'Kgatleng', level: 'ADMIN1', parentCode: 'BW', countryCode: 'BW', centroidLat: -24.19, centroidLng: 26.23 },
+  { code: 'BW-KW', name: 'Kweneng', nameEn: 'Kweneng', nameFr: 'Kweneng', level: 'ADMIN1', parentCode: 'BW', countryCode: 'BW', centroidLat: -23.75, centroidLng: 25.04 },
+  { code: 'BW-NE', name: 'North East', nameEn: 'North East', nameFr: 'Nord-Est', level: 'ADMIN1', parentCode: 'BW', countryCode: 'BW', centroidLat: -20.93, centroidLng: 27.48 },
+  { code: 'BW-NW', name: 'North West', nameEn: 'North West', nameFr: 'Nord-Ouest', level: 'ADMIN1', parentCode: 'BW', countryCode: 'BW', centroidLat: -19.39, centroidLng: 23.31 },
+  { code: 'BW-SE', name: 'South East', nameEn: 'South East', nameFr: 'Sud-Est', level: 'ADMIN1', parentCode: 'BW', countryCode: 'BW', centroidLat: -24.66, centroidLng: 25.92 },
+  { code: 'BW-SO', name: 'Southern', nameEn: 'Southern', nameFr: 'Sud', level: 'ADMIN1', parentCode: 'BW', countryCode: 'BW', centroidLat: -24.98, centroidLng: 25.00 },
+
+  // ── Burkina Faso (13 regions) ──
+  { code: 'BF-01', name: 'Boucle du Mouhoun', nameEn: 'Boucle du Mouhoun', nameFr: 'Boucle du Mouhoun', level: 'ADMIN1', parentCode: 'BF', countryCode: 'BF', centroidLat: 12.28, centroidLng: -3.42 },
+  { code: 'BF-02', name: 'Cascades', nameEn: 'Cascades', nameFr: 'Cascades', level: 'ADMIN1', parentCode: 'BF', countryCode: 'BF', centroidLat: 10.53, centroidLng: -4.64 },
+  { code: 'BF-03', name: 'Centre', nameEn: 'Centre', nameFr: 'Centre', level: 'ADMIN1', parentCode: 'BF', countryCode: 'BF', centroidLat: 12.37, centroidLng: -1.52 },
+  { code: 'BF-04', name: 'Centre-Est', nameEn: 'Centre-East', nameFr: 'Centre-Est', level: 'ADMIN1', parentCode: 'BF', countryCode: 'BF', centroidLat: 11.79, centroidLng: -0.55 },
+  { code: 'BF-05', name: 'Centre-Nord', nameEn: 'Centre-North', nameFr: 'Centre-Nord', level: 'ADMIN1', parentCode: 'BF', countryCode: 'BF', centroidLat: 13.22, centroidLng: -1.07 },
+  { code: 'BF-06', name: 'Centre-Ouest', nameEn: 'Centre-West', nameFr: 'Centre-Ouest', level: 'ADMIN1', parentCode: 'BF', countryCode: 'BF', centroidLat: 11.88, centroidLng: -2.18 },
+  { code: 'BF-07', name: 'Centre-Sud', nameEn: 'Centre-South', nameFr: 'Centre-Sud', level: 'ADMIN1', parentCode: 'BF', countryCode: 'BF', centroidLat: 11.53, centroidLng: -1.22 },
+  { code: 'BF-08', name: 'Est', nameEn: 'East', nameFr: 'Est', level: 'ADMIN1', parentCode: 'BF', countryCode: 'BF', centroidLat: 12.11, centroidLng: 0.73 },
+  { code: 'BF-09', name: 'Hauts-Bassins', nameEn: 'Hauts-Bassins', nameFr: 'Hauts-Bassins', level: 'ADMIN1', parentCode: 'BF', countryCode: 'BF', centroidLat: 11.18, centroidLng: -4.29 },
+  { code: 'BF-10', name: 'Nord', nameEn: 'North', nameFr: 'Nord', level: 'ADMIN1', parentCode: 'BF', countryCode: 'BF', centroidLat: 13.58, centroidLng: -2.19 },
+  { code: 'BF-11', name: 'Plateau Central', nameEn: 'Plateau Central', nameFr: 'Plateau Central', level: 'ADMIN1', parentCode: 'BF', countryCode: 'BF', centroidLat: 12.55, centroidLng: -0.73 },
+  { code: 'BF-12', name: 'Sahel', nameEn: 'Sahel', nameFr: 'Sahel', level: 'ADMIN1', parentCode: 'BF', countryCode: 'BF', centroidLat: 14.19, centroidLng: -0.07 },
+  { code: 'BF-13', name: 'Sud-Ouest', nameEn: 'South-West', nameFr: 'Sud-Ouest', level: 'ADMIN1', parentCode: 'BF', countryCode: 'BF', centroidLat: 10.33, centroidLng: -3.20 },
+
+  // ── Burundi (18 provinces, top 10) ──
+  { code: 'BI-BM', name: 'Bujumbura Mairie', nameEn: 'Bujumbura Mairie', nameFr: 'Bujumbura Mairie', level: 'ADMIN1', parentCode: 'BI', countryCode: 'BI', centroidLat: -3.38, centroidLng: 29.36 },
+  { code: 'BI-BL', name: 'Bujumbura Rural', nameEn: 'Bujumbura Rural', nameFr: 'Bujumbura Rural', level: 'ADMIN1', parentCode: 'BI', countryCode: 'BI', centroidLat: -3.50, centroidLng: 29.30 },
+  { code: 'BI-GI', name: 'Gitega', nameEn: 'Gitega', nameFr: 'Gitega', level: 'ADMIN1', parentCode: 'BI', countryCode: 'BI', centroidLat: -3.43, centroidLng: 29.93 },
+  { code: 'BI-NG', name: 'Ngozi', nameEn: 'Ngozi', nameFr: 'Ngozi', level: 'ADMIN1', parentCode: 'BI', countryCode: 'BI', centroidLat: -2.91, centroidLng: 29.83 },
+  { code: 'BI-KY', name: 'Kayanza', nameEn: 'Kayanza', nameFr: 'Kayanza', level: 'ADMIN1', parentCode: 'BI', countryCode: 'BI', centroidLat: -2.92, centroidLng: 29.63 },
+  { code: 'BI-MY', name: 'Muyinga', nameEn: 'Muyinga', nameFr: 'Muyinga', level: 'ADMIN1', parentCode: 'BI', countryCode: 'BI', centroidLat: -2.85, centroidLng: 30.35 },
+  { code: 'BI-MW', name: 'Mwaro', nameEn: 'Mwaro', nameFr: 'Mwaro', level: 'ADMIN1', parentCode: 'BI', countryCode: 'BI', centroidLat: -3.52, centroidLng: 29.70 },
+  { code: 'BI-CI', name: 'Cibitoke', nameEn: 'Cibitoke', nameFr: 'Cibitoke', level: 'ADMIN1', parentCode: 'BI', countryCode: 'BI', centroidLat: -2.89, centroidLng: 29.12 },
+  { code: 'BI-BR', name: 'Bururi', nameEn: 'Bururi', nameFr: 'Bururi', level: 'ADMIN1', parentCode: 'BI', countryCode: 'BI', centroidLat: -3.95, centroidLng: 29.62 },
+  { code: 'BI-RT', name: 'Rutana', nameEn: 'Rutana', nameFr: 'Rutana', level: 'ADMIN1', parentCode: 'BI', countryCode: 'BI', centroidLat: -3.93, centroidLng: 30.07 },
+
+  // ── Cabo Verde (9 islands, top 5) ──
+  { code: 'CV-SV', name: 'São Vicente', nameEn: 'São Vicente', nameFr: 'São Vicente', level: 'ADMIN1', parentCode: 'CV', countryCode: 'CV', centroidLat: 16.88, centroidLng: -24.98 },
+  { code: 'CV-S', name: 'Santiago', nameEn: 'Santiago', nameFr: 'Santiago', level: 'ADMIN1', parentCode: 'CV', countryCode: 'CV', centroidLat: 15.06, centroidLng: -23.63 },
+  { code: 'CV-SA', name: 'Santo Antão', nameEn: 'Santo Antão', nameFr: 'Santo Antão', level: 'ADMIN1', parentCode: 'CV', countryCode: 'CV', centroidLat: 17.07, centroidLng: -25.06 },
+  { code: 'CV-FO', name: 'Fogo', nameEn: 'Fogo', nameFr: 'Fogo', level: 'ADMIN1', parentCode: 'CV', countryCode: 'CV', centroidLat: 14.93, centroidLng: -24.38 },
+  { code: 'CV-BV', name: 'Boa Vista', nameEn: 'Boa Vista', nameFr: 'Boa Vista', level: 'ADMIN1', parentCode: 'CV', countryCode: 'CV', centroidLat: 16.09, centroidLng: -22.80 },
+
+  // ── Cameroon (10 regions) ──
+  { code: 'CM-AD', name: 'Adamaoua', nameEn: 'Adamawa', nameFr: 'Adamaoua', level: 'ADMIN1', parentCode: 'CM', countryCode: 'CM', centroidLat: 7.39, centroidLng: 13.57 },
+  { code: 'CM-CE', name: 'Centre', nameEn: 'Centre', nameFr: 'Centre', level: 'ADMIN1', parentCode: 'CM', countryCode: 'CM', centroidLat: 3.87, centroidLng: 11.52 },
+  { code: 'CM-EN', name: 'Extrême-Nord', nameEn: 'Far North', nameFr: 'Extrême-Nord', level: 'ADMIN1', parentCode: 'CM', countryCode: 'CM', centroidLat: 10.60, centroidLng: 14.32 },
+  { code: 'CM-ES', name: 'Est', nameEn: 'East', nameFr: 'Est', level: 'ADMIN1', parentCode: 'CM', countryCode: 'CM', centroidLat: 4.18, centroidLng: 14.31 },
+  { code: 'CM-LT', name: 'Littoral', nameEn: 'Littoral', nameFr: 'Littoral', level: 'ADMIN1', parentCode: 'CM', countryCode: 'CM', centroidLat: 4.58, centroidLng: 9.87 },
+  { code: 'CM-NO', name: 'Nord', nameEn: 'North', nameFr: 'Nord', level: 'ADMIN1', parentCode: 'CM', countryCode: 'CM', centroidLat: 8.77, centroidLng: 13.55 },
+  { code: 'CM-NW', name: 'Nord-Ouest', nameEn: 'North-West', nameFr: 'Nord-Ouest', level: 'ADMIN1', parentCode: 'CM', countryCode: 'CM', centroidLat: 6.41, centroidLng: 10.39 },
+  { code: 'CM-OU', name: 'Ouest', nameEn: 'West', nameFr: 'Ouest', level: 'ADMIN1', parentCode: 'CM', countryCode: 'CM', centroidLat: 5.49, centroidLng: 10.14 },
+  { code: 'CM-SU', name: 'Sud', nameEn: 'South', nameFr: 'Sud', level: 'ADMIN1', parentCode: 'CM', countryCode: 'CM', centroidLat: 2.84, centroidLng: 10.92 },
+  { code: 'CM-SW', name: 'Sud-Ouest', nameEn: 'South-West', nameFr: 'Sud-Ouest', level: 'ADMIN1', parentCode: 'CM', countryCode: 'CM', centroidLat: 5.13, centroidLng: 9.32 },
+
+  // ── Central African Republic (7 key prefectures) ──
+  { code: 'CF-BGF', name: 'Bangui', nameEn: 'Bangui', nameFr: 'Bangui', level: 'ADMIN1', parentCode: 'CF', countryCode: 'CF', centroidLat: 4.36, centroidLng: 18.56 },
+  { code: 'CF-BB', name: 'Bamingui-Bangoran', nameEn: 'Bamingui-Bangoran', nameFr: 'Bamingui-Bangoran', level: 'ADMIN1', parentCode: 'CF', countryCode: 'CF', centroidLat: 8.42, centroidLng: 20.65 },
+  { code: 'CF-HK', name: 'Haute-Kotto', nameEn: 'Haute-Kotto', nameFr: 'Haute-Kotto', level: 'ADMIN1', parentCode: 'CF', countryCode: 'CF', centroidLat: 6.74, centroidLng: 23.28 },
+  { code: 'CF-HS', name: 'Haute-Sangha', nameEn: 'Sangha-Mbaéré', nameFr: 'Sangha-Mbaéré', level: 'ADMIN1', parentCode: 'CF', countryCode: 'CF', centroidLat: 3.57, centroidLng: 16.34 },
+  { code: 'CF-OM', name: 'Ouham', nameEn: 'Ouham', nameFr: 'Ouham', level: 'ADMIN1', parentCode: 'CF', countryCode: 'CF', centroidLat: 7.09, centroidLng: 17.67 },
+  { code: 'CF-MP', name: 'Ombella-M\'Poko', nameEn: 'Ombella-M\'Poko', nameFr: 'Ombella-M\'Poko', level: 'ADMIN1', parentCode: 'CF', countryCode: 'CF', centroidLat: 4.80, centroidLng: 18.24 },
+  { code: 'CF-UK', name: 'Ouaka', nameEn: 'Ouaka', nameFr: 'Ouaka', level: 'ADMIN1', parentCode: 'CF', countryCode: 'CF', centroidLat: 5.99, centroidLng: 20.71 },
+
+  // ── Chad (10 key regions) ──
+  { code: 'TD-ND', name: 'N\'Djaména', nameEn: 'N\'Djaména', nameFr: 'N\'Djaména', level: 'ADMIN1', parentCode: 'TD', countryCode: 'TD', centroidLat: 12.13, centroidLng: 15.05 },
+  { code: 'TD-LO', name: 'Logone Occidental', nameEn: 'Logone Occidental', nameFr: 'Logone Occidental', level: 'ADMIN1', parentCode: 'TD', countryCode: 'TD', centroidLat: 8.59, centroidLng: 15.80 },
+  { code: 'TD-MC', name: 'Moyen-Chari', nameEn: 'Moyen-Chari', nameFr: 'Moyen-Chari', level: 'ADMIN1', parentCode: 'TD', countryCode: 'TD', centroidLat: 9.06, centroidLng: 18.43 },
+  { code: 'TD-OD', name: 'Ouaddaï', nameEn: 'Ouaddaï', nameFr: 'Ouaddaï', level: 'ADMIN1', parentCode: 'TD', countryCode: 'TD', centroidLat: 13.75, centroidLng: 21.00 },
+  { code: 'TD-KA', name: 'Kanem', nameEn: 'Kanem', nameFr: 'Kanem', level: 'ADMIN1', parentCode: 'TD', countryCode: 'TD', centroidLat: 14.12, centroidLng: 15.31 },
+  { code: 'TD-BET', name: 'Borkou-Ennedi-Tibesti', nameEn: 'BET', nameFr: 'Borkou-Ennedi-Tibesti', level: 'ADMIN1', parentCode: 'TD', countryCode: 'TD', centroidLat: 19.00, centroidLng: 18.50 },
+  { code: 'TD-LC', name: 'Lac', nameEn: 'Lac', nameFr: 'Lac', level: 'ADMIN1', parentCode: 'TD', countryCode: 'TD', centroidLat: 13.69, centroidLng: 14.10 },
+  { code: 'TD-GR', name: 'Guéra', nameEn: 'Guéra', nameFr: 'Guéra', level: 'ADMIN1', parentCode: 'TD', countryCode: 'TD', centroidLat: 11.14, centroidLng: 18.40 },
+
+  // ── Comoros (3 islands) ──
+  { code: 'KM-G', name: 'Grande Comore', nameEn: 'Grande Comore', nameFr: 'Grande Comore', level: 'ADMIN1', parentCode: 'KM', countryCode: 'KM', centroidLat: -11.75, centroidLng: 43.34 },
+  { code: 'KM-A', name: 'Anjouan', nameEn: 'Anjouan', nameFr: 'Anjouan', level: 'ADMIN1', parentCode: 'KM', countryCode: 'KM', centroidLat: -12.22, centroidLng: 44.43 },
+  { code: 'KM-M', name: 'Mohéli', nameEn: 'Mohéli', nameFr: 'Mohéli', level: 'ADMIN1', parentCode: 'KM', countryCode: 'KM', centroidLat: -12.32, centroidLng: 43.73 },
+
+  // ── Congo Republic (8 key departments) ──
+  { code: 'CG-BZV', name: 'Brazzaville', nameEn: 'Brazzaville', nameFr: 'Brazzaville', level: 'ADMIN1', parentCode: 'CG', countryCode: 'CG', centroidLat: -4.27, centroidLng: 15.28 },
+  { code: 'CG-PNR', name: 'Pointe-Noire', nameEn: 'Pointe-Noire', nameFr: 'Pointe-Noire', level: 'ADMIN1', parentCode: 'CG', countryCode: 'CG', centroidLat: -4.77, centroidLng: 11.87 },
+  { code: 'CG-8', name: 'Cuvette', nameEn: 'Cuvette', nameFr: 'Cuvette', level: 'ADMIN1', parentCode: 'CG', countryCode: 'CG', centroidLat: -0.38, centroidLng: 16.18 },
+  { code: 'CG-9', name: 'Niari', nameEn: 'Niari', nameFr: 'Niari', level: 'ADMIN1', parentCode: 'CG', countryCode: 'CG', centroidLat: -3.18, centroidLng: 12.25 },
+  { code: 'CG-2', name: 'Pool', nameEn: 'Pool', nameFr: 'Pool', level: 'ADMIN1', parentCode: 'CG', countryCode: 'CG', centroidLat: -4.20, centroidLng: 14.95 },
+  { code: 'CG-13', name: 'Sangha', nameEn: 'Sangha', nameFr: 'Sangha', level: 'ADMIN1', parentCode: 'CG', countryCode: 'CG', centroidLat: 1.58, centroidLng: 16.07 },
+  { code: 'CG-7', name: 'Likouala', nameEn: 'Likouala', nameFr: 'Likouala', level: 'ADMIN1', parentCode: 'CG', countryCode: 'CG', centroidLat: 2.10, centroidLng: 17.67 },
+
+  // ── DR Congo (26 provinces, top 15) ──
+  { code: 'CD-KN', name: 'Kinshasa', nameEn: 'Kinshasa', nameFr: 'Kinshasa', level: 'ADMIN1', parentCode: 'CD', countryCode: 'CD', centroidLat: -4.32, centroidLng: 15.31 },
+  { code: 'CD-HK', name: 'Haut-Katanga', nameEn: 'Haut-Katanga', nameFr: 'Haut-Katanga', level: 'ADMIN1', parentCode: 'CD', countryCode: 'CD', centroidLat: -11.66, centroidLng: 27.48 },
+  { code: 'CD-NK', name: 'Nord-Kivu', nameEn: 'North Kivu', nameFr: 'Nord-Kivu', level: 'ADMIN1', parentCode: 'CD', countryCode: 'CD', centroidLat: -1.00, centroidLng: 29.00 },
+  { code: 'CD-SK', name: 'Sud-Kivu', nameEn: 'South Kivu', nameFr: 'Sud-Kivu', level: 'ADMIN1', parentCode: 'CD', countryCode: 'CD', centroidLat: -3.00, centroidLng: 28.50 },
+  { code: 'CD-KE', name: 'Kasaï-Oriental', nameEn: 'Kasaï-Oriental', nameFr: 'Kasaï-Oriental', level: 'ADMIN1', parentCode: 'CD', countryCode: 'CD', centroidLat: -5.90, centroidLng: 23.95 },
+  { code: 'CD-EQ', name: 'Équateur', nameEn: 'Équateur', nameFr: 'Équateur', level: 'ADMIN1', parentCode: 'CD', countryCode: 'CD', centroidLat: 1.50, centroidLng: 19.80 },
+  { code: 'CD-HL', name: 'Haut-Lomami', nameEn: 'Haut-Lomami', nameFr: 'Haut-Lomami', level: 'ADMIN1', parentCode: 'CD', countryCode: 'CD', centroidLat: -8.73, centroidLng: 26.65 },
+  { code: 'CD-IT', name: 'Ituri', nameEn: 'Ituri', nameFr: 'Ituri', level: 'ADMIN1', parentCode: 'CD', countryCode: 'CD', centroidLat: 1.78, centroidLng: 30.08 },
+  { code: 'CD-KC', name: 'Kasaï-Central', nameEn: 'Kasaï-Central', nameFr: 'Kasaï-Central', level: 'ADMIN1', parentCode: 'CD', countryCode: 'CD', centroidLat: -5.23, centroidLng: 21.70 },
+  { code: 'CD-BC', name: 'Kongo Central', nameEn: 'Kongo Central', nameFr: 'Kongo Central', level: 'ADMIN1', parentCode: 'CD', countryCode: 'CD', centroidLat: -5.05, centroidLng: 14.30 },
+  { code: 'CD-LU', name: 'Lualaba', nameEn: 'Lualaba', nameFr: 'Lualaba', level: 'ADMIN1', parentCode: 'CD', countryCode: 'CD', centroidLat: -10.56, centroidLng: 25.58 },
+  { code: 'CD-MN', name: 'Maniema', nameEn: 'Maniema', nameFr: 'Maniema', level: 'ADMIN1', parentCode: 'CD', countryCode: 'CD', centroidLat: -3.07, centroidLng: 26.04 },
+  { code: 'CD-TP', name: 'Tshopo', nameEn: 'Tshopo', nameFr: 'Tshopo', level: 'ADMIN1', parentCode: 'CD', countryCode: 'CD', centroidLat: 1.23, centroidLng: 25.18 },
+  { code: 'CD-TL', name: 'Tanganyika', nameEn: 'Tanganyika', nameFr: 'Tanganyika', level: 'ADMIN1', parentCode: 'CD', countryCode: 'CD', centroidLat: -6.19, centroidLng: 28.81 },
+  { code: 'CD-TO', name: 'Tshuapa', nameEn: 'Tshuapa', nameFr: 'Tshuapa', level: 'ADMIN1', parentCode: 'CD', countryCode: 'CD', centroidLat: -0.58, centroidLng: 22.58 },
+
+  // ── Côte d'Ivoire (14 districts, top 10) ──
+  { code: 'CI-AB', name: 'Abidjan', nameEn: 'Abidjan', nameFr: 'Abidjan', level: 'ADMIN1', parentCode: 'CI', countryCode: 'CI', centroidLat: 5.32, centroidLng: -4.03 },
+  { code: 'CI-YM', name: 'Yamoussoukro', nameEn: 'Yamoussoukro', nameFr: 'Yamoussoukro', level: 'ADMIN1', parentCode: 'CI', countryCode: 'CI', centroidLat: 6.83, centroidLng: -5.28 },
+  { code: 'CI-BS', name: 'Bas-Sassandra', nameEn: 'Bas-Sassandra', nameFr: 'Bas-Sassandra', level: 'ADMIN1', parentCode: 'CI', countryCode: 'CI', centroidLat: 5.28, centroidLng: -6.62 },
+  { code: 'CI-CM', name: 'Comoé', nameEn: 'Comoé', nameFr: 'Comoé', level: 'ADMIN1', parentCode: 'CI', countryCode: 'CI', centroidLat: 5.89, centroidLng: -3.26 },
+  { code: 'CI-DN', name: 'Denguélé', nameEn: 'Denguélé', nameFr: 'Denguélé', level: 'ADMIN1', parentCode: 'CI', countryCode: 'CI', centroidLat: 9.46, centroidLng: -7.44 },
+  { code: 'CI-LC', name: 'Lacs', nameEn: 'Lacs', nameFr: 'Lacs', level: 'ADMIN1', parentCode: 'CI', countryCode: 'CI', centroidLat: 6.64, centroidLng: -5.02 },
+  { code: 'CI-SV', name: 'Savanes', nameEn: 'Savanes', nameFr: 'Savanes', level: 'ADMIN1', parentCode: 'CI', countryCode: 'CI', centroidLat: 9.90, centroidLng: -5.67 },
+  { code: 'CI-SM', name: 'Sassandra-Marahoué', nameEn: 'Sassandra-Marahoué', nameFr: 'Sassandra-Marahoué', level: 'ADMIN1', parentCode: 'CI', countryCode: 'CI', centroidLat: 6.89, centroidLng: -5.99 },
+  { code: 'CI-VB', name: 'Vallée du Bandama', nameEn: 'Vallée du Bandama', nameFr: 'Vallée du Bandama', level: 'ADMIN1', parentCode: 'CI', countryCode: 'CI', centroidLat: 7.65, centroidLng: -5.28 },
+  { code: 'CI-WR', name: 'Woroba', nameEn: 'Woroba', nameFr: 'Woroba', level: 'ADMIN1', parentCode: 'CI', countryCode: 'CI', centroidLat: 8.25, centroidLng: -6.92 },
+
+  // ── Djibouti (6 regions) ──
+  { code: 'DJ-DJ', name: 'Djibouti', nameEn: 'Djibouti', nameFr: 'Djibouti', level: 'ADMIN1', parentCode: 'DJ', countryCode: 'DJ', centroidLat: 11.59, centroidLng: 43.15 },
+  { code: 'DJ-AR', name: 'Arta', nameEn: 'Arta', nameFr: 'Arta', level: 'ADMIN1', parentCode: 'DJ', countryCode: 'DJ', centroidLat: 11.52, centroidLng: 42.85 },
+  { code: 'DJ-AS', name: 'Ali Sabieh', nameEn: 'Ali Sabieh', nameFr: 'Ali Sabieh', level: 'ADMIN1', parentCode: 'DJ', countryCode: 'DJ', centroidLat: 11.16, centroidLng: 42.71 },
+  { code: 'DJ-DI', name: 'Dikhil', nameEn: 'Dikhil', nameFr: 'Dikhil', level: 'ADMIN1', parentCode: 'DJ', countryCode: 'DJ', centroidLat: 11.11, centroidLng: 42.37 },
+  { code: 'DJ-OB', name: 'Obock', nameEn: 'Obock', nameFr: 'Obock', level: 'ADMIN1', parentCode: 'DJ', countryCode: 'DJ', centroidLat: 12.00, centroidLng: 43.19 },
+  { code: 'DJ-TA', name: 'Tadjourah', nameEn: 'Tadjourah', nameFr: 'Tadjourah', level: 'ADMIN1', parentCode: 'DJ', countryCode: 'DJ', centroidLat: 11.78, centroidLng: 42.88 },
+
+  // ── Egypt (27 governorates, top 15) ──
+  { code: 'EG-C', name: 'Cairo', nameEn: 'Cairo', nameFr: 'Le Caire', level: 'ADMIN1', parentCode: 'EG', countryCode: 'EG', centroidLat: 30.04, centroidLng: 31.24 },
+  { code: 'EG-GZ', name: 'Giza', nameEn: 'Giza', nameFr: 'Gizeh', level: 'ADMIN1', parentCode: 'EG', countryCode: 'EG', centroidLat: 29.99, centroidLng: 31.21 },
+  { code: 'EG-ALX', name: 'Alexandria', nameEn: 'Alexandria', nameFr: 'Alexandrie', level: 'ADMIN1', parentCode: 'EG', countryCode: 'EG', centroidLat: 31.20, centroidLng: 29.92 },
+  { code: 'EG-SHR', name: 'Sharqia', nameEn: 'Sharqia', nameFr: 'Charqiya', level: 'ADMIN1', parentCode: 'EG', countryCode: 'EG', centroidLat: 30.67, centroidLng: 31.51 },
+  { code: 'EG-DK', name: 'Dakahlia', nameEn: 'Dakahlia', nameFr: 'Daqahliya', level: 'ADMIN1', parentCode: 'EG', countryCode: 'EG', centroidLat: 31.05, centroidLng: 31.38 },
+  { code: 'EG-MNF', name: 'Monufia', nameEn: 'Monufia', nameFr: 'Menoufiya', level: 'ADMIN1', parentCode: 'EG', countryCode: 'EG', centroidLat: 30.47, centroidLng: 30.99 },
+  { code: 'EG-BH', name: 'Beheira', nameEn: 'Beheira', nameFr: 'Béhéra', level: 'ADMIN1', parentCode: 'EG', countryCode: 'EG', centroidLat: 30.85, centroidLng: 30.34 },
+  { code: 'EG-FYM', name: 'Faiyum', nameEn: 'Faiyum', nameFr: 'Fayoum', level: 'ADMIN1', parentCode: 'EG', countryCode: 'EG', centroidLat: 29.31, centroidLng: 30.84 },
+  { code: 'EG-MN', name: 'Minya', nameEn: 'Minya', nameFr: 'Minya', level: 'ADMIN1', parentCode: 'EG', countryCode: 'EG', centroidLat: 28.08, centroidLng: 30.75 },
+  { code: 'EG-AST', name: 'Asyut', nameEn: 'Asyut', nameFr: 'Assiout', level: 'ADMIN1', parentCode: 'EG', countryCode: 'EG', centroidLat: 27.19, centroidLng: 31.17 },
+  { code: 'EG-SHG', name: 'Sohag', nameEn: 'Sohag', nameFr: 'Sohag', level: 'ADMIN1', parentCode: 'EG', countryCode: 'EG', centroidLat: 26.56, centroidLng: 31.69 },
+  { code: 'EG-LX', name: 'Luxor', nameEn: 'Luxor', nameFr: 'Louxor', level: 'ADMIN1', parentCode: 'EG', countryCode: 'EG', centroidLat: 25.69, centroidLng: 32.64 },
+  { code: 'EG-ASN', name: 'Aswan', nameEn: 'Aswan', nameFr: 'Assouan', level: 'ADMIN1', parentCode: 'EG', countryCode: 'EG', centroidLat: 24.09, centroidLng: 32.90 },
+  { code: 'EG-SIN', name: 'North Sinai', nameEn: 'North Sinai', nameFr: 'Sinaï du Nord', level: 'ADMIN1', parentCode: 'EG', countryCode: 'EG', centroidLat: 30.50, centroidLng: 33.80 },
+  { code: 'EG-WAD', name: 'New Valley', nameEn: 'New Valley', nameFr: 'Nouvelle Vallée', level: 'ADMIN1', parentCode: 'EG', countryCode: 'EG', centroidLat: 24.55, centroidLng: 27.18 },
+
+  // ── Equatorial Guinea (4 provinces) ──
+  { code: 'GQ-LI', name: 'Litoral', nameEn: 'Litoral', nameFr: 'Litoral', level: 'ADMIN1', parentCode: 'GQ', countryCode: 'GQ', centroidLat: 1.86, centroidLng: 9.79 },
+  { code: 'GQ-CS', name: 'Centro Sur', nameEn: 'Centro Sur', nameFr: 'Centro Sur', level: 'ADMIN1', parentCode: 'GQ', countryCode: 'GQ', centroidLat: 1.50, centroidLng: 10.33 },
+  { code: 'GQ-BN', name: 'Bioko Norte', nameEn: 'Bioko Norte', nameFr: 'Bioko Nord', level: 'ADMIN1', parentCode: 'GQ', countryCode: 'GQ', centroidLat: 3.76, centroidLng: 8.78 },
+  { code: 'GQ-WN', name: 'Wele-Nzas', nameEn: 'Wele-Nzas', nameFr: 'Wele-Nzas', level: 'ADMIN1', parentCode: 'GQ', countryCode: 'GQ', centroidLat: 1.40, centroidLng: 11.09 },
+
+  // ── Eritrea (6 regions) ──
+  { code: 'ER-MA', name: 'Maekel', nameEn: 'Maekel (Central)', nameFr: 'Maekel (Central)', level: 'ADMIN1', parentCode: 'ER', countryCode: 'ER', centroidLat: 15.34, centroidLng: 38.93 },
+  { code: 'ER-DU', name: 'Debub', nameEn: 'Debub (Southern)', nameFr: 'Debub (Sud)', level: 'ADMIN1', parentCode: 'ER', countryCode: 'ER', centroidLat: 14.94, centroidLng: 39.15 },
+  { code: 'ER-AN', name: 'Anseba', nameEn: 'Anseba', nameFr: 'Anseba', level: 'ADMIN1', parentCode: 'ER', countryCode: 'ER', centroidLat: 15.75, centroidLng: 38.33 },
+  { code: 'ER-GB', name: 'Gash-Barka', nameEn: 'Gash-Barka', nameFr: 'Gash-Barka', level: 'ADMIN1', parentCode: 'ER', countryCode: 'ER', centroidLat: 15.49, centroidLng: 37.43 },
+  { code: 'ER-SK', name: 'Northern Red Sea', nameEn: 'Northern Red Sea', nameFr: 'Mer Rouge du Nord', level: 'ADMIN1', parentCode: 'ER', countryCode: 'ER', centroidLat: 16.14, centroidLng: 39.32 },
+  { code: 'ER-DK', name: 'Southern Red Sea', nameEn: 'Southern Red Sea', nameFr: 'Mer Rouge du Sud', level: 'ADMIN1', parentCode: 'ER', countryCode: 'ER', centroidLat: 14.29, centroidLng: 40.94 },
+
+  // ── Eswatini (4 districts) ──
+  { code: 'SZ-HH', name: 'Hhohho', nameEn: 'Hhohho', nameFr: 'Hhohho', level: 'ADMIN1', parentCode: 'SZ', countryCode: 'SZ', centroidLat: -26.13, centroidLng: 31.35 },
+  { code: 'SZ-MA', name: 'Manzini', nameEn: 'Manzini', nameFr: 'Manzini', level: 'ADMIN1', parentCode: 'SZ', countryCode: 'SZ', centroidLat: -26.50, centroidLng: 31.37 },
+  { code: 'SZ-LU', name: 'Lubombo', nameEn: 'Lubombo', nameFr: 'Lubombo', level: 'ADMIN1', parentCode: 'SZ', countryCode: 'SZ', centroidLat: -26.56, centroidLng: 31.95 },
+  { code: 'SZ-SH', name: 'Shiselweni', nameEn: 'Shiselweni', nameFr: 'Shiselweni', level: 'ADMIN1', parentCode: 'SZ', countryCode: 'SZ', centroidLat: -26.98, centroidLng: 31.35 },
+
+  // ── Gabon (9 provinces) ──
+  { code: 'GA-1', name: 'Estuaire', nameEn: 'Estuaire', nameFr: 'Estuaire', level: 'ADMIN1', parentCode: 'GA', countryCode: 'GA', centroidLat: 0.44, centroidLng: 9.75 },
+  { code: 'GA-2', name: 'Haut-Ogooué', nameEn: 'Haut-Ogooué', nameFr: 'Haut-Ogooué', level: 'ADMIN1', parentCode: 'GA', countryCode: 'GA', centroidLat: -1.46, centroidLng: 13.92 },
+  { code: 'GA-3', name: 'Moyen-Ogooué', nameEn: 'Moyen-Ogooué', nameFr: 'Moyen-Ogooué', level: 'ADMIN1', parentCode: 'GA', countryCode: 'GA', centroidLat: -0.44, centroidLng: 10.44 },
+  { code: 'GA-4', name: 'Ngounié', nameEn: 'Ngounié', nameFr: 'Ngounié', level: 'ADMIN1', parentCode: 'GA', countryCode: 'GA', centroidLat: -1.49, centroidLng: 11.00 },
+  { code: 'GA-5', name: 'Nyanga', nameEn: 'Nyanga', nameFr: 'Nyanga', level: 'ADMIN1', parentCode: 'GA', countryCode: 'GA', centroidLat: -2.88, centroidLng: 11.16 },
+  { code: 'GA-6', name: 'Ogooué-Ivindo', nameEn: 'Ogooué-Ivindo', nameFr: 'Ogooué-Ivindo', level: 'ADMIN1', parentCode: 'GA', countryCode: 'GA', centroidLat: 0.60, centroidLng: 12.23 },
+  { code: 'GA-7', name: 'Ogooué-Lolo', nameEn: 'Ogooué-Lolo', nameFr: 'Ogooué-Lolo', level: 'ADMIN1', parentCode: 'GA', countryCode: 'GA', centroidLat: -0.89, centroidLng: 12.44 },
+  { code: 'GA-8', name: 'Ogooué-Maritime', nameEn: 'Ogooué-Maritime', nameFr: 'Ogooué-Maritime', level: 'ADMIN1', parentCode: 'GA', countryCode: 'GA', centroidLat: -1.58, centroidLng: 9.34 },
+  { code: 'GA-9', name: 'Woleu-Ntem', nameEn: 'Woleu-Ntem', nameFr: 'Woleu-Ntem', level: 'ADMIN1', parentCode: 'GA', countryCode: 'GA', centroidLat: 2.15, centroidLng: 11.58 },
+
+  // ── Gambia (5 key divisions) ──
+  { code: 'GM-B', name: 'Banjul', nameEn: 'Banjul', nameFr: 'Banjul', level: 'ADMIN1', parentCode: 'GM', countryCode: 'GM', centroidLat: 13.45, centroidLng: -16.58 },
+  { code: 'GM-M', name: 'Central River', nameEn: 'Central River', nameFr: 'Fleuve Central', level: 'ADMIN1', parentCode: 'GM', countryCode: 'GM', centroidLat: 13.60, centroidLng: -14.78 },
+  { code: 'GM-L', name: 'Lower River', nameEn: 'Lower River', nameFr: 'Fleuve Inférieur', level: 'ADMIN1', parentCode: 'GM', countryCode: 'GM', centroidLat: 13.50, centroidLng: -15.63 },
+  { code: 'GM-N', name: 'North Bank', nameEn: 'North Bank', nameFr: 'Rive Nord', level: 'ADMIN1', parentCode: 'GM', countryCode: 'GM', centroidLat: 13.53, centroidLng: -16.02 },
+  { code: 'GM-W', name: 'Western', nameEn: 'Western', nameFr: 'Ouest', level: 'ADMIN1', parentCode: 'GM', countryCode: 'GM', centroidLat: 13.39, centroidLng: -16.67 },
+  { code: 'GM-U', name: 'Upper River', nameEn: 'Upper River', nameFr: 'Fleuve Supérieur', level: 'ADMIN1', parentCode: 'GM', countryCode: 'GM', centroidLat: 13.44, centroidLng: -14.12 },
+
+  // ── Ghana (16 regions) ──
+  { code: 'GH-AA', name: 'Greater Accra', nameEn: 'Greater Accra', nameFr: 'Grand Accra', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 5.61, centroidLng: -0.19 },
+  { code: 'GH-AH', name: 'Ashanti', nameEn: 'Ashanti', nameFr: 'Ashanti', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 6.76, centroidLng: -1.52 },
+  { code: 'GH-EP', name: 'Eastern', nameEn: 'Eastern', nameFr: 'Est', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 6.58, centroidLng: -0.46 },
+  { code: 'GH-CP', name: 'Central', nameEn: 'Central', nameFr: 'Central', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 5.57, centroidLng: -1.17 },
+  { code: 'GH-NP', name: 'Northern', nameEn: 'Northern', nameFr: 'Nord', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 9.54, centroidLng: -0.91 },
+  { code: 'GH-WP', name: 'Western', nameEn: 'Western', nameFr: 'Ouest', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 5.50, centroidLng: -2.30 },
+  { code: 'GH-TV', name: 'Volta', nameEn: 'Volta', nameFr: 'Volta', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 6.58, centroidLng: 0.45 },
+  { code: 'GH-BA', name: 'Brong-Ahafo', nameEn: 'Bono', nameFr: 'Bono', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 7.95, centroidLng: -1.97 },
+  { code: 'GH-UE', name: 'Upper East', nameEn: 'Upper East', nameFr: 'Est Supérieur', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 10.71, centroidLng: -0.98 },
+  { code: 'GH-UW', name: 'Upper West', nameEn: 'Upper West', nameFr: 'Ouest Supérieur', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 10.25, centroidLng: -2.14 },
+  { code: 'GH-OT', name: 'Oti', nameEn: 'Oti', nameFr: 'Oti', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 8.08, centroidLng: 0.25 },
+  { code: 'GH-AF', name: 'Ahafo', nameEn: 'Ahafo', nameFr: 'Ahafo', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 7.08, centroidLng: -2.34 },
+  { code: 'GH-BE', name: 'Bono East', nameEn: 'Bono East', nameFr: 'Bono Est', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 7.75, centroidLng: -1.05 },
+  { code: 'GH-NE', name: 'North East', nameEn: 'North East', nameFr: 'Nord-Est', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 10.51, centroidLng: -0.36 },
+  { code: 'GH-SV', name: 'Savannah', nameEn: 'Savannah', nameFr: 'Savane', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 9.14, centroidLng: -1.63 },
+  { code: 'GH-WN', name: 'Western North', nameEn: 'Western North', nameFr: 'Ouest Nord', level: 'ADMIN1', parentCode: 'GH', countryCode: 'GH', centroidLat: 6.23, centroidLng: -2.78 },
+
+  // ── Guinea (8 regions) ──
+  { code: 'GN-C', name: 'Conakry', nameEn: 'Conakry', nameFr: 'Conakry', level: 'ADMIN1', parentCode: 'GN', countryCode: 'GN', centroidLat: 9.54, centroidLng: -13.68 },
+  { code: 'GN-B', name: 'Boké', nameEn: 'Boké', nameFr: 'Boké', level: 'ADMIN1', parentCode: 'GN', countryCode: 'GN', centroidLat: 11.38, centroidLng: -13.11 },
+  { code: 'GN-F', name: 'Faranah', nameEn: 'Faranah', nameFr: 'Faranah', level: 'ADMIN1', parentCode: 'GN', countryCode: 'GN', centroidLat: 10.04, centroidLng: -10.74 },
+  { code: 'GN-K', name: 'Kankan', nameEn: 'Kankan', nameFr: 'Kankan', level: 'ADMIN1', parentCode: 'GN', countryCode: 'GN', centroidLat: 10.38, centroidLng: -9.31 },
+  { code: 'GN-D', name: 'Kindia', nameEn: 'Kindia', nameFr: 'Kindia', level: 'ADMIN1', parentCode: 'GN', countryCode: 'GN', centroidLat: 10.06, centroidLng: -12.87 },
+  { code: 'GN-L', name: 'Labé', nameEn: 'Labé', nameFr: 'Labé', level: 'ADMIN1', parentCode: 'GN', countryCode: 'GN', centroidLat: 11.32, centroidLng: -12.29 },
+  { code: 'GN-M', name: 'Mamou', nameEn: 'Mamou', nameFr: 'Mamou', level: 'ADMIN1', parentCode: 'GN', countryCode: 'GN', centroidLat: 10.38, centroidLng: -12.09 },
+  { code: 'GN-N', name: 'Nzérékoré', nameEn: 'Nzérékoré', nameFr: 'Nzérékoré', level: 'ADMIN1', parentCode: 'GN', countryCode: 'GN', centroidLat: 7.76, centroidLng: -8.82 },
+
+  // ── Guinea-Bissau (5 key regions) ──
+  { code: 'GW-BS', name: 'Bissau', nameEn: 'Bissau', nameFr: 'Bissau', level: 'ADMIN1', parentCode: 'GW', countryCode: 'GW', centroidLat: 11.87, centroidLng: -15.60 },
+  { code: 'GW-BA', name: 'Bafatá', nameEn: 'Bafatá', nameFr: 'Bafatá', level: 'ADMIN1', parentCode: 'GW', countryCode: 'GW', centroidLat: 12.17, centroidLng: -14.66 },
+  { code: 'GW-GA', name: 'Gabú', nameEn: 'Gabú', nameFr: 'Gabú', level: 'ADMIN1', parentCode: 'GW', countryCode: 'GW', centroidLat: 12.28, centroidLng: -14.22 },
+  { code: 'GW-OI', name: 'Oio', nameEn: 'Oio', nameFr: 'Oio', level: 'ADMIN1', parentCode: 'GW', countryCode: 'GW', centroidLat: 12.28, centroidLng: -15.20 },
+  { code: 'GW-BL', name: 'Bolama', nameEn: 'Bolama', nameFr: 'Bolama-Bijagós', level: 'ADMIN1', parentCode: 'GW', countryCode: 'GW', centroidLat: 11.58, centroidLng: -15.48 },
+
+  // ── Lesotho (10 districts) ──
+  { code: 'LS-A', name: 'Maseru', nameEn: 'Maseru', nameFr: 'Maseru', level: 'ADMIN1', parentCode: 'LS', countryCode: 'LS', centroidLat: -29.32, centroidLng: 27.48 },
+  { code: 'LS-B', name: 'Butha-Buthe', nameEn: 'Butha-Buthe', nameFr: 'Butha-Buthe', level: 'ADMIN1', parentCode: 'LS', countryCode: 'LS', centroidLat: -28.77, centroidLng: 28.25 },
+  { code: 'LS-C', name: 'Leribe', nameEn: 'Leribe', nameFr: 'Leribe', level: 'ADMIN1', parentCode: 'LS', countryCode: 'LS', centroidLat: -28.87, centroidLng: 28.05 },
+  { code: 'LS-D', name: 'Berea', nameEn: 'Berea', nameFr: 'Berea', level: 'ADMIN1', parentCode: 'LS', countryCode: 'LS', centroidLat: -29.18, centroidLng: 27.95 },
+  { code: 'LS-E', name: 'Mafeteng', nameEn: 'Mafeteng', nameFr: 'Mafeteng', level: 'ADMIN1', parentCode: 'LS', countryCode: 'LS', centroidLat: -29.82, centroidLng: 27.24 },
+  { code: 'LS-F', name: 'Mohales Hoek', nameEn: 'Mohale\'s Hoek', nameFr: 'Mohale\'s Hoek', level: 'ADMIN1', parentCode: 'LS', countryCode: 'LS', centroidLat: -30.15, centroidLng: 27.47 },
+  { code: 'LS-G', name: 'Quthing', nameEn: 'Quthing', nameFr: 'Quthing', level: 'ADMIN1', parentCode: 'LS', countryCode: 'LS', centroidLat: -30.40, centroidLng: 27.70 },
+  { code: 'LS-H', name: 'Qacha\'s Nek', nameEn: 'Qacha\'s Nek', nameFr: 'Qacha\'s Nek', level: 'ADMIN1', parentCode: 'LS', countryCode: 'LS', centroidLat: -30.12, centroidLng: 28.69 },
+  { code: 'LS-J', name: 'Mokhotlong', nameEn: 'Mokhotlong', nameFr: 'Mokhotlong', level: 'ADMIN1', parentCode: 'LS', countryCode: 'LS', centroidLat: -29.29, centroidLng: 29.07 },
+  { code: 'LS-K', name: 'Thaba-Tseka', nameEn: 'Thaba-Tseka', nameFr: 'Thaba-Tseka', level: 'ADMIN1', parentCode: 'LS', countryCode: 'LS', centroidLat: -29.52, centroidLng: 28.61 },
+
+  // ── Liberia (15 counties, top 10) ──
+  { code: 'LR-MO', name: 'Montserrado', nameEn: 'Montserrado', nameFr: 'Montserrado', level: 'ADMIN1', parentCode: 'LR', countryCode: 'LR', centroidLat: 6.33, centroidLng: -10.76 },
+  { code: 'LR-NI', name: 'Nimba', nameEn: 'Nimba', nameFr: 'Nimba', level: 'ADMIN1', parentCode: 'LR', countryCode: 'LR', centroidLat: 7.00, centroidLng: -8.72 },
+  { code: 'LR-BG', name: 'Bong', nameEn: 'Bong', nameFr: 'Bong', level: 'ADMIN1', parentCode: 'LR', countryCode: 'LR', centroidLat: 7.03, centroidLng: -9.67 },
+  { code: 'LR-LO', name: 'Lofa', nameEn: 'Lofa', nameFr: 'Lofa', level: 'ADMIN1', parentCode: 'LR', countryCode: 'LR', centroidLat: 7.92, centroidLng: -9.67 },
+  { code: 'LR-MY', name: 'Maryland', nameEn: 'Maryland', nameFr: 'Maryland', level: 'ADMIN1', parentCode: 'LR', countryCode: 'LR', centroidLat: 4.53, centroidLng: -7.67 },
+  { code: 'LR-CM', name: 'Grand Cape Mount', nameEn: 'Grand Cape Mount', nameFr: 'Grand Cape Mount', level: 'ADMIN1', parentCode: 'LR', countryCode: 'LR', centroidLat: 6.99, centroidLng: -11.07 },
+  { code: 'LR-GB', name: 'Grand Bassa', nameEn: 'Grand Bassa', nameFr: 'Grand Bassa', level: 'ADMIN1', parentCode: 'LR', countryCode: 'LR', centroidLat: 5.92, centroidLng: -9.81 },
+  { code: 'LR-GG', name: 'Grand Gedeh', nameEn: 'Grand Gedeh', nameFr: 'Grand Gedeh', level: 'ADMIN1', parentCode: 'LR', countryCode: 'LR', centroidLat: 6.00, centroidLng: -8.23 },
+  { code: 'LR-SI', name: 'Sinoe', nameEn: 'Sinoe', nameFr: 'Sinoe', level: 'ADMIN1', parentCode: 'LR', countryCode: 'LR', centroidLat: 5.33, centroidLng: -8.67 },
+  { code: 'LR-MG', name: 'Margibi', nameEn: 'Margibi', nameFr: 'Margibi', level: 'ADMIN1', parentCode: 'LR', countryCode: 'LR', centroidLat: 6.52, centroidLng: -10.30 },
+
+  // ── Libya (10 key districts) ──
+  { code: 'LY-TB', name: 'Tripoli', nameEn: 'Tripoli', nameFr: 'Tripoli', level: 'ADMIN1', parentCode: 'LY', countryCode: 'LY', centroidLat: 32.90, centroidLng: 13.18 },
+  { code: 'LY-BN', name: 'Benghazi', nameEn: 'Benghazi', nameFr: 'Benghazi', level: 'ADMIN1', parentCode: 'LY', countryCode: 'LY', centroidLat: 32.12, centroidLng: 20.09 },
+  { code: 'LY-MI', name: 'Misrata', nameEn: 'Misrata', nameFr: 'Misrata', level: 'ADMIN1', parentCode: 'LY', countryCode: 'LY', centroidLat: 32.38, centroidLng: 15.09 },
+  { code: 'LY-SB', name: 'Sabha', nameEn: 'Sabha', nameFr: 'Sabha', level: 'ADMIN1', parentCode: 'LY', countryCode: 'LY', centroidLat: 27.04, centroidLng: 14.43 },
+  { code: 'LY-ZA', name: 'Zawiya', nameEn: 'Zawiya', nameFr: 'Zawiya', level: 'ADMIN1', parentCode: 'LY', countryCode: 'LY', centroidLat: 32.76, centroidLng: 12.73 },
+  { code: 'LY-DR', name: 'Derna', nameEn: 'Derna', nameFr: 'Derna', level: 'ADMIN1', parentCode: 'LY', countryCode: 'LY', centroidLat: 32.77, centroidLng: 22.64 },
+  { code: 'LY-JA', name: 'Jabal al Akhdar', nameEn: 'Jabal al Akhdar', nameFr: 'Jabal al Akhdar', level: 'ADMIN1', parentCode: 'LY', countryCode: 'LY', centroidLat: 32.44, centroidLng: 21.43 },
+  { code: 'LY-FZ', name: 'Fezzan', nameEn: 'Fezzan', nameFr: 'Fezzan', level: 'ADMIN1', parentCode: 'LY', countryCode: 'LY', centroidLat: 25.50, centroidLng: 13.00 },
+];

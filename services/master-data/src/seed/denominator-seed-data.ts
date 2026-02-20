@@ -104,4 +104,43 @@ export const DENOMINATOR_SEEDS: DenominatorSeed[] = [
   { countryCode: 'ZA', speciesCode: 'GAL-DOM', year: 2021, source: 'FAOSTAT', population: 168000000, assumptions: 'FAOSTAT 2021 estimate' },
   { countryCode: 'ZA', speciesCode: 'GAL-DOM', year: 2022, source: 'FAOSTAT', population: 171000000, assumptions: 'FAOSTAT 2022 estimate' },
   { countryCode: 'ZA', speciesCode: 'GAL-DOM', year: 2023, source: 'FAOSTAT', population: 174000000, assumptions: 'FAOSTAT 2023 estimate' },
+
+  // ── 2024 data for all 5 pilot countries ──
+  // Kenya 2024
+  { countryCode: 'KE', speciesCode: 'BOS-TAU', year: 2024, source: 'FAOSTAT', population: 19800000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'KE', speciesCode: 'OVI-ARI', year: 2024, source: 'FAOSTAT', population: 19000000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'KE', speciesCode: 'CAP-HIR', year: 2024, source: 'FAOSTAT', population: 29200000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'KE', speciesCode: 'GAL-DOM', year: 2024, source: 'FAOSTAT', population: 48800000, assumptions: 'FAOSTAT 2024 estimate' },
+  // Ethiopia 2024
+  { countryCode: 'ET', speciesCode: 'BOS-TAU', year: 2024, source: 'FAOSTAT', population: 68600000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'ET', speciesCode: 'OVI-ARI', year: 2024, source: 'FAOSTAT', population: 42300000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'ET', speciesCode: 'CAP-HIR', year: 2024, source: 'FAOSTAT', population: 54000000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'ET', speciesCode: 'GAL-DOM', year: 2024, source: 'FAOSTAT', population: 66500000, assumptions: 'FAOSTAT 2024 estimate' },
+  // Nigeria 2024
+  { countryCode: 'NG', speciesCode: 'BOS-TAU', year: 2024, source: 'FAOSTAT', population: 23000000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'NG', speciesCode: 'OVI-ARI', year: 2024, source: 'FAOSTAT', population: 46600000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'NG', speciesCode: 'CAP-HIR', year: 2024, source: 'FAOSTAT', population: 88700000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'NG', speciesCode: 'GAL-DOM', year: 2024, source: 'FAOSTAT', population: 196000000, assumptions: 'FAOSTAT 2024 estimate' },
+  // Senegal 2024
+  { countryCode: 'SN', speciesCode: 'BOS-TAU', year: 2024, source: 'FAOSTAT', population: 4020000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'SN', speciesCode: 'OVI-ARI', year: 2024, source: 'FAOSTAT', population: 7500000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'SN', speciesCode: 'CAP-HIR', year: 2024, source: 'FAOSTAT', population: 6720000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'SN', speciesCode: 'GAL-DOM', year: 2024, source: 'FAOSTAT', population: 71000000, assumptions: 'FAOSTAT 2024 estimate' },
+  // South Africa 2024
+  { countryCode: 'ZA', speciesCode: 'BOS-TAU', year: 2024, source: 'FAOSTAT', population: 13100000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'ZA', speciesCode: 'OVI-ARI', year: 2024, source: 'FAOSTAT', population: 22600000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'ZA', speciesCode: 'CAP-HIR', year: 2024, source: 'FAOSTAT', population: 5600000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'ZA', speciesCode: 'GAL-DOM', year: 2024, source: 'FAOSTAT', population: 177000000, assumptions: 'FAOSTAT 2024 estimate' },
+
+  // ── Pig populations (SUS-DOM) — 2023 + 2024 ──
+  { countryCode: 'KE', speciesCode: 'SUS-DOM', year: 2023, source: 'FAOSTAT', population: 450000, assumptions: 'FAOSTAT 2023; limited pig farming in Kenya' },
+  { countryCode: 'KE', speciesCode: 'SUS-DOM', year: 2024, source: 'FAOSTAT', population: 465000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'ET', speciesCode: 'SUS-DOM', year: 2023, source: 'FAOSTAT', population: 35000, assumptions: 'FAOSTAT 2023; very limited pig farming in Ethiopia' },
+  { countryCode: 'ET', speciesCode: 'SUS-DOM', year: 2024, source: 'FAOSTAT', population: 37000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'NG', speciesCode: 'SUS-DOM', year: 2023, source: 'FAOSTAT', population: 7800000, assumptions: 'FAOSTAT 2023; significant pig farming in southern Nigeria' },
+  { countryCode: 'NG', speciesCode: 'SUS-DOM', year: 2024, source: 'FAOSTAT', population: 8000000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'SN', speciesCode: 'SUS-DOM', year: 2023, source: 'FAOSTAT', population: 480000, assumptions: 'FAOSTAT 2023; Casamance region mainly' },
+  { countryCode: 'SN', speciesCode: 'SUS-DOM', year: 2024, source: 'FAOSTAT', population: 495000, assumptions: 'FAOSTAT 2024 estimate' },
+  { countryCode: 'ZA', speciesCode: 'SUS-DOM', year: 2023, source: 'FAOSTAT', population: 1580000, assumptions: 'FAOSTAT 2023; commercial pig industry' },
+  { countryCode: 'ZA', speciesCode: 'SUS-DOM', year: 2024, source: 'FAOSTAT', population: 1620000, assumptions: 'FAOSTAT 2024 estimate' },
 ];

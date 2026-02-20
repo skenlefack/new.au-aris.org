@@ -1,10 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Test } from '@nestjs/testing';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 import { DiseaseService } from './disease.service';
-import { PrismaService } from '../prisma.service';
-import { AuditService } from '../audit/audit.service';
-import { KafkaProducerService } from '@aris/kafka-client';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { UserRole, TenantLevel } from '@aris/shared-types';
 
@@ -45,7 +41,7 @@ describe('DiseaseService', () => {
   let audit: { log: ReturnType<typeof vi.fn> };
   let kafkaProducer: { send: ReturnType<typeof vi.fn> };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     prisma = {
       disease: {
         findUnique: vi.fn(),
@@ -58,16 +54,7 @@ describe('DiseaseService', () => {
     audit = { log: vi.fn() };
     kafkaProducer = { send: vi.fn() };
 
-    const module = await Test.createTestingModule({
-      providers: [
-        DiseaseService,
-        { provide: PrismaService, useValue: prisma },
-        { provide: AuditService, useValue: audit },
-        { provide: KafkaProducerService, useValue: kafkaProducer },
-      ],
-    }).compile();
-
-    service = module.get(DiseaseService);
+    service = new DiseaseService(prisma as any, kafkaProducer as any, audit as any);
   });
 
   describe('create', () => {

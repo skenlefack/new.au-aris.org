@@ -1,0 +1,89 @@
+// ARIS 3.0 — Governance & Capacities domain schema
+// Service: governance (port 3026)
+// Owner: CC-4
+
+model LegalFramework {
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  title              String
+  type               String
+  domain             String
+  adoptionDate       DateTime? @map("adoption_date") @db.Timestamptz
+  status             String
+  documentFileId     String?   @map("document_file_id") @db.Uuid
+  dataClassification String    @default("PUBLIC") @map("data_classification")
+  createdBy          String    @map("created_by") @db.Uuid
+  updatedBy          String    @map("updated_by") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([type])
+  @@index([domain])
+  @@index([status])
+  @@map("legal_frameworks")
+  @@schema("governance")
+}
+
+model InstitutionalCapacity {
+  id                     String   @id @default(uuid()) @db.Uuid
+  tenantId               String   @map("tenant_id") @db.Uuid
+  year                   Int
+  organizationName       String   @map("organization_name")
+  staffCount             Int      @map("staff_count")
+  budgetUsd              Float    @map("budget_usd")
+  pvsSelfAssessmentScore Float?   @map("pvs_self_assessment_score")
+  oieStatus              String?  @map("oie_status")
+  dataClassification     String   @default("PARTNER") @map("data_classification")
+  createdBy              String   @map("created_by") @db.Uuid
+  updatedBy              String   @map("updated_by") @db.Uuid
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([tenantId, year, organizationName])
+  @@index([tenantId])
+  @@index([year])
+  @@map("institutional_capacities")
+  @@schema("governance")
+}
+
+model PVSEvaluation {
+  id                   String   @id @default(uuid()) @db.Uuid
+  tenantId             String   @map("tenant_id") @db.Uuid
+  evaluationType       String   @map("evaluation_type")
+  evaluationDate       DateTime @map("evaluation_date") @db.Timestamptz
+  overallScore         Float    @map("overall_score")
+  criticalCompetencies Json     @map("critical_competencies")
+  recommendations      String[]
+  dataClassification   String   @default("PARTNER") @map("data_classification")
+  createdBy            String   @map("created_by") @db.Uuid
+  updatedBy            String   @map("updated_by") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([evaluationType])
+  @@index([evaluationDate])
+  @@map("pvs_evaluations")
+  @@schema("governance")
+}
+
+model StakeholderRegistry {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  name               String
+  type               String
+  contactPerson      String?  @map("contact_person")
+  email              String?
+  domains            String[]
+  dataClassification String   @default("PUBLIC") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([type])
+  @@map("stakeholder_registry")
+  @@schema("governance")
+}

@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.auibar.aris.mobile.data.cache.CampaignRefresher
+import org.auibar.aris.mobile.data.cache.MasterDataRefresher
 import org.auibar.aris.mobile.data.remote.dto.KpiCard
 import org.auibar.aris.mobile.data.repository.Campaign
 import org.auibar.aris.mobile.data.repository.DashboardRepository
@@ -23,6 +25,8 @@ data class DashboardUiState(
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val dashboardRepository: DashboardRepository,
+    private val masterDataRefresher: MasterDataRefresher,
+    private val campaignRefresher: CampaignRefresher,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -37,6 +41,10 @@ class DashboardViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     init {
+        viewModelScope.launch {
+            masterDataRefresher.refreshIfNeeded()
+            campaignRefresher.refreshIfNeeded()
+        }
         loadKpis()
     }
 

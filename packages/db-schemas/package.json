@@ -7,8 +7,10 @@
     "generate": "prisma generate --schema=prisma",
     "migrate:dev": "prisma migrate dev --schema=prisma",
     "migrate:deploy": "prisma migrate deploy --schema=prisma",
+    "migrate:reset": "prisma migrate reset --schema=prisma --force",
     "db:push": "prisma db push --schema=prisma",
-    "db:seed": "tsx prisma/seed-tenant.ts",
+    "db:seed": "tsx prisma/seed-tenant.ts && tsx prisma/seed-credential.ts",
+    "db:seed:all": "tsx ../../scripts/db-seed-all.ts",
     "studio": "prisma studio --schema=prisma",
     "build": "echo 'db-schemas: generate only'",
     "clean": "rm -rf node_modules/.prisma"
@@ -17,6 +19,8 @@
     "@prisma/client": "^5.14.0"
   },
   "devDependencies": {
+    "bcrypt": "^5.1.1",
+    "@types/bcrypt": "^5.0.2",
     "prisma": "^5.14.0",
     "tsx": "^4.11.0",
     "typescript": "^5.4.0"

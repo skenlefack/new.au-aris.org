@@ -1,0 +1,116 @@
+// ARIS 3.0 — Wildlife & Biodiversity domain schema
+// Service: wildlife (port 3023)
+// Owner: CC-4
+
+model WildlifeInventory {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  speciesId          String   @map("species_id") @db.Uuid
+  geoEntityId        String   @map("geo_entity_id") @db.Uuid
+  protectedAreaId    String?  @map("protected_area_id") @db.Uuid
+  surveyDate         DateTime @map("survey_date") @db.Timestamptz
+  populationEstimate Int      @map("population_estimate")
+  methodology        String
+  confidenceInterval String?  @map("confidence_interval")
+  conservationStatus String   @map("conservation_status")
+  threatLevel        String   @map("threat_level")
+  coordinates        Json?    @default("{}")
+  dataClassification String   @default("RESTRICTED") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([speciesId])
+  @@index([geoEntityId])
+  @@index([surveyDate])
+  @@index([conservationStatus])
+  @@map("wildlife_inventories")
+  @@schema("wildlife")
+}
+
+model ProtectedArea {
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  name               String
+  wdpaId             String?   @unique @map("wdpa_id")
+  iucnCategory       String    @map("iucn_category")
+  geoEntityId        String    @map("geo_entity_id") @db.Uuid
+  areaKm2            Float     @map("area_km2")
+  designationDate    DateTime? @map("designation_date") @db.Timestamptz
+  managingAuthority  String    @map("managing_authority")
+  coordinates        Json?     @default("{}")
+  isActive           Boolean   @default(true) @map("is_active")
+  dataClassification String    @default("PUBLIC") @map("data_classification")
+  createdBy          String    @map("created_by") @db.Uuid
+  updatedBy          String    @map("updated_by") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([geoEntityId])
+  @@index([iucnCategory])
+  @@index([isActive])
+  @@map("protected_areas")
+  @@schema("wildlife")
+}
+
+model CitesPermit {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  permitNumber       String   @unique @map("permit_number")
+  permitType         String   @map("permit_type")
+  speciesId          String   @map("species_id") @db.Uuid
+  quantity           Int
+  unit               String
+  purpose            String
+  applicant          String
+  exportCountry      String   @map("export_country")
+  importCountry      String   @map("import_country")
+  issueDate          DateTime @map("issue_date") @db.Timestamptz
+  expiryDate         DateTime @map("expiry_date") @db.Timestamptz
+  status             String
+  dataClassification String   @default("RESTRICTED") @map("data_classification")
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([speciesId])
+  @@index([status])
+  @@index([issueDate])
+  @@map("cites_permits")
+  @@schema("wildlife")
+}
+
+model WildlifeCrime {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  incidentDate        DateTime @map("incident_date") @db.Timestamptz
+  geoEntityId         String   @map("geo_entity_id") @db.Uuid
+  coordinates         Json?    @default("{}")
+  crimeType           String   @map("crime_type")
+  speciesIds          String[] @map("species_ids") @db.Uuid
+  description         String   @db.Text
+  suspectsCount       Int?     @map("suspects_count")
+  seizureDescription  String?  @map("seizure_description") @db.Text
+  seizureQuantity     Float?   @map("seizure_quantity")
+  seizureUnit         String?  @map("seizure_unit")
+  status              String
+  reportingAgency     String   @map("reporting_agency")
+  dataClassification  String   @default("RESTRICTED") @map("data_classification")
+  createdBy           String   @map("created_by") @db.Uuid
+  updatedBy           String   @map("updated_by") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([geoEntityId])
+  @@index([crimeType])
+  @@index([status])
+  @@index([incidentDate])
+  @@map("wildlife_crimes")
+  @@schema("wildlife")
+}

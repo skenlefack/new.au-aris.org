@@ -44,12 +44,23 @@ function mockRedisService() {
     get: vi.fn(),
     del: vi.fn().mockResolvedValue(1),
     delPattern: vi.fn().mockResolvedValue(3),
+    incr: vi.fn().mockResolvedValue(1),
+    expire: vi.fn().mockResolvedValue(1),
+    exists: vi.fn().mockResolvedValue(0),
   };
 }
 
 function mockKafkaProducer() {
   return {
     send: vi.fn().mockResolvedValue([]),
+  };
+}
+
+function mockLockoutService() {
+  return {
+    isLocked: vi.fn().mockResolvedValue(false),
+    recordFailedAttempt: vi.fn().mockResolvedValue(1),
+    resetAttempts: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -91,15 +102,18 @@ describe('AuthService', () => {
   let prisma: ReturnType<typeof mockPrismaService>;
   let redis: ReturnType<typeof mockRedisService>;
   let kafka: ReturnType<typeof mockKafkaProducer>;
+  let lockout: ReturnType<typeof mockLockoutService>;
 
   beforeEach(() => {
     prisma = mockPrismaService();
     redis = mockRedisService();
     kafka = mockKafkaProducer();
+    lockout = mockLockoutService();
     service = new AuthService(
       prisma as never,
       redis as never,
       kafka as never,
+      lockout as never,
     );
   });
 
@@ -279,6 +293,66 @@ describe('AuthService', () => {
         expect.objectContaining({ sourceService: 'credential-service' }),
       );
     });
+
+    it('should reject login when account is locked', async () => {
+      lockout.isLocked.mockResolvedValue(true);
+
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(lockout.isLocked).toHaveBeenCalledWith(loginDto.email);
+    });
+
+    it('should record failed attempt on wrong password', async () => {
+      const hashed = await bcrypt.hash('DifferentPassword1', 4);
+      prisma.user.findUnique.mockResolvedValue(
+        userFixture({ passwordHash: hashed }),
+      );
+
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(lockout.recordFailedAttempt).toHaveBeenCalledWith(loginDto.email);
+    });
+
+    it('should reset lockout attempts on successful login', async () => {
+      const hashed = await bcrypt.hash('StrongPass1', 4);
+      prisma.user.findUnique.mockResolvedValue(
+        userFixture({ passwordHash: hashed }),
+      );
+
+      await service.login(loginDto);
+
+      expect(lockout.resetAttempts).toHaveBeenCalledWith(loginDto.email);
+    });
+
+    it('should return mfaRequired when user has MFA enabled but no TOTP code provided', async () => {
+      const hashed = await bcrypt.hash('StrongPass1', 4);
+      prisma.user.findUnique.mockResolvedValue(
+        userFixture({ passwordHash: hashed, mfaEnabled: true, mfaSecret: 'JBSWY3DPEHPK3PXP' }),
+      );
+
+      const result = await service.login(loginDto);
+
+      expect(result.data).toMatchObject({
+        mfaRequired: true,
+        accessToken: '',
+        refreshToken: '',
+        expiresIn: 0,
+      });
+    });
+
+    it('should reject login with invalid TOTP code', async () => {
+      const hashed = await bcrypt.hash('StrongPass1', 4);
+      prisma.user.findUnique.mockResolvedValue(
+        userFixture({ passwordHash: hashed, mfaEnabled: true, mfaSecret: 'JBSWY3DPEHPK3PXP' }),
+      );
+
+      const dtoWithTotp = { ...loginDto, totpCode: '000000' };
+      await expect(service.login(dtoWithTotp)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
   });
 
   // ── refresh ──
@@ -383,6 +457,32 @@ describe('AuthService', () => {
 
     it('should succeed even if no tokens exist', async () => {
       redis.delPattern.mockResolvedValue(0);
+
+      const result = await service.logout('user-001');
+      expect(result.data.message).toBe('Logged out successfully');
+    });
+
+    it('should blacklist access token on logout', async () => {
+      redis.delPattern.mockResolvedValue(1);
+
+      // Create a real JWT with known expiry
+      const accessToken = jwt.sign(
+        { sub: 'user-001', email: 'test@aris.africa' },
+        privateKey,
+        { algorithm: 'RS256', expiresIn: '15m' },
+      );
+
+      await service.logout('user-001', accessToken);
+
+      expect(redis.set).toHaveBeenCalledWith(
+        `blacklist:${accessToken}`,
+        '1',
+        expect.any(Number),
+      );
+    });
+
+    it('should not fail if access token is missing on logout', async () => {
+      redis.delPattern.mockResolvedValue(1);
 
       const result = await service.logout('user-001');
       expect(result.data.message).toBe('Logged out successfully');

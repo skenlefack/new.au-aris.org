@@ -64,4 +64,22 @@ export const UNIT_SEEDS: UnitSeed[] = [
   { code: 'WEEK', nameEn: 'Week', nameFr: 'Semaine', symbol: 'wk', category: 'TIME', siConversion: 604800 },
   { code: 'MONTH', nameEn: 'Month', nameFr: 'Mois', symbol: 'mo', category: 'TIME', siConversion: 2592000 },
   { code: 'YEAR', nameEn: 'Year', nameFr: 'Année', symbol: 'yr', category: 'TIME', siConversion: 31536000 },
+  { code: 'HOUR', nameEn: 'Hour', nameFr: 'Heure', symbol: 'h', category: 'TIME', siConversion: 3600 },
+
+  // Dose (additional)
+  { code: 'VDOSE', nameEn: 'Vaccine dose', nameFr: 'Dose vaccinale', symbol: 'vdose', category: 'DOSE', siConversion: 1 },
+  { code: 'IU', nameEn: 'International unit', nameFr: 'Unité internationale', symbol: 'IU', category: 'DOSE', siConversion: null },
+  { code: 'TREAT', nameEn: 'Treatment course', nameFr: 'Cure de traitement', symbol: 'treat', category: 'DOSE', siConversion: 1 },
+
+  // Additional count units
+  { code: 'BATCH', nameEn: 'Batch', nameFr: 'Lot', symbol: 'batch', category: 'COUNT', siConversion: 1 },
+  { code: 'TRIP', nameEn: 'Trip', nameFr: 'Voyage', symbol: 'trip', category: 'COUNT', siConversion: 1 },
+  { code: 'CERT', nameEn: 'Certificate', nameFr: 'Certificat', symbol: 'cert', category: 'COUNT', siConversion: 1 },
+  { code: 'HOLDING', nameEn: 'Holding / Farm', nameFr: 'Exploitation', symbol: 'holding', category: 'COUNT', siConversion: 1 },
+
+  // Additional currencies
+  { code: 'TZS', nameEn: 'Tanzanian Shilling', nameFr: 'Shilling tanzanien', symbol: 'TSh', category: 'CURRENCY', siConversion: null },
+  { code: 'EGP', nameEn: 'Egyptian Pound', nameFr: 'Livre égyptienne', symbol: 'E£', category: 'CURRENCY', siConversion: null },
+  { code: 'MAD', nameEn: 'Moroccan Dirham', nameFr: 'Dirham marocain', symbol: 'MAD', category: 'CURRENCY', siConversion: null },
+  { code: 'GHS', nameEn: 'Ghanaian Cedi', nameFr: 'Cédi ghanéen', symbol: 'GH₵', category: 'CURRENCY', siConversion: null },
 ];

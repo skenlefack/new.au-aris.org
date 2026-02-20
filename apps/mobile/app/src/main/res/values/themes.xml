@@ -4,4 +4,10 @@
         <item name="android:statusBarColor">@color/aris_primary_dark</item>
         <item name="android:navigationBarColor">@color/aris_primary_dark</item>
     </style>
+
+    <style name="Theme.Aris.Splash" parent="Theme.Aris">
+        <item name="android:windowBackground">@color/aris_primary</item>
+        <item name="android:statusBarColor">@color/aris_primary</item>
+        <item name="android:navigationBarColor">@color/aris_primary</item>
+    </style>
 </resources>

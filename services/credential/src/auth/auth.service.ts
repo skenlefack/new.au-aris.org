@@ -17,6 +17,7 @@ import type { KafkaHeaders } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { PrismaService } from '../prisma.service';
 import { RedisService } from '../redis.service';
+import { AccountLockoutService } from './account-lockout.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
@@ -29,6 +30,20 @@ export interface TokenResponse {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  mfaRequired?: never;
+}
+
+export interface MfaRequiredResponse {
+  mfaRequired: true;
+  accessToken: '';
+  refreshToken: '';
+  expiresIn: 0;
 }
 
 export interface SafeUser {
@@ -55,6 +70,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly kafkaProducer: KafkaProducerService,
+    private readonly lockout: AccountLockoutService,
   ) {
     this.privateKey = process.env['JWT_PRIVATE_KEY'] ?? '';
     this.publicKey = process.env['JWT_PUBLIC_KEY'] ?? '';
@@ -107,7 +123,17 @@ export class AuthService {
     return { data: safeUser };
   }
 
-  async login(dto: LoginDto): Promise<{ data: TokenResponse }> {
+  async login(
+    dto: LoginDto,
+  ): Promise<{ data: TokenResponse | MfaRequiredResponse }> {
+    // Check account lockout
+    const locked = await this.lockout.isLocked(dto.email);
+    if (locked) {
+      throw new UnauthorizedException(
+        'Account temporarily locked due to too many failed attempts. Try again later.',
+      );
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       include: { tenant: { select: { level: true } } },
@@ -119,8 +145,39 @@ export class AuthService {
 
     const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordValid) {
+      await this.lockout.recordFailedAttempt(dto.email);
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    // MFA check: if user has MFA enabled, require TOTP code
+    if (user.mfaEnabled && !dto.totpCode) {
+      return {
+        data: {
+          mfaRequired: true,
+          accessToken: '',
+          refreshToken: '',
+          expiresIn: 0,
+        },
+      };
+    }
+
+    if (user.mfaEnabled && dto.totpCode) {
+      if (!user.mfaSecret) {
+        throw new UnauthorizedException('MFA configuration error');
+      }
+      const { MfaService } = await import('../mfa/mfa.service');
+      const isValid = MfaService.validateCode(
+        user.mfaSecret,
+        dto.totpCode,
+        user.email,
+      );
+      if (!isValid) {
+        throw new UnauthorizedException('Invalid TOTP code');
+      }
+    }
+
+    // Reset lockout on successful login
+    await this.lockout.resetAttempts(dto.email);
 
     // Generate tokens
     const tokens = this.generateTokens(
@@ -225,7 +282,29 @@ export class AuthService {
     };
   }
 
-  async logout(userId: string): Promise<{ data: { message: string } }> {
+  async logout(
+    userId: string,
+    accessToken?: string,
+  ): Promise<{ data: { message: string } }> {
+    // Blacklist the access token for its remaining TTL
+    if (accessToken) {
+      try {
+        const decoded = jwt.decode(accessToken) as { exp?: number } | null;
+        if (decoded?.exp) {
+          const remainingSeconds = decoded.exp - Math.floor(Date.now() / 1000);
+          if (remainingSeconds > 0) {
+            await this.redis.set(
+              `blacklist:${accessToken}`,
+              '1',
+              remainingSeconds,
+            );
+          }
+        }
+      } catch {
+        // Token decode failure is non-critical during logout
+      }
+    }
+
     const deleted = await this.redis.delPattern(`refresh:${userId}:*`);
     this.logger.log(`Logout: cleared ${deleted} refresh tokens for user ${userId}`);
     return { data: { message: 'Logged out successfully' } };

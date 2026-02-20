@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Test } from '@nestjs/testing';
 import { AuditService } from './audit.service';
-import { PrismaService } from '../prisma.service';
 import { UserRole, TenantLevel } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 
@@ -22,7 +20,7 @@ describe('AuditService', () => {
     };
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     prisma = {
       masterDataAudit: {
         create: vi.fn(),
@@ -30,14 +28,7 @@ describe('AuditService', () => {
       },
     };
 
-    const module = await Test.createTestingModule({
-      providers: [
-        AuditService,
-        { provide: PrismaService, useValue: prisma },
-      ],
-    }).compile();
-
-    service = module.get(AuditService);
+    service = new AuditService(prisma as any);
   });
 
   it('should log an audit entry', async () => {

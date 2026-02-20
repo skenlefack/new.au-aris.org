@@ -1,9 +1,18 @@
 package org.auibar.aris.mobile.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "submissions")
+@Entity(
+    tableName = "submissions",
+    indices = [
+        Index("campaignId"),
+        Index("syncStatus"),
+        Index("tenantId"),
+        Index("offlineCreatedAt"),
+    ],
+)
 data class SubmissionEntity(
     @PrimaryKey val id: String,
     val tenantId: String,

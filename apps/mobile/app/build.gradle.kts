@@ -15,12 +15,22 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0.0"
+        versionName = "0.1.0-alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
 
         buildConfigField("String", "API_BASE_URL", "\"https://api.aris.au-ibar.org\"")
+    }
+
+    signingConfigs {
+        create("release") {
+            // Placeholder — configure via environment variables or keystore.properties
+            storeFile = file("release-keystore.jks")
+            storePassword = System.getenv("ARIS_KEYSTORE_PASSWORD") ?: "placeholder"
+            keyAlias = System.getenv("ARIS_KEY_ALIAS") ?: "aris"
+            keyPassword = System.getenv("ARIS_KEY_PASSWORD") ?: "placeholder"
+        }
     }
 
     buildTypes {
@@ -30,6 +40,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -118,6 +129,9 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.3.1")
     implementation("androidx.camera:camera-view:1.3.1")
 
+    // Coil (image loading + caching)
+    implementation("io.coil-kt:coil-compose:2.5.0")
+
     // ExifInterface
     implementation("androidx.exifinterface:exifinterface:1.3.7")
 
@@ -133,4 +147,16 @@ dependencies {
     testImplementation("androidx.arch.core:core-testing:2.2.0")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+
+    // Room testing
+    androidTestImplementation("androidx.room:room-testing:2.6.1")
+
+    // Compose UI testing
+    androidTestImplementation(composeBom)
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // Hilt testing
+    androidTestImplementation("com.google.dagger:hilt-android-testing:2.50")
+    kspAndroidTest("com.google.dagger:hilt-android-compiler:2.50")
 }

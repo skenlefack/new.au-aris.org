@@ -1,9 +1,16 @@
 package org.auibar.aris.mobile.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "photos")
+@Entity(
+    tableName = "photos",
+    indices = [
+        Index("submissionId"),
+        Index("uploadStatus"),
+    ],
+)
 data class PhotoEntity(
     @PrimaryKey val id: String,
     val submissionId: String,
