@@ -2,6 +2,7 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import {
   Bug,
   Syringe,
@@ -13,6 +14,8 @@ import {
 } from 'lucide-react';
 import type { OutbreakMarker } from '@/components/maps/AfricaMap';
 import { useTenantStore } from '@/lib/stores/tenant-store';
+import { useDashboardKpis, useOutbreakMarkers } from '@/lib/api/hooks';
+import { KpiCardSkeleton, MapSkeleton } from '@/components/ui/Skeleton';
 
 const AfricaMap = dynamic(
   () =>
@@ -20,160 +23,26 @@ const AfricaMap = dynamic(
   { ssr: false, loading: () => <MapSkeleton /> },
 );
 
-function MapSkeleton() {
-  return (
-    <div className="flex h-[500px] items-center justify-center rounded-card border border-gray-200 bg-gray-100">
-      <p className="text-sm text-gray-400">Loading map...</p>
-    </div>
-  );
-}
-
-// Placeholder outbreak markers across Africa
-const PLACEHOLDER_MARKERS: OutbreakMarker[] = [
-  {
-    id: 'ob-1',
-    lat: -1.286,
-    lng: 36.817,
-    disease: 'Foot-and-Mouth Disease',
-    country: 'Kenya',
-    severity: 'high',
-    cases: 234,
-    status: 'confirmed',
-  },
-  {
-    id: 'ob-2',
-    lat: 9.005,
-    lng: 38.763,
-    disease: 'Peste des Petits Ruminants',
-    country: 'Ethiopia',
-    severity: 'critical',
-    cases: 412,
-    status: 'confirmed',
-  },
-  {
-    id: 'ob-3',
-    lat: 9.06,
-    lng: 7.49,
-    disease: 'Highly Pathogenic Avian Influenza',
-    country: 'Nigeria',
-    severity: 'critical',
-    cases: 89,
-    status: 'confirmed',
-  },
-  {
-    id: 'ob-4',
-    lat: 14.693,
-    lng: -17.444,
-    disease: 'African Swine Fever',
-    country: 'Senegal',
-    severity: 'medium',
-    cases: 45,
-    status: 'suspected',
-  },
-  {
-    id: 'ob-5',
-    lat: -6.162,
-    lng: 35.75,
-    disease: 'Rift Valley Fever',
-    country: 'Tanzania',
-    severity: 'low',
-    cases: 12,
-    status: 'resolved',
-  },
-  {
-    id: 'ob-6',
-    lat: -25.747,
-    lng: 28.229,
-    disease: 'FMD',
-    country: 'South Africa',
-    severity: 'medium',
-    cases: 67,
-    status: 'confirmed',
-  },
-  {
-    id: 'ob-7',
-    lat: 5.614,
-    lng: -0.186,
-    disease: 'Newcastle Disease',
-    country: 'Ghana',
-    severity: 'low',
-    cases: 23,
-    status: 'confirmed',
-  },
-  {
-    id: 'ob-8',
-    lat: 0.347,
-    lng: 32.582,
-    disease: 'PPR',
-    country: 'Uganda',
-    severity: 'medium',
-    cases: 78,
-    status: 'confirmed',
-  },
-  {
-    id: 'ob-9',
-    lat: 33.894,
-    lng: 35.503,
-    disease: 'Lumpy Skin Disease',
-    country: 'Egypt',
-    severity: 'high',
-    cases: 156,
-    status: 'confirmed',
-  },
-  {
-    id: 'ob-10',
-    lat: -4.441,
-    lng: 15.266,
-    disease: 'HPAI',
-    country: 'DR Congo',
-    severity: 'low',
-    cases: 8,
-    status: 'suspected',
-  },
+// Fallback markers when API is unavailable
+const FALLBACK_MARKERS: OutbreakMarker[] = [
+  { id: 'ob-1', lat: -1.286, lng: 36.817, disease: 'Foot-and-Mouth Disease', country: 'Kenya', severity: 'high', cases: 234, status: 'confirmed' },
+  { id: 'ob-2', lat: 9.005, lng: 38.763, disease: 'Peste des Petits Ruminants', country: 'Ethiopia', severity: 'critical', cases: 412, status: 'confirmed' },
+  { id: 'ob-3', lat: 9.06, lng: 7.49, disease: 'Highly Pathogenic Avian Influenza', country: 'Nigeria', severity: 'critical', cases: 89, status: 'confirmed' },
+  { id: 'ob-4', lat: 14.693, lng: -17.444, disease: 'African Swine Fever', country: 'Senegal', severity: 'medium', cases: 45, status: 'suspected' },
+  { id: 'ob-5', lat: -6.162, lng: 35.75, disease: 'Rift Valley Fever', country: 'Tanzania', severity: 'low', cases: 12, status: 'resolved' },
+  { id: 'ob-6', lat: -25.747, lng: 28.229, disease: 'FMD', country: 'South Africa', severity: 'medium', cases: 67, status: 'confirmed' },
+  { id: 'ob-7', lat: 5.614, lng: -0.186, disease: 'Newcastle Disease', country: 'Ghana', severity: 'low', cases: 23, status: 'confirmed' },
+  { id: 'ob-8', lat: 0.347, lng: 32.582, disease: 'PPR', country: 'Uganda', severity: 'medium', cases: 78, status: 'confirmed' },
+  { id: 'ob-9', lat: 30.044, lng: 31.236, disease: 'Lumpy Skin Disease', country: 'Egypt', severity: 'high', cases: 156, status: 'confirmed' },
+  { id: 'ob-10', lat: -4.441, lng: 15.266, disease: 'HPAI', country: 'DR Congo', severity: 'low', cases: 8, status: 'suspected' },
 ];
 
-// Placeholder recent activity
 const RECENT_ACTIVITY = [
-  {
-    id: '1',
-    action: 'Outbreak reported',
-    detail: 'FMD in Rift Valley, Kenya',
-    actor: 'Dr. Ochieng',
-    time: '12 min ago',
-    icon: <Bug className="h-4 w-4 text-red-500" />,
-  },
-  {
-    id: '2',
-    action: 'Validation approved',
-    detail: 'PPR vaccination data — Uganda (L2)',
-    actor: 'Dr. Nakato',
-    time: '34 min ago',
-    icon: <ClipboardCheck className="h-4 w-4 text-green-600" />,
-  },
-  {
-    id: '3',
-    action: 'WAHIS export triggered',
-    detail: 'Monthly report — Ethiopia',
-    actor: 'System',
-    time: '1 hr ago',
-    icon: <ArrowUpRight className="h-4 w-4 text-aris-secondary-600" />,
-  },
-  {
-    id: '4',
-    action: 'Campaign launched',
-    detail: 'Rinderpest surveillance — IGAD region',
-    actor: 'Dr. Abdi',
-    time: '2 hr ago',
-    icon: <Activity className="h-4 w-4 text-aris-primary-600" />,
-  },
-  {
-    id: '5',
-    action: 'Quality gate failed',
-    detail: 'Missing species code — Nigeria submission',
-    actor: 'System',
-    time: '3 hr ago',
-    icon: <ShieldCheck className="h-4 w-4 text-amber-600" />,
-  },
+  { id: '1', action: 'Outbreak reported', detail: 'FMD in Rift Valley, Kenya', actor: 'Dr. Ochieng', time: '12 min ago', icon: <Bug className="h-4 w-4 text-red-500" /> },
+  { id: '2', action: 'Validation approved', detail: 'PPR vaccination data — Uganda (L2)', actor: 'Dr. Nakato', time: '34 min ago', icon: <ClipboardCheck className="h-4 w-4 text-green-600" /> },
+  { id: '3', action: 'WAHIS export triggered', detail: 'Monthly report — Ethiopia', actor: 'System', time: '1 hr ago', icon: <ArrowUpRight className="h-4 w-4 text-aris-secondary-600" /> },
+  { id: '4', action: 'Campaign launched', detail: 'Rinderpest surveillance — IGAD region', actor: 'Dr. Abdi', time: '2 hr ago', icon: <Activity className="h-4 w-4 text-aris-primary-600" /> },
+  { id: '5', action: 'Quality gate failed', detail: 'Missing species code — Nigeria submission', actor: 'System', time: '3 hr ago', icon: <ShieldCheck className="h-4 w-4 text-amber-600" /> },
 ];
 
 interface KpiCardData {
@@ -185,45 +54,57 @@ interface KpiCardData {
   icon: React.ReactNode;
 }
 
+function formatTrend(val: number): { direction: 'up' | 'down' | 'neutral'; value: string } {
+  if (val > 0) return { direction: 'up', value: `+${val}%` };
+  if (val < 0) return { direction: 'down', value: `${val}%` };
+  return { direction: 'neutral', value: '0%' };
+}
+
 export default function DashboardHomePage() {
   const selectedTenant = useTenantStore((s) => s.selectedTenant);
+  const { data: kpiData, isLoading: kpisLoading } = useDashboardKpis();
+  const { data: markersData } = useOutbreakMarkers();
 
-  const kpis: KpiCardData[] = [
-    {
-      label: 'Active Outbreaks',
-      value: 42,
-      trend: { direction: 'up', value: '+12%', label: 'vs last month' },
-      variant: 'accent',
-      icon: <Bug className="h-5 w-5" />,
-    },
-    {
-      label: 'Vaccination Coverage',
-      value: '87.3',
-      unit: '%',
-      trend: { direction: 'up', value: '+5.2%', label: 'vs last quarter' },
-      variant: 'primary',
-      icon: <Syringe className="h-5 w-5" />,
-    },
-    {
-      label: 'Pending Validations',
-      value: 156,
-      trend: { direction: 'down', value: '-8%', label: 'improving' },
-      variant: 'default',
-      icon: <ClipboardCheck className="h-5 w-5" />,
-    },
-    {
-      label: 'Data Quality Score',
-      value: '94.1',
-      unit: '%',
-      trend: { direction: 'neutral', value: '0%', label: 'stable' },
-      variant: 'secondary',
-      icon: <ShieldCheck className="h-5 w-5" />,
-    },
-  ];
+  const kpiValues = kpiData?.data;
+  const markers: OutbreakMarker[] = markersData?.data ?? FALLBACK_MARKERS;
+
+  const kpis: KpiCardData[] = kpiValues
+    ? [
+        {
+          label: 'Active Outbreaks',
+          value: kpiValues.activeOutbreaks,
+          trend: { ...formatTrend(kpiValues.outbreaksTrend), label: 'vs last month' },
+          variant: 'accent',
+          icon: <Bug className="h-5 w-5" />,
+        },
+        {
+          label: 'Vaccination Coverage',
+          value: kpiValues.vaccinationCoverage.toFixed(1),
+          unit: '%',
+          trend: { ...formatTrend(kpiValues.vaccinationTrend), label: 'vs last quarter' },
+          variant: 'primary',
+          icon: <Syringe className="h-5 w-5" />,
+        },
+        {
+          label: 'Pending Validations',
+          value: kpiValues.pendingValidations,
+          trend: { ...formatTrend(kpiValues.validationsTrend), label: kpiValues.validationsTrend <= 0 ? 'improving' : 'vs last month' },
+          variant: 'default',
+          icon: <ClipboardCheck className="h-5 w-5" />,
+        },
+        {
+          label: 'Data Quality Score',
+          value: kpiValues.dataQualityScore.toFixed(1),
+          unit: '%',
+          trend: { ...formatTrend(kpiValues.qualityTrend), label: kpiValues.qualityTrend === 0 ? 'stable' : 'vs last month' },
+          variant: 'secondary',
+          icon: <ShieldCheck className="h-5 w-5" />,
+        },
+      ]
+    : [];
 
   return (
     <div className="space-y-6">
-      {/* Page heading */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="mt-1 text-sm text-gray-500">
@@ -234,9 +115,9 @@ export default function DashboardHomePage() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((kpi) => (
-          <KpiCard key={kpi.label} {...kpi} />
-        ))}
+        {kpisLoading
+          ? Array.from({ length: 4 }).map((_, i) => <KpiCardSkeleton key={i} />)
+          : kpis.map((kpi) => <KpiCard key={kpi.label} {...kpi} />)}
       </div>
 
       {/* Map + Activity feed */}
@@ -246,11 +127,14 @@ export default function DashboardHomePage() {
             <h2 className="text-lg font-semibold text-gray-900">
               Outbreak Map
             </h2>
-            <span className="text-xs text-gray-400">
-              {PLACEHOLDER_MARKERS.length} active events
-            </span>
+            <Link
+              href="/animal-health/map"
+              className="text-xs text-aris-primary-600 hover:underline"
+            >
+              {markers.length} active events — View full map
+            </Link>
           </div>
-          <AfricaMap markers={PLACEHOLDER_MARKERS} height="500px" />
+          <AfricaMap markers={markers} height="500px" />
           <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
             <span className="flex items-center gap-1">
               <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#2E7D32]" />
@@ -306,7 +190,6 @@ export default function DashboardHomePage() {
   );
 }
 
-// Inline KpiCard for the dashboard (uses same ARIS styling as @aris/ui-components)
 function KpiCard({
   label,
   value,

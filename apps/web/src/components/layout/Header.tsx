@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore, type UserRole } from '@/lib/stores/auth-store';
 import { useTenantStore } from '@/lib/stores/tenant-store';
+import { useUnreadNotifications } from '@/lib/api/hooks';
 import {
   Bell,
   LogOut,
@@ -69,6 +70,9 @@ export function Header() {
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const tenantMenuRef = useRef<HTMLDivElement>(null);
+
+  const { data: notifData } = useUnreadNotifications();
+  const unreadCount = notifData?.data?.count ?? 0;
 
   const selectedTenant = selectedTenantId
     ? findTenantById(tenantTree, selectedTenantId)
@@ -206,7 +210,11 @@ export function Header() {
           aria-label="Notifications"
         >
           <Bell className="h-5 w-5" />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-aris-accent-600" />
+          {unreadCount > 0 && (
+            <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-aris-accent-600 text-[9px] font-bold text-white">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
         </button>
 
         {/* User menu */}

@@ -437,3 +437,552 @@ export function useWorkflowAction() {
     },
   });
 }
+
+// ─── Collecte Types ──────────────────────────────────────────────────────────
+
+export interface CollecteCampaign {
+  id: string;
+  name: string;
+  description: string;
+  templateId: string;
+  templateName: string;
+  status: 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
+  startDate: string;
+  endDate: string;
+  zones: string[];
+  assignedAgents: number;
+  totalSubmissions: number;
+  targetSubmissions: number;
+  validatedSubmissions: number;
+  rejectedSubmissions: number;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CollecteCampaignDetail extends CollecteCampaign {
+  submissions: CollecteSubmission[];
+  agents: CollecteAgent[];
+}
+
+export interface CollecteSubmission {
+  id: string;
+  campaignId: string;
+  campaignName: string;
+  formData: Record<string, unknown>;
+  status: 'draft' | 'submitted' | 'validated' | 'rejected' | 'corrected';
+  submittedBy: string;
+  submittedByName: string;
+  submittedAt: string;
+  zone: string;
+  qualityScore: number;
+  qualityResult: 'pass' | 'fail' | 'warning' | 'pending';
+  workflowLevel: number;
+  workflowStatus: string;
+  createdAt: string;
+}
+
+export interface CollecteSubmissionDetail extends CollecteSubmission {
+  qualityGates: QualityGateStatus[];
+  corrections: CorrectionEntry[];
+  timeline: TimelineEntry[];
+}
+
+export interface CollecteAgent {
+  id: string;
+  name: string;
+  email: string;
+  zone: string;
+  submissions: number;
+  lastActive: string;
+}
+
+export interface CorrectionEntry {
+  id: string;
+  field: string;
+  oldValue: string;
+  newValue: string;
+  correctedBy: string;
+  correctedAt: string;
+  reason: string;
+}
+
+export interface CreateCampaignRequest {
+  name: string;
+  description: string;
+  templateId: string;
+  startDate: string;
+  endDate: string;
+  zones: string[];
+  agentIds: string[];
+}
+
+// ─── Collecte Hooks ──────────────────────────────────────────────────────────
+
+export function useCampaigns(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.status) searchParams.status = params.status;
+  if (params?.search) searchParams.search = params.search;
+
+  return useQuery({
+    queryKey: ['collecte', 'campaigns', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<CollecteCampaign>>(
+        '/collecte/campaigns',
+        searchParams,
+      ),
+  });
+}
+
+export function useCampaign(id: string) {
+  return useQuery({
+    queryKey: ['collecte', 'campaigns', id],
+    queryFn: () =>
+      apiClient.get<{ data: CollecteCampaignDetail }>(
+        `/collecte/campaigns/${id}`,
+      ),
+    enabled: !!id,
+  });
+}
+
+export function useCreateCampaign() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateCampaignRequest) =>
+      apiClient.post<{ data: CollecteCampaign }>('/collecte/campaigns', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collecte', 'campaigns'] });
+    },
+  });
+}
+
+export function useSubmission(id: string) {
+  return useQuery({
+    queryKey: ['collecte', 'submissions', id],
+    queryFn: () =>
+      apiClient.get<{ data: CollecteSubmissionDetail }>(
+        `/collecte/submissions/${id}`,
+      ),
+    enabled: !!id,
+  });
+}
+
+// ─── Quality Types ───────────────────────────────────────────────────────────
+
+export interface QualityDashboardData {
+  overallPassRate: number;
+  passRateTrend: number;
+  totalReports: number;
+  pendingCorrections: number;
+  avgCorrectionTime: number;
+  correctionTimeTrend: number;
+  byDomain: QualityDomainStat[];
+  byGate: QualityGateStat[];
+  recentFailures: QualityReport[];
+}
+
+export interface QualityDomainStat {
+  domain: string;
+  passRate: number;
+  totalRecords: number;
+  failedRecords: number;
+}
+
+export interface QualityGateStat {
+  gate: string;
+  passRate: number;
+  failCount: number;
+  warningCount: number;
+}
+
+export interface QualityReport {
+  id: string;
+  entityType: string;
+  entityId: string;
+  entityTitle: string;
+  domain: string;
+  country: string;
+  overallResult: 'pass' | 'fail' | 'warning';
+  gateResults: QualityGateStatus[];
+  violations: QualityViolation[];
+  submittedBy: string;
+  reviewedBy?: string;
+  status: 'pending' | 'corrected' | 'overridden' | 'accepted';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QualityViolation {
+  id: string;
+  gate: string;
+  field: string;
+  message: string;
+  severity: 'error' | 'warning';
+  suggestion?: string;
+}
+
+export interface QualityRule {
+  id: string;
+  name: string;
+  description: string;
+  gate: string;
+  domain: string;
+  expression: string;
+  severity: 'error' | 'warning';
+  active: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateQualityRuleRequest {
+  name: string;
+  description: string;
+  gate: string;
+  domain: string;
+  expression: string;
+  severity: 'error' | 'warning';
+}
+
+// ─── Quality Hooks ───────────────────────────────────────────────────────────
+
+export function useQualityDashboard() {
+  return useQuery({
+    queryKey: ['quality', 'dashboard'],
+    queryFn: () =>
+      apiClient.get<{ data: QualityDashboardData }>('/data-quality/dashboard'),
+  });
+}
+
+export function useQualityReports(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  domain?: string;
+  result?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.status) searchParams.status = params.status;
+  if (params?.domain) searchParams.domain = params.domain;
+  if (params?.result) searchParams.result = params.result;
+  if (params?.search) searchParams.search = params.search;
+
+  return useQuery({
+    queryKey: ['quality', 'reports', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<QualityReport>>(
+        '/data-quality/reports',
+        searchParams,
+      ),
+  });
+}
+
+export function useQualityReport(id: string) {
+  return useQuery({
+    queryKey: ['quality', 'reports', id],
+    queryFn: () =>
+      apiClient.get<{ data: QualityReport }>(`/data-quality/reports/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useQualityRules(params?: {
+  page?: number;
+  limit?: number;
+  gate?: string;
+  domain?: string;
+  active?: boolean;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.gate) searchParams.gate = params.gate;
+  if (params?.domain) searchParams.domain = params.domain;
+  if (params?.active !== undefined) searchParams.active = String(params.active);
+
+  return useQuery({
+    queryKey: ['quality', 'rules', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<QualityRule>>(
+        '/data-quality/rules',
+        searchParams,
+      ),
+  });
+}
+
+export function useCreateQualityRule() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateQualityRuleRequest) =>
+      apiClient.post<{ data: QualityRule }>('/data-quality/rules', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quality', 'rules'] });
+    },
+  });
+}
+
+export function useUpdateQualityRule() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { id: string } & Partial<CreateQualityRuleRequest> & { active?: boolean }) =>
+      apiClient.patch<{ data: QualityRule }>(
+        `/data-quality/rules/${data.id}`,
+        data,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quality', 'rules'] });
+    },
+  });
+}
+
+export function useDeleteQualityRule() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient.delete<{ data: { message: string } }>(
+        `/data-quality/rules/${id}`,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quality', 'rules'] });
+    },
+  });
+}
+
+// ─── Master Data Types ───────────────────────────────────────────────────────
+
+export interface MasterDataCountry {
+  id: string;
+  name: string;
+  code: string;
+  iso3: string;
+  region: string;
+  subRegion: string;
+  population?: number;
+  area?: number;
+  updatedAt: string;
+}
+
+export interface MasterDataSpecies {
+  id: string;
+  name: string;
+  scientificName: string;
+  category: string;
+  woahCode: string;
+  faoCode?: string;
+  updatedAt: string;
+}
+
+export interface MasterDataDisease {
+  id: string;
+  name: string;
+  woahCode: string;
+  category: string;
+  notifiable: boolean;
+  zoonotic: boolean;
+  speciesAffected: string[];
+  updatedAt: string;
+}
+
+export interface MasterDataDenominator {
+  id: string;
+  country: string;
+  countryCode: string;
+  species: string;
+  year: number;
+  faostatValue: number;
+  nationalCensusValue?: number;
+  variance?: number;
+  source: 'FAOSTAT' | 'NATIONAL_CENSUS' | 'ESTIMATE';
+  notes?: string;
+  updatedAt: string;
+}
+
+export interface MasterDataUnit {
+  id: string;
+  name: string;
+  symbol: string;
+  category: string;
+  siEquivalent?: string;
+  updatedAt: string;
+}
+
+// ─── Master Data Hooks ───────────────────────────────────────────────────────
+
+export function useCountries(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  region?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.search) searchParams.search = params.search;
+  if (params?.region) searchParams.region = params.region;
+
+  return useQuery({
+    queryKey: ['master-data', 'countries', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<MasterDataCountry>>(
+        '/master-data/countries',
+        searchParams,
+      ),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useSpecies(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.search) searchParams.search = params.search;
+  if (params?.category) searchParams.category = params.category;
+
+  return useQuery({
+    queryKey: ['master-data', 'species', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<MasterDataSpecies>>(
+        '/master-data/species',
+        searchParams,
+      ),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useDiseases(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: string;
+  notifiable?: boolean;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.search) searchParams.search = params.search;
+  if (params?.category) searchParams.category = params.category;
+  if (params?.notifiable !== undefined)
+    searchParams.notifiable = String(params.notifiable);
+
+  return useQuery({
+    queryKey: ['master-data', 'diseases', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<MasterDataDisease>>(
+        '/master-data/diseases',
+        searchParams,
+      ),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useDenominators(params?: {
+  page?: number;
+  limit?: number;
+  country?: string;
+  species?: string;
+  year?: number;
+  source?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.country) searchParams.country = params.country;
+  if (params?.species) searchParams.species = params.species;
+  if (params?.year) searchParams.year = String(params.year);
+  if (params?.source) searchParams.source = params.source;
+
+  return useQuery({
+    queryKey: ['master-data', 'denominators', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<MasterDataDenominator>>(
+        '/master-data/denominators',
+        searchParams,
+      ),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useUnits(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.search) searchParams.search = params.search;
+  if (params?.category) searchParams.category = params.category;
+
+  return useQuery({
+    queryKey: ['master-data', 'units', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<MasterDataUnit>>(
+        '/master-data/units',
+        searchParams,
+      ),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useUpdateMasterDataItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: {
+      type: 'countries' | 'species' | 'diseases' | 'denominators' | 'units';
+      id: string;
+      payload: Record<string, unknown>;
+    }) =>
+      apiClient.patch<{ data: unknown }>(
+        `/master-data/${data.type}/${data.id}`,
+        data.payload,
+      ),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['master-data', variables.type],
+      });
+    },
+  });
+}
+
+// ─── Form Templates Hook (for campaign creation) ────────────────────────────
+
+export interface FormTemplate {
+  id: string;
+  name: string;
+  domain: string;
+  version: number;
+  status: 'draft' | 'published' | 'archived';
+}
+
+export function useFormTemplates() {
+  return useQuery({
+    queryKey: ['form-builder', 'templates'],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<FormTemplate>>(
+        '/form-builder/templates',
+        { status: 'published' },
+      ),
+    staleTime: 5 * 60_000,
+  });
+}

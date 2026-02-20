@@ -8,6 +8,9 @@ import { ChevronRight, Home } from 'lucide-react';
 const LABEL_MAP: Record<string, string> = {
   '': 'Home',
   'animal-health': 'Animal Health',
+  events: 'Events',
+  new: 'New Event',
+  map: 'Map',
   outbreaks: 'Outbreaks',
   vaccination: 'Vaccination',
   laboratory: 'Laboratory',

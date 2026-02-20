@@ -1,0 +1,156 @@
+// ARIS 3.0 — Animal Health domain schema
+// Service: animal-health (port 3020)
+// Owner: CC-4
+
+// ── Health Events (Outbreaks / Epidemiological Events) ──
+
+model HealthEvent {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  diseaseId           String   @map("disease_id") @db.Uuid
+  eventType           String   @map("event_type")         // SUSPECT | CONFIRMED | RESOLVED
+  speciesIds          String[] @map("species_ids") @db.Uuid
+  dateOnset           DateTime? @map("date_onset") @db.Timestamptz
+  dateSuspicion       DateTime  @map("date_suspicion") @db.Timestamptz
+  dateConfirmation    DateTime? @map("date_confirmation") @db.Timestamptz
+  dateClosure         DateTime? @map("date_closure") @db.Timestamptz
+  geoEntityId         String   @map("geo_entity_id") @db.Uuid
+  latitude            Float?
+  longitude           Float?
+  holdingsAffected    Int      @map("holdings_affected") @default(0)
+  susceptible         Int      @default(0)
+  cases               Int      @default(0)
+  deaths              Int      @default(0)
+  killed              Int      @default(0)
+  slaughtered         Int      @default(0)
+  controlMeasures     String[] @map("control_measures")   // QUARANTINE, MOVEMENT_CONTROL, etc.
+  confidenceLevel     String   @map("confidence_level")   // RUMOR | VERIFIED | CONFIRMED
+  dataClassification  String   @map("data_classification") @default("RESTRICTED")
+  workflowInstanceId  String?  @map("workflow_instance_id") @db.Uuid
+  wahisReady          Boolean  @map("wahis_ready") @default(false)
+  createdBy           String   @map("created_by") @db.Uuid
+  updatedBy           String   @map("updated_by") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  labResults          LabResult[]
+
+  @@index([tenantId])
+  @@index([diseaseId])
+  @@index([eventType])
+  @@index([dateSuspicion])
+  @@index([geoEntityId])
+  @@map("health_events")
+  @@schema("animal_health")
+}
+
+// ── Lab Results ──
+
+model LabResult {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  sampleId            String   @map("sample_id") @db.VarChar(100)
+  sampleType          String   @map("sample_type") @db.VarChar(100)
+  dateCollected       DateTime @map("date_collected") @db.Timestamptz
+  dateReceived        DateTime @map("date_received") @db.Timestamptz
+  testType            String   @map("test_type") @db.VarChar(100)
+  result              String                                // POSITIVE | NEGATIVE | INCONCLUSIVE
+  labId               String   @map("lab_id") @db.Uuid
+  turnaroundDays      Int      @map("turnaround_days") @default(0)
+  eqaFlag             Boolean  @map("eqa_flag") @default(false)
+  healthEventId       String?  @map("health_event_id") @db.Uuid
+  dataClassification  String   @map("data_classification") @default("RESTRICTED")
+  createdBy           String   @map("created_by") @db.Uuid
+  updatedBy           String   @map("updated_by") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  healthEvent         HealthEvent? @relation(fields: [healthEventId], references: [id])
+
+  @@index([tenantId])
+  @@index([healthEventId])
+  @@index([labId])
+  @@index([result])
+  @@map("lab_results")
+  @@schema("animal_health")
+}
+
+// ── Surveillance Activities ──
+
+model SurveillanceActivity {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  type                String                                // PASSIVE | ACTIVE | SENTINEL | EVENT_BASED
+  diseaseId           String   @map("disease_id") @db.Uuid
+  designType          String?  @map("design_type")         // CLUSTER | RISK_BASED | RANDOM
+  sampleSize          Int      @map("sample_size") @default(0)
+  positivityRate      Float?   @map("positivity_rate")
+  periodStart         DateTime @map("period_start") @db.Timestamptz
+  periodEnd           DateTime @map("period_end") @db.Timestamptz
+  geoEntityId         String   @map("geo_entity_id") @db.Uuid
+  mapLayerId          String?  @map("map_layer_id") @db.Uuid
+  dataClassification  String   @map("data_classification") @default("PARTNER")
+  createdBy           String   @map("created_by") @db.Uuid
+  updatedBy           String   @map("updated_by") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([diseaseId])
+  @@index([type])
+  @@map("surveillance_activities")
+  @@schema("animal_health")
+}
+
+// ── Vaccination Campaigns ──
+
+model VaccinationCampaign {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  diseaseId           String   @map("disease_id") @db.Uuid
+  speciesId           String   @map("species_id") @db.Uuid
+  vaccineType         String   @map("vaccine_type") @db.VarChar(200)
+  vaccineBatch        String?  @map("vaccine_batch") @db.VarChar(100)
+  dosesDelivered      Int      @map("doses_delivered") @default(0)
+  dosesUsed           Int      @map("doses_used") @default(0)
+  targetPopulation    Int      @map("target_population") @default(0)
+  coverageEstimate    Float    @map("coverage_estimate") @default(0)
+  pveSerologyDone     Boolean  @map("pve_serology_done") @default(false)
+  periodStart         DateTime @map("period_start") @db.Timestamptz
+  periodEnd           DateTime @map("period_end") @db.Timestamptz
+  geoEntityId         String   @map("geo_entity_id") @db.Uuid
+  dataClassification  String   @map("data_classification") @default("PARTNER")
+  createdBy           String   @map("created_by") @db.Uuid
+  updatedBy           String   @map("updated_by") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([diseaseId])
+  @@index([speciesId])
+  @@map("vaccination_campaigns")
+  @@schema("animal_health")
+}
+
+// ── Veterinary Services Capacities (SV) ──
+
+model SVCapacity {
+  id                        String   @id @default(uuid()) @db.Uuid
+  tenantId                  String   @map("tenant_id") @db.Uuid
+  year                      Int
+  epiStaff                  Int      @map("epi_staff") @default(0)
+  labStaff                  Int      @map("lab_staff") @default(0)
+  labTestsAvailable         String[] @map("lab_tests_available")
+  vaccineProductionCapacity Int?     @map("vaccine_production_capacity")
+  pvsScore                  Float?   @map("pvs_score")
+  dataClassification        String   @map("data_classification") @default("PARTNER")
+  createdBy                 String   @map("created_by") @db.Uuid
+  updatedBy                 String   @map("updated_by") @db.Uuid
+  createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                 DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([tenantId, year])
+  @@index([tenantId])
+  @@map("sv_capacities")
+  @@schema("animal_health")
+}
