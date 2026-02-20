@@ -143,7 +143,7 @@ export class CampaignService {
     ]);
 
     const pending = totalSubmissions - validated - rejected;
-    const target = campaign.targetSubmissions ?? totalSubmissions || 1;
+    const target = campaign.targetSubmissions ?? (totalSubmissions || 1);
     const completionRate =
       Math.round((validated / target) * 10000) / 100;
 
