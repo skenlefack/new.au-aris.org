@@ -1,0 +1,646 @@
+openapi: 3.0.3
+info:
+  title: ARIS 3.0 — Analytics Service
+  version: 1.0.0
+  description: |
+    Kafka Streams-powered analytics engine for ARIS 3.0.
+    Provides pre-computed KPIs, trend time-series, data-quality dashboards,
+    workflow timeliness metrics, denominator lookups, and CSV export.
+    All analytics endpoints are public (no auth guards).
+
+servers:
+  - url: http://localhost:3030
+    description: Development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: analytics
+    description: Pre-computed analytics and KPI endpoints
+  - name: health
+    description: Service health check
+
+paths:
+  # ── Controller: analytics ──────────────────────────────────────────────
+  /analytics/health/kpis:
+    get:
+      operationId: getHealthKpis
+      summary: Get health KPIs (cases, deaths, outbreaks by disease/country/period)
+      tags:
+        - analytics
+      security: []
+      parameters:
+        - name: disease
+          in: query
+          schema:
+            type: string
+          description: Filter by disease code
+        - name: country
+          in: query
+          schema:
+            type: string
+          description: ISO 3166-1 alpha-2 country code
+        - name: periodStart
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Start of reporting period (inclusive)
+        - name: periodEnd
+          in: query
+          schema:
+            type: string
+            format: date
+          description: End of reporting period (inclusive)
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Items per page
+      responses:
+        "200":
+          description: Health KPI dataset returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KpiResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analytics/health/trends:
+    get:
+      operationId: getHealthTrends
+      summary: Get health trend data (time series)
+      tags:
+        - analytics
+      security: []
+      parameters:
+        - name: disease
+          in: query
+          schema:
+            type: string
+          description: Filter by disease code
+        - name: country
+          in: query
+          schema:
+            type: string
+          description: ISO 3166-1 alpha-2 country code
+        - name: granularity
+          in: query
+          schema:
+            type: string
+            enum:
+              - daily
+              - weekly
+              - monthly
+              - quarterly
+              - yearly
+            default: monthly
+          description: Time series granularity
+        - name: periodStart
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Start of reporting period (inclusive)
+        - name: periodEnd
+          in: query
+          schema:
+            type: string
+            format: date
+          description: End of reporting period (inclusive)
+      responses:
+        "200":
+          description: Trend time-series data returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrendResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analytics/quality/dashboard:
+    get:
+      operationId: getQualityDashboard
+      summary: Get data quality dashboard metrics
+      tags:
+        - analytics
+      security: []
+      parameters:
+        - name: domain
+          in: query
+          schema:
+            type: string
+          description: Business domain filter (e.g. health, livestock, fisheries)
+        - name: country
+          in: query
+          schema:
+            type: string
+          description: ISO 3166-1 alpha-2 country code
+        - name: periodStart
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Start of reporting period (inclusive)
+        - name: periodEnd
+          in: query
+          schema:
+            type: string
+            format: date
+          description: End of reporting period (inclusive)
+      responses:
+        "200":
+          description: Quality dashboard metrics returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualityDashboardResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analytics/workflow/timeliness:
+    get:
+      operationId: getWorkflowTimeliness
+      summary: Get workflow processing timeliness stats
+      tags:
+        - analytics
+      security: []
+      parameters:
+        - name: workflowType
+          in: query
+          schema:
+            type: string
+          description: Filter by workflow type
+        - name: country
+          in: query
+          schema:
+            type: string
+          description: ISO 3166-1 alpha-2 country code
+        - name: periodStart
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Start of reporting period (inclusive)
+        - name: periodEnd
+          in: query
+          schema:
+            type: string
+            format: date
+          description: End of reporting period (inclusive)
+      responses:
+        "200":
+          description: Workflow timeliness statistics returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowTimelinessResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analytics/denominators:
+    get:
+      operationId: getDenominators
+      summary: Get denominator data for rate calculations
+      tags:
+        - analytics
+      security: []
+      parameters:
+        - name: species
+          in: query
+          schema:
+            type: string
+          description: Filter by species code
+        - name: country
+          in: query
+          schema:
+            type: string
+          description: ISO 3166-1 alpha-2 country code
+        - name: source
+          in: query
+          schema:
+            type: string
+            enum:
+              - faostat
+              - national_census
+          description: Denominator source (FAOSTAT vs national census)
+        - name: year
+          in: query
+          schema:
+            type: integer
+          description: Reference year
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Items per page
+      responses:
+        "200":
+          description: Denominator data returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DenominatorResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analytics/export/csv:
+    get:
+      operationId: exportAnalyticsCsv
+      summary: Export analytics data as CSV
+      tags:
+        - analytics
+      security: []
+      parameters:
+        - name: dataset
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - health_kpis
+              - health_trends
+              - quality_dashboard
+              - workflow_timeliness
+              - denominators
+          description: Dataset to export
+        - name: country
+          in: query
+          schema:
+            type: string
+          description: ISO 3166-1 alpha-2 country code
+        - name: periodStart
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Start of reporting period (inclusive)
+        - name: periodEnd
+          in: query
+          schema:
+            type: string
+            format: date
+          description: End of reporting period (inclusive)
+      responses:
+        "200":
+          description: CSV file returned successfully
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Controller: health ─────────────────────────────────────────────────
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      tags:
+        - health
+      security: []
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthCheckResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    HealthCheckResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        service:
+          type: string
+          example: analytics
+        timestamp:
+          type: string
+          format: date-time
+
+    KpiResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              disease:
+                type: string
+              country:
+                type: string
+              period:
+                type: string
+              cases:
+                type: integer
+              deaths:
+                type: integer
+              outbreaks:
+                type: integer
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    TrendResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              value:
+                type: number
+              disease:
+                type: string
+              country:
+                type: string
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    QualityDashboardResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            completeness:
+              type: number
+              description: Percentage of records passing completeness gate
+            temporalConsistency:
+              type: number
+              description: Percentage passing temporal consistency gate
+            geographicConsistency:
+              type: number
+              description: Percentage passing geographic consistency gate
+            codeValidity:
+              type: number
+              description: Percentage passing codes and vocabularies gate
+            deduplication:
+              type: number
+              description: Percentage passing deduplication gate
+            overallScore:
+              type: number
+              description: Weighted overall quality score
+
+    WorkflowTimelinessResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            averageProcessingDays:
+              type: number
+            medianProcessingDays:
+              type: number
+            onTimePercentage:
+              type: number
+            byLevel:
+              type: array
+              items:
+                type: object
+                properties:
+                  level:
+                    type: integer
+                    enum: [1, 2, 3, 4]
+                  averageDays:
+                    type: number
+                  count:
+                    type: integer
+
+    DenominatorResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              species:
+                type: string
+              country:
+                type: string
+              year:
+                type: integer
+              population:
+                type: number
+              source:
+                type: string
+                enum:
+                  - faostat
+                  - national_census
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"

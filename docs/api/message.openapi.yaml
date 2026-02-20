@@ -1,0 +1,360 @@
+openapi: 3.0.3
+info:
+  title: ARIS 3.0 — Message Service
+  version: 1.0.0
+  description: >
+    Notification and messaging service for the ARIS platform.
+    Handles multi-channel delivery (SMS, email, push, in-app) of
+    system and user-triggered notifications. Consumed via Kafka events
+    or direct API calls. In-app notifications are stored and queryable
+    per user.
+
+servers:
+  - url: http://localhost:3006
+    description: Development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Messages
+    description: In-app notification management and sending
+
+paths:
+  /api/v1/messages:
+    get:
+      operationId: listNotifications
+      summary: List notifications for the current user
+      description: >
+        Returns a paginated list of in-app notifications addressed to the
+        authenticated user. Supports filtering by read status and channel.
+        Guard: AuthGuard.
+      tags:
+        - Messages
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: isRead
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: Filter by read/unread status
+        - name: channel
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/NotificationChannel'
+          description: Filter by delivery channel
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            default: createdAt
+          description: Field to sort by
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort order
+      responses:
+        '200':
+          description: Paginated list of notifications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/messages/unread-count:
+    get:
+      operationId: getUnreadCount
+      summary: Get unread notification count
+      description: >
+        Returns the total number of unread in-app notifications for the
+        authenticated user. Useful for badge counts in the UI.
+        Guard: AuthGuard.
+      tags:
+        - Messages
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCountResponse'
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/messages/{id}/read:
+    patch:
+      operationId: markAsRead
+      summary: Mark notification as read
+      description: >
+        Marks a single in-app notification as read for the authenticated user.
+        Guard: AuthGuard.
+      tags:
+        - Messages
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MessageIdParam'
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/messages/send:
+    post:
+      operationId: sendNotification
+      summary: Send a notification
+      description: >
+        Sends a notification through the specified channel(s) to target user(s).
+        Supports SMS, email, push, and in-app channels. Only administrators
+        (SUPER_ADMIN, CONTINENTAL_ADMIN, REC_ADMIN, NATIONAL_ADMIN) may send
+        notifications directly via this endpoint.
+        Guard: AuthGuard.
+      tags:
+        - Messages
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendNotificationDto'
+      responses:
+        '201':
+          description: Notification sent / queued successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendResultResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: >
+            Insufficient role — requires SUPER_ADMIN, CONTINENTAL_ADMIN,
+            REC_ADMIN, or NATIONAL_ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: RS256-signed JWT issued by the Credential service
+
+  parameters:
+    MessageIdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Notification UUID
+
+    PageParam:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number (1-based)
+
+    LimitParam:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Items per page
+
+  schemas:
+    NotificationChannel:
+      type: string
+      enum:
+        - SMS
+        - EMAIL
+        - PUSH
+        - IN_APP
+
+    SendNotificationDto:
+      type: object
+      required:
+        - recipientIds
+        - channels
+        - subject
+        - body
+      properties:
+        recipientIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          description: Target user UUIDs
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannel'
+          minItems: 1
+          description: Delivery channels
+        subject:
+          type: string
+          example: Outbreak alert — Rift Valley Fever
+        body:
+          type: string
+          description: Notification body (plain text or HTML for email)
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Arbitrary key-value pairs for template rendering
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        recipientId:
+          type: string
+          format: uuid
+        channel:
+          $ref: '#/components/schemas/NotificationChannel'
+        subject:
+          type: string
+        body:
+          type: string
+        isRead:
+          type: boolean
+        metadata:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    NotificationResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Notification'
+
+    NotificationListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    UnreadCountResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            count:
+              type: integer
+              example: 7
+
+    SendResultResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            queued:
+              type: integer
+              description: Number of notification deliveries queued
+              example: 3
+            message:
+              type: string
+              example: Notifications queued for delivery
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string

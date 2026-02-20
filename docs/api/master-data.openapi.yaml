@@ -1,0 +1,862 @@
+openapi: 3.0.3
+info:
+  title: ARIS 3.0 — Master Data Service
+  version: 1.0.0
+  description: >
+    Dictionary service for ARIS reference data: geography (ISO 3166, admin 1-3),
+    taxonomy (domestic + wildlife + aquatic species), WOAH disease list,
+    units (SI + sectoral), temporalities (epidemiological calendars),
+    identifiers (labs, markets, border points), and denominators
+    (FAOSTAT vs national census). All referentials are version-controlled
+    and publish change events to Kafka.
+
+servers:
+  - url: http://localhost:3003
+    description: Development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Geo
+    description: Geographic entities — countries, admin levels, special zones
+  - name: Species
+    description: Domestic, wildlife, and aquatic species taxonomy
+  - name: Diseases
+    description: WOAH-listed and emerging diseases
+  - name: Units
+    description: SI and sectoral measurement units
+  - name: Temporalities
+    description: Epidemiological calendars and reporting periods
+  - name: Identifiers
+    description: Labs, markets, border points, protected areas
+  - name: Denominators
+    description: Population denominators — FAOSTAT vs national census
+  - name: Version
+    description: Master data version metadata
+
+paths:
+  # ── Geo Controller ──────────────────────────────────────────────────
+  /api/v1/master-data/geo:
+    post:
+      operationId: createGeoEntity
+      summary: Create a geographic entity
+      tags: [Geo]
+      security:
+        - BearerAuth: []
+      description: >
+        Requires roles: SUPER_ADMIN, CONTINENTAL_ADMIN.
+        Guards: AuthGuard, TenantGuard.
+      responses:
+        '201':
+          description: Geo entity created
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized — missing or invalid JWT
+        '403':
+          description: Forbidden — insufficient role
+    get:
+      operationId: listGeoEntities
+      summary: List geographic entities
+      tags: [Geo]
+      security:
+        - BearerAuth: []
+      description: Filterable by level, parentId, code.
+      parameters:
+        - name: level
+          in: query
+          schema:
+            type: string
+        - name: parentId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: code
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of geo entities
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/v1/master-data/geo/{id}:
+    get:
+      operationId: getGeoEntity
+      summary: Get a geographic entity by ID
+      tags: [Geo]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Geo entity found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Geo entity not found
+    patch:
+      operationId: updateGeoEntity
+      summary: Update a geographic entity
+      tags: [Geo]
+      security:
+        - BearerAuth: []
+      description: >
+        Requires roles: SUPER_ADMIN, CONTINENTAL_ADMIN.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Geo entity updated
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Geo entity not found
+
+  /api/v1/master-data/geo/code/{code}:
+    get:
+      operationId: getGeoEntityByCode
+      summary: Get a geographic entity by ISO code
+      tags: [Geo]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Geo entity found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Geo entity not found
+
+  /api/v1/master-data/geo/{id}/children:
+    get:
+      operationId: listGeoEntityChildren
+      summary: List children of a geographic entity
+      tags: [Geo]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of child geo entities
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Parent geo entity not found
+
+  # ── Species Controller ──────────────────────────────────────────────
+  /api/v1/master-data/species:
+    post:
+      operationId: createSpecies
+      summary: Create a species entry
+      tags: [Species]
+      security:
+        - BearerAuth: []
+      description: >
+        Requires roles: SUPER_ADMIN, CONTINENTAL_ADMIN.
+        Guards: AuthGuard, TenantGuard.
+      responses:
+        '201':
+          description: Species created
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+    get:
+      operationId: listSpecies
+      summary: List species
+      tags: [Species]
+      security:
+        - BearerAuth: []
+      description: Filterable by category.
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of species
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/v1/master-data/species/{id}:
+    get:
+      operationId: getSpecies
+      summary: Get a species by ID
+      tags: [Species]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Species found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Species not found
+    patch:
+      operationId: updateSpecies
+      summary: Update a species entry
+      tags: [Species]
+      security:
+        - BearerAuth: []
+      description: >
+        Requires roles: SUPER_ADMIN, CONTINENTAL_ADMIN.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Species updated
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Species not found
+
+  # ── Diseases Controller ─────────────────────────────────────────────
+  /api/v1/master-data/diseases:
+    post:
+      operationId: createDisease
+      summary: Create a disease entry
+      tags: [Diseases]
+      security:
+        - BearerAuth: []
+      description: >
+        Requires roles: SUPER_ADMIN, CONTINENTAL_ADMIN.
+        Guards: AuthGuard, TenantGuard.
+      responses:
+        '201':
+          description: Disease created
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+    get:
+      operationId: listDiseases
+      summary: List diseases
+      tags: [Diseases]
+      security:
+        - BearerAuth: []
+      description: Filterable by isWoahListed, isNotifiable.
+      parameters:
+        - name: isWoahListed
+          in: query
+          schema:
+            type: boolean
+        - name: isNotifiable
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of diseases
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/v1/master-data/diseases/{id}:
+    get:
+      operationId: getDisease
+      summary: Get a disease by ID
+      tags: [Diseases]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Disease found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Disease not found
+    patch:
+      operationId: updateDisease
+      summary: Update a disease entry
+      tags: [Diseases]
+      security:
+        - BearerAuth: []
+      description: >
+        Requires roles: SUPER_ADMIN, CONTINENTAL_ADMIN.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Disease updated
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Disease not found
+
+  # ── Units Controller ────────────────────────────────────────────────
+  /api/v1/master-data/units:
+    post:
+      operationId: createUnit
+      summary: Create a measurement unit
+      tags: [Units]
+      security:
+        - BearerAuth: []
+      description: >
+        Requires roles: SUPER_ADMIN, CONTINENTAL_ADMIN.
+        Guards: AuthGuard, TenantGuard.
+      responses:
+        '201':
+          description: Unit created
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+    get:
+      operationId: listUnits
+      summary: List measurement units
+      tags: [Units]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of units
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/v1/master-data/units/{id}:
+    get:
+      operationId: getUnit
+      summary: Get a measurement unit by ID
+      tags: [Units]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Unit found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Unit not found
+    patch:
+      operationId: updateUnit
+      summary: Update a measurement unit
+      tags: [Units]
+      security:
+        - BearerAuth: []
+      description: >
+        Requires roles: SUPER_ADMIN, CONTINENTAL_ADMIN.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Unit updated
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Unit not found
+
+  # ── Temporalities Controller ────────────────────────────────────────
+  /api/v1/master-data/temporalities:
+    post:
+      operationId: createTemporality
+      summary: Create a temporality (epidemiological calendar/period)
+      tags: [Temporalities]
+      security:
+        - BearerAuth: []
+      description: >
+        Requires roles: SUPER_ADMIN, CONTINENTAL_ADMIN.
+        Guards: AuthGuard, TenantGuard.
+      responses:
+        '201':
+          description: Temporality created
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+    get:
+      operationId: listTemporalities
+      summary: List temporalities
+      tags: [Temporalities]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of temporalities
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/v1/master-data/temporalities/{id}:
+    get:
+      operationId: getTemporality
+      summary: Get a temporality by ID
+      tags: [Temporalities]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Temporality found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Temporality not found
+    patch:
+      operationId: updateTemporality
+      summary: Update a temporality
+      tags: [Temporalities]
+      security:
+        - BearerAuth: []
+      description: >
+        Requires roles: SUPER_ADMIN, CONTINENTAL_ADMIN.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Temporality updated
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Temporality not found
+
+  # ── Identifiers Controller ──────────────────────────────────────────
+  /api/v1/master-data/identifiers:
+    post:
+      operationId: createIdentifier
+      summary: Create an identifier (lab, market, border point, etc.)
+      tags: [Identifiers]
+      security:
+        - BearerAuth: []
+      description: >
+        Requires roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN.
+        Guards: AuthGuard, TenantGuard.
+      responses:
+        '201':
+          description: Identifier created
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+    get:
+      operationId: listIdentifiers
+      summary: List identifiers
+      tags: [Identifiers]
+      security:
+        - BearerAuth: []
+      description: Filterable by type, geoEntityId.
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: geoEntityId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of identifiers
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/v1/master-data/identifiers/{id}:
+    get:
+      operationId: getIdentifier
+      summary: Get an identifier by ID
+      tags: [Identifiers]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Identifier found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Identifier not found
+    patch:
+      operationId: updateIdentifier
+      summary: Update an identifier
+      tags: [Identifiers]
+      security:
+        - BearerAuth: []
+      description: >
+        Requires roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Identifier updated
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Identifier not found
+
+  # ── Denominators Controller ─────────────────────────────────────────
+  /api/v1/master-data/denominators:
+    post:
+      operationId: createDenominator
+      summary: Create a population denominator
+      tags: [Denominators]
+      security:
+        - BearerAuth: []
+      description: >
+        Requires roles: SUPER_ADMIN, CONTINENTAL_ADMIN, DATA_STEWARD.
+        Guards: AuthGuard, TenantGuard.
+      responses:
+        '201':
+          description: Denominator created
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+    get:
+      operationId: listDenominators
+      summary: List population denominators
+      tags: [Denominators]
+      security:
+        - BearerAuth: []
+      description: Filterable by countryCode, speciesId, year.
+      parameters:
+        - name: countryCode
+          in: query
+          schema:
+            type: string
+        - name: speciesId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of denominators
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/v1/master-data/denominators/{id}:
+    get:
+      operationId: getDenominator
+      summary: Get a denominator by ID
+      tags: [Denominators]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Denominator found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Denominator not found
+    patch:
+      operationId: updateDenominator
+      summary: Update a population denominator
+      tags: [Denominators]
+      security:
+        - BearerAuth: []
+      description: >
+        Requires roles: SUPER_ADMIN, CONTINENTAL_ADMIN, DATA_STEWARD.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Denominator updated
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Denominator not found
+
+  /api/v1/master-data/denominators/{id}/validate:
+    post:
+      operationId: validateDenominator
+      summary: Validate a population denominator
+      tags: [Denominators]
+      security:
+        - BearerAuth: []
+      description: >
+        Requires roles: SUPER_ADMIN, CONTINENTAL_ADMIN, DATA_STEWARD.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Denominator validated
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Denominator not found
+
+  # ── Version Controller ──────────────────────────────────────────────
+  /api/v1/master-data/version:
+    get:
+      operationId: getMasterDataVersion
+      summary: Get master data version information
+      tags: [Version]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Version metadata
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

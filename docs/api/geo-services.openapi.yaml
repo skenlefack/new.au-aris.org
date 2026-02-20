@@ -1,0 +1,627 @@
+openapi: 3.0.3
+info:
+  title: ARIS 3.0 — Geo Services
+  version: 1.0.0
+  description: |
+    Geospatial service for ARIS 3.0.
+    Provides PostGIS-backed spatial queries, administrative boundary lookups,
+    risk-map layers, and pg_tileserv integration for vector tiles.
+    All endpoints require AuthGuard and TenantGuard (JWT with tenantId).
+
+servers:
+  - url: http://localhost:3031
+    description: Development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: geo
+    description: Geospatial queries, layers, risk maps, and admin boundaries
+
+paths:
+  /api/v1/geo/layers:
+    get:
+      operationId: listLayers
+      summary: List available map layers
+      tags:
+        - geo
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: domain
+          in: query
+          schema:
+            type: string
+          description: Filter layers by business domain (e.g. health, livestock, fisheries)
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum:
+              - vector
+              - raster
+              - heatmap
+          description: Filter by layer type
+      responses:
+        "200":
+          description: List of available map layers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayerListResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/geo/query/within:
+    get:
+      operationId: queryWithin
+      summary: "Spatial query: find entities within a polygon"
+      description: |
+        Accepts either a GeoJSON polygon in the request body or bounding box
+        query parameters (minLon, minLat, maxLon, maxLat) to find entities
+        contained within the specified area.
+      tags:
+        - geo
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: entityType
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Type of entity to search (e.g. outbreak, holding, market)
+        - name: minLon
+          in: query
+          schema:
+            type: number
+            format: double
+          description: Bounding box minimum longitude
+        - name: minLat
+          in: query
+          schema:
+            type: number
+            format: double
+          description: Bounding box minimum latitude
+        - name: maxLon
+          in: query
+          schema:
+            type: number
+            format: double
+          description: Bounding box maximum longitude
+        - name: maxLat
+          in: query
+          schema:
+            type: number
+            format: double
+          description: Bounding box maximum latitude
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Items per page
+      requestBody:
+        description: Optional GeoJSON polygon geometry (alternative to bbox params)
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GeoJsonPolygon"
+      responses:
+        "200":
+          description: Entities within the specified area
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpatialQueryResponse"
+        "400":
+          description: Invalid parameters or GeoJSON geometry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/geo/query/nearest:
+    get:
+      operationId: queryNearest
+      summary: "Spatial query: find nearest entities to a point"
+      tags:
+        - geo
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: entityType
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Type of entity to search (e.g. outbreak, holding, market)
+        - name: lon
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          description: Longitude of the reference point (WGS84)
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          description: Latitude of the reference point (WGS84)
+        - name: radiusKm
+          in: query
+          schema:
+            type: number
+            format: double
+            default: 50
+          description: Search radius in kilometres
+        - name: maxResults
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Maximum number of results to return
+      responses:
+        "200":
+          description: Nearest entities to the specified point
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpatialQueryResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/geo/query/contains:
+    get:
+      operationId: queryContains
+      summary: "Spatial query: find polygons containing a point"
+      tags:
+        - geo
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: lon
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          description: Longitude of the point (WGS84)
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          description: Latitude of the point (WGS84)
+        - name: layerType
+          in: query
+          schema:
+            type: string
+          description: Filter by layer type (e.g. admin_boundary, protected_area, risk_zone)
+      responses:
+        "200":
+          description: Polygons containing the specified point
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpatialQueryResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/geo/risk-map:
+    get:
+      operationId: getRiskMap
+      summary: Get risk map data (disease heatmap by region)
+      tags:
+        - geo
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: disease
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Disease code for the risk map
+        - name: adminLevel
+          in: query
+          schema:
+            type: integer
+            enum: [0, 1, 2, 3]
+            default: 1
+          description: Administrative level for aggregation (0=country, 1=province, 2=district, 3=sub-district)
+        - name: periodStart
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Start of analysis period (inclusive)
+        - name: periodEnd
+          in: query
+          schema:
+            type: string
+            format: date
+          description: End of analysis period (inclusive)
+      responses:
+        "200":
+          description: Risk map GeoJSON feature collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RiskMapResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/geo/admin-boundaries/{code}:
+    get:
+      operationId: getAdminBoundary
+      summary: Get administrative boundary GeoJSON by code
+      tags:
+        - geo
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Administrative boundary code (ISO 3166 or GADM code)
+        - name: simplify
+          in: query
+          schema:
+            type: number
+            format: double
+          description: Geometry simplification tolerance (degrees). Lower = more detail.
+        - name: includeChildren
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Include child administrative boundaries in the response
+      responses:
+        "200":
+          description: Administrative boundary GeoJSON feature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBoundaryResponse"
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Administrative boundary not found for the given code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    GeoJsonPolygon:
+      type: object
+      description: GeoJSON Polygon geometry
+      required:
+        - type
+        - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+            - Polygon
+        coordinates:
+          type: array
+          description: Array of linear rings; first ring is outer boundary
+          items:
+            type: array
+            items:
+              type: array
+              minItems: 2
+              maxItems: 3
+              items:
+                type: number
+                format: double
+
+    GeoJsonFeature:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - Feature
+        geometry:
+          type: object
+          description: GeoJSON geometry (Point, Polygon, MultiPolygon, etc.)
+        properties:
+          type: object
+          additionalProperties: true
+
+    GeoJsonFeatureCollection:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - FeatureCollection
+        features:
+          type: array
+          items:
+            $ref: "#/components/schemas/GeoJsonFeature"
+
+    LayerListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              description:
+                type: string
+              domain:
+                type: string
+              type:
+                type: string
+                enum:
+                  - vector
+                  - raster
+                  - heatmap
+              tileUrl:
+                type: string
+                description: pg_tileserv tile endpoint URL template
+
+    SpatialQueryResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              entityType:
+                type: string
+              name:
+                type: string
+              distanceKm:
+                type: number
+                format: double
+                description: Distance from query point (only for nearest queries)
+              geometry:
+                type: object
+                description: GeoJSON geometry
+              properties:
+                type: object
+                additionalProperties: true
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    RiskMapResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/GeoJsonFeatureCollection"
+        meta:
+          type: object
+          properties:
+            disease:
+              type: string
+            adminLevel:
+              type: integer
+            periodStart:
+              type: string
+              format: date
+            periodEnd:
+              type: string
+              format: date
+            riskScale:
+              type: object
+              properties:
+                min:
+                  type: number
+                max:
+                  type: number
+                unit:
+                  type: string
+
+    AdminBoundaryResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            code:
+              type: string
+            name:
+              type: string
+            adminLevel:
+              type: integer
+            parentCode:
+              type: string
+            geometry:
+              type: object
+              description: GeoJSON geometry (Polygon or MultiPolygon)
+            children:
+              type: array
+              description: Child boundaries (only if includeChildren=true)
+              items:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  name:
+                    type: string
+                  adminLevel:
+                    type: integer

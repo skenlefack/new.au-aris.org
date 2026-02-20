@@ -1,0 +1,1060 @@
+openapi: 3.0.3
+info:
+  title: ARIS 3.0 — Trade, Markets & SPS Service
+  version: 1.0.0
+  description: |
+    Manages trade flows, SPS (Sanitary and Phytosanitary) certification,
+    and market price intelligence across AU-IBAR Member States.
+    Supports AfCFTA trade facilitation and cross-border SPS compliance.
+
+servers:
+  - url: http://localhost:3025
+    description: Development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: TradeFlows
+    description: Import/export trade flow records for animal resources
+  - name: SpsCertificates
+    description: SPS certificates for cross-border animal resource trade
+  - name: MarketPrices
+    description: Market price intelligence for livestock and animal products
+
+paths:
+  # ──────────────────────────────────────────────────────────────
+  # Trade Flows Controller
+  # ──────────────────────────────────────────────────────────────
+  /api/v1/trade/flows:
+    post:
+      operationId: createTradeFlow
+      summary: Create a trade flow record
+      tags: [TradeFlows]
+      security:
+        - BearerAuth: []
+      description: |
+        Roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN, DATA_STEWARD.
+        Guards: AuthGuard, TenantGuard.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTradeFlowDto'
+      responses:
+        '201':
+          description: Trade flow created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeFlowResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized — missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — insufficient role or tenant access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      operationId: listTradeFlows
+      summary: List trade flow records
+      tags: [TradeFlows]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+      responses:
+        '200':
+          description: Paginated list of trade flows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeFlowListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/trade/flows/{id}:
+    get:
+      operationId: getTradeFlow
+      summary: Get a single trade flow by ID
+      tags: [TradeFlows]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Trade flow details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeFlowResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Trade flow not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      operationId: updateTradeFlow
+      summary: Update a trade flow record
+      tags: [TradeFlows]
+      security:
+        - BearerAuth: []
+      description: |
+        Roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN, DATA_STEWARD.
+        Guards: AuthGuard, TenantGuard.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTradeFlowDto'
+      responses:
+        '200':
+          description: Trade flow updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeFlowResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Trade flow not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ──────────────────────────────────────────────────────────────
+  # SPS Certificates Controller
+  # ──────────────────────────────────────────────────────────────
+  /api/v1/trade/sps-certificates:
+    post:
+      operationId: createSpsCertificate
+      summary: Create an SPS certificate
+      tags: [SpsCertificates]
+      security:
+        - BearerAuth: []
+      description: |
+        Roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN, DATA_STEWARD, WAHIS_FOCAL_POINT.
+        Guards: AuthGuard, TenantGuard.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSpsCertificateDto'
+      responses:
+        '201':
+          description: SPS certificate created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpsCertificateResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      operationId: listSpsCertificates
+      summary: List SPS certificates
+      tags: [SpsCertificates]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+      responses:
+        '200':
+          description: Paginated list of SPS certificates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpsCertificateListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/trade/sps-certificates/{id}:
+    get:
+      operationId: getSpsCertificate
+      summary: Get a single SPS certificate by ID
+      tags: [SpsCertificates]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: SPS certificate details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpsCertificateResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: SPS certificate not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      operationId: updateSpsCertificate
+      summary: Update an SPS certificate
+      tags: [SpsCertificates]
+      security:
+        - BearerAuth: []
+      description: |
+        Roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN, DATA_STEWARD, WAHIS_FOCAL_POINT.
+        Guards: AuthGuard, TenantGuard.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSpsCertificateDto'
+      responses:
+        '200':
+          description: SPS certificate updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpsCertificateResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: SPS certificate not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/trade/sps-certificates/{id}/issue:
+    post:
+      operationId: issueSpsCertificate
+      summary: Issue (finalize) an SPS certificate
+      tags: [SpsCertificates]
+      security:
+        - BearerAuth: []
+      description: |
+        Transitions the certificate to ISSUED status. Once issued, the certificate
+        becomes immutable and receives an official certificate number.
+        Roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN, DATA_STEWARD, WAHIS_FOCAL_POINT.
+        Guards: AuthGuard, TenantGuard.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueSpsCertificateDto'
+      responses:
+        '200':
+          description: SPS certificate issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpsCertificateResponse'
+        '400':
+          description: Validation error — certificate not in issuable state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: SPS certificate not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ──────────────────────────────────────────────────────────────
+  # Market Prices Controller
+  # ──────────────────────────────────────────────────────────────
+  /api/v1/trade/market-prices:
+    post:
+      operationId: recordMarketPrice
+      summary: Record a market price observation
+      tags: [MarketPrices]
+      security:
+        - BearerAuth: []
+      description: |
+        Roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN, DATA_STEWARD.
+        Guards: AuthGuard, TenantGuard.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMarketPriceDto'
+      responses:
+        '201':
+          description: Market price recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketPriceResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      operationId: listMarketPrices
+      summary: List market price records
+      tags: [MarketPrices]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+      responses:
+        '200':
+          description: Paginated list of market prices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketPriceListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/trade/market-prices/{id}:
+    get:
+      operationId: getMarketPrice
+      summary: Get a single market price record by ID
+      tags: [MarketPrices]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Market price details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketPriceResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Market price not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      operationId: updateMarketPrice
+      summary: Update a market price record
+      tags: [MarketPrices]
+      security:
+        - BearerAuth: []
+      description: |
+        Roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN, DATA_STEWARD.
+        Guards: AuthGuard, TenantGuard.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMarketPriceDto'
+      responses:
+        '200':
+          description: Market price updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketPriceResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Market price not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: RS256 signed JWT issued by the ARIS Credential service
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Resource UUID
+
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number
+
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Items per page
+
+    SortParam:
+      name: sort
+      in: query
+      schema:
+        type: string
+        default: createdAt
+      description: Field to sort by
+
+    OrderParam:
+      name: order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+      description: Sort order
+
+  schemas:
+    # ── Shared ──────────────────────────────────────────────────
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required: [total, page, limit]
+
+    ErrorDetail:
+      type: object
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+      required: [field, message]
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+      required: [statusCode, message]
+
+    # ── Trade Flows ─────────────────────────────────────────────
+    CreateTradeFlowDto:
+      type: object
+      properties:
+        flowType:
+          type: string
+          enum: [IMPORT, EXPORT, RE_EXPORT, TRANSIT]
+        commodityType:
+          type: string
+          enum: [LIVE_ANIMAL, MEAT, DAIRY, HIDES, FISH, HONEY, OTHER]
+        speciesId:
+          type: string
+          format: uuid
+        originCountryId:
+          type: string
+          format: uuid
+        destinationCountryId:
+          type: string
+          format: uuid
+        borderPointId:
+          type: string
+          format: uuid
+        quantity:
+          type: number
+          format: float
+        unit:
+          type: string
+        valueFob:
+          type: number
+          format: float
+          description: FOB value in USD
+        tradeDate:
+          type: string
+          format: date
+        hsCode:
+          type: string
+          description: Harmonized System tariff code
+        dataClassification:
+          type: string
+          enum: [PUBLIC, PARTNER, RESTRICTED, CONFIDENTIAL]
+      required: [flowType, commodityType, originCountryId, destinationCountryId, quantity, unit, tradeDate]
+
+    UpdateTradeFlowDto:
+      type: object
+      properties:
+        quantity:
+          type: number
+          format: float
+        unit:
+          type: string
+        valueFob:
+          type: number
+          format: float
+        hsCode:
+          type: string
+
+    TradeFlow:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        flowType:
+          type: string
+        commodityType:
+          type: string
+        speciesId:
+          type: string
+          format: uuid
+          nullable: true
+        originCountryId:
+          type: string
+          format: uuid
+        destinationCountryId:
+          type: string
+          format: uuid
+        borderPointId:
+          type: string
+          format: uuid
+          nullable: true
+        quantity:
+          type: number
+          format: float
+        unit:
+          type: string
+        valueFob:
+          type: number
+          format: float
+          nullable: true
+        tradeDate:
+          type: string
+          format: date
+        hsCode:
+          type: string
+          nullable: true
+        dataClassification:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TradeFlowResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/TradeFlow'
+
+    TradeFlowListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TradeFlow'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # ── SPS Certificates ────────────────────────────────────────
+    CreateSpsCertificateDto:
+      type: object
+      properties:
+        certificateType:
+          type: string
+          enum: [VETERINARY_HEALTH, PHYTOSANITARY, AQUATIC_HEALTH]
+        exporterName:
+          type: string
+        importerName:
+          type: string
+        originCountryId:
+          type: string
+          format: uuid
+        destinationCountryId:
+          type: string
+          format: uuid
+        commodityDescription:
+          type: string
+        speciesId:
+          type: string
+          format: uuid
+        quantity:
+          type: number
+          format: float
+        unit:
+          type: string
+        borderPointId:
+          type: string
+          format: uuid
+        inspectionDate:
+          type: string
+          format: date
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          type: string
+          format: date
+        conditions:
+          type: array
+          items:
+            type: string
+          description: SPS conditions and requirements
+        dataClassification:
+          type: string
+          enum: [PUBLIC, PARTNER, RESTRICTED, CONFIDENTIAL]
+      required:
+        - certificateType
+        - exporterName
+        - importerName
+        - originCountryId
+        - destinationCountryId
+        - commodityDescription
+        - quantity
+        - unit
+
+    UpdateSpsCertificateDto:
+      type: object
+      properties:
+        exporterName:
+          type: string
+        importerName:
+          type: string
+        commodityDescription:
+          type: string
+        quantity:
+          type: number
+          format: float
+        unit:
+          type: string
+        conditions:
+          type: array
+          items:
+            type: string
+
+    IssueSpsCertificateDto:
+      type: object
+      properties:
+        issuingOfficer:
+          type: string
+        remarks:
+          type: string
+
+    SpsCertificate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        certificateNumber:
+          type: string
+          nullable: true
+          description: Assigned upon issuance
+        certificateType:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, ISSUED, REVOKED, EXPIRED]
+        exporterName:
+          type: string
+        importerName:
+          type: string
+        originCountryId:
+          type: string
+          format: uuid
+        destinationCountryId:
+          type: string
+          format: uuid
+        commodityDescription:
+          type: string
+        speciesId:
+          type: string
+          format: uuid
+          nullable: true
+        quantity:
+          type: number
+          format: float
+        unit:
+          type: string
+        borderPointId:
+          type: string
+          format: uuid
+          nullable: true
+        inspectionDate:
+          type: string
+          format: date
+          nullable: true
+        validFrom:
+          type: string
+          format: date
+          nullable: true
+        validTo:
+          type: string
+          format: date
+          nullable: true
+        issuedAt:
+          type: string
+          format: date-time
+          nullable: true
+        issuingOfficer:
+          type: string
+          nullable: true
+        conditions:
+          type: array
+          items:
+            type: string
+        dataClassification:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SpsCertificateResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/SpsCertificate'
+
+    SpsCertificateListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpsCertificate'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # ── Market Prices ───────────────────────────────────────────
+    CreateMarketPriceDto:
+      type: object
+      properties:
+        marketId:
+          type: string
+          format: uuid
+        speciesId:
+          type: string
+          format: uuid
+        commodityType:
+          type: string
+          enum: [LIVE_ANIMAL, MEAT, DAIRY, HIDES, FISH, HONEY, OTHER]
+        pricePerUnit:
+          type: number
+          format: float
+        currency:
+          type: string
+          description: ISO 4217 currency code (e.g. KES, NGN, USD)
+        unit:
+          type: string
+        observationDate:
+          type: string
+          format: date
+        geoEntityId:
+          type: string
+          format: uuid
+        dataClassification:
+          type: string
+          enum: [PUBLIC, PARTNER, RESTRICTED, CONFIDENTIAL]
+      required: [marketId, commodityType, pricePerUnit, currency, unit, observationDate, geoEntityId]
+
+    UpdateMarketPriceDto:
+      type: object
+      properties:
+        pricePerUnit:
+          type: number
+          format: float
+        currency:
+          type: string
+        unit:
+          type: string
+
+    MarketPrice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        marketId:
+          type: string
+          format: uuid
+        speciesId:
+          type: string
+          format: uuid
+          nullable: true
+        commodityType:
+          type: string
+        pricePerUnit:
+          type: number
+          format: float
+        currency:
+          type: string
+        unit:
+          type: string
+        observationDate:
+          type: string
+          format: date
+        geoEntityId:
+          type: string
+          format: uuid
+        dataClassification:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    MarketPriceResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/MarketPrice'
+
+    MarketPriceListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketPrice'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'

@@ -1,0 +1,677 @@
+openapi: 3.0.3
+info:
+  title: ARIS 3.0 — Workflow Service
+  version: 1.0.0
+  description: |
+    Four-level validation engine for the ARIS data pipeline.
+    Implements the hierarchical approval workflow defined in Annex B section B4.1:
+      Level 1 — National Data Steward (technical validation / quality gates)
+      Level 2 — Data Owner / CVO (official national approval, WAHIS-ready)
+      Level 3 — REC Data Steward (regional harmonization, cross-border consistency)
+      Level 4 — AU-IBAR (continental analytics and publication)
+
+    Each workflow instance tracks a submitted entity through these levels,
+    recording every transition with actor, timestamp, reason, and version.
+
+servers:
+  - url: http://localhost:3012
+    description: Development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Instances
+    description: Workflow instance lifecycle and transitions
+  - name: Dashboard
+    description: Aggregated workflow metrics
+
+paths:
+  # ─── Instances ────────────────────────────────────────────────────────
+  /api/v1/workflow/instances:
+    post:
+      operationId: createWorkflowInstance
+      summary: Create a workflow instance
+      description: |
+        Creates a new workflow instance for an entity that requires
+        4-level validation. Typically called by the Collecte service
+        after a form submission passes initial quality gates.
+        Publishes `ms.workflow.instance.created.v1` to Kafka.
+      tags:
+        - Instances
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkflowInstanceDto'
+      responses:
+        '201':
+          description: Workflow instance created at Level 1
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstanceResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized — missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      operationId: listWorkflowInstances
+      summary: List workflow instances
+      description: |
+        Returns a paginated list of workflow instances visible to the
+        caller's tenant hierarchy. Supports filtering by status,
+        current validation level, and entity type.
+      tags:
+        - Instances
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          required: false
+          description: Filter by workflow status
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED, RETURNED]
+        - name: level
+          in: query
+          required: false
+          description: Filter by current validation level (1–4)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 4
+        - name: entityType
+          in: query
+          required: false
+          description: Filter by the type of entity under validation
+          schema:
+            type: string
+            example: outbreak
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            default: createdAt
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Paginated list of workflow instances
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstanceListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ─── Dashboard ────────────────────────────────────────────────────────
+  /api/v1/workflow/dashboard:
+    get:
+      operationId: getWorkflowDashboard
+      summary: Get workflow dashboard
+      description: |
+        Returns aggregated counts of pending workflow instances grouped
+        by validation level and entity type. Used by the web frontend
+        to display the approval queue for each role.
+      tags:
+        - Dashboard
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: entityType
+          in: query
+          required: false
+          description: Optionally restrict counts to a specific entity type
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Dashboard metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ─── Single Instance ──────────────────────────────────────────────────
+  /api/v1/workflow/instances/{id}:
+    get:
+      operationId: getWorkflowInstance
+      summary: Get a workflow instance with transition history
+      description: |
+        Returns the full workflow instance including the ordered list
+        of transitions (approvals, rejections, returns) with actor,
+        timestamp, reason, and previous/new level.
+      tags:
+        - Instances
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Workflow instance with transition history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstanceDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workflow instance not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ─── Transitions ──────────────────────────────────────────────────────
+  /api/v1/workflow/instances/{id}/approve:
+    post:
+      operationId: approveWorkflowInstance
+      summary: Approve at current validation level
+      description: |
+        Approves the workflow instance at its current level and advances
+        it to the next. If already at Level 4, the instance transitions
+        to a terminal APPROVED status.
+
+        Publishes `ms.workflow.instance.approved.v1` (or the appropriate
+        scope) to Kafka. At Level 2 completion the entity becomes
+        WAHIS-ready for the Official track.
+      tags:
+        - Instances
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveDto'
+      responses:
+        '200':
+          description: Instance approved and advanced to next level (or completed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstanceDetailResponse'
+        '400':
+          description: Instance is not in a state that allows approval
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — caller's role does not match the current level
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workflow instance not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/workflow/instances/{id}/reject:
+    post:
+      operationId: rejectWorkflowInstance
+      summary: Reject with reason
+      description: |
+        Rejects the workflow instance at its current level. The entity
+        enters a terminal REJECTED status. A reason must be provided
+        for the audit trail.
+        Publishes `ms.workflow.instance.rejected.v1` to Kafka.
+      tags:
+        - Instances
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectDto'
+      responses:
+        '200':
+          description: Instance rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstanceDetailResponse'
+        '400':
+          description: Instance is not in a state that allows rejection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — caller's role does not match the current level
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workflow instance not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/workflow/instances/{id}/return:
+    post:
+      operationId: returnWorkflowInstance
+      summary: Return for correction at previous level
+      description: |
+        Returns the workflow instance to the previous validation level
+        for correction. A reason must be provided. The instance moves
+        back one level (e.g., Level 3 returns to Level 2).
+        Publishes `ms.workflow.instance.returned.v1` to Kafka.
+      tags:
+        - Instances
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReturnDto'
+      responses:
+        '200':
+          description: Instance returned to previous level
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstanceDetailResponse'
+        '400':
+          description: Instance is at Level 1 and cannot be returned further
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — caller's role does not match the current level
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workflow instance not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: RS256-signed JWT issued by the ARIS Credential service (port 3002)
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      description: UUID of the resource
+      schema:
+        type: string
+        format: uuid
+
+    PageParam:
+      name: page
+      in: query
+      required: false
+      description: Page number (1-based)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    LimitParam:
+      name: limit
+      in: query
+      required: false
+      description: Items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    # ─── Instance DTOs ──────────────────────────────────────────────────
+    CreateWorkflowInstanceDto:
+      type: object
+      required:
+        - entityType
+        - entityId
+        - sourceService
+      properties:
+        entityType:
+          type: string
+          description: Type of entity entering the workflow
+          example: outbreak
+        entityId:
+          type: string
+          format: uuid
+          description: UUID of the entity (e.g., submission, outbreak)
+        sourceService:
+          type: string
+          description: Originating service identifier
+          example: collecte
+        metadata:
+          type: object
+          description: Additional context attached to the workflow instance
+
+    ApproveDto:
+      type: object
+      properties:
+        comment:
+          type: string
+          description: Optional comment recorded in the transition history
+
+    RejectDto:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          description: Mandatory reason for rejection (audit trail)
+          example: Geographic codes do not match declared admin unit
+
+    ReturnDto:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          description: Mandatory reason for returning to previous level
+          example: Species codes need correction — please verify against master data
+
+    # ─── Instance Models ────────────────────────────────────────────────
+    WorkflowInstance:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        entityType:
+          type: string
+        entityId:
+          type: string
+          format: uuid
+        sourceService:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED, RETURNED]
+        currentLevel:
+          type: integer
+          minimum: 1
+          maximum: 4
+          description: |
+            Current validation level:
+            1 = National Data Steward,
+            2 = Data Owner / CVO,
+            3 = REC Data Steward,
+            4 = AU-IBAR
+        metadata:
+          type: object
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Transition:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum: [APPROVE, REJECT, RETURN]
+        fromLevel:
+          type: integer
+          minimum: 1
+          maximum: 4
+        toLevel:
+          type: integer
+          minimum: 1
+          maximum: 4
+          nullable: true
+          description: Null when the action is a terminal REJECT
+        actor:
+          type: object
+          properties:
+            userId:
+              type: string
+              format: uuid
+            role:
+              type: string
+              enum:
+                - SUPER_ADMIN
+                - CONTINENTAL_ADMIN
+                - REC_ADMIN
+                - NATIONAL_ADMIN
+                - DATA_STEWARD
+                - WAHIS_FOCAL_POINT
+                - ANALYST
+                - FIELD_AGENT
+            tenantId:
+              type: string
+              format: uuid
+        reason:
+          type: string
+          nullable: true
+        comment:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+
+    WorkflowInstanceDetail:
+      allOf:
+        - $ref: '#/components/schemas/WorkflowInstance'
+        - type: object
+          properties:
+            transitions:
+              type: array
+              items:
+                $ref: '#/components/schemas/Transition'
+              description: Ordered list of all transitions for this instance
+
+    # ─── Dashboard ──────────────────────────────────────────────────────
+    LevelCount:
+      type: object
+      properties:
+        level:
+          type: integer
+          minimum: 1
+          maximum: 4
+        levelName:
+          type: string
+          enum:
+            - National Data Steward
+            - Data Owner / CVO
+            - REC Data Steward
+            - AU-IBAR
+        pending:
+          type: integer
+          description: Number of instances pending at this level
+
+    DashboardData:
+      type: object
+      properties:
+        totalPending:
+          type: integer
+        totalApproved:
+          type: integer
+        totalRejected:
+          type: integer
+        totalReturned:
+          type: integer
+        byLevel:
+          type: array
+          items:
+            $ref: '#/components/schemas/LevelCount'
+
+    # ─── Response Wrappers ──────────────────────────────────────────────
+    WorkflowInstanceResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/WorkflowInstance'
+
+    WorkflowInstanceDetailResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/WorkflowInstanceDetail'
+
+    WorkflowInstanceListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowInstance'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    DashboardResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/DashboardData'
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string

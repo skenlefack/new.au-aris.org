@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model LegalFramework {
+  id              String    @id @default(uuid())
+  tenantId        String    @map("tenant_id")
+  title           String
+  type            String
+  domain          String
+  adoptionDate    DateTime? @map("adoption_date")
+  status          String
+  documentFileId  String?   @map("document_file_id")
+  dataClassification String @default("PUBLIC") @map("data_classification")
+  createdBy       String    @map("created_by")
+  updatedBy       String    @map("updated_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@index([type])
+  @@index([domain])
+  @@index([status])
+  @@map("legal_frameworks")
+}
+
+model InstitutionalCapacity {
+  id                      String  @id @default(uuid())
+  tenantId                String  @map("tenant_id")
+  year                    Int
+  organizationName        String  @map("organization_name")
+  staffCount              Int     @map("staff_count")
+  budgetUsd               Float   @map("budget_usd")
+  pvsSelfAssessmentScore  Float?  @map("pvs_self_assessment_score")
+  oieStatus               String? @map("oie_status")
+  dataClassification      String  @default("PARTNER") @map("data_classification")
+  createdBy               String  @map("created_by")
+  updatedBy               String  @map("updated_by")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  @@unique([tenantId, year, organizationName])
+  @@index([tenantId])
+  @@index([year])
+  @@map("institutional_capacities")
+}
+
+model PVSEvaluation {
+  id                    String   @id @default(uuid())
+  tenantId              String   @map("tenant_id")
+  evaluationType        String   @map("evaluation_type")
+  evaluationDate        DateTime @map("evaluation_date")
+  overallScore          Float    @map("overall_score")
+  criticalCompetencies  Json     @map("critical_competencies")
+  recommendations       String[]
+  dataClassification    String   @default("PARTNER") @map("data_classification")
+  createdBy             String   @map("created_by")
+  updatedBy             String   @map("updated_by")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@index([evaluationType])
+  @@index([evaluationDate])
+  @@map("pvs_evaluations")
+}
+
+model StakeholderRegistry {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  name            String
+  type            String
+  contactPerson   String?  @map("contact_person")
+  email           String?
+  domains         String[]
+  dataClassification String @default("PUBLIC") @map("data_classification")
+  createdBy       String   @map("created_by")
+  updatedBy       String   @map("updated_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@index([type])
+  @@map("stakeholder_registry")
+}

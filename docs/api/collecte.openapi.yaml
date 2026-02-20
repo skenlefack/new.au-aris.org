@@ -1,0 +1,769 @@
+openapi: 3.0.3
+info:
+  title: ARIS 3.0 — Collecte Service
+  version: 1.0.0
+  description: |
+    Campaign orchestration and data collection service for ARIS.
+    Manages collection campaigns, receives form submissions (with
+    automatic data-quality validation and workflow creation), and
+    provides offline-to-online synchronization for the mobile app.
+
+servers:
+  - url: http://localhost:3011
+    description: Development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Campaigns
+    description: Collection campaign lifecycle
+  - name: Submissions
+    description: Form data submissions with quality validation
+  - name: Sync
+    description: Offline mobile data synchronization
+
+paths:
+  # ─── Campaigns ────────────────────────────────────────────────────────
+  /api/v1/collecte/campaigns:
+    post:
+      operationId: createCampaign
+      summary: Create a collection campaign
+      description: |
+        Creates a new data-collection campaign linked to one or more
+        published form templates. The campaign defines the target
+        tenants, date range, and assigned field agents.
+      tags:
+        - Campaigns
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCampaignDto'
+      responses:
+        '201':
+          description: Campaign created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized — missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: |
+            Forbidden — caller does not hold one of the required roles:
+            SUPER_ADMIN, CONTINENTAL_ADMIN, REC_ADMIN, NATIONAL_ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      operationId: listCampaigns
+      summary: List collection campaigns
+      description: |
+        Returns a paginated list of campaigns visible to the caller's
+        tenant hierarchy.
+      tags:
+        - Campaigns
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          required: false
+          description: Filter by campaign status
+          schema:
+            type: string
+            enum: [DRAFT, ACTIVE, CLOSED, ARCHIVED]
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            default: createdAt
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Paginated list of campaigns
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/collecte/campaigns/{id}:
+    get:
+      operationId: getCampaign
+      summary: Get a campaign by ID
+      description: Returns full campaign details including template references and progress stats.
+      tags:
+        - Campaigns
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Campaign details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      operationId: updateCampaign
+      summary: Update a campaign
+      description: |
+        Partially updates a campaign. Only DRAFT or ACTIVE campaigns
+        may be updated. Closed campaigns are immutable.
+      tags:
+        - Campaigns
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCampaignDto'
+      responses:
+        '200':
+          description: Campaign updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+        '400':
+          description: Validation error or campaign is closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: |
+            Forbidden — caller does not hold one of the required roles:
+            SUPER_ADMIN, CONTINENTAL_ADMIN, REC_ADMIN, NATIONAL_ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ─── Submissions ──────────────────────────────────────────────────────
+  /api/v1/collecte/submissions:
+    post:
+      operationId: createSubmission
+      summary: Submit form data
+      description: |
+        Submits collected form data against a campaign and template.
+        On receipt the service:
+        1. Validates payload against the template JSON Schema.
+        2. Runs data-quality gates via the Data Quality service.
+        3. Creates a workflow instance for the 4-level validation pipeline.
+        4. Publishes `ms.collecte.form.submitted.v1` to Kafka.
+      tags:
+        - Submissions
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubmissionDto'
+      responses:
+        '201':
+          description: Submission created; quality validation and workflow triggered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionResponse'
+        '400':
+          description: Payload fails JSON Schema or quality-gate validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      operationId: listSubmissions
+      summary: List submissions
+      description: |
+        Returns a paginated list of submissions visible to the caller's
+        tenant. Supports filtering by campaign, template, and validation status.
+      tags:
+        - Submissions
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: campaignId
+          in: query
+          required: false
+          description: Filter by campaign UUID
+          schema:
+            type: string
+            format: uuid
+        - name: templateId
+          in: query
+          required: false
+          description: Filter by template UUID
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: false
+          description: Filter by submission validation status
+          schema:
+            type: string
+            enum: [PENDING, VALIDATED, REJECTED, RETURNED]
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            default: createdAt
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Paginated list of submissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/collecte/submissions/{id}:
+    get:
+      operationId: getSubmission
+      summary: Get a submission by ID
+      description: |
+        Returns full submission details including form data, quality-gate
+        results, and current workflow status.
+      tags:
+        - Submissions
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Submission details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Submission not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ─── Sync ─────────────────────────────────────────────────────────────
+  /api/v1/collecte/sync:
+    post:
+      operationId: syncOfflineData
+      summary: Sync offline mobile data
+      description: |
+        Receives a batch of submissions collected offline by the
+        ARIS mobile app (Kotlin/Room). The service applies
+        conflict-resolution logic (last-write-wins with vector clocks),
+        deduplicates records, and enqueues each valid submission for
+        quality validation and workflow creation.
+      tags:
+        - Sync
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncBatchDto'
+      responses:
+        '200':
+          description: Sync completed — returns per-record results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResultResponse'
+        '400':
+          description: Malformed batch payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: RS256-signed JWT issued by the ARIS Credential service (port 3002)
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      description: UUID of the resource
+      schema:
+        type: string
+        format: uuid
+
+    PageParam:
+      name: page
+      in: query
+      required: false
+      description: Page number (1-based)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    LimitParam:
+      name: limit
+      in: query
+      required: false
+      description: Items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    # ─── Campaign DTOs ──────────────────────────────────────────────────
+    CreateCampaignDto:
+      type: object
+      required:
+        - name
+        - templateIds
+        - startDate
+        - endDate
+      properties:
+        name:
+          type: string
+          description: Campaign name
+          example: 2026 Q1 Outbreak Surveillance
+        description:
+          type: string
+        templateIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Published form-template UUIDs to use
+        targetTenantIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Target tenant UUIDs (defaults to caller's tenant)
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        assignedAgentIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Field agent user UUIDs assigned to this campaign
+
+    UpdateCampaignDto:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, ACTIVE, CLOSED, ARCHIVED]
+        endDate:
+          type: string
+          format: date
+        assignedAgentIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    Campaign:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, ACTIVE, CLOSED, ARCHIVED]
+        templateIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        targetTenantIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        assignedAgentIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        submissionCount:
+          type: integer
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CampaignResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Campaign'
+
+    CampaignListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Campaign'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # ─── Submission DTOs ────────────────────────────────────────────────
+    CreateSubmissionDto:
+      type: object
+      required:
+        - campaignId
+        - templateId
+        - formData
+      properties:
+        campaignId:
+          type: string
+          format: uuid
+        templateId:
+          type: string
+          format: uuid
+        formData:
+          type: object
+          description: Form payload conforming to the template JSON Schema
+        geolocation:
+          type: object
+          description: GPS coordinates of the submission location
+          properties:
+            latitude:
+              type: number
+              format: double
+            longitude:
+              type: number
+              format: double
+        offlineId:
+          type: string
+          description: Client-generated UUID for deduplication during sync
+
+    Submission:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        campaignId:
+          type: string
+          format: uuid
+        templateId:
+          type: string
+          format: uuid
+        formData:
+          type: object
+        geolocation:
+          type: object
+          properties:
+            latitude:
+              type: number
+              format: double
+            longitude:
+              type: number
+              format: double
+        validationStatus:
+          type: string
+          enum: [PENDING, VALIDATED, REJECTED, RETURNED]
+        qualityScore:
+          type: number
+          format: double
+          description: Confidence score from data-quality gates (0.0–1.0)
+        workflowInstanceId:
+          type: string
+          format: uuid
+          description: Associated workflow instance for 4-level validation
+        submittedBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SubmissionResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Submission'
+
+    SubmissionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Submission'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # ─── Sync DTOs ──────────────────────────────────────────────────────
+    SyncBatchDto:
+      type: object
+      required:
+        - deviceId
+        - submissions
+      properties:
+        deviceId:
+          type: string
+          description: Unique mobile device identifier
+        lastSyncTimestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the last successful sync
+        submissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateSubmissionDto'
+          description: Array of submissions collected offline
+
+    SyncResult:
+      type: object
+      properties:
+        offlineId:
+          type: string
+          description: Client-generated UUID from the mobile app
+        serverId:
+          type: string
+          format: uuid
+          description: Server-assigned UUID after successful processing
+        status:
+          type: string
+          enum: [ACCEPTED, DUPLICATE, CONFLICT_RESOLVED, REJECTED]
+        message:
+          type: string
+          description: Human-readable status explanation
+
+    SyncResultResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            accepted:
+              type: integer
+            duplicates:
+              type: integer
+            conflictsResolved:
+              type: integer
+            rejected:
+              type: integer
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/SyncResult'
+
+    # ─── Shared ─────────────────────────────────────────────────────────
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string

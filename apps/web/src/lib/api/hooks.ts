@@ -46,10 +46,18 @@ interface DashboardKpis {
     vaccinationCoverage: number;
     pendingValidations: number;
     dataQualityScore: number;
+    labTurnaround: number;
+    tradeVolume: number;
+    livestockPopulation: number;
+    activeCampaigns: number;
     outbreaksTrend: number;
     vaccinationTrend: number;
     validationsTrend: number;
     qualityTrend: number;
+    labTurnaroundTrend: number;
+    tradeVolumeTrend: number;
+    livestockTrend: number;
+    campaignsTrend: number;
   };
 }
 
@@ -238,10 +246,18 @@ export function useDashboardKpis() {
         vaccinationCoverage: 87.3,
         pendingValidations: 156,
         dataQualityScore: 94.1,
+        labTurnaround: 3.2,
+        tradeVolume: 2_340_000,
+        livestockPopulation: 385_000_000,
+        activeCampaigns: 18,
         outbreaksTrend: 12,
         vaccinationTrend: 5.2,
         validationsTrend: -8,
         qualityTrend: 0,
+        labTurnaroundTrend: -12,
+        tradeVolumeTrend: 8.4,
+        livestockTrend: 2.1,
+        campaignsTrend: 15,
       },
     },
   });
@@ -1376,5 +1392,1143 @@ export function useDataContracts(params?: {
         '/data-contract/contracts',
         searchParams,
       ),
+  });
+}
+
+// ─── Livestock Types ────────────────────────────────────────────────────────
+
+export interface LivestockCensus {
+  id: string;
+  country: string;
+  countryCode: string;
+  region: string;
+  species: string;
+  year: number;
+  population: number;
+  femaleBreeding: number;
+  maleBreeding: number;
+  young: number;
+  source: string;
+  status: 'draft' | 'validated' | 'published';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductionRecord {
+  id: string;
+  country: string;
+  countryCode: string;
+  species: string;
+  productType: 'milk' | 'meat' | 'eggs' | 'wool' | 'hides' | 'honey';
+  quantity: number;
+  unit: string;
+  year: number;
+  quarter?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductionChartPoint {
+  productType: string;
+  value: number;
+  unit: string;
+}
+
+export interface TranshumanceCorridor {
+  id: string;
+  name: string;
+  originCountry: string;
+  destinationCountry: string;
+  species: string;
+  estimatedAnimals: number;
+  seasonStart: string;
+  seasonEnd: string;
+  status: 'active' | 'inactive' | 'disrupted';
+  crossBorder: boolean;
+  route: Array<[number, number]>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LivestockKpis {
+  data: {
+    totalPopulation: number;
+    populationTrend: number;
+    countriesReporting: number;
+    speciesTracked: number;
+    productionVolume: number;
+    productionTrend: number;
+    activeCorridors: number;
+    corridorsTrend: number;
+  };
+}
+
+// ─── Livestock Hooks ────────────────────────────────────────────────────────
+
+export function useLivestockKpis() {
+  return useQuery({
+    queryKey: ['livestock', 'kpis'],
+    queryFn: () => apiClient.get<LivestockKpis>('/livestock-prod/kpis'),
+  });
+}
+
+export function useLivestockCensus(params?: {
+  page?: number;
+  limit?: number;
+  country?: string;
+  species?: string;
+  year?: number;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.country) searchParams.country = params.country;
+  if (params?.species) searchParams.species = params.species;
+  if (params?.year) searchParams.year = String(params.year);
+  if (params?.search) searchParams.search = params.search;
+
+  return useQuery({
+    queryKey: ['livestock', 'census', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<LivestockCensus>>(
+        '/livestock-prod/census',
+        searchParams,
+      ),
+  });
+}
+
+export function useLivestockProduction(params?: {
+  page?: number;
+  limit?: number;
+  country?: string;
+  species?: string;
+  productType?: string;
+  year?: number;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.country) searchParams.country = params.country;
+  if (params?.species) searchParams.species = params.species;
+  if (params?.productType) searchParams.productType = params.productType;
+  if (params?.year) searchParams.year = String(params.year);
+
+  return useQuery({
+    queryKey: ['livestock', 'production', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<ProductionRecord>>(
+        '/livestock-prod/production',
+        searchParams,
+      ),
+  });
+}
+
+export function useProductionByType(params?: { country?: string; year?: number }) {
+  const searchParams: Record<string, string> = {};
+  if (params?.country) searchParams.country = params.country;
+  if (params?.year) searchParams.year = String(params.year);
+
+  return useQuery({
+    queryKey: ['livestock', 'production-by-type', params],
+    queryFn: () =>
+      apiClient.get<{ data: ProductionChartPoint[] }>(
+        '/livestock-prod/production/by-type',
+        searchParams,
+      ),
+  });
+}
+
+export function useLivestockTranshumance(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  crossBorder?: boolean;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.status) searchParams.status = params.status;
+  if (params?.crossBorder !== undefined) searchParams.crossBorder = String(params.crossBorder);
+  if (params?.search) searchParams.search = params.search;
+
+  return useQuery({
+    queryKey: ['livestock', 'transhumance', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<TranshumanceCorridor>>(
+        '/livestock-prod/transhumance',
+        searchParams,
+      ),
+  });
+}
+
+// ─── Fisheries Types ────────────────────────────────────────────────────────
+
+export interface CaptureRecord {
+  id: string;
+  country: string;
+  countryCode: string;
+  species: string;
+  faoArea: string;
+  catchMethod: string;
+  quantity: number;
+  unit: string;
+  year: number;
+  quarter?: number;
+  landingSite: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Vessel {
+  id: string;
+  name: string;
+  registrationNumber: string;
+  flag: string;
+  flagCode: string;
+  vesselType: string;
+  lengthMeters: number;
+  tonnage: number;
+  licenseStatus: 'valid' | 'expired' | 'suspended' | 'pending';
+  homePort: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AquacultureFarm {
+  id: string;
+  name: string;
+  country: string;
+  countryCode: string;
+  species: string;
+  farmType: 'pond' | 'cage' | 'raceway' | 'recirculating' | 'other';
+  productionTonnes: number;
+  areaHectares: number;
+  status: 'active' | 'inactive' | 'under_construction';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CaptureTrend {
+  year: number;
+  marine: number;
+  inland: number;
+  aquaculture: number;
+}
+
+export interface FisheriesKpis {
+  data: {
+    totalCaptures: number;
+    capturesTrend: number;
+    registeredVessels: number;
+    activeFarms: number;
+    aquacultureProduction: number;
+    aquacultureTrend: number;
+    licensesExpiringSoon: number;
+    countriesReporting: number;
+  };
+}
+
+// ─── Fisheries Hooks ────────────────────────────────────────────────────────
+
+export function useFisheriesKpis() {
+  return useQuery({
+    queryKey: ['fisheries', 'kpis'],
+    queryFn: () => apiClient.get<FisheriesKpis>('/fisheries/kpis'),
+  });
+}
+
+export function useFisheriesCaptures(params?: {
+  page?: number;
+  limit?: number;
+  country?: string;
+  species?: string;
+  catchMethod?: string;
+  year?: number;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.country) searchParams.country = params.country;
+  if (params?.species) searchParams.species = params.species;
+  if (params?.catchMethod) searchParams.catchMethod = params.catchMethod;
+  if (params?.year) searchParams.year = String(params.year);
+  if (params?.search) searchParams.search = params.search;
+
+  return useQuery({
+    queryKey: ['fisheries', 'captures', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<CaptureRecord>>(
+        '/fisheries/captures',
+        searchParams,
+      ),
+  });
+}
+
+export function useCaptureTrends(params?: { country?: string }) {
+  const searchParams: Record<string, string> = {};
+  if (params?.country) searchParams.country = params.country;
+
+  return useQuery({
+    queryKey: ['fisheries', 'capture-trends', params],
+    queryFn: () =>
+      apiClient.get<{ data: CaptureTrend[] }>(
+        '/fisheries/captures/trends',
+        searchParams,
+      ),
+  });
+}
+
+export function useFisheriesVessels(params?: {
+  page?: number;
+  limit?: number;
+  flag?: string;
+  vesselType?: string;
+  licenseStatus?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.flag) searchParams.flag = params.flag;
+  if (params?.vesselType) searchParams.vesselType = params.vesselType;
+  if (params?.licenseStatus) searchParams.licenseStatus = params.licenseStatus;
+  if (params?.search) searchParams.search = params.search;
+
+  return useQuery({
+    queryKey: ['fisheries', 'vessels', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<Vessel>>(
+        '/fisheries/vessels',
+        searchParams,
+      ),
+  });
+}
+
+export function useFisheriesAquaculture(params?: {
+  page?: number;
+  limit?: number;
+  country?: string;
+  species?: string;
+  farmType?: string;
+  status?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.country) searchParams.country = params.country;
+  if (params?.species) searchParams.species = params.species;
+  if (params?.farmType) searchParams.farmType = params.farmType;
+  if (params?.status) searchParams.status = params.status;
+  if (params?.search) searchParams.search = params.search;
+
+  return useQuery({
+    queryKey: ['fisheries', 'aquaculture', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<AquacultureFarm>>(
+        '/fisheries/aquaculture',
+        searchParams,
+      ),
+  });
+}
+
+// ─── Trade & SPS Types ──────────────────────────────────────────────────────
+
+export interface TradeFlow {
+  id: string;
+  exportCountry: string;
+  exportCountryCode: string;
+  importCountry: string;
+  importCountryCode: string;
+  commodity: string;
+  hsCode: string;
+  flowDirection: 'EXPORT' | 'IMPORT' | 'TRANSIT';
+  quantity: number;
+  unit: string;
+  valueFob: number;
+  currency: string;
+  periodStart: string;
+  periodEnd: string;
+  spsStatus: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SpsCertificate {
+  id: string;
+  certificateNumber: string;
+  exporterCountry: string;
+  importerCountry: string;
+  commodity: string;
+  quantity: number;
+  unit: string;
+  inspectionResult: 'PASS' | 'FAIL' | 'CONDITIONAL' | 'PENDING';
+  status: 'DRAFT' | 'ISSUED' | 'REVOKED' | 'EXPIRED';
+  inspectionDate: string;
+  certifiedBy: string;
+  certifiedAt: string | null;
+  validUntil: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MarketPrice {
+  id: string;
+  market: string;
+  country: string;
+  countryCode: string;
+  commodity: string;
+  species: string;
+  priceType: 'WHOLESALE' | 'RETAIL' | 'FARM_GATE' | 'EXPORT';
+  price: number;
+  currency: string;
+  unit: string;
+  date: string;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TradeBalancePoint {
+  period: string;
+  exports: number;
+  imports: number;
+  balance: number;
+}
+
+export interface TradeKpis {
+  data: {
+    totalExports: number;
+    exportsTrend: number;
+    totalImports: number;
+    importsTrend: number;
+    spsComplianceRate: number;
+    complianceTrend: number;
+    activeCertificates: number;
+    marketsTracked: number;
+  };
+}
+
+// ─── Trade & SPS Hooks ──────────────────────────────────────────────────────
+
+export function useTradeKpis() {
+  return useQuery({
+    queryKey: ['trade', 'kpis'],
+    queryFn: () => apiClient.get<TradeKpis>('/trade-sps/kpis'),
+  });
+}
+
+export function useTradeFlows(params?: {
+  page?: number;
+  limit?: number;
+  commodity?: string;
+  flowDirection?: string;
+  country?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.commodity) searchParams.commodity = params.commodity;
+  if (params?.flowDirection) searchParams.flowDirection = params.flowDirection;
+  if (params?.country) searchParams.country = params.country;
+  if (params?.search) searchParams.search = params.search;
+
+  return useQuery({
+    queryKey: ['trade', 'flows', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<TradeFlow>>(
+        '/trade-sps/flows',
+        searchParams,
+      ),
+  });
+}
+
+export function useTradeBalance(params?: { year?: number }) {
+  const searchParams: Record<string, string> = {};
+  if (params?.year) searchParams.year = String(params.year);
+
+  return useQuery({
+    queryKey: ['trade', 'balance', params],
+    queryFn: () =>
+      apiClient.get<{ data: TradeBalancePoint[] }>(
+        '/trade-sps/flows/balance',
+        searchParams,
+      ),
+  });
+}
+
+export function useSpsCertificates(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  inspectionResult?: string;
+  country?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.status) searchParams.status = params.status;
+  if (params?.inspectionResult) searchParams.inspectionResult = params.inspectionResult;
+  if (params?.country) searchParams.country = params.country;
+  if (params?.search) searchParams.search = params.search;
+
+  return useQuery({
+    queryKey: ['trade', 'sps', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<SpsCertificate>>(
+        '/trade-sps/sps-certificates',
+        searchParams,
+      ),
+  });
+}
+
+export function useMarketPrices(params?: {
+  page?: number;
+  limit?: number;
+  commodity?: string;
+  priceType?: string;
+  country?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.commodity) searchParams.commodity = params.commodity;
+  if (params?.priceType) searchParams.priceType = params.priceType;
+  if (params?.country) searchParams.country = params.country;
+  if (params?.search) searchParams.search = params.search;
+
+  return useQuery({
+    queryKey: ['trade', 'market-prices', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<MarketPrice>>(
+        '/trade-sps/market-prices',
+        searchParams,
+      ),
+  });
+}
+
+// ─── Knowledge Hub Types ────────────────────────────────────────────────────
+
+export interface Publication {
+  id: string;
+  title: string;
+  description: string;
+  domain: string;
+  type: 'brief' | 'report' | 'guideline' | 'dataset' | 'infographic';
+  authors: string[];
+  publishedAt: string;
+  language: string;
+  downloadUrl: string;
+  thumbnailUrl?: string;
+  tags: string[];
+  downloads: number;
+  createdAt: string;
+}
+
+export interface ElearningCourse {
+  id: string;
+  title: string;
+  description: string;
+  domain: string;
+  level: 'beginner' | 'intermediate' | 'advanced';
+  durationMinutes: number;
+  lessonsCount: number;
+  enrolledCount: number;
+  completionRate: number;
+  thumbnailUrl?: string;
+  instructor: string;
+  status: 'draft' | 'published' | 'archived';
+  createdAt: string;
+}
+
+export interface ElearningCourseDetail extends ElearningCourse {
+  lessons: ElearningLesson[];
+  userProgress?: {
+    completedLessons: number;
+    lastAccessedAt: string;
+    percentComplete: number;
+  };
+}
+
+export interface ElearningLesson {
+  id: string;
+  title: string;
+  order: number;
+  durationMinutes: number;
+  type: 'video' | 'text' | 'quiz' | 'exercise';
+  completed?: boolean;
+}
+
+export interface FaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  domain: string;
+  order: number;
+  updatedAt: string;
+}
+
+export interface KnowledgeKpis {
+  data: {
+    totalPublications: number;
+    publicationsTrend: number;
+    activeCourses: number;
+    totalEnrolled: number;
+    avgCompletionRate: number;
+    completionTrend: number;
+    totalDownloads: number;
+    downloadsTrend: number;
+  };
+}
+
+// ─── Knowledge Hub Hooks ────────────────────────────────────────────────────
+
+export function useKnowledgeKpis() {
+  return useQuery({
+    queryKey: ['knowledge', 'kpis'],
+    queryFn: () => apiClient.get<KnowledgeKpis>('/knowledge-hub/kpis'),
+  });
+}
+
+export function usePublications(params?: {
+  page?: number;
+  limit?: number;
+  domain?: string;
+  type?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.domain) searchParams.domain = params.domain;
+  if (params?.type) searchParams.type = params.type;
+  if (params?.search) searchParams.search = params.search;
+
+  return useQuery({
+    queryKey: ['knowledge', 'publications', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<Publication>>(
+        '/knowledge-hub/publications',
+        searchParams,
+      ),
+  });
+}
+
+export function useElearningCourses(params?: {
+  page?: number;
+  limit?: number;
+  domain?: string;
+  level?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.domain) searchParams.domain = params.domain;
+  if (params?.level) searchParams.level = params.level;
+  if (params?.search) searchParams.search = params.search;
+
+  return useQuery({
+    queryKey: ['knowledge', 'elearning', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<ElearningCourse>>(
+        '/knowledge-hub/elearning',
+        searchParams,
+      ),
+  });
+}
+
+export function useElearningCourse(id: string) {
+  return useQuery({
+    queryKey: ['knowledge', 'elearning', id],
+    queryFn: () =>
+      apiClient.get<{ data: ElearningCourseDetail }>(
+        `/knowledge-hub/elearning/${id}`,
+      ),
+    enabled: !!id,
+  });
+}
+
+export function useFaqItems(params?: { domain?: string }) {
+  const searchParams: Record<string, string> = {};
+  if (params?.domain) searchParams.domain = params.domain;
+
+  return useQuery({
+    queryKey: ['knowledge', 'faq', params],
+    queryFn: () =>
+      apiClient.get<{ data: FaqItem[] }>(
+        '/knowledge-hub/faq',
+        searchParams,
+      ),
+    staleTime: 5 * 60_000,
+  });
+}
+
+// ─── Dashboard Expanded KPIs Hook (time-range aware) ─────────────────────────
+
+export type TimeRange = '7d' | '30d' | '90d' | '1y';
+
+export function useDashboardKpisRange(range: TimeRange) {
+  return useQuery({
+    queryKey: ['dashboard', 'kpis', range],
+    queryFn: () =>
+      apiClient.get<DashboardKpis>('/analytics/dashboard/kpis', { range }),
+    placeholderData: {
+      data: {
+        activeOutbreaks: 42,
+        vaccinationCoverage: 87.3,
+        pendingValidations: 156,
+        dataQualityScore: 94.1,
+        labTurnaround: 3.2,
+        tradeVolume: 2_340_000,
+        livestockPopulation: 385_000_000,
+        activeCampaigns: 18,
+        outbreaksTrend: 12,
+        vaccinationTrend: 5.2,
+        validationsTrend: -8,
+        qualityTrend: 0,
+        labTurnaroundTrend: -12,
+        tradeVolumeTrend: 8.4,
+        livestockTrend: 2.1,
+        campaignsTrend: 15,
+      },
+    },
+  });
+}
+
+// ─── Outbreak Alerts ─────────────────────────────────────────────────────────
+
+export interface OutbreakAlert {
+  id: string;
+  severity: 'warning' | 'critical';
+  title: string;
+  message: string;
+  country: string;
+  disease: string;
+  createdAt: string;
+  dismissed?: boolean;
+}
+
+export function useOutbreakAlerts() {
+  return useQuery({
+    queryKey: ['dashboard', 'alerts'],
+    queryFn: () =>
+      apiClient.get<{ data: OutbreakAlert[] }>('/animal-health/alerts'),
+    placeholderData: {
+      data: [
+        {
+          id: 'alert-1',
+          severity: 'critical' as const,
+          title: 'HPAI Spread — West Africa',
+          message: 'Highly Pathogenic Avian Influenza confirmed in 3 new countries (Ghana, Togo, Benin) in the past 48 hours. Cross-border coordination recommended.',
+          country: 'Multi-country',
+          disease: 'HPAI',
+          createdAt: '2026-02-20T08:00:00Z',
+        },
+      ],
+    },
+    refetchInterval: 60_000,
+  });
+}
+
+// ─── Realtime Activity Events (WebSocket) ────────────────────────────────────
+
+export interface RealtimeEvent {
+  id: string;
+  type: 'outbreak' | 'validation' | 'export' | 'campaign' | 'quality' | 'submission';
+  action: string;
+  detail: string;
+  actor: string;
+  country?: string;
+  timestamp: string;
+}
+
+export function useRealtimeEvents(maxEvents = 20) {
+  const queryClient = useQueryClient();
+
+  // Seed with placeholder data; WebSocket pushes update the cache
+  const query = useQuery({
+    queryKey: ['realtime', 'events'],
+    queryFn: () =>
+      apiClient.get<{ data: RealtimeEvent[] }>('/analytics/realtime/events'),
+    placeholderData: {
+      data: [
+        { id: 'rt-1', type: 'outbreak' as const, action: 'Outbreak reported', detail: 'FMD in Rift Valley, Kenya', actor: 'Dr. Ochieng', country: 'Kenya', timestamp: new Date(Date.now() - 12 * 60_000).toISOString() },
+        { id: 'rt-2', type: 'validation' as const, action: 'Validation approved', detail: 'PPR vaccination data — Uganda (L2)', actor: 'Dr. Nakato', country: 'Uganda', timestamp: new Date(Date.now() - 34 * 60_000).toISOString() },
+        { id: 'rt-3', type: 'export' as const, action: 'WAHIS export triggered', detail: 'Monthly report — Ethiopia', actor: 'System', country: 'Ethiopia', timestamp: new Date(Date.now() - 60 * 60_000).toISOString() },
+        { id: 'rt-4', type: 'campaign' as const, action: 'Campaign launched', detail: 'Rinderpest surveillance — IGAD region', actor: 'Dr. Abdi', timestamp: new Date(Date.now() - 2 * 3600_000).toISOString() },
+        { id: 'rt-5', type: 'quality' as const, action: 'Quality gate failed', detail: 'Missing species code — Nigeria submission', actor: 'System', country: 'Nigeria', timestamp: new Date(Date.now() - 3 * 3600_000).toISOString() },
+        { id: 'rt-6', type: 'submission' as const, action: 'Data submitted', detail: 'Quarterly livestock census — Senegal', actor: 'Mme. Diop', country: 'Senegal', timestamp: new Date(Date.now() - 4 * 3600_000).toISOString() },
+        { id: 'rt-7', type: 'validation' as const, action: 'Validation returned', detail: 'Fisheries data — Tanzania (L1 rejected)', actor: 'Mr. Mtui', country: 'Tanzania', timestamp: new Date(Date.now() - 5 * 3600_000).toISOString() },
+        { id: 'rt-8', type: 'outbreak' as const, action: 'Outbreak updated', detail: 'ASF cases increased — DR Congo', actor: 'Dr. Mukendi', country: 'DR Congo', timestamp: new Date(Date.now() - 6 * 3600_000).toISOString() },
+        { id: 'rt-9', type: 'export' as const, action: 'EMPRES sync completed', detail: 'Avian influenza signals — Egypt', actor: 'System', country: 'Egypt', timestamp: new Date(Date.now() - 7 * 3600_000).toISOString() },
+        { id: 'rt-10', type: 'campaign' as const, action: 'Campaign completed', detail: 'FMD vaccination — Rwanda (98% coverage)', actor: 'Dr. Uwimana', country: 'Rwanda', timestamp: new Date(Date.now() - 8 * 3600_000).toISOString() },
+      ],
+    },
+    staleTime: 30_000,
+  });
+
+  // Push new event from WebSocket
+  function pushEvent(event: RealtimeEvent) {
+    queryClient.setQueryData<{ data: RealtimeEvent[] }>(
+      ['realtime', 'events'],
+      (old) => {
+        const events = old?.data ?? [];
+        return { data: [event, ...events].slice(0, maxEvents) };
+      },
+    );
+  }
+
+  return { ...query, pushEvent };
+}
+
+// ─── Country Outbreak Density (for choropleth) ──────────────────────────────
+
+export interface CountryOutbreakDensity {
+  countryCode: string;
+  country: string;
+  outbreaks: number;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+}
+
+export function useCountryOutbreakDensity(range?: TimeRange) {
+  return useQuery({
+    queryKey: ['dashboard', 'outbreak-density', range],
+    queryFn: () =>
+      apiClient.get<{ data: CountryOutbreakDensity[] }>(
+        '/analytics/dashboard/outbreak-density',
+        range ? { range } : {},
+      ),
+    placeholderData: {
+      data: [
+        { countryCode: 'KE', country: 'Kenya', outbreaks: 12, severity: 'high' as const },
+        { countryCode: 'ET', country: 'Ethiopia', outbreaks: 18, severity: 'critical' as const },
+        { countryCode: 'NG', country: 'Nigeria', outbreaks: 8, severity: 'high' as const },
+        { countryCode: 'TZ', country: 'Tanzania', outbreaks: 5, severity: 'medium' as const },
+        { countryCode: 'ZA', country: 'South Africa', outbreaks: 3, severity: 'medium' as const },
+        { countryCode: 'GH', country: 'Ghana', outbreaks: 6, severity: 'medium' as const },
+        { countryCode: 'UG', country: 'Uganda', outbreaks: 7, severity: 'high' as const },
+        { countryCode: 'EG', country: 'Egypt', outbreaks: 9, severity: 'high' as const },
+        { countryCode: 'SN', country: 'Senegal', outbreaks: 2, severity: 'low' as const },
+        { countryCode: 'CD', country: 'DR Congo', outbreaks: 4, severity: 'medium' as const },
+        { countryCode: 'RW', country: 'Rwanda', outbreaks: 1, severity: 'low' as const },
+        { countryCode: 'CM', country: 'Cameroon', outbreaks: 3, severity: 'medium' as const },
+      ],
+    },
+  });
+}
+
+// ─── Analytics Types & Hooks ─────────────────────────────────────────────────
+
+export interface TrendDataPoint {
+  date: string;
+  outbreaks: number;
+  vaccinations: number;
+  labResults: number;
+  tradeFlows: number;
+}
+
+export function useAnalyticsTrends(params?: {
+  range?: TimeRange;
+  domain?: string;
+  country?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.range) searchParams.range = params.range;
+  if (params?.domain) searchParams.domain = params.domain;
+  if (params?.country) searchParams.country = params.country;
+
+  return useQuery({
+    queryKey: ['analytics', 'trends', params],
+    queryFn: () =>
+      apiClient.get<{ data: TrendDataPoint[] }>(
+        '/analytics/trends',
+        searchParams,
+      ),
+    placeholderData: {
+      data: Array.from({ length: 12 }, (_, i) => ({
+        date: `2026-${String(i + 1).padStart(2, '0')}`,
+        outbreaks: Math.floor(20 + Math.random() * 30),
+        vaccinations: Math.floor(500 + Math.random() * 400),
+        labResults: Math.floor(100 + Math.random() * 200),
+        tradeFlows: Math.floor(50 + Math.random() * 100),
+      })),
+    },
+  });
+}
+
+export interface CountryComparisonRow {
+  country: string;
+  countryCode: string;
+  outbreaks: number;
+  vaccinationCoverage: number;
+  labCapacity: number;
+  qualityScore: number;
+  tradeVolume: number;
+  dataCompleteness: number;
+}
+
+export function useCountryComparison(params?: {
+  countries?: string[];
+  metric?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.countries?.length) searchParams.countries = params.countries.join(',');
+  if (params?.metric) searchParams.metric = params.metric;
+
+  return useQuery({
+    queryKey: ['analytics', 'comparison', params],
+    queryFn: () =>
+      apiClient.get<{ data: CountryComparisonRow[] }>(
+        '/analytics/comparison',
+        searchParams,
+      ),
+    placeholderData: {
+      data: [
+        { country: 'Kenya', countryCode: 'KE', outbreaks: 12, vaccinationCoverage: 89, labCapacity: 85, qualityScore: 92, tradeVolume: 450_000, dataCompleteness: 95 },
+        { country: 'Ethiopia', countryCode: 'ET', outbreaks: 18, vaccinationCoverage: 76, labCapacity: 72, qualityScore: 84, tradeVolume: 380_000, dataCompleteness: 88 },
+        { country: 'Nigeria', countryCode: 'NG', outbreaks: 8, vaccinationCoverage: 82, labCapacity: 78, qualityScore: 90, tradeVolume: 620_000, dataCompleteness: 91 },
+        { country: 'Tanzania', countryCode: 'TZ', outbreaks: 5, vaccinationCoverage: 91, labCapacity: 80, qualityScore: 93, tradeVolume: 290_000, dataCompleteness: 94 },
+        { country: 'South Africa', countryCode: 'ZA', outbreaks: 3, vaccinationCoverage: 95, labCapacity: 96, qualityScore: 97, tradeVolume: 890_000, dataCompleteness: 98 },
+        { country: 'Ghana', countryCode: 'GH', outbreaks: 6, vaccinationCoverage: 84, labCapacity: 74, qualityScore: 88, tradeVolume: 210_000, dataCompleteness: 90 },
+        { country: 'Uganda', countryCode: 'UG', outbreaks: 7, vaccinationCoverage: 87, labCapacity: 76, qualityScore: 89, tradeVolume: 180_000, dataCompleteness: 92 },
+        { country: 'Egypt', countryCode: 'EG', outbreaks: 9, vaccinationCoverage: 93, labCapacity: 91, qualityScore: 95, tradeVolume: 780_000, dataCompleteness: 96 },
+      ],
+    },
+  });
+}
+
+export interface QualityDrilldownRow {
+  domain: string;
+  gate: string;
+  totalRecords: number;
+  passed: number;
+  failed: number;
+  warnings: number;
+  passRate: number;
+  trend: number;
+}
+
+export function useQualityDrilldown(params?: {
+  domain?: string;
+  gate?: string;
+  tenant?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.domain) searchParams.domain = params.domain;
+  if (params?.gate) searchParams.gate = params.gate;
+  if (params?.tenant) searchParams.tenant = params.tenant;
+
+  return useQuery({
+    queryKey: ['analytics', 'quality', params],
+    queryFn: () =>
+      apiClient.get<{ data: QualityDrilldownRow[] }>(
+        '/analytics/quality/drilldown',
+        searchParams,
+      ),
+    placeholderData: {
+      data: [
+        { domain: 'Animal Health', gate: 'Completeness', totalRecords: 1240, passed: 1178, failed: 42, warnings: 20, passRate: 95.0, trend: 2.1 },
+        { domain: 'Animal Health', gate: 'Temporal Consistency', totalRecords: 1240, passed: 1200, failed: 28, warnings: 12, passRate: 96.8, trend: 1.5 },
+        { domain: 'Animal Health', gate: 'Geographic Consistency', totalRecords: 1240, passed: 1210, failed: 18, warnings: 12, passRate: 97.6, trend: 0.8 },
+        { domain: 'Livestock', gate: 'Completeness', totalRecords: 890, passed: 823, failed: 45, warnings: 22, passRate: 92.5, trend: -1.2 },
+        { domain: 'Livestock', gate: 'Codes & Vocabularies', totalRecords: 890, passed: 856, failed: 22, warnings: 12, passRate: 96.2, trend: 3.0 },
+        { domain: 'Fisheries', gate: 'Completeness', totalRecords: 540, passed: 486, failed: 38, warnings: 16, passRate: 90.0, trend: 4.5 },
+        { domain: 'Fisheries', gate: 'Deduplication', totalRecords: 540, passed: 524, failed: 10, warnings: 6, passRate: 97.0, trend: 1.2 },
+        { domain: 'Trade', gate: 'Completeness', totalRecords: 720, passed: 691, failed: 18, warnings: 11, passRate: 96.0, trend: 0.5 },
+        { domain: 'Trade', gate: 'Units', totalRecords: 720, passed: 706, failed: 8, warnings: 6, passRate: 98.1, trend: 0.3 },
+      ],
+    },
+  });
+}
+
+export interface ExportConfig {
+  metrics: string[];
+  countries: string[];
+  periodStart: string;
+  periodEnd: string;
+  format: 'csv' | 'pdf' | 'xlsx';
+}
+
+export function useExportBuilder() {
+  return useMutation({
+    mutationFn: async (config: ExportConfig) =>
+      apiClient.post<{ data: { downloadUrl: string; fileName: string } }>(
+        '/analytics/export',
+        config,
+      ),
+  });
+}
+
+export function useExportableMetrics() {
+  return useQuery({
+    queryKey: ['analytics', 'export', 'metrics'],
+    queryFn: () =>
+      apiClient.get<{ data: { id: string; label: string; domain: string }[] }>(
+        '/analytics/export/metrics',
+      ),
+    placeholderData: {
+      data: [
+        { id: 'outbreaks', label: 'Active Outbreaks', domain: 'Animal Health' },
+        { id: 'vaccination-coverage', label: 'Vaccination Coverage', domain: 'Animal Health' },
+        { id: 'lab-results', label: 'Lab Results', domain: 'Animal Health' },
+        { id: 'livestock-census', label: 'Livestock Census', domain: 'Livestock' },
+        { id: 'production-records', label: 'Production Records', domain: 'Livestock' },
+        { id: 'capture-records', label: 'Capture Records', domain: 'Fisheries' },
+        { id: 'trade-flows', label: 'Trade Flows', domain: 'Trade' },
+        { id: 'sps-certificates', label: 'SPS Certificates', domain: 'Trade' },
+        { id: 'market-prices', label: 'Market Prices', domain: 'Trade' },
+        { id: 'quality-scores', label: 'Quality Scores', domain: 'Data Quality' },
+      ],
+    },
+    staleTime: 10 * 60_000,
+  });
+}
+
+// ─── Reports Types & Hooks ───────────────────────────────────────────────────
+
+export interface ReportTemplate {
+  id: string;
+  name: string;
+  description: string;
+  type: 'wahis_6monthly' | 'wahis_annual' | 'continental_brief' | 'custom';
+  domains: string[];
+  outputFormat: 'pdf' | 'xlsx' | 'docx';
+  lastGeneratedAt?: string;
+  createdBy: string;
+}
+
+export function useReportTemplates() {
+  return useQuery({
+    queryKey: ['reports', 'templates'],
+    queryFn: () =>
+      apiClient.get<{ data: ReportTemplate[] }>('/reports/templates'),
+    placeholderData: {
+      data: [
+        { id: 'tpl-wahis-6m', name: 'WAHIS 6-Monthly Report', description: 'Semi-annual disease situation report for WOAH (WAHIS submission format)', type: 'wahis_6monthly' as const, domains: ['Animal Health'], outputFormat: 'pdf' as const, lastGeneratedAt: '2026-01-15T10:00:00Z', createdBy: 'System' },
+        { id: 'tpl-wahis-ann', name: 'WAHIS Annual Report', description: 'Annual animal health situation report covering all notifiable diseases', type: 'wahis_annual' as const, domains: ['Animal Health'], outputFormat: 'pdf' as const, lastGeneratedAt: '2026-01-30T14:00:00Z', createdBy: 'System' },
+        { id: 'tpl-continental', name: 'Continental Brief', description: 'AU-IBAR quarterly continental animal resources brief with KPIs and trends', type: 'continental_brief' as const, domains: ['Animal Health', 'Livestock', 'Fisheries', 'Trade'], outputFormat: 'pdf' as const, lastGeneratedAt: '2026-02-01T09:00:00Z', createdBy: 'System' },
+        { id: 'tpl-custom', name: 'Custom Report', description: 'Build a custom report by selecting domains, metrics, countries, and period', type: 'custom' as const, domains: ['Animal Health', 'Livestock', 'Fisheries', 'Trade', 'Data Quality'], outputFormat: 'pdf' as const, createdBy: 'System' },
+      ],
+    },
+  });
+}
+
+export interface GenerateReportRequest {
+  templateId: string;
+  country?: string;
+  countries?: string[];
+  periodStart: string;
+  periodEnd: string;
+  format?: 'pdf' | 'xlsx' | 'docx';
+  customMetrics?: string[];
+}
+
+export interface GeneratedReport {
+  id: string;
+  templateId: string;
+  templateName: string;
+  status: 'pending' | 'generating' | 'completed' | 'failed';
+  country?: string;
+  periodStart: string;
+  periodEnd: string;
+  format: string;
+  downloadUrl?: string;
+  fileSize?: number;
+  generatedBy: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export function useGenerateReport() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (req: GenerateReportRequest) =>
+      apiClient.post<{ data: GeneratedReport }>('/reports/generate', req),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reports', 'history'] });
+    },
+  });
+}
+
+export function useReportHistory(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  templateId?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.status) searchParams.status = params.status;
+  if (params?.templateId) searchParams.templateId = params.templateId;
+
+  return useQuery({
+    queryKey: ['reports', 'history', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<GeneratedReport>>(
+        '/reports/history',
+        searchParams,
+      ),
+    placeholderData: {
+      data: [
+        { id: 'rpt-001', templateId: 'tpl-wahis-6m', templateName: 'WAHIS 6-Monthly Report', status: 'completed' as const, country: 'Kenya', periodStart: '2025-07-01', periodEnd: '2025-12-31', format: 'pdf', downloadUrl: '/api/v1/reports/download/rpt-001', fileSize: 2_450_000, generatedBy: 'Dr. Ochieng', createdAt: '2026-01-15T10:00:00Z', completedAt: '2026-01-15T10:05:00Z' },
+        { id: 'rpt-002', templateId: 'tpl-continental', templateName: 'Continental Brief', status: 'completed' as const, periodStart: '2025-10-01', periodEnd: '2025-12-31', format: 'pdf', downloadUrl: '/api/v1/reports/download/rpt-002', fileSize: 5_200_000, generatedBy: 'AU-IBAR Admin', createdAt: '2026-02-01T09:00:00Z', completedAt: '2026-02-01T09:12:00Z' },
+        { id: 'rpt-003', templateId: 'tpl-wahis-ann', templateName: 'WAHIS Annual Report', status: 'generating' as const, country: 'Ethiopia', periodStart: '2025-01-01', periodEnd: '2025-12-31', format: 'pdf', generatedBy: 'Dr. Kebede', createdAt: '2026-02-20T07:30:00Z' },
+        { id: 'rpt-004', templateId: 'tpl-custom', templateName: 'Custom Report', status: 'completed' as const, country: 'Nigeria', periodStart: '2025-01-01', periodEnd: '2025-06-30', format: 'xlsx', downloadUrl: '/api/v1/reports/download/rpt-004', fileSize: 1_800_000, generatedBy: 'Mr. Adeyemi', createdAt: '2026-02-18T14:20:00Z', completedAt: '2026-02-18T14:25:00Z' },
+      ],
+      meta: { total: 4, page: 1, limit: 20 },
+    },
+  });
+}
+
+// ─── Analytics Dashboard Summary ─────────────────────────────────────────────
+
+export interface AnalyticsSummary {
+  data: {
+    totalRecords: number;
+    recordsTrend: number;
+    countriesReporting: number;
+    countriesTrend: number;
+    avgQualityScore: number;
+    qualityTrend: number;
+    pendingExports: number;
+    domainBreakdown: { domain: string; records: number; quality: number }[];
+  };
+}
+
+export function useAnalyticsSummary(range?: TimeRange) {
+  return useQuery({
+    queryKey: ['analytics', 'summary', range],
+    queryFn: () =>
+      apiClient.get<AnalyticsSummary>(
+        '/analytics/summary',
+        range ? { range } : {},
+      ),
+    placeholderData: {
+      data: {
+        totalRecords: 48_250,
+        recordsTrend: 14.2,
+        countriesReporting: 47,
+        countriesTrend: 4,
+        avgQualityScore: 93.5,
+        qualityTrend: 1.8,
+        pendingExports: 5,
+        domainBreakdown: [
+          { domain: 'Animal Health', records: 15_400, quality: 94.1 },
+          { domain: 'Livestock', records: 12_800, quality: 92.5 },
+          { domain: 'Fisheries', records: 8_200, quality: 90.0 },
+          { domain: 'Trade & SPS', records: 6_900, quality: 96.0 },
+          { domain: 'Knowledge', records: 4_950, quality: 97.2 },
+        ],
+      },
+    },
   });
 }

@@ -1,0 +1,1515 @@
+openapi: 3.0.3
+info:
+  title: ARIS 3.0 — Knowledge Hub Service
+  version: 1.0.0
+  description: |
+    Knowledge management service for ARIS 3.0.
+    Manages publications (policy briefs, reports, datasets), e-learning modules
+    (enrollment, progress tracking), and FAQs across all business domains.
+    All endpoints require AuthGuard and TenantGuard (JWT with tenantId).
+
+servers:
+  - url: http://localhost:3033
+    description: Development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: publications
+    description: Publication management (policy briefs, reports, datasets)
+  - name: elearning
+    description: E-learning module management and learner progress
+  - name: faq
+    description: Frequently asked questions management
+
+paths:
+  # ── Controller: api/v1/knowledge/publications ──────────────────────────
+  /api/v1/knowledge/publications:
+    post:
+      operationId: createPublication
+      summary: Create publication
+      description: |
+        Create a new publication entry.
+        Requires one of: SUPER_ADMIN, CONTINENTAL_ADMIN, REC_ADMIN, NATIONAL_ADMIN.
+      tags:
+        - publications
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePublicationDto"
+      responses:
+        "201":
+          description: Publication created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicationResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient role or tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    get:
+      operationId: listPublications
+      summary: List publications (filterable by domain, type, language)
+      tags:
+        - publications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: domain
+          in: query
+          schema:
+            type: string
+          description: Business domain filter (e.g. health, livestock, fisheries)
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum:
+              - policy_brief
+              - report
+              - dataset
+              - guideline
+              - factsheet
+          description: Publication type
+        - name: language
+          in: query
+          schema:
+            type: string
+          description: Language code (ISO 639-1, e.g. en, fr, ar, pt)
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Full-text search in title and description
+        - name: sort
+          in: query
+          schema:
+            type: string
+            default: createdAt
+          description: Sort field
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+          description: Sort order
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Items per page
+      responses:
+        "200":
+          description: Paginated list of publications
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicationListResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/knowledge/publications/{id}:
+    get:
+      operationId: getPublication
+      summary: Get publication
+      tags:
+        - publications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Publication ID
+      responses:
+        "200":
+          description: Publication details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicationResponse"
+        "400":
+          description: Invalid ID format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Publication not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updatePublication
+      summary: Update publication
+      description: |
+        Update an existing publication.
+        Requires one of: SUPER_ADMIN, CONTINENTAL_ADMIN, REC_ADMIN, NATIONAL_ADMIN.
+      tags:
+        - publications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Publication ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePublicationDto"
+      responses:
+        "200":
+          description: Publication updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicationResponse"
+        "400":
+          description: Invalid request body or ID format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient role or tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Publication not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/knowledge/publications/{id}/download:
+    get:
+      operationId: downloadPublication
+      summary: Download publication file
+      tags:
+        - publications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Publication ID
+      responses:
+        "200":
+          description: Publication file binary stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Invalid ID format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Publication or file not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Controller: api/v1/knowledge/elearning ─────────────────────────────
+  /api/v1/knowledge/elearning:
+    post:
+      operationId: createElearningModule
+      summary: Create e-learning module
+      description: |
+        Create a new e-learning module.
+        Requires one of: SUPER_ADMIN, CONTINENTAL_ADMIN, REC_ADMIN, NATIONAL_ADMIN.
+      tags:
+        - elearning
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateElearningModuleDto"
+      responses:
+        "201":
+          description: E-learning module created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ElearningModuleResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient role or tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    get:
+      operationId: listElearningModules
+      summary: List e-learning modules
+      tags:
+        - elearning
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: domain
+          in: query
+          schema:
+            type: string
+          description: Business domain filter
+        - name: language
+          in: query
+          schema:
+            type: string
+          description: Language code (ISO 639-1)
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Full-text search in title and description
+        - name: sort
+          in: query
+          schema:
+            type: string
+            default: createdAt
+          description: Sort field
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+          description: Sort order
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Items per page
+      responses:
+        "200":
+          description: Paginated list of e-learning modules
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ElearningModuleListResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/knowledge/elearning/my-courses:
+    get:
+      operationId: getMyCourses
+      summary: Get learner's enrolled courses
+      tags:
+        - elearning
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - in_progress
+              - completed
+              - not_started
+          description: Filter by enrollment status
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Items per page
+      responses:
+        "200":
+          description: Learner's enrolled courses with progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyCoursesResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/knowledge/elearning/{id}:
+    get:
+      operationId: getElearningModule
+      summary: Get e-learning module
+      tags:
+        - elearning
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: E-learning module ID
+      responses:
+        "200":
+          description: E-learning module details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ElearningModuleResponse"
+        "400":
+          description: Invalid ID format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: E-learning module not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateElearningModule
+      summary: Update e-learning module
+      description: |
+        Update an existing e-learning module.
+        Requires one of: SUPER_ADMIN, CONTINENTAL_ADMIN, REC_ADMIN, NATIONAL_ADMIN.
+      tags:
+        - elearning
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: E-learning module ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateElearningModuleDto"
+      responses:
+        "200":
+          description: E-learning module updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ElearningModuleResponse"
+        "400":
+          description: Invalid request body or ID format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient role or tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: E-learning module not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/knowledge/elearning/{id}/enroll:
+    get:
+      operationId: enrollInModule
+      summary: Enroll in e-learning module
+      tags:
+        - elearning
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: E-learning module ID
+      responses:
+        "200":
+          description: Enrollment confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrollmentResponse"
+        "400":
+          description: Invalid ID format or already enrolled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: E-learning module not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/knowledge/elearning/{id}/progress:
+    patch:
+      operationId: updateLearnerProgress
+      summary: Update learner progress
+      tags:
+        - elearning
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: E-learning module ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProgressDto"
+      responses:
+        "200":
+          description: Progress updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressResponse"
+        "400":
+          description: Invalid request body or ID format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: E-learning module or enrollment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Controller: api/v1/knowledge/faq ───────────────────────────────────
+  /api/v1/knowledge/faq:
+    post:
+      operationId: createFaq
+      summary: Create FAQ
+      description: |
+        Create a new FAQ entry.
+        Requires one of: SUPER_ADMIN, CONTINENTAL_ADMIN, REC_ADMIN, NATIONAL_ADMIN.
+      tags:
+        - faq
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFaqDto"
+      responses:
+        "201":
+          description: FAQ created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaqResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient role or tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    get:
+      operationId: listFaqs
+      summary: List FAQs (filterable by domain, language)
+      tags:
+        - faq
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: domain
+          in: query
+          schema:
+            type: string
+          description: Business domain filter (e.g. health, livestock, fisheries)
+        - name: language
+          in: query
+          schema:
+            type: string
+          description: Language code (ISO 639-1, e.g. en, fr, ar, pt)
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Full-text search in question and answer
+        - name: sort
+          in: query
+          schema:
+            type: string
+            default: createdAt
+          description: Sort field
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+          description: Sort order
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Items per page
+      responses:
+        "200":
+          description: Paginated list of FAQs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaqListResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/knowledge/faq/{id}:
+    get:
+      operationId: getFaq
+      summary: Get FAQ
+      tags:
+        - faq
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: FAQ ID
+      responses:
+        "200":
+          description: FAQ details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaqResponse"
+        "400":
+          description: Invalid ID format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: FAQ not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateFaq
+      summary: Update FAQ
+      description: |
+        Update an existing FAQ entry.
+        Requires one of: SUPER_ADMIN, CONTINENTAL_ADMIN, REC_ADMIN, NATIONAL_ADMIN.
+      tags:
+        - faq
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: FAQ ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFaqDto"
+      responses:
+        "200":
+          description: FAQ updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaqResponse"
+        "400":
+          description: Invalid request body or ID format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized - missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - insufficient role or tenant permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: FAQ not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    # ── Publications schemas ─────────────────────────────────────────────
+    CreatePublicationDto:
+      type: object
+      required:
+        - title
+        - type
+        - language
+        - domain
+      properties:
+        title:
+          type: string
+          description: Publication title
+        description:
+          type: string
+          description: Publication summary/abstract
+        type:
+          type: string
+          enum:
+            - policy_brief
+            - report
+            - dataset
+            - guideline
+            - factsheet
+          description: Publication type
+        domain:
+          type: string
+          description: Business domain (e.g. health, livestock, fisheries)
+        language:
+          type: string
+          description: Language code (ISO 639-1)
+        authors:
+          type: array
+          items:
+            type: string
+          description: List of author names
+        fileKey:
+          type: string
+          description: MinIO object key for the uploaded file (via Drive service)
+        dataClassification:
+          type: string
+          enum:
+            - PUBLIC
+            - PARTNER
+            - RESTRICTED
+            - CONFIDENTIAL
+          default: PUBLIC
+          description: Data classification level
+
+    UpdatePublicationDto:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum:
+            - policy_brief
+            - report
+            - dataset
+            - guideline
+            - factsheet
+        domain:
+          type: string
+        language:
+          type: string
+        authors:
+          type: array
+          items:
+            type: string
+        fileKey:
+          type: string
+        dataClassification:
+          type: string
+          enum:
+            - PUBLIC
+            - PARTNER
+            - RESTRICTED
+            - CONFIDENTIAL
+
+    PublicationResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            tenantId:
+              type: string
+              format: uuid
+            title:
+              type: string
+            description:
+              type: string
+            type:
+              type: string
+            domain:
+              type: string
+            language:
+              type: string
+            authors:
+              type: array
+              items:
+                type: string
+            fileKey:
+              type: string
+            dataClassification:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    PublicationListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              tenantId:
+                type: string
+                format: uuid
+              title:
+                type: string
+              description:
+                type: string
+              type:
+                type: string
+              domain:
+                type: string
+              language:
+                type: string
+              authors:
+                type: array
+                items:
+                  type: string
+              dataClassification:
+                type: string
+              createdAt:
+                type: string
+                format: date-time
+              updatedAt:
+                type: string
+                format: date-time
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    # ── E-learning schemas ───────────────────────────────────────────────
+    CreateElearningModuleDto:
+      type: object
+      required:
+        - title
+        - domain
+        - language
+      properties:
+        title:
+          type: string
+          description: Module title
+        description:
+          type: string
+          description: Module description
+        domain:
+          type: string
+          description: Business domain
+        language:
+          type: string
+          description: Language code (ISO 639-1)
+        durationMinutes:
+          type: integer
+          description: Estimated duration in minutes
+        prerequisites:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: IDs of prerequisite modules
+        contentUrl:
+          type: string
+          description: URL or MinIO key for course content
+        dataClassification:
+          type: string
+          enum:
+            - PUBLIC
+            - PARTNER
+            - RESTRICTED
+            - CONFIDENTIAL
+          default: PUBLIC
+
+    UpdateElearningModuleDto:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        domain:
+          type: string
+        language:
+          type: string
+        durationMinutes:
+          type: integer
+        prerequisites:
+          type: array
+          items:
+            type: string
+            format: uuid
+        contentUrl:
+          type: string
+        dataClassification:
+          type: string
+          enum:
+            - PUBLIC
+            - PARTNER
+            - RESTRICTED
+            - CONFIDENTIAL
+
+    ElearningModuleResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            tenantId:
+              type: string
+              format: uuid
+            title:
+              type: string
+            description:
+              type: string
+            domain:
+              type: string
+            language:
+              type: string
+            durationMinutes:
+              type: integer
+            prerequisites:
+              type: array
+              items:
+                type: string
+                format: uuid
+            contentUrl:
+              type: string
+            dataClassification:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    ElearningModuleListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              tenantId:
+                type: string
+                format: uuid
+              title:
+                type: string
+              description:
+                type: string
+              domain:
+                type: string
+              language:
+                type: string
+              durationMinutes:
+                type: integer
+              dataClassification:
+                type: string
+              createdAt:
+                type: string
+                format: date-time
+              updatedAt:
+                type: string
+                format: date-time
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    MyCoursesResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              moduleId:
+                type: string
+                format: uuid
+              title:
+                type: string
+              domain:
+                type: string
+              enrolledAt:
+                type: string
+                format: date-time
+              status:
+                type: string
+                enum:
+                  - not_started
+                  - in_progress
+                  - completed
+              progressPercent:
+                type: number
+                minimum: 0
+                maximum: 100
+              completedAt:
+                type: string
+                format: date-time
+                nullable: true
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    EnrollmentResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            moduleId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            enrolledAt:
+              type: string
+              format: date-time
+            status:
+              type: string
+              enum:
+                - not_started
+                - in_progress
+                - completed
+
+    UpdateProgressDto:
+      type: object
+      required:
+        - progressPercent
+      properties:
+        progressPercent:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Current progress percentage
+        lastAccessedSection:
+          type: string
+          description: Identifier of the last accessed section/lesson
+        completed:
+          type: boolean
+          description: Mark the module as completed
+
+    ProgressResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            moduleId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            progressPercent:
+              type: number
+            status:
+              type: string
+              enum:
+                - not_started
+                - in_progress
+                - completed
+            lastAccessedSection:
+              type: string
+            updatedAt:
+              type: string
+              format: date-time
+            completedAt:
+              type: string
+              format: date-time
+              nullable: true
+
+    # ── FAQ schemas ──────────────────────────────────────────────────────
+    CreateFaqDto:
+      type: object
+      required:
+        - question
+        - answer
+        - domain
+        - language
+      properties:
+        question:
+          type: string
+          description: The FAQ question
+        answer:
+          type: string
+          description: The FAQ answer (supports Markdown)
+        domain:
+          type: string
+          description: Business domain (e.g. health, livestock, fisheries)
+        language:
+          type: string
+          description: Language code (ISO 639-1)
+        sortOrder:
+          type: integer
+          description: Display order within the domain
+        dataClassification:
+          type: string
+          enum:
+            - PUBLIC
+            - PARTNER
+            - RESTRICTED
+            - CONFIDENTIAL
+          default: PUBLIC
+
+    UpdateFaqDto:
+      type: object
+      properties:
+        question:
+          type: string
+        answer:
+          type: string
+        domain:
+          type: string
+        language:
+          type: string
+        sortOrder:
+          type: integer
+        dataClassification:
+          type: string
+          enum:
+            - PUBLIC
+            - PARTNER
+            - RESTRICTED
+            - CONFIDENTIAL
+
+    FaqResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            tenantId:
+              type: string
+              format: uuid
+            question:
+              type: string
+            answer:
+              type: string
+            domain:
+              type: string
+            language:
+              type: string
+            sortOrder:
+              type: integer
+            dataClassification:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    FaqListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              tenantId:
+                type: string
+                format: uuid
+              question:
+                type: string
+              answer:
+                type: string
+              domain:
+                type: string
+              language:
+                type: string
+              sortOrder:
+                type: integer
+              dataClassification:
+                type: string
+              createdAt:
+                type: string
+                format: date-time
+              updatedAt:
+                type: string
+                format: date-time
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"

@@ -107,6 +107,20 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
+    // Location (Play Services)
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+
+    // Biometric
+    implementation("androidx.biometric:biometric:1.1.0")
+
+    // CameraX
+    implementation("androidx.camera:camera-camera2:1.3.1")
+    implementation("androidx.camera:camera-lifecycle:1.3.1")
+    implementation("androidx.camera:camera-view:1.3.1")
+
+    // ExifInterface
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
+
     // Socket.IO (WebSocket for realtime alerts)
     implementation("io.socket:socket.io-client:2.1.0") {
         exclude(group = "org.json", module = "json")

@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model WaterStressIndex {
+  id                  String   @id @default(uuid())
+  tenantId            String   @map("tenant_id")
+  geoEntityId         String   @map("geo_entity_id")
+  period              String
+  index               Float
+  waterAvailability   String   @map("water_availability")
+  irrigatedAreaPct    Float    @map("irrigated_area_pct")
+  source              String
+  dataClassification  String   @default("PUBLIC") @map("data_classification")
+  createdBy           String   @map("created_by")
+  updatedBy           String   @map("updated_by")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@unique([tenantId, geoEntityId, period])
+  @@index([tenantId])
+  @@index([geoEntityId])
+  @@map("water_stress_indices")
+}
+
+model RangelandCondition {
+  id                  String   @id @default(uuid())
+  tenantId            String   @map("tenant_id")
+  geoEntityId         String   @map("geo_entity_id")
+  assessmentDate      DateTime @map("assessment_date")
+  ndviIndex           Float    @map("ndvi_index")
+  biomassTonsPerHa    Float    @map("biomass_tons_per_ha")
+  degradationLevel    String   @map("degradation_level")
+  carryingCapacity    Float    @map("carrying_capacity")
+  dataClassification  String   @default("PUBLIC") @map("data_classification")
+  createdBy           String   @map("created_by")
+  updatedBy           String   @map("updated_by")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@index([geoEntityId])
+  @@index([assessmentDate])
+  @@index([degradationLevel])
+  @@map("rangeland_conditions")
+}
+
+model EnvironmentalHotspot {
+  id                  String   @id @default(uuid())
+  tenantId            String   @map("tenant_id")
+  geoEntityId         String   @map("geo_entity_id")
+  type                String
+  severity            String
+  detectedDate        DateTime @map("detected_date")
+  satelliteSource     String?  @map("satellite_source")
+  affectedSpecies     String[] @map("affected_species")
+  dataClassification  String   @default("PUBLIC") @map("data_classification")
+  createdBy           String   @map("created_by")
+  updatedBy           String   @map("updated_by")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@index([geoEntityId])
+  @@index([type])
+  @@index([severity])
+  @@index([detectedDate])
+  @@map("environmental_hotspots")
+}
+
+model ClimateDataPoint {
+  id                  String   @id @default(uuid())
+  tenantId            String   @map("tenant_id")
+  geoEntityId         String   @map("geo_entity_id")
+  date                DateTime
+  temperature         Float?
+  rainfall            Float?
+  humidity            Float?
+  windSpeed           Float?   @map("wind_speed")
+  source              String
+  dataClassification  String   @default("PUBLIC") @map("data_classification")
+  createdBy           String   @map("created_by")
+  updatedBy           String   @map("updated_by")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@index([geoEntityId])
+  @@index([date])
+  @@map("climate_data_points")
+}

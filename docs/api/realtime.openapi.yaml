@@ -1,0 +1,131 @@
+openapi: 3.0.3
+info:
+  title: ARIS 3.0 — Realtime Service
+  version: 1.0.0
+  description: >
+    WebSocket synchronisation and real-time event relay for the ARIS platform.
+    The primary transport is Socket.IO over WebSocket; these REST endpoints
+    expose health and diagnostic information about the WebSocket gateway.
+    Clients connect via `ws://localhost:3008/` with a valid JWT for
+    authenticated channels.
+
+servers:
+  - url: http://localhost:3008
+    description: Development
+
+tags:
+  - name: Realtime
+    description: Health and diagnostics for the WebSocket gateway
+
+paths:
+  /api/v1/realtime/health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      description: >
+        Returns the health status of the realtime service, including
+        WebSocket gateway readiness and Redis pub/sub connectivity.
+        No authentication required — used by load balancers and
+        monitoring probes (Kubernetes liveness/readiness).
+      tags:
+        - Realtime
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /api/v1/realtime/stats:
+    get:
+      operationId: getConnectionStats
+      summary: Get WebSocket connection statistics
+      description: >
+        Returns current connection metrics for the WebSocket gateway:
+        total connected clients, connections per tenant, and uptime.
+        No authentication required — intended for Prometheus scraping
+        and Grafana dashboards.
+      tags:
+        - Realtime
+      security: []
+      responses:
+        '200':
+          description: Connection statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: RS256-signed JWT issued by the Credential service
+
+  schemas:
+    HealthStatus:
+      type: string
+      enum:
+        - UP
+        - DOWN
+        - DEGRADED
+
+    HealthResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            status:
+              $ref: '#/components/schemas/HealthStatus'
+            uptime:
+              type: number
+              format: double
+              description: Process uptime in seconds
+            timestamp:
+              type: string
+              format: date-time
+            checks:
+              type: object
+              properties:
+                websocketGateway:
+                  $ref: '#/components/schemas/HealthStatus'
+                redisPubSub:
+                  $ref: '#/components/schemas/HealthStatus'
+
+    StatsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            totalConnections:
+              type: integer
+              description: Total number of active WebSocket connections
+              example: 142
+            connectionsByTenant:
+              type: object
+              additionalProperties:
+                type: integer
+              description: Map of tenantId to active connection count
+              example:
+                "a1b2c3d4-e5f6-7890-abcd-ef1234567890": 45
+                "b2c3d4e5-f6a7-8901-bcde-f12345678901": 97
+            uptime:
+              type: number
+              format: double
+              description: Service uptime in seconds
+              example: 86423.7
+            timestamp:
+              type: string
+              format: date-time

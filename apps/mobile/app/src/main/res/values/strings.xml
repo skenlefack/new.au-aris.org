@@ -86,4 +86,59 @@
 
     <!-- Connectivity -->
     <string name="offline_banner">You are offline. Data will sync when connected.</string>
+
+    <!-- Livestock -->
+    <string name="livestock_census">Livestock Census</string>
+    <string name="production_record">Production Record</string>
+    <string name="population_count">Population Count</string>
+    <string name="methodology">Methodology</string>
+    <string name="select_methodology">Select methodology</string>
+    <string name="product_type">Product Type</string>
+    <string name="quantity">Quantity</string>
+    <string name="unit">Unit</string>
+
+    <!-- Photo Evidence -->
+    <string name="photo_gallery">Photo Gallery</string>
+    <string name="add_photo">Add Photo</string>
+    <string name="photos_count">%d photo(s)</string>
+    <string name="compressing_photo">Compressing photo…</string>
+    <string name="photo_upload_queued">Photo queued for upload</string>
+    <string name="photo_upload_failed">Photo upload failed</string>
+    <string name="no_photos">No photos attached</string>
+
+    <!-- GPS Tracking -->
+    <string name="start_tracking">Start GPS Tracking</string>
+    <string name="stop_tracking">Stop GPS Tracking</string>
+    <string name="tracking_active">GPS tracking active</string>
+    <string name="track_recorded">GPS track recorded</string>
+    <string name="track_points">%d points recorded</string>
+    <string name="gps_tracking_notification">GPS Tracking</string>
+    <string name="gps_tracking_channel">GPS Tracking</string>
+    <string name="gps_tracking_desc">Recording field visit GPS path</string>
+
+    <!-- Mini Reports -->
+    <string name="reports">Reports</string>
+    <string name="my_summary">My Summary</string>
+    <string name="submissions_by_status">Submissions by Status</string>
+    <string name="submissions_by_domain">Submissions by Domain</string>
+    <string name="campaign_progress">Campaign Progress</string>
+    <string name="sync_statistics">Sync Statistics</string>
+    <string name="total_synced">Total Synced</string>
+    <string name="total_pending">Total Pending</string>
+    <string name="total_failed">Total Failed</string>
+
+    <!-- Biometric / PIN Lock -->
+    <string name="app_lock">App Lock</string>
+    <string name="enable_biometric">Enable Biometric Lock</string>
+    <string name="enable_pin">Enable PIN Lock</string>
+    <string name="set_pin">Set PIN</string>
+    <string name="enter_pin">Enter PIN</string>
+    <string name="confirm_pin">Confirm PIN</string>
+    <string name="pin_mismatch">PINs do not match</string>
+    <string name="pin_set_success">PIN set successfully</string>
+    <string name="biometric_prompt_title">Unlock ARIS</string>
+    <string name="biometric_prompt_subtitle">Use your fingerprint or face to unlock</string>
+    <string name="biometric_prompt_negative">Use PIN</string>
+    <string name="unlock_required">Authentication required</string>
+    <string name="wrong_pin">Wrong PIN. Try again.</string>
 </resources>

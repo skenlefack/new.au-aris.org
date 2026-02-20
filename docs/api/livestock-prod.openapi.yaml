@@ -1,0 +1,1158 @@
+openapi: 3.0.3
+info:
+  title: ARIS 3.0 — Livestock Production & Pastoralism Service
+  version: 1.0.0
+  description: |
+    Manages livestock census data, production records, slaughter statistics,
+    and transhumance corridor tracking across AU-IBAR Member States.
+    Supports FAOSTAT-anchored denominators and national census reconciliation.
+
+servers:
+  - url: http://localhost:3021
+    description: Development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Census
+    description: Livestock census records — population counts by species, area, year
+  - name: Production
+    description: Livestock production records — milk, eggs, meat, hides
+  - name: Slaughter
+    description: Slaughter records — abattoir and informal slaughter data
+  - name: Transhumance
+    description: Transhumance corridors — seasonal movement routes and cross-border patterns
+
+paths:
+  # ──────────────────────────────────────────────────────────────
+  # Census Controller
+  # ──────────────────────────────────────────────────────────────
+  /api/v1/livestock/census:
+    post:
+      operationId: createCensusRecord
+      summary: Create a livestock census record
+      tags: [Census]
+      security:
+        - BearerAuth: []
+      description: |
+        Roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN, DATA_STEWARD, FIELD_AGENT.
+        Guards: AuthGuard, TenantGuard.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCensusDto'
+      responses:
+        '201':
+          description: Census record created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CensusResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized — missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — insufficient role or tenant access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      operationId: listCensusRecords
+      summary: List livestock census records
+      tags: [Census]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+      responses:
+        '200':
+          description: Paginated list of census records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CensusListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/livestock/census/{id}:
+    get:
+      operationId: getCensusRecord
+      summary: Get a single census record by ID
+      tags: [Census]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Census record details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CensusResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Census record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      operationId: updateCensusRecord
+      summary: Update a census record
+      tags: [Census]
+      security:
+        - BearerAuth: []
+      description: |
+        Roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN, DATA_STEWARD.
+        Guards: AuthGuard, TenantGuard.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCensusDto'
+      responses:
+        '200':
+          description: Census record updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CensusResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Census record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ──────────────────────────────────────────────────────────────
+  # Production Controller
+  # ──────────────────────────────────────────────────────────────
+  /api/v1/livestock/production:
+    post:
+      operationId: createProductionRecord
+      summary: Create a livestock production record
+      tags: [Production]
+      security:
+        - BearerAuth: []
+      description: |
+        Roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN, DATA_STEWARD, FIELD_AGENT.
+        Guards: AuthGuard, TenantGuard.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductionDto'
+      responses:
+        '201':
+          description: Production record created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      operationId: listProductionRecords
+      summary: List livestock production records
+      tags: [Production]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+      responses:
+        '200':
+          description: Paginated list of production records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/livestock/production/{id}:
+    get:
+      operationId: getProductionRecord
+      summary: Get a single production record by ID
+      tags: [Production]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Production record details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Production record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      operationId: updateProductionRecord
+      summary: Update a production record
+      tags: [Production]
+      security:
+        - BearerAuth: []
+      description: |
+        Roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN, DATA_STEWARD.
+        Guards: AuthGuard, TenantGuard.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductionDto'
+      responses:
+        '200':
+          description: Production record updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Production record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ──────────────────────────────────────────────────────────────
+  # Slaughter Controller
+  # ──────────────────────────────────────────────────────────────
+  /api/v1/livestock/slaughter:
+    post:
+      operationId: createSlaughterRecord
+      summary: Create a slaughter record
+      tags: [Slaughter]
+      security:
+        - BearerAuth: []
+      description: |
+        Roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN, DATA_STEWARD, FIELD_AGENT.
+        Guards: AuthGuard, TenantGuard.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSlaughterDto'
+      responses:
+        '201':
+          description: Slaughter record created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlaughterResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      operationId: listSlaughterRecords
+      summary: List slaughter records
+      tags: [Slaughter]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+      responses:
+        '200':
+          description: Paginated list of slaughter records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlaughterListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/livestock/slaughter/{id}:
+    get:
+      operationId: getSlaughterRecord
+      summary: Get a single slaughter record by ID
+      tags: [Slaughter]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Slaughter record details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlaughterResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Slaughter record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      operationId: updateSlaughterRecord
+      summary: Update a slaughter record
+      tags: [Slaughter]
+      security:
+        - BearerAuth: []
+      description: |
+        Roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN, DATA_STEWARD.
+        Guards: AuthGuard, TenantGuard.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSlaughterDto'
+      responses:
+        '200':
+          description: Slaughter record updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlaughterResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Slaughter record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ──────────────────────────────────────────────────────────────
+  # Transhumance Controller
+  # ──────────────────────────────────────────────────────────────
+  /api/v1/livestock/transhumance:
+    post:
+      operationId: createTranshumanceCorridor
+      summary: Create a transhumance corridor record
+      tags: [Transhumance]
+      security:
+        - BearerAuth: []
+      description: |
+        Roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN, DATA_STEWARD, FIELD_AGENT.
+        Guards: AuthGuard, TenantGuard.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTranshumanceDto'
+      responses:
+        '201':
+          description: Transhumance corridor created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranshumanceResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      operationId: listTranshumanceCorridors
+      summary: List transhumance corridors
+      tags: [Transhumance]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+      responses:
+        '200':
+          description: Paginated list of transhumance corridors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranshumanceListResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/livestock/transhumance/{id}:
+    get:
+      operationId: getTranshumanceCorridor
+      summary: Get a single transhumance corridor by ID
+      tags: [Transhumance]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Transhumance corridor details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranshumanceResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Transhumance corridor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      operationId: updateTranshumanceCorridor
+      summary: Update a transhumance corridor
+      tags: [Transhumance]
+      security:
+        - BearerAuth: []
+      description: |
+        Roles: SUPER_ADMIN, CONTINENTAL_ADMIN, NATIONAL_ADMIN, DATA_STEWARD.
+        Guards: AuthGuard, TenantGuard.
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTranshumanceDto'
+      responses:
+        '200':
+          description: Transhumance corridor updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranshumanceResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Transhumance corridor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: RS256 signed JWT issued by the ARIS Credential service
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Resource UUID
+
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number
+
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Items per page
+
+    SortParam:
+      name: sort
+      in: query
+      schema:
+        type: string
+        default: createdAt
+      description: Field to sort by
+
+    OrderParam:
+      name: order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+      description: Sort order
+
+  schemas:
+    # ── Shared ──────────────────────────────────────────────────
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required: [total, page, limit]
+
+    ErrorDetail:
+      type: object
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+      required: [field, message]
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+      required: [statusCode, message]
+
+    # ── Census ──────────────────────────────────────────────────
+    CreateCensusDto:
+      type: object
+      properties:
+        speciesId:
+          type: string
+          format: uuid
+        geoEntityId:
+          type: string
+          format: uuid
+        reportingYear:
+          type: integer
+        population:
+          type: integer
+        source:
+          type: string
+          enum: [NATIONAL_CENSUS, FAOSTAT, ESTIMATE]
+        methodology:
+          type: string
+        dataClassification:
+          type: string
+          enum: [PUBLIC, PARTNER, RESTRICTED, CONFIDENTIAL]
+      required: [speciesId, geoEntityId, reportingYear, population, source]
+
+    UpdateCensusDto:
+      type: object
+      properties:
+        population:
+          type: integer
+        source:
+          type: string
+          enum: [NATIONAL_CENSUS, FAOSTAT, ESTIMATE]
+        methodology:
+          type: string
+
+    Census:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        speciesId:
+          type: string
+          format: uuid
+        geoEntityId:
+          type: string
+          format: uuid
+        reportingYear:
+          type: integer
+        population:
+          type: integer
+        source:
+          type: string
+        methodology:
+          type: string
+          nullable: true
+        dataClassification:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CensusResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Census'
+
+    CensusListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Census'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # ── Production ──────────────────────────────────────────────
+    CreateProductionDto:
+      type: object
+      properties:
+        speciesId:
+          type: string
+          format: uuid
+        geoEntityId:
+          type: string
+          format: uuid
+        reportingYear:
+          type: integer
+        productType:
+          type: string
+          enum: [MILK, EGGS, MEAT, HIDES, WOOL, OTHER]
+        quantity:
+          type: number
+          format: float
+        unit:
+          type: string
+        dataClassification:
+          type: string
+          enum: [PUBLIC, PARTNER, RESTRICTED, CONFIDENTIAL]
+      required: [speciesId, geoEntityId, reportingYear, productType, quantity, unit]
+
+    UpdateProductionDto:
+      type: object
+      properties:
+        quantity:
+          type: number
+          format: float
+        unit:
+          type: string
+        productType:
+          type: string
+          enum: [MILK, EGGS, MEAT, HIDES, WOOL, OTHER]
+
+    Production:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        speciesId:
+          type: string
+          format: uuid
+        geoEntityId:
+          type: string
+          format: uuid
+        reportingYear:
+          type: integer
+        productType:
+          type: string
+        quantity:
+          type: number
+          format: float
+        unit:
+          type: string
+        dataClassification:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProductionResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Production'
+
+    ProductionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Production'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # ── Slaughter ───────────────────────────────────────────────
+    CreateSlaughterDto:
+      type: object
+      properties:
+        speciesId:
+          type: string
+          format: uuid
+        geoEntityId:
+          type: string
+          format: uuid
+        facilityId:
+          type: string
+          format: uuid
+        reportingDate:
+          type: string
+          format: date
+        headCount:
+          type: integer
+        carcassWeightKg:
+          type: number
+          format: float
+        inspectionStatus:
+          type: string
+          enum: [PASSED, CONDEMNED, PARTIAL_CONDEMNATION]
+        dataClassification:
+          type: string
+          enum: [PUBLIC, PARTNER, RESTRICTED, CONFIDENTIAL]
+      required: [speciesId, geoEntityId, reportingDate, headCount]
+
+    UpdateSlaughterDto:
+      type: object
+      properties:
+        headCount:
+          type: integer
+        carcassWeightKg:
+          type: number
+          format: float
+        inspectionStatus:
+          type: string
+          enum: [PASSED, CONDEMNED, PARTIAL_CONDEMNATION]
+
+    Slaughter:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        speciesId:
+          type: string
+          format: uuid
+        geoEntityId:
+          type: string
+          format: uuid
+        facilityId:
+          type: string
+          format: uuid
+          nullable: true
+        reportingDate:
+          type: string
+          format: date
+        headCount:
+          type: integer
+        carcassWeightKg:
+          type: number
+          format: float
+          nullable: true
+        inspectionStatus:
+          type: string
+          nullable: true
+        dataClassification:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SlaughterResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Slaughter'
+
+    SlaughterListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Slaughter'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # ── Transhumance ────────────────────────────────────────────
+    CreateTranshumanceDto:
+      type: object
+      properties:
+        corridorName:
+          type: string
+        originGeoEntityId:
+          type: string
+          format: uuid
+        destinationGeoEntityId:
+          type: string
+          format: uuid
+        speciesId:
+          type: string
+          format: uuid
+        seasonStart:
+          type: string
+          format: date
+        seasonEnd:
+          type: string
+          format: date
+        estimatedHeadCount:
+          type: integer
+        crossBorder:
+          type: boolean
+        routeGeometry:
+          type: object
+          description: GeoJSON LineString geometry
+        dataClassification:
+          type: string
+          enum: [PUBLIC, PARTNER, RESTRICTED, CONFIDENTIAL]
+      required: [corridorName, originGeoEntityId, destinationGeoEntityId, speciesId]
+
+    UpdateTranshumanceDto:
+      type: object
+      properties:
+        corridorName:
+          type: string
+        seasonStart:
+          type: string
+          format: date
+        seasonEnd:
+          type: string
+          format: date
+        estimatedHeadCount:
+          type: integer
+        routeGeometry:
+          type: object
+          description: GeoJSON LineString geometry
+
+    Transhumance:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        corridorName:
+          type: string
+        originGeoEntityId:
+          type: string
+          format: uuid
+        destinationGeoEntityId:
+          type: string
+          format: uuid
+        speciesId:
+          type: string
+          format: uuid
+        seasonStart:
+          type: string
+          format: date
+          nullable: true
+        seasonEnd:
+          type: string
+          format: date
+          nullable: true
+        estimatedHeadCount:
+          type: integer
+          nullable: true
+        crossBorder:
+          type: boolean
+        routeGeometry:
+          type: object
+          nullable: true
+          description: GeoJSON LineString geometry
+        dataClassification:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TranshumanceResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Transhumance'
+
+    TranshumanceListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transhumance'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'

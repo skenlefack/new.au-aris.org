@@ -34,9 +34,14 @@ import org.auibar.aris.mobile.ui.campaign.CampaignDetailScreen
 import org.auibar.aris.mobile.ui.campaign.CampaignListScreen
 import org.auibar.aris.mobile.ui.dashboard.DashboardScreen
 import org.auibar.aris.mobile.ui.form.FormFillScreen
+import org.auibar.aris.mobile.ui.gpstrack.GpsTrackScreen
+import org.auibar.aris.mobile.ui.livestock.LivestockCensusScreen
+import org.auibar.aris.mobile.ui.livestock.ProductionRecordScreen
 import org.auibar.aris.mobile.ui.login.LoginScreen
 import org.auibar.aris.mobile.ui.notification.NotificationListScreen
 import org.auibar.aris.mobile.ui.notification.NotificationListViewModel
+import org.auibar.aris.mobile.ui.photo.PhotoGalleryScreen
+import org.auibar.aris.mobile.ui.reports.MiniReportsScreen
 import org.auibar.aris.mobile.ui.settings.SettingsScreen
 import org.auibar.aris.mobile.ui.submission.SubmissionListScreen
 
@@ -49,9 +54,17 @@ object ArisRoutes {
     const val SUBMISSIONS = "submissions"
     const val NOTIFICATIONS = "notifications"
     const val SETTINGS = "settings"
+    const val LIVESTOCK_CENSUS = "livestock-census/{campaignId}"
+    const val PRODUCTION_RECORD = "production-record/{campaignId}"
+    const val PHOTO_GALLERY = "photo-gallery/{submissionId}"
+    const val GPS_TRACK = "gps-track"
+    const val REPORTS = "reports"
 
     fun campaignDetail(campaignId: String) = "campaign/$campaignId"
     fun formFill(campaignId: String) = "form/$campaignId"
+    fun livestockCensus(campaignId: String) = "livestock-census/$campaignId"
+    fun productionRecord(campaignId: String) = "production-record/$campaignId"
+    fun photoGallery(submissionId: String) = "photo-gallery/$submissionId"
 }
 
 data class BottomNavItem(
@@ -169,6 +182,49 @@ fun ArisNavGraph(
                             popUpTo(0) { inclusive = true }
                         }
                     },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.LIVESTOCK_CENSUS,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                LivestockCensusScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.PRODUCTION_RECORD,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                ProductionRecordScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.PHOTO_GALLERY,
+                arguments = listOf(navArgument("submissionId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val submissionId = backStackEntry.arguments?.getString("submissionId") ?: ""
+                PhotoGalleryScreen(
+                    submissionId = submissionId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(ArisRoutes.GPS_TRACK) {
+                GpsTrackScreen()
+            }
+
+            composable(ArisRoutes.REPORTS) {
+                MiniReportsScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
         }

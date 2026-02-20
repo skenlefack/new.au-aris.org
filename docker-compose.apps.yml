@@ -1,0 +1,52 @@
+# ARIS 3.0 — Frontend Applications Overlay
+# Usage: docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.apps.yml up -d
+#
+# Next.js frontend applications.
+
+services:
+
+  # ═══════════════════════════════════════════════════
+  #  FRONTEND APPLICATIONS (CC-5)
+  # ═══════════════════════════════════════════════════
+
+  web:
+    container_name: aris-web
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://traefik:80
+    ports:
+      - "3100:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+    restart: unless-stopped
+    networks:
+      - aris-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.web.priority=1"
+      - "traefik.http.services.web.loadbalancer.server.port=3000"
+
+  admin:
+    container_name: aris-admin
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://traefik:80
+    ports:
+      - "3101:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+    restart: unless-stopped
+    networks:
+      - aris-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.admin.rule=PathPrefix(`/admin`)"
+      - "traefik.http.routers.admin.priority=10"
+      - "traefik.http.services.admin.loadbalancer.server.port=3000"

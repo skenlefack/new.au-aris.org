@@ -1,0 +1,239 @@
+openapi: 3.0.3
+info:
+  title: ARIS 3.0 — Interoperability Hub Service
+  version: 1.0.0
+  description: >
+    Connectors for external system integration: WAHIS (WOAH), EMPRES (FAO),
+    FAOSTAT, FishStatJ, and CITES/WDPA/GBIF. Manages export/import jobs,
+    format transformations (JSON/XML/CSV), scheduling, and health monitoring
+    of all interoperability pipelines.
+
+servers:
+  - url: http://localhost:3032
+    description: Development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: WAHIS
+    description: WOAH WAHIS export operations
+  - name: EMPRES
+    description: FAO EMPRES feed operations
+  - name: FAOSTAT
+    description: FAOSTAT synchronization operations
+  - name: Connectors
+    description: Connector configuration and health monitoring
+
+paths:
+  # ── WAHIS ───────────────────────────────────────────────────────────
+  /api/v1/interop/wahis/export:
+    post:
+      operationId: triggerWahisExport
+      summary: Trigger a WAHIS export
+      tags: [WAHIS]
+      security:
+        - BearerAuth: []
+      description: >
+        Initiates an export of event notifications, 6-monthly reports,
+        annual reports, or SV capacities in WOAH JSON/XML format.
+        Guards: AuthGuard, TenantGuard.
+      responses:
+        '201':
+          description: WAHIS export job created
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized — missing or invalid JWT
+        '403':
+          description: Forbidden — insufficient role
+
+  /api/v1/interop/wahis/exports:
+    get:
+      operationId: listWahisExports
+      summary: List WAHIS export jobs
+      tags: [WAHIS]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of WAHIS exports
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/v1/interop/wahis/exports/{id}:
+    get:
+      operationId: getWahisExport
+      summary: Get WAHIS export details
+      tags: [WAHIS]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: WAHIS export details
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Export not found
+
+  # ── EMPRES ──────────────────────────────────────────────────────────
+  /api/v1/interop/empres/feed:
+    post:
+      operationId: feedToEmpres
+      summary: Feed data to EMPRES
+      tags: [EMPRES]
+      security:
+        - BearerAuth: []
+      description: >
+        Pushes signals with confidence scores, context, and geolocation
+        to FAO EMPRES in JSON format. Guards: AuthGuard, TenantGuard.
+      responses:
+        '201':
+          description: EMPRES feed job created
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/v1/interop/empres/feeds:
+    get:
+      operationId: listEmpresFeeds
+      summary: List EMPRES feed jobs
+      tags: [EMPRES]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of EMPRES feeds
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  # ── FAOSTAT ─────────────────────────────────────────────────────────
+  /api/v1/interop/faostat/sync:
+    post:
+      operationId: triggerFaostatSync
+      summary: Trigger a FAOSTAT synchronization
+      tags: [FAOSTAT]
+      security:
+        - BearerAuth: []
+      description: >
+        Initiates synchronization of versioned denominators between ARIS
+        and FAOSTAT (CSV/JSON). Guards: AuthGuard, TenantGuard.
+      responses:
+        '201':
+          description: FAOSTAT sync job created
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/v1/interop/faostat/syncs:
+    get:
+      operationId: listFaostatSyncs
+      summary: List FAOSTAT synchronization jobs
+      tags: [FAOSTAT]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of FAOSTAT syncs
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  # ── Connectors ──────────────────────────────────────────────────────
+  /api/v1/interop/connectors:
+    get:
+      operationId: listConnectors
+      summary: List connector configurations
+      tags: [Connectors]
+      security:
+        - BearerAuth: []
+      description: >
+        Returns all configured interoperability connectors (WAHIS, EMPRES,
+        FAOSTAT, FishStatJ, CITES) with their current settings.
+        Guards: AuthGuard, TenantGuard.
+      responses:
+        '200':
+          description: List of connector configurations
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/v1/interop/health:
+    get:
+      operationId: getConnectorHealth
+      summary: Get connector health status
+      tags: [Connectors]
+      security:
+        - BearerAuth: []
+      description: >
+        Returns the health and connectivity status of all interoperability
+        connectors, including last successful sync, error counts, and
+        latency metrics.
+      responses:
+        '200':
+          description: Health status of all connectors
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

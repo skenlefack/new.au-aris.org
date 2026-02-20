@@ -1,0 +1,9 @@
+// Wildlife domain Kafka topics
+export const TOPIC_MS_WILDLIFE_INVENTORY_CREATED = 'ms.wildlife.inventory.created.v1';
+export const TOPIC_MS_WILDLIFE_INVENTORY_UPDATED = 'ms.wildlife.inventory.updated.v1';
+export const TOPIC_MS_WILDLIFE_PROTECTED_AREA_CREATED = 'ms.wildlife.protected-area.created.v1';
+export const TOPIC_MS_WILDLIFE_PROTECTED_AREA_UPDATED = 'ms.wildlife.protected-area.updated.v1';
+export const TOPIC_MS_WILDLIFE_CITES_ISSUED = 'ms.wildlife.cites.issued.v1';
+export const TOPIC_MS_WILDLIFE_CITES_UPDATED = 'ms.wildlife.cites.updated.v1';
+export const TOPIC_MS_WILDLIFE_CRIME_REPORTED = 'ms.wildlife.crime.reported.v1';
+export const TOPIC_MS_WILDLIFE_CRIME_UPDATED = 'ms.wildlife.crime.updated.v1';

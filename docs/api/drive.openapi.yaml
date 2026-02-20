@@ -1,0 +1,462 @@
+openapi: 3.0.3
+info:
+  title: ARIS 3.0 — Drive Service
+  version: 1.0.0
+  description: >
+    Document and file storage service for the ARIS platform.
+    Provides upload, download, presigned URL generation, and metadata
+    management backed by MinIO (S3-compatible object storage). All files
+    are associated with a tenantId and carry a dataClassification label.
+
+servers:
+  - url: http://localhost:3007
+    description: Development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Drive
+    description: File upload, download, listing, and management
+
+paths:
+  /api/v1/drive/upload:
+    post:
+      operationId: uploadFile
+      summary: Upload a file
+      description: >
+        Uploads a file to MinIO via multipart form-data. The file is stored
+        under the caller's tenantId namespace. Metadata (filename, MIME type,
+        size, data classification) is persisted in the database.
+        Guard: AuthGuard.
+      tags:
+        - Drive
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadFileDto'
+      responses:
+        '201':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileResponse'
+        '400':
+          description: Validation error (missing file, unsupported type, size exceeded)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/drive/presign:
+    post:
+      operationId: generatePresignedUrl
+      summary: Generate a presigned URL for direct upload or download
+      description: >
+        Returns a time-limited presigned S3 URL for direct browser upload
+        or download. Useful for large files where streaming through the
+        API gateway is not desirable.
+        Guard: AuthGuard.
+      tags:
+        - Drive
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresignRequestDto'
+      responses:
+        '200':
+          description: Presigned URL generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresignResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/drive/files:
+    get:
+      operationId: listFiles
+      summary: List files
+      description: >
+        Returns a paginated list of file metadata records scoped by the
+        caller's tenantId. Supports filtering by MIME type and data
+        classification.
+        Guard: AuthGuard.
+      tags:
+        - Drive
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: mimeType
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by MIME type prefix (e.g. image/, application/pdf)
+        - name: dataClassification
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/DataClassification'
+          description: Filter by data classification
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            default: createdAt
+          description: Field to sort by
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort order
+      responses:
+        '200':
+          description: Paginated list of file metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileListResponse'
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/drive/files/{id}:
+    get:
+      operationId: getFileMetadata
+      summary: Get file metadata
+      description: >
+        Returns metadata for a single file identified by its UUID.
+        Does not return the file content — use the download endpoint instead.
+        Guard: AuthGuard.
+      tags:
+        - Drive
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FileIdParam'
+      responses:
+        '200':
+          description: File metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileResponse'
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      operationId: deleteFile
+      summary: Delete a file
+      description: >
+        Soft-deletes a file record and removes the object from MinIO.
+        An audit trail entry is created. Guard: AuthGuard.
+      tags:
+        - Drive
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FileIdParam'
+      responses:
+        '200':
+          description: File deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        example: File deleted successfully
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — not the file owner or insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/drive/files/{id}/download:
+    get:
+      operationId: downloadFile
+      summary: Download a file
+      description: >
+        Streams the file content from MinIO. The response Content-Type
+        matches the stored MIME type and Content-Disposition is set to
+        attachment with the original filename. Guard: AuthGuard.
+      tags:
+        - Drive
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FileIdParam'
+      responses:
+        '200':
+          description: File binary stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: RS256-signed JWT issued by the Credential service
+
+  parameters:
+    FileIdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: File UUID
+
+    PageParam:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number (1-based)
+
+    LimitParam:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Items per page
+
+  schemas:
+    DataClassification:
+      type: string
+      enum:
+        - PUBLIC
+        - PARTNER
+        - RESTRICTED
+        - CONFIDENTIAL
+
+    UploadFileDto:
+      type: object
+      required:
+        - file
+      properties:
+        file:
+          type: string
+          format: binary
+          description: The file to upload
+        dataClassification:
+          $ref: '#/components/schemas/DataClassification'
+        description:
+          type: string
+          description: Optional human-readable description
+
+    PresignRequestDto:
+      type: object
+      required:
+        - filename
+        - method
+      properties:
+        filename:
+          type: string
+          example: outbreak-report-2026-Q1.pdf
+        method:
+          type: string
+          enum: [PUT, GET]
+          description: PUT for upload, GET for download
+        expiresInSeconds:
+          type: integer
+          minimum: 60
+          maximum: 86400
+          default: 3600
+          description: URL validity period in seconds
+        contentType:
+          type: string
+          example: application/pdf
+          description: Expected Content-Type (required for PUT)
+
+    FileMeta:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        filename:
+          type: string
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        dataClassification:
+          $ref: '#/components/schemas/DataClassification'
+        description:
+          type: string
+          nullable: true
+        tenantId:
+          type: string
+          format: uuid
+        uploadedBy:
+          type: string
+          format: uuid
+        bucket:
+          type: string
+        objectKey:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    FileResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/FileMeta'
+
+    FileListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FileMeta'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    PresignResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            url:
+              type: string
+              format: uri
+              description: Time-limited presigned S3 URL
+            expiresAt:
+              type: string
+              format: date-time
+              description: Expiration timestamp of the presigned URL
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string

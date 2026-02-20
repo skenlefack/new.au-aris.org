@@ -1,0 +1,376 @@
+openapi: 3.0.3
+info:
+  title: ARIS 3.0 — Tenant Service
+  version: 1.0.0
+  description: >
+    Multi-tenant hierarchy management for the ARIS platform.
+    Manages the AU-IBAR → REC → Member State organisational tree.
+    Every entity in ARIS belongs to exactly one tenant; parent tenants
+    may read children's data following the federated subsidiarity principle.
+
+servers:
+  - url: http://localhost:3001
+    description: Development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Tenants
+    description: Tenant CRUD and hierarchy operations
+
+paths:
+  /api/v1/tenants:
+    post:
+      operationId: createTenant
+      summary: Create a new tenant
+      description: >
+        Creates a new tenant node in the hierarchy (CONTINENTAL, REC, or MEMBER_STATE).
+        Only SUPER_ADMIN may create tenants.
+      tags:
+        - Tenants
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTenantDto'
+      responses:
+        '201':
+          description: Tenant created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient role — requires SUPER_ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      operationId: listTenants
+      summary: List tenants
+      description: >
+        Returns a paginated list of tenants visible to the caller.
+        Filtered automatically by the caller's tenantId and hierarchy level.
+      tags:
+        - Tenants
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: level
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/TenantLevel'
+          description: Filter by tenant level
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            default: createdAt
+          description: Field to sort by
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort order
+      responses:
+        '200':
+          description: Paginated list of tenants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantListResponse'
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{id}:
+    get:
+      operationId: getTenantById
+      summary: Get tenant by ID
+      description: >
+        Returns a single tenant by its UUID.
+        The caller must belong to the same tenant or a parent tenant.
+      tags:
+        - Tenants
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantIdParam'
+      responses:
+        '200':
+          description: Tenant details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantResponse'
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Tenant not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      operationId: updateTenant
+      summary: Update tenant
+      description: >
+        Partially updates tenant metadata (name, config, status).
+        Requires SUPER_ADMIN or CONTINENTAL_ADMIN role.
+      tags:
+        - Tenants
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTenantDto'
+      responses:
+        '200':
+          description: Tenant updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient role — requires SUPER_ADMIN or CONTINENTAL_ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Tenant not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{id}/children:
+    get:
+      operationId: listChildTenants
+      summary: List child tenants
+      description: >
+        Returns the direct children of the specified tenant.
+        For example, listing children of a REC returns its Member States.
+      tags:
+        - Tenants
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantIdParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Paginated list of child tenants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantListResponse'
+        '401':
+          description: Missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Parent tenant not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: RS256-signed JWT issued by the Credential service
+
+  parameters:
+    TenantIdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Tenant UUID
+
+    PageParam:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number (1-based)
+
+    LimitParam:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Items per page
+
+  schemas:
+    TenantLevel:
+      type: string
+      enum:
+        - CONTINENTAL
+        - REC
+        - MEMBER_STATE
+
+    CreateTenantDto:
+      type: object
+      required:
+        - name
+        - level
+        - isoCode
+      properties:
+        name:
+          type: string
+          example: Kenya
+        level:
+          $ref: '#/components/schemas/TenantLevel'
+        isoCode:
+          type: string
+          example: KE
+          description: ISO 3166-1 alpha-2 code (for MS) or organisation short code (for REC)
+        parentId:
+          type: string
+          format: uuid
+          description: UUID of the parent tenant (required for REC and MEMBER_STATE)
+
+    UpdateTenantDto:
+      type: object
+      properties:
+        name:
+          type: string
+        isoCode:
+          type: string
+        isActive:
+          type: boolean
+
+    Tenant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        level:
+          $ref: '#/components/schemas/TenantLevel'
+        isoCode:
+          type: string
+        parentId:
+          type: string
+          format: uuid
+          nullable: true
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    TenantResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Tenant'
+
+    TenantListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tenant'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string

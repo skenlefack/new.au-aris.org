@@ -8,7 +8,9 @@ import org.auibar.aris.mobile.data.local.dao.CampaignDao
 import org.auibar.aris.mobile.data.local.dao.DiseaseDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
+import org.auibar.aris.mobile.data.local.dao.GpsTrackDao
 import org.auibar.aris.mobile.data.local.dao.NotificationDao
+import org.auibar.aris.mobile.data.local.dao.PhotoDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
 import org.auibar.aris.mobile.data.local.dao.SubmissionDao
 import org.auibar.aris.mobile.data.remote.api.AnalyticsApi
@@ -20,7 +22,9 @@ import org.auibar.aris.mobile.data.repository.AuthRepository
 import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.DashboardRepository
 import org.auibar.aris.mobile.data.repository.FormTemplateRepository
+import org.auibar.aris.mobile.data.repository.GpsTrackRepository
 import org.auibar.aris.mobile.data.repository.NotificationRepository
+import org.auibar.aris.mobile.data.repository.PhotoRepository
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
 import org.auibar.aris.mobile.data.repository.SyncRepository
 import org.auibar.aris.mobile.util.TokenManager
@@ -87,4 +91,16 @@ object AppModule {
         campaignRepository: CampaignRepository,
         submissionRepository: SubmissionRepository,
     ): DashboardRepository = DashboardRepository(analyticsApi, campaignRepository, submissionRepository)
+
+    @Provides
+    @Singleton
+    fun providePhotoRepository(
+        photoDao: PhotoDao,
+    ): PhotoRepository = PhotoRepository(photoDao)
+
+    @Provides
+    @Singleton
+    fun provideGpsTrackRepository(
+        gpsTrackDao: GpsTrackDao,
+    ): GpsTrackRepository = GpsTrackRepository(gpsTrackDao)
 }

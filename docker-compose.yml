@@ -247,6 +247,39 @@ services:
       - aris-network
 
   # ═══════════════════════════════════════════════════
+  # TRAEFIK — API Gateway & Reverse Proxy
+  # ═══════════════════════════════════════════════════
+  traefik:
+    image: traefik:v3.0
+    container_name: aris-traefik
+    restart: unless-stopped
+    ports:
+      - "4000:80"      # API Gateway entrypoint
+      - "4443:443"     # HTTPS (future TLS termination)
+      - "8090:8080"    # Traefik dashboard
+    command:
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=aris-network"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+      - "--accesslog.format=json"
+      - "--ping=true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aris-network
+
+  # ═══════════════════════════════════════════════════
   # KAFKA TOPIC INIT — Create all topics on startup
   # ═══════════════════════════════════════════════════
   kafka-init:

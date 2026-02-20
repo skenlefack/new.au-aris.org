@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Apiary {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  name            String
+  geoEntityId     String   @map("geo_entity_id")
+  latitude        Float?
+  longitude       Float?
+  hiveCount       Int      @map("hive_count") @default(0)
+  hiveType        String   @map("hive_type")
+  ownerName       String   @map("owner_name")
+  dataClassification String @default("PARTNER") @map("data_classification")
+  createdBy       String   @map("created_by")
+  updatedBy       String   @map("updated_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  productions     HoneyProduction[]
+  healthInspections ColonyHealth[]
+
+  @@index([tenantId])
+  @@index([geoEntityId])
+  @@map("apiaries")
+}
+
+model HoneyProduction {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  apiaryId        String   @map("apiary_id")
+  harvestDate     DateTime @map("harvest_date")
+  quantity        Float
+  unit            String
+  quality         String
+  floralSource    String   @map("floral_source")
+  dataClassification String @default("PARTNER") @map("data_classification")
+  createdBy       String   @map("created_by")
+  updatedBy       String   @map("updated_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  apiary          Apiary   @relation(fields: [apiaryId], references: [id])
+
+  @@index([tenantId])
+  @@index([apiaryId])
+  @@index([harvestDate])
+  @@map("honey_production")
+}
+
+model ColonyHealth {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  apiaryId        String   @map("apiary_id")
+  inspectionDate  DateTime @map("inspection_date")
+  colonyStrength  String   @map("colony_strength")
+  diseases        String[]
+  treatments      String[]
+  dataClassification String @default("PARTNER") @map("data_classification")
+  createdBy       String   @map("created_by")
+  updatedBy       String   @map("updated_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  apiary          Apiary   @relation(fields: [apiaryId], references: [id])
+
+  @@index([tenantId])
+  @@index([apiaryId])
+  @@index([inspectionDate])
+  @@map("colony_health")
+}
+
+model BeekeeperTraining {
+  id                  String   @id @default(uuid())
+  tenantId            String   @map("tenant_id")
+  beekeeperId         String   @map("beekeeper_id")
+  trainingType        String   @map("training_type")
+  completedDate       DateTime @map("completed_date")
+  certificationNumber String?  @map("certification_number")
+  dataClassification  String   @default("PUBLIC") @map("data_classification")
+  createdBy           String   @map("created_by")
+  updatedBy           String   @map("updated_by")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@index([beekeeperId])
+  @@map("beekeeper_training")
+}
