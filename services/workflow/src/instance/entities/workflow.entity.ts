@@ -1,4 +1,5 @@
 import type { WorkflowLevel, WorkflowStatus, UserRole } from '@aris/shared-types';
+import type { WfLevel } from '@prisma/client';
 
 export type TransitionAction = 'SUBMIT' | 'APPROVE' | 'REJECT' | 'RETURN' | 'ESCALATE';
 
@@ -60,7 +61,7 @@ export const LEVEL_ROLES: Record<string, readonly UserRole[]> = {
 /**
  * Ordered levels for determining next level after approval.
  */
-export const LEVEL_ORDER: readonly string[] = [
+export const LEVEL_ORDER: readonly WfLevel[] = [
   'NATIONAL_TECHNICAL',
   'NATIONAL_OFFICIAL',
   'REC_HARMONIZATION',

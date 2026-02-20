@@ -26,27 +26,26 @@ export class ComplianceConsumer implements OnModuleInit {
   private async subscribeToSubmissions(): Promise<void> {
     try {
       await this.kafkaConsumer.subscribe(
-        TOPIC_MS_COLLECTE_FORM_SUBMITTED,
-        'data-contract-compliance',
-        async (message) => {
-          const payload = JSON.parse(message.value?.toString() ?? '{}');
-          const headers = message.headers ?? {};
+        { topic: TOPIC_MS_COLLECTE_FORM_SUBMITTED, groupId: 'data-contract-compliance' },
+        async (payload, headers) => {
+          const data = payload as Record<string, unknown> | null;
+          if (!data) return;
 
-          const contractId = payload.dataContractId ?? payload.data_contract_id;
+          const contractId = data.dataContractId ?? data.data_contract_id;
           if (!contractId) {
             return; // No contract linked to this submission
           }
 
           const tenantId =
-            headers['tenantId']?.toString() ?? payload.tenantId ?? payload.tenant_id;
+            headers['tenantId'] ?? (data.tenantId as string | undefined) ?? (data.tenant_id as string | undefined);
 
           await this.complianceService.recordSubmission({
-            contractId,
-            tenantId,
-            recordId: payload.id,
+            contractId: contractId as string,
+            tenantId: tenantId as string,
+            recordId: data.id as string,
             eventType: 'form_submitted',
-            eventTimestamp: new Date(payload.eventTimestamp ?? payload.event_timestamp ?? payload.createdAt ?? payload.created_at),
-            submissionTime: new Date(payload.submittedAt ?? payload.submitted_at ?? Date.now()),
+            eventTimestamp: new Date((data.eventTimestamp ?? data.event_timestamp ?? data.createdAt ?? data.created_at) as string),
+            submissionTime: new Date((data.submittedAt ?? data.submitted_at ?? Date.now()) as string | number),
           });
         },
       );
@@ -61,26 +60,25 @@ export class ComplianceConsumer implements OnModuleInit {
   private async subscribeToQualityValidated(): Promise<void> {
     try {
       await this.kafkaConsumer.subscribe(
-        TOPIC_AU_QUALITY_RECORD_VALIDATED,
-        'data-contract-quality-validated',
-        async (message) => {
-          const payload = JSON.parse(message.value?.toString() ?? '{}');
-          const headers = message.headers ?? {};
+        { topic: TOPIC_AU_QUALITY_RECORD_VALIDATED, groupId: 'data-contract-quality-validated' },
+        async (payload, headers) => {
+          const data = payload as Record<string, unknown> | null;
+          if (!data) return;
 
-          const contractId = payload.dataContractId ?? payload.data_contract_id;
+          const contractId = data.dataContractId ?? data.data_contract_id;
           if (!contractId) {
             return;
           }
 
           const tenantId =
-            headers['tenantId']?.toString() ?? payload.tenantId ?? payload.tenant_id;
+            headers['tenantId'] ?? (data.tenantId as string | undefined) ?? (data.tenant_id as string | undefined);
 
           await this.complianceService.recordQualityResult({
-            contractId,
-            tenantId,
-            recordId: payload.recordId ?? payload.record_id,
+            contractId: contractId as string,
+            tenantId: tenantId as string,
+            recordId: (data.recordId ?? data.record_id) as string,
             passed: true,
-            qualityReportId: payload.reportId ?? payload.report_id ?? payload.id,
+            qualityReportId: (data.reportId ?? data.report_id ?? data.id) as string,
           });
         },
       );
@@ -95,26 +93,25 @@ export class ComplianceConsumer implements OnModuleInit {
   private async subscribeToQualityRejected(): Promise<void> {
     try {
       await this.kafkaConsumer.subscribe(
-        TOPIC_AU_QUALITY_RECORD_REJECTED,
-        'data-contract-quality-rejected',
-        async (message) => {
-          const payload = JSON.parse(message.value?.toString() ?? '{}');
-          const headers = message.headers ?? {};
+        { topic: TOPIC_AU_QUALITY_RECORD_REJECTED, groupId: 'data-contract-quality-rejected' },
+        async (payload, headers) => {
+          const data = payload as Record<string, unknown> | null;
+          if (!data) return;
 
-          const contractId = payload.dataContractId ?? payload.data_contract_id;
+          const contractId = data.dataContractId ?? data.data_contract_id;
           if (!contractId) {
             return;
           }
 
           const tenantId =
-            headers['tenantId']?.toString() ?? payload.tenantId ?? payload.tenant_id;
+            headers['tenantId'] ?? (data.tenantId as string | undefined) ?? (data.tenant_id as string | undefined);
 
           await this.complianceService.recordQualityResult({
-            contractId,
-            tenantId,
-            recordId: payload.recordId ?? payload.record_id,
+            contractId: contractId as string,
+            tenantId: tenantId as string,
+            recordId: (data.recordId ?? data.record_id) as string,
             passed: false,
-            qualityReportId: payload.reportId ?? payload.report_id ?? payload.id,
+            qualityReportId: (data.reportId ?? data.report_id ?? data.id) as string,
           });
         },
       );

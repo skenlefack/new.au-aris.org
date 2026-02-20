@@ -49,7 +49,7 @@ export class ComplianceService {
       contractId,
       contract.name,
       contract.timeliness_sla,
-      contract.quality_sla as QualitySla,
+      contract.quality_sla as unknown as QualitySla,
       records,
       periodFrom,
       periodTo,

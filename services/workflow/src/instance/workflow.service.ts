@@ -186,7 +186,7 @@ export class WorkflowService {
         data: {
           instance_id: id,
           from_level: instance.current_level,
-          to_level: nextLevel as string,
+          to_level: nextLevel,
           from_status: instance.status,
           to_status: nextStatus,
           action: 'APPROVE',
