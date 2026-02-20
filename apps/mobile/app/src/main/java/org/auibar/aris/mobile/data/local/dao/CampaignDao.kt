@@ -18,6 +18,9 @@ interface CampaignDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(campaigns: List<CampaignEntity>)
 
+    @Query("SELECT * FROM campaigns WHERE id = :id")
+    fun observeById(id: String): Flow<CampaignEntity?>
+
     @Query("DELETE FROM campaigns")
     suspend fun deleteAll()
 }

@@ -234,7 +234,7 @@ export class DenominatorService {
       await this.kafkaProducer.send(
         TOPIC_SYS_MASTER_DENOMINATOR_UPDATED,
         entity.id as string,
-        this.serializeDenominator(entity as { population: bigint; [key: string]: unknown }),
+        this.serializeDenominator(entity as unknown as { population: bigint; [key: string]: unknown }),
         headers,
       );
     } catch (error) {

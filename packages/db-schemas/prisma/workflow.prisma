@@ -1,0 +1,81 @@
+// ARIS 3.0 — Workflow Schema
+// 4-level validation engine (Annex B §B4.1)
+
+enum WfLevel {
+  NATIONAL_TECHNICAL
+  NATIONAL_OFFICIAL
+  REC_HARMONIZATION
+  CONTINENTAL_PUBLICATION
+
+  @@schema("workflow")
+}
+
+enum WfStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  RETURNED
+  ESCALATED
+
+  @@schema("workflow")
+}
+
+enum WfAction {
+  SUBMIT
+  APPROVE
+  REJECT
+  RETURN
+  ESCALATE
+
+  @@schema("workflow")
+}
+
+model WorkflowInstance {
+  id                 String               @id @default(uuid()) @db.Uuid
+  tenant_id          String               @db.Uuid
+  entity_type        String               @db.VarChar(100)
+  entity_id          String               @db.Uuid
+  domain             String               @db.VarChar(50)
+  current_level      WfLevel              @default(NATIONAL_TECHNICAL)
+  status             WfStatus             @default(PENDING)
+  data_contract_id   String?              @db.Uuid
+  quality_report_id  String?              @db.VarChar(255)
+  wahis_ready        Boolean              @default(false)
+  analytics_ready    Boolean              @default(false)
+  sla_deadline       DateTime?
+  created_by         String               @db.Uuid
+  created_at         DateTime             @default(now())
+  updated_at         DateTime             @updatedAt
+
+  transitions        WorkflowTransition[]
+
+  @@index([tenant_id])
+  @@index([entity_type, entity_id])
+  @@index([current_level, status])
+  @@index([domain])
+  @@index([sla_deadline])
+  @@map("workflow_instances")
+  @@schema("workflow")
+}
+
+model WorkflowTransition {
+  id              String            @id @default(uuid()) @db.Uuid
+  instance_id     String            @db.Uuid
+  from_level      WfLevel
+  to_level        WfLevel
+  from_status     WfStatus
+  to_status       WfStatus
+  action          WfAction
+  actor_user_id   String            @db.Uuid
+  actor_role      String            @db.VarChar(50)
+  comment         String?
+  created_at      DateTime          @default(now())
+
+  instance        WorkflowInstance  @relation(fields: [instance_id], references: [id])
+
+  @@index([instance_id])
+  @@index([created_at])
+  @@map("workflow_transitions")
+  @@schema("workflow")
+}

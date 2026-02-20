@@ -7,6 +7,7 @@ enum TenantLevel {
   MEMBER_STATE
 
   @@map("tenant_level")
+  @@schema("public")
 }
 
 model Tenant {
@@ -32,4 +33,5 @@ model Tenant {
   @@index([countryCode], map: "idx_tenant_country_code")
   @@index([isActive], map: "idx_tenant_is_active")
   @@map("tenants")
+  @@schema("public")
 }

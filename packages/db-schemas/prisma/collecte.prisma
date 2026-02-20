@@ -1,0 +1,121 @@
+// ARIS 3.0 — Collecte Models
+// Campaign orchestration, form submissions, offline sync
+
+// ── Enums ──
+
+enum CampaignStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+
+  @@map("campaign_status")
+  @@schema("public")
+}
+
+enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+  VALIDATING
+  VALIDATED
+  REJECTED
+
+  @@map("submission_status")
+  @@schema("public")
+}
+
+enum ConflictStrategy {
+  LAST_WRITE_WINS
+  MANUAL_MERGE
+
+  @@map("conflict_strategy")
+  @@schema("public")
+}
+
+// ── Campaign ──
+
+model Campaign {
+  id                String         @id @default(uuid()) @db.Uuid
+  tenantId          String         @map("tenant_id") @db.Uuid
+  name              String         @db.VarChar(255)
+  domain            String         @db.VarChar(100)
+  templateId        String         @map("template_id") @db.Uuid
+  startDate         DateTime       @map("start_date") @db.Date
+  endDate           DateTime       @map("end_date") @db.Date
+  targetZones       String[]       @map("target_zones") @db.Uuid
+  assignedAgents    String[]       @map("assigned_agents") @db.Uuid
+  targetSubmissions Int?           @map("target_submissions")
+  status            CampaignStatus @default(PLANNED)
+  description       String?        @db.Text
+  conflictStrategy  ConflictStrategy @default(LAST_WRITE_WINS) @map("conflict_strategy")
+  dataContractId    String?        @map("data_contract_id") @db.Uuid
+  createdBy         String         @map("created_by") @db.Uuid
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+
+  submissions Submission[]
+
+  @@index([tenantId], map: "idx_campaign_tenant_id")
+  @@index([domain], map: "idx_campaign_domain")
+  @@index([status], map: "idx_campaign_status")
+  @@index([templateId], map: "idx_campaign_template_id")
+  @@map("campaigns")
+  @@schema("public")
+}
+
+// ── Submission ──
+
+model Submission {
+  id                  String           @id @default(uuid()) @db.Uuid
+  tenantId            String           @map("tenant_id") @db.Uuid
+  campaignId          String           @map("campaign_id") @db.Uuid
+  templateId          String           @map("template_id") @db.Uuid
+  data                Json
+  submittedBy         String           @map("submitted_by") @db.Uuid
+  submittedAt         DateTime         @map("submitted_at") @db.Timestamptz
+  deviceId            String?          @map("device_id") @db.VarChar(255)
+  gpsLat              Float?           @map("gps_lat")
+  gpsLng              Float?           @map("gps_lng")
+  gpsAccuracy         Float?           @map("gps_accuracy")
+  offlineCreatedAt    DateTime?        @map("offline_created_at") @db.Timestamptz
+  syncedAt            DateTime?        @map("synced_at") @db.Timestamptz
+  qualityReportId     String?          @map("quality_report_id") @db.Uuid
+  workflowInstanceId  String?          @map("workflow_instance_id") @db.Uuid
+  status              SubmissionStatus @default(SUBMITTED)
+  dataClassification  String           @default("RESTRICTED") @map("data_classification") @db.VarChar(20)
+  version             Int              @default(1)
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], map: "idx_submission_tenant_id")
+  @@index([campaignId], map: "idx_submission_campaign_id")
+  @@index([submittedBy], map: "idx_submission_submitted_by")
+  @@index([status], map: "idx_submission_status")
+  @@index([offlineCreatedAt], map: "idx_submission_offline_created_at")
+  @@map("submissions")
+  @@schema("public")
+}
+
+// ── Sync Log (tracks offline sync events) ──
+
+model SyncLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  deviceId        String?  @map("device_id") @db.VarChar(255)
+  syncedAt        DateTime @map("synced_at") @db.Timestamptz
+  submissionCount Int      @map("submission_count")
+  acceptedCount   Int      @map("accepted_count")
+  rejectedCount   Int      @map("rejected_count")
+  conflictCount   Int      @map("conflict_count")
+  durationMs      Int      @map("duration_ms")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([tenantId], map: "idx_sync_log_tenant_id")
+  @@index([userId], map: "idx_sync_log_user_id")
+  @@index([syncedAt], map: "idx_sync_log_synced_at")
+  @@map("sync_logs")
+  @@schema("public")
+}

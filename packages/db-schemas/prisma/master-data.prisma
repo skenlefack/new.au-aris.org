@@ -12,6 +12,7 @@ enum GeoLevel {
   SPECIAL_ZONE
 
   @@map("geo_level")
+  @@schema("public")
 }
 
 enum SpeciesCategory {
@@ -21,6 +22,7 @@ enum SpeciesCategory {
   APICULTURE
 
   @@map("species_category")
+  @@schema("public")
 }
 
 enum DenominatorSource {
@@ -29,6 +31,7 @@ enum DenominatorSource {
   ESTIMATE
 
   @@map("denominator_source")
+  @@schema("public")
 }
 
 enum IdentifierType {
@@ -40,6 +43,7 @@ enum IdentifierType {
   QUARANTINE_STATION
 
   @@map("identifier_type")
+  @@schema("public")
 }
 
 enum UnitCategory {
@@ -54,6 +58,7 @@ enum UnitCategory {
   TIME
 
   @@map("unit_category")
+  @@schema("public")
 }
 
 enum AuditAction {
@@ -65,6 +70,7 @@ enum AuditAction {
   EXPORT
 
   @@map("audit_action")
+  @@schema("public")
 }
 
 // ── Geography — ISO 3166 + admin levels + PostGIS ──
@@ -99,6 +105,7 @@ model GeoEntity {
   @@index([countryCode], map: "idx_geo_country_code")
   @@index([isActive], map: "idx_geo_is_active")
   @@map("geo_entities")
+  @@schema("public")
 }
 
 // ── Species — WOAH + FAO aligned ──
@@ -123,6 +130,7 @@ model Species {
   @@index([isWoahListed], map: "idx_species_woah_listed")
   @@index([isActive], map: "idx_species_is_active")
   @@map("species")
+  @@schema("public")
 }
 
 // ── Disease — WOAH list + emerging ──
@@ -145,6 +153,7 @@ model Disease {
   @@index([isNotifiable], map: "idx_disease_notifiable")
   @@index([isActive], map: "idx_disease_is_active")
   @@map("diseases")
+  @@schema("public")
 }
 
 // ── Unit — SI + sectoral ──
@@ -165,6 +174,7 @@ model Unit {
   @@index([category], map: "idx_unit_category")
   @@index([isActive], map: "idx_unit_is_active")
   @@map("units")
+  @@schema("public")
 }
 
 // ── Temporality — Epidemiological calendars ──
@@ -192,6 +202,7 @@ model Temporality {
   @@index([countryCode], map: "idx_temporality_country_code")
   @@index([isActive], map: "idx_temporality_is_active")
   @@map("temporalities")
+  @@schema("public")
 }
 
 // ── Identifier — Labs, markets, border points, protected areas ──
@@ -218,6 +229,7 @@ model Identifier {
   @@index([geoEntityId], map: "idx_identifier_geo_entity_id")
   @@index([isActive], map: "idx_identifier_is_active")
   @@map("identifiers")
+  @@schema("public")
 }
 
 // ── Denominator — FAOSTAT vs national census (versioned!) ──
@@ -248,6 +260,7 @@ model Denominator {
   @@index([source], map: "idx_denominator_source")
   @@index([isActive], map: "idx_denominator_is_active")
   @@map("denominators")
+  @@schema("public")
 }
 
 // ── Audit Trail — Every mutation tracked ──
@@ -270,4 +283,5 @@ model MasterDataAudit {
   @@index([actorUserId], map: "idx_audit_actor")
   @@index([createdAt], map: "idx_audit_created_at")
   @@map("master_data_audits")
+  @@schema("public")
 }

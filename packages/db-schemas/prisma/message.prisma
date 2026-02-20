@@ -1,0 +1,47 @@
+// ARIS 3.0 — Notification Model
+// Multi-channel notification system (Email, SMS, Push, In-App)
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  IN_APP
+
+  @@map("notification_channel")
+  @@schema("public")
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+
+  @@map("notification_status")
+  @@schema("public")
+}
+
+model Notification {
+  id         String              @id @default(uuid()) @db.Uuid
+  tenantId   String              @map("tenant_id") @db.Uuid
+  userId     String              @map("user_id") @db.Uuid
+  channel    NotificationChannel
+  subject    String              @db.VarChar(500)
+  body       String              @db.Text
+  status     NotificationStatus  @default(PENDING)
+  metadata   Json?               @default("{}")
+  readAt     DateTime?           @map("read_at") @db.Timestamptz
+  sentAt     DateTime?           @map("sent_at") @db.Timestamptz
+  failedAt   DateTime?           @map("failed_at") @db.Timestamptz
+  failReason String?             @map("fail_reason") @db.Text
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId], map: "idx_notification_tenant_id")
+  @@index([userId], map: "idx_notification_user_id")
+  @@index([userId, readAt], map: "idx_notification_user_read")
+  @@index([status], map: "idx_notification_status")
+  @@index([createdAt], map: "idx_notification_created_at")
+  @@map("notifications")
+  @@schema("public")
+}

@@ -1,0 +1,164 @@
+// ARIS 3.0 — Data Quality Models
+// Quality reports, violations, custom rules, correction tracking
+
+// ── Enums ──
+
+enum QualityOverallStatus {
+  PASSED
+  FAILED
+  WARNING
+
+  @@map("quality_overall_status")
+  @@schema("public")
+}
+
+enum QualityGateName {
+  COMPLETENESS
+  TEMPORAL_CONSISTENCY
+  GEOGRAPHIC_CONSISTENCY
+  CODES_VOCABULARIES
+  UNITS
+  DEDUPLICATION
+  AUDITABILITY
+  CONFIDENCE_SCORE
+
+  @@map("quality_gate_name")
+  @@schema("public")
+}
+
+enum QualityGateStatus {
+  PASS
+  FAIL
+  WARNING
+  SKIPPED
+
+  @@map("quality_gate_status")
+  @@schema("public")
+}
+
+enum CorrectionStatus {
+  PENDING
+  CORRECTED
+  ESCALATED
+  EXPIRED
+
+  @@map("correction_status")
+  @@schema("public")
+}
+
+enum ViolationSeverity {
+  FAIL
+  WARNING
+
+  @@map("violation_severity")
+  @@schema("public")
+}
+
+// ── Quality Report ──
+
+model QualityReport {
+  id              String               @id @default(uuid()) @db.Uuid
+  recordId        String               @map("record_id") @db.VarChar(255)
+  entityType      String               @map("entity_type") @db.VarChar(100)
+  domain          String               @db.VarChar(100)
+  tenantId        String               @map("tenant_id") @db.Uuid
+  overallStatus   QualityOverallStatus @map("overall_status")
+  totalDurationMs Int                  @map("total_duration_ms")
+  checkedAt       DateTime             @map("checked_at") @db.Timestamptz
+  submittedBy     String?              @map("submitted_by") @db.Uuid
+  dataContractId  String?              @map("data_contract_id") @db.Uuid
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz
+
+  gateResults QualityGateResult[]
+  violations  QualityViolation[]
+  correction  CorrectionTracker?
+
+  @@index([recordId], map: "idx_qr_record_id")
+  @@index([domain], map: "idx_qr_domain")
+  @@index([tenantId], map: "idx_qr_tenant_id")
+  @@index([overallStatus], map: "idx_qr_overall_status")
+  @@index([checkedAt], map: "idx_qr_checked_at")
+  @@map("quality_reports")
+  @@schema("public")
+}
+
+// ── Gate Results (one per gate per report) ──
+
+model QualityGateResult {
+  id         String           @id @default(uuid()) @db.Uuid
+  reportId   String           @map("report_id") @db.Uuid
+  gate       QualityGateName
+  status     QualityGateStatus
+  durationMs Int              @map("duration_ms")
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  report QualityReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId], map: "idx_qgr_report_id")
+  @@map("quality_gate_results")
+  @@schema("public")
+}
+
+// ── Violations ──
+
+model QualityViolation {
+  id       String            @id @default(uuid()) @db.Uuid
+  reportId String            @map("report_id") @db.Uuid
+  gate     QualityGateName
+  field    String            @db.VarChar(255)
+  message  String            @db.Text
+  severity ViolationSeverity
+
+  report QualityReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId], map: "idx_qv_report_id")
+  @@map("quality_violations")
+  @@schema("public")
+}
+
+// ── Correction Tracker (SLA tracking per failed report) ──
+
+model CorrectionTracker {
+  id                  String           @id @default(uuid()) @db.Uuid
+  reportId            String           @unique @map("report_id") @db.Uuid
+  status              CorrectionStatus @default(PENDING)
+  correctionDeadline  DateTime         @map("correction_deadline") @db.Timestamptz
+  escalationDeadline  DateTime         @map("escalation_deadline") @db.Timestamptz
+  correctedAt         DateTime?        @map("corrected_at") @db.Timestamptz
+  escalatedAt         DateTime?        @map("escalated_at") @db.Timestamptz
+  notifiedAt          DateTime?        @map("notified_at") @db.Timestamptz
+  assignedTo          String?          @map("assigned_to") @db.Uuid
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  report QualityReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([status], map: "idx_ct_status")
+  @@index([correctionDeadline], map: "idx_ct_correction_deadline")
+  @@index([escalationDeadline], map: "idx_ct_escalation_deadline")
+  @@map("correction_trackers")
+  @@schema("public")
+}
+
+// ── Custom Quality Rules (per domain, DATA_STEWARD+) ──
+
+model CustomQualityRule {
+  id              String   @id @default(uuid()) @db.Uuid
+  domain          String   @db.VarChar(100)
+  entityType      String   @map("entity_type") @db.VarChar(100)
+  tenantId        String   @map("tenant_id") @db.Uuid
+  name            String   @db.VarChar(255)
+  description     String?  @db.Text
+  gate            QualityGateName
+  config          Json
+  isActive        Boolean  @default(true) @map("is_active")
+  createdBy       String   @map("created_by") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([domain], map: "idx_cqr_domain")
+  @@index([tenantId], map: "idx_cqr_tenant_id")
+  @@index([isActive], map: "idx_cqr_is_active")
+  @@map("custom_quality_rules")
+  @@schema("public")
+}

@@ -19,11 +19,17 @@ interface SubmissionDao {
     @Query("SELECT * FROM submissions WHERE syncStatus = 'PENDING'")
     suspend fun getPendingSync(): List<SubmissionEntity>
 
-    @Query("SELECT COUNT(*) FROM submissions WHERE syncStatus = 'PENDING'")
+    @Query("SELECT COUNT(*) FROM submissions WHERE syncStatus IN ('PENDING', 'DRAFT')")
     fun getPendingCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM submissions WHERE campaignId = :campaignId")
+    fun getCountByCampaign(campaignId: String): Flow<Int>
 
     @Query("SELECT * FROM submissions WHERE id = :id")
     suspend fun getById(id: String): SubmissionEntity?
+
+    @Query("SELECT * FROM submissions WHERE syncStatus = 'DRAFT'")
+    suspend fun getDrafts(): List<SubmissionEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(submission: SubmissionEntity)

@@ -4,3 +4,4 @@ export { DataClassification } from './data-classification.enum';
 export { WorkflowLevel } from './workflow-level.enum';
 export { WorkflowStatus } from './workflow-status.enum';
 export { QualityGate, QualityGateResult } from './quality-gate.enum';
+export { NotificationChannel, NotificationStatus } from './notification.enum';

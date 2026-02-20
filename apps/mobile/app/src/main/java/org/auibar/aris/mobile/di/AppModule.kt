@@ -15,6 +15,7 @@ import org.auibar.aris.mobile.data.remote.api.CampaignApi
 import org.auibar.aris.mobile.data.remote.api.SyncApi
 import org.auibar.aris.mobile.data.repository.AuthRepository
 import org.auibar.aris.mobile.data.repository.CampaignRepository
+import org.auibar.aris.mobile.data.repository.FormTemplateRepository
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
 import org.auibar.aris.mobile.data.repository.SyncRepository
 import org.auibar.aris.mobile.util.TokenManager
@@ -43,6 +44,12 @@ object AppModule {
     fun provideSubmissionRepository(
         submissionDao: SubmissionDao,
     ): SubmissionRepository = SubmissionRepository(submissionDao)
+
+    @Provides
+    @Singleton
+    fun provideFormTemplateRepository(
+        formTemplateDao: FormTemplateDao,
+    ): FormTemplateRepository = FormTemplateRepository(formTemplateDao)
 
     @Provides
     @Singleton

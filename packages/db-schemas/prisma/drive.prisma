@@ -1,0 +1,41 @@
+// ARIS 3.0 — Drive / File Storage Model
+// MinIO S3-compatible document storage with tenant isolation
+
+enum FileStatus {
+  ACTIVE
+  DELETED
+
+  @@map("file_status")
+  @@schema("public")
+}
+
+model FileRecord {
+  id               String             @id @default(uuid()) @db.Uuid
+  tenantId         String             @map("tenant_id") @db.Uuid
+  bucket           String             @db.VarChar(255)
+  key              String             @db.VarChar(1024)
+  originalFilename String             @map("original_filename") @db.VarChar(500)
+  mimeType         String             @map("mime_type") @db.VarChar(255)
+  size             BigInt
+  classification   String             @default("RESTRICTED") @db.VarChar(20)
+  uploadedBy       String             @map("uploaded_by") @db.Uuid
+  scanStatus       String             @default("PENDING") @map("scan_status") @db.VarChar(20)
+  scanResult       String?            @map("scan_result") @db.Text
+  thumbnailKey     String?            @map("thumbnail_key") @db.VarChar(1024)
+  metadata         Json?              @default("{}")
+  status           FileStatus         @default(ACTIVE)
+  deletedAt        DateTime?          @map("deleted_at") @db.Timestamptz
+  deletedBy        String?            @map("deleted_by") @db.Uuid
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([bucket, key], map: "uq_file_bucket_key")
+  @@index([tenantId], map: "idx_file_tenant_id")
+  @@index([uploadedBy], map: "idx_file_uploaded_by")
+  @@index([mimeType], map: "idx_file_mime_type")
+  @@index([classification], map: "idx_file_classification")
+  @@index([status], map: "idx_file_status")
+  @@index([createdAt], map: "idx_file_created_at")
+  @@map("file_records")
+  @@schema("public")
+}

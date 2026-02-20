@@ -7,6 +7,8 @@ export {
   WorkflowStatus,
   QualityGate,
   QualityGateResult,
+  NotificationChannel,
+  NotificationStatus,
 } from './enums';
 
 // DTOs

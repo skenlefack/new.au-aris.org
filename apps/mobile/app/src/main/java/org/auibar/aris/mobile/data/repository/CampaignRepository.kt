@@ -22,6 +22,14 @@ class CampaignRepository @Inject constructor(
     private val campaignDao: CampaignDao,
     private val campaignApi: CampaignApi,
 ) {
+    suspend fun getById(id: String): Campaign? {
+        return campaignDao.getById(id)?.toDomain()
+    }
+
+    fun observeById(id: String): Flow<Campaign?> {
+        return campaignDao.observeById(id).map { it?.toDomain() }
+    }
+
     fun getActiveCampaigns(): Flow<List<Campaign>> {
         return campaignDao.getActiveCampaigns().map { entities ->
             entities.map { it.toDomain() }

@@ -1,0 +1,29 @@
+{
+  "name": "@aris/test-utils",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ARIS 3.0 — Test factories, Testcontainers helpers",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@aris/shared-types": "workspace:*",
+    "testcontainers": "^10.9.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@prisma/client": "^5.14.0",
+    "ioredis": "^5.4.0"
+  }
+}

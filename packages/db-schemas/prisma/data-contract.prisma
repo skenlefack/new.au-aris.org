@@ -1,0 +1,97 @@
+// ARIS 3.0 — Data Contract Schema
+// Contract registry & SLA compliance tracking
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+
+  @@schema("data_contract")
+}
+
+enum OfficialityLevel {
+  OFFICIAL
+  ANALYTICAL
+  INTERNAL
+
+  @@schema("data_contract")
+}
+
+enum Frequency {
+  REALTIME
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+
+  @@schema("data_contract")
+}
+
+enum ExchangeMechanism {
+  API
+  KAFKA
+  BATCH
+  MANUAL
+
+  @@schema("data_contract")
+}
+
+model DataContract {
+  id                   String             @id @default(uuid()) @db.Uuid
+  tenant_id            String             @db.Uuid
+  name                 String             @db.VarChar(255)
+  domain               String             @db.VarChar(50)
+  data_owner           String             @db.VarChar(255)
+  data_steward         String             @db.VarChar(255)
+  purpose              String
+  officiality_level    OfficialityLevel
+  schema               Json
+  frequency            Frequency
+  timeliness_sla       Int                // Max hours from event to submission
+  quality_sla          Json               // { correctionDeadline, escalationDeadline, minPassRate }
+  classification       String             @default("RESTRICTED") @db.VarChar(20)
+  exchange_mechanism   ExchangeMechanism
+  version              Int                @default(1)
+  status               ContractStatus     @default(DRAFT)
+  valid_from           DateTime
+  valid_to             DateTime?
+  approved_by          String             @db.Uuid
+  created_by           String             @db.Uuid
+  updated_by           String?            @db.Uuid
+  created_at           DateTime           @default(now())
+  updated_at           DateTime           @updatedAt
+
+  compliance_records   ComplianceRecord[]
+
+  @@unique([tenant_id, name, version])
+  @@index([tenant_id])
+  @@index([domain])
+  @@index([status])
+  @@map("data_contracts")
+  @@schema("data_contract")
+}
+
+model ComplianceRecord {
+  id                 String        @id @default(uuid()) @db.Uuid
+  contract_id        String        @db.Uuid
+  tenant_id          String        @db.Uuid
+  record_id          String        @db.VarChar(255)
+  event_type         String        @db.VarChar(100)
+  event_timestamp    DateTime
+  submission_time    DateTime?
+  quality_passed     Boolean?
+  timeliness_hours   Float?        // Actual hours from event to submission
+  sla_met            Boolean?      // Whether timeliness was within SLA
+  quality_report_id  String?       @db.VarChar(255)
+  created_at         DateTime      @default(now())
+
+  contract           DataContract  @relation(fields: [contract_id], references: [id])
+
+  @@index([contract_id])
+  @@index([tenant_id])
+  @@index([created_at])
+  @@index([sla_met])
+  @@map("compliance_records")
+  @@schema("data_contract")
+}

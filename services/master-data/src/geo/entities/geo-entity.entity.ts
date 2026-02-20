@@ -17,6 +17,11 @@ export interface GeoEntityRecord {
   updatedAt: Date;
 }
 
+export interface GeoJsonGeometry {
+  type: string;
+  coordinates: unknown;
+}
+
 export interface GeoEntityWithGeometry extends GeoEntityRecord {
-  geometry?: GeoJSON.Geometry | null;
+  geometry?: GeoJsonGeometry | null;
 }

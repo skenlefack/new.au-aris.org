@@ -35,6 +35,68 @@ class SubmissionRepository @Inject constructor(
 
     fun getPendingCount(): Flow<Int> = submissionDao.getPendingCount()
 
+    fun getCountByCampaign(campaignId: String): Flow<Int> =
+        submissionDao.getCountByCampaign(campaignId)
+
+    suspend fun getById(id: String): Submission? =
+        submissionDao.getById(id)?.toDomain()
+
+    suspend fun saveDraft(
+        id: String,
+        tenantId: String,
+        campaignId: String,
+        templateId: String,
+        data: String,
+        gpsLat: Double?,
+        gpsLng: Double?,
+        gpsAccuracy: Float?,
+    ) {
+        val existing = submissionDao.getById(id)
+        val entity = SubmissionEntity(
+            id = id,
+            tenantId = tenantId,
+            campaignId = campaignId,
+            templateId = templateId,
+            data = data,
+            gpsLat = gpsLat,
+            gpsLng = gpsLng,
+            gpsAccuracy = gpsAccuracy,
+            offlineCreatedAt = existing?.offlineCreatedAt ?: System.currentTimeMillis(),
+            syncedAt = null,
+            syncStatus = "DRAFT",
+            serverErrors = null,
+        )
+        submissionDao.insert(entity)
+    }
+
+    suspend fun submitForm(
+        id: String,
+        tenantId: String,
+        campaignId: String,
+        templateId: String,
+        data: String,
+        gpsLat: Double?,
+        gpsLng: Double?,
+        gpsAccuracy: Float?,
+    ) {
+        val existing = submissionDao.getById(id)
+        val entity = SubmissionEntity(
+            id = id,
+            tenantId = tenantId,
+            campaignId = campaignId,
+            templateId = templateId,
+            data = data,
+            gpsLat = gpsLat,
+            gpsLng = gpsLng,
+            gpsAccuracy = gpsAccuracy,
+            offlineCreatedAt = existing?.offlineCreatedAt ?: System.currentTimeMillis(),
+            syncedAt = null,
+            syncStatus = "PENDING",
+            serverErrors = null,
+        )
+        submissionDao.insert(entity)
+    }
+
     suspend fun createSubmission(
         id: String,
         tenantId: String,
@@ -45,21 +107,7 @@ class SubmissionRepository @Inject constructor(
         gpsLng: Double?,
         gpsAccuracy: Float?,
     ) {
-        val entity = SubmissionEntity(
-            id = id,
-            tenantId = tenantId,
-            campaignId = campaignId,
-            templateId = templateId,
-            data = data,
-            gpsLat = gpsLat,
-            gpsLng = gpsLng,
-            gpsAccuracy = gpsAccuracy,
-            offlineCreatedAt = System.currentTimeMillis(),
-            syncedAt = null,
-            syncStatus = "PENDING",
-            serverErrors = null,
-        )
-        submissionDao.insert(entity)
+        submitForm(id, tenantId, campaignId, templateId, data, gpsLat, gpsLng, gpsAccuracy)
     }
 
     private fun SubmissionEntity.toDomain() = Submission(
