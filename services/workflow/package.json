@@ -20,6 +20,7 @@
     "@aris/shared-types": "workspace:*",
     "@aris/kafka-client": "workspace:*",
     "@aris/auth-middleware": "workspace:*",
+    "@aris/service-clients": "workspace:*",
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",

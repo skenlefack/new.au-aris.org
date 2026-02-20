@@ -12,6 +12,7 @@ import org.auibar.aris.mobile.data.local.dao.CampaignDao
 import org.auibar.aris.mobile.data.local.dao.DiseaseDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
+import org.auibar.aris.mobile.data.local.dao.NotificationDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
 import org.auibar.aris.mobile.data.local.dao.SubmissionDao
 import javax.inject.Singleton
@@ -27,7 +28,9 @@ object DatabaseModule {
             context,
             ArisDatabase::class.java,
             "aris_database",
-        ).build()
+        )
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides
@@ -47,4 +50,7 @@ object DatabaseModule {
 
     @Provides
     fun provideGeoDao(db: ArisDatabase): GeoDao = db.geoDao()
+
+    @Provides
+    fun provideNotificationDao(db: ArisDatabase): NotificationDao = db.notificationDao()
 }

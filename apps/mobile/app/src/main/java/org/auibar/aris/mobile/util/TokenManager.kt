@@ -54,11 +54,30 @@ class TokenManager @Inject constructor(
         }
         set(value) = prefs.edit().putLong(KEY_LAST_SYNC, value ?: -1L).apply()
 
+    var userFullName: String?
+        get() = prefs.getString(KEY_USER_FULL_NAME, null)
+        set(value) = prefs.edit().putString(KEY_USER_FULL_NAME, value).apply()
+
+    var userEmail: String?
+        get() = prefs.getString(KEY_USER_EMAIL, null)
+        set(value) = prefs.edit().putString(KEY_USER_EMAIL, value).apply()
+
+    var language: String
+        get() = prefs.getString(KEY_LANGUAGE, "en") ?: "en"
+        set(value) = prefs.edit().putString(KEY_LANGUAGE, value).apply()
+
+    /** Sync frequency in minutes: 15, 30, 60, or 0 for manual */
+    var syncFrequencyMinutes: Int
+        get() = prefs.getInt(KEY_SYNC_FREQUENCY, 15)
+        set(value) = prefs.edit().putInt(KEY_SYNC_FREQUENCY, value).apply()
+
     val isLoggedIn: Boolean
         get() = accessToken != null
 
     fun clear() {
+        val savedLang = language
         prefs.edit().clear().apply()
+        language = savedLang
     }
 
     companion object {
@@ -68,5 +87,9 @@ class TokenManager @Inject constructor(
         private const val KEY_USER_ROLE = "user_role"
         private const val KEY_TENANT_ID = "tenant_id"
         private const val KEY_LAST_SYNC = "last_sync_at"
+        private const val KEY_USER_FULL_NAME = "user_full_name"
+        private const val KEY_USER_EMAIL = "user_email"
+        private const val KEY_LANGUAGE = "language"
+        private const val KEY_SYNC_FREQUENCY = "sync_frequency_minutes"
     }
 }

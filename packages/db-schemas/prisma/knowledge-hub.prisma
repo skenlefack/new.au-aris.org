@@ -1,0 +1,105 @@
+// ARIS 3.0 — Knowledge Hub domain schema
+// Service: knowledge-hub (port 3033)
+// Owner: CC-4
+
+// ── Publications (briefs, reports, guidelines, bulletins) ──
+
+model Publication {
+  id                  String    @id @default(uuid()) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  title               String    @db.VarChar(500)
+  abstract            String?   @db.Text
+  authors             String[]
+  domain              String    @db.VarChar(100)
+  type                String    @db.VarChar(50)               // BRIEF | REPORT | GUIDELINE | BULLETIN
+  fileId              String?   @map("file_id") @db.Uuid      // Link to drive service
+  publishedAt         DateTime? @map("published_at") @db.Timestamptz
+  tags                String[]
+  language            String    @db.VarChar(5) @default("EN")  // EN | FR
+  dataClassification  String    @map("data_classification") @default("PUBLIC")
+  createdBy           String    @map("created_by") @db.Uuid
+  updatedBy           String    @map("updated_by") @db.Uuid
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([domain])
+  @@index([type])
+  @@index([language])
+  @@index([publishedAt])
+  @@map("publications")
+  @@schema("knowledge_hub")
+}
+
+// ── E-Learning Modules ──
+
+model ELearningModule {
+  id                  String    @id @default(uuid()) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  title               String    @db.VarChar(500)
+  description         String?   @db.Text
+  domain              String    @db.VarChar(100)
+  lessons             Json      @default("[]")
+  estimatedDuration   Int       @map("estimated_duration") @default(0)  // minutes
+  prerequisiteIds     String[]  @map("prerequisite_ids") @db.Uuid
+  publishedAt         DateTime? @map("published_at") @db.Timestamptz
+  dataClassification  String    @map("data_classification") @default("PUBLIC")
+  createdBy           String    @map("created_by") @db.Uuid
+  updatedBy           String    @map("updated_by") @db.Uuid
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  learnerProgress     LearnerProgress[]
+
+  @@index([tenantId])
+  @@index([domain])
+  @@index([publishedAt])
+  @@map("elearning_modules")
+  @@schema("knowledge_hub")
+}
+
+// ── Learner Progress ──
+
+model LearnerProgress {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  moduleId         String    @map("module_id") @db.Uuid
+  completedLessons Json      @map("completed_lessons") @default("[]")  // array of lesson IDs
+  score            Float?
+  startedAt        DateTime  @default(now()) @map("started_at") @db.Timestamptz
+  completedAt      DateTime? @map("completed_at") @db.Timestamptz
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  module           ELearningModule @relation(fields: [moduleId], references: [id])
+
+  @@unique([userId, moduleId])
+  @@index([userId])
+  @@index([moduleId])
+  @@map("learner_progress")
+  @@schema("knowledge_hub")
+}
+
+// ── FAQ ──
+
+model FAQ {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  question            String   @db.Text
+  answer              String   @db.Text
+  domain              String   @db.VarChar(100)
+  language            String   @db.VarChar(5) @default("EN")  // EN | FR
+  sortOrder           Int      @map("sort_order") @default(0)
+  dataClassification  String   @map("data_classification") @default("PUBLIC")
+  createdBy           String   @map("created_by") @db.Uuid
+  updatedBy           String   @map("updated_by") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([domain])
+  @@index([language])
+  @@index([sortOrder])
+  @@map("faqs")
+  @@schema("knowledge_hub")
+}

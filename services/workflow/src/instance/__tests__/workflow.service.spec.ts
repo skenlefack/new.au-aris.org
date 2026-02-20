@@ -15,6 +15,7 @@ function mockPrismaService() {
     workflowInstance: {
       create: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
       count: vi.fn(),
@@ -129,15 +130,24 @@ function instanceWithTransitions(overrides: Record<string, unknown> = {}) {
 
 // ── Tests ──
 
+function mockAnimalHealthClient() {
+  return {
+    patchEntity: vi.fn().mockResolvedValue({ status: 200, data: {} }),
+    patchHealthEvent: vi.fn().mockResolvedValue({ status: 200, data: {} }),
+  };
+}
+
 describe('WorkflowService', () => {
   let service: WorkflowService;
   let prisma: ReturnType<typeof mockPrismaService>;
   let kafka: ReturnType<typeof mockKafkaProducer>;
+  let ahClient: ReturnType<typeof mockAnimalHealthClient>;
 
   beforeEach(() => {
     prisma = mockPrismaService();
     kafka = mockKafkaProducer();
-    service = new WorkflowService(prisma as never, kafka as never);
+    ahClient = mockAnimalHealthClient();
+    service = new WorkflowService(prisma as never, kafka as never, ahClient as never);
   });
 
   // ── create ──
@@ -653,6 +663,127 @@ describe('WorkflowService', () => {
 
       const result = await service.findOne('wf-1', dataSteward());
       expect(result.data).toBeDefined();
+    });
+  });
+
+  // ── Domain service callbacks ──
+
+  describe('domain service callbacks', () => {
+    it('should call patchEntity with wahisReady when Level 2 approved', async () => {
+      prisma.workflowInstance.findUnique.mockResolvedValue(
+        instanceFixture({
+          current_level: 'NATIONAL_OFFICIAL',
+          status: 'PENDING',
+          tenant_id: 'tenant-ke',
+        }),
+      );
+
+      const updated = instanceWithTransitions({
+        current_level: 'REC_HARMONIZATION',
+        status: 'PENDING',
+        wahis_ready: true,
+      });
+      prisma.$transaction.mockResolvedValue([updated, {}]);
+
+      await service.approve('wf-1', undefined, nationalAdmin());
+
+      expect(ahClient.patchEntity).toHaveBeenCalledWith(
+        'submission',
+        'sub-1',
+        { wahisReady: true },
+        'tenant-ke',
+      );
+    });
+
+    it('should call patchEntity with analyticsReady when Level 4 approved', async () => {
+      prisma.workflowInstance.findUnique.mockResolvedValue(
+        instanceFixture({
+          current_level: 'CONTINENTAL_PUBLICATION',
+          status: 'PENDING',
+          wahis_ready: true,
+          tenant_id: 'tenant-au',
+        }),
+      );
+
+      const updated = instanceWithTransitions({
+        current_level: 'CONTINENTAL_PUBLICATION',
+        status: 'APPROVED',
+        wahis_ready: true,
+        analytics_ready: true,
+      });
+      prisma.$transaction.mockResolvedValue([updated, {}]);
+
+      await service.approve('wf-1', 'Published', continentalAdmin());
+
+      expect(ahClient.patchEntity).toHaveBeenCalledWith(
+        'submission',
+        'sub-1',
+        { analyticsReady: true },
+        'tenant-au',
+      );
+    });
+
+    it('should NOT fail workflow approval if domain callback fails', async () => {
+      ahClient.patchEntity.mockRejectedValue(new Error('ECONNREFUSED'));
+
+      prisma.workflowInstance.findUnique.mockResolvedValue(
+        instanceFixture({
+          current_level: 'NATIONAL_OFFICIAL',
+          status: 'PENDING',
+          tenant_id: 'tenant-ke',
+        }),
+      );
+
+      const updated = instanceWithTransitions({
+        current_level: 'REC_HARMONIZATION',
+        status: 'PENDING',
+        wahis_ready: true,
+      });
+      prisma.$transaction.mockResolvedValue([updated, {}]);
+
+      // Should not throw
+      const result = await service.approve('wf-1', undefined, nationalAdmin());
+      expect(result.data.wahisReady).toBe(true);
+    });
+  });
+
+  // ── autoAdvanceLevel1 ──
+
+  describe('autoAdvanceLevel1', () => {
+    it('should auto-advance Level 1 when quality passes', async () => {
+      prisma.workflowInstance.findFirst.mockResolvedValue(
+        instanceFixture({
+          current_level: 'NATIONAL_TECHNICAL',
+          status: 'PENDING',
+        }),
+      );
+      prisma.$transaction.mockResolvedValue([{}, {}]);
+
+      await service.autoAdvanceLevel1('sub-1', 'qr-001');
+
+      expect(prisma.$transaction).toHaveBeenCalledOnce();
+    });
+
+    it('should skip if no pending Level 1 instance found', async () => {
+      prisma.workflowInstance.findFirst.mockResolvedValue(null);
+
+      await service.autoAdvanceLevel1('sub-1', 'qr-001');
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('should query for NATIONAL_TECHNICAL level with actionable status', async () => {
+      prisma.workflowInstance.findFirst.mockResolvedValue(null);
+
+      await service.autoAdvanceLevel1('sub-1', 'qr-001');
+
+      expect(prisma.workflowInstance.findFirst).toHaveBeenCalledWith({
+        where: {
+          entity_id: 'sub-1',
+          current_level: 'NATIONAL_TECHNICAL',
+          status: { in: ['PENDING', 'IN_REVIEW', 'RETURNED'] },
+        },
+      });
     });
   });
 

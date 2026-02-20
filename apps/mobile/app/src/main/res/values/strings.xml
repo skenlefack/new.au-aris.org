@@ -2,26 +2,46 @@
 <resources>
     <string name="app_name">ARIS</string>
     <string name="app_subtitle">Animal Resources Information System</string>
+
+    <!-- Auth -->
     <string name="email">Email</string>
     <string name="password">Password</string>
     <string name="login">Sign In</string>
+    <string name="logout">Logout</string>
+    <string name="logout_confirm">Are you sure you want to sign out? Unsynced data will remain on the device.</string>
+
+    <!-- Navigation -->
+    <string name="dashboard">Dashboard</string>
     <string name="campaigns">Campaigns</string>
     <string name="submissions">My Submissions</string>
+    <string name="notifications">Notifications</string>
+    <string name="settings">Settings</string>
+
+    <!-- Campaign -->
     <string name="no_campaigns">No active campaigns</string>
     <string name="no_submissions">No submissions yet</string>
+    <string name="campaign_detail">Campaign Details</string>
+    <string name="progress">Progress</string>
+    <string name="recent_campaigns">Recent Campaigns</string>
+
+    <!-- Sync -->
     <string name="sync">Sync</string>
-    <string name="logout">Logout</string>
+    <string name="sync_now">Sync Now</string>
+    <string name="sync_frequency">Sync Frequency</string>
+    <string name="last_sync">Last Sync</string>
+    <string name="never">Never</string>
+
+    <!-- Status -->
     <string name="pending">Pending</string>
     <string name="synced">Synced</string>
     <string name="failed">Failed</string>
     <string name="conflict">Conflict</string>
     <string name="draft">Draft</string>
+
+    <!-- Form -->
     <string name="new_submission">New Submission</string>
     <string name="save_draft">Save Draft</string>
     <string name="submit">Submit</string>
-    <string name="campaign_detail">Campaign Details</string>
-    <string name="progress">Progress</string>
-    <string name="offline_banner">You are offline. Data will sync when connected.</string>
     <string name="select_option">Select an option</string>
     <string name="select_species">Select species</string>
     <string name="select_disease">Select disease</string>
@@ -37,4 +57,33 @@
     <string name="form_saved">Draft saved</string>
     <string name="form_submitted">Submission queued for sync</string>
     <string name="pick_date">Pick date</string>
+
+    <!-- Dashboard -->
+    <string name="health_overview">Health Overview</string>
+    <string name="no_kpi_data">No KPI data available</string>
+    <string name="pending_submissions">Pending Submissions</string>
+    <string name="quick_actions">Quick Actions</string>
+
+    <!-- Notifications -->
+    <string name="no_notifications">No notifications</string>
+    <string name="mark_all_read">Mark all as read</string>
+    <string name="unread">Unread</string>
+    <string name="channel_alerts">Outbreak Alerts</string>
+    <string name="channel_alerts_desc">Urgent outbreak and disease alerts</string>
+    <string name="channel_general">General</string>
+    <string name="channel_general_desc">Sync updates and system notifications</string>
+
+    <!-- Settings -->
+    <string name="language">Language</string>
+    <string name="clear_cache">Clear Local Cache</string>
+    <string name="clear_cache_desc">Remove all offline data from this device</string>
+    <string name="clear_cache_confirm">This will delete all locally stored campaigns, submissions, and referential data. You will need to sync again. Continue?</string>
+    <string name="cache_cleared">Cache cleared successfully</string>
+    <string name="app_version">App Version</string>
+    <string name="unknown_user">Unknown User</string>
+    <string name="confirm">Confirm</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Connectivity -->
+    <string name="offline_banner">You are offline. Data will sync when connected.</string>
 </resources>

@@ -17,6 +17,11 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
+# Socket.IO
+-keep class io.socket.** { *; }
+-dontwarn io.socket.**
+-keep class org.json.** { *; }
+
 # Room
 -keep class * extends androidx.room.RoomDatabase
 -keep @androidx.room.Entity class *

@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --admin-bg: #0f1117;
+  --admin-surface: #1a1d27;
+  --admin-card: #1e2130;
+  --admin-border: #2a2d3a;
+  --admin-hover: #252838;
+  --admin-muted: #6b7280;
+  --admin-text: #e5e7eb;
+  --admin-heading: #f9fafb;
+  --aris-primary: #1B5E20;
+  --aris-secondary: #006064;
+  --aris-accent: #E65100;
+}
+
+body {
+  background-color: var(--admin-bg);
+  color: var(--admin-text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--admin-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--admin-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--admin-muted);
+}
+
+/* Admin table overrides */
+@layer components {
+  .admin-card {
+    @apply bg-admin-card border border-admin-border rounded-card;
+  }
+
+  .admin-input {
+    @apply bg-admin-surface border border-admin-border text-admin-text
+           rounded-lg px-3 py-2 text-sm
+           focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600
+           placeholder:text-admin-muted;
+  }
+
+  .admin-btn-primary {
+    @apply bg-primary-700 hover:bg-primary-600 text-white
+           rounded-lg px-4 py-2 text-sm font-medium
+           transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500;
+  }
+
+  .admin-btn-secondary {
+    @apply bg-admin-surface hover:bg-admin-hover border border-admin-border
+           text-admin-text rounded-lg px-4 py-2 text-sm font-medium
+           transition-colors focus:outline-none focus:ring-2 focus:ring-admin-border;
+  }
+
+  .admin-btn-danger {
+    @apply bg-danger-600 hover:bg-danger-700 text-white
+           rounded-lg px-4 py-2 text-sm font-medium
+           transition-colors focus:outline-none focus:ring-2 focus:ring-danger-500;
+  }
+}

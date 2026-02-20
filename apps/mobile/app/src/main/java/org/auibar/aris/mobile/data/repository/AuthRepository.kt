@@ -20,6 +20,8 @@ class AuthRepository @Inject constructor(
             tokenManager.userId = loginData.user.id
             tokenManager.userRole = loginData.user.role
             tokenManager.tenantId = loginData.user.tenantId
+            tokenManager.userFullName = loginData.user.fullName
+            tokenManager.userEmail = loginData.user.email
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

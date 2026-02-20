@@ -49,6 +49,15 @@ export const TOPIC_AU_INTEROP_WAHIS_EXPORTED = 'au.interop.wahis.exported.v1' as
 export const TOPIC_AU_INTEROP_EMPRES_FED = 'au.interop.empres.fed.v1' as const;
 export const TOPIC_AU_INTEROP_FAOSTAT_SYNCED = 'au.interop.faostat.synced.v1' as const;
 
+// ── Knowledge Hub Topics ──
+export const TOPIC_AU_KNOWLEDGE_PUBLICATION_CREATED = 'au.knowledge.publication.created.v1' as const;
+export const TOPIC_AU_KNOWLEDGE_PUBLICATION_UPDATED = 'au.knowledge.publication.updated.v1' as const;
+export const TOPIC_AU_KNOWLEDGE_PUBLICATION_DELETED = 'au.knowledge.publication.deleted.v1' as const;
+export const TOPIC_AU_KNOWLEDGE_ELEARNING_CREATED = 'au.knowledge.elearning.created.v1' as const;
+export const TOPIC_AU_KNOWLEDGE_ELEARNING_UPDATED = 'au.knowledge.elearning.updated.v1' as const;
+export const TOPIC_AU_KNOWLEDGE_FAQ_CREATED = 'au.knowledge.faq.created.v1' as const;
+export const TOPIC_AU_KNOWLEDGE_FAQ_UPDATED = 'au.knowledge.faq.updated.v1' as const;
+
 // ── DLQ Topics ──
 export const TOPIC_DLQ_ALL = 'dlq.all.v1' as const;
 export const TOPIC_DLQ_HEALTH = 'dlq.health.v1' as const;
@@ -91,6 +100,13 @@ export const ALL_TOPICS = [
   TOPIC_AU_INTEROP_WAHIS_EXPORTED,
   TOPIC_AU_INTEROP_EMPRES_FED,
   TOPIC_AU_INTEROP_FAOSTAT_SYNCED,
+  TOPIC_AU_KNOWLEDGE_PUBLICATION_CREATED,
+  TOPIC_AU_KNOWLEDGE_PUBLICATION_UPDATED,
+  TOPIC_AU_KNOWLEDGE_PUBLICATION_DELETED,
+  TOPIC_AU_KNOWLEDGE_ELEARNING_CREATED,
+  TOPIC_AU_KNOWLEDGE_ELEARNING_UPDATED,
+  TOPIC_AU_KNOWLEDGE_FAQ_CREATED,
+  TOPIC_AU_KNOWLEDGE_FAQ_UPDATED,
   TOPIC_DLQ_ALL,
   TOPIC_DLQ_HEALTH,
   TOPIC_DLQ_COLLECTE,

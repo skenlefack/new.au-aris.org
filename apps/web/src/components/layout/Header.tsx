@@ -16,6 +16,8 @@ import {
   MapPin,
 } from 'lucide-react';
 import type { TenantNode, TenantLevel } from '@/lib/stores/tenant-store';
+import { ConnectionIndicator } from '@/components/realtime/ConnectionIndicator';
+import { NotificationPanel } from '@/components/realtime/NotificationPanel';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   SUPER_ADMIN: 'Super Admin',
@@ -66,6 +68,7 @@ export function Header() {
 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [tenantMenuOpen, setTenantMenuOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -203,9 +206,12 @@ export function Header() {
         )}
       </div>
 
-      {/* Right side — notifications + user */}
+      {/* Right side — connection status + notifications + user */}
       <div className="flex items-center gap-4">
+        <ConnectionIndicator />
+
         <button
+          onClick={() => setNotificationOpen(true)}
           className="relative rounded-lg p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-600"
           aria-label="Notifications"
         >
@@ -216,6 +222,11 @@ export function Header() {
             </span>
           )}
         </button>
+
+        <NotificationPanel
+          open={notificationOpen}
+          onClose={() => setNotificationOpen(false)}
+        />
 
         {/* User menu */}
         <div ref={userMenuRef} className="relative">

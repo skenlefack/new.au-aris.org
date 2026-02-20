@@ -8,14 +8,19 @@ import org.auibar.aris.mobile.data.local.dao.CampaignDao
 import org.auibar.aris.mobile.data.local.dao.DiseaseDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
+import org.auibar.aris.mobile.data.local.dao.NotificationDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
 import org.auibar.aris.mobile.data.local.dao.SubmissionDao
+import org.auibar.aris.mobile.data.remote.api.AnalyticsApi
 import org.auibar.aris.mobile.data.remote.api.AuthApi
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
+import org.auibar.aris.mobile.data.remote.api.MessageApi
 import org.auibar.aris.mobile.data.remote.api.SyncApi
 import org.auibar.aris.mobile.data.repository.AuthRepository
 import org.auibar.aris.mobile.data.repository.CampaignRepository
+import org.auibar.aris.mobile.data.repository.DashboardRepository
 import org.auibar.aris.mobile.data.repository.FormTemplateRepository
+import org.auibar.aris.mobile.data.repository.NotificationRepository
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
 import org.auibar.aris.mobile.data.repository.SyncRepository
 import org.auibar.aris.mobile.util.TokenManager
@@ -66,4 +71,20 @@ object AppModule {
         syncApi, submissionDao, campaignDao, formTemplateDao,
         speciesDao, diseaseDao, geoDao, tokenManager,
     )
+
+    @Provides
+    @Singleton
+    fun provideNotificationRepository(
+        notificationDao: NotificationDao,
+        messageApi: MessageApi,
+        tokenManager: TokenManager,
+    ): NotificationRepository = NotificationRepository(notificationDao, messageApi, tokenManager)
+
+    @Provides
+    @Singleton
+    fun provideDashboardRepository(
+        analyticsApi: AnalyticsApi,
+        campaignRepository: CampaignRepository,
+        submissionRepository: SubmissionRepository,
+    ): DashboardRepository = DashboardRepository(analyticsApi, campaignRepository, submissionRepository)
 }

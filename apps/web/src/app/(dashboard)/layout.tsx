@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
+import { ToastContainer } from '@/components/realtime/ToastContainer';
+import { useRealtime } from '@/lib/realtime/use-realtime';
 
 export default function DashboardLayout({
   children,
@@ -11,6 +13,9 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Connect to WebSocket realtime service
+  useRealtime();
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -27,6 +32,7 @@ export default function DashboardLayout({
           <div className="px-6 pb-8">{children}</div>
         </main>
       </div>
+      <ToastContainer />
     </div>
   );
 }

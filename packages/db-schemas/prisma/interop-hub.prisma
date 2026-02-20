@@ -1,0 +1,133 @@
+// ARIS 3.0 — Interop Hub Schema
+// External system connectors: WAHIS, EMPRES, FAOSTAT
+
+enum InteropStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+
+  @@schema("interop_hub")
+}
+
+enum ConnectorType {
+  WAHIS
+  EMPRES
+  FAOSTAT
+  FISHSTATJ
+  CITES
+
+  @@schema("interop_hub")
+}
+
+enum ExportFormat {
+  WOAH_JSON
+  WOAH_XML
+  EMPRES_JSON
+  FAOSTAT_CSV
+  FAOSTAT_JSON
+
+  @@schema("interop_hub")
+}
+
+/// WAHIS export records — tracks each WAHIS-ready package generation.
+model ExportRecord {
+  id              String        @id @default(uuid()) @db.Uuid
+  tenant_id       String        @db.Uuid
+  connector_type  ConnectorType @default(WAHIS)
+  country_code    String        @db.VarChar(3)
+  period_start    DateTime
+  period_end      DateTime
+  format          ExportFormat  @default(WOAH_JSON)
+  status          InteropStatus @default(PENDING)
+  record_count    Int           @default(0)
+  package_url     String?       @db.VarChar(500)
+  package_size    Int?
+  error_message   String?
+  exported_by     String        @db.Uuid
+  exported_at     DateTime?
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+
+  @@index([tenant_id])
+  @@index([connector_type])
+  @@index([country_code])
+  @@index([status])
+  @@index([created_at])
+  @@map("export_records")
+  @@schema("interop_hub")
+}
+
+/// EMPRES feed records — tracks signals pushed to EMPRES format.
+model FeedRecord {
+  id                String        @id @default(uuid()) @db.Uuid
+  tenant_id         String        @db.Uuid
+  connector_type    ConnectorType @default(EMPRES)
+  health_event_id   String        @db.Uuid
+  disease_id        String?       @db.Uuid
+  country_code      String        @db.VarChar(3)
+  confidence_level  String        @db.VarChar(20) // RUMOR, VERIFIED, CONFIRMED
+  status            InteropStatus @default(PENDING)
+  payload           Json
+  response_code     Int?
+  response_body     String?
+  error_message     String?
+  fed_by            String        @db.Uuid
+  fed_at            DateTime?
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
+
+  @@index([tenant_id])
+  @@index([health_event_id])
+  @@index([status])
+  @@index([created_at])
+  @@map("feed_records")
+  @@schema("interop_hub")
+}
+
+/// FAOSTAT sync records — tracks denominator import/reconciliation runs.
+model SyncRecord {
+  id                String        @id @default(uuid()) @db.Uuid
+  tenant_id         String        @db.Uuid
+  connector_type    ConnectorType @default(FAOSTAT)
+  country_code      String        @db.VarChar(3)
+  year              Int
+  status            InteropStatus @default(PENDING)
+  records_imported  Int           @default(0)
+  records_updated   Int           @default(0)
+  discrepancies     Int           @default(0)
+  discrepancy_details Json?
+  error_message     String?
+  source_url        String?       @db.VarChar(500)
+  synced_by         String        @db.Uuid
+  synced_at         DateTime?
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
+
+  @@index([tenant_id])
+  @@index([connector_type])
+  @@index([country_code])
+  @@index([status])
+  @@index([created_at])
+  @@map("sync_records")
+  @@schema("interop_hub")
+}
+
+/// Connector configurations — stores endpoint URLs, credentials, and health status.
+model ConnectorConfig {
+  id              String        @id @default(uuid()) @db.Uuid
+  connector_type  ConnectorType @unique
+  name            String        @db.VarChar(100)
+  description     String?
+  base_url        String        @db.VarChar(500)
+  auth_config     Json          @default("{}")
+  is_active       Boolean       @default(true)
+  last_health_check DateTime?
+  last_health_status String?    @db.VarChar(20) // UP, DOWN, DEGRADED
+  config          Json          @default("{}")
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+
+  @@map("connector_configs")
+  @@schema("interop_hub")
+}

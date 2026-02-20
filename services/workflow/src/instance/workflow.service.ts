@@ -8,6 +8,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import type { Prisma } from '@prisma/client';
 import { KafkaProducerService } from '@aris/kafka-client';
+import { AnimalHealthClient } from '@aris/service-clients';
 import {
   TenantLevel,
   WorkflowLevel,
@@ -47,6 +48,7 @@ export class WorkflowService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly kafkaProducer: KafkaProducerService,
+    private readonly animalHealthClient: AnimalHealthClient,
   ) {}
 
   // ── Create ──
@@ -200,15 +202,17 @@ export class WorkflowService {
     // Publish approval event
     await this.publishEvent(TOPIC_AU_WORKFLOW_VALIDATION_APPROVED, updated, user);
 
-    // Publish WAHIS ready when Level 2 approved
+    // Publish WAHIS ready when Level 2 approved + patch source entity
     if (instance.current_level === 'NATIONAL_OFFICIAL' && !instance.wahis_ready) {
       await this.publishEvent(TOPIC_AU_WORKFLOW_WAHIS_READY, updated, user);
+      await this.patchSourceEntity(instance, { wahisReady: true }, user.tenantId);
       this.logger.log(`WAHIS ready: ${instance.entity_type}/${instance.entity_id}`);
     }
 
-    // Publish analytics ready when Level 4 approved
+    // Publish analytics ready when Level 4 approved + patch source entity
     if (instance.current_level === 'CONTINENTAL_PUBLICATION' && !instance.analytics_ready) {
       await this.publishEvent(TOPIC_AU_WORKFLOW_ANALYTICS_READY, updated, user);
+      await this.patchSourceEntity(instance, { analyticsReady: true }, user.tenantId);
       this.logger.log(`Analytics ready: ${instance.entity_type}/${instance.entity_id}`);
     }
 
@@ -439,6 +443,96 @@ export class WorkflowService {
         analyticsReadyCount,
       },
     };
+  }
+
+  // ── Domain Service Callbacks ──
+
+  /**
+   * Patch the source entity in the domain service (e.g., animal-health) to set
+   * wahisReady or analyticsReady flags after workflow approval.
+   */
+  private async patchSourceEntity(
+    instance: { entity_type: string; entity_id: string; domain: string },
+    body: Record<string, unknown>,
+    tenantId: string,
+  ): Promise<void> {
+    try {
+      // Route to the correct domain service client based on the domain
+      if (instance.domain === 'health' || instance.domain === 'animal-health') {
+        await this.animalHealthClient.patchEntity(
+          instance.entity_type,
+          instance.entity_id,
+          body,
+          tenantId,
+        );
+      }
+      // Other domain services will be added as they come online:
+      // - livestock-prod, fisheries, wildlife, apiculture, trade-sps, governance, climate-env
+
+      this.logger.log(
+        `Patched ${instance.entity_type}/${instance.entity_id} with ${JSON.stringify(body)}`,
+      );
+    } catch (error) {
+      // Don't fail the workflow transition if the domain service is unavailable
+      this.logger.warn(
+        `Failed to patch ${instance.entity_type}/${instance.entity_id}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * Auto-advance Level 1 (NATIONAL_TECHNICAL) for a workflow instance.
+   * Called when au.quality.record.validated.v1 is received — quality passed means
+   * technical validation is automatically approved.
+   */
+  async autoAdvanceLevel1(
+    entityId: string,
+    qualityReportId: string,
+  ): Promise<void> {
+    // Find the workflow instance for this entity
+    const instance = await this.prisma.workflowInstance.findFirst({
+      where: {
+        entity_id: entityId,
+        current_level: 'NATIONAL_TECHNICAL',
+        status: { in: ['PENDING', 'IN_REVIEW', 'RETURNED'] },
+      },
+    });
+
+    if (!instance) {
+      this.logger.debug(
+        `No pending Level 1 workflow found for entity ${entityId} — skipping auto-advance`,
+      );
+      return;
+    }
+
+    // Auto-approve Level 1 (technical validation passed by quality service)
+    await this.prisma.$transaction([
+      this.prisma.workflowInstance.update({
+        where: { id: instance.id },
+        data: {
+          current_level: 'NATIONAL_OFFICIAL',
+          status: 'PENDING',
+          quality_report_id: qualityReportId,
+        },
+      }),
+      this.prisma.workflowTransition.create({
+        data: {
+          instance_id: instance.id,
+          from_level: 'NATIONAL_TECHNICAL',
+          to_level: 'NATIONAL_OFFICIAL',
+          from_status: instance.status,
+          to_status: 'PENDING',
+          action: 'APPROVE',
+          actor_user_id: '00000000-0000-0000-0000-000000000000', // SYSTEM
+          actor_role: 'SYSTEM',
+          comment: `Auto-approved: quality gates passed (report: ${qualityReportId})`,
+        },
+      }),
+    ]);
+
+    this.logger.log(
+      `Auto-advanced Level 1 for workflow ${instance.id} (entity ${entityId})`,
+    );
   }
 
   // ── RBAC Checks ──

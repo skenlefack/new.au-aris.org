@@ -986,3 +986,395 @@ export function useFormTemplates() {
     staleTime: 5 * 60_000,
   });
 }
+
+// ─── Interop Types ──────────────────────────────────────────────────────────
+
+export interface InteropConnector {
+  id: string;
+  name: string;
+  code: 'WAHIS' | 'EMPRES' | 'FAOSTAT' | 'FISHSTATJ' | 'CITES';
+  status: 'healthy' | 'degraded' | 'down' | 'unknown';
+  lastSync: string | null;
+  nextScheduledSync: string | null;
+  totalExports: number;
+  totalImports: number;
+  errorCount: number;
+}
+
+export interface WahisExport {
+  id: string;
+  country: string;
+  countryCode: string;
+  reportType: 'immediate' | 'followup' | 'sixmonthly' | 'annual';
+  period: string;
+  status: 'draft' | 'pending' | 'exported' | 'accepted' | 'rejected';
+  recordCount: number;
+  format: 'JSON' | 'XML';
+  exportedAt: string | null;
+  exportedBy: string | null;
+  wahisRef: string | null;
+  createdAt: string;
+}
+
+export interface WahisExportDetail extends WahisExport {
+  records: Array<{
+    id: string;
+    disease: string;
+    species: string;
+    cases: number;
+    deaths: number;
+    region: string;
+  }>;
+  formatPreview: string;
+  downloadUrl: string | null;
+}
+
+export interface EmpresFeed {
+  id: string;
+  signalId: string;
+  title: string;
+  source: string;
+  confidence: 'rumor' | 'unverified' | 'verified' | 'confirmed';
+  country: string;
+  disease: string;
+  receivedAt: string;
+  processedAt: string | null;
+  status: 'received' | 'processed' | 'matched' | 'discarded';
+}
+
+export interface FaostatSync {
+  id: string;
+  dataset: string;
+  direction: 'import' | 'export';
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  recordCount: number;
+  discrepancies: number;
+  startedAt: string;
+  completedAt: string | null;
+  triggeredBy: string;
+}
+
+// ─── Interop Hooks ──────────────────────────────────────────────────────────
+
+export function useInteropConnectors() {
+  return useQuery({
+    queryKey: ['interop', 'connectors'],
+    queryFn: () =>
+      apiClient.get<{ data: InteropConnector[] }>('/interop-hub/connectors'),
+    refetchInterval: 30_000,
+  });
+}
+
+export function useWahisExports(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  country?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.status) searchParams.status = params.status;
+  if (params?.country) searchParams.country = params.country;
+
+  return useQuery({
+    queryKey: ['interop', 'wahis', 'exports', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<WahisExport>>(
+        '/interop-hub/wahis/exports',
+        searchParams,
+      ),
+  });
+}
+
+export function useWahisExport(id: string) {
+  return useQuery({
+    queryKey: ['interop', 'wahis', 'exports', id],
+    queryFn: () =>
+      apiClient.get<{ data: WahisExportDetail }>(
+        `/interop-hub/wahis/exports/${id}`,
+      ),
+    enabled: !!id,
+  });
+}
+
+export function useCreateWahisExport() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: {
+      country: string;
+      reportType: string;
+      periodStart: string;
+      periodEnd: string;
+      format: string;
+    }) =>
+      apiClient.post<{ data: WahisExport }>(
+        '/interop-hub/wahis/exports',
+        data,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interop', 'wahis'] });
+    },
+  });
+}
+
+export function useEmpresFeed(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  confidence?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.status) searchParams.status = params.status;
+  if (params?.confidence) searchParams.confidence = params.confidence;
+
+  return useQuery({
+    queryKey: ['interop', 'empres', 'feed', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<EmpresFeed>>(
+        '/interop-hub/empres/feed',
+        searchParams,
+      ),
+  });
+}
+
+export function useFaostatSyncs(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  direction?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.status) searchParams.status = params.status;
+  if (params?.direction) searchParams.direction = params.direction;
+
+  return useQuery({
+    queryKey: ['interop', 'faostat', 'syncs', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<FaostatSync>>(
+        '/interop-hub/faostat/syncs',
+        searchParams,
+      ),
+  });
+}
+
+export function useTriggerFaostatSync() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { dataset: string }) =>
+      apiClient.post<{ data: FaostatSync }>(
+        '/interop-hub/faostat/sync',
+        data,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interop', 'faostat'] });
+    },
+  });
+}
+
+// ─── Notification Types & Hooks ─────────────────────────────────────────────
+
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface NotificationPreferences {
+  email: Record<string, boolean>;
+  sms: Record<string, boolean>;
+  push: Record<string, boolean>;
+}
+
+export function useNotifications(params?: { page?: number; limit?: number }) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+
+  return useQuery({
+    queryKey: ['notifications', 'list', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<Notification>>(
+        '/messages/notifications',
+        searchParams,
+      ),
+  });
+}
+
+export function useMarkNotificationRead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient.patch<{ data: Notification }>(
+        `/messages/notifications/${id}/read`,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiClient.post<{ data: { count: number } }>(
+        '/messages/notifications/mark-all-read',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+export function useNotificationPreferences() {
+  return useQuery({
+    queryKey: ['settings', 'notification-preferences'],
+    queryFn: () =>
+      apiClient.get<{ data: NotificationPreferences }>(
+        '/messages/preferences',
+      ),
+  });
+}
+
+export function useUpdateNotificationPreferences() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (prefs: NotificationPreferences) =>
+      apiClient.put<{ data: NotificationPreferences }>(
+        '/messages/preferences',
+        prefs,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['settings', 'notification-preferences'],
+      });
+    },
+  });
+}
+
+// ─── Settings Hooks ─────────────────────────────────────────────────────────
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  tenantId: string;
+  mfaEnabled: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+}
+
+export interface TenantConfig {
+  id: string;
+  name: string;
+  code: string;
+  level: string;
+  domain: string;
+  config: Record<string, unknown>;
+  isActive: boolean;
+}
+
+export interface DataContract {
+  id: string;
+  name: string;
+  description: string;
+  provider: string;
+  consumer: string;
+  frequency: string;
+  timelinessSla: number;
+  qualitySla: { minPassRate: number };
+  status: 'active' | 'draft' | 'suspended';
+  complianceRate: number;
+  lastDelivery: string | null;
+  createdAt: string;
+}
+
+export function useUserProfile() {
+  return useQuery({
+    queryKey: ['settings', 'profile'],
+    queryFn: () =>
+      apiClient.get<{ data: UserProfile }>('/credential/users/me'),
+  });
+}
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+    }) =>
+      apiClient.patch<{ data: UserProfile }>('/credential/users/me', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings', 'profile'] });
+    },
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (data: { currentPassword: string; newPassword: string }) =>
+      apiClient.post<{ data: { message: string } }>(
+        '/credential/users/me/change-password',
+        data,
+      ),
+  });
+}
+
+export function useTenantConfig() {
+  return useQuery({
+    queryKey: ['settings', 'tenant'],
+    queryFn: () =>
+      apiClient.get<{ data: TenantConfig }>('/tenants/current'),
+  });
+}
+
+export function useUpdateTenantConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { name?: string; domain?: string; config?: Record<string, unknown> }) =>
+      apiClient.patch<{ data: TenantConfig }>('/tenants/current', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings', 'tenant'] });
+    },
+  });
+}
+
+export function useDataContracts(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.status) searchParams.status = params.status;
+
+  return useQuery({
+    queryKey: ['settings', 'data-contracts', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<DataContract>>(
+        '/data-contract/contracts',
+        searchParams,
+      ),
+  });
+}

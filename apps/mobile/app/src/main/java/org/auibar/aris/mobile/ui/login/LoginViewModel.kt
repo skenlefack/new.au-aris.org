@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.auibar.aris.mobile.data.remote.websocket.WebSocketManager
 import org.auibar.aris.mobile.data.repository.AuthRepository
 import javax.inject.Inject
 
@@ -21,6 +22,7 @@ data class LoginUiState(
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val webSocketManager: WebSocketManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -51,6 +53,8 @@ class LoginViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val result = authRepository.login(state.email, state.password)
             _uiState.value = if (result.isSuccess) {
+                // Connect WebSocket after successful login
+                webSocketManager.connect()
                 _uiState.value.copy(isLoading = false, isLoggedIn = true)
             } else {
                 _uiState.value.copy(

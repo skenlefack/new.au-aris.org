@@ -16,8 +16,10 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.auibar.aris.mobile.BuildConfig
+import org.auibar.aris.mobile.data.remote.api.AnalyticsApi
 import org.auibar.aris.mobile.data.remote.api.AuthApi
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
+import org.auibar.aris.mobile.data.remote.api.MessageApi
 import org.auibar.aris.mobile.data.remote.api.SyncApi
 import org.auibar.aris.mobile.util.TokenManager
 import javax.inject.Singleton
@@ -81,4 +83,12 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideSyncApi(client: HttpClient): SyncApi = SyncApi(client)
+
+    @Provides
+    @Singleton
+    fun provideMessageApi(client: HttpClient): MessageApi = MessageApi(client)
+
+    @Provides
+    @Singleton
+    fun provideAnalyticsApi(client: HttpClient): AnalyticsApi = AnalyticsApi(client)
 }

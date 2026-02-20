@@ -1,18 +1,89 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ARIS</string>
-    <string name="app_subtitle">Systeme d\'Information sur les Ressources Animales</string>
+    <string name="app_subtitle">Syst\u00e8me d\'Information sur les Ressources Animales</string>
+
+    <!-- Auth -->
     <string name="email">Email</string>
     <string name="password">Mot de passe</string>
     <string name="login">Se connecter</string>
+    <string name="logout">D\u00e9connexion</string>
+    <string name="logout_confirm">Voulez-vous vraiment vous d\u00e9connecter ? Les donn\u00e9es non synchronis\u00e9es resteront sur l\'appareil.</string>
+
+    <!-- Navigation -->
+    <string name="dashboard">Tableau de bord</string>
     <string name="campaigns">Campagnes</string>
     <string name="submissions">Mes soumissions</string>
+    <string name="notifications">Notifications</string>
+    <string name="settings">Param\u00e8tres</string>
+
+    <!-- Campaign -->
     <string name="no_campaigns">Aucune campagne active</string>
     <string name="no_submissions">Aucune soumission</string>
+    <string name="campaign_detail">D\u00e9tails de la campagne</string>
+    <string name="progress">Progression</string>
+    <string name="recent_campaigns">Campagnes r\u00e9centes</string>
+
+    <!-- Sync -->
     <string name="sync">Synchroniser</string>
-    <string name="logout">Deconnexion</string>
+    <string name="sync_now">Synchroniser</string>
+    <string name="sync_frequency">Fr\u00e9quence de synchronisation</string>
+    <string name="last_sync">Derni\u00e8re synchronisation</string>
+    <string name="never">Jamais</string>
+
+    <!-- Status -->
     <string name="pending">En attente</string>
-    <string name="synced">Synchronise</string>
-    <string name="failed">Echoue</string>
+    <string name="synced">Synchronis\u00e9</string>
+    <string name="failed">\u00c9chou\u00e9</string>
     <string name="conflict">Conflit</string>
+    <string name="draft">Brouillon</string>
+
+    <!-- Form -->
+    <string name="new_submission">Nouvelle soumission</string>
+    <string name="save_draft">Enregistrer le brouillon</string>
+    <string name="submit">Soumettre</string>
+    <string name="select_option">S\u00e9lectionnez une option</string>
+    <string name="select_species">S\u00e9lectionnez une esp\u00e8ce</string>
+    <string name="select_disease">S\u00e9lectionnez une maladie</string>
+    <string name="select_country">S\u00e9lectionnez un pays</string>
+    <string name="select_admin1">S\u00e9lectionnez le niveau admin 1</string>
+    <string name="select_admin2">S\u00e9lectionnez le niveau admin 2</string>
+    <string name="capture_location">Capturer la position GPS</string>
+    <string name="take_photo">Prendre une photo</string>
+    <string name="location_captured">Position captur\u00e9e</string>
+    <string name="photo_captured">Photo captur\u00e9e</string>
+    <string name="field_required">Ce champ est obligatoire</string>
+    <string name="validation_error">Erreur de validation</string>
+    <string name="form_saved">Brouillon enregistr\u00e9</string>
+    <string name="form_submitted">Soumission en file d\'attente de synchronisation</string>
+    <string name="pick_date">Choisir une date</string>
+
+    <!-- Dashboard -->
+    <string name="health_overview">Aper\u00e7u sant\u00e9</string>
+    <string name="no_kpi_data">Aucune donn\u00e9e KPI disponible</string>
+    <string name="pending_submissions">Soumissions en attente</string>
+    <string name="quick_actions">Actions rapides</string>
+
+    <!-- Notifications -->
+    <string name="no_notifications">Aucune notification</string>
+    <string name="mark_all_read">Tout marquer comme lu</string>
+    <string name="unread">Non lu</string>
+    <string name="channel_alerts">Alertes de foyers</string>
+    <string name="channel_alerts_desc">Alertes urgentes de foyers et maladies</string>
+    <string name="channel_general">G\u00e9n\u00e9ral</string>
+    <string name="channel_general_desc">Mises \u00e0 jour de synchronisation et notifications syst\u00e8me</string>
+
+    <!-- Settings -->
+    <string name="language">Langue</string>
+    <string name="clear_cache">Vider le cache local</string>
+    <string name="clear_cache_desc">Supprimer toutes les donn\u00e9es hors ligne de cet appareil</string>
+    <string name="clear_cache_confirm">Cela supprimera toutes les campagnes, soumissions et donn\u00e9es de r\u00e9f\u00e9rence stock\u00e9es localement. Vous devrez resynchroniser. Continuer ?</string>
+    <string name="cache_cleared">Cache vid\u00e9 avec succ\u00e8s</string>
+    <string name="app_version">Version de l\'application</string>
+    <string name="unknown_user">Utilisateur inconnu</string>
+    <string name="confirm">Confirmer</string>
+    <string name="cancel">Annuler</string>
+
+    <!-- Connectivity -->
+    <string name="offline_banner">Vous \u00eates hors ligne. Les donn\u00e9es seront synchronis\u00e9es une fois connect\u00e9.</string>
 </resources>

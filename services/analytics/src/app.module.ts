@@ -4,6 +4,8 @@ import { AuthModule } from '@aris/auth-middleware';
 import { RedisService } from './redis.service';
 import { HealthKpiModule } from './health-kpi/health-kpi.module';
 import { HealthModule } from './health/health.module';
+import { AggregationModule } from './aggregation/aggregation.module';
+import { ConsumersModule } from './consumers/consumers.module';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { HealthModule } from './health/health.module';
     AuthModule.forRoot({
       publicKey: process.env['JWT_PUBLIC_KEY'] ?? '',
     }),
+    AggregationModule,
+    ConsumersModule,
     HealthKpiModule,
     HealthModule,
   ],

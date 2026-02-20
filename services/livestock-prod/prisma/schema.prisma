@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model LivestockCensus {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  geoEntityId     String   @map("geo_entity_id")
+  speciesId       String   @map("species_id")
+  year            Int
+  population      Int
+  methodology     String
+  source          String
+  dataClassification String @default("PARTNER") @map("data_classification")
+  createdBy       String   @map("created_by")
+  updatedBy       String   @map("updated_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([tenantId, geoEntityId, speciesId, year])
+  @@map("livestock_census")
+}
+
+model ProductionRecord {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  speciesId       String   @map("species_id")
+  productType     String   @map("product_type")
+  quantity        Float
+  unit            String
+  periodStart     DateTime @map("period_start")
+  periodEnd       DateTime @map("period_end")
+  geoEntityId     String   @map("geo_entity_id")
+  dataClassification String @default("PARTNER") @map("data_classification")
+  createdBy       String   @map("created_by")
+  updatedBy       String   @map("updated_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("production_record")
+}
+
+model SlaughterRecord {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  speciesId       String   @map("species_id")
+  facilityId      String   @map("facility_id")
+  count           Int
+  condemnations   Int      @default(0)
+  periodStart     DateTime @map("period_start")
+  periodEnd       DateTime @map("period_end")
+  geoEntityId     String   @map("geo_entity_id")
+  dataClassification String @default("PARTNER") @map("data_classification")
+  createdBy       String   @map("created_by")
+  updatedBy       String   @map("updated_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("slaughter_record")
+}
+
+model TranshumanceCorridor {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  name            String
+  route           Json
+  speciesId       String   @map("species_id")
+  seasonality     String
+  crossBorder     Boolean  @default(false) @map("cross_border")
+  dataClassification String @default("PARTNER") @map("data_classification")
+  createdBy       String   @map("created_by")
+  updatedBy       String   @map("updated_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("transhumance_corridor")
+}

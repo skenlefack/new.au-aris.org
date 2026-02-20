@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Test } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { SubmissionService } from './submission.service';
-import { PrismaService } from '../prisma.service';
-import { KafkaProducerService } from '@aris/kafka-client';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { UserRole, TenantLevel } from '@aris/shared-types';
 
@@ -46,6 +43,30 @@ const mockSubmission = {
   updatedAt: new Date(),
 };
 
+const mockQualityReport = {
+  id: 'qr-001',
+  recordId: mockSubmission.id,
+  entityType: 'Submission',
+  domain: 'health',
+  tenantId: fieldAgent.tenantId,
+  overallStatus: 'PASSED' as const,
+  totalDurationMs: 42,
+  checkedAt: new Date().toISOString(),
+};
+
+const mockWorkflowInstance = {
+  id: 'wf-001',
+  tenantId: fieldAgent.tenantId,
+  entityType: 'Submission',
+  entityId: mockSubmission.id,
+  domain: 'health',
+  currentLevel: 'NATIONAL_TECHNICAL',
+  status: 'PENDING',
+  wahisReady: false,
+  analyticsReady: false,
+  createdAt: new Date().toISOString(),
+};
+
 describe('SubmissionService', () => {
   let service: SubmissionService;
   let prisma: {
@@ -57,14 +78,17 @@ describe('SubmissionService', () => {
       findMany: ReturnType<typeof vi.fn>;
       findUnique: ReturnType<typeof vi.fn>;
       count: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
     };
     formTemplate: {
       findUnique: ReturnType<typeof vi.fn>;
     };
   };
   let kafkaProducer: { send: ReturnType<typeof vi.fn> };
+  let dataQualityClient: { validate: ReturnType<typeof vi.fn> };
+  let workflowClient: { createInstance: ReturnType<typeof vi.fn> };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     prisma = {
       campaign: {
         findUnique: vi.fn().mockResolvedValue(mockCampaign),
@@ -74,22 +98,34 @@ describe('SubmissionService', () => {
         findMany: vi.fn().mockResolvedValue([mockSubmission]),
         findUnique: vi.fn().mockResolvedValue(mockSubmission),
         count: vi.fn().mockResolvedValue(1),
+        update: vi.fn().mockResolvedValue(mockSubmission),
       },
       formTemplate: {
         findUnique: vi.fn().mockResolvedValue(null), // No template = skip validation
       },
     };
     kafkaProducer = { send: vi.fn().mockResolvedValue(undefined) };
+    dataQualityClient = {
+      validate: vi.fn().mockResolvedValue({
+        status: 200,
+        data: { data: mockQualityReport },
+        headers: {},
+      }),
+    };
+    workflowClient = {
+      createInstance: vi.fn().mockResolvedValue({
+        status: 201,
+        data: { data: mockWorkflowInstance },
+        headers: {},
+      }),
+    };
 
-    const module = await Test.createTestingModule({
-      providers: [
-        SubmissionService,
-        { provide: PrismaService, useValue: prisma },
-        { provide: KafkaProducerService, useValue: kafkaProducer },
-      ],
-    }).compile();
-
-    service = module.get(SubmissionService);
+    service = new SubmissionService(
+      prisma as never,
+      kafkaProducer as never,
+      dataQualityClient as never,
+      workflowClient as never,
+    );
   });
 
   describe('submit', () => {
@@ -108,6 +144,92 @@ describe('SubmissionService', () => {
       expect(result.data).toBeDefined();
       expect(result.data.id).toBe(mockSubmission.id);
       expect(prisma.submission.create).toHaveBeenCalledOnce();
+    });
+
+    it('should call data quality validation after creating submission', async () => {
+      await service.submit(dto as any, fieldAgent);
+
+      expect(dataQualityClient.validate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recordId: mockSubmission.id,
+          entityType: 'Submission',
+          domain: 'health',
+        }),
+        fieldAgent.tenantId,
+      );
+    });
+
+    it('should create workflow instance when quality passes', async () => {
+      await service.submit(dto as any, fieldAgent);
+
+      expect(workflowClient.createInstance).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entityType: 'Submission',
+          entityId: mockSubmission.id,
+          domain: 'health',
+          qualityReportId: 'qr-001',
+        }),
+        fieldAgent.tenantId,
+      );
+    });
+
+    it('should NOT create workflow when quality fails', async () => {
+      dataQualityClient.validate.mockResolvedValue({
+        status: 200,
+        data: { data: { ...mockQualityReport, overallStatus: 'FAILED' } },
+        headers: {},
+      });
+
+      await service.submit(dto as any, fieldAgent);
+
+      expect(workflowClient.createInstance).not.toHaveBeenCalled();
+      // Should update status to REJECTED
+      expect(prisma.submission.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'REJECTED' }),
+        }),
+      );
+    });
+
+    it('should proceed gracefully when quality service is unavailable', async () => {
+      dataQualityClient.validate.mockRejectedValue(new Error('ECONNREFUSED'));
+
+      const result = await service.submit(dto as any, fieldAgent);
+
+      expect(result.data).toBeDefined();
+      // Should still create workflow (graceful degradation)
+      expect(workflowClient.createInstance).toHaveBeenCalled();
+    });
+
+    it('should proceed gracefully when workflow service is unavailable', async () => {
+      workflowClient.createInstance.mockRejectedValue(new Error('ECONNREFUSED'));
+
+      const result = await service.submit(dto as any, fieldAgent);
+
+      expect(result.data).toBeDefined();
+      // Should not throw — logs warning
+    });
+
+    it('should store qualityReportId on submission after quality check', async () => {
+      await service.submit(dto as any, fieldAgent);
+
+      expect(prisma.submission.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: mockSubmission.id },
+          data: expect.objectContaining({ qualityReportId: 'qr-001' }),
+        }),
+      );
+    });
+
+    it('should store workflowInstanceId on submission after workflow creation', async () => {
+      await service.submit(dto as any, fieldAgent);
+
+      expect(prisma.submission.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: mockSubmission.id },
+          data: expect.objectContaining({ workflowInstanceId: 'wf-001' }),
+        }),
+      );
     });
 
     it('should publish Kafka event', async () => {
@@ -177,6 +299,38 @@ describe('SubmissionService', () => {
 
       const result = await service.submit(dto as any, fieldAgent);
       expect(result.data).toBeDefined();
+    });
+
+    it('should publish rejection event when quality fails', async () => {
+      dataQualityClient.validate.mockResolvedValue({
+        status: 200,
+        data: { data: { ...mockQualityReport, overallStatus: 'FAILED' } },
+        headers: {},
+      });
+
+      await service.submit(dto as any, fieldAgent);
+
+      expect(kafkaProducer.send).toHaveBeenCalledWith(
+        'au.quality.record.rejected.v1',
+        mockSubmission.id,
+        expect.objectContaining({
+          submissionId: mockSubmission.id,
+          overallStatus: 'FAILED',
+        }),
+        expect.any(Object),
+      );
+    });
+
+    it('should treat WARNING quality status as passed', async () => {
+      dataQualityClient.validate.mockResolvedValue({
+        status: 200,
+        data: { data: { ...mockQualityReport, overallStatus: 'WARNING' } },
+        headers: {},
+      });
+
+      await service.submit(dto as any, fieldAgent);
+
+      expect(workflowClient.createInstance).toHaveBeenCalled();
     });
   });
 
