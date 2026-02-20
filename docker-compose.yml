@@ -1,0 +1,342 @@
+# ARIS 3.0 — Docker Compose Infrastructure
+# Kafka KRaft (3 brokers), PostgreSQL+PostGIS, Redis, Elasticsearch, MinIO, Mailpit
+# Usage: docker compose up -d
+
+version: '3.9'
+
+x-kafka-common: &kafka-common
+  image: confluentinc/cp-kafka:7.6.1
+  restart: unless-stopped
+  networks:
+    - aris-network
+
+services:
+  # ═══════════════════════════════════════════════════
+  # KAFKA KRAFT CLUSTER — 3 Brokers (Controller + Broker)
+  # ═══════════════════════════════════════════════════
+  kafka-1:
+    <<: *kafka-common
+    container_name: aris-kafka-1
+    hostname: kafka-1
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka-1:29092,EXTERNAL://localhost:9092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      CLUSTER_ID: 'aris-kafka-cluster-2024'
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_NUM_PARTITIONS: 6
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_RETENTION_BYTES: 1073741824
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_JMX_PORT: 9997
+    volumes:
+      - kafka-1-data:/var/lib/kafka/data
+
+  kafka-2:
+    <<: *kafka-common
+    container_name: aris-kafka-2
+    hostname: kafka-2
+    ports:
+      - "9094:9094"
+    environment:
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9094'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka-2:29092,EXTERNAL://localhost:9094'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      CLUSTER_ID: 'aris-kafka-cluster-2024'
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_NUM_PARTITIONS: 6
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_JMX_PORT: 9997
+    volumes:
+      - kafka-2-data:/var/lib/kafka/data
+
+  kafka-3:
+    <<: *kafka-common
+    container_name: aris-kafka-3
+    hostname: kafka-3
+    ports:
+      - "9096:9096"
+    environment:
+      KAFKA_NODE_ID: 3
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9096'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka-3:29092,EXTERNAL://localhost:9096'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      CLUSTER_ID: 'aris-kafka-cluster-2024'
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_NUM_PARTITIONS: 6
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_JMX_PORT: 9997
+    volumes:
+      - kafka-3-data:/var/lib/kafka/data
+
+  # ═══════════════════════════════════════════════════
+  # KAFKA UI — Monitoring & Management
+  # ═══════════════════════════════════════════════════
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: aris-kafka-ui
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: 'ARIS Cluster'
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka-1:29092,kafka-2:29092,kafka-3:29092'
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    networks:
+      - aris-network
+
+  # ═══════════════════════════════════════════════════
+  # SCHEMA REGISTRY — Avro/JSON Schema governance
+  # ═══════════════════════════════════════════════════
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.1
+    container_name: aris-schema-registry
+    hostname: schema-registry
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka-1:29092,kafka-2:29092,kafka-3:29092'
+      SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081'
+      SCHEMA_REGISTRY_SCHEMA_COMPATIBILITY_LEVEL: 'BACKWARD'
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    networks:
+      - aris-network
+
+  # ═══════════════════════════════════════════════════
+  # POSTGRESQL + POSTGIS — Primary Database
+  # ═══════════════════════════════════════════════════
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: aris-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aris}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aris_dev_2024}
+      POSTGRES_DB: ${POSTGRES_DB:-aris}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aris"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aris-network
+
+  # ═══════════════════════════════════════════════════
+  # REDIS — Cache, Sessions, CQRS Read Models, Locks
+  # ═══════════════════════════════════════════════════
+  redis:
+    image: redis:7-alpine
+    container_name: aris-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aris-network
+
+  # ═══════════════════════════════════════════════════
+  # ELASTICSEARCH — Search Engine
+  # ═══════════════════════════════════════════════════
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: aris-elasticsearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - cluster.name=aris-search
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - aris-network
+
+  # ═══════════════════════════════════════════════════
+  # MINIO — S3-compatible Object Storage
+  # ═══════════════════════════════════════════════════
+  minio:
+    image: minio/minio:RELEASE.2024-04-18T19-09-19Z
+    container_name: aris-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-aris_minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-aris_minio_2024}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - aris-network
+
+  # ═══════════════════════════════════════════════════
+  # MAILPIT — Email testing (dev only)
+  # ═══════════════════════════════════════════════════
+  mailpit:
+    image: axllent/mailpit:v1.18
+    container_name: aris-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - aris-network
+
+  # ═══════════════════════════════════════════════════
+  # KAFKA TOPIC INIT — Create all topics on startup
+  # ═══════════════════════════════════════════════════
+  kafka-init:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: aris-kafka-init
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    entrypoint: ["/bin/bash", "-c"]
+    command: |
+      "
+      echo 'Waiting for Kafka to be ready...'
+      cub kafka-ready -b kafka-1:29092 1 60
+
+      echo 'Creating ARIS Kafka topics...'
+      BOOTSTRAP=kafka-1:29092
+
+      # === System Topics ===
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.tenant.created.v1 --partitions 3 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.tenant.updated.v1 --partitions 3 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.credential.user.created.v1 --partitions 3 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.credential.user.authenticated.v1 --partitions 6 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.message.notification.sent.v1 --partitions 6 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.message.notification.failed.v1 --partitions 3 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.drive.file.uploaded.v1 --partitions 3 --replication-factor 3
+
+      # === Master Data Topics ===
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.master.geo.updated.v1 --partitions 3 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.master.species.updated.v1 --partitions 3 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.master.disease.updated.v1 --partitions 3 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.master.denominator.updated.v1 --partitions 3 --replication-factor 3
+
+      # === Quality Topics ===
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic au.quality.record.validated.v1 --partitions 6 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic au.quality.record.rejected.v1 --partitions 6 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic au.quality.correction.overdue.v1 --partitions 3 --replication-factor 3
+
+      # === Collecte Topics ===
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic ms.collecte.campaign.created.v1 --partitions 3 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic ms.collecte.form.submitted.v1 --partitions 12 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic ms.collecte.form.synced.v1 --partitions 6 --replication-factor 3
+
+      # === FormBuilder Topics ===
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic ms.formbuilder.template.created.v1 --partitions 3 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic ms.formbuilder.template.published.v1 --partitions 3 --replication-factor 3
+
+      # === Workflow Topics ===
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic au.workflow.validation.submitted.v1 --partitions 6 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic au.workflow.validation.approved.v1 --partitions 6 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic au.workflow.validation.rejected.v1 --partitions 6 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic au.workflow.validation.escalated.v1 --partitions 3 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic au.workflow.wahis.ready.v1 --partitions 3 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic au.workflow.analytics.ready.v1 --partitions 3 --replication-factor 3
+
+      # === Health Domain Topics ===
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic ms.health.event.created.v1 --partitions 6 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic ms.health.event.updated.v1 --partitions 6 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic ms.health.event.confirmed.v1 --partitions 6 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic ms.health.lab.result.created.v1 --partitions 6 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic ms.health.vaccination.completed.v1 --partitions 6 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic ms.health.surveillance.reported.v1 --partitions 6 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic rec.health.outbreak.alert.v1 --partitions 3 --replication-factor 3
+
+      # === Interop Topics ===
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic au.interop.wahis.exported.v1 --partitions 3 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic au.interop.empres.fed.v1 --partitions 3 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic au.interop.faostat.synced.v1 --partitions 3 --replication-factor 3
+
+      # === DLQ Topics ===
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic dlq.all.v1 --partitions 3 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic dlq.health.v1 --partitions 3 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic dlq.collecte.v1 --partitions 3 --replication-factor 3
+
+      echo 'All ARIS topics created!'
+      kafka-topics --list --bootstrap-server $$BOOTSTRAP
+      "
+    networks:
+      - aris-network
+
+volumes:
+  kafka-1-data:
+  kafka-2-data:
+  kafka-3-data:
+  postgres-data:
+  redis-data:
+  es-data:
+  minio-data:
+
+networks:
+  aris-network:
+    driver: bridge
+    name: aris-network
