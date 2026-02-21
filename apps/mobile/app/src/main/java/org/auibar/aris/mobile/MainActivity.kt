@@ -1,6 +1,7 @@
 package org.auibar.aris.mobile
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -17,13 +19,16 @@ import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.data.remote.websocket.WebSocketManager
 import org.auibar.aris.mobile.data.repository.NotificationRepository
 import org.auibar.aris.mobile.ui.components.OfflineBanner
+import org.auibar.aris.mobile.ui.components.UpdatePromptDialog
 import org.auibar.aris.mobile.ui.navigation.ArisNavGraph
 import org.auibar.aris.mobile.ui.navigation.ArisRoutes
 import org.auibar.aris.mobile.ui.theme.ArisTheme
+import org.auibar.aris.mobile.util.AppUpdateManager
 import org.auibar.aris.mobile.util.ConnectivityObserver
 import org.auibar.aris.mobile.util.LocaleManager
 import org.auibar.aris.mobile.util.NotificationHelper
 import org.auibar.aris.mobile.util.TokenManager
+import org.auibar.aris.mobile.util.UpdateInfo
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -46,6 +51,11 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var localeManager: LocaleManager
+
+    @Inject
+    lateinit var appUpdateManager: AppUpdateManager
+
+    private val pendingUpdateInfo = mutableStateOf<UpdateInfo?>(null)
 
     override fun attachBaseContext(newBase: Context) {
         // Apply locale before super to ensure correct language from the start
@@ -73,8 +83,30 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // Check for app updates
+        lifecycleScope.launch {
+            val update = appUpdateManager.checkForUpdate()
+            if (update != null) {
+                pendingUpdateInfo.value = update
+            }
+        }
+
         setContent {
             ArisTheme {
+                // Update prompt dialog
+                val updateInfo = pendingUpdateInfo.value
+                if (updateInfo != null) {
+                    UpdatePromptDialog(
+                        updateInfo = updateInfo,
+                        onUpdate = {
+                            appUpdateManager.openUpdateUrl(updateInfo.downloadUrl)
+                        },
+                        onDismiss = {
+                            pendingUpdateInfo.value = null
+                        },
+                    )
+                }
+
                 val isOnline by connectivityObserver.isOnline.collectAsStateWithLifecycle(
                     initialValue = true,
                 )
@@ -88,6 +120,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // Navigation framework handles deep link via intent automatically
     }
 
     override fun onDestroy() {

@@ -114,3 +114,87 @@
     animation-name: slideInFromTop;
   }
 }
+
+/* ── Dark mode base ──────────────────────────────────────────────────── */
+@layer base {
+  .dark {
+    color-scheme: dark;
+  }
+
+  .dark body {
+    @apply bg-gray-950 text-gray-100;
+  }
+}
+
+/* ── Print styles ────────────────────────────────────────────────────── */
+@media print {
+  /* Hide non-content elements */
+  .no-print,
+  nav,
+  aside,
+  .skip-link,
+  .network-banner-in,
+  .network-banner-out,
+  [role="banner"],
+  button:not(.print-keep) {
+    display: none !important;
+  }
+
+  /* Reset backgrounds for printing */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+  }
+
+  /* Cards and sections */
+  .rounded-card {
+    border: 1px solid #d1d5db !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Tables */
+  table {
+    border-collapse: collapse !important;
+  }
+
+  th, td {
+    border: 1px solid #d1d5db !important;
+    padding: 4px 8px !important;
+  }
+
+  /* Links show URL */
+  a[href]::after {
+    content: none; /* Don't show URLs in data tables */
+  }
+
+  /* Official header/footer */
+  .print-header,
+  .print-footer {
+    display: block !important;
+  }
+
+  /* Page margins */
+  @page {
+    margin: 2cm;
+    size: A4;
+  }
+
+  /* Ensure content fills width */
+  main {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .px-6 {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+
+/* Hide print-only elements on screen */
+.print-header,
+.print-footer {
+  display: none;
+}

@@ -35,10 +35,10 @@ export default function DashboardLayout({
         />
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* Mobile header bar with hamburger */}
-          <div className="flex items-center border-b border-gray-200 bg-white px-4 py-2 lg:hidden">
+          <div className="flex items-center border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-2 lg:hidden">
             <button
               onClick={() => setMobileOpen(true)}
-              className="flex items-center justify-center rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+              className="flex items-center justify-center rounded-lg p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200"
               aria-label="Open navigation"
             >
               <Menu className="h-5 w-5" />
@@ -47,11 +47,11 @@ export default function DashboardLayout({
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-aris-primary-600 text-[10px] font-bold text-white">
                 AR
               </div>
-              <span className="text-sm font-bold text-gray-900">ARIS 3.0</span>
+              <span className="text-sm font-bold text-gray-900 dark:text-white">ARIS 3.0</span>
             </div>
           </div>
           <Header />
-          <main className="flex-1 overflow-y-auto bg-gray-50">
+          <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950">
             <div className="px-6 py-4">
               <Breadcrumbs />
             </div>

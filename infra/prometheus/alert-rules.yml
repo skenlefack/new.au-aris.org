@@ -1,0 +1,155 @@
+# ARIS 3.0 — Prometheus Alerting Rules
+
+groups:
+  # ═══════════════════════════════════════
+  # Service Availability
+  # ═══════════════════════════════════════
+  - name: aris_service_availability
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been unreachable for more than 2 minutes."
+
+      - alert: HealthCheckFailing
+        expr: aris_health_check_status == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Health check failing for {{ $labels.service }}"
+          description: "{{ $labels.service }} health check has been failing for 1 minute."
+
+  # ═══════════════════════════════════════
+  # HTTP Error Rates
+  # ═══════════════════════════════════════
+  - name: aris_http_errors
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(aris_http_requests_total{status=~"5.."}[5m])) by (service)
+            /
+            sum(rate(aris_http_requests_total[5m])) by (service)
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "{{ $labels.service }} has > 5% error rate (current: {{ $value | humanizePercentage }})."
+
+      - alert: HighClientErrorRate
+        expr: |
+          (
+            sum(rate(aris_http_requests_total{status=~"4.."}[5m])) by (service)
+            /
+            sum(rate(aris_http_requests_total[5m])) by (service)
+          ) > 0.20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High client error rate on {{ $labels.service }}"
+          description: "{{ $labels.service }} has > 20% 4xx rate."
+
+  # ═══════════════════════════════════════
+  # API Latency
+  # ═══════════════════════════════════════
+  - name: aris_api_latency
+    rules:
+      - alert: HighLatencyP99
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(aris_http_request_duration_seconds_bucket[5m])) by (le, service)
+          ) > 5
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "P99 latency > 5s on {{ $labels.service }}"
+          description: "{{ $labels.service }} p99 latency is {{ $value | humanizeDuration }}."
+
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(aris_http_request_duration_seconds_bucket[5m])) by (le, service)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P95 latency > 2s on {{ $labels.service }}"
+          description: "{{ $labels.service }} p95 latency is {{ $value | humanizeDuration }}."
+
+  # ═══════════════════════════════════════
+  # Kafka
+  # ═══════════════════════════════════════
+  - name: aris_kafka
+    rules:
+      - alert: KafkaConsumerLagHigh
+        expr: aris_kafka_consumer_lag > 1000
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka consumer lag > 1000 on {{ $labels.topic }}"
+          description: "Consumer group {{ $labels.group }} on topic {{ $labels.topic }} partition {{ $labels.partition }} has lag {{ $value }}."
+
+      - alert: KafkaProduceFailures
+        expr: rate(aris_kafka_messages_failed_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka message failures on {{ $labels.topic }}"
+          description: "Consumer group {{ $labels.group }} is failing to process messages from {{ $labels.topic }}."
+
+  # ═══════════════════════════════════════
+  # System Resources
+  # ═══════════════════════════════════════
+  - name: aris_system_resources
+    rules:
+      - alert: HighDiskUsage
+        expr: |
+          (1 - node_filesystem_avail_bytes / node_filesystem_size_bytes) > 0.80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk usage > 80%"
+          description: "Disk usage on {{ $labels.instance }} is {{ $value | humanizePercentage }}."
+
+      - alert: CriticalDiskUsage
+        expr: |
+          (1 - node_filesystem_avail_bytes / node_filesystem_size_bytes) > 0.95
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk usage > 95%"
+          description: "Disk usage on {{ $labels.instance }} is {{ $value | humanizePercentage }}. Immediate action required."
+
+      - alert: HighMemoryUsage
+        expr: |
+          process_resident_memory_bytes / 1024 / 1024 > 1024
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.service }}"
+          description: "{{ $labels.service }} is using {{ $value | humanize }}MB of memory."
+
+      - alert: NodeJSHeapCritical
+        expr: |
+          nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes > 0.90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node.js heap usage > 90% on {{ $labels.service }}"
+          description: "{{ $labels.service }} heap is at {{ $value | humanizePercentage }}. Risk of OOM."

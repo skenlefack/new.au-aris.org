@@ -155,7 +155,54 @@
     <string name="error_server">Server error. Please try again later.</string>
     <string name="error_unknown">An unexpected error occurred.</string>
 
+    <!-- Offline Maps -->
+    <string name="offline_maps">Offline Maps</string>
+    <string name="cd_back_button">Go back</string>
+    <string name="map_layers">Map Layers</string>
+    <string name="download_tiles">Download Map Tiles</string>
+    <string name="downloading_tiles">Downloading tiles\u2026</string>
+    <string name="map_submissions">Submission Locations</string>
+    <string name="map_outbreaks">Outbreak Markers</string>
+    <string name="map_gps_tracks">GPS Tracks</string>
+    <string name="tile_storage_size">Tile storage: %s</string>
+    <string name="delete_tiles">Delete Offline Tiles</string>
+
     <!-- Release -->
     <string name="loading">Loading\u2026</string>
     <string name="version_format">Version %s</string>
+
+    <!-- Maps (additional) -->
+    <string name="tiles_downloaded">Map tiles downloaded</string>
+    <string name="no_offline_tiles">No offline tiles available</string>
+
+    <!-- Charts -->
+    <string name="chart_campaign_progress">Campaign Progress</string>
+    <string name="chart_submissions_status">Submissions by Status</string>
+    <string name="chart_sync_history">Sync History</string>
+    <string name="chart_kpi_trend">KPI Trend</string>
+    <string name="chart_no_data">No chart data available</string>
+
+    <!-- Accessibility -->
+    <string name="cd_app_logo">ARIS application logo</string>
+    <string name="cd_sync_status">Sync status: %s</string>
+    <string name="cd_kpi_value">%1$s: %2$s</string>
+    <string name="cd_campaign_card">Campaign: %1$s, Status: %2$s</string>
+    <string name="cd_submission_card">Submission for %1$s, Status: %2$s</string>
+    <string name="cd_notification_unread">Unread notification</string>
+    <string name="cd_notification_read">Read notification</string>
+    <string name="cd_close_dialog">Close dialog</string>
+    <string name="cd_open_menu">Open menu</string>
+
+    <!-- Deep Linking -->
+    <string name="deep_link_error">Could not open the requested item</string>
+    <string name="deep_link_not_found">Item not found</string>
+
+    <!-- App Update -->
+    <string name="update_available">Update Available</string>
+    <string name="update_message">A new version of ARIS (%s) is available. Please update for the latest features and security fixes.</string>
+    <string name="update_required">Update Required</string>
+    <string name="update_required_message">A critical update is required. Please update ARIS to continue.</string>
+    <string name="update_now">Update Now</string>
+    <string name="update_later">Later</string>
+    <string name="update_checking">Checking for updates\u2026</string>
 </resources>

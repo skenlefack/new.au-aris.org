@@ -59,6 +59,8 @@ export interface AuditEntry {
   actor: { userId: string; role: string; tenantId: string };
   timestamp: string;
   reason: string | null;
+  previousVersion: Record<string, unknown> | null;
+  newVersion: Record<string, unknown> | null;
   dataClassification: string;
 }
 
@@ -251,4 +253,313 @@ export function useDashboardStats() {
       avgComplianceRate: 0,
     },
   });
+}
+
+// ── System Health (enhanced) ──
+
+export interface DetailedServiceHealth {
+  name: string;
+  port: number;
+  status: 'healthy' | 'degraded' | 'down';
+  responseTime: number;
+  lastCheck: string;
+  version: string;
+  uptime: number;
+  memoryUsage: number;
+}
+
+export interface KafkaConsumerLag {
+  groupId: string;
+  topic: string;
+  totalLag: number;
+  partitions: Array<{ partition: number; currentOffset: number; endOffset: number; lag: number }>;
+}
+
+export interface PostgresPoolStats {
+  totalConnections: number;
+  idleConnections: number;
+  activeConnections: number;
+  waitingRequests: number;
+  maxConnections: number;
+}
+
+export interface RedisStats {
+  usedMemory: string;
+  usedMemoryPeak: string;
+  connectedClients: number;
+  totalKeys: number;
+  hitRate: number;
+  uptimeSeconds: number;
+}
+
+export interface InfraHealth {
+  services: DetailedServiceHealth[];
+  kafka: { consumerGroups: KafkaConsumerLag[] };
+  postgres: PostgresPoolStats;
+  redis: RedisStats;
+}
+
+export function useInfraHealth() {
+  return useQuery<InfraHealth>({
+    queryKey: ['admin', 'infra-health'],
+    queryFn: () => apiClient.get('/admin/infra/health'),
+    refetchInterval: 15_000,
+  });
+}
+
+// ── Bulk Import / Export ──
+
+export interface BulkImportPreview {
+  totalRows: number;
+  validRows: number;
+  errorRows: number;
+  headers: string[];
+  preview: Record<string, string>[];
+  errors: Array<{ row: number; field: string; message: string }>;
+}
+
+export interface BulkImportResult {
+  totalProcessed: number;
+  successCount: number;
+  errorCount: number;
+  errors: Array<{ row: number; field: string; message: string }>;
+}
+
+export function useBulkImportPreview() {
+  return useMutation<BulkImportPreview, Error, { service: string; entity: string; file: File }>({
+    mutationFn: async ({ service, entity, file }) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('service', service);
+      formData.append('entity', entity);
+      const { accessToken } = getTokensFromStorage();
+      const res = await fetch(
+        `${BASE_URL}/admin/bulk-import/preview`,
+        {
+          method: 'POST',
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+          body: formData,
+        },
+      );
+      if (!res.ok) throw new Error(`Preview failed: ${res.status}`);
+      const json = await res.json();
+      return json.data ?? json;
+    },
+  });
+}
+
+export function useBulkImportExecute() {
+  return useMutation<BulkImportResult, Error, { service: string; entity: string; file: File; tenantId: string }>({
+    mutationFn: async ({ service, entity, file, tenantId }) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('service', service);
+      formData.append('entity', entity);
+      formData.append('tenantId', tenantId);
+      const { accessToken } = getTokensFromStorage();
+      const res = await fetch(
+        `${BASE_URL}/admin/bulk-import/execute`,
+        {
+          method: 'POST',
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+          body: formData,
+        },
+      );
+      if (!res.ok) throw new Error(`Import failed: ${res.status}`);
+      const json = await res.json();
+      return json.data ?? json;
+    },
+  });
+}
+
+export function useBulkExport() {
+  return useMutation<Blob, Error, { service: string; entity: string; tenantId?: string; dateFrom?: string; dateTo?: string }>({
+    mutationFn: async (params) => {
+      const { accessToken } = getTokensFromStorage();
+      const query = buildQuery(params as QueryParams);
+      const res = await fetch(
+        `${BASE_URL}/admin/bulk-export${query}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: accessToken ? `Bearer ${accessToken}` : '',
+            Accept: 'text/csv',
+          },
+        },
+      );
+      if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+      return res.blob();
+    },
+  });
+}
+
+// ── Feature Flags ──
+
+export interface FeatureFlag {
+  id: string;
+  key: string;
+  description: string;
+  enabled: boolean;
+  tenantOverrides: Record<string, boolean>;
+  updatedAt: string;
+}
+
+export function useFeatureFlags() {
+  return useQuery<FeatureFlag[]>({
+    queryKey: ['admin', 'feature-flags'],
+    queryFn: () => apiClient.get('/admin/config/feature-flags'),
+  });
+}
+
+export function useUpdateFeatureFlag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string } & Partial<FeatureFlag>) =>
+      apiClient.patch<FeatureFlag>(`/admin/config/feature-flags/${id}`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'feature-flags'] }),
+  });
+}
+
+// ── Rate Limits ──
+
+export interface RateLimitOverride {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  endpoint: string;
+  maxRequests: number;
+  windowSeconds: number;
+  updatedAt: string;
+}
+
+export function useRateLimits() {
+  return useQuery<RateLimitOverride[]>({
+    queryKey: ['admin', 'rate-limits'],
+    queryFn: () => apiClient.get('/admin/config/rate-limits'),
+  });
+}
+
+export function useUpdateRateLimit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<RateLimitOverride> & { id?: string }) =>
+      data.id
+        ? apiClient.patch<RateLimitOverride>(`/admin/config/rate-limits/${data.id}`, data)
+        : apiClient.post<RateLimitOverride>('/admin/config/rate-limits', data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'rate-limits'] }),
+  });
+}
+
+// ── Kafka Topics ──
+
+export interface KafkaTopicInfo {
+  name: string;
+  partitions: number;
+  replicationFactor: number;
+  messageCount: number;
+  consumerGroups: string[];
+}
+
+export function useKafkaTopics() {
+  return useQuery<KafkaTopicInfo[]>({
+    queryKey: ['admin', 'kafka-topics'],
+    queryFn: () => apiClient.get('/admin/config/kafka/topics'),
+  });
+}
+
+// ── Maintenance Mode ──
+
+export interface MaintenanceStatus {
+  enabled: boolean;
+  message: string;
+  startedAt: string | null;
+  scheduledEnd: string | null;
+  scheduledWindows: MaintenanceWindow[];
+}
+
+export interface MaintenanceWindow {
+  id: string;
+  reason: string;
+  startAt: string;
+  endAt: string;
+  createdBy: string;
+}
+
+export function useMaintenanceStatus() {
+  return useQuery<MaintenanceStatus>({
+    queryKey: ['admin', 'maintenance'],
+    queryFn: () => apiClient.get('/admin/maintenance'),
+    refetchInterval: 30_000,
+  });
+}
+
+export function useToggleMaintenance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { enabled: boolean; message?: string; scheduledEnd?: string }) =>
+      apiClient.post<MaintenanceStatus>('/admin/maintenance/toggle', data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'maintenance'] }),
+  });
+}
+
+export function useScheduleMaintenance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { reason: string; startAt: string; endAt: string }) =>
+      apiClient.post<MaintenanceWindow>('/admin/maintenance/schedule', data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'maintenance'] }),
+  });
+}
+
+export function useDeleteMaintenanceWindow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/admin/maintenance/schedule/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'maintenance'] }),
+  });
+}
+
+// ── Audit Log (enhanced) ──
+
+export interface AuditEntryDetailed extends AuditEntry {
+  previousVersion: Record<string, unknown> | null;
+  newVersion: Record<string, unknown> | null;
+}
+
+export function useAuditEntry(id: string) {
+  return useQuery<AuditEntryDetailed>({
+    queryKey: ['admin', 'audit', 'detail', id],
+    queryFn: () => apiClient.get(`/admin/audit/${id}`),
+    enabled: !!id,
+  });
+}
+
+export interface AuditRetentionPolicy {
+  retentionDays: number;
+  totalEntries: number;
+  oldestEntry: string | null;
+  storageUsed: string;
+}
+
+export function useAuditRetention() {
+  return useQuery<AuditRetentionPolicy>({
+    queryKey: ['admin', 'audit', 'retention'],
+    queryFn: () => apiClient.get('/admin/audit/retention'),
+  });
+}
+
+// ── Helper for bulk operations (re-export BASE_URL + token access) ──
+
+const BASE_URL = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? 'http://localhost:3002/api/v1';
+
+function getTokensFromStorage(): { accessToken: string | null } {
+  if (typeof window === 'undefined') return { accessToken: null };
+  try {
+    const raw = localStorage.getItem('aris-admin-auth');
+    if (!raw) return { accessToken: null };
+    const parsed = JSON.parse(raw);
+    return { accessToken: parsed.state?.accessToken ?? null };
+  } catch {
+    return { accessToken: null };
+  }
 }

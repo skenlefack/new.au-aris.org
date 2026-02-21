@@ -111,6 +111,10 @@ dependencies {
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
+    // Hilt WorkManager
+    implementation("androidx.hilt:hilt-work:1.1.0")
+    ksp("androidx.hilt:hilt-compiler:1.1.0")
+
     // Security (EncryptedSharedPreferences)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
@@ -134,6 +138,9 @@ dependencies {
 
     // ExifInterface
     implementation("androidx.exifinterface:exifinterface:1.3.7")
+
+    // OSMDroid (offline maps)
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
 
     // Socket.IO (WebSocket for realtime alerts)
     implementation("io.socket:socket.io-client:2.1.0") {

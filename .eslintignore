@@ -1,0 +1,10 @@
+node_modules
+dist
+.next
+out
+coverage
+*.prisma
+*.js
+!.eslintrc.js
+*.d.ts
+*.js.map

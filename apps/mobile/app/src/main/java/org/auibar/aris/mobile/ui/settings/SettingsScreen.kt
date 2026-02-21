@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -43,6 +44,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -84,14 +88,22 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // User profile card
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) {
+                        contentDescription =
+                            "User profile: ${uiState.userFullName.ifEmpty { "Unknown user" }}, " +
+                                    "${uiState.userEmail}, Role: ${uiState.userRole}"
+                    },
+            ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
                         Icons.Default.Person,
-                        contentDescription = null,
+                        contentDescription = "User avatar",
                         modifier = Modifier.size(48.dp),
                         tint = MaterialTheme.colorScheme.primary,
                     )
@@ -145,7 +157,17 @@ fun SettingsScreen(
 
             // App info
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) {
+                        contentDescription =
+                            "App version: ${uiState.appVersion}, Last sync: ${
+                                uiState.lastSyncAt?.let {
+                                    SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                                        .format(Date(it))
+                                } ?: "Never"
+                            }"
+                    },
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
                 ),
@@ -338,6 +360,14 @@ private fun SettingsItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .defaultMinSize(minHeight = 48.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = if (subtitle.isNotEmpty()) {
+                    "$title, $subtitle"
+                } else {
+                    title
+                }
+            }
             .clickable { onClick() },
     ) {
         Row(
@@ -348,7 +378,7 @@ private fun SettingsItem(
         ) {
             Icon(
                 icon,
-                contentDescription = null,
+                contentDescription = title,
                 tint = if (isDestructive) MaterialTheme.colorScheme.error
                 else MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp),

@@ -3,6 +3,14 @@
     <string name="app_name">ARIS</string>
     <string name="app_subtitle">Syst\u00e8me d\'Information sur les Ressources Animales</string>
 
+    <!-- Splash / Branding -->
+    <string name="au_ibar_branding">Union Africaine \u2014 Bureau Interafricain des Ressources Animales</string>
+
+    <!-- Error -->
+    <string name="error_something_wrong">Une erreur est survenue</string>
+    <string name="retry">R\u00e9essayer</string>
+    <string name="go_back">Retour</string>
+
     <!-- Auth -->
     <string name="email">Email</string>
     <string name="password">Mot de passe</string>
@@ -86,4 +94,113 @@
 
     <!-- Connectivity -->
     <string name="offline_banner">Vous \u00eates hors ligne. Les donn\u00e9es seront synchronis\u00e9es une fois connect\u00e9.</string>
+
+    <!-- Livestock -->
+    <string name="livestock_census">Recensement du b\u00e9tail</string>
+    <string name="production_record">Registre de production</string>
+    <string name="population_count">D\u00e9nombrement de population</string>
+    <string name="methodology">M\u00e9thodologie</string>
+    <string name="select_methodology">S\u00e9lectionnez la m\u00e9thodologie</string>
+    <string name="product_type">Type de produit</string>
+    <string name="quantity">Quantit\u00e9</string>
+    <string name="unit">Unit\u00e9</string>
+
+    <!-- Photo Evidence -->
+    <string name="photo_gallery">Galerie de photos</string>
+    <string name="add_photo">Ajouter une photo</string>
+    <string name="photos_count">%d photo(s)</string>
+    <string name="compressing_photo">Compression de la photo\u2026</string>
+    <string name="photo_upload_queued">Photo en file d\'attente d\'envoi</string>
+    <string name="photo_upload_failed">\u00c9chec de l\'envoi de la photo</string>
+    <string name="no_photos">Aucune photo jointe</string>
+
+    <!-- GPS Tracking -->
+    <string name="start_tracking">D\u00e9marrer le suivi GPS</string>
+    <string name="stop_tracking">Arr\u00eater le suivi GPS</string>
+    <string name="tracking_active">Suivi GPS actif</string>
+    <string name="track_recorded">Trac\u00e9 GPS enregistr\u00e9</string>
+    <string name="track_points">%d points enregistr\u00e9s</string>
+    <string name="gps_tracking_notification">Suivi GPS</string>
+    <string name="gps_tracking_channel">Suivi GPS</string>
+    <string name="gps_tracking_desc">Enregistrement du trac\u00e9 GPS de la visite de terrain</string>
+
+    <!-- Mini Reports -->
+    <string name="reports">Rapports</string>
+    <string name="my_summary">Mon r\u00e9sum\u00e9</string>
+    <string name="submissions_by_status">Soumissions par statut</string>
+    <string name="submissions_by_domain">Soumissions par domaine</string>
+    <string name="campaign_progress">Progression de la campagne</string>
+    <string name="sync_statistics">Statistiques de synchronisation</string>
+    <string name="total_synced">Total synchronis\u00e9</string>
+    <string name="total_pending">Total en attente</string>
+    <string name="total_failed">Total \u00e9chou\u00e9</string>
+
+    <!-- Biometric / PIN Lock -->
+    <string name="app_lock">Verrouillage de l\'application</string>
+    <string name="enable_biometric">Activer le verrouillage biom\u00e9trique</string>
+    <string name="enable_pin">Activer le verrouillage par code PIN</string>
+    <string name="set_pin">D\u00e9finir le code PIN</string>
+    <string name="enter_pin">Saisir le code PIN</string>
+    <string name="confirm_pin">Confirmer le code PIN</string>
+    <string name="pin_mismatch">Les codes PIN ne correspondent pas</string>
+    <string name="pin_set_success">Code PIN d\u00e9fini avec succ\u00e8s</string>
+    <string name="biometric_prompt_title">D\u00e9verrouiller ARIS</string>
+    <string name="biometric_prompt_subtitle">Utilisez votre empreinte digitale ou votre visage pour d\u00e9verrouiller</string>
+    <string name="biometric_prompt_negative">Utiliser le code PIN</string>
+    <string name="unlock_required">Authentification requise</string>
+    <string name="wrong_pin">Code PIN incorrect. R\u00e9essayez.</string>
+
+    <!-- Additional error strings -->
+    <string name="error_network">Erreur r\u00e9seau. V\u00e9rifiez votre connexion.</string>
+    <string name="error_server">Erreur serveur. Veuillez r\u00e9essayer plus tard.</string>
+    <string name="error_unknown">Une erreur inattendue est survenue.</string>
+
+    <!-- Release -->
+    <string name="loading">Chargement\u2026</string>
+    <string name="version_format">Version %s</string>
+
+    <!-- Maps -->
+    <string name="offline_maps">Cartes hors ligne</string>
+    <string name="download_tiles">T\u00e9l\u00e9charger les tuiles de carte</string>
+    <string name="downloading_tiles">T\u00e9l\u00e9chargement des tuiles\u2026</string>
+    <string name="tiles_downloaded">Tuiles de carte t\u00e9l\u00e9charg\u00e9es</string>
+    <string name="delete_tiles">Supprimer les tuiles hors ligne</string>
+    <string name="map_submissions">Emplacements des soumissions</string>
+    <string name="map_outbreaks">Marqueurs de foyers</string>
+    <string name="map_gps_tracks">Trac\u00e9s GPS</string>
+    <string name="map_layers">Couches de la carte</string>
+    <string name="no_offline_tiles">Aucune tuile hors ligne disponible</string>
+    <string name="tile_storage_size">Stockage des tuiles : %s</string>
+
+    <!-- Charts -->
+    <string name="chart_campaign_progress">Progression de la campagne</string>
+    <string name="chart_submissions_status">Soumissions par statut</string>
+    <string name="chart_sync_history">Historique de synchronisation</string>
+    <string name="chart_kpi_trend">Tendance des KPI</string>
+    <string name="chart_no_data">Aucune donn\u00e9e de graphique disponible</string>
+
+    <!-- Accessibility -->
+    <string name="cd_app_logo">Logo de l\'application ARIS</string>
+    <string name="cd_back_button">Retour</string>
+    <string name="cd_sync_status">\u00c9tat de la synchronisation : %s</string>
+    <string name="cd_kpi_value">%1$s : %2$s</string>
+    <string name="cd_campaign_card">Campagne : %1$s, Statut : %2$s</string>
+    <string name="cd_submission_card">Soumission pour %1$s, Statut : %2$s</string>
+    <string name="cd_notification_unread">Notification non lue</string>
+    <string name="cd_notification_read">Notification lue</string>
+    <string name="cd_close_dialog">Fermer la bo\u00eete de dialogue</string>
+    <string name="cd_open_menu">Ouvrir le menu</string>
+
+    <!-- Deep Linking -->
+    <string name="deep_link_error">Impossible d\'ouvrir l\'\u00e9l\u00e9ment demand\u00e9</string>
+    <string name="deep_link_not_found">\u00c9l\u00e9ment introuvable</string>
+
+    <!-- App Update -->
+    <string name="update_available">Mise \u00e0 jour disponible</string>
+    <string name="update_message">Une nouvelle version d\'ARIS (%s) est disponible. Veuillez mettre \u00e0 jour pour b\u00e9n\u00e9ficier des derni\u00e8res fonctionnalit\u00e9s et correctifs de s\u00e9curit\u00e9.</string>
+    <string name="update_required">Mise \u00e0 jour requise</string>
+    <string name="update_required_message">Une mise \u00e0 jour critique est requise. Veuillez mettre \u00e0 jour ARIS pour continuer.</string>
+    <string name="update_now">Mettre \u00e0 jour</string>
+    <string name="update_later">Plus tard</string>
+    <string name="update_checking">V\u00e9rification des mises \u00e0 jour\u2026</string>
 </resources>

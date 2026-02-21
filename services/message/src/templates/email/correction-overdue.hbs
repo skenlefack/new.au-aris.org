@@ -1,0 +1,45 @@
+<!-- correction-overdue.hbs — Email body for overdue correction escalation notifications -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+  <tr>
+    <td style="padding-bottom: 20px;">
+      <!-- Escalation Badge -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 20px;">
+        <tr>
+          <td>
+            <span style="display: inline-block; background-color: #dc3545; color: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 13px; font-weight: bold; padding: 6px 16px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px;">
+              ESCALATION
+            </span>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin: 0 0 16px 0; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333;">
+        Record <strong>{{entityType}}</strong> (Ref: <code style="background-color: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 14px;">{{recordId}}</code>) correction is <strong style="color: #dc3545;">{{daysOverdue}} days overdue</strong>.
+      </p>
+
+      <!-- Deadline Info -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px;">
+        <tr>
+          <td style="background-color: #fff5f5; border-left: 4px solid #dc3545; padding: 12px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #721c24;">
+            <strong>Original deadline:</strong> {{deadline}}
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin: 0 0 20px 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #dc3545; font-weight: bold;">
+        This matter has been escalated. Please take immediate action.
+      </p>
+
+      <!-- CTA Button -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 24px 0;">
+        <tr>
+          <td style="border-radius: 6px; background-color: #dc3545;">
+            <a href="{{correctionUrl}}" target="_blank" style="display: inline-block; padding: 14px 32px; font-family: Arial, Helvetica, sans-serif; font-size: 16px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 6px;">
+              Take Action Now
+            </a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

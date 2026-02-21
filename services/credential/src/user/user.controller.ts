@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Put,
   Patch,
   Param,
   Body,
@@ -24,6 +25,7 @@ import type {
 } from '@aris/shared-types';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateLocaleDto } from './dto/update-locale.dto';
 import type { UserEntity } from './entities/user.entity';
 
 @Controller('api/v1/users')
@@ -48,6 +50,14 @@ export class UserController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<ApiResponse<UserEntity>> {
     return this.userService.findMe(user);
+  }
+
+  @Put('me/locale')
+  async updateLocale(
+    @Body() dto: UpdateLocaleDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<ApiResponse<UserEntity>> {
+    return this.userService.updateLocale(user.userId, dto.locale);
   }
 
   @Patch(':id')

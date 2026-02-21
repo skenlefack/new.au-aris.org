@@ -278,15 +278,15 @@ export function Sidebar({
   const sidebarContent = (
     <>
       {/* Logo */}
-      <div className="flex h-16 items-center border-b border-gray-200 px-4">
+      <div className="flex h-16 items-center border-b border-gray-200 dark:border-gray-800 px-4">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-aris-primary-600 text-xs font-bold text-white">
             AR
           </div>
           {!collapsed && (
             <div>
-              <h1 className="text-sm font-bold text-gray-900">ARIS 3.0</h1>
-              <p className="text-[10px] text-gray-400">AU-IBAR</p>
+              <h1 className="text-sm font-bold text-gray-900 dark:text-white">ARIS 3.0</h1>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">AU-IBAR</p>
             </div>
           )}
         </div>
@@ -295,7 +295,7 @@ export function Sidebar({
         <button
           ref={closeButtonRef}
           onClick={onMobileClose}
-          className="ml-auto flex items-center justify-center rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 lg:hidden"
+          className="ml-auto flex items-center justify-center rounded-lg p-1.5 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 lg:hidden"
           aria-label="Close navigation"
         >
           <X className="h-5 w-5" />
@@ -318,15 +318,15 @@ export function Sidebar({
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium sidebar-transition',
                 active
-                  ? 'bg-aris-primary-50 text-aris-primary-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                  ? 'bg-aris-primary-50 dark:bg-aris-primary-900/30 text-aris-primary-700 dark:text-aris-primary-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white',
                 collapsed && 'justify-center px-0',
               )}
             >
               <span
                 className={cn(
                   'flex-shrink-0',
-                  active ? 'text-aris-primary-600' : 'text-gray-400',
+                  active ? 'text-aris-primary-600 dark:text-aris-primary-400' : 'text-gray-400 dark:text-gray-500',
                 )}
               >
                 {item.icon}
@@ -338,10 +338,10 @@ export function Sidebar({
       </nav>
 
       {/* Collapse toggle (desktop only) */}
-      <div className="hidden border-t border-gray-200 p-3 lg:block">
+      <div className="hidden border-t border-gray-200 dark:border-gray-800 p-3 lg:block">
         <button
           onClick={onToggle}
-          className="flex w-full items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+          className="flex w-full items-center justify-center rounded-lg p-2 text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? (
@@ -360,7 +360,7 @@ export function Sidebar({
       <aside
         ref={sidebarRef}
         className={cn(
-          'hidden lg:flex h-screen flex-col border-r border-gray-200 bg-white sidebar-transition',
+          'hidden lg:flex h-screen flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sidebar-transition',
           collapsed ? 'w-16' : 'w-64',
         )}
       >
@@ -384,7 +384,7 @@ export function Sidebar({
       {/* Slide-over panel */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-white shadow-xl',
+          'fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-white dark:bg-gray-900 shadow-xl',
           'transition-transform duration-300 ease-in-out lg:hidden',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}

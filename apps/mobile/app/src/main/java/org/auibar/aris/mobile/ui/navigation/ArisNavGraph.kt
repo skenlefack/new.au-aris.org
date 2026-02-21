@@ -29,12 +29,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.ui.campaign.CampaignDetailScreen
 import org.auibar.aris.mobile.ui.campaign.CampaignListScreen
 import org.auibar.aris.mobile.ui.dashboard.DashboardScreen
 import org.auibar.aris.mobile.ui.form.FormFillScreen
 import org.auibar.aris.mobile.ui.gpstrack.GpsTrackScreen
+import org.auibar.aris.mobile.ui.map.OfflineMapScreen
 import org.auibar.aris.mobile.ui.livestock.LivestockCensusScreen
 import org.auibar.aris.mobile.ui.livestock.ProductionRecordScreen
 import org.auibar.aris.mobile.ui.login.LoginScreen
@@ -60,6 +62,7 @@ object ArisRoutes {
     const val PRODUCTION_RECORD = "production-record/{campaignId}"
     const val PHOTO_GALLERY = "photo-gallery/{submissionId}"
     const val GPS_TRACK = "gps-track"
+    const val OFFLINE_MAP = "offline-map"
     const val REPORTS = "reports"
 
     fun campaignDetail(campaignId: String) = "campaign/$campaignId"
@@ -67,6 +70,7 @@ object ArisRoutes {
     fun livestockCensus(campaignId: String) = "livestock-census/$campaignId"
     fun productionRecord(campaignId: String) = "production-record/$campaignId"
     fun photoGallery(submissionId: String) = "photo-gallery/$submissionId"
+    fun submissionDetail(submissionId: String) = "submission/$submissionId"
 }
 
 data class BottomNavItem(
@@ -160,6 +164,7 @@ fun ArisNavGraph(
             composable(
                 route = ArisRoutes.CAMPAIGN_DETAIL,
                 arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+                deepLinks = listOf(navDeepLink { uriPattern = "aris://campaign/{campaignId}" }),
             ) { backStackEntry ->
                 val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
                 CampaignDetailScreen(
@@ -188,7 +193,10 @@ fun ArisNavGraph(
                 )
             }
 
-            composable(ArisRoutes.NOTIFICATIONS) {
+            composable(
+                route = ArisRoutes.NOTIFICATIONS,
+                deepLinks = listOf(navDeepLink { uriPattern = "aris://notifications" }),
+            ) {
                 NotificationListScreen()
             }
 
@@ -237,6 +245,12 @@ fun ArisNavGraph(
 
             composable(ArisRoutes.GPS_TRACK) {
                 GpsTrackScreen()
+            }
+
+            composable(ArisRoutes.OFFLINE_MAP) {
+                OfflineMapScreen(
+                    onBack = { navController.popBackStack() },
+                )
             }
 
             composable(ArisRoutes.REPORTS) {

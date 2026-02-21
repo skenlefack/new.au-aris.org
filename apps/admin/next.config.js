@@ -4,6 +4,11 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },
+  eslint: {
+    // Linting is handled by the CI lint job (turbo lint).
+    // Prevents ESLint errors from blocking production builds.
+    ignoreDuringBuilds: true,
+  },
 };
 
 module.exports = nextConfig;

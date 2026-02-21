@@ -31,6 +31,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -83,7 +86,7 @@ fun NotificationListScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
                             Icons.Default.Notifications,
-                            contentDescription = null,
+                            contentDescription = "No notifications",
                             modifier = Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -122,9 +125,21 @@ private fun NotificationCard(
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
     }
 
+    val notificationTypeLabel = if (notification.type == "outbreak_alert") {
+        "Outbreak alert"
+    } else {
+        "Notification"
+    }
+    val readState = if (notification.isRead) "Read" else "Unread"
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                contentDescription =
+                    "$readState $notificationTypeLabel: ${notification.title}. ${notification.body}"
+                stateDescription = readState
+            }
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 2.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
@@ -139,7 +154,7 @@ private fun NotificationCard(
                 } else {
                     Icons.Default.Notifications
                 },
-                contentDescription = null,
+                contentDescription = notificationTypeLabel,
                 tint = if (notification.type == "outbreak_alert") {
                     MaterialTheme.colorScheme.error
                 } else {
@@ -177,7 +192,7 @@ private fun NotificationCard(
             if (!notification.isRead) {
                 Icon(
                     Icons.Default.Circle,
-                    contentDescription = stringResource(R.string.unread),
+                    contentDescription = "Unread notification indicator",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .size(10.dp)

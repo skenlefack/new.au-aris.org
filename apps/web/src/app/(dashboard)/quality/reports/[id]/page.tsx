@@ -15,6 +15,9 @@ import {
 import { cn } from '@/lib/utils';
 import { useQualityReport, type QualityGateStatus } from '@/lib/api/hooks';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
+import { PrintButton } from '@/components/ui/PrintButton';
+import { OfficialHeader } from '@/components/print/OfficialHeader';
+import { OfficialFooter } from '@/components/print/OfficialFooter';
 
 const GATE_LABELS: Record<string, string> = {
   completeness: 'Completeness',
@@ -83,6 +86,12 @@ export default function QualityReportDetailPage() {
 
   return (
     <div className="space-y-6">
+      <OfficialHeader
+        title={`Quality Report: ${report.entityTitle}`}
+        subtitle={`${report.entityType} — ${report.domain}`}
+        classification="PARTNER"
+      />
+
       <div>
         <Link
           href="/quality/reports"
@@ -95,6 +104,7 @@ export default function QualityReportDetailPage() {
           <h1 className="text-2xl font-bold text-gray-900">
             {report.entityTitle}
           </h1>
+          <PrintButton />
           <span
             className={cn(
               'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium',
@@ -267,6 +277,8 @@ export default function QualityReportDetailPage() {
           </div>
         </div>
       )}
+
+      <OfficialFooter />
     </div>
   );
 }

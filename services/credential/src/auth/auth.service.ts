@@ -53,6 +53,7 @@ export interface SafeUser {
   firstName: string;
   lastName: string;
   role: string;
+  locale: string;
   mfaEnabled: boolean;
   lastLoginAt: Date | null;
   isActive: boolean;
@@ -186,6 +187,7 @@ export class AuthService {
       user.role,
       user.tenantId,
       user.tenant.level,
+      (user as unknown as { locale?: string }).locale,
     );
 
     // Store refresh token in Redis
@@ -262,6 +264,7 @@ export class AuthService {
       user.role,
       user.tenantId,
       user.tenant.level,
+      (user as unknown as { locale?: string }).locale,
     );
 
     // Store new refresh token
@@ -318,6 +321,7 @@ export class AuthService {
     role: string,
     tenantId: string,
     tenantLevel: string,
+    locale?: string,
   ): { accessToken: string; refreshToken: string; refreshTokenId: string } {
     const accessToken = jwt.sign(
       {
@@ -326,6 +330,7 @@ export class AuthService {
         role,
         tenantId,
         tenantLevel,
+        locale: locale ?? 'en',
       },
       this.privateKey,
       {
@@ -382,6 +387,7 @@ export class AuthService {
     firstName: string;
     lastName: string;
     role: string;
+    locale?: string;
     mfaEnabled: boolean;
     lastLoginAt: Date | null;
     isActive: boolean;
@@ -395,6 +401,7 @@ export class AuthService {
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
+      locale: user.locale ?? 'en',
       mfaEnabled: user.mfaEnabled,
       lastLoginAt: user.lastLoginAt,
       isActive: user.isActive,

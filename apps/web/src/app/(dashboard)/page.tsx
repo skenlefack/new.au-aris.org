@@ -216,8 +216,8 @@ export default function DashboardHomePage() {
           className={cn(
             'flex items-start gap-3 rounded-lg border px-4 py-3',
             alert.severity === 'critical'
-              ? 'border-red-200 bg-red-50 text-red-800'
-              : 'border-amber-200 bg-amber-50 text-amber-800',
+              ? 'border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200'
+              : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200',
           )}
         >
           <AlertTriangle
@@ -243,13 +243,13 @@ export default function DashboardHomePage() {
       {/* Header + Time Range Selector */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Continental overview
             {selectedTenant ? ` — ${selectedTenant.name}` : ''}
           </p>
         </div>
-        <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1">
+        <div className="flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1">
           {TIME_RANGES.map((tr) => (
             <button
               key={tr.value}
@@ -258,7 +258,7 @@ export default function DashboardHomePage() {
                 'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
                 timeRange === tr.value
                   ? 'bg-aris-primary-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100',
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700',
               )}
             >
               {tr.label}
@@ -279,7 +279,7 @@ export default function DashboardHomePage() {
         {/* Continental Map */}
         <div className="lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Continental Outbreak Map
             </h2>
             <Link
@@ -314,7 +314,7 @@ export default function DashboardHomePage() {
         {/* Real-time Activity Feed */}
         <div>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Live Activity
             </h2>
             <span className="flex items-center gap-1 text-xs text-green-600">
@@ -322,20 +322,20 @@ export default function DashboardHomePage() {
               Live
             </span>
           </div>
-          <div className="rounded-card border border-gray-200 bg-white">
-            <ul className="divide-y divide-gray-100 max-h-[540px] overflow-y-auto">
+          <div className="rounded-card border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <ul className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[540px] overflow-y-auto">
               {events.map((event) => (
-                <li key={event.id} className="px-4 py-3 hover:bg-gray-50 transition-colors">
+                <li key={event.id} className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 flex-shrink-0">
                       {EVENT_ICONS[event.type] ?? <Activity className="h-4 w-4 text-gray-400" />}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {event.action}
                       </p>
-                      <p className="text-xs text-gray-500">{event.detail}</p>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-gray-400">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{event.detail}</p>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
                         <span>{event.actor}</span>
                         {event.country && (
                           <>
@@ -393,10 +393,10 @@ function KpiCard({
   icon,
 }: KpiCardData) {
   const variantStyles = {
-    default: 'border-gray-200 bg-white',
-    primary: 'border-aris-primary-200 bg-aris-primary-50',
-    secondary: 'border-aris-secondary-200 bg-aris-secondary-50',
-    accent: 'border-aris-accent-200 bg-aris-accent-50',
+    default: 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800',
+    primary: 'border-aris-primary-200 dark:border-aris-primary-800 bg-aris-primary-50 dark:bg-aris-primary-950',
+    secondary: 'border-aris-secondary-200 dark:border-aris-secondary-800 bg-aris-secondary-50 dark:bg-aris-secondary-950',
+    accent: 'border-aris-accent-200 dark:border-aris-accent-800 bg-aris-accent-50 dark:bg-aris-accent-950',
   };
 
   const trendStyles = {
@@ -410,13 +410,13 @@ function KpiCard({
       className={`rounded-card border p-card shadow-sm transition-shadow hover:shadow-md ${variantStyles[variant]}`}
     >
       <div className="flex items-start justify-between">
-        <span className="text-kpi-label uppercase tracking-wider text-gray-500">
+        <span className="text-kpi-label uppercase tracking-wider text-gray-500 dark:text-gray-400">
           {label}
         </span>
-        <span className="text-gray-400">{icon}</span>
+        <span className="text-gray-400 dark:text-gray-500">{icon}</span>
       </div>
       <div className="mt-2 flex items-baseline gap-1">
-        <span className="text-kpi text-gray-900">{value}</span>
+        <span className="text-kpi text-gray-900 dark:text-white">{value}</span>
         {unit && <span className="text-sm text-gray-500">{unit}</span>}
       </div>
       <div
@@ -441,11 +441,11 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-shadow hover:shadow-md"
+      className="group flex items-center justify-between rounded-card border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 transition-shadow hover:shadow-md"
     >
       <div>
-        <p className="text-sm font-semibold text-gray-900">{title}</p>
-        <p className="mt-0.5 text-xs text-gray-500">{description}</p>
+        <p className="text-sm font-semibold text-gray-900 dark:text-white">{title}</p>
+        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{description}</p>
       </div>
       <ChevronRight className="h-4 w-4 text-gray-400 transition-transform group-hover:translate-x-0.5" />
     </Link>

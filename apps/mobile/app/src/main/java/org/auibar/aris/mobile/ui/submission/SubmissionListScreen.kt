@@ -30,6 +30,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -59,7 +61,7 @@ fun SubmissionListScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = "Navigate back",
                         )
                     }
                 },
@@ -105,8 +107,23 @@ fun SubmissionListScreen(
 private fun SubmissionCard(submission: Submission) {
     val dateFormat = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
 
+    val (icon, tint, label) = when (submission.syncStatus) {
+        "SYNCED" -> Triple(Icons.Default.CheckCircle, SyncSuccess, "Synced")
+        "FAILED" -> Triple(Icons.Default.Error, SyncFailed, "Failed")
+        "CONFLICT" -> Triple(Icons.Default.Warning, SyncConflict, "Conflict")
+        else -> Triple(Icons.Default.Schedule, SyncPending, "Pending")
+    }
+    val submissionDate = dateFormat.format(Date(submission.offlineCreatedAt))
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                contentDescription =
+                    "Submission for campaign ${submission.campaignId.take(8)}, " +
+                            "Date: $submissionDate, Status: $label" +
+                            if (submission.serverErrors != null) ", Error: ${submission.serverErrors}" else ""
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Row(
@@ -122,7 +139,7 @@ private fun SubmissionCard(submission: Submission) {
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
-                    text = dateFormat.format(Date(submission.offlineCreatedAt)),
+                    text = submissionDate,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -136,17 +153,10 @@ private fun SubmissionCard(submission: Submission) {
                 }
             }
 
-            val (icon, tint, label) = when (submission.syncStatus) {
-                "SYNCED" -> Triple(Icons.Default.CheckCircle, SyncSuccess, "Synced")
-                "FAILED" -> Triple(Icons.Default.Error, SyncFailed, "Failed")
-                "CONFLICT" -> Triple(Icons.Default.Warning, SyncConflict, "Conflict")
-                else -> Triple(Icons.Default.Schedule, SyncPending, "Pending")
-            }
-
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(
                     imageVector = icon,
-                    contentDescription = label,
+                    contentDescription = "$label status",
                     tint = tint,
                     modifier = Modifier.size(28.dp),
                 )

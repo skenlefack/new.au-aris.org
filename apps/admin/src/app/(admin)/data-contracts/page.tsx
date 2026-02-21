@@ -10,7 +10,6 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useDataContracts, useCreateDataContract } from '@/lib/api/hooks';
-import type { DataContract } from '@/lib/api/hooks';
 
 const STATUS_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
   ACTIVE: {

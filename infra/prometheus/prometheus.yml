@@ -1,0 +1,194 @@
+# ARIS 3.0 — Prometheus Scrape Configuration
+# Scrapes all 22 microservices + infrastructure
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+rule_files:
+  - "alert-rules.yml"
+
+scrape_configs:
+  # ═══════════════════════════════════════
+  # Platform Services (CC-1)
+  # ═══════════════════════════════════════
+  - job_name: "aris-tenant"
+    static_configs:
+      - targets: ["host.docker.internal:3001"]
+        labels:
+          service: "tenant"
+          group: "platform"
+
+  - job_name: "aris-credential"
+    static_configs:
+      - targets: ["host.docker.internal:3002"]
+        labels:
+          service: "credential"
+          group: "platform"
+
+  - job_name: "aris-message"
+    static_configs:
+      - targets: ["host.docker.internal:3006"]
+        labels:
+          service: "message"
+          group: "platform"
+
+  - job_name: "aris-drive"
+    static_configs:
+      - targets: ["host.docker.internal:3007"]
+        labels:
+          service: "drive"
+          group: "platform"
+
+  - job_name: "aris-realtime"
+    static_configs:
+      - targets: ["host.docker.internal:3008"]
+        labels:
+          service: "realtime"
+          group: "platform"
+
+  # ═══════════════════════════════════════
+  # Data Hub Services (CC-2)
+  # ═══════════════════════════════════════
+  - job_name: "aris-master-data"
+    static_configs:
+      - targets: ["host.docker.internal:3003"]
+        labels:
+          service: "master-data"
+          group: "data-hub"
+
+  - job_name: "aris-data-quality"
+    static_configs:
+      - targets: ["host.docker.internal:3004"]
+        labels:
+          service: "data-quality"
+          group: "data-hub"
+
+  - job_name: "aris-data-contract"
+    static_configs:
+      - targets: ["host.docker.internal:3005"]
+        labels:
+          service: "data-contract"
+          group: "data-hub"
+
+  - job_name: "aris-interop-hub"
+    static_configs:
+      - targets: ["host.docker.internal:3032"]
+        labels:
+          service: "interop-hub"
+          group: "data-hub"
+
+  # ═══════════════════════════════════════
+  # Collecte & Workflow (CC-3)
+  # ═══════════════════════════════════════
+  - job_name: "aris-form-builder"
+    static_configs:
+      - targets: ["host.docker.internal:3010"]
+        labels:
+          service: "form-builder"
+          group: "collecte"
+
+  - job_name: "aris-collecte"
+    static_configs:
+      - targets: ["host.docker.internal:3011"]
+        labels:
+          service: "collecte"
+          group: "collecte"
+
+  - job_name: "aris-workflow"
+    static_configs:
+      - targets: ["host.docker.internal:3012"]
+        labels:
+          service: "workflow"
+          group: "collecte"
+
+  # ═══════════════════════════════════════
+  # Domain Services (CC-4)
+  # ═══════════════════════════════════════
+  - job_name: "aris-animal-health"
+    static_configs:
+      - targets: ["host.docker.internal:3020"]
+        labels:
+          service: "animal-health"
+          group: "domain"
+
+  - job_name: "aris-livestock-prod"
+    static_configs:
+      - targets: ["host.docker.internal:3021"]
+        labels:
+          service: "livestock-prod"
+          group: "domain"
+
+  - job_name: "aris-fisheries"
+    static_configs:
+      - targets: ["host.docker.internal:3022"]
+        labels:
+          service: "fisheries"
+          group: "domain"
+
+  - job_name: "aris-wildlife"
+    static_configs:
+      - targets: ["host.docker.internal:3023"]
+        labels:
+          service: "wildlife"
+          group: "domain"
+
+  - job_name: "aris-apiculture"
+    static_configs:
+      - targets: ["host.docker.internal:3024"]
+        labels:
+          service: "apiculture"
+          group: "domain"
+
+  - job_name: "aris-trade-sps"
+    static_configs:
+      - targets: ["host.docker.internal:3025"]
+        labels:
+          service: "trade-sps"
+          group: "domain"
+
+  - job_name: "aris-governance"
+    static_configs:
+      - targets: ["host.docker.internal:3026"]
+        labels:
+          service: "governance"
+          group: "domain"
+
+  - job_name: "aris-climate-env"
+    static_configs:
+      - targets: ["host.docker.internal:3027"]
+        labels:
+          service: "climate-env"
+          group: "domain"
+
+  # ═══════════════════════════════════════
+  # Data & Integration (CC-4)
+  # ═══════════════════════════════════════
+  - job_name: "aris-analytics"
+    static_configs:
+      - targets: ["host.docker.internal:3030"]
+        labels:
+          service: "analytics"
+          group: "integration"
+
+  - job_name: "aris-geo-services"
+    static_configs:
+      - targets: ["host.docker.internal:3031"]
+        labels:
+          service: "geo-services"
+          group: "integration"
+
+  - job_name: "aris-knowledge-hub"
+    static_configs:
+      - targets: ["host.docker.internal:3033"]
+        labels:
+          service: "knowledge-hub"
+          group: "integration"
+
+  # ═══════════════════════════════════════
+  # Infrastructure
+  # ═══════════════════════════════════════
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

@@ -19,6 +19,9 @@ import { cn } from '@/lib/utils';
 import { useHealthEvent, type HealthEventDetail, type LabResult, type TimelineEntry } from '@/lib/api/hooks';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { PrintButton } from '@/components/ui/PrintButton';
+import { OfficialHeader } from '@/components/print/OfficialHeader';
+import { OfficialFooter } from '@/components/print/OfficialFooter';
 
 const STATUS_BADGE: Record<string, string> = {
   suspected: 'bg-amber-100 text-amber-700',
@@ -181,6 +184,12 @@ export default function EventDetailPage() {
 
   return (
     <div className="space-y-6">
+      <OfficialHeader
+        title={`Health Event: ${event.disease}`}
+        subtitle={`${event.diseaseCode} — ${event.country}, ${event.region}`}
+        classification="RESTRICTED"
+      />
+
       {/* Header */}
       <div className="flex items-start gap-3">
         <Link
@@ -215,6 +224,7 @@ export default function EventDetailPage() {
             {event.diseaseCode} — {event.country}, {event.region}
           </p>
         </div>
+        <PrintButton className="ml-auto flex-shrink-0" />
       </div>
 
       {/* Summary cards */}
@@ -480,6 +490,8 @@ export default function EventDetailPage() {
           </section>
         </div>
       </div>
+
+      <OfficialFooter />
     </div>
   );
 }

@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { KafkaModule } from '@aris/kafka-client';
 import { AuthModule as AuthMiddlewareModule } from '@aris/auth-middleware';
+import { I18nModule } from '@aris/i18n';
 import { PrismaService } from './prisma.service';
 import { RedisService } from './redis.service';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { MfaModule } from './mfa/mfa.module';
+import { I18nApiModule } from './i18n/i18n-api.module';
 
 @Module({
   imports: [
@@ -23,9 +25,11 @@ import { MfaModule } from './mfa/mfa.module';
       }),
       inject: [RedisService],
     }),
+    I18nModule,
     AuthModule,
     UserModule,
     MfaModule,
+    I18nApiModule,
   ],
   providers: [PrismaService, RedisService],
   exports: [PrismaService, RedisService],

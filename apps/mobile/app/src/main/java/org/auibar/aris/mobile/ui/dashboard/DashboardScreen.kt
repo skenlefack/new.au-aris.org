@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -45,6 +46,7 @@ import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.data.remote.dto.KpiCard
 import org.auibar.aris.mobile.data.repository.Campaign
 import org.auibar.aris.mobile.sync.SyncWorker
+import org.auibar.aris.mobile.ui.charts.SparklineChart
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -247,8 +249,41 @@ private fun KpiCardItem(kpi: KpiCard) {
                     )
                 }
             }
+            // Sparkline (generated from trend)
+            val sparklineValues = remember(kpi.key) {
+                generateSparklineData(kpi.value, kpi.trend)
+            }
+            SparklineChart(
+                values = sparklineValues,
+                color = when (kpi.trend) {
+                    "up" -> MaterialTheme.colorScheme.error
+                    "down" -> MaterialTheme.colorScheme.primary
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(24.dp)
+                    .padding(top = 4.dp),
+            )
         }
     }
+}
+
+private fun generateSparklineData(currentValue: Double, trend: String): List<Float> {
+    val baseValue = currentValue.toFloat()
+    val factor = when (trend) {
+        "up" -> 0.85f
+        "down" -> 1.15f
+        else -> 1.0f
+    }
+    return listOf(
+        baseValue * factor * 0.9f,
+        baseValue * factor * 0.95f,
+        baseValue * factor,
+        baseValue * (factor + (1f - factor) * 0.33f),
+        baseValue * (factor + (1f - factor) * 0.66f),
+        baseValue,
+    )
 }
 
 @Composable

@@ -1,0 +1,43 @@
+# ARIS 3.0 — Dependabot Configuration
+
+version: 2
+
+updates:
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - ci
+
+  # Root npm dependencies
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+    groups:
+      typescript:
+        patterns:
+          - typescript
+          - '@typescript-eslint/*'
+      nestjs:
+        patterns:
+          - '@nestjs/*'
+      testing:
+        patterns:
+          - vitest
+          - '@testing-library/*'
+          - testcontainers
+      prisma:
+        patterns:
+          - prisma
+          - '@prisma/*'
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']

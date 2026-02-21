@@ -33,12 +33,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.data.repository.Campaign
 import org.auibar.aris.mobile.ui.components.SyncIndicator
+import androidx.compose.foundation.layout.defaultMinSize
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -83,13 +86,13 @@ fun CampaignListScreen(
                         lastSyncAt = viewModel.lastSyncAt,
                     )
                     IconButton(onClick = viewModel::sync) {
-                        Icon(Icons.Default.Sync, contentDescription = "Sync")
+                        Icon(Icons.Default.Sync, contentDescription = "Synchronize data")
                     }
                     IconButton(onClick = onSubmissionsClick) {
-                        Icon(Icons.Default.Assignment, contentDescription = "Submissions")
+                        Icon(Icons.Default.Assignment, contentDescription = "View all submissions")
                     }
                     IconButton(onClick = onLogout) {
-                        Icon(Icons.Default.Logout, contentDescription = "Logout")
+                        Icon(Icons.Default.Logout, contentDescription = "Sign out")
                     }
                 },
             )
@@ -143,9 +146,17 @@ private fun CampaignCard(
 ) {
     val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
 
+    val startDateStr = dateFormat.format(Date(campaign.startDate))
+    val endDateStr = dateFormat.format(Date(campaign.endDate))
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .defaultMinSize(minHeight = 48.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription =
+                    "Campaign: ${campaign.name}, Domain: ${campaign.domain}, From $startDateStr to $endDateStr"
+            }
             .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
@@ -166,7 +177,7 @@ private fun CampaignCard(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "${dateFormat.format(Date(campaign.startDate))} - ${dateFormat.format(Date(campaign.endDate))}",
+                    text = "$startDateStr - $endDateStr",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

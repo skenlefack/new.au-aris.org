@@ -1,0 +1,54 @@
+<!-- workflow-approved.hbs — Email body for workflow approval notifications -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+  <tr>
+    <td style="padding-bottom: 20px;">
+      <p style="margin: 0 0 16px 0; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333;">
+        Dear User,
+      </p>
+      <p style="margin: 0 0 16px 0; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333;">
+        Your <strong>{{entityType}}</strong> (Ref: <code style="background-color: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 14px;">{{entityId}}</code>) has been approved at <strong>Level {{level}}</strong> ({{levelName}}).
+      </p>
+
+      {{#if comment}}
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 16px;">
+        <tr>
+          <td style="background-color: #f8f9fa; border-left: 4px solid #28a745; padding: 12px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #555555;">
+            Approver's note: &ldquo;{{comment}}&rdquo;
+          </td>
+        </tr>
+      </table>
+      {{/if}}
+
+      <!-- Status Badges -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 20px;">
+        <tr>
+          {{#if wahisReady}}
+          <td style="padding-right: 8px;">
+            <span style="display: inline-block; background-color: #28a745; color: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 12px; text-transform: uppercase;">
+              WAHIS Ready
+            </span>
+          </td>
+          {{/if}}
+          {{#if analyticsReady}}
+          <td>
+            <span style="display: inline-block; background-color: #007bff; color: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 12px; text-transform: uppercase;">
+              Analytics Ready
+            </span>
+          </td>
+          {{/if}}
+        </tr>
+      </table>
+
+      <!-- CTA Button -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 24px 0;">
+        <tr>
+          <td style="border-radius: 6px; background-color: #28a745;">
+            <a href="{{dashboardUrl}}" target="_blank" style="display: inline-block; padding: 14px 32px; font-family: Arial, Helvetica, sans-serif; font-size: 16px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 6px;">
+              View in Dashboard
+            </a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

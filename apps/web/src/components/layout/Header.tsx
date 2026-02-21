@@ -15,10 +15,14 @@ import {
   Building2,
   MapPin,
   Loader2,
+  Search,
 } from 'lucide-react';
 import type { TenantNode, TenantLevel } from '@/lib/stores/tenant-store';
 import { ConnectionIndicator } from '@/components/realtime/ConnectionIndicator';
 import { NotificationPanel } from '@/components/realtime/NotificationPanel';
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { useUiStore } from '@/lib/stores/ui-store';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   SUPER_ADMIN: 'Super Admin',
@@ -212,22 +216,24 @@ export function Header() {
     );
   }
 
+  const setSearchOpen = useUiStore((s) => s.setSearchOpen);
+
   return (
-    <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
+    <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 dark:border-gray-800 dark:bg-gray-900">
       {/* Tenant selector */}
       <div ref={tenantMenuRef} className="relative">
         <button
           onClick={() => setTenantMenuOpen(!tenantMenuOpen)}
           aria-expanded={tenantMenuOpen}
           aria-haspopup="true"
-          className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:border-gray-300 hover:bg-gray-50"
+          className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-800"
         >
           {isTenantLoading ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />
           ) : (
             selectedTenant && LEVEL_ICON[selectedTenant.level]
           )}
-          <span className="font-medium">
+          <span className="font-medium dark:text-gray-200">
             {isTenantLoading
               ? 'Loading...'
               : selectedTenant?.name ?? 'Select tenant'}
@@ -243,7 +249,7 @@ export function Header() {
         {tenantMenuOpen && (
           <div
             role="menu"
-            className="absolute left-0 z-50 mt-2 max-h-80 w-72 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+            className="absolute left-0 z-50 mt-2 max-h-80 w-72 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
           >
             <div className="border-b border-gray-100 px-3 py-2">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
@@ -264,13 +270,28 @@ export function Header() {
         )}
       </div>
 
-      {/* Right side -- connection status + notifications + user */}
-      <div className="flex items-center gap-4">
+      {/* Right side -- search + language + theme + connection + notifications + user */}
+      <div className="flex items-center gap-2 sm:gap-4">
+        {/* Search trigger */}
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="flex items-center gap-2 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-400 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-500 dark:hover:border-gray-600 dark:hover:bg-gray-800"
+          aria-label="Search (Ctrl+K)"
+        >
+          <Search className="h-4 w-4" />
+          <span className="hidden sm:inline">Search...</span>
+          <kbd className="hidden rounded border border-gray-200 px-1 py-0.5 text-[10px] sm:inline dark:border-gray-600">
+            ⌘K
+          </kbd>
+        </button>
+
+        <LanguageSwitcher />
+        <ThemeToggle />
         <ConnectionIndicator />
 
         <button
           onClick={() => setNotificationOpen(true)}
-          className="relative rounded-lg p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+          className="relative rounded-lg p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
           aria-label="Notifications"
         >
           <Bell className="h-5 w-5" />
@@ -293,14 +314,14 @@ export function Header() {
               onClick={() => setUserMenuOpen(!userMenuOpen)}
               aria-expanded={userMenuOpen}
               aria-haspopup="true"
-              className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-gray-50"
+              className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-aris-primary-100 text-sm font-semibold text-aris-primary-700">
                 {user.firstName[0]}
                 {user.lastName[0]}
               </div>
               <div className="hidden text-left md:block">
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {user.firstName} {user.lastName}
                 </p>
                 <span
@@ -312,7 +333,7 @@ export function Header() {
                   {ROLE_LABELS[user.role]}
                 </span>
               </div>
-              <ChevronDown className="hidden h-3.5 w-3.5 text-gray-400 md:block" />
+              <ChevronDown className="hidden h-3.5 w-3.5 text-gray-400 dark:text-gray-500 md:block" />
             </button>
           ) : (
             renderUserSkeleton()
@@ -321,10 +342,10 @@ export function Header() {
           {userMenuOpen && user && (
             <div
               role="menu"
-              className="absolute right-0 z-50 mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+              className="absolute right-0 z-50 mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
             >
-              <div className="border-b border-gray-100 px-4 py-2 md:hidden">
-                <p className="text-sm font-medium text-gray-900">
+              <div className="border-b border-gray-100 px-4 py-2 md:hidden dark:border-gray-800">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {user.firstName} {user.lastName}
                 </p>
                 <p className="text-xs text-gray-500">{user.email}</p>
@@ -335,7 +356,7 @@ export function Header() {
                   setUserMenuOpen(false);
                   router.push('/settings');
                 }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
               >
                 <User className="h-4 w-4" />
                 Profile & Settings
@@ -343,7 +364,7 @@ export function Header() {
               <button
                 role="menuitem"
                 onClick={handleLogout}
-                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
               >
                 <LogOut className="h-4 w-4" />
                 Sign out

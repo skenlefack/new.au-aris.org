@@ -23,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -64,7 +66,10 @@ fun SplashScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            .semantics {
+                contentDescription = "ARIS, Animal Resources Information System. Loading application."
+            },
     ) {
         Column(
             modifier = Modifier
@@ -82,6 +87,9 @@ fun SplashScreen(
                     letterSpacing = 4.sp,
                 ),
                 color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.semantics {
+                    contentDescription = "ARIS logo"
+                },
             )
 
             Spacer(modifier = Modifier.height(8.dp))

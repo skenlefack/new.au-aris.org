@@ -1,0 +1,54 @@
+<!-- quality-failed.hbs — Email body for data quality gate failure notifications -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+  <tr>
+    <td style="padding-bottom: 20px;">
+      <p style="margin: 0 0 16px 0; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333;">
+        Dear Data Steward,
+      </p>
+      <p style="margin: 0 0 16px 0; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333;">
+        Record <strong>{{entityType}}</strong> (Ref: <code style="background-color: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 14px;">{{recordId}}</code>) failed <strong>{{violationCount}}</strong> quality gate(s).
+      </p>
+
+      <!-- Violations Table -->
+      {{#if violations}}
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 20px; border-collapse: collapse;">
+        <tr>
+          <td style="background-color: #fd7e14; padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 13px; font-weight: bold; color: #ffffff; border: 1px solid #e8720d;">
+            Rule
+          </td>
+          <td style="background-color: #fd7e14; padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 13px; font-weight: bold; color: #ffffff; border: 1px solid #e8720d;">
+            Message
+          </td>
+        </tr>
+        {{#each violations}}
+        <tr>
+          <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333333; border: 1px solid #e0e0e0; background-color: {{#if @odd}}#f9f9f9{{else}}#ffffff{{/if}};">
+            {{this.ruleName}}
+          </td>
+          <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #555555; border: 1px solid #e0e0e0; background-color: {{#if @odd}}#f9f9f9{{else}}#ffffff{{/if}};">
+            {{this.message}}
+          </td>
+        </tr>
+        {{/each}}
+      </table>
+      {{/if}}
+
+      {{#if reportUrl}}
+      <p style="margin: 0 0 16px 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px;">
+        <a href="{{reportUrl}}" target="_blank" style="color: #fd7e14; text-decoration: underline;">View Full Report</a>
+      </p>
+      {{/if}}
+
+      <!-- CTA Button -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 24px 0;">
+        <tr>
+          <td style="border-radius: 6px; background-color: #fd7e14;">
+            <a href="{{correctionUrl}}" target="_blank" style="display: inline-block; padding: 14px 32px; font-family: Arial, Helvetica, sans-serif; font-size: 16px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 6px;">
+              Correct Record
+            </a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

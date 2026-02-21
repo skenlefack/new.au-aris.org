@@ -33,6 +33,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -65,7 +67,7 @@ fun CampaignDetailScreen(
                 title = { Text(uiState.campaignName.ifBlank { stringResource(R.string.campaign_detail) }) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Navigate back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -77,7 +79,7 @@ fun CampaignDetailScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(onClick = onNewSubmission) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(Icons.Default.Add, contentDescription = "Create new submission")
                 Text(
                     stringResource(R.string.new_submission),
                     modifier = Modifier.padding(start = 8.dp),
@@ -117,7 +119,12 @@ fun CampaignDetailScreen(
 
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics(mergeDescendants = true) {
+                            contentDescription =
+                                "Progress: $submissionCount submissions completed"
+                        },
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -172,8 +179,16 @@ private fun SubmissionRow(submission: Submission) {
         else -> Triple(Icons.Default.Schedule, SyncPending, "Pending")
     }
 
+    val submissionDate = dateFormat.format(Date(submission.offlineCreatedAt))
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                contentDescription =
+                    "Submission from $submissionDate, Status: $label" +
+                            if (submission.serverErrors != null) ", Error: ${submission.serverErrors}" else ""
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Row(
@@ -183,7 +198,7 @@ private fun SubmissionRow(submission: Submission) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    dateFormat.format(Date(submission.offlineCreatedAt)),
+                    submissionDate,
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 if (submission.serverErrors != null) {
@@ -195,7 +210,7 @@ private fun SubmissionRow(submission: Submission) {
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, contentDescription = label, tint = tint)
+                Icon(icon, contentDescription = "$label status", tint = tint)
                 Text(label, style = MaterialTheme.typography.labelSmall, color = tint, modifier = Modifier.padding(start = 4.dp))
             }
         }

@@ -10,6 +10,10 @@ const LABELS: Record<string, string> = {
   'data-contracts': 'Data Contracts',
   audit: 'Audit Log',
   monitoring: 'Monitoring',
+  'bulk-import': 'Bulk Import',
+  'bulk-export': 'Bulk Export',
+  config: 'Configuration',
+  maintenance: 'Maintenance',
   'master-data': 'Master Data',
 };
 

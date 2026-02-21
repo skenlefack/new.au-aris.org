@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ARIS</string>
+    <string name="app_subtitle">Sistema de Informa\u00e7\u00e3o sobre Recursos Animais</string>
+
+    <!-- Splash / Branding -->
+    <string name="au_ibar_branding">Uni\u00e3o Africana \u2014 Bureau Inter-Africano para Recursos Animais</string>
+
+    <!-- Error -->
+    <string name="error_something_wrong">Algo deu errado</string>
+    <string name="retry">Tentar novamente</string>
+    <string name="go_back">Voltar</string>
+
+    <!-- Auth -->
+    <string name="email">Email</string>
+    <string name="password">Senha</string>
+    <string name="login">Entrar</string>
+    <string name="logout">Sair</string>
+    <string name="logout_confirm">Tem certeza de que deseja sair? Os dados n\u00e3o sincronizados permanecer\u00e3o no dispositivo.</string>
+
+    <!-- Navigation -->
+    <string name="dashboard">Painel</string>
+    <string name="campaigns">Campanhas</string>
+    <string name="submissions">Minhas Submiss\u00f5es</string>
+    <string name="notifications">Notifica\u00e7\u00f5es</string>
+    <string name="settings">Configura\u00e7\u00f5es</string>
+
+    <!-- Campaign -->
+    <string name="no_campaigns">Nenhuma campanha ativa</string>
+    <string name="no_submissions">Nenhuma submiss\u00e3o ainda</string>
+    <string name="campaign_detail">Detalhes da Campanha</string>
+    <string name="progress">Progresso</string>
+    <string name="recent_campaigns">Campanhas Recentes</string>
+
+    <!-- Sync -->
+    <string name="sync">Sincronizar</string>
+    <string name="sync_now">Sincronizar Agora</string>
+    <string name="sync_frequency">Frequ\u00eancia de Sincroniza\u00e7\u00e3o</string>
+    <string name="last_sync">\u00daltima Sincroniza\u00e7\u00e3o</string>
+    <string name="never">Nunca</string>
+
+    <!-- Status -->
+    <string name="pending">Pendente</string>
+    <string name="synced">Sincronizado</string>
+    <string name="failed">Falhou</string>
+    <string name="conflict">Conflito</string>
+    <string name="draft">Rascunho</string>
+
+    <!-- Form -->
+    <string name="new_submission">Nova Submiss\u00e3o</string>
+    <string name="save_draft">Salvar Rascunho</string>
+    <string name="submit">Enviar</string>
+    <string name="select_option">Selecione uma op\u00e7\u00e3o</string>
+    <string name="select_species">Selecione a esp\u00e9cie</string>
+    <string name="select_disease">Selecione a doen\u00e7a</string>
+    <string name="select_country">Selecione o pa\u00eds</string>
+    <string name="select_admin1">Selecione o n\u00edvel administrativo 1</string>
+    <string name="select_admin2">Selecione o n\u00edvel administrativo 2</string>
+    <string name="capture_location">Capturar Localiza\u00e7\u00e3o GPS</string>
+    <string name="take_photo">Tirar Foto</string>
+    <string name="location_captured">Localiza\u00e7\u00e3o capturada</string>
+    <string name="photo_captured">Foto capturada</string>
+    <string name="field_required">Este campo \u00e9 obrigat\u00f3rio</string>
+    <string name="validation_error">Erro de valida\u00e7\u00e3o</string>
+    <string name="form_saved">Rascunho salvo</string>
+    <string name="form_submitted">Submiss\u00e3o na fila de sincroniza\u00e7\u00e3o</string>
+    <string name="pick_date">Escolher data</string>
+
+    <!-- Dashboard -->
+    <string name="health_overview">Vis\u00e3o Geral de Sa\u00fade</string>
+    <string name="no_kpi_data">Nenhum dado de KPI dispon\u00edvel</string>
+    <string name="pending_submissions">Submiss\u00f5es Pendentes</string>
+    <string name="quick_actions">A\u00e7\u00f5es R\u00e1pidas</string>
+
+    <!-- Notifications -->
+    <string name="no_notifications">Nenhuma notifica\u00e7\u00e3o</string>
+    <string name="mark_all_read">Marcar todas como lidas</string>
+    <string name="unread">N\u00e3o lida</string>
+    <string name="channel_alerts">Alertas de Surtos</string>
+    <string name="channel_alerts_desc">Alertas urgentes de surtos e doen\u00e7as</string>
+    <string name="channel_general">Geral</string>
+    <string name="channel_general_desc">Atualiza\u00e7\u00f5es de sincroniza\u00e7\u00e3o e notifica\u00e7\u00f5es do sistema</string>
+
+    <!-- Settings -->
+    <string name="language">Idioma</string>
+    <string name="clear_cache">Limpar Cache Local</string>
+    <string name="clear_cache_desc">Remover todos os dados offline deste dispositivo</string>
+    <string name="clear_cache_confirm">Isso excluir\u00e1 todas as campanhas, submiss\u00f5es e dados de refer\u00eancia armazenados localmente. Voc\u00ea precisar\u00e1 sincronizar novamente. Continuar?</string>
+    <string name="cache_cleared">Cache limpo com sucesso</string>
+    <string name="app_version">Vers\u00e3o do Aplicativo</string>
+    <string name="unknown_user">Usu\u00e1rio desconhecido</string>
+    <string name="confirm">Confirmar</string>
+    <string name="cancel">Cancelar</string>
+
+    <!-- Connectivity -->
+    <string name="offline_banner">Voc\u00ea est\u00e1 offline. Os dados ser\u00e3o sincronizados quando conectado.</string>
+
+    <!-- Livestock -->
+    <string name="livestock_census">Censo Pecu\u00e1rio</string>
+    <string name="production_record">Registro de Produ\u00e7\u00e3o</string>
+    <string name="population_count">Contagem Populacional</string>
+    <string name="methodology">Metodologia</string>
+    <string name="select_methodology">Selecione a metodologia</string>
+    <string name="product_type">Tipo de Produto</string>
+    <string name="quantity">Quantidade</string>
+    <string name="unit">Unidade</string>
+
+    <!-- Photo Evidence -->
+    <string name="photo_gallery">Galeria de Fotos</string>
+    <string name="add_photo">Adicionar Foto</string>
+    <string name="photos_count">%d foto(s)</string>
+    <string name="compressing_photo">Comprimindo foto\u2026</string>
+    <string name="photo_upload_queued">Foto na fila para envio</string>
+    <string name="photo_upload_failed">Falha no envio da foto</string>
+    <string name="no_photos">Nenhuma foto anexada</string>
+
+    <!-- GPS Tracking -->
+    <string name="start_tracking">Iniciar Rastreamento GPS</string>
+    <string name="stop_tracking">Parar Rastreamento GPS</string>
+    <string name="tracking_active">Rastreamento GPS ativo</string>
+    <string name="track_recorded">Trajeto GPS registrado</string>
+    <string name="track_points">%d pontos registrados</string>
+    <string name="gps_tracking_notification">Rastreamento GPS</string>
+    <string name="gps_tracking_channel">Rastreamento GPS</string>
+    <string name="gps_tracking_desc">Registrando trajeto GPS da visita de campo</string>
+
+    <!-- Mini Reports -->
+    <string name="reports">Relat\u00f3rios</string>
+    <string name="my_summary">Meu Resumo</string>
+    <string name="submissions_by_status">Submiss\u00f5es por Status</string>
+    <string name="submissions_by_domain">Submiss\u00f5es por Dom\u00ednio</string>
+    <string name="campaign_progress">Progresso da Campanha</string>
+    <string name="sync_statistics">Estat\u00edsticas de Sincroniza\u00e7\u00e3o</string>
+    <string name="total_synced">Total Sincronizado</string>
+    <string name="total_pending">Total Pendente</string>
+    <string name="total_failed">Total com Falha</string>
+
+    <!-- Biometric / PIN Lock -->
+    <string name="app_lock">Bloqueio do Aplicativo</string>
+    <string name="enable_biometric">Ativar Bloqueio Biom\u00e9trico</string>
+    <string name="enable_pin">Ativar Bloqueio por PIN</string>
+    <string name="set_pin">Definir PIN</string>
+    <string name="enter_pin">Inserir PIN</string>
+    <string name="confirm_pin">Confirmar PIN</string>
+    <string name="pin_mismatch">Os PINs n\u00e3o coincidem</string>
+    <string name="pin_set_success">PIN definido com sucesso</string>
+    <string name="biometric_prompt_title">Desbloquear ARIS</string>
+    <string name="biometric_prompt_subtitle">Use sua impress\u00e3o digital ou rosto para desbloquear</string>
+    <string name="biometric_prompt_negative">Usar PIN</string>
+    <string name="unlock_required">Autentica\u00e7\u00e3o necess\u00e1ria</string>
+    <string name="wrong_pin">PIN incorreto. Tente novamente.</string>
+
+    <!-- Additional error strings -->
+    <string name="error_network">Erro de rede. Verifique sua conex\u00e3o.</string>
+    <string name="error_server">Erro no servidor. Tente novamente mais tarde.</string>
+    <string name="error_unknown">Ocorreu um erro inesperado.</string>
+
+    <!-- Release -->
+    <string name="loading">Carregando\u2026</string>
+    <string name="version_format">Vers\u00e3o %s</string>
+
+    <!-- Maps -->
+    <string name="offline_maps">Mapas Offline</string>
+    <string name="download_tiles">Baixar Blocos de Mapa</string>
+    <string name="downloading_tiles">Baixando blocos\u2026</string>
+    <string name="tiles_downloaded">Blocos de mapa baixados</string>
+    <string name="delete_tiles">Excluir Blocos Offline</string>
+    <string name="map_submissions">Locais de Submiss\u00e3o</string>
+    <string name="map_outbreaks">Marcadores de Surtos</string>
+    <string name="map_gps_tracks">Trajetos GPS</string>
+    <string name="map_layers">Camadas do Mapa</string>
+    <string name="no_offline_tiles">Nenhum bloco offline dispon\u00edvel</string>
+    <string name="tile_storage_size">Armazenamento de blocos: %s</string>
+
+    <!-- Charts -->
+    <string name="chart_campaign_progress">Progresso da Campanha</string>
+    <string name="chart_submissions_status">Submiss\u00f5es por Status</string>
+    <string name="chart_sync_history">Hist\u00f3rico de Sincroniza\u00e7\u00e3o</string>
+    <string name="chart_kpi_trend">Tend\u00eancia de KPI</string>
+    <string name="chart_no_data">Nenhum dado de gr\u00e1fico dispon\u00edvel</string>
+
+    <!-- Accessibility -->
+    <string name="cd_app_logo">Logotipo do aplicativo ARIS</string>
+    <string name="cd_back_button">Voltar</string>
+    <string name="cd_sync_status">Status de sincroniza\u00e7\u00e3o: %s</string>
+    <string name="cd_kpi_value">%1$s: %2$s</string>
+    <string name="cd_campaign_card">Campanha: %1$s, Status: %2$s</string>
+    <string name="cd_submission_card">Submiss\u00e3o para %1$s, Status: %2$s</string>
+    <string name="cd_notification_unread">Notifica\u00e7\u00e3o n\u00e3o lida</string>
+    <string name="cd_notification_read">Notifica\u00e7\u00e3o lida</string>
+    <string name="cd_close_dialog">Fechar di\u00e1logo</string>
+    <string name="cd_open_menu">Abrir menu</string>
+
+    <!-- Deep Linking -->
+    <string name="deep_link_error">N\u00e3o foi poss\u00edvel abrir o item solicitado</string>
+    <string name="deep_link_not_found">Item n\u00e3o encontrado</string>
+
+    <!-- App Update -->
+    <string name="update_available">Atualiza\u00e7\u00e3o Dispon\u00edvel</string>
+    <string name="update_message">Uma nova vers\u00e3o do ARIS (%s) est\u00e1 dispon\u00edvel. Atualize para obter os recursos e corre\u00e7\u00f5es de seguran\u00e7a mais recentes.</string>
+    <string name="update_required">Atualiza\u00e7\u00e3o Obrigat\u00f3ria</string>
+    <string name="update_required_message">Uma atualiza\u00e7\u00e3o cr\u00edtica \u00e9 necess\u00e1ria. Atualize o ARIS para continuar.</string>
+    <string name="update_now">Atualizar Agora</string>
+    <string name="update_later">Mais Tarde</string>
+    <string name="update_checking">Verificando atualiza\u00e7\u00f5es\u2026</string>
+</resources>

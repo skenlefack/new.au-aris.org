@@ -1,0 +1,33 @@
+<!-- workflow-rejected.hbs — Email body for workflow rejection notifications -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+  <tr>
+    <td style="padding-bottom: 20px;">
+      <p style="margin: 0 0 16px 0; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333;">
+        Dear User,
+      </p>
+      <p style="margin: 0 0 16px 0; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333;">
+        Your <strong>{{entityType}}</strong> (Ref: <code style="background-color: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 14px;">{{entityId}}</code>) has been rejected at <strong>Level {{level}}</strong> ({{levelName}}).
+      </p>
+
+      <!-- Reason Box -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 20px;">
+        <tr>
+          <td style="background-color: #fff5f5; border: 1px solid #dc3545; border-left: 4px solid #dc3545; padding: 16px; border-radius: 4px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #721c24;">
+            <strong>Reason:</strong> {{reason}}
+          </td>
+        </tr>
+      </table>
+
+      <!-- CTA Button -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 24px 0;">
+        <tr>
+          <td style="border-radius: 6px; background-color: #dc3545;">
+            <a href="{{correctionUrl}}" target="_blank" style="display: inline-block; padding: 14px 32px; font-family: Arial, Helvetica, sans-serif; font-size: 16px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 6px;">
+              Review &amp; Correct
+            </a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

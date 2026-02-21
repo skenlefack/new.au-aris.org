@@ -22,6 +22,9 @@ import {
 } from '@/lib/api/hooks';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { PrintButton } from '@/components/ui/PrintButton';
+import { OfficialHeader } from '@/components/print/OfficialHeader';
+import { OfficialFooter } from '@/components/print/OfficialFooter';
 
 const LEVEL_LABELS: Record<number, string> = {
   1: 'Level 1 — National Technical Validation',
@@ -164,6 +167,12 @@ export default function WorkflowDetailPage() {
 
   return (
     <div className="space-y-6">
+      <OfficialHeader
+        title={`Workflow: ${item.title}`}
+        subtitle={LEVEL_LABELS[item.currentLevel]}
+        classification="RESTRICTED"
+      />
+
       {/* Header */}
       <div className="flex items-start gap-3">
         <Link
@@ -175,6 +184,7 @@ export default function WorkflowDetailPage() {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">{item.title}</h1>
+            <PrintButton />
             <span
               className={cn(
                 'rounded-full px-2.5 py-0.5 text-xs font-medium capitalize',
@@ -421,6 +431,8 @@ export default function WorkflowDetailPage() {
           </section>
         </div>
       </div>
+
+      <OfficialFooter />
     </div>
   );
 }

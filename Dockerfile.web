@@ -1,0 +1,67 @@
+# ARIS 3.0 — Dockerfile for Next.js web apps
+# Usage: docker build -f Dockerfile.web --build-arg APP=web -t aris-web .
+
+# ═══════════════════════════════════════════════
+# Stage 1: Base
+# ═══════════════════════════════════════════════
+FROM node:20-alpine AS base
+
+RUN corepack enable && corepack prepare pnpm@9 --activate
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
+
+# ═══════════════════════════════════════════════
+# Stage 2: Pruned
+# ═══════════════════════════════════════════════
+FROM base AS pruned
+
+ARG APP=web
+RUN pnpm add -g turbo
+
+COPY . .
+RUN turbo prune @aris/${APP} --docker
+
+# ═══════════════════════════════════════════════
+# Stage 3: Installer
+# ═══════════════════════════════════════════════
+FROM base AS installer
+
+ARG APP=web
+
+COPY --from=pruned /app/out/json/ .
+RUN pnpm install --frozen-lockfile
+
+COPY --from=pruned /app/out/full/ .
+
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm turbo build --filter=@aris/${APP}
+
+# ═══════════════════════════════════════════════
+# Stage 4: Runner
+# ═══════════════════════════════════════════════
+FROM node:20-alpine AS runner
+
+RUN addgroup --system --gid 1001 aris && \
+    adduser --system --uid 1001 aris
+
+WORKDIR /app
+
+ARG APP=web
+
+COPY --from=installer --chown=aris:aris /app/apps/${APP}/.next/standalone ./
+COPY --from=installer --chown=aris:aris /app/apps/${APP}/.next/static ./apps/${APP}/.next/static
+COPY --from=installer --chown=aris:aris /app/apps/${APP}/public ./apps/${APP}/public
+
+USER aris
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+EXPOSE 3000
+
+CMD ["node", "apps/${APP}/server.js"]

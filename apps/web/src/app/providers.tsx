@@ -9,6 +9,9 @@ import {
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { NetworkBanner } from '@/components/ui/NetworkBanner';
 import { InstallPrompt } from '@/components/pwa/InstallPrompt';
+import { CommandPalette } from '@/components/ui/CommandPalette';
+import { KeyboardShortcutsHelp } from '@/components/ui/KeyboardShortcutsHelp';
+import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
 import { useRealtimeStore } from '@/lib/realtime/realtime-store';
 import { ApiClientError } from '@/lib/api/client';
 
@@ -81,6 +84,11 @@ function buildMutationCache() {
   });
 }
 
+function KeyboardShortcutsProvider({ children }: { children: React.ReactNode }) {
+  useKeyboardShortcuts();
+  return <>{children}</>;
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -99,9 +107,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        <NetworkBanner />
-        {children}
-        <InstallPrompt />
+        <KeyboardShortcutsProvider>
+          <NetworkBanner />
+          {children}
+          <InstallPrompt />
+          <CommandPalette />
+          <KeyboardShortcutsHelp />
+        </KeyboardShortcutsProvider>
       </ErrorBoundary>
     </QueryClientProvider>
   );

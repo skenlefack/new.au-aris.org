@@ -16,6 +16,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import org.auibar.aris.mobile.R
 
@@ -34,12 +38,16 @@ fun OfflineBanner(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.errorContainer)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .semantics(mergeDescendants = true) {
+                    liveRegion = LiveRegionMode.Polite
+                    contentDescription = "You are offline. Data will be saved locally and synced when connection is restored."
+                },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 Icons.Default.CloudOff,
-                contentDescription = null,
+                contentDescription = "No internet connection",
                 tint = MaterialTheme.colorScheme.onErrorContainer,
             )
             Text(

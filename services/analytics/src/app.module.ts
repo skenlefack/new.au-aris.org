@@ -6,6 +6,8 @@ import { HealthKpiModule } from './health-kpi/health-kpi.module';
 import { HealthModule } from './health/health.module';
 import { AggregationModule } from './aggregation/aggregation.module';
 import { ConsumersModule } from './consumers/consumers.module';
+import { DomainAggregationModule } from './domain-aggregation/domain-aggregation.module';
+import { CrossDomainModule } from './cross-domain/cross-domain.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { ConsumersModule } from './consumers/consumers.module';
     ConsumersModule,
     HealthKpiModule,
     HealthModule,
+    DomainAggregationModule,
+    CrossDomainModule,
   ],
   providers: [RedisService],
   exports: [RedisService],

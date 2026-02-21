@@ -28,6 +28,7 @@ const USER_SELECT = {
   firstName: true,
   lastName: true,
   role: true,
+  locale: true,
   mfaEnabled: true,
   lastLoginAt: true,
   isActive: true,
@@ -67,7 +68,7 @@ export class UserService {
     ]);
 
     return {
-      data: data as UserEntity[],
+      data: data as unknown as UserEntity[],
       meta: { total, page, limit },
     };
   }
@@ -82,7 +83,7 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
-    return { data: user as UserEntity };
+    return { data: user as unknown as UserEntity };
   }
 
   async update(
@@ -111,20 +112,45 @@ export class UserService {
       }
     }
 
+    const updateData: Record<string, unknown> = {
+      ...(dto.email !== undefined && { email: dto.email }),
+      ...(dto.firstName !== undefined && { firstName: dto.firstName }),
+      ...(dto.lastName !== undefined && { lastName: dto.lastName }),
+      ...(dto.role !== undefined && { role: dto.role }),
+      ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+      ...(dto.locale !== undefined && { locale: dto.locale }),
+    };
+
     const user = await this.prisma.user.update({
       where: { id },
-      data: {
-        ...(dto.email !== undefined && { email: dto.email }),
-        ...(dto.firstName !== undefined && { firstName: dto.firstName }),
-        ...(dto.lastName !== undefined && { lastName: dto.lastName }),
-        ...(dto.role !== undefined && { role: dto.role }),
-        ...(dto.isActive !== undefined && { isActive: dto.isActive }),
-      },
+      data: updateData as any,
       select: USER_SELECT,
     });
 
     this.logger.log(`User updated: ${user.email} (${user.id})`);
-    return { data: user as UserEntity };
+    return { data: user as unknown as UserEntity };
+  }
+
+  async updateLocale(
+    userId: string,
+    locale: string,
+  ): Promise<ApiResponse<UserEntity>> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User ${userId} not found`);
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { locale } as any,
+      select: USER_SELECT,
+    });
+
+    this.logger.log(`User locale updated: ${updated.email} → ${locale}`);
+    return { data: updated as unknown as UserEntity };
   }
 
   private buildTenantFilter(

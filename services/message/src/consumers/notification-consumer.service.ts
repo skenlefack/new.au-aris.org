@@ -9,6 +9,8 @@ import {
   TOPIC_MS_COLLECTE_FORM_SUBMITTED,
 } from '@aris/shared-types';
 import { NotificationService } from '../notification/notification.service';
+import { TemplateEngine } from '../templates/template-engine';
+import { PreferencesService } from '../preferences/preferences.service';
 
 const GROUP_ID = 'message-service-notifications';
 
@@ -62,6 +64,8 @@ export class NotificationConsumerService implements OnModuleInit {
   constructor(
     private readonly kafkaConsumer: KafkaConsumerService,
     private readonly notificationService: NotificationService,
+    private readonly templateEngine: TemplateEngine,
+    private readonly preferencesService: PreferencesService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -79,6 +83,68 @@ export class NotificationConsumerService implements OnModuleInit {
     this.logger.log('All notification consumers subscribed');
   }
 
+  private async sendToPreferredChannels(
+    userId: string,
+    tenantId: string,
+    eventType: string,
+    data: Record<string, unknown>,
+    inAppFallbackBody: string,
+  ): Promise<void> {
+    const channels = await this.preferencesService.getChannelsForEvent(
+      userId,
+      tenantId,
+      eventType,
+    );
+
+    if (channels.email) {
+      const rendered = this.templateEngine.renderEmail(
+        eventType as Parameters<TemplateEngine['renderEmail']>[0],
+        data,
+      );
+      await this.notificationService.send(
+        {
+          userId,
+          channel: NotificationChannel.EMAIL,
+          subject: rendered.subject,
+          body: rendered.html,
+        },
+        tenantId,
+      );
+    }
+
+    if (channels.sms) {
+      const smsBody = this.templateEngine.renderSms(
+        eventType as Parameters<TemplateEngine['renderSms']>[0],
+        data,
+      );
+      await this.notificationService.send(
+        {
+          userId,
+          channel: NotificationChannel.SMS,
+          subject: data['subject'] as string ?? eventType,
+          body: smsBody,
+        },
+        tenantId,
+      );
+    }
+
+    if (channels.inApp) {
+      const subject = this.templateEngine.renderSubject(
+        eventType as Parameters<TemplateEngine['renderSubject']>[0],
+        data,
+      );
+      await this.notificationService.send(
+        {
+          userId,
+          channel: NotificationChannel.IN_APP,
+          subject,
+          body: inAppFallbackBody,
+        },
+        tenantId,
+      );
+    }
+  }
+
   private async subscribeWorkflowApproved(): Promise<void> {
     await this.kafkaConsumer.subscribe(
       {
@@ -89,24 +155,20 @@ export class NotificationConsumerService implements OnModuleInit {
         const data = payload as WorkflowApprovedPayload;
         this.logger.debug(`Workflow approved: ${data.recordId}`);
 
-        await this.notificationService.send(
-          {
-            userId: data.submittedBy,
-            channel: NotificationChannel.IN_APP,
-            subject: 'Submission Approved',
-            body: `Your ${data.entityType} submission (${data.recordId}) has been approved at validation level ${data.level}.`,
-          },
-          data.tenantId,
-        );
+        const templateData: Record<string, unknown> = {
+          entityType: data.entityType,
+          entityId: data.recordId,
+          recordId: data.recordId,
+          level: data.level,
+          dashboardUrl: process.env['DASHBOARD_URL'] ?? 'https://aris.africa/dashboard',
+        };
 
-        await this.notificationService.send(
-          {
-            userId: data.submittedBy,
-            channel: NotificationChannel.EMAIL,
-            subject: `[ARIS] Submission Approved — ${data.entityType}`,
-            body: `<p>Your <strong>${data.entityType}</strong> submission (<code>${data.recordId}</code>) has been approved at validation level ${data.level}.</p>`,
-          },
+        await this.sendToPreferredChannels(
+          data.submittedBy,
           data.tenantId,
+          'WORKFLOW_APPROVED',
+          templateData,
+          `Your ${data.entityType} submission (${data.recordId}) has been approved at validation level ${data.level}.`,
         );
       },
     );
@@ -122,24 +184,21 @@ export class NotificationConsumerService implements OnModuleInit {
         const data = payload as WorkflowRejectedPayload;
         this.logger.debug(`Workflow rejected: ${data.recordId}`);
 
-        await this.notificationService.send(
-          {
-            userId: data.submittedBy,
-            channel: NotificationChannel.IN_APP,
-            subject: 'Submission Rejected',
-            body: `Your ${data.entityType} submission (${data.recordId}) was rejected at level ${data.level}. Reason: ${data.reason}`,
-          },
-          data.tenantId,
-        );
+        const templateData: Record<string, unknown> = {
+          entityType: data.entityType,
+          entityId: data.recordId,
+          recordId: data.recordId,
+          level: data.level,
+          reason: data.reason,
+          correctionUrl: `${process.env['DASHBOARD_URL'] ?? 'https://aris.africa/dashboard'}/corrections/${data.recordId}`,
+        };
 
-        await this.notificationService.send(
-          {
-            userId: data.submittedBy,
-            channel: NotificationChannel.EMAIL,
-            subject: `[ARIS] Submission Rejected — ${data.entityType}`,
-            body: `<p>Your <strong>${data.entityType}</strong> submission (<code>${data.recordId}</code>) was rejected at validation level ${data.level}.</p><p><strong>Reason:</strong> ${data.reason}</p>`,
-          },
+        await this.sendToPreferredChannels(
+          data.submittedBy,
           data.tenantId,
+          'WORKFLOW_REJECTED',
+          templateData,
+          `Your ${data.entityType} submission (${data.recordId}) was rejected at level ${data.level}. Reason: ${data.reason}`,
         );
       },
     );
@@ -157,24 +216,20 @@ export class NotificationConsumerService implements OnModuleInit {
 
         const violationList = data.violations.join(', ');
 
-        await this.notificationService.send(
-          {
-            userId: data.dataStewardId,
-            channel: NotificationChannel.IN_APP,
-            subject: 'Data Quality Rejection',
-            body: `Record ${data.recordId} (${data.entityType}) failed quality gates: ${violationList}. Please review and correct.`,
-          },
-          data.tenantId,
-        );
+        const templateData: Record<string, unknown> = {
+          entityType: data.entityType,
+          recordId: data.recordId,
+          violations: data.violations,
+          violationCount: data.violations.length,
+          correctionUrl: `${process.env['DASHBOARD_URL'] ?? 'https://aris.africa/dashboard'}/corrections/${data.recordId}`,
+        };
 
-        await this.notificationService.send(
-          {
-            userId: data.dataStewardId,
-            channel: NotificationChannel.EMAIL,
-            subject: `[ARIS] Quality Gate Failure — ${data.entityType}`,
-            body: `<p>Record <code>${data.recordId}</code> (<strong>${data.entityType}</strong>) failed quality gates:</p><ul>${data.violations.map((v) => `<li>${v}</li>`).join('')}</ul><p>Please review and correct.</p>`,
-          },
+        await this.sendToPreferredChannels(
+          data.dataStewardId,
           data.tenantId,
+          'QUALITY_FAILED',
+          templateData,
+          `Record ${data.recordId} (${data.entityType}) failed quality gates: ${violationList}. Please review and correct.`,
         );
       },
     );
@@ -190,38 +245,31 @@ export class NotificationConsumerService implements OnModuleInit {
         const data = payload as CorrectionOverduePayload;
         this.logger.debug(`Correction overdue: ${data.recordId}`);
 
+        const templateData: Record<string, unknown> = {
+          entityType: data.entityType,
+          recordId: data.recordId,
+          daysOverdue: data.daysOverdue,
+          deadline: new Date().toISOString(),
+          correctionUrl: `${process.env['DASHBOARD_URL'] ?? 'https://aris.africa/dashboard'}/corrections/${data.recordId}`,
+        };
+
         // Notify data steward
-        await this.notificationService.send(
-          {
-            userId: data.dataStewardId,
-            channel: NotificationChannel.IN_APP,
-            subject: 'Overdue Correction',
-            body: `Record ${data.recordId} (${data.entityType}) correction is ${data.daysOverdue} days overdue. Please take action.`,
-          },
+        await this.sendToPreferredChannels(
+          data.dataStewardId,
           data.tenantId,
+          'CORRECTION_OVERDUE',
+          templateData,
+          `Record ${data.recordId} (${data.entityType}) correction is ${data.daysOverdue} days overdue. Please take action.`,
         );
 
-        // Escalation email
-        await this.notificationService.send(
-          {
-            userId: data.dataStewardId,
-            channel: NotificationChannel.EMAIL,
-            subject: `[ARIS] ESCALATION — Overdue Correction (${data.daysOverdue} days)`,
-            body: `<p><strong>Escalation:</strong> Record <code>${data.recordId}</code> (<strong>${data.entityType}</strong>) correction is <strong>${data.daysOverdue} days overdue</strong>.</p><p>Please take immediate action.</p>`,
-          },
-          data.tenantId,
-        );
-
-        // Notify supervisor if provided
+        // Escalate to supervisor if provided
         if (data.supervisorId) {
-          await this.notificationService.send(
-            {
-              userId: data.supervisorId,
-              channel: NotificationChannel.EMAIL,
-              subject: `[ARIS] ESCALATION — Overdue Correction (${data.daysOverdue} days)`,
-              body: `<p><strong>Escalation:</strong> Record <code>${data.recordId}</code> (<strong>${data.entityType}</strong>) correction is <strong>${data.daysOverdue} days overdue</strong>. The assigned data steward has been notified.</p>`,
-            },
+          await this.sendToPreferredChannels(
+            data.supervisorId,
             data.tenantId,
+            'CORRECTION_OVERDUE',
+            { ...templateData, isSupervisorEscalation: true },
+            `ESCALATION: Record ${data.recordId} (${data.entityType}) correction is ${data.daysOverdue} days overdue. The assigned data steward has been notified.`,
           );
         }
       },
@@ -238,24 +286,19 @@ export class NotificationConsumerService implements OnModuleInit {
         const data = payload as FormSubmittedPayload;
         this.logger.debug(`Form submitted: ${data.formId}`);
 
-        await this.notificationService.send(
-          {
-            userId: data.supervisorId,
-            channel: NotificationChannel.IN_APP,
-            subject: 'New Form Submission',
-            body: `A new ${data.templateName} form (${data.formId}) has been submitted and requires your review.`,
-          },
-          data.tenantId,
-        );
+        const templateData: Record<string, unknown> = {
+          campaignName: data.templateName,
+          formId: data.formId,
+          templateName: data.templateName,
+          dashboardUrl: `${process.env['DASHBOARD_URL'] ?? 'https://aris.africa/dashboard'}/submissions/${data.formId}`,
+        };
 
-        await this.notificationService.send(
-          {
-            userId: data.supervisorId,
-            channel: NotificationChannel.EMAIL,
-            subject: `[ARIS] New Submission — ${data.templateName}`,
-            body: `<p>A new <strong>${data.templateName}</strong> form (<code>${data.formId}</code>) has been submitted and requires your review.</p>`,
-          },
+        await this.sendToPreferredChannels(
+          data.supervisorId,
           data.tenantId,
+          'CAMPAIGN_ASSIGNED',
+          templateData,
+          `A new ${data.templateName} form (${data.formId}) has been submitted and requires your review.`,
         );
       },
     );

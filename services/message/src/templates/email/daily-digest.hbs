@@ -1,0 +1,111 @@
+<!-- daily-digest.hbs — Email body for daily summary digest notifications -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+  <tr>
+    <td style="padding-bottom: 20px;">
+      <p style="margin: 0 0 20px 0; font-family: Arial, Helvetica, sans-serif; font-size: 18px; color: #003366; font-weight: bold;">
+        Good morning, {{userName}}!
+      </p>
+
+      <!-- Summary Cards -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 24px;">
+        <tr>
+          <!-- Pending Approvals -->
+          <td width="33%" style="padding: 0 4px 0 0; vertical-align: top;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border: 1px solid #d0d7de; border-radius: 6px; overflow: hidden;">
+              <tr>
+                <td style="background-color: #003366; padding: 8px 12px; text-align: center;">
+                  <span style="font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #b0c4de; text-transform: uppercase; letter-spacing: 0.5px;">Pending Approvals</span>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 16px 12px; text-align: center; background-color: #ffffff;">
+                  <span style="font-family: Arial, Helvetica, sans-serif; font-size: 28px; font-weight: bold; color: #003366;">{{pendingApprovals}}</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+          <!-- Overdue Corrections -->
+          <td width="33%" style="padding: 0 2px; vertical-align: top;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border: 1px solid #d0d7de; border-radius: 6px; overflow: hidden;">
+              <tr>
+                <td style="background-color: {{#if overdueCorrections}}#dc3545{{else}}#003366{{/if}}; padding: 8px 12px; text-align: center;">
+                  <span style="font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px;">Overdue Corrections</span>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 16px 12px; text-align: center; background-color: #ffffff;">
+                  <span style="font-family: Arial, Helvetica, sans-serif; font-size: 28px; font-weight: bold; color: {{#if overdueCorrections}}#dc3545{{else}}#003366{{/if}};">{{overdueCorrections}}</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+          <!-- Unread Notifications -->
+          <td width="33%" style="padding: 0 0 0 4px; vertical-align: top;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border: 1px solid #d0d7de; border-radius: 6px; overflow: hidden;">
+              <tr>
+                <td style="background-color: #003366; padding: 8px 12px; text-align: center;">
+                  <span style="font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #b0c4de; text-transform: uppercase; letter-spacing: 0.5px;">Unread Notifications</span>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 16px 12px; text-align: center; background-color: #ffffff;">
+                  <span style="font-family: Arial, Helvetica, sans-serif; font-size: 28px; font-weight: bold; color: #003366;">{{unreadCount}}</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Pending Items Table -->
+      {{#if items}}
+      <p style="margin: 0 0 12px 0; font-family: Arial, Helvetica, sans-serif; font-size: 15px; color: #003366; font-weight: bold;">
+        Top Pending Items
+      </p>
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 24px; border-collapse: collapse;">
+        <tr>
+          <td style="background-color: #003366; padding: 10px 12px; font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: bold; color: #ffffff; border: 1px solid #002244;">
+            Type
+          </td>
+          <td style="background-color: #003366; padding: 10px 12px; font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: bold; color: #ffffff; border: 1px solid #002244;">
+            Ref
+          </td>
+          <td style="background-color: #003366; padding: 10px 12px; font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: bold; color: #ffffff; border: 1px solid #002244;">
+            Level
+          </td>
+          <td style="background-color: #003366; padding: 10px 12px; font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: bold; color: #ffffff; border: 1px solid #002244;">
+            Due Date
+          </td>
+        </tr>
+        {{#each items}}
+        <tr>
+          <td style="padding: 8px 12px; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #333333; border: 1px solid #e0e0e0; background-color: {{#if @odd}}#f9f9f9{{else}}#ffffff{{/if}};">
+            {{this.entityType}}
+          </td>
+          <td style="padding: 8px 12px; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #333333; border: 1px solid #e0e0e0; background-color: {{#if @odd}}#f9f9f9{{else}}#ffffff{{/if}};">
+            <code style="font-size: 12px;">{{this.entityId}}</code>
+          </td>
+          <td style="padding: 8px 12px; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #333333; border: 1px solid #e0e0e0; background-color: {{#if @odd}}#f9f9f9{{else}}#ffffff{{/if}};">
+            {{this.level}}
+          </td>
+          <td style="padding: 8px 12px; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #333333; border: 1px solid #e0e0e0; background-color: {{#if @odd}}#f9f9f9{{else}}#ffffff{{/if}};">
+            {{this.dueDate}}
+          </td>
+        </tr>
+        {{/each}}
+      </table>
+      {{/if}}
+
+      <!-- CTA Button -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 24px 0;">
+        <tr>
+          <td style="border-radius: 6px; background-color: #003366;">
+            <a href="{{dashboardUrl}}" target="_blank" style="display: inline-block; padding: 14px 32px; font-family: Arial, Helvetica, sans-serif; font-size: 16px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 6px;">
+              Go to Dashboard
+            </a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

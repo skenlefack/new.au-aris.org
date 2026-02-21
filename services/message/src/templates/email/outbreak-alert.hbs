@@ -1,0 +1,90 @@
+<!-- outbreak-alert.hbs — Email body for outbreak alert notifications -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+  <tr>
+    <td style="padding-bottom: 20px;">
+      <!-- Critical Alert Badge -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 20px;">
+        <tr>
+          <td>
+            <span style="display: inline-block; background-color: #c0392b; color: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 13px; font-weight: bold; padding: 6px 16px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px;">
+              CRITICAL ALERT
+            </span>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin: 0 0 16px 0; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333;">
+        A <strong>{{diseaseName}}</strong> outbreak has been reported in <strong>{{countryName}}</strong>.
+      </p>
+
+      <!-- Details Table -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 24px; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; font-weight: bold; color: #555555; border: 1px solid #e0e0e0; background-color: #fdf2f2; width: 40%;">
+            Disease
+          </td>
+          <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333333; border: 1px solid #e0e0e0; background-color: #ffffff;">
+            {{diseaseName}}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; font-weight: bold; color: #555555; border: 1px solid #e0e0e0; background-color: #fdf2f2;">
+            Country
+          </td>
+          <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333333; border: 1px solid #e0e0e0; background-color: #ffffff;">
+            {{countryName}}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; font-weight: bold; color: #555555; border: 1px solid #e0e0e0; background-color: #fdf2f2;">
+            Severity
+          </td>
+          <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #c0392b; font-weight: bold; border: 1px solid #e0e0e0; background-color: #ffffff;">
+            {{severity}}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; font-weight: bold; color: #555555; border: 1px solid #e0e0e0; background-color: #fdf2f2;">
+            Reported Date
+          </td>
+          <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333333; border: 1px solid #e0e0e0; background-color: #ffffff;">
+            {{reportedDate}}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; font-weight: bold; color: #555555; border: 1px solid #e0e0e0; background-color: #fdf2f2;">
+            Cases
+          </td>
+          <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333333; border: 1px solid #e0e0e0; background-color: #ffffff;">
+            {{cases}}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; font-weight: bold; color: #555555; border: 1px solid #e0e0e0; background-color: #fdf2f2;">
+            Deaths
+          </td>
+          <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333333; border: 1px solid #e0e0e0; background-color: #ffffff;">
+            {{deaths}}
+          </td>
+        </tr>
+      </table>
+
+      <!-- CTA Button -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 24px 0;">
+        <tr>
+          <td style="border-radius: 6px; background-color: #c0392b;">
+            <a href="{{mapUrl}}" target="_blank" style="display: inline-block; padding: 14px 32px; font-family: Arial, Helvetica, sans-serif; font-size: 16px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 6px;">
+              View on Map
+            </a>
+          </td>
+        </tr>
+      </table>
+
+      {{#if eventUrl}}
+      <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; text-align: center;">
+        <a href="{{eventUrl}}" target="_blank" style="color: #c0392b; text-decoration: underline;">View Event Details</a>
+      </p>
+      {{/if}}
+    </td>
+  </tr>
+</table>

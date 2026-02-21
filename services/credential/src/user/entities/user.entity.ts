@@ -11,6 +11,7 @@ export interface UserEntity {
   firstName: string;
   lastName: string;
   role: UserRole;
+  locale: string;
   mfaEnabled: boolean;
   lastLoginAt: Date | null;
   isActive: boolean;

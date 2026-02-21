@@ -1,0 +1,43 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies (rebuilt in Docker)
+node_modules
+**/node_modules
+
+# Build outputs
+dist
+**/dist
+.next
+**/.next
+out
+
+# Mobile app (not built in Docker)
+apps/mobile
+
+# Dev/CI files
+.github
+.vscode
+.idea
+coverage
+**/coverage
+
+# Docs
+docs
+*.md
+!package.json
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+keys/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+*.tsbuildinfo

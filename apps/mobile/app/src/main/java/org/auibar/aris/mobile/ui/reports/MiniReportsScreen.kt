@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,7 +17,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -34,6 +32,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.auibar.aris.mobile.R
+import org.auibar.aris.mobile.ui.charts.HorizontalBarChart
+import org.auibar.aris.mobile.ui.charts.LineChart
+import org.auibar.aris.mobile.ui.charts.PieChart
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -91,37 +92,20 @@ fun MiniReportsScreen(
 
             // Submissions by Status
             SectionTitle(stringResource(R.string.submissions_by_status))
-            state.statusCounts.forEach { item ->
-                val fraction = if (state.totalSubmissions > 0) {
-                    item.count.toFloat() / state.totalSubmissions
-                } else {
-                    0f
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = item.status,
-                        modifier = Modifier.width(80.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    LinearProgressIndicator(
-                        progress = { fraction },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(8.dp),
-                        color = statusColor(item.status),
-                    )
-                    Text(
-                        text = "${item.count}",
-                        modifier = Modifier.padding(start = 8.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                    )
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    if (state.statusPieData.isNotEmpty()) {
+                        PieChart(
+                            slices = state.statusPieData,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(R.string.no_kpi_data),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
 
@@ -129,19 +113,20 @@ fun MiniReportsScreen(
 
             // Submissions by Domain
             SectionTitle(stringResource(R.string.submissions_by_domain))
-            state.domainCounts.forEach { item ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(text = item.domain, style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        text = "${item.count}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    if (state.domainBarData.isNotEmpty()) {
+                        HorizontalBarChart(
+                            items = state.domainBarData,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(R.string.no_kpi_data),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
 
@@ -149,29 +134,18 @@ fun MiniReportsScreen(
 
             // Campaign Progress
             SectionTitle(stringResource(R.string.campaign_progress))
-            state.campaignProgress.forEach { item ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 2.dp),
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = item.campaignName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f),
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    if (state.campaignProgressData.isNotEmpty()) {
+                        HorizontalBarChart(
+                            items = state.campaignProgressData,
+                            modifier = Modifier.fillMaxWidth(),
                         )
+                    } else {
                         Text(
-                            text = "${item.submissionCount}",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
+                            text = stringResource(R.string.no_campaigns),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -190,6 +164,20 @@ fun MiniReportsScreen(
                         text = "${stringResource(R.string.last_sync)}: $lastSync",
                         style = MaterialTheme.typography.bodyMedium,
                     )
+                    if (state.syncHistoryData.size >= 2) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = stringResource(R.string.submissions_by_status),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LineChart(
+                            points = state.syncHistoryData,
+                            lineColor = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
 
@@ -222,13 +210,4 @@ private fun StatItem(label: String, value: Int, color: Color) {
             style = MaterialTheme.typography.bodySmall,
         )
     }
-}
-
-private fun statusColor(status: String): Color = when (status) {
-    "SYNCED" -> Color(0xFF4CAF50)
-    "PENDING" -> Color(0xFF2196F3)
-    "FAILED" -> Color(0xFFF44336)
-    "DRAFT" -> Color(0xFF9E9E9E)
-    "CONFLICT" -> Color(0xFFFF9800)
-    else -> Color(0xFF9E9E9E)
 }

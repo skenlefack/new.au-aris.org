@@ -33,4 +33,9 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @IsEnum(['en', 'fr', 'pt', 'ar'] as const)
+  locale?: string;
 }
