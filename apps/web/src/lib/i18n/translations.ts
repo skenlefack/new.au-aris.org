@@ -4,9 +4,11 @@ import { useLocaleStore } from '@/lib/stores/locale-store';
 import en from '@/messages/en.json';
 import fr from '@/messages/fr.json';
 import pt from '@/messages/pt.json';
+import ar from '@/messages/ar.json';
+import es from '@/messages/es.json';
 import type { Locale } from './config';
 
-const messages: Record<Locale, Record<string, Record<string, string>>> = { en, fr, pt };
+const messages: Record<Locale, Record<string, Record<string, string>>> = { en, fr, pt, ar, es };
 
 /**
  * Hook that returns translation function for a namespace.
@@ -33,7 +35,7 @@ export function useTranslations(namespace: string) {
  */
 export function useFormattedDate() {
   const locale = useLocaleStore((s) => s.locale);
-  const localeMap: Record<Locale, string> = { en: 'en-GB', fr: 'fr-FR', pt: 'pt-PT' };
+  const localeMap: Record<Locale, string> = { en: 'en-GB', fr: 'fr-FR', pt: 'pt-PT', ar: 'ar-SA', es: 'es-ES' };
 
   return function formatDate(date: string | Date, options?: Intl.DateTimeFormatOptions): string {
     const d = typeof date === 'string' ? new Date(date) : date;
@@ -46,7 +48,7 @@ export function useFormattedDate() {
  */
 export function useFormattedNumber() {
   const locale = useLocaleStore((s) => s.locale);
-  const localeMap: Record<Locale, string> = { en: 'en-GB', fr: 'fr-FR', pt: 'pt-PT' };
+  const localeMap: Record<Locale, string> = { en: 'en-GB', fr: 'fr-FR', pt: 'pt-PT', ar: 'ar-SA', es: 'es-ES' };
 
   return function formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
     return value.toLocaleString(localeMap[locale], options);

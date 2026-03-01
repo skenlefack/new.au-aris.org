@@ -79,7 +79,7 @@ describe('Credential Service — Integration', () => {
         name: 'African Union - IBAR',
         code: 'AU-IBAR',
         level: 'CONTINENTAL',
-        domain: 'aris.africa',
+        domain: 'au-aris.org',
         config: {},
       },
     });
@@ -128,7 +128,7 @@ describe('Credential Service — Integration', () => {
     // ── 1. Register ──
     const caller = {
       userId: 'admin-001',
-      email: 'admin@aris.africa',
+      email: 'admin@au-aris.org',
       role: 'SUPER_ADMIN',
       tenantId: '00000000-0000-4000-a000-000000000001',
       tenantLevel: 'CONTINENTAL',
@@ -136,7 +136,7 @@ describe('Credential Service — Integration', () => {
 
     const registerResult = await authService.register(
       {
-        email: 'integration@aris.africa',
+        email: 'integration@au-aris.org',
         password: 'IntTest2024!',
         firstName: 'Integration',
         lastName: 'Test',
@@ -146,19 +146,19 @@ describe('Credential Service — Integration', () => {
       caller as never,
     );
 
-    expect(registerResult.data.email).toBe('integration@aris.africa');
+    expect(registerResult.data.email).toBe('integration@au-aris.org');
     expect(registerResult.data).not.toHaveProperty('passwordHash');
 
     // Verify user persisted in DB
     const dbUser = await prisma.user.findUnique({
-      where: { email: 'integration@aris.africa' },
+      where: { email: 'integration@au-aris.org' },
     });
     expect(dbUser).not.toBeNull();
     expect(dbUser!.firstName).toBe('Integration');
 
     // ── 2. Login ──
     const loginResult = await authService.login({
-      email: 'integration@aris.africa',
+      email: 'integration@au-aris.org',
       password: 'IntTest2024!',
     });
 
@@ -201,7 +201,7 @@ describe('Credential Service — Integration', () => {
 
     await expect(
       authService.login({
-        email: 'integration@aris.africa',
+        email: 'integration@au-aris.org',
         password: 'WrongPassword1',
       }),
     ).rejects.toThrow();
@@ -212,7 +212,7 @@ describe('Credential Service — Integration', () => {
 
     const caller = {
       userId: 'admin-001',
-      email: 'admin@aris.africa',
+      email: 'admin@au-aris.org',
       role: 'SUPER_ADMIN',
       tenantId: '00000000-0000-4000-a000-000000000001',
       tenantLevel: 'CONTINENTAL',
@@ -221,7 +221,7 @@ describe('Credential Service — Integration', () => {
     await expect(
       authService.register(
         {
-          email: 'integration@aris.africa', // already exists from first test
+          email: 'integration@au-aris.org', // already exists from first test
           password: 'AnotherPass1',
           firstName: 'Dup',
           lastName: 'Test',

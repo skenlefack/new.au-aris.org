@@ -1,0 +1,76 @@
+// ARIS 3.0 — Datalake / Historical Data Models
+// Manages imported datasets (Excel, CSV, JSON) with auto-analysis
+
+model HistoricalDataset {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  name             String   @db.VarChar(255)
+  description      String?  @db.Text
+  domain           String   @db.VarChar(100)
+  sourceFile       String   @map("source_file") @db.VarChar(500)
+  fileType         String   @map("file_type") @db.VarChar(20) // xlsx, csv, json
+  fileSizeBytes    BigInt   @map("file_size_bytes")
+  originalFileName String   @map("original_file_name") @db.VarChar(500)
+  tableName        String   @map("table_name") @db.VarChar(128) // generated PG table name in "historical" schema
+  rowCount         Int      @default(0) @map("row_count")
+  columnCount      Int      @default(0) @map("column_count")
+  status           String   @default("PENDING") @db.VarChar(30) // PENDING, ANALYZING, IMPORTING, READY, FAILED, ARCHIVED
+  errorMessage     String?  @map("error_message") @db.Text
+  tags             String[] @default([])
+  metadata         Json?    @db.JsonB
+  createdBy        String   @map("created_by") @db.Uuid
+  updatedBy        String?  @map("updated_by") @db.Uuid
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime @updatedAt @db.Timestamptz(6)
+
+  columns  DatasetColumn[]
+  analyses DatasetAnalysis[]
+
+  @@index([tenantId])
+  @@index([domain])
+  @@index([status])
+  @@index([created_at])
+  @@map("historical_dataset")
+  @@schema("public")
+}
+
+model DatasetColumn {
+  id             String  @id @default(uuid()) @db.Uuid
+  datasetId      String  @map("dataset_id") @db.Uuid
+  name           String  @db.VarChar(255)
+  originalName   String  @map("original_name") @db.VarChar(255)
+  dataType       String  @map("data_type") @db.VarChar(50) // TEXT, INTEGER, FLOAT, DATE, BOOLEAN, JSON
+  pgColumnName   String  @map("pg_column_name") @db.VarChar(128)
+  nullable       Boolean @default(true)
+  ordinal        Int     // column order
+  sampleValues   Json?   @map("sample_values") @db.JsonB
+  stats          Json?   @db.JsonB // { min, max, avg, nullCount, uniqueCount, distribution }
+  linkedRefType  String? @map("linked_ref_type") @db.VarChar(100) // e.g. "species", "country", "disease"
+  linkedRefField String? @map("linked_ref_field") @db.VarChar(100)
+
+  dataset HistoricalDataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+
+  @@index([datasetId])
+  @@unique([datasetId, ordinal])
+  @@map("dataset_column")
+  @@schema("public")
+}
+
+model DatasetAnalysis {
+  id          String   @id @default(uuid()) @db.Uuid
+  datasetId   String   @map("dataset_id") @db.Uuid
+  type        String   @db.VarChar(50) // SUMMARY, TREND, DISTRIBUTION, CORRELATION, ANOMALY
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  config      Json     @db.JsonB // { columns, groupBy, metric, chartType }
+  result      Json?    @db.JsonB // cached analysis result
+  createdBy   String   @map("created_by") @db.Uuid
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @updatedAt @db.Timestamptz(6)
+
+  dataset HistoricalDataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+
+  @@index([datasetId])
+  @@map("dataset_analysis")
+  @@schema("public")
+}

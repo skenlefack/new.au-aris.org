@@ -23,7 +23,7 @@ function createMockContext(
 function createUser(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-1',
-    email: 'test@aris.africa',
+    email: 'test@au-aris.org',
     role: UserRole.NATIONAL_ADMIN,
     tenantId: 'tenant-ke',
     tenantLevel: TenantLevel.MEMBER_STATE,

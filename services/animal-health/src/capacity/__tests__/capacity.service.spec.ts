@@ -26,7 +26,7 @@ function mockAudit() {
 function msUser(): AuthenticatedUser {
   return {
     userId: 'user-ke',
-    email: 'cvo@ke.aris.africa',
+    email: 'cvo@ke.au-aris.org',
     role: UserRole.NATIONAL_ADMIN,
     tenantId: 'tenant-ke',
     tenantLevel: TenantLevel.MEMBER_STATE,

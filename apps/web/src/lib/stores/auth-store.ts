@@ -20,6 +20,7 @@ export interface AuthUser {
   lastName: string;
   role: UserRole;
   tenantId: string;
+  tenantLevel?: string;
   avatarUrl?: string;
 }
 
@@ -30,6 +31,7 @@ interface AuthState {
   isAuthenticated: boolean;
   setAuth: (user: AuthUser, accessToken: string, refreshToken: string) => void;
   updateToken: (accessToken: string) => void;
+  updateTokens: (accessToken: string, refreshToken: string) => void;
   logout: () => void;
 }
 
@@ -43,6 +45,7 @@ export const useAuthStore = create<AuthState>()(
       setAuth: (user, accessToken, refreshToken) =>
         set({ user, accessToken, refreshToken, isAuthenticated: true }),
       updateToken: (accessToken) => set({ accessToken }),
+      updateTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       logout: () =>
         set({
           user: null,

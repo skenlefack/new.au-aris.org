@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { TopProgressBar } from './PageLoader';
 
 interface SkeletonProps {
   className?: string;
@@ -8,8 +9,22 @@ interface SkeletonProps {
 export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
-      className={cn('animate-pulse rounded-md bg-gray-200', className)}
+      className={cn('animate-pulse rounded-md bg-gray-200 dark:bg-gray-700/50', className)}
     />
+  );
+}
+
+/**
+ * Wraps skeleton content with a top progress bar and smooth fade-in.
+ */
+export function LoadingShell({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <TopProgressBar />
+      <div className="animate-fade-in">
+        {children}
+      </div>
+    </>
   );
 }
 

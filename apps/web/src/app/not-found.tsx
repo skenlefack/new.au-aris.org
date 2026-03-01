@@ -60,7 +60,7 @@ export default function NotFound() {
 
         {/* Branding */}
         <p className="mt-12 text-xs text-gray-400">
-          ARIS 3.0 — Animal Resources Information System
+          ARIS — Animal Resources Information System
         </p>
       </div>
     </div>

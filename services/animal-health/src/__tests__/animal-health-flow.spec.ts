@@ -70,7 +70,7 @@ function mockAudit() {
 
 const user: AuthenticatedUser = {
   userId: 'user-ke-vet',
-  email: 'vet@ke.aris.africa',
+  email: 'vet@ke.au-aris.org',
   role: UserRole.NATIONAL_ADMIN,
   tenantId: 'tenant-ke',
   tenantLevel: TenantLevel.MEMBER_STATE,

@@ -24,7 +24,7 @@ export function createMockUser(
   return {
     id,
     tenantId: randomUUID(),
-    email: `user-${id.substring(0, 8)}@aris.africa`,
+    email: `user-${id.substring(0, 8)}@au-aris.org`,
     passwordHash: '$2b$12$mockhashvalue',
     firstName: 'John',
     lastName: 'Doe',
@@ -52,7 +52,7 @@ export function createMockJwtPayload(
 ): MockJwtPayload {
   return {
     userId: randomUUID(),
-    email: 'admin@aris.africa',
+    email: 'admin@au-aris.org',
     role: UserRole.SUPER_ADMIN,
     tenantId: randomUUID(),
     tenantLevel: TenantLevel.CONTINENTAL,

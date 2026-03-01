@@ -2,20 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Dynamic Entity Theme — CSS Custom Properties ────────────────────────── */
+/* These are set at runtime by useEntityTheme() based on selected tenant.     */
+/* Default values = AU-IBAR green + gold.                                     */
+
 @layer base {
   :root {
     --aris-primary: 27 94 32;
     --aris-secondary: 0 96 100;
     --aris-accent: 230 81 0;
+
+    /* Dynamic accent (overridden by JS) */
+    --color-accent: #006B3F;
+    --color-accent-rgb: 0, 107, 63;
+    --color-accent-light: rgba(0, 107, 63, 0.08);
+    --color-accent-lighter: rgba(0, 107, 63, 0.04);
+    --color-accent-hover: #005A35;
+    --color-accent-active: #004D2D;
+    --color-accent-text: #ffffff;
+    --color-secondary: #D4A843;
+    --color-secondary-light: rgba(212, 168, 67, 0.12);
+
+    /* Sidebar dimensions */
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 72px;
   }
 
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-slate-50 text-gray-900 antialiased;
   }
 
   /* Global focus visible styles */
   :focus-visible {
-    @apply outline-none ring-2 ring-aris-primary-400 ring-offset-2;
+    @apply outline-none ring-2 ring-offset-2;
+    ring-color: var(--color-accent, #006B3F);
   }
 
   /* Remove focus ring for mouse users */
@@ -23,12 +43,181 @@
     outline: none;
     box-shadow: none;
   }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 @layer components {
   /* Skip navigation link for keyboard / screen-reader users */
   .skip-link {
-    @apply absolute -top-full left-4 z-[200] rounded-b-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white transition-all focus:top-0;
+    @apply absolute -top-full left-4 z-[200] rounded-b-lg px-4 py-2 text-sm font-medium text-white transition-all focus:top-0;
+    background-color: var(--color-accent, #006B3F);
+  }
+
+  /* ── Sidebar tooltip — fixed position, escapes overflow clipping ────────── */
+  .sidebar-tooltip {
+    position: fixed;
+    z-index: 9999;
+    white-space: nowrap;
+    border-radius: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-accent-text, #fff);
+    background: var(--color-accent, #006B3F);
+    box-shadow: 0 8px 24px rgba(var(--color-accent-rgb), 0.35), 0 2px 8px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-6px) translateY(-50%);
+    transition: opacity 200ms ease, visibility 200ms ease, transform 200ms ease;
+    /* top/left set dynamically by JS onMouseEnter */
+  }
+
+  .sidebar-tooltip-arrow {
+    @apply absolute top-1/2 -translate-y-1/2;
+    left: -5px;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-right: 5px solid var(--color-accent, #006B3F);
+  }
+
+  .group:hover .sidebar-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0) translateY(-50%);
+  }
+
+  /* RTL tooltip positioning */
+  [dir='rtl'] .sidebar-tooltip {
+    transform: translateX(6px) translateY(-50%);
+  }
+
+  [dir='rtl'] .sidebar-tooltip-arrow {
+    left: auto;
+    right: -5px;
+    border-right: none;
+    border-left: 5px solid var(--color-accent, #006B3F);
+  }
+
+  [dir='rtl'] .group:hover .sidebar-tooltip {
+    transform: translateX(0) translateY(-50%);
+  }
+
+  /* ── Sidebar gradient background — entity-colored ────────────────────── */
+  .sidebar-gradient {
+    background:
+      linear-gradient(170deg,
+        rgba(var(--color-accent-rgb), 0.03) 0%,
+        rgba(var(--color-accent-rgb), 0.07) 40%,
+        rgba(var(--color-accent-rgb), 0.13) 100%
+      ),
+      #ffffff;
+  }
+
+  .dark .sidebar-gradient {
+    background:
+      linear-gradient(170deg,
+        rgba(var(--color-accent-rgb), 0.06) 0%,
+        rgba(var(--color-accent-rgb), 0.12) 40%,
+        rgba(var(--color-accent-rgb), 0.20) 100%
+      ),
+      #0f172a;
+  }
+
+  /* ── Sidebar active nav item ───────────────────────────────────────────── */
+  .sidebar-active-item {
+    background-color: var(--color-accent-light, rgba(0, 107, 63, 0.08));
+    border-left: 3px solid var(--color-accent, #006B3F);
+  }
+
+  [dir='rtl'] .sidebar-active-item {
+    border-left: none;
+    border-right: 3px solid var(--color-accent, #006B3F);
+  }
+
+  /* Sidebar scrollbar */
+  .sidebar-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .sidebar-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sidebar-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 2px;
+  }
+  .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.14);
+  }
+  .dark .sidebar-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .dark .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  /* ── KPI Card — unique color per card ──────────────────────────────────── */
+  .kpi-card {
+    @apply relative overflow-hidden rounded-xl border border-gray-200 bg-white
+           shadow-sm transition-all duration-200;
+    padding: 1.5rem;
+  }
+
+  .kpi-card:hover {
+    @apply shadow-lg;
+    transform: translateY(-2px);
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--kpi-color, var(--color-accent, #006B3F));
+    border-radius: 3px 3px 0 0;
+  }
+
+  .dark .kpi-card {
+    @apply border-gray-700/80 bg-gray-800/80;
+  }
+
+  .dark .kpi-card:hover {
+    @apply border-gray-600/80;
+  }
+
+  /* ── Button styles ───────────────────────────────────────────────────── */
+  .btn-accent {
+    background-color: var(--color-accent);
+    color: var(--color-accent-text);
+    @apply rounded-lg px-4 py-2 text-sm font-medium transition-all duration-150;
+  }
+
+  .btn-accent:hover {
+    background-color: var(--color-accent-hover);
+    transform: scale(1.02);
+  }
+
+  .btn-accent:active {
+    background-color: var(--color-accent-active);
+    transform: scale(0.98);
+  }
+
+  .btn-accent-outline {
+    border: 1.5px solid var(--color-accent);
+    color: var(--color-accent);
+    @apply rounded-lg bg-transparent px-4 py-2 text-sm font-medium transition-all duration-150;
+  }
+
+  .btn-accent-outline:hover {
+    background-color: var(--color-accent-light);
   }
 }
 
@@ -39,17 +228,43 @@
 
   /* Focus ring for keyboard navigation */
   .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aris-primary-400 focus-visible:ring-offset-2;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
   }
 
-  /* ── Network banner animations ────────────────────────────────────────────── */
+  /* Accent focus ring */
+  .focus-ring-accent:focus-visible {
+    box-shadow: 0 0 0 2px var(--color-accent, #006B3F);
+  }
+
+  /* Active nav item accent bar (for light-background contexts) */
+  .nav-active-bar {
+    border-left: 3px solid var(--color-accent, #006B3F);
+    background-color: var(--color-accent-light, rgba(0, 107, 63, 0.08));
+  }
+
+  [dir='rtl'] .nav-active-bar {
+    border-left: none;
+    border-right: 3px solid var(--color-accent, #006B3F);
+  }
+
+  /* ── Network banner animations ────────────────────────────────── */
   .network-banner-in {
     animation: slideInFromTop 300ms ease-out forwards;
   }
 
   .network-banner-out {
-    animation: fadeOut 300ms ease-in forwards;
+    animation: fadeOutAnim 300ms ease-in forwards;
   }
+
+  /* Staggered animation delay utility */
+  .stagger-1 { animation-delay: 50ms; }
+  .stagger-2 { animation-delay: 100ms; }
+  .stagger-3 { animation-delay: 150ms; }
+  .stagger-4 { animation-delay: 200ms; }
+  .stagger-5 { animation-delay: 250ms; }
+  .stagger-6 { animation-delay: 300ms; }
+  .stagger-7 { animation-delay: 350ms; }
+  .stagger-8 { animation-delay: 400ms; }
 }
 
 /* ── Keyframe animations ──────────────────────────────────────────────────── */
@@ -76,22 +291,46 @@
   }
 }
 
-@keyframes fadeIn {
+@keyframes fadeInAnim {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOutAnim {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fadeInUpAnim {
   from {
     opacity: 0;
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@keyframes fadeOut {
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes scaleIn {
   from {
-    opacity: 1;
+    opacity: 0;
+    transform: scale(0.95);
   }
   to {
-    opacity: 0;
+    opacity: 1;
+    transform: scale(1);
   }
+}
+
+@keyframes countBump {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
 }
 
 /* Utility classes for the keyframe animations */
@@ -102,8 +341,24 @@
     animation-fill-mode: forwards;
   }
 
+  .animate-fade-in {
+    animation: fadeInAnim 300ms ease-out forwards;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUpAnim 400ms ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 150ms ease-out forwards;
+  }
+
+  .animate-count-bump {
+    animation: countBump 300ms ease-out;
+  }
+
   .fade-in {
-    animation-name: fadeIn;
+    animation-name: fadeInAnim;
   }
 
   .slide-in-from-right-5 {
@@ -112,6 +367,12 @@
 
   .slide-in-from-top-2 {
     animation-name: slideInFromTop;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.08) 50%, transparent 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
   }
 }
 
@@ -148,7 +409,7 @@
   }
 
   /* Cards and sections */
-  .rounded-card {
+  .rounded-xl {
     border: 1px solid #d1d5db !important;
     break-inside: avoid;
     page-break-inside: avoid;
@@ -166,7 +427,7 @@
 
   /* Links show URL */
   a[href]::after {
-    content: none; /* Don't show URLs in data tables */
+    content: none;
   }
 
   /* Official header/footer */
@@ -197,4 +458,223 @@
 .print-header,
 .print-footer {
   display: none;
+}
+
+/* ── Global Soft Interaction Effects ─────────────────────────────────────── */
+/* Smooth, premium feel: every clickable element has a tactile press effect   */
+
+/* All clickable elements — soft spring transition */
+button,
+a,
+[role="button"],
+.btn-accent,
+.btn-accent-outline {
+  transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 200ms ease,
+              background-color 200ms ease,
+              color 200ms ease,
+              border-color 200ms ease,
+              opacity 200ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hover lift — slight float up */
+button:hover:not(:disabled),
+a:hover,
+[role="button"]:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* Active press — push down + scale shrink = tactile "click" */
+button:active:not(:disabled),
+a:active,
+[role="button"]:active:not(:disabled) {
+  transform: translateY(1px) scale(0.96);
+  transition-duration: 60ms;
+}
+
+/* Sidebar nav links — override: gentler effect to avoid jumpiness */
+nav a:hover {
+  transform: none;
+}
+
+nav a:active {
+  transform: scale(0.97);
+  transition-duration: 60ms;
+}
+
+/* Interactive cards — lift on hover */
+.interactive-card {
+  transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 250ms ease;
+}
+
+.interactive-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.dark .interactive-card:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Input fields — soft focus glow */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  transition: border-color 200ms ease,
+              box-shadow 200ms ease,
+              background-color 200ms ease;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+textarea:focus,
+select:focus {
+  box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.12);
+}
+
+/* ── Page Loader — Full-screen overlay (auth / initial load) ─────────────── */
+
+.page-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(248, 250, 252, 0.92);
+  backdrop-filter: blur(8px);
+  animation: pageLoaderFadeIn 300ms ease-out forwards;
+}
+
+.page-loader.page-loader-fade-out {
+  animation: pageLoaderFadeOut 300ms ease-in forwards;
+  pointer-events: none;
+}
+
+.dark .page-loader {
+  background: rgba(3, 7, 18, 0.92);
+}
+
+/* ── Content Loader — Inside main area only (sidebar + header stay visible) ── */
+
+.content-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(248, 250, 252, 0.88);
+  backdrop-filter: blur(6px);
+  animation: pageLoaderFadeIn 250ms ease-out forwards;
+}
+
+.content-loader.content-loader-fade-out {
+  animation: pageLoaderFadeOut 250ms ease-in forwards;
+  pointer-events: none;
+}
+
+.dark .content-loader {
+  background: rgba(3, 7, 18, 0.88);
+}
+
+.page-loader-ring {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(var(--color-accent-rgb), 0.12);
+  border-top-color: var(--color-accent, #006B3F);
+  animation: pageLoaderSpin 1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.page-loader-logo {
+  animation: pageLoaderPulse 2s ease-in-out infinite;
+}
+
+.page-loader-dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-accent, #006B3F);
+  opacity: 0.3;
+  animation: pageLoaderDotBounce 1.2s ease-in-out infinite;
+}
+
+.page-loader-circle-1 {
+  animation: pageLoaderFloat 6s ease-in-out infinite;
+}
+
+.page-loader-circle-2 {
+  animation: pageLoaderFloat 8s ease-in-out infinite reverse;
+}
+
+.page-loader-circle-3 {
+  animation: pageLoaderExpand 5s ease-in-out infinite;
+}
+
+/* Top progress bar */
+.top-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 200;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--color-accent, #006B3F),
+    var(--color-secondary, #D4A843),
+    var(--color-accent, #006B3F)
+  );
+  background-size: 200% 100%;
+  animation: topProgressSlide 1.5s ease-in-out infinite, topProgressGrow 600ms ease-out forwards;
+  border-radius: 0 2px 2px 0;
+  box-shadow: 0 0 8px rgba(var(--color-accent-rgb), 0.3);
+}
+
+/* ── Page Loader Keyframes ───────────────────────────────────────────────── */
+
+@keyframes pageLoaderFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pageLoaderFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes pageLoaderSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pageLoaderPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.92); }
+}
+
+@keyframes pageLoaderDotBounce {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1.1); }
+}
+
+@keyframes pageLoaderFloat {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(8px, -12px); }
+}
+
+@keyframes pageLoaderExpand {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.15); opacity: 0.8; }
+}
+
+@keyframes topProgressSlide {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes topProgressGrow {
+  from { width: 0; }
+  to { width: 85%; }
 }

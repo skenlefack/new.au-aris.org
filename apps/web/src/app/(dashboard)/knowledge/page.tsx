@@ -97,7 +97,7 @@ const PLACEHOLDER_PUBLICATIONS: Publication[] = [
 const PLACEHOLDER_COURSES: ElearningCourse[] = [
   {
     id: 'course-1',
-    title: 'Introduction to ARIS 3.0 Platform',
+    title: 'Introduction to ARIS Platform',
     description: 'Learn the fundamentals of the ARIS platform, from data entry to report generation.',
     domain: 'Platform',
     level: 'beginner',

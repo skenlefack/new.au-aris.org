@@ -8,7 +8,7 @@ import { UserRole, TenantLevel } from '@aris/shared-types';
 
 const mockUser: AuthenticatedUser = {
   userId: '00000000-0000-0000-0000-000000000001',
-  email: 'steward@au-ibar.org',
+  email: 'steward@au-aris.org',
   role: UserRole.DATA_STEWARD,
   tenantId: '00000000-0000-0000-0000-000000000010',
   tenantLevel: TenantLevel.MEMBER_STATE,
@@ -16,7 +16,7 @@ const mockUser: AuthenticatedUser = {
 
 const continentalUser: AuthenticatedUser = {
   userId: '00000000-0000-0000-0000-000000000002',
-  email: 'admin@au-ibar.org',
+  email: 'admin@au-aris.org',
   role: UserRole.CONTINENTAL_ADMIN,
   tenantId: '00000000-0000-0000-0000-000000000020',
   tenantLevel: TenantLevel.CONTINENTAL,

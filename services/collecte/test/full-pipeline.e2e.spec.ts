@@ -53,7 +53,7 @@ const TEMPLATE_ID = '00000000-0000-4000-d000-000000000001';
 
 const FIELD_AGENT_1 = {
   userId: '00000000-0000-4000-a000-000000000010',
-  email: 'agent1@ke.aris.africa',
+  email: 'agent1@ke.au-aris.org',
   role: 'FIELD_AGENT',
   tenantId: TENANT_ID,
   tenantLevel: 'MEMBER_STATE',
@@ -61,7 +61,7 @@ const FIELD_AGENT_1 = {
 
 const FIELD_AGENT_2 = {
   userId: '00000000-0000-4000-a000-000000000011',
-  email: 'agent2@ke.aris.africa',
+  email: 'agent2@ke.au-aris.org',
   role: 'FIELD_AGENT',
   tenantId: TENANT_ID,
   tenantLevel: 'MEMBER_STATE',
@@ -69,7 +69,7 @@ const FIELD_AGENT_2 = {
 
 const DATA_STEWARD = {
   userId: '00000000-0000-4000-a000-000000000012',
-  email: 'steward@ke.aris.africa',
+  email: 'steward@ke.au-aris.org',
   role: 'DATA_STEWARD',
   tenantId: TENANT_ID,
   tenantLevel: 'MEMBER_STATE',

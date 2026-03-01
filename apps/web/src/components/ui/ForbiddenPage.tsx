@@ -10,7 +10,7 @@ interface ForbiddenPageProps {
   requiredRole?: string;
 }
 
-const ADMIN_EMAIL = 'admin@au-ibar.org';
+const ADMIN_EMAIL = 'admin@au-aris.org';
 
 export function ForbiddenPage({ requiredRole }: ForbiddenPageProps) {
   const user = useAuthStore((s) => s.user);

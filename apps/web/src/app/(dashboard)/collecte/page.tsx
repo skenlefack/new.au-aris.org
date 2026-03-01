@@ -67,18 +67,27 @@ export default function CollectePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Collecte</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Collecte</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Campaign orchestration and data collection
           </p>
         </div>
-        <Link
-          href="/collecte/campaigns/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-aris-primary-700"
-        >
-          <Plus className="h-4 w-4" />
-          New Campaign
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/collecte/forms"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            <ClipboardList className="h-4 w-4" />
+            Form Builder
+          </Link>
+          <Link
+            href="/collecte/campaigns/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-aris-primary-700"
+          >
+            <Plus className="h-4 w-4" />
+            New Campaign
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

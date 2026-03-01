@@ -1,8 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Test } from '@nestjs/testing';
-import { SyncService } from './sync.service';
-import { PrismaService } from '../prisma.service';
-import { KafkaProducerService } from '@aris/kafka-client';
+import { SyncService } from '../services/sync.service';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { UserRole, TenantLevel } from '@aris/shared-types';
 
@@ -50,7 +47,7 @@ describe('SyncService', () => {
   };
   let kafkaProducer: { send: ReturnType<typeof vi.fn> };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     prisma = {
       campaign: {
         findUnique: vi.fn().mockResolvedValue(activeCampaign),
@@ -74,15 +71,7 @@ describe('SyncService', () => {
     };
     kafkaProducer = { send: vi.fn().mockResolvedValue(undefined) };
 
-    const module = await Test.createTestingModule({
-      providers: [
-        SyncService,
-        { provide: PrismaService, useValue: prisma },
-        { provide: KafkaProducerService, useValue: kafkaProducer },
-      ],
-    }).compile();
-
-    service = module.get(SyncService);
+    service = new SyncService(prisma as never, kafkaProducer as never);
   });
 
   describe('deltaSync — new submissions', () => {

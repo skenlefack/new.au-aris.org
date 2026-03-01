@@ -91,7 +91,7 @@ beforeAll(async () => {
       name: 'African Union - IBAR',
       code: 'AU-IBAR',
       level: 'CONTINENTAL',
-      domain: 'aris.africa',
+      domain: 'au-aris.org',
       config: {},
     },
   });
@@ -109,7 +109,7 @@ describe('Drive Service Integration', () => {
 
   it('should create bucket and upload file to MinIO', async () => {
     // Dynamically import to use env vars set above
-    const { MinioStorage } = await import('../storage/minio.storage');
+    const { MinioStorage } = await import('../services/minio.storage');
     const storage = new MinioStorage();
 
     // Ensure bucket
@@ -136,7 +136,7 @@ describe('Drive Service Integration', () => {
   });
 
   it('should generate presigned URLs', async () => {
-    const { MinioStorage } = await import('../storage/minio.storage');
+    const { MinioStorage } = await import('../services/minio.storage');
     const storage = new MinioStorage();
 
     await storage.ensureBucket(bucket);
@@ -264,7 +264,7 @@ describe('Drive Service Integration', () => {
   });
 
   it('should delete object from MinIO', async () => {
-    const { MinioStorage } = await import('../storage/minio.storage');
+    const { MinioStorage } = await import('../services/minio.storage');
     const storage = new MinioStorage();
 
     await storage.ensureBucket(bucket);

@@ -32,11 +32,104 @@ model FormTemplate {
   parent            FormTemplate?      @relation("TemplateInheritance", fields: [parent_template_id], references: [id])
   children          FormTemplate[]     @relation("TemplateInheritance")
 
+  // Submissions
+  submissions       FormSubmission[]
+
+  // Collection campaigns using this template
+  collectionCampaigns CollectionCampaign[]
+
+  // Multi-tenant overlays (REC/COUNTRY customizations)
+  overlays            FormOverlay[]
+
   @@unique([tenant_id, name, version])
   @@index([tenant_id])
   @@index([domain])
   @@index([status])
   @@index([parent_template_id])
   @@map("form_templates")
+  @@schema("form_builder")
+}
+
+enum FormSubmissionStatus {
+  DRAFT
+  SUBMITTED
+  VALIDATED
+  REJECTED
+
+  @@schema("form_builder")
+}
+
+model FormSubmission {
+  id                String                @id @default(uuid()) @db.Uuid
+  tenant_id         String                @db.Uuid
+  template_id       String                @db.Uuid
+  data              Json                  // Field values keyed by field code
+  status            FormSubmissionStatus  @default(DRAFT)
+  submitted_by      String                @db.Uuid
+  submitted_at      DateTime?
+  validated_by      String?               @db.Uuid
+  validated_at      DateTime?
+  rejection_reason  String?
+  geo_location      Json?                 // { lat, lng, accuracy }
+  device_info       Json?                 // { platform, version, offlineId }
+  data_classification String              @default("RESTRICTED") @db.VarChar(20)
+  created_at        DateTime              @default(now())
+  updated_at        DateTime              @updatedAt
+
+  template          FormTemplate          @relation(fields: [template_id], references: [id])
+  collecteInstance  CollecteInstance?
+
+  @@index([tenant_id])
+  @@index([template_id])
+  @@index([status])
+  @@index([submitted_by])
+  @@map("form_submissions")
+  @@schema("form_builder")
+}
+
+// Overlay = tenant-level customization (REC or COUNTRY) of a continental template
+model FormOverlay {
+  id                String   @id @default(uuid()) @db.Uuid
+  template_id       String   @db.Uuid
+  template_version  Int      // version of the base template when overlay was created
+  tenant_id         String   @db.Uuid  // REC or COUNTRY tenant
+  tenant_level      String   @db.VarChar(20) // "REC" or "MEMBER_STATE"
+  parent_overlay_id String?  @db.Uuid  // if COUNTRY overlays a form already overlayed by its REC
+
+  field_overrides   Json     // [{fieldId, action: "MODIFY"|"ADD"|"REMOVE"|"REORDER", data}]
+  section_overrides Json?    // [{sectionId, action, data}]
+  metadata_overrides Json?
+
+  is_active         Boolean  @default(true)
+  needs_review      Boolean  @default(false) // set when base template changed under this overlay
+  created_by        String   @db.Uuid
+  updated_by        String?  @db.Uuid
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  template          FormTemplate @relation(fields: [template_id], references: [id])
+
+  @@unique([template_id, tenant_id]) // one overlay per tenant per template
+  @@index([template_id, tenant_level])
+  @@index([tenant_id])
+  @@map("form_overlays")
+  @@schema("form_builder")
+}
+
+// Version history for audit trail on templates and overlays
+model FormVersionHistory {
+  id            String   @id @default(uuid()) @db.Uuid
+  template_id   String   @db.Uuid
+  overlay_id    String?  @db.Uuid  // null if change was on the base template
+  version       Int
+  change_type   String   @db.VarChar(30) // BASE_UPDATED, OVERLAY_CREATED, OVERLAY_UPDATED, OVERLAY_DELETED
+  change_delta  Json     // the diff
+  changed_by    String   @db.Uuid
+  tenant_id     String   @db.Uuid
+  created_at    DateTime @default(now())
+
+  @@index([template_id, version])
+  @@index([overlay_id])
+  @@map("form_version_history")
   @@schema("form_builder")
 }

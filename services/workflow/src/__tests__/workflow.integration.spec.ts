@@ -69,7 +69,7 @@ describe('Workflow Service — Integration (4-level approval flow)', () => {
     // ── Users at each level ──
     const dataSteward = {
       userId: '00000000-0000-4000-a000-000000000001',
-      email: 'steward@ke.aris.africa',
+      email: 'steward@ke.au-aris.org',
       role: 'DATA_STEWARD',
       tenantId: '00000000-0000-4000-b000-000000000001',
       tenantLevel: 'MEMBER_STATE',
@@ -77,7 +77,7 @@ describe('Workflow Service — Integration (4-level approval flow)', () => {
 
     const nationalAdmin = {
       userId: '00000000-0000-4000-a000-000000000002',
-      email: 'cvo@ke.aris.africa',
+      email: 'cvo@ke.au-aris.org',
       role: 'NATIONAL_ADMIN',
       tenantId: '00000000-0000-4000-b000-000000000001',
       tenantLevel: 'MEMBER_STATE',
@@ -85,7 +85,7 @@ describe('Workflow Service — Integration (4-level approval flow)', () => {
 
     const recAdmin = {
       userId: '00000000-0000-4000-a000-000000000003',
-      email: 'coord@igad.aris.africa',
+      email: 'coord@igad.au-aris.org',
       role: 'REC_ADMIN',
       tenantId: '00000000-0000-4000-b000-000000000002',
       tenantLevel: 'REC',
@@ -93,7 +93,7 @@ describe('Workflow Service — Integration (4-level approval flow)', () => {
 
     const continentalAdmin = {
       userId: '00000000-0000-4000-a000-000000000004',
-      email: 'admin@aris.africa',
+      email: 'admin@au-aris.org',
       role: 'CONTINENTAL_ADMIN',
       tenantId: '00000000-0000-4000-b000-000000000003',
       tenantLevel: 'CONTINENTAL',
@@ -193,7 +193,7 @@ describe('Workflow Service — Integration (4-level approval flow)', () => {
 
     const dataSteward = {
       userId: '00000000-0000-4000-a000-000000000001',
-      email: 'steward@ke.aris.africa',
+      email: 'steward@ke.au-aris.org',
       role: 'DATA_STEWARD',
       tenantId: '00000000-0000-4000-b000-000000000001',
       tenantLevel: 'MEMBER_STATE',
@@ -201,7 +201,7 @@ describe('Workflow Service — Integration (4-level approval flow)', () => {
 
     const nationalAdmin = {
       userId: '00000000-0000-4000-a000-000000000002',
-      email: 'cvo@ke.aris.africa',
+      email: 'cvo@ke.au-aris.org',
       role: 'NATIONAL_ADMIN',
       tenantId: '00000000-0000-4000-b000-000000000001',
       tenantLevel: 'MEMBER_STATE',
@@ -242,7 +242,7 @@ describe('Workflow Service — Integration (4-level approval flow)', () => {
 
     const dataSteward = {
       userId: '00000000-0000-4000-a000-000000000001',
-      email: 'steward@ke.aris.africa',
+      email: 'steward@ke.au-aris.org',
       role: 'DATA_STEWARD',
       tenantId: '00000000-0000-4000-b000-000000000001',
       tenantLevel: 'MEMBER_STATE',
@@ -250,7 +250,7 @@ describe('Workflow Service — Integration (4-level approval flow)', () => {
 
     const nationalAdmin = {
       userId: '00000000-0000-4000-a000-000000000002',
-      email: 'cvo@ke.aris.africa',
+      email: 'cvo@ke.au-aris.org',
       role: 'NATIONAL_ADMIN',
       tenantId: '00000000-0000-4000-b000-000000000001',
       tenantLevel: 'MEMBER_STATE',
@@ -279,7 +279,7 @@ describe('Workflow Service — Integration (4-level approval flow)', () => {
 
     const continentalAdmin = {
       userId: '00000000-0000-4000-a000-000000000004',
-      email: 'admin@aris.africa',
+      email: 'admin@au-aris.org',
       role: 'CONTINENTAL_ADMIN',
       tenantId: '00000000-0000-4000-b000-000000000003',
       tenantLevel: 'CONTINENTAL',

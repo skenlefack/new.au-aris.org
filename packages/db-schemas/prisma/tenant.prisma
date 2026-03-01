@@ -24,9 +24,10 @@ model Tenant {
   createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
 
-  parent   Tenant?  @relation("TenantHierarchy", fields: [parentId], references: [id])
-  children Tenant[] @relation("TenantHierarchy")
-  users    User[]
+  parent    Tenant?    @relation("TenantHierarchy", fields: [parentId], references: [id])
+  children  Tenant[]   @relation("TenantHierarchy")
+  users     User[]
+  countries Country[]
 
   @@index([parentId], map: "idx_tenant_parent_id")
   @@index([level], map: "idx_tenant_level")

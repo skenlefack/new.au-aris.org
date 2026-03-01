@@ -38,8 +38,8 @@ const DOMAIN_FILTERS = [
 const PLACEHOLDER_FAQ: FaqItem[] = [
   {
     id: 'faq-1',
-    question: 'What is ARIS 3.0 and who is it designed for?',
-    answer: 'ARIS 3.0 (Animal Resources Information System) is the digital backbone of the African Union\'s Inter-African Bureau for Animal Resources (AU-IBAR). It is a federated system covering all animal resources across 55 AU Member States and 8 Regional Economic Communities (RECs). It is designed for national veterinary services, data stewards, WAHIS focal points, analysts, and field agents involved in animal health, livestock production, fisheries, wildlife, and trade management.',
+    question: 'What is ARIS and who is it designed for?',
+    answer: 'ARIS (Animal Resources Information System) is the digital backbone of the African Union\'s Inter-African Bureau for Animal Resources (AU-IBAR). It is a federated system covering all animal resources across 55 AU Member States and 8 Regional Economic Communities (RECs). It is designed for national veterinary services, data stewards, WAHIS focal points, analysts, and field agents involved in animal health, livestock production, fisheries, wildlife, and trade management.',
     domain: 'General',
     order: 1,
     updatedAt: '2026-02-01T00:00:00Z',

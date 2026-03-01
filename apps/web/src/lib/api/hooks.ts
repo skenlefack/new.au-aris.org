@@ -1,6 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from './client';
+import { apiClient, ApiClientError } from './client';
 import { useAuthStore, type UserRole } from '../stores/auth-store';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Wraps a queryFn so that 404 errors (service not running) silently return
+ * fallback data instead of throwing, which prevents console error spam
+ * when optional microservices are offline.
+ */
+function withFallback<T>(queryFn: () => Promise<T>, fallback: T): () => Promise<T> {
+  return async () => {
+    try {
+      return await queryFn();
+    } catch (err) {
+      if (err instanceof ApiClientError && (err.statusCode === 404 || err.statusCode === 502 || err.statusCode === 503)) {
+        return fallback;
+      }
+      // Network errors (service not running at all → fetch throws TypeError)
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        return fallback;
+      }
+      throw err;
+    }
+  };
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,6 +44,7 @@ interface LoginResponse {
       lastName: string;
       role: string;
       tenantId: string;
+      tenantLevel?: string;
     };
   };
 }
@@ -208,7 +233,7 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: async (data: LoginRequest) =>
-      apiClient.post<LoginResponse>('/credential/login', data),
+      apiClient.post<LoginResponse>('/credential/auth/login', data),
     onSuccess: (res) => {
       const { user, accessToken, refreshToken } = res.data;
       setAuth(
@@ -219,6 +244,7 @@ export function useLogin() {
           lastName: user.lastName,
           role: user.role as UserRole,
           tenantId: user.tenantId,
+          tenantLevel: user.tenantLevel,
         },
         accessToken,
         refreshToken,
@@ -230,54 +256,66 @@ export function useLogin() {
 export function useRegister() {
   return useMutation({
     mutationFn: async (data: RegisterRequest) =>
-      apiClient.post<{ data: { id: string } }>('/credential/register', data),
+      apiClient.post<{ data: { id: string } }>('/credential/auth/register', data),
   });
 }
 
 // ─── Dashboard Hooks ──────────────────────────────────────────────────────────
 
+const DASHBOARD_KPIS_FALLBACK: DashboardKpis = {
+  data: {
+    activeOutbreaks: 42,
+    vaccinationCoverage: 87.3,
+    pendingValidations: 156,
+    dataQualityScore: 94.1,
+    labTurnaround: 3.2,
+    tradeVolume: 2_340_000,
+    livestockPopulation: 385_000_000,
+    activeCampaigns: 18,
+    outbreaksTrend: 12,
+    vaccinationTrend: 5.2,
+    validationsTrend: -8,
+    qualityTrend: 0,
+    labTurnaroundTrend: -12,
+    tradeVolumeTrend: 8.4,
+    livestockTrend: 2.1,
+    campaignsTrend: 15,
+  },
+};
+
 export function useDashboardKpis() {
   return useQuery({
     queryKey: ['dashboard', 'kpis'],
-    queryFn: () => apiClient.get<DashboardKpis>('/analytics/dashboard/kpis'),
-    placeholderData: {
-      data: {
-        activeOutbreaks: 42,
-        vaccinationCoverage: 87.3,
-        pendingValidations: 156,
-        dataQualityScore: 94.1,
-        labTurnaround: 3.2,
-        tradeVolume: 2_340_000,
-        livestockPopulation: 385_000_000,
-        activeCampaigns: 18,
-        outbreaksTrend: 12,
-        vaccinationTrend: 5.2,
-        validationsTrend: -8,
-        qualityTrend: 0,
-        labTurnaroundTrend: -12,
-        tradeVolumeTrend: 8.4,
-        livestockTrend: 2.1,
-        campaignsTrend: 15,
-      },
-    },
+    queryFn: withFallback(
+      () => apiClient.get<DashboardKpis>('/analytics/dashboard/kpis'),
+      DASHBOARD_KPIS_FALLBACK,
+    ),
+    placeholderData: DASHBOARD_KPIS_FALLBACK,
   });
 }
 
 export function useUnreadNotifications() {
+  const fallback = { data: { count: 0 } };
   return useQuery({
     queryKey: ['notifications', 'unread-count'],
-    queryFn: () =>
-      apiClient.get<{ data: { count: number } }>('/messages/unread-count'),
-    placeholderData: { data: { count: 3 } },
-    refetchInterval: 60_000,
+    queryFn: withFallback(
+      () => apiClient.get<{ data: { count: number } }>('/messages/unread-count'),
+      fallback,
+    ),
+    placeholderData: fallback,
+    refetchInterval: 5 * 60_000,
   });
 }
 
 export function useTenantTree() {
+  const fallback: { data: TenantNode[] } = { data: [] };
   return useQuery({
     queryKey: ['tenants', 'tree'],
-    queryFn: () =>
-      apiClient.get<{ data: TenantNode[] }>('/tenants'),
+    queryFn: withFallback(
+      () => apiClient.get<{ data: TenantNode[] }>('/tenants'),
+      fallback,
+    ),
+    placeholderData: fallback,
     staleTime: 5 * 60_000,
   });
 }
@@ -338,21 +376,23 @@ export function useCreateHealthEvent() {
 }
 
 export function useOutbreakMarkers() {
+  const fallback = { data: [] as Array<{
+    id: string;
+    lat: number;
+    lng: number;
+    disease: string;
+    country: string;
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    cases: number;
+    status: string;
+  }> };
   return useQuery({
     queryKey: ['health-events', 'markers'],
-    queryFn: () =>
-      apiClient.get<{
-        data: Array<{
-          id: string;
-          lat: number;
-          lng: number;
-          disease: string;
-          country: string;
-          severity: 'low' | 'medium' | 'high' | 'critical';
-          cases: number;
-          status: string;
-        }>;
-      }>('/animal-health/events/markers'),
+    queryFn: withFallback(
+      () => apiClient.get<typeof fallback>('/animal-health/events/markers'),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -1077,7 +1117,7 @@ export function useInteropConnectors() {
     queryKey: ['interop', 'connectors'],
     queryFn: () =>
       apiClient.get<{ data: InteropConnector[] }>('/interop-hub/connectors'),
-    refetchInterval: 30_000,
+    refetchInterval: 5 * 60_000,
   });
 }
 
@@ -1217,13 +1257,17 @@ export function useNotifications(params?: { page?: number; limit?: number }) {
   if (params?.page) searchParams.page = String(params.page);
   if (params?.limit) searchParams.limit = String(params.limit);
 
+  const fallback: PaginatedResponse<Notification> = { data: [], meta: { total: 0, page: 1, limit: 20 } };
   return useQuery({
     queryKey: ['notifications', 'list', params],
-    queryFn: () =>
-      apiClient.get<PaginatedResponse<Notification>>(
+    queryFn: withFallback(
+      () => apiClient.get<PaginatedResponse<Notification>>(
         '/messages/notifications',
         searchParams,
       ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -2077,28 +2121,11 @@ export type TimeRange = '7d' | '30d' | '90d' | '1y';
 export function useDashboardKpisRange(range: TimeRange) {
   return useQuery({
     queryKey: ['dashboard', 'kpis', range],
-    queryFn: () =>
-      apiClient.get<DashboardKpis>('/analytics/dashboard/kpis', { range }),
-    placeholderData: {
-      data: {
-        activeOutbreaks: 42,
-        vaccinationCoverage: 87.3,
-        pendingValidations: 156,
-        dataQualityScore: 94.1,
-        labTurnaround: 3.2,
-        tradeVolume: 2_340_000,
-        livestockPopulation: 385_000_000,
-        activeCampaigns: 18,
-        outbreaksTrend: 12,
-        vaccinationTrend: 5.2,
-        validationsTrend: -8,
-        qualityTrend: 0,
-        labTurnaroundTrend: -12,
-        tradeVolumeTrend: 8.4,
-        livestockTrend: 2.1,
-        campaignsTrend: 15,
-      },
-    },
+    queryFn: withFallback(
+      () => apiClient.get<DashboardKpis>('/analytics/dashboard/kpis', { range }),
+      DASHBOARD_KPIS_FALLBACK,
+    ),
+    placeholderData: DASHBOARD_KPIS_FALLBACK,
   });
 }
 
@@ -2115,25 +2142,17 @@ export interface OutbreakAlert {
   dismissed?: boolean;
 }
 
+const OUTBREAK_ALERTS_FALLBACK: { data: OutbreakAlert[] } = { data: [] };
+
 export function useOutbreakAlerts() {
   return useQuery({
     queryKey: ['dashboard', 'alerts'],
-    queryFn: () =>
-      apiClient.get<{ data: OutbreakAlert[] }>('/animal-health/alerts'),
-    placeholderData: {
-      data: [
-        {
-          id: 'alert-1',
-          severity: 'critical' as const,
-          title: 'HPAI Spread — West Africa',
-          message: 'Highly Pathogenic Avian Influenza confirmed in 3 new countries (Ghana, Togo, Benin) in the past 48 hours. Cross-border coordination recommended.',
-          country: 'Multi-country',
-          disease: 'HPAI',
-          createdAt: '2026-02-20T08:00:00Z',
-        },
-      ],
-    },
-    refetchInterval: 60_000,
+    queryFn: withFallback(
+      () => apiClient.get<{ data: OutbreakAlert[] }>('/animal-health/alerts'),
+      OUTBREAK_ALERTS_FALLBACK,
+    ),
+    placeholderData: OUTBREAK_ALERTS_FALLBACK,
+    refetchInterval: 3 * 60_000,
   });
 }
 
@@ -2149,28 +2168,19 @@ export interface RealtimeEvent {
   timestamp: string;
 }
 
+const REALTIME_EVENTS_FALLBACK: { data: RealtimeEvent[] } = { data: [] };
+
 export function useRealtimeEvents(maxEvents = 20) {
   const queryClient = useQueryClient();
 
-  // Seed with placeholder data; WebSocket pushes update the cache
+  // Seed with empty data; WebSocket pushes update the cache
   const query = useQuery({
     queryKey: ['realtime', 'events'],
-    queryFn: () =>
-      apiClient.get<{ data: RealtimeEvent[] }>('/analytics/realtime/events'),
-    placeholderData: {
-      data: [
-        { id: 'rt-1', type: 'outbreak' as const, action: 'Outbreak reported', detail: 'FMD in Rift Valley, Kenya', actor: 'Dr. Ochieng', country: 'Kenya', timestamp: new Date(Date.now() - 12 * 60_000).toISOString() },
-        { id: 'rt-2', type: 'validation' as const, action: 'Validation approved', detail: 'PPR vaccination data — Uganda (L2)', actor: 'Dr. Nakato', country: 'Uganda', timestamp: new Date(Date.now() - 34 * 60_000).toISOString() },
-        { id: 'rt-3', type: 'export' as const, action: 'WAHIS export triggered', detail: 'Monthly report — Ethiopia', actor: 'System', country: 'Ethiopia', timestamp: new Date(Date.now() - 60 * 60_000).toISOString() },
-        { id: 'rt-4', type: 'campaign' as const, action: 'Campaign launched', detail: 'Rinderpest surveillance — IGAD region', actor: 'Dr. Abdi', timestamp: new Date(Date.now() - 2 * 3600_000).toISOString() },
-        { id: 'rt-5', type: 'quality' as const, action: 'Quality gate failed', detail: 'Missing species code — Nigeria submission', actor: 'System', country: 'Nigeria', timestamp: new Date(Date.now() - 3 * 3600_000).toISOString() },
-        { id: 'rt-6', type: 'submission' as const, action: 'Data submitted', detail: 'Quarterly livestock census — Senegal', actor: 'Mme. Diop', country: 'Senegal', timestamp: new Date(Date.now() - 4 * 3600_000).toISOString() },
-        { id: 'rt-7', type: 'validation' as const, action: 'Validation returned', detail: 'Fisheries data — Tanzania (L1 rejected)', actor: 'Mr. Mtui', country: 'Tanzania', timestamp: new Date(Date.now() - 5 * 3600_000).toISOString() },
-        { id: 'rt-8', type: 'outbreak' as const, action: 'Outbreak updated', detail: 'ASF cases increased — DR Congo', actor: 'Dr. Mukendi', country: 'DR Congo', timestamp: new Date(Date.now() - 6 * 3600_000).toISOString() },
-        { id: 'rt-9', type: 'export' as const, action: 'EMPRES sync completed', detail: 'Avian influenza signals — Egypt', actor: 'System', country: 'Egypt', timestamp: new Date(Date.now() - 7 * 3600_000).toISOString() },
-        { id: 'rt-10', type: 'campaign' as const, action: 'Campaign completed', detail: 'FMD vaccination — Rwanda (98% coverage)', actor: 'Dr. Uwimana', country: 'Rwanda', timestamp: new Date(Date.now() - 8 * 3600_000).toISOString() },
-      ],
-    },
+    queryFn: withFallback(
+      () => apiClient.get<{ data: RealtimeEvent[] }>('/analytics/realtime/events'),
+      REALTIME_EVENTS_FALLBACK,
+    ),
+    placeholderData: REALTIME_EVENTS_FALLBACK,
     staleTime: 30_000,
   });
 

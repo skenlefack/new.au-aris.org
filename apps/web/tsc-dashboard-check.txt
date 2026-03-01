@@ -1,0 +1,174 @@
+[96msrc/data/country-domain-stats.ts[0m:[93m87[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'LucideIcon' is not assignable to type 'ComponentType<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+  Type 'ForwardRefExoticComponent<LucideProps>' is not assignable to type 'FunctionComponent<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+    Types of property 'propTypes' are incompatible.
+      Type 'WeakValidationMap<LucideProps> | undefined' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }> | undefined'.
+        Type 'WeakValidationMap<LucideProps>' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+          Types of property 'strokeWidth' are incompatible.
+            Type 'Validator<string | number | null | undefined> | undefined' is not assignable to type 'Validator<number | null | undefined> | undefined'.
+              Type 'Validator<string | number | null | undefined>' is not assignable to type 'Validator<number | null | undefined>'.
+                Type 'string | number | null | undefined' is not assignable to type 'number | null | undefined'.
+                  Type 'string' is not assignable to type 'number'.
+
+[7m87[0m       icon: Bug,
+[7m  [0m [91m      ~~~~[0m
+
+  [96msrc/data/country-domain-stats.ts[0m:[93m23[0m:[93m3[0m
+    [7m23[0m   icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+    [7m  [0m [96m  ~~~~[0m
+    The expected type comes from property 'icon' which is declared here on type 'DomainHighlight'
+
+[96msrc/data/country-domain-stats.ts[0m:[93m96[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'LucideIcon' is not assignable to type 'ComponentType<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+  Type 'ForwardRefExoticComponent<LucideProps>' is not assignable to type 'FunctionComponent<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+    Types of property 'propTypes' are incompatible.
+      Type 'WeakValidationMap<LucideProps> | undefined' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }> | undefined'.
+        Type 'WeakValidationMap<LucideProps>' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+          Types of property 'strokeWidth' are incompatible.
+            Type 'Validator<string | number | null | undefined> | undefined' is not assignable to type 'Validator<number | null | undefined> | undefined'.
+              Type 'Validator<string | number | null | undefined>' is not assignable to type 'Validator<number | null | undefined>'.
+                Type 'string | number | null | undefined' is not assignable to type 'number | null | undefined'.
+                  Type 'string' is not assignable to type 'number'.
+
+[7m96[0m       icon: Wheat,
+[7m  [0m [91m      ~~~~[0m
+
+  [96msrc/data/country-domain-stats.ts[0m:[93m23[0m:[93m3[0m
+    [7m23[0m   icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+    [7m  [0m [96m  ~~~~[0m
+    The expected type comes from property 'icon' which is declared here on type 'DomainHighlight'
+
+[96msrc/data/country-domain-stats.ts[0m:[93m105[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'LucideIcon' is not assignable to type 'ComponentType<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+  Type 'ForwardRefExoticComponent<LucideProps>' is not assignable to type 'FunctionComponent<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+    Types of property 'propTypes' are incompatible.
+      Type 'WeakValidationMap<LucideProps> | undefined' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }> | undefined'.
+        Type 'WeakValidationMap<LucideProps>' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+          Types of property 'strokeWidth' are incompatible.
+            Type 'Validator<string | number | null | undefined> | undefined' is not assignable to type 'Validator<number | null | undefined> | undefined'.
+              Type 'Validator<string | number | null | undefined>' is not assignable to type 'Validator<number | null | undefined>'.
+                Type 'string | number | null | undefined' is not assignable to type 'number | null | undefined'.
+                  Type 'string' is not assignable to type 'number'.
+
+[7m105[0m       icon: Globe2,
+[7m   [0m [91m      ~~~~[0m
+
+  [96msrc/data/country-domain-stats.ts[0m:[93m23[0m:[93m3[0m
+    [7m23[0m   icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+    [7m  [0m [96m  ~~~~[0m
+    The expected type comes from property 'icon' which is declared here on type 'DomainHighlight'
+
+[96msrc/data/country-domain-stats.ts[0m:[93m128[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'LucideIcon' is not assignable to type 'ComponentType<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+  Type 'ForwardRefExoticComponent<LucideProps>' is not assignable to type 'FunctionComponent<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+    Types of property 'propTypes' are incompatible.
+      Type 'WeakValidationMap<LucideProps> | undefined' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }> | undefined'.
+        Type 'WeakValidationMap<LucideProps>' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+          Types of property 'strokeWidth' are incompatible.
+            Type 'Validator<string | number | null | undefined> | undefined' is not assignable to type 'Validator<number | null | undefined> | undefined'.
+              Type 'Validator<string | number | null | undefined>' is not assignable to type 'Validator<number | null | undefined>'.
+                Type 'string | number | null | undefined' is not assignable to type 'number | null | undefined'.
+                  Type 'string' is not assignable to type 'number'.
+
+[7m128[0m       icon: Syringe,
+[7m   [0m [91m      ~~~~[0m
+
+  [96msrc/data/country-domain-stats.ts[0m:[93m33[0m:[93m3[0m
+    [7m33[0m   icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+    [7m  [0m [96m  ~~~~[0m
+    The expected type comes from property 'icon' which is declared here on type 'DomainGauge'
+
+[96msrc/data/country-domain-stats.ts[0m:[93m136[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'LucideIcon' is not assignable to type 'ComponentType<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+  Type 'ForwardRefExoticComponent<LucideProps>' is not assignable to type 'FunctionComponent<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+    Types of property 'propTypes' are incompatible.
+      Type 'WeakValidationMap<LucideProps> | undefined' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }> | undefined'.
+        Type 'WeakValidationMap<LucideProps>' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+          Types of property 'strokeWidth' are incompatible.
+            Type 'Validator<string | number | null | undefined> | undefined' is not assignable to type 'Validator<number | null | undefined> | undefined'.
+              Type 'Validator<string | number | null | undefined>' is not assignable to type 'Validator<number | null | undefined>'.
+                Type 'string | number | null | undefined' is not assignable to type 'number | null | undefined'.
+                  Type 'string' is not assignable to type 'number'.
+
+[7m136[0m       icon: Fish,
+[7m   [0m [91m      ~~~~[0m
+
+  [96msrc/data/country-domain-stats.ts[0m:[93m33[0m:[93m3[0m
+    [7m33[0m   icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+    [7m  [0m [96m  ~~~~[0m
+    The expected type comes from property 'icon' which is declared here on type 'DomainGauge'
+
+[96msrc/data/country-domain-stats.ts[0m:[93m144[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'LucideIcon' is not assignable to type 'ComponentType<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+  Type 'ForwardRefExoticComponent<LucideProps>' is not assignable to type 'FunctionComponent<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+    Types of property 'propTypes' are incompatible.
+      Type 'WeakValidationMap<LucideProps> | undefined' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }> | undefined'.
+        Type 'WeakValidationMap<LucideProps>' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+          Types of property 'strokeWidth' are incompatible.
+            Type 'Validator<string | number | null | undefined> | undefined' is not assignable to type 'Validator<number | null | undefined> | undefined'.
+              Type 'Validator<string | number | null | undefined>' is not assignable to type 'Validator<number | null | undefined>'.
+                Type 'string | number | null | undefined' is not assignable to type 'number | null | undefined'.
+                  Type 'string' is not assignable to type 'number'.
+
+[7m144[0m       icon: Leaf,
+[7m   [0m [91m      ~~~~[0m
+
+  [96msrc/data/country-domain-stats.ts[0m:[93m33[0m:[93m3[0m
+    [7m33[0m   icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+    [7m  [0m [96m  ~~~~[0m
+    The expected type comes from property 'icon' which is declared here on type 'DomainGauge'
+
+[96msrc/data/country-domain-stats.ts[0m:[93m152[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'LucideIcon' is not assignable to type 'ComponentType<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+  Type 'ForwardRefExoticComponent<LucideProps>' is not assignable to type 'FunctionComponent<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+    Types of property 'propTypes' are incompatible.
+      Type 'WeakValidationMap<LucideProps> | undefined' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }> | undefined'.
+        Type 'WeakValidationMap<LucideProps>' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+          Types of property 'strokeWidth' are incompatible.
+            Type 'Validator<string | number | null | undefined> | undefined' is not assignable to type 'Validator<number | null | undefined> | undefined'.
+              Type 'Validator<string | number | null | undefined>' is not assignable to type 'Validator<number | null | undefined>'.
+                Type 'string | number | null | undefined' is not assignable to type 'number | null | undefined'.
+                  Type 'string' is not assignable to type 'number'.
+
+[7m152[0m       icon: ShieldCheck,
+[7m   [0m [91m      ~~~~[0m
+
+  [96msrc/data/country-domain-stats.ts[0m:[93m33[0m:[93m3[0m
+    [7m33[0m   icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+    [7m  [0m [96m  ~~~~[0m
+    The expected type comes from property 'icon' which is declared here on type 'DomainGauge'
+
+[96msrc/data/country-domain-stats.ts[0m:[93m160[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'LucideIcon' is not assignable to type 'ComponentType<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+  Type 'ForwardRefExoticComponent<LucideProps>' is not assignable to type 'FunctionComponent<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+    Types of property 'propTypes' are incompatible.
+      Type 'WeakValidationMap<LucideProps> | undefined' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }> | undefined'.
+        Type 'WeakValidationMap<LucideProps>' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+          Types of property 'strokeWidth' are incompatible.
+            Type 'Validator<string | number | null | undefined> | undefined' is not assignable to type 'Validator<number | null | undefined> | undefined'.
+              Type 'Validator<string | number | null | undefined>' is not assignable to type 'Validator<number | null | undefined>'.
+                Type 'string | number | null | undefined' is not assignable to type 'number | null | undefined'.
+                  Type 'string' is not assignable to type 'number'.
+
+[7m160[0m       icon: ClipboardCheck,
+[7m   [0m [91m      ~~~~[0m
+
+  [96msrc/data/country-domain-stats.ts[0m:[93m33[0m:[93m3[0m
+    [7m33[0m   icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+    [7m  [0m [96m  ~~~~[0m
+    The expected type comes from property 'icon' which is declared here on type 'DomainGauge'
+
+[96msrc/data/country-domain-stats.ts[0m:[93m168[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'LucideIcon' is not assignable to type 'ComponentType<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+  Type 'ForwardRefExoticComponent<LucideProps>' is not assignable to type 'FunctionComponent<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+    Types of property 'propTypes' are incompatible.
+      Type 'WeakValidationMap<LucideProps> | undefined' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }> | undefined'.
+        Type 'WeakValidationMap<LucideProps>' is not assignable to type 'WeakValidationMap<{ className?: string | undefined; strokeWidth?: number | undefined; }>'.
+          Types of property 'strokeWidth' are incompatible.
+            Type 'Validator<string | number | null | undefined> | undefined' is not assignable to type 'Validator<number | null | undefined> | undefined'.
+              Type 'Validator<string | number | null | undefined>' is not assignable to type 'Validator<number | null | undefined>'.
+                Type 'string | number | null | undefined' is not assignable to type 'number | null | undefined'.
+                  Type 'string' is not assignable to type 'number'.
+
+[7m168[0m       icon: TrendingUp,
+[7m   [0m [91m      ~~~~[0m
+
+  [96msrc/data/country-domain-stats.ts[0m:[93m33[0m:[93m3[0m
+    [7m33[0m   icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+    [7m  [0m [96m  ~~~~[0m
+    The expected type comes from property 'icon' which is declared here on type 'DomainGauge'
+
+
+Found 9 errors in the same file, starting at: src/data/country-domain-stats.ts[90m:87[0m
+

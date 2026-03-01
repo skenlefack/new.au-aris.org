@@ -19,9 +19,11 @@ graph TB
         WEB[Next.js 14 Web App]
         ADMIN[Admin Panel]
         MOBILE[Kotlin Android App<br/>Offline-First]
+        LANDING[Public Landing Pages<br/>Continental / REC / Country]
     end
 
     subgraph "API Gateway Layer"
+        TRAEFIK[Traefik v3<br/>:4000 HTTP / :4443 HTTPS]
         AUTH[Auth Middleware<br/>JWT RS256 + RBAC]
     end
 
@@ -64,14 +66,17 @@ graph TB
     end
 
     subgraph "Infrastructure"
-        KAFKA[Apache Kafka 3.7<br/>KRaft Mode]
+        KAFKA[Apache Kafka 7.6<br/>KRaft Mode, 3 Brokers]
+        PGBOUNCER[PgBouncer :6432<br/>Transaction Pooling]
         PG[(PostgreSQL 16<br/>+ PostGIS 3.4)]
-        REDIS[(Redis 7)]
+        REDIS[(Redis 7<br/>+ @aris/cache)]
         ES[(Elasticsearch 8)]
         MINIO[(MinIO<br/>S3-Compatible)]
+        PROM[Prometheus + Grafana]
     end
 
-    WEB & ADMIN & MOBILE --> AUTH
+    WEB & ADMIN & MOBILE & LANDING --> TRAEFIK
+    TRAEFIK --> AUTH
     AUTH --> TENANT & CRED & MSG & DRIVE & RT
     AUTH --> MD & DQ & DC & INTEROP
     AUTH --> FB & COL & WF
@@ -80,8 +85,10 @@ graph TB
 
     TENANT & CRED & MD & DQ & DC & COL & WF & AH & LP --> KAFKA
     KAFKA --> ANALYTICS & INTEROP & RT & WF
-    TENANT & CRED & MD & DQ & DC & COL & WF & AH & LP & FISH --> PG
-    ANALYTICS --> REDIS
+    TENANT & CRED & MD & DQ & DC & COL & WF & AH & LP & FISH --> PGBOUNCER
+    PGBOUNCER --> PG
+    ANALYTICS & CRED --> REDIS
+    PROM -.->|scrape| TENANT & CRED & MD
     KH & MD --> ES
     DRIVE --> MINIO
 ```
@@ -140,22 +147,25 @@ graph TB
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Runtime | Node.js | 20 LTS |
+| Runtime | Node.js | 22 LTS |
 | Backend | NestJS + TypeScript (strict) | 10 / 5 |
-| Frontend | Next.js + Shadcn/UI + Tailwind CSS | 14 |
-| Mobile | Kotlin + Jetpack Compose + Room | Latest |
-| ORM | Prisma (multi-schema, type-safe) | 5 |
-| Message Broker | Apache Kafka (KRaft, no ZooKeeper) | 3.7 |
+| Frontend | Next.js (App Router) + React + Shadcn/UI + Tailwind CSS | 14 / 18 |
+| Mobile | Kotlin + Jetpack Compose + Room (offline-first) | Android |
+| ORM | Prisma (multi-schema, type-safe) | 6.2 |
+| Message Broker | Apache Kafka (KRaft, no ZooKeeper) + Schema Registry | 7.6 |
 | Database | PostgreSQL + PostGIS | 16 / 3.4 |
-| Cache | Redis | 7 |
-| Search | Elasticsearch | 8 |
+| Connection Pool | PgBouncer (transaction pooling) | Latest |
+| Cache | Redis + `@aris/cache` (domain-aware, Kafka invalidation) | 7 |
+| Search | Elasticsearch | 8.13 |
 | Object Storage | MinIO (S3-compatible) | Latest |
-| Auth | Custom JWT RS256 + bcrypt | - |
-| Monitoring | Prometheus + Grafana + Loki | - |
+| API Gateway | Traefik | v3.0 |
+| Auth | Custom JWT RS256 + bcrypt + MFA TOTP | - |
+| Monitoring | Prometheus + Grafana | Latest |
+| i18n | EN, FR, PT, AR (RTL support) | 4 languages |
 | Infra | Docker + Kubernetes + Terraform | - |
 | CI/CD | GitHub Actions + ArgoCD | - |
-| Tests | Vitest + Testcontainers | 1.6 |
-| Monorepo | Turborepo + pnpm workspaces | 2.0 |
+| Tests | Vitest + Testcontainers | Latest |
+| Monorepo | Turborepo + pnpm workspaces | 2.0 / 9.1 |
 
 ## 5. Architecture Principles
 
@@ -260,9 +270,12 @@ aris/
 │   ├── shared-types/      # TS types, DTOs, Kafka contracts, enums
 │   ├── kafka-client/      # Generic Kafka producer/consumer + DLQ
 │   ├── auth-middleware/    # JWT RS256 validation + RBAC + tenant extraction
+│   ├── cache/             # Redis cache: domain-aware keys, TTL, Kafka invalidation, locks
+│   ├── i18n/              # Internationalization (EN, FR, PT, AR with RTL)
 │   ├── service-clients/   # Inter-service HTTP clients (retry, circuit breaker)
 │   ├── db-schemas/        # Prisma schemas + migrations (one per service)
 │   ├── ui-components/     # Design System React (Shadcn + Tailwind)
+│   ├── observability/     # Prometheus metrics, structured logging
 │   ├── quality-rules/     # Shared data quality gate definitions
 │   └── test-utils/        # Factories, Testcontainers helpers
 │
@@ -284,3 +297,128 @@ aris/
 | CC-6 | Mobile Kotlin | apps/mobile (Kotlin, Jetpack Compose, Room, offline-first) |
 
 **File Ownership Rule**: Each file has ONE owner. Other instances read only. Conflicts resolved by human architect.
+
+## 11. PgBouncer — Connection Pooling
+
+With 22 microservices each opening their own Prisma connection pool, direct connections to PostgreSQL would quickly exhaust the `max_connections` limit. PgBouncer acts as a lightweight connection proxy.
+
+```mermaid
+graph LR
+    subgraph "22 NestJS Services"
+        S1[Tenant :3001]
+        S2[Credential :3002]
+        S3[Master Data :3003]
+        SN[... :30xx]
+    end
+
+    subgraph "Connection Pooling"
+        PGB[PgBouncer :6432<br/>Transaction Pooling<br/>500 max clients → 20 server conns]
+    end
+
+    subgraph "Database"
+        PG[(PostgreSQL 16<br/>+ PostGIS 3.4<br/>:5432)]
+    end
+
+    S1 & S2 & S3 & SN --> PGB --> PG
+```
+
+### Key Configuration
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `pool_mode` | `transaction` | Connections returned after each transaction |
+| `max_client_conn` | 500 | Total client connections accepted |
+| `default_pool_size` | 20 | Actual PostgreSQL connections |
+| `ignore_startup_parameters` | `extra_float_digits,search_path` | Prisma compatibility |
+
+### Prisma Dual URLs
+
+```env
+DATABASE_URL=postgresql://...@localhost:6432/aris?pgbouncer=true    # Runtime (PgBouncer)
+DIRECT_DATABASE_URL=postgresql://...@localhost:5432/aris             # Migrations (direct)
+```
+
+> See [PGBOUNCER.md](./PGBOUNCER.md) for full documentation.
+
+## 12. Redis Cache — `@aris/cache`
+
+The `@aris/cache` package provides a centralized, domain-aware caching layer for all services.
+
+### Architecture (Cache-Aside Pattern)
+
+```mermaid
+flowchart LR
+    SVC[Service] -->|1. getOrSet| CACHE["@aris/cache"]
+    CACHE -->|2. HIT| REDIS[(Redis 7)]
+    CACHE -->|3. MISS| PRISMA[Prisma] --> PG[(PostgreSQL)]
+    KAFKA[Kafka Event] -->|4. Invalidate| INV[CacheInvalidationService]
+    INV --> REDIS
+```
+
+### Key Patterns
+
+```
+{prefix}{domain}:{entity}:{id}
+aris:master-data:species:uuid-123
+aris:animal-health:outbreak:uuid-456
+aris:analytics:dashboard:continental
+```
+
+### TTL Strategy
+
+| Category | TTL | Rationale |
+|----------|-----|-----------|
+| Master data | 1 hour | Rarely changes, high read frequency |
+| Session | 30 min | Aligned with JWT refresh |
+| Query results | 5 min | Balance freshness vs DB load |
+| Dashboard KPIs | 2 min | Near-real-time analytics |
+| Rate limits | 1 min | Short-lived sliding windows |
+
+### Features
+
+- **Cache-aside**: `getOrSet(key, ttl, fetchFn)` for transparent caching
+- **Domain-aware keys**: `buildCacheKey(domain, entity, id)` helpers
+- **Kafka invalidation**: `CacheInvalidationService` listens for domain events and clears stale keys
+- **Distributed locks**: `acquireLock` / `releaseLock` for exclusive operations (imports, reports)
+- **Monitoring**: Hit/miss ratio via `getStats()`
+- **Testing**: `MockCacheService` for unit tests (in-memory Map)
+
+> See [CACHE-STRATEGY.md](./CACHE-STRATEGY.md) for full documentation.
+
+## 13. Landing Page Architecture
+
+The public-facing landing page provides a 3-level navigation hierarchy matching the AU multi-tenant structure.
+
+### Public Routes (No Authentication Required)
+
+```
+/                        → Continental page (8 REC cards, stats, login panel)
+/rec/[code]              → REC page (member countries, regional stats)
+/country/[code]          → Country page (national KPIs, sector performance)
+```
+
+### Protected Routes (Authentication Required)
+
+```
+/home                    → Dashboard (after login)
+/knowledge/*             → Knowledge hub, e-learning, FAQs
+/...                     → All other domain pages
+```
+
+### Data Sources
+
+| File | Content | Size |
+|------|---------|------|
+| `apps/web/src/data/recs-config.ts` | 8 RECs with colors, country codes, tenant IDs | 8 entries |
+| `apps/web/src/data/countries-config.ts` | 55 AU Member States with flags, languages, REC memberships | 55 entries |
+
+### Components
+
+```
+apps/web/src/components/landing/
+├── LandingHeader.tsx     # AU-IBAR header with navigation
+├── HeroSection.tsx       # Hero banner with stats
+├── ContinentalStats.tsx  # Aggregate continental statistics
+├── RecCard.tsx           # Individual REC card component
+└── LoginPanel.tsx        # Contextual login form (sidebar)
+```

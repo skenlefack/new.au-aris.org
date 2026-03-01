@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "commonjs",
+    "module": "node16",
     "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./src",
@@ -11,13 +11,29 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "sourceMap": true,
-    "incremental": true,
-    "moduleResolution": "node",
+    "composite": true,
+    "moduleResolution": "node16",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
+  "exclude": [
+    "node_modules", "dist", "**/*.spec.ts",
+    "src/app.module.ts",
+    "src/main.ts",
+    "src/prisma.service.ts",
+    "src/geo/geo.controller.ts", "src/geo/geo.module.ts", "src/geo/geo.service.ts", "src/geo/dto/**", "src/geo/entities/**",
+    "src/species/species.controller.ts", "src/species/species.module.ts", "src/species/species.service.ts", "src/species/dto/**", "src/species/entities/**",
+    "src/disease/disease.controller.ts", "src/disease/disease.module.ts", "src/disease/disease.service.ts", "src/disease/dto/**", "src/disease/entities/**",
+    "src/unit/unit.controller.ts", "src/unit/unit.module.ts", "src/unit/unit.service.ts", "src/unit/dto/**", "src/unit/entities/**",
+    "src/temporality/temporality.controller.ts", "src/temporality/temporality.module.ts", "src/temporality/temporality.service.ts", "src/temporality/dto/**", "src/temporality/entities/**",
+    "src/identifier/identifier.controller.ts", "src/identifier/identifier.module.ts", "src/identifier/identifier.service.ts", "src/identifier/dto/**", "src/identifier/entities/**",
+    "src/denominator/denominator.controller.ts", "src/denominator/denominator.module.ts", "src/denominator/denominator.service.ts", "src/denominator/dto/**", "src/denominator/entities/**",
+    "src/version/version.controller.ts", "src/version/version.module.ts", "src/version/version.service.ts",
+    "src/history/history.controller.ts", "src/history/history.module.ts", "src/history/history.service.ts",
+    "src/import-export/import-export.controller.ts", "src/import-export/import-export.module.ts", "src/import-export/import-export.service.ts", "src/import-export/dto/**", "src/import-export/csv-parser.util.ts",
+    "src/audit/audit.service.ts"
+  ]
 }

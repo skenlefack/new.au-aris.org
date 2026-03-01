@@ -21,7 +21,7 @@ function mockKafka() {
 function user(): AuthenticatedUser {
   return {
     userId: 'user-ke',
-    email: 'steward@ke.aris.africa',
+    email: 'steward@ke.au-aris.org',
     role: UserRole.DATA_STEWARD,
     tenantId: 'tenant-ke',
     tenantLevel: TenantLevel.MEMBER_STATE,

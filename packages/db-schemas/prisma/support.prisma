@@ -1,0 +1,97 @@
+// ARIS 3.0 — Support Service Schema
+// Ticketing system for technical support, data quality issues, access requests
+
+enum TicketCategory {
+  TECHNICAL
+  DATA_QUALITY
+  ACCESS
+  GENERAL
+
+  @@schema("support")
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@schema("support")
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  ESCALATED
+  RESOLVED
+  CLOSED
+
+  @@schema("support")
+}
+
+model Ticket {
+  id              String          @id @default(uuid()) @db.Uuid
+  reference       String          @unique @db.VarChar(20)
+  tenant_id       String          @db.Uuid
+  title           String          @db.VarChar(255)
+  description     String          @db.Text
+  category        TicketCategory
+  priority        TicketPriority
+  status          TicketStatus    @default(OPEN)
+  created_by      String          @db.Uuid
+  assigned_to     String?         @db.Uuid
+  escalated_to    String?         @db.Uuid
+  resolved_at     DateTime?
+  closed_at       DateTime?
+  sla_deadline    DateTime?
+  sla_breached    Boolean         @default(false)
+  attachment_keys String[]
+  metadata        Json?
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+  deleted_at      DateTime?
+
+  comments        TicketComment[]
+  sla             TicketSLA?
+
+  @@index([tenant_id, status])
+  @@index([tenant_id, category])
+  @@index([assigned_to])
+  @@index([created_by])
+  @@index([sla_deadline])
+  @@map("tickets")
+  @@schema("support")
+}
+
+model TicketComment {
+  id          String   @id @default(uuid()) @db.Uuid
+  ticket_id   String   @db.Uuid
+  content     String   @db.Text
+  is_internal Boolean  @default(false)
+  created_by  String   @db.Uuid
+  created_at  DateTime @default(now())
+
+  ticket      Ticket   @relation(fields: [ticket_id], references: [id])
+
+  @@index([ticket_id])
+  @@map("ticket_comments")
+  @@schema("support")
+}
+
+model TicketSLA {
+  id              String         @id @default(uuid()) @db.Uuid
+  ticket_id       String         @unique @db.Uuid
+  category        TicketCategory
+  priority        TicketPriority
+  deadline        DateTime
+  response_target DateTime
+  responded_at    DateTime?
+  breached        Boolean        @default(false)
+  breached_at     DateTime?
+  created_at      DateTime       @default(now())
+
+  ticket          Ticket         @relation(fields: [ticket_id], references: [id])
+
+  @@map("ticket_sla")
+  @@schema("support")
+}

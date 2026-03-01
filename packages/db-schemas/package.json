@@ -4,24 +4,26 @@
   "private": true,
   "description": "ARIS 3.0 — Prisma schemas and migrations (one schema per service)",
   "scripts": {
-    "generate": "prisma generate --schema=prisma",
-    "migrate:dev": "prisma migrate dev --schema=prisma",
-    "migrate:deploy": "prisma migrate deploy --schema=prisma",
-    "migrate:reset": "prisma migrate reset --schema=prisma --force",
-    "db:push": "prisma db push --schema=prisma",
+    "generate": "cd ../.. && npx prisma generate --schema=packages/db-schemas/prisma",
+    "migrate:dev": "cd ../.. && npx prisma migrate dev --schema=packages/db-schemas/prisma",
+    "migrate:deploy": "cd ../.. && npx prisma migrate deploy --schema=packages/db-schemas/prisma",
+    "migrate:reset": "cd ../.. && npx prisma migrate reset --schema=packages/db-schemas/prisma --force",
+    "db:push": "cd ../.. && npx prisma db push --schema=packages/db-schemas/prisma --skip-generate",
     "db:seed": "tsx prisma/seed-tenant.ts && tsx prisma/seed-credential.ts",
-    "db:seed:all": "tsx ../../scripts/db-seed-all.ts",
-    "studio": "prisma studio --schema=prisma",
+    "db:seed:settings": "tsx prisma/seed-settings.ts",
+    "db:seed:all": "tsx prisma/seed-tenant.ts && tsx prisma/seed-credential.ts && tsx prisma/seed-settings.ts",
+    "studio": "cd ../.. && npx prisma studio --schema=packages/db-schemas/prisma",
     "build": "echo 'db-schemas: generate only'",
     "clean": "rm -rf node_modules/.prisma"
   },
   "dependencies": {
-    "@prisma/client": "^5.14.0"
+    "@prisma/client": "^6.2.0"
   },
   "devDependencies": {
-    "bcrypt": "^5.1.1",
     "@types/bcrypt": "^5.0.2",
-    "prisma": "^5.14.0",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^17.3.1",
+    "prisma": "^6.2.0",
     "tsx": "^4.11.0",
     "typescript": "^5.4.0"
   }

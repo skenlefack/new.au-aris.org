@@ -3,53 +3,44 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useRealtimeStore, type ConnectionStatus } from '@/lib/realtime/realtime-store';
-import { Wifi, WifiOff, Loader2 } from 'lucide-react';
 
 const STATUS_CONFIG: Record<
   ConnectionStatus,
-  { label: string; dot: string; icon: React.ReactNode }
+  { label: string; dotColor: string }
 > = {
-  connected: {
-    label: 'Live',
-    dot: 'bg-green-500',
-    icon: <Wifi className="h-3.5 w-3.5 text-green-600" />,
-  },
-  connecting: {
-    label: 'Connecting',
-    dot: 'bg-amber-500 animate-pulse',
-    icon: <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-600" />,
-  },
-  disconnected: {
-    label: 'Offline',
-    dot: 'bg-gray-400',
-    icon: <WifiOff className="h-3.5 w-3.5 text-gray-400" />,
-  },
-  error: {
-    label: 'Error',
-    dot: 'bg-red-500',
-    icon: <WifiOff className="h-3.5 w-3.5 text-red-500" />,
-  },
+  connected: { label: 'Live', dotColor: 'bg-green-500' },
+  connecting: { label: 'Connecting', dotColor: 'bg-amber-500 animate-pulse' },
+  disconnected: { label: 'Offline', dotColor: 'bg-gray-400' },
+  error: { label: 'Reconnecting', dotColor: 'bg-amber-500 animate-pulse' },
 };
 
 export function ConnectionIndicator() {
   const status = useRealtimeStore((s) => s.connectionStatus);
   const config = STATUS_CONFIG[status];
 
+  // Only show the indicator prominently when not connected
+  if (status === 'connected') {
+    return (
+      <div
+        className="flex items-center gap-1.5 rounded-lg p-2"
+        title={`WebSocket: ${config.label}`}
+      >
+        <span className={cn('inline-block h-2 w-2 rounded-full', config.dotColor)} />
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
-        'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium',
-        status === 'connected'
-          ? 'border-green-200 bg-green-50 text-green-700'
-          : status === 'connecting'
-            ? 'border-amber-200 bg-amber-50 text-amber-700'
-            : status === 'error'
-              ? 'border-red-200 bg-red-50 text-red-700'
-              : 'border-gray-200 bg-gray-50 text-gray-500',
+        'flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-medium',
+        status === 'connecting' || status === 'error'
+          ? 'text-amber-600 dark:text-amber-400'
+          : 'text-gray-400 dark:text-gray-500',
       )}
       title={`WebSocket: ${config.label}`}
     >
-      {config.icon}
+      <span className={cn('inline-block h-2 w-2 rounded-full', config.dotColor)} />
       <span className="hidden sm:inline">{config.label}</span>
     </div>
   );

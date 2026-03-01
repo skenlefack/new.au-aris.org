@@ -12,7 +12,7 @@ x-service-common: &service-common
   networks:
     - aris-network
   depends_on:
-    postgres:
+    pgbouncer:
       condition: service_healthy
     redis:
       condition: service_healthy
@@ -25,7 +25,8 @@ x-service-common: &service-common
 
 x-service-env: &service-env
   NODE_ENV: development
-  DATABASE_URL: postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-aris_dev_2024}@postgres:5432/${POSTGRES_DB:-aris}
+  DATABASE_URL: postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-aris_dev_2024}@pgbouncer:6432/${POSTGRES_DB:-aris}?pgbouncer=true
+  DIRECT_DATABASE_URL: postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-aris_dev_2024}@postgres:5432/${POSTGRES_DB:-aris}
   REDIS_URL: redis://redis:6379
   KAFKA_BROKERS: kafka-1:29092,kafka-2:29092,kafka-3:29092
   KAFKA_CLIENT_ID: aris-services
@@ -37,7 +38,7 @@ x-service-env: &service-env
   MINIO_BUCKET: aris-documents
   SMTP_HOST: mailpit
   SMTP_PORT: "1025"
-  SMTP_FROM: noreply@aris.africa
+  SMTP_FROM: noreply@au-aris.org
   JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
   JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
 
@@ -123,7 +124,7 @@ services:
       SERVICE_PORT: "3007"
       KAFKA_CLIENT_ID: aris-drive-service
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -531,3 +532,136 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.knowledge-hub.rule=PathPrefix(`/api/v1/knowledge`)"
       - "traefik.http.services.knowledge-hub.loadbalancer.server.port=3033"
+
+  # ═══════════════════════════════════════════════════
+  #  FASTIFY SERVICES (Pure Fastify, no NestJS)
+  # ═══════════════════════════════════════════════════
+
+  formation:
+    <<: *service-common
+    container_name: aris-formation
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: formation
+        SERVICE_PORT: "3040"
+    ports:
+      - "3040:3040"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3040"
+      KAFKA_CLIENT_ID: aris-formation-service
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.formation.rule=PathPrefix(`/api/v1/formation`)"
+      - "traefik.http.services.formation.loadbalancer.server.port=3040"
+
+  support:
+    <<: *service-common
+    container_name: aris-support
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: support
+        SERVICE_PORT: "3041"
+    ports:
+      - "3041:3041"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3041"
+      KAFKA_CLIENT_ID: aris-support-service
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.support.rule=PathPrefix(`/api/v1/support`)"
+      - "traefik.http.services.support.loadbalancer.server.port=3041"
+
+  interop:
+    <<: *service-common
+    container_name: aris-interop
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: interop
+        SERVICE_PORT: "3042"
+    ports:
+      - "3042:3042"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3042"
+      KAFKA_CLIENT_ID: aris-interop-service
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.interop.rule=PathPrefix(`/api/v1/interop-v2`)"
+      - "traefik.http.services.interop.loadbalancer.server.port=3042"
+
+  analytics-worker:
+    <<: *service-common
+    container_name: aris-analytics-worker
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: analytics-worker
+        SERVICE_PORT: "3043"
+    ports:
+      - "3043:3043"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3043"
+      KAFKA_CLIENT_ID: aris-analytics-worker-service
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.analytics-worker.rule=PathPrefix(`/api/v1/analytics-worker`)"
+      - "traefik.http.services.analytics-worker.loadbalancer.server.port=3043"
+
+  datalake:
+    <<: *service-common
+    container_name: aris-datalake
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: datalake
+        SERVICE_PORT: "3044"
+    ports:
+      - "3044:3044"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3044"
+      KAFKA_CLIENT_ID: aris-datalake-service
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka-1:
+        condition: service_started
+      elasticsearch:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.datalake.rule=PathPrefix(`/api/v1/datalake`)"
+      - "traefik.http.services.datalake.loadbalancer.server.port=3044"
+
+  offline:
+    <<: *service-common
+    container_name: aris-offline
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: offline
+        SERVICE_PORT: "3040"
+    ports:
+      - "3040:3040"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3040"
+      KAFKA_CLIENT_ID: aris-offline-service
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.offline.rule=PathPrefix(`/api/v1/offline`)"
+      - "traefik.http.services.offline.loadbalancer.server.port=3040"

@@ -26,7 +26,7 @@ function mockKafka() {
 function continentalAdmin(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-au',
-    email: 'admin@aris.africa',
+    email: 'admin@au-aris.org',
     role: UserRole.CONTINENTAL_ADMIN,
     tenantId: 'tenant-au',
     tenantLevel: TenantLevel.CONTINENTAL,
@@ -37,7 +37,7 @@ function continentalAdmin(overrides: Partial<AuthenticatedUser> = {}): Authentic
 function nationalAdmin(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-ke',
-    email: 'cvo@ke.aris.africa',
+    email: 'cvo@ke.au-aris.org',
     role: UserRole.NATIONAL_ADMIN,
     tenantId: 'tenant-ke',
     tenantLevel: TenantLevel.MEMBER_STATE,

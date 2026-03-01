@@ -54,7 +54,7 @@ const TEMPLATE_ID = '00000000-0000-4000-d000-000000000099';
 
 const FIELD_AGENT = {
   userId: '00000000-0000-4000-a000-000000000020',
-  email: 'agent@ke.aris.africa',
+  email: 'agent@ke.au-aris.org',
   role: 'FIELD_AGENT',
   tenantId: TENANT_ID,
   tenantLevel: 'MEMBER_STATE',
@@ -62,7 +62,7 @@ const FIELD_AGENT = {
 
 const DATA_STEWARD = {
   userId: '00000000-0000-4000-a000-000000000021',
-  email: 'steward@ke.aris.africa',
+  email: 'steward@ke.au-aris.org',
   role: 'DATA_STEWARD',
   tenantId: TENANT_ID,
   tenantLevel: 'MEMBER_STATE',

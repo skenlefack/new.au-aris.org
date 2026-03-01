@@ -107,7 +107,7 @@ export async function exportToPdf(
     });
     // AU-IBAR footer
     pdf.text(
-      'AU-IBAR \u2014 ARIS 3.0 Animal Resources Information System',
+      'AU-IBAR \u2014 ARIS Animal Resources Information System',
       pageWidth / 2,
       pageHeight - 4,
       { align: 'center' },

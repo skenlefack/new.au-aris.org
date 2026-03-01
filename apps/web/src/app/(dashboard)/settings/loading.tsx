@@ -1,5 +1,9 @@
-import { DetailSkeleton } from '@/components/ui/Skeleton';
+import { DetailSkeleton, LoadingShell } from '@/components/ui/Skeleton';
 
 export default function SettingsLoading() {
-  return <DetailSkeleton />;
+  return (
+    <LoadingShell>
+      <DetailSkeleton />
+    </LoadingShell>
+  );
 }

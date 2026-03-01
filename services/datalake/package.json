@@ -1,0 +1,42 @@
+{
+  "name": "@aris/datalake-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ARIS 3.0 — Datalake service: Elasticsearch search, indexing, export",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc --build",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@aris/auth-middleware": "workspace:*",
+    "@aris/kafka-client": "workspace:*",
+    "@aris/shared-types": "workspace:*",
+    "@elastic/elasticsearch": "^8.0.0",
+    "@fastify/cors": "^10.0.0",
+    "@fastify/multipart": "^9.4.0",
+    "@prisma/client": "6.2.0",
+    "@sinclair/typebox": "^0.32.35",
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.3.1",
+    "fastify": "^5.2.0",
+    "fastify-plugin": "^5.1.0",
+    "ioredis": "^5.4.0",
+    "minio": "^8.0.6",
+    "pino-pretty": "^13.0.0",
+    "uuid": "^9.0.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/uuid": "^9.0.0",
+    "tsx": "^4.11.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

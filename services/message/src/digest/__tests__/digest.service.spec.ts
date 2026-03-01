@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { DigestService } from '../digest.service';
+import { DigestService } from '../../services/digest.service';
 
 // ── Mocks ──
 

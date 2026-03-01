@@ -1,23 +1,14 @@
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
-import { AppModule } from './app.module';
+import { buildApp } from './app';
 
-async function bootstrap(): Promise<void> {
-  const logger = new Logger('FormBuilderService');
-  const app = await NestFactory.create(AppModule);
+async function start(): Promise<void> {
+  const app = await buildApp();
+  const port = Number(process.env['FORM_BUILDER_PORT'] ?? 3010);
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: { enableImplicitConversion: true },
-    }),
-  );
-
-  const port = process.env['FORM_BUILDER_PORT'] ?? 3010;
-  await app.listen(port);
-  logger.log(`Form Builder service running on port ${port}`);
+  await app.listen({ port, host: '0.0.0.0' });
+  app.log.info(`Form Builder service running on port ${port}`);
 }
 
-bootstrap();
+start().catch((err) => {
+  console.error('Failed to start Form Builder service:', err);
+  process.exit(1);
+});

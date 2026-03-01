@@ -49,7 +49,7 @@ function createKafkaSpy() {
 
 const DATA_STEWARD = {
   userId: '00000000-0000-4000-a000-000000000001',
-  email: 'steward@ke.aris.africa',
+  email: 'steward@ke.au-aris.org',
   role: 'DATA_STEWARD',
   tenantId: '00000000-0000-4000-b000-000000000001',
   tenantLevel: 'MEMBER_STATE',
@@ -57,7 +57,7 @@ const DATA_STEWARD = {
 
 const NATIONAL_ADMIN = {
   userId: '00000000-0000-4000-a000-000000000002',
-  email: 'cvo@ke.aris.africa',
+  email: 'cvo@ke.au-aris.org',
   role: 'NATIONAL_ADMIN',
   tenantId: '00000000-0000-4000-b000-000000000001',
   tenantLevel: 'MEMBER_STATE',
@@ -65,7 +65,7 @@ const NATIONAL_ADMIN = {
 
 const WAHIS_FOCAL = {
   userId: '00000000-0000-4000-a000-000000000005',
-  email: 'wahis@ke.aris.africa',
+  email: 'wahis@ke.au-aris.org',
   role: 'WAHIS_FOCAL_POINT',
   tenantId: '00000000-0000-4000-b000-000000000001',
   tenantLevel: 'MEMBER_STATE',
@@ -73,7 +73,7 @@ const WAHIS_FOCAL = {
 
 const REC_ADMIN = {
   userId: '00000000-0000-4000-a000-000000000003',
-  email: 'coord@igad.aris.africa',
+  email: 'coord@igad.au-aris.org',
   role: 'REC_ADMIN',
   tenantId: '00000000-0000-4000-b000-000000000002',
   tenantLevel: 'REC',
@@ -81,7 +81,7 @@ const REC_ADMIN = {
 
 const CONTINENTAL_ADMIN = {
   userId: '00000000-0000-4000-a000-000000000004',
-  email: 'admin@aris.africa',
+  email: 'admin@au-aris.org',
   role: 'CONTINENTAL_ADMIN',
   tenantId: '00000000-0000-4000-b000-000000000003',
   tenantLevel: 'CONTINENTAL',
@@ -89,7 +89,7 @@ const CONTINENTAL_ADMIN = {
 
 const FIELD_AGENT = {
   userId: '00000000-0000-4000-a000-000000000006',
-  email: 'field@ke.aris.africa',
+  email: 'field@ke.au-aris.org',
   role: 'FIELD_AGENT',
   tenantId: '00000000-0000-4000-b000-000000000001',
   tenantLevel: 'MEMBER_STATE',
@@ -97,7 +97,7 @@ const FIELD_AGENT = {
 
 const ANALYST = {
   userId: '00000000-0000-4000-a000-000000000007',
-  email: 'analyst@ke.aris.africa',
+  email: 'analyst@ke.au-aris.org',
   role: 'ANALYST',
   tenantId: '00000000-0000-4000-b000-000000000001',
   tenantLevel: 'MEMBER_STATE',

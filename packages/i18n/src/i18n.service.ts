@@ -3,10 +3,11 @@ import * as en from './translations/en.json';
 import * as fr from './translations/fr.json';
 import * as pt from './translations/pt.json';
 import * as ar from './translations/ar.json';
+import * as es from './translations/es.json';
 
-export type SupportedLocale = 'en' | 'fr' | 'pt' | 'ar';
+export type SupportedLocale = 'en' | 'fr' | 'pt' | 'ar' | 'es';
 
-export const SUPPORTED_LOCALES: SupportedLocale[] = ['en', 'fr', 'pt', 'ar'];
+export const SUPPORTED_LOCALES: SupportedLocale[] = ['en', 'fr', 'pt', 'ar', 'es'];
 export const DEFAULT_LOCALE: SupportedLocale = 'en';
 
 type TranslationMap = Record<string, unknown>;
@@ -16,6 +17,7 @@ const TRANSLATIONS: Record<SupportedLocale, TranslationMap> = {
   fr: fr as unknown as TranslationMap,
   pt: pt as unknown as TranslationMap,
   ar: ar as unknown as TranslationMap,
+  es: es as unknown as TranslationMap,
 };
 
 @Injectable()

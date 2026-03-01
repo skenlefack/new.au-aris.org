@@ -1,3 +1,7 @@
+import { config } from 'dotenv';
+import { resolve } from 'path';
+config({ path: resolve(__dirname, '../../../.env') });
+
 import { PrismaClient, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -38,7 +42,7 @@ async function main(): Promise<void> {
     create: {
       id: USER_IDS.SUPER_ADMIN,
       tenantId: TENANT_IDS.AU_IBAR,
-      email: 'admin@aris.africa',
+      email: 'admin@au-aris.org',
       passwordHash,
       firstName: 'System',
       lastName: 'Administrator',
@@ -50,11 +54,11 @@ async function main(): Promise<void> {
 
   // NATIONAL_ADMIN per pilot Member State
   const nationalAdmins = [
-    { id: USER_IDS.KE_ADMIN, tenantId: TENANT_IDS.KENYA, email: 'admin@ke.aris.africa', firstName: 'Kenya', lastName: 'Administrator' },
-    { id: USER_IDS.ET_ADMIN, tenantId: TENANT_IDS.ETHIOPIA, email: 'admin@et.aris.africa', firstName: 'Ethiopia', lastName: 'Administrator' },
-    { id: USER_IDS.NG_ADMIN, tenantId: TENANT_IDS.NIGERIA, email: 'admin@ng.aris.africa', firstName: 'Nigeria', lastName: 'Administrator' },
-    { id: USER_IDS.SN_ADMIN, tenantId: TENANT_IDS.SENEGAL, email: 'admin@sn.aris.africa', firstName: 'Senegal', lastName: 'Administrator' },
-    { id: USER_IDS.ZA_ADMIN, tenantId: TENANT_IDS.SOUTH_AFRICA, email: 'admin@za.aris.africa', firstName: 'South Africa', lastName: 'Administrator' },
+    { id: USER_IDS.KE_ADMIN, tenantId: TENANT_IDS.KENYA, email: 'admin@ke.au-aris.org', firstName: 'Kenya', lastName: 'Administrator' },
+    { id: USER_IDS.ET_ADMIN, tenantId: TENANT_IDS.ETHIOPIA, email: 'admin@et.au-aris.org', firstName: 'Ethiopia', lastName: 'Administrator' },
+    { id: USER_IDS.NG_ADMIN, tenantId: TENANT_IDS.NIGERIA, email: 'admin@ng.au-aris.org', firstName: 'Nigeria', lastName: 'Administrator' },
+    { id: USER_IDS.SN_ADMIN, tenantId: TENANT_IDS.SENEGAL, email: 'admin@sn.au-aris.org', firstName: 'Senegal', lastName: 'Administrator' },
+    { id: USER_IDS.ZA_ADMIN, tenantId: TENANT_IDS.SOUTH_AFRICA, email: 'admin@za.au-aris.org', firstName: 'South Africa', lastName: 'Administrator' },
   ];
 
   for (const admin of nationalAdmins) {

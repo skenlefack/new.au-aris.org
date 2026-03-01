@@ -3,11 +3,13 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { apiClient } from '@/lib/api/client';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3002/api/v1';
 
 /** Seconds before expiry at which we proactively refresh */
 const REFRESH_THRESHOLD_SEC = 5 * 60; // 5 minutes
@@ -52,7 +54,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const accessToken = useAuthStore((s) => s.accessToken);
   const refreshToken = useAuthStore((s) => s.refreshToken);
-  const updateToken = useAuthStore((s) => s.updateToken);
+  const updateTokens = useAuthStore((s) => s.updateTokens);
   const logout = useAuthStore((s) => s.logout);
   const [hydrated, setHydrated] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -63,24 +65,34 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }, []);
 
   /**
-   * Attempt to refresh the access token.
+   * Attempt to refresh the access token using raw fetch (NOT apiClient)
+   * to avoid recursive refresh loops through fetchWithRefresh.
    * Returns true on success, false on failure.
    */
   const attemptRefresh = useCallback(async (): Promise<boolean> => {
     if (refreshInProgressRef.current) return false;
-    if (!refreshToken) return false;
+
+    // Read the latest refresh token from the store (not from the closure)
+    const currentRefreshToken = useAuthStore.getState().refreshToken;
+    if (!currentRefreshToken) return false;
 
     refreshInProgressRef.current = true;
     setIsRefreshing(true);
 
     try {
-      const res = await apiClient.post<{
-        data: { accessToken: string };
-      }>('/credential/refresh', { refreshToken });
+      const res = await fetch(`${API_BASE_URL}/credential/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: currentRefreshToken }),
+      });
 
-      const newToken = res?.data?.accessToken;
-      if (newToken) {
-        updateToken(newToken);
+      if (!res.ok) return false;
+
+      const body = await res.json();
+      const newAccessToken = body?.data?.accessToken;
+      const newRefreshToken = body?.data?.refreshToken;
+      if (newAccessToken && newRefreshToken) {
+        updateTokens(newAccessToken, newRefreshToken);
         return true;
       }
       return false;
@@ -90,14 +102,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
       refreshInProgressRef.current = false;
       setIsRefreshing(false);
     }
-  }, [refreshToken, updateToken]);
+  }, [updateTokens]);
 
   /**
    * Handle auth failure: clear state and redirect to login.
    */
   const handleAuthFailure = useCallback(() => {
     logout();
-    router.replace('/login');
+    router.replace('/');
   }, [logout, router]);
 
   // On hydration, check if the existing token is expired and attempt refresh
@@ -105,7 +117,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     if (!hydrated) return;
 
     if (!isAuthenticated || !accessToken) {
-      router.replace('/login');
+      router.replace('/');
       return;
     }
 

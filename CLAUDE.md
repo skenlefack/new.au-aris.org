@@ -25,21 +25,24 @@ Aligned with: AU Agenda 2063, LiDeSA, PFRS, AU Digital Transformation Strategy 2
 - **Production-grade from day 1**: HA/DR, RBAC, MFA, audit trail, backups, firewalls, incident response.
 
 ## Tech Stack
-- **Runtime**: Node.js 20 LTS
+- **Runtime**: Node.js 22 LTS
 - **Backend**: NestJS 10 + TypeScript 5 (strict mode)
 - **Mobile**: Kotlin + Jetpack Compose + Room (offline-first)
-- **Frontend**: Next.js 14 + Shadcn/UI + Tailwind CSS
-- **ORM**: Prisma 5 (multi-schema, type-safe)
-- **Message Broker**: Apache Kafka 3.7 (KRaft mode, no ZooKeeper)
+- **Frontend**: Next.js 14 (App Router) + React 18 + Shadcn/UI + Tailwind CSS
+- **ORM**: Prisma 6.2 (multi-schema, type-safe)
+- **Message Broker**: Apache Kafka (KRaft mode, no ZooKeeper) + Schema Registry
 - **Database**: PostgreSQL 16 + PostGIS 3.4
-- **Cache**: Redis 7 (sessions, CQRS read models, pub/sub, distributed locks)
+- **Connection Pool**: PgBouncer (transaction pooling, port 6432)
+- **Cache**: Redis 7 + `@aris/cache` (domain-aware keys, TTL, Kafka invalidation, distributed locks)
 - **Search**: Elasticsearch 8
 - **Object Storage**: MinIO (S3-compatible)
+- **API Gateway**: Traefik v3 (port 4000)
 - **Geo Services**: PostGIS + pg_tileserv (vector tiles)
 - **BI**: Apache Superset + Metabase (embedded)
 - **Analytics**: Kafka Streams + Trino
-- **Auth**: Custom JWT RS256 + bcrypt (no external IdP dependency)
-- **Monitoring**: Prometheus + Grafana + Loki
+- **Auth**: Custom JWT RS256 + bcrypt + MFA TOTP (no external IdP dependency)
+- **Monitoring**: Prometheus + Grafana
+- **i18n**: EN, FR, PT, AR (RTL support) via `@aris/i18n`
 - **Infra**: Docker + Kubernetes + Terraform
 - **CI/CD**: GitHub Actions + ArgoCD
 - **Tests**: Vitest + Testcontainers (TS) / JUnit + MockK (Kotlin)
@@ -58,8 +61,12 @@ aris/
 │   ├── shared-types/                  # TS types, DTOs, Kafka contracts, enums
 │   ├── kafka-client/                  # Generic Kafka producer/consumer + DLQ
 │   ├── auth-middleware/               # JWT RS256 validation + RBAC + tenantId extraction
+│   ├── cache/                         # Redis cache: domain-aware keys, TTL, Kafka invalidation, locks
+│   ├── i18n/                          # Internationalization (EN, FR, PT, AR with RTL)
 │   ├── db-schemas/                    # Prisma schemas + migrations (one per service)
 │   ├── ui-components/                 # Design System React (Shadcn + Tailwind)
+│   ├── service-clients/               # Inter-service HTTP clients (retry, circuit breaker)
+│   ├── observability/                 # Prometheus metrics, structured logging
 │   ├── quality-rules/                 # Shared data quality gate definitions
 │   └── test-utils/                    # Factories, Testcontainers helpers
 │
@@ -103,8 +110,15 @@ aris/
 │   ├── admin/                         # CC-5 — Admin panel
 │   └── mobile/                        # CC-6 — Kotlin Android app
 │
-├── infra/                             # YOU — Terraform, K8s, Helm
+├── infrastructure/                    # PgBouncer config
+│   └── pgbouncer/                     # pgbouncer.ini, userlist.txt
+├── infra/                             # Prometheus, Grafana, SQL init
+│   ├── prometheus/                    # prometheus.yml, alert-rules.yml
+│   ├── grafana/                       # Dashboards, provisioning
+│   └── init-databases.sql            # 22 schemas + extensions
 └── docs/                              # Architecture, ADRs, runbooks
+    ├── architecture/                  # OVERVIEW, DEPLOYMENT, SECURITY, CACHE-STRATEGY, PGBOUNCER
+    └── api/                           # ROUTES.md (API catalogue)
 ```
 
 ## Conventions
@@ -265,8 +279,59 @@ interface AuditEntry {
 import { ... } from '@aris/shared-types';
 import { KafkaProducerService, KafkaConsumerService } from '@aris/kafka-client';
 import { AuthGuard, RolesGuard, TenantGuard, CurrentUser } from '@aris/auth-middleware';
+import { CacheModule, CacheService } from '@aris/cache';
+import { I18nModule, I18nService } from '@aris/i18n';
 import { QualityGate, QualityRule } from '@aris/quality-rules';
 ```
+
+## Infrastructure — PgBouncer
+- All services connect to PostgreSQL **via PgBouncer** (port 6432), not directly
+- `DATABASE_URL` uses `?pgbouncer=true` for Prisma compatibility
+- `DIRECT_DATABASE_URL` points to PostgreSQL directly (port 5432) for migrations only
+- Config: `infrastructure/pgbouncer/pgbouncer.ini` (transaction pooling, 500 max clients)
+- See `docs/architecture/PGBOUNCER.md`
+
+## Cache — `@aris/cache`
+- Centralized Redis cache package with domain-aware keys
+- Key pattern: `{prefix}{domain}:{entity}:{id}` (e.g., `aris:master-data:species:uuid`)
+- TTL strategy: master data 1h, query results 5min, dashboards 2min
+- Kafka-driven invalidation via `CacheInvalidationService`
+- Distributed locks: `acquireLock()` / `releaseLock()` for concurrent operations
+- `MockCacheService` for unit tests
+- See `docs/architecture/CACHE-STRATEGY.md`
+
+## Credential Service Routes
+```
+POST /api/v1/credential/auth/login       # Login (rate limited: 10/min)
+POST /api/v1/credential/auth/register    # Register (admin roles only)
+POST /api/v1/credential/auth/refresh     # Refresh token
+POST /api/v1/credential/auth/logout      # Logout (invalidate token)
+GET  /api/v1/credential/users            # List users
+GET  /api/v1/credential/users/me         # Current user profile
+PUT  /api/v1/credential/users/me/locale  # Update locale preference
+PATCH /api/v1/credential/users/:id       # Update user (admin)
+POST /api/v1/auth/mfa/setup              # MFA TOTP setup
+POST /api/v1/auth/mfa/verify             # MFA verify code
+POST /api/v1/auth/mfa/disable            # MFA disable
+GET  /api/v1/i18n/enums                  # Translated enums
+GET  /api/v1/i18n/locales                # Supported locales (EN, FR, PT, AR)
+```
+
+## Landing Page (Public Routes)
+```
+/                    → Continental page (8 REC cards, stats, login panel)
+/rec/[code]          → REC page (member countries, regional stats)
+/country/[code]      → Country page (national KPIs, sectors)
+```
+Data sources:
+- `apps/web/src/data/recs-config.ts` — 8 RECs with colors, countries, tenant IDs
+- `apps/web/src/data/countries-config.ts` — 55 AU Member States with flags, languages
+
+## NestJS Module Naming Convention
+To avoid DI conflicts with `@Global()` modules from shared packages:
+- `@aris/auth-middleware` exports `AuthModule` (global) — validates JWTs
+- `services/credential` uses `CredentialAuthModule` (NOT `AuthModule`) — handles login/register
+- Convention: prefix service-specific modules with the service name
 
 ## Testing Strategy
 - **Unit tests**: `*.spec.ts` — Mock dependencies, test business logic

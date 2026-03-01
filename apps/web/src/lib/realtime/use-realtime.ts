@@ -50,7 +50,11 @@ export function useRealtime(): void {
       setConnectionStatus('disconnected');
     });
 
-    socket.on('connect_error', () => {
+    socket.on('connect_error', (err) => {
+      // Silently handle connection errors when realtime service is offline
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('[realtime] connection error (service may be offline):', err.message);
+      }
       setConnectionStatus('error');
     });
 

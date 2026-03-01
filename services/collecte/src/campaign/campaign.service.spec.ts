@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Test } from '@nestjs/testing';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { CampaignService } from './campaign.service';
-import { PrismaService } from '../prisma.service';
-import { KafkaProducerService } from '@aris/kafka-client';
+import { CampaignService, HttpError } from '../services/campaign.service';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { UserRole, TenantLevel } from '@aris/shared-types';
 
@@ -17,7 +13,7 @@ const adminUser: AuthenticatedUser = {
 
 const continentalUser: AuthenticatedUser = {
   userId: '00000000-0000-0000-0000-000000000002',
-  email: 'admin@au-ibar.org',
+  email: 'admin@au-aris.org',
   role: UserRole.CONTINENTAL_ADMIN,
   tenantId: '00000000-0000-0000-0000-000000000020',
   tenantLevel: TenantLevel.CONTINENTAL,
@@ -59,7 +55,7 @@ describe('CampaignService', () => {
   };
   let kafkaProducer: { send: ReturnType<typeof vi.fn> };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     prisma = {
       campaign: {
         create: vi.fn().mockResolvedValue(mockCampaign),
@@ -74,15 +70,7 @@ describe('CampaignService', () => {
     };
     kafkaProducer = { send: vi.fn().mockResolvedValue(undefined) };
 
-    const module = await Test.createTestingModule({
-      providers: [
-        CampaignService,
-        { provide: PrismaService, useValue: prisma },
-        { provide: KafkaProducerService, useValue: kafkaProducer },
-      ],
-    }).compile();
-
-    service = module.get(CampaignService);
+    service = new CampaignService(prisma as never, kafkaProducer as never);
   });
 
   describe('create', () => {
@@ -116,7 +104,7 @@ describe('CampaignService', () => {
       };
 
       await expect(service.create(dto as any, adminUser)).rejects.toThrow(
-        BadRequestException,
+        HttpError,
       );
     });
 
@@ -191,12 +179,12 @@ describe('CampaignService', () => {
       expect(result.data.progress.pending).toBe(7);
     });
 
-    it('should throw NotFoundException when not found', async () => {
+    it('should throw HttpError when not found', async () => {
       prisma.campaign.findUnique.mockResolvedValue(null);
 
       await expect(
         service.findOne('nonexistent', adminUser),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(HttpError);
     });
 
     it('should enforce tenant isolation for MS users', async () => {
@@ -207,7 +195,7 @@ describe('CampaignService', () => {
 
       await expect(
         service.findOne(mockCampaign.id, adminUser),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(HttpError);
     });
   });
 
@@ -241,7 +229,7 @@ describe('CampaignService', () => {
       // PLANNED → COMPLETED is not valid
       await expect(
         service.update(mockCampaign.id, { status: 'COMPLETED' }, adminUser),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(HttpError);
     });
 
     it('should reject transitions from COMPLETED', async () => {
@@ -252,15 +240,15 @@ describe('CampaignService', () => {
 
       await expect(
         service.update(mockCampaign.id, { status: 'ACTIVE' }, adminUser),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(HttpError);
     });
 
-    it('should throw NotFoundException when not found', async () => {
+    it('should throw HttpError when not found', async () => {
       prisma.campaign.findUnique.mockResolvedValue(null);
 
       await expect(
         service.update('nonexistent', { name: 'X' }, adminUser),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(HttpError);
     });
   });
 });

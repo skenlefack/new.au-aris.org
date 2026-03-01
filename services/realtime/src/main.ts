@@ -1,19 +1,24 @@
-import { NestFactory } from '@nestjs/core';
-import { Logger } from '@nestjs/common';
-import { AppModule } from './app.module';
+import { buildApp } from './app';
 
-async function bootstrap(): Promise<void> {
-  const logger = new Logger('RealtimeService');
-  const app = await NestFactory.create(AppModule);
+async function main(): Promise<void> {
+  const app = await buildApp();
 
-  app.enableCors({
-    origin: process.env['CORS_ORIGINS']?.split(',') ?? ['http://localhost:3000'],
-    credentials: true,
-  });
+  const port = parseInt(process.env['REALTIME_PORT'] ?? '3008', 10);
+  const host = process.env['HOST'] ?? '0.0.0.0';
 
-  const port = process.env['REALTIME_PORT'] ?? 3008;
-  await app.listen(port);
-  logger.log(`Realtime service running on port ${port}`);
+  await app.listen({ port, host });
+  app.log.info(`Realtime service listening on ${host}:${port}`);
+
+  for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+    process.on(signal, async () => {
+      app.log.info(`Received ${signal}, shutting down…`);
+      await app.close();
+      process.exit(0);
+    });
+  }
 }
 
-bootstrap();
+main().catch((err) => {
+  console.error('Failed to start realtime service:', err);
+  process.exit(1);
+});

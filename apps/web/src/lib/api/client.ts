@@ -1,3 +1,6 @@
+// In production with Traefik gateway: set NEXT_PUBLIC_API_BASE_URL=http://localhost:4000/api/v1
+// In dev without gateway: defaults to credential service directly (port 3002).
+// Each service that needs a different base URL has its own env var (see form-builder-hooks.ts).
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3002/api/v1';
 
@@ -75,7 +78,7 @@ function buildHeaders(token?: string | null): Record<string, string> {
   return headers;
 }
 
-function updateStoredToken(accessToken: string): void {
+function updateStoredTokens(accessToken: string, refreshToken?: string): void {
   if (typeof window === 'undefined') return;
   try {
     const raw = localStorage.getItem('aris-auth');
@@ -83,6 +86,9 @@ function updateStoredToken(accessToken: string): void {
       const parsed = JSON.parse(raw);
       if (parsed?.state) {
         parsed.state.accessToken = accessToken;
+        if (refreshToken) {
+          parsed.state.refreshToken = refreshToken;
+        }
         localStorage.setItem('aris-auth', JSON.stringify(parsed));
       }
     }
@@ -115,26 +121,31 @@ async function attemptTokenRefresh(): Promise<string | null> {
   if (!refreshToken) return null;
 
   try {
-    const res = await fetch(`${API_BASE_URL}/credential/refresh`, {
+    const res = await fetch(`${API_BASE_URL}/credential/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
     });
 
     if (!res.ok) {
-      clearStoredAuth();
+      // Only clear auth on definitive rejection (401/403), not on network/server errors
+      if (res.status === 401 || res.status === 403) {
+        clearStoredAuth();
+      }
       return null;
     }
 
     const body = await res.json();
-    const newToken = body?.data?.accessToken;
-    if (newToken) {
-      updateStoredToken(newToken);
-      return newToken;
+    const newAccessToken = body?.data?.accessToken;
+    const newRefreshToken = body?.data?.refreshToken;
+    if (newAccessToken) {
+      // Save both tokens — backend rotates refresh tokens on each use
+      updateStoredTokens(newAccessToken, newRefreshToken);
+      return newAccessToken;
     }
     return null;
   } catch {
-    clearStoredAuth();
+    // Network error — don't clear auth, the server may just be temporarily unreachable
     return null;
   }
 }
@@ -175,24 +186,29 @@ async function fetchWithRefresh<T>(
   const res = await fetch(url, init);
 
   if (res.status === 401) {
-    const newToken = await refreshTokenIfNeeded();
-    if (newToken) {
-      const retryHeaders = {
-        ...Object.fromEntries(
-          Object.entries(init.headers as Record<string, string>),
-        ),
-        Authorization: `Bearer ${newToken}`,
-      };
-      const retryRes = await fetch(url, { ...init, headers: retryHeaders });
-      return handleResponse<T>(retryRes);
-    }
+    // Only attempt token refresh for authenticated requests (those with an Authorization header).
+    // Unauthenticated endpoints (login, register) should surface the 401 error directly.
+    const headers = init.headers as Record<string, string> | undefined;
+    const hadAuth = !!headers?.['Authorization'];
 
-    // Refresh failed — redirect to login
-    if (typeof window !== 'undefined') {
-      clearStoredAuth();
-      window.location.href = '/login';
+    if (hadAuth) {
+      const newToken = await refreshTokenIfNeeded();
+      if (newToken) {
+        const retryHeaders = {
+          ...Object.fromEntries(Object.entries(headers!)),
+          Authorization: `Bearer ${newToken}`,
+        };
+        const retryRes = await fetch(url, { ...init, headers: retryHeaders });
+        return handleResponse<T>(retryRes);
+      }
+
+      // Refresh failed — redirect to login
+      if (typeof window !== 'undefined') {
+        clearStoredAuth();
+        window.location.href = '/';
+      }
+      throw new ApiClientError(401, 'Session expirée. Veuillez vous reconnecter.');
     }
-    throw new ApiClientError(401, 'Session expired. Please log in again.');
   }
 
   return handleResponse<T>(res);

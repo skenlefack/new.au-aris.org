@@ -11,7 +11,7 @@ import type { QualityReport as EngineReport } from '@aris/quality-rules';
 
 const mockUser: AuthenticatedUser = {
   userId: '00000000-0000-0000-0000-000000000001',
-  email: 'steward@au-ibar.org',
+  email: 'steward@au-aris.org',
   role: UserRole.DATA_STEWARD,
   tenantId: '00000000-0000-0000-0000-000000000010',
   tenantLevel: TenantLevel.MEMBER_STATE,

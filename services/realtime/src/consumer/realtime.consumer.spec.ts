@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { RealtimeConsumer } from './realtime.consumer';
-import type { RealtimeGateway } from '../gateway/realtime.gateway';
-import type { RoomManagerService } from '../gateway/room-manager.service';
+import { RealtimeConsumer } from '../consumers/realtime.consumer';
+import type { RoomManagerService } from '../services/room-manager.service';
 
 // Capture all subscriptions so we can invoke handlers in tests
 type SubscribeCall = {
@@ -14,11 +13,12 @@ type SubscribeCall = {
 
 describe('RealtimeConsumer', () => {
   let consumer: RealtimeConsumer;
-  let gateway: {
-    broadcastToRoom: ReturnType<typeof vi.fn>;
-    broadcastToAll: ReturnType<typeof vi.fn>;
+  let io: {
+    to: ReturnType<typeof vi.fn>;
+    emit: ReturnType<typeof vi.fn>;
   };
-  let roomManager: Partial<RoomManagerService>;
+  let roomEmit: ReturnType<typeof vi.fn>;
+  let roomManager: { incrementMessageCount: ReturnType<typeof vi.fn> };
   let subscriptions: SubscribeCall[];
 
   beforeEach(async () => {
@@ -29,22 +29,26 @@ describe('RealtimeConsumer', () => {
         subscriptions.push({ options, handler });
         return {} as never; // Mock Consumer return
       }),
+      disconnectAll: vi.fn(),
     };
 
-    gateway = {
-      broadcastToRoom: vi.fn(),
-      broadcastToAll: vi.fn(),
+    roomEmit = vi.fn();
+    io = {
+      to: vi.fn().mockReturnValue({ emit: roomEmit }),
+      emit: vi.fn(),
     };
 
-    roomManager = {};
+    roomManager = {
+      incrementMessageCount: vi.fn(),
+    };
 
     consumer = new RealtimeConsumer(
       kafkaConsumer as never,
-      gateway as unknown as RealtimeGateway,
-      roomManager as RoomManagerService,
+      io as never,
+      roomManager as unknown as RoomManagerService,
     );
 
-    await consumer.onModuleInit();
+    await consumer.start();
   });
 
   function findHandler(topicSubstring: string): SubscribeCall | undefined {
@@ -53,7 +57,7 @@ describe('RealtimeConsumer', () => {
     );
   }
 
-  it('should subscribe to all 7 Kafka topics on init', () => {
+  it('should subscribe to all 7 Kafka topics on start', () => {
     expect(subscriptions).toHaveLength(7);
 
     const topics = subscriptions.map((s) => s.options.topic);
@@ -82,8 +86,8 @@ describe('RealtimeConsumer', () => {
         { tenantId: 'tenant-ke' },
       );
 
-      expect(gateway.broadcastToRoom).toHaveBeenCalledWith(
-        'outbreaks:tenant-ke',
+      expect(io.to).toHaveBeenCalledWith('outbreaks:tenant-ke');
+      expect(roomEmit).toHaveBeenCalledWith(
         'outbreak:new',
         expect.objectContaining({
           tenantId: 'tenant-ke',
@@ -96,7 +100,7 @@ describe('RealtimeConsumer', () => {
       const sub = findHandler('health.event.created')!;
       await sub.handler({ eventId: 'evt-1' }, {});
 
-      expect(gateway.broadcastToRoom).not.toHaveBeenCalled();
+      expect(io.to).not.toHaveBeenCalled();
     });
   });
 
@@ -108,8 +112,8 @@ describe('RealtimeConsumer', () => {
         { tenantId: 'tenant-ng' },
       );
 
-      expect(gateway.broadcastToRoom).toHaveBeenCalledWith(
-        'outbreaks:tenant-ng',
+      expect(io.to).toHaveBeenCalledWith('outbreaks:tenant-ng');
+      expect(roomEmit).toHaveBeenCalledWith(
         'outbreak:confirmed',
         expect.objectContaining({
           tenantId: 'tenant-ng',
@@ -127,7 +131,7 @@ describe('RealtimeConsumer', () => {
         { tenantId: 'rec-igad' },
       );
 
-      expect(gateway.broadcastToAll).toHaveBeenCalledWith(
+      expect(io.emit).toHaveBeenCalledWith(
         'outbreak:alert',
         expect.objectContaining({
           tenantId: 'rec-igad',
@@ -145,14 +149,13 @@ describe('RealtimeConsumer', () => {
         { tenantId: 'tenant-ke' },
       );
 
-      expect(gateway.broadcastToRoom).toHaveBeenCalledWith(
-        'workflow:tenant-ke',
+      expect(io.to).toHaveBeenCalledWith('workflow:tenant-ke');
+      expect(roomEmit).toHaveBeenCalledWith(
         'workflow:approved',
         expect.objectContaining({ tenantId: 'tenant-ke' }),
       );
 
-      expect(gateway.broadcastToRoom).toHaveBeenCalledWith(
-        'workflow:tenant-ke',
+      expect(roomEmit).toHaveBeenCalledWith(
         'workflow:updated',
         expect.objectContaining({
           tenantId: 'tenant-ke',
@@ -170,14 +173,13 @@ describe('RealtimeConsumer', () => {
         { tenantId: 'tenant-et' },
       );
 
-      expect(gateway.broadcastToRoom).toHaveBeenCalledWith(
-        'workflow:tenant-et',
+      expect(io.to).toHaveBeenCalledWith('workflow:tenant-et');
+      expect(roomEmit).toHaveBeenCalledWith(
         'workflow:rejected',
         expect.objectContaining({ tenantId: 'tenant-et' }),
       );
 
-      expect(gateway.broadcastToRoom).toHaveBeenCalledWith(
-        'workflow:tenant-et',
+      expect(roomEmit).toHaveBeenCalledWith(
         'workflow:updated',
         expect.objectContaining({
           tenantId: 'tenant-et',
@@ -195,8 +197,8 @@ describe('RealtimeConsumer', () => {
         { tenantId: 'tenant-ke' },
       );
 
-      expect(gateway.broadcastToRoom).toHaveBeenCalledWith(
-        'notifications:user-42',
+      expect(io.to).toHaveBeenCalledWith('notifications:user-42');
+      expect(roomEmit).toHaveBeenCalledWith(
         'notification:new',
         expect.objectContaining({ userId: 'user-42' }),
       );
@@ -209,8 +211,8 @@ describe('RealtimeConsumer', () => {
         {},
       );
 
-      expect(gateway.broadcastToRoom).toHaveBeenCalledWith(
-        'notifications:user-99',
+      expect(io.to).toHaveBeenCalledWith('notifications:user-99');
+      expect(roomEmit).toHaveBeenCalledWith(
         'notification:new',
         expect.objectContaining({ userId: 'user-99' }),
       );
@@ -220,7 +222,7 @@ describe('RealtimeConsumer', () => {
       const sub = findHandler('notification.sent')!;
       await sub.handler({ subject: 'No user' }, {});
 
-      expect(gateway.broadcastToRoom).not.toHaveBeenCalled();
+      expect(io.to).not.toHaveBeenCalled();
     });
   });
 
@@ -232,8 +234,8 @@ describe('RealtimeConsumer', () => {
         { tenantId: 'tenant-ke' },
       );
 
-      expect(gateway.broadcastToRoom).toHaveBeenCalledWith(
-        'sync-status:tenant-ke',
+      expect(io.to).toHaveBeenCalledWith('sync-status:tenant-ke');
+      expect(roomEmit).toHaveBeenCalledWith(
         'sync:completed',
         expect.objectContaining({
           tenantId: 'tenant-ke',

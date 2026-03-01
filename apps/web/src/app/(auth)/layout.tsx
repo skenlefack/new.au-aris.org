@@ -9,7 +9,7 @@ export default function AuthLayout({
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-aris-primary-700 via-aris-primary-600 to-aris-secondary-700 items-center justify-center p-12">
         <div className="max-w-md text-white">
           <div className="mb-8">
-            <h1 className="text-4xl font-bold tracking-tight">ARIS 3.0</h1>
+            <h1 className="text-4xl font-bold tracking-tight">ARIS</h1>
             <p className="mt-1 text-lg text-aris-primary-200">
               Animal Resources Information System
             </p>

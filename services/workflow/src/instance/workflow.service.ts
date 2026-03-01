@@ -7,8 +7,12 @@ import {
 } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import type { Prisma } from '@prisma/client';
-import { KafkaProducerService } from '@aris/kafka-client';
-import { AnimalHealthClient } from '@aris/service-clients';
+import {
+  KafkaProducerService,
+  EventPublisher,
+  EVENTS,
+} from '@aris/kafka-client';
+import type { WorkflowFlagReadyPayload } from '@aris/kafka-client';
 import {
   TenantLevel,
   WorkflowLevel,
@@ -48,7 +52,7 @@ export class WorkflowService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly kafkaProducer: KafkaProducerService,
-    private readonly animalHealthClient: AnimalHealthClient,
+    private readonly eventPublisher: EventPublisher,
   ) {}
 
   // ── Create ──
@@ -202,17 +206,18 @@ export class WorkflowService {
     // Publish approval event
     await this.publishEvent(TOPIC_AU_WORKFLOW_VALIDATION_APPROVED, updated, user);
 
-    // Publish WAHIS ready when Level 2 approved + patch source entity
+    // Publish WAHIS ready event when Level 2 approved
+    // Domain services consume this to update their own entities (replaces REST callback)
     if (instance.current_level === 'NATIONAL_OFFICIAL' && !instance.wahis_ready) {
       await this.publishEvent(TOPIC_AU_WORKFLOW_WAHIS_READY, updated, user);
-      await this.patchSourceEntity(instance, { wahisReady: true }, user.tenantId);
+      await this.publishFlagReadyEvent(instance, 'wahisReady', user);
       this.logger.log(`WAHIS ready: ${instance.entity_type}/${instance.entity_id}`);
     }
 
-    // Publish analytics ready when Level 4 approved + patch source entity
+    // Publish analytics ready event when Level 4 approved
     if (instance.current_level === 'CONTINENTAL_PUBLICATION' && !instance.analytics_ready) {
       await this.publishEvent(TOPIC_AU_WORKFLOW_ANALYTICS_READY, updated, user);
-      await this.patchSourceEntity(instance, { analyticsReady: true }, user.tenantId);
+      await this.publishFlagReadyEvent(instance, 'analyticsReady', user);
       this.logger.log(`Analytics ready: ${instance.entity_type}/${instance.entity_id}`);
     }
 
@@ -448,34 +453,45 @@ export class WorkflowService {
   // ── Domain Service Callbacks ──
 
   /**
-   * Patch the source entity in the domain service (e.g., animal-health) to set
-   * wahisReady or analyticsReady flags after workflow approval.
+   * Publish a flag-ready event so domain services can update their own entities.
+   * Replaces synchronous REST PATCH calls to domain services.
+   *
+   * Domain services (animal-health, livestock-prod, etc.) consume
+   * WORKFLOW.WAHIS_READY / WORKFLOW.ANALYTICS_READY events and update
+   * their local DB accordingly.
    */
-  private async patchSourceEntity(
-    instance: { entity_type: string; entity_id: string; domain: string },
-    body: Record<string, unknown>,
-    tenantId: string,
+  private async publishFlagReadyEvent(
+    instance: { entity_type: string; entity_id: string; domain: string; id: string },
+    flag: 'wahisReady' | 'analyticsReady',
+    user: AuthenticatedUser,
   ): Promise<void> {
+    const topic =
+      flag === 'wahisReady'
+        ? EVENTS.WORKFLOW.WAHIS_READY
+        : EVENTS.WORKFLOW.ANALYTICS_READY;
+
     try {
-      // Route to the correct domain service client based on the domain
-      if (instance.domain === 'health' || instance.domain === 'animal-health') {
-        await this.animalHealthClient.patchEntity(
-          instance.entity_type,
-          instance.entity_id,
-          body,
-          tenantId,
-        );
-      }
-      // Other domain services will be added as they come online:
-      // - livestock-prod, fisheries, wildlife, apiculture, trade-sps, governance, climate-env
+      await this.eventPublisher.publish(topic, {
+        eventType: topic,
+        source: SERVICE_NAME,
+        version: 1,
+        tenantId: user.tenantId,
+        userId: user.userId,
+        payload: {
+          instanceId: instance.id,
+          entityType: instance.entity_type,
+          entityId: instance.entity_id,
+          domain: instance.domain,
+          flag,
+        } satisfies WorkflowFlagReadyPayload,
+      }, { key: instance.entity_id });
 
       this.logger.log(
-        `Patched ${instance.entity_type}/${instance.entity_id} with ${JSON.stringify(body)}`,
+        `Published ${flag} event for ${instance.entity_type}/${instance.entity_id}`,
       );
     } catch (error) {
-      // Don't fail the workflow transition if the domain service is unavailable
       this.logger.warn(
-        `Failed to patch ${instance.entity_type}/${instance.entity_id}: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to publish ${flag} event for ${instance.entity_type}/${instance.entity_id}: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

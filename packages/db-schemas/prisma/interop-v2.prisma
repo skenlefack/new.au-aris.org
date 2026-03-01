@@ -1,0 +1,109 @@
+// ARIS 3.0 — Interop V2 Schema
+// External system connectors: WAHIS, DHIS2, FHIR R4, OMS, EMPRES, FAOSTAT
+
+enum ExternalSystem {
+  WAHIS
+  DHIS2
+  FHIR
+  OMS
+  EMPRES
+  FAOSTAT
+
+  @@schema("interop_v2")
+}
+
+enum AuthType {
+  BASIC
+  OAUTH2
+  API_KEY
+  CERTIFICATE
+
+  @@schema("interop_v2")
+}
+
+enum MappingDirection {
+  INBOUND
+  OUTBOUND
+  BIDIRECTIONAL
+
+  @@schema("interop_v2")
+}
+
+enum InteropV2Status {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  RETRY
+
+  @@schema("interop_v2")
+}
+
+/// Connections to external systems (one per tenant+system pair).
+model InteropConnection {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String           @db.VarChar(255)
+  system          ExternalSystem
+  base_url        String           @db.VarChar(500)
+  auth_type       AuthType
+  credentials     Json             @default("{}")
+  tenant_id       String           @db.Uuid
+  is_active       Boolean          @default(true)
+  last_sync_at    DateTime?
+  sync_frequency  String?          @db.VarChar(50)
+  config          Json             @default("{}")
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @updatedAt
+
+  mappings        InteropMapping[]
+  transactions    InteropTransaction[]
+
+  @@unique([tenant_id, system])
+  @@index([tenant_id])
+  @@map("interop_connections")
+  @@schema("interop_v2")
+}
+
+/// Field mappings for a connection — maps source fields to target fields with optional JSONata transform.
+model InteropMapping {
+  id              String           @id @default(uuid()) @db.Uuid
+  connection_id   String           @db.Uuid
+  source_field    String           @db.VarChar(255)
+  target_field    String           @db.VarChar(255)
+  transformation  String?
+  direction       MappingDirection
+  entity_type     String           @db.VarChar(100)
+  is_active       Boolean          @default(true)
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @updatedAt
+
+  connection      InteropConnection @relation(fields: [connection_id], references: [id], onDelete: Cascade)
+
+  @@index([connection_id, entity_type])
+  @@map("interop_mappings")
+  @@schema("interop_v2")
+}
+
+/// Transaction log for every sync operation (push/pull).
+model InteropTransaction {
+  id              String           @id @default(uuid()) @db.Uuid
+  connection_id   String           @db.Uuid
+  direction       MappingDirection
+  entity_type     String           @db.VarChar(100)
+  source_payload  Json
+  target_payload  Json?
+  status          InteropV2Status  @default(PENDING)
+  error_message   String?
+  retry_count     Int              @default(0)
+  max_retries     Int              @default(3)
+  tenant_id       String           @db.Uuid
+  created_at      DateTime         @default(now())
+  completed_at    DateTime?
+
+  connection      InteropConnection @relation(fields: [connection_id], references: [id])
+
+  @@index([connection_id, status])
+  @@index([tenant_id, created_at])
+  @@map("interop_transactions")
+  @@schema("interop_v2")
+}

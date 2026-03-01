@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { HealthController } from './health.controller';
-import type { RoomManagerService } from '../gateway/room-manager.service';
-import type { PresenceService } from '../presence/presence.service';
+import Fastify, { FastifyInstance } from 'fastify';
+import { registerHealthRoutes } from '../routes/health';
+import type { RoomManagerService } from '../services/room-manager.service';
+import type { PresenceService } from '../services/presence.service';
 
-describe('HealthController', () => {
-  let controller: HealthController;
+describe('Health & Stats Routes', () => {
+  let app: FastifyInstance;
   let roomManager: {
     getStats: ReturnType<typeof vi.fn>;
     getAllRooms: ReturnType<typeof vi.fn>;
@@ -13,7 +14,7 @@ describe('HealthController', () => {
     getAllOnlineCount: ReturnType<typeof vi.fn>;
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     roomManager = {
       getStats: vi.fn().mockReturnValue({
         connectedClients: 5,
@@ -33,31 +34,38 @@ describe('HealthController', () => {
       getAllOnlineCount: vi.fn().mockReturnValue(5),
     };
 
-    controller = new HealthController(
-      roomManager as unknown as RoomManagerService,
-      presenceService as unknown as PresenceService,
-    );
+    app = Fastify();
+    app.decorate('roomManager', roomManager as unknown as RoomManagerService);
+    app.decorate('presenceService', presenceService as unknown as PresenceService);
+    app.decorate('authHookFn', async () => {});
+
+    await app.register(registerHealthRoutes);
+    await app.ready();
   });
 
   describe('GET /health', () => {
-    it('should return status ok', () => {
-      const result = controller.health();
+    it('should return status ok', async () => {
+      const response = await app.inject({ method: 'GET', url: '/health' });
+      const body = response.json();
 
-      expect(result.status).toBe('ok');
-      expect(result.service).toBe('realtime');
-      expect(result.timestamp).toBeDefined();
+      expect(response.statusCode).toBe(200);
+      expect(body.status).toBe('ok');
+      expect(body.service).toBe('realtime');
+      expect(body.timestamp).toBeDefined();
     });
   });
 
-  describe('GET /stats', () => {
-    it('should return aggregated statistics', () => {
-      const result = controller.stats();
+  describe('GET /api/v1/realtime/stats', () => {
+    it('should return aggregated statistics', async () => {
+      const response = await app.inject({ method: 'GET', url: '/api/v1/realtime/stats' });
+      const body = response.json();
 
-      expect(result.data.connectedClients).toBe(5);
-      expect(result.data.activeRooms).toBe(3);
-      expect(result.data.totalMessages).toBe(100);
-      expect(result.data.rooms).toHaveLength(3);
-      expect(result.data.totalOnlineUsers).toBe(5);
+      expect(response.statusCode).toBe(200);
+      expect(body.data.connectedClients).toBe(5);
+      expect(body.data.activeRooms).toBe(3);
+      expect(body.data.totalMessages).toBe(100);
+      expect(body.data.rooms).toHaveLength(3);
+      expect(body.data.totalOnlineUsers).toBe(5);
     });
   });
 });

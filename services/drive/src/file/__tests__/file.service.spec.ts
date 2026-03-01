@@ -1,16 +1,11 @@
 import {
-  NotFoundException,
-  ForbiddenException,
-  BadRequestException,
-} from '@nestjs/common';
-import {
   DataClassification,
   UserRole,
   TenantLevel,
   TOPIC_SYS_DRIVE_FILE_UPLOADED,
 } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
-import { FileService } from '../file.service';
+import { FileService, HttpError } from '../../services/file.service';
 
 // ── Mock factories ──
 
@@ -64,7 +59,7 @@ function mockThumbnailService(returnThumbnail = false) {
 function callerUser(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-001',
-    email: 'steward@ke.aris.africa',
+    email: 'steward@ke.au-aris.org',
     role: UserRole.DATA_STEWARD,
     tenantId: 'tenant-ke',
     tenantLevel: TenantLevel.MEMBER_STATE,
@@ -185,7 +180,7 @@ describe('FileService', () => {
           { classification: DataClassification.RESTRICTED },
           callerUser(),
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(HttpError);
 
       expect(storage.putObject).not.toHaveBeenCalled();
       expect(prisma.fileRecord.create).not.toHaveBeenCalled();
@@ -198,7 +193,7 @@ describe('FileService', () => {
           { classification: DataClassification.RESTRICTED },
           callerUser(),
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(HttpError);
     });
 
     it('should generate thumbnail for images', async () => {
@@ -442,32 +437,44 @@ describe('FileService', () => {
       expect(result.data.size).toBe('1024');
     });
 
-    it('should throw NotFoundException for missing file', async () => {
+    it('should throw HttpError 404 for missing file', async () => {
       prisma.fileRecord.findUnique.mockResolvedValue(null);
 
       await expect(
         service.findOne('file-999', callerUser()),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(HttpError);
+
+      try {
+        await service.findOne('file-999', callerUser());
+      } catch (err) {
+        expect((err as HttpError).statusCode).toBe(404);
+      }
     });
 
-    it('should throw NotFoundException for soft-deleted file', async () => {
+    it('should throw HttpError 404 for soft-deleted file', async () => {
       prisma.fileRecord.findUnique.mockResolvedValue(
         fileRecordFixture({ status: 'DELETED' }),
       );
 
       await expect(
         service.findOne('file-001', callerUser()),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(HttpError);
     });
 
-    it('should throw ForbiddenException for another tenant', async () => {
+    it('should throw HttpError 403 for another tenant', async () => {
       prisma.fileRecord.findUnique.mockResolvedValue(
         fileRecordFixture({ tenantId: 'tenant-ng' }),
       );
 
       await expect(
         service.findOne('file-001', callerUser()),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(HttpError);
+
+      try {
+        await service.findOne('file-001', callerUser());
+      } catch (err) {
+        expect((err as HttpError).statusCode).toBe(403);
+      }
     });
 
     it('should allow CONTINENTAL user to access any tenant file', async () => {
@@ -501,22 +508,22 @@ describe('FileService', () => {
       expect(result.data.downloadUrl).toContain('signed');
     });
 
-    it('should throw NotFoundException for missing file', async () => {
+    it('should throw HttpError 404 for missing file', async () => {
       prisma.fileRecord.findUnique.mockResolvedValue(null);
 
       await expect(
         service.download('file-999', callerUser()),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(HttpError);
     });
 
-    it('should throw ForbiddenException for wrong tenant', async () => {
+    it('should throw HttpError 403 for wrong tenant', async () => {
       prisma.fileRecord.findUnique.mockResolvedValue(
         fileRecordFixture({ tenantId: 'tenant-ng' }),
       );
 
       await expect(
         service.download('file-001', callerUser()),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(HttpError);
     });
   });
 
@@ -542,32 +549,32 @@ describe('FileService', () => {
       expect(result.data.message).toBe('File deleted');
     });
 
-    it('should throw NotFoundException for missing file', async () => {
+    it('should throw HttpError 404 for missing file', async () => {
       prisma.fileRecord.findUnique.mockResolvedValue(null);
 
       await expect(
         service.softDelete('file-999', callerUser()),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(HttpError);
     });
 
-    it('should throw NotFoundException for already deleted file', async () => {
+    it('should throw HttpError 404 for already deleted file', async () => {
       prisma.fileRecord.findUnique.mockResolvedValue(
         fileRecordFixture({ status: 'DELETED' }),
       );
 
       await expect(
         service.softDelete('file-001', callerUser()),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(HttpError);
     });
 
-    it('should throw ForbiddenException for wrong tenant', async () => {
+    it('should throw HttpError 403 for wrong tenant', async () => {
       prisma.fileRecord.findUnique.mockResolvedValue(
         fileRecordFixture({ tenantId: 'tenant-ng' }),
       );
 
       await expect(
         service.softDelete('file-001', callerUser()),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(HttpError);
     });
   });
 

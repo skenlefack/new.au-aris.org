@@ -25,7 +25,7 @@ Before setting up the ARIS development environment, ensure the following tools a
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| **Node.js** | 20 LTS (>=20.0.0) | JavaScript runtime for all backend and frontend services |
+| **Node.js** | 22 LTS (>=22.0.0) | JavaScript runtime for all backend and frontend services |
 | **pnpm** | 9+ (>=9.0.0) | Fast, disk-efficient package manager for the monorepo |
 | **Docker** | 24+ | Container runtime for infrastructure services |
 | **Docker Compose** | v2.20+ | Multi-container orchestration (bundled with Docker Desktop) |
@@ -43,7 +43,7 @@ Before setting up the ARIS development environment, ensure the following tools a
 ### Verifying Prerequisites
 
 ```bash
-node --version          # v20.x.x
+node --version          # v22.x.x
 pnpm --version          # 9.x.x
 docker --version        # 24.x.x or later
 docker compose version  # v2.20.x or later
@@ -192,7 +192,30 @@ Listener layout per broker:
 - Schema compatibility level: `BACKWARD` (consumers can read old and new schemas)
 - Stores schemas in a Kafka internal topic
 
-### 3.4 PostgreSQL 16 + PostGIS 3.4
+### 3.4 PgBouncer (Connection Pooling)
+
+- **Image**: `edoburu/pgbouncer:latest`
+- **Port**: 6432
+- **Purpose**: Connection pooling proxy for PostgreSQL. All 22 microservices connect through PgBouncer instead of directly to PostgreSQL.
+- **Pool mode**: Transaction (connections returned after each transaction)
+- **Configuration**: `infrastructure/pgbouncer/pgbouncer.ini` and `infrastructure/pgbouncer/userlist.txt`
+- **Depends on**: PostgreSQL (`service_healthy`)
+- **Healthcheck**: `pg_isready -h 127.0.0.1 -p 6432 -U aris -d aris` every 10s
+
+**Key Parameters:**
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `max_client_conn` | 500 | Maximum client connections from all services |
+| `default_pool_size` | 20 | Actual PostgreSQL connections (shared pool) |
+| `min_pool_size` | 5 | Minimum warm connections |
+| `reserve_pool_size` | 5 | Burst capacity connections |
+| `pool_mode` | transaction | Connections released after each transaction |
+| `ignore_startup_parameters` | `extra_float_digits,search_path` | Prisma compatibility |
+
+> See [PGBOUNCER.md](./PGBOUNCER.md) for full configuration details and troubleshooting.
+
+### 3.5 PostgreSQL 16 + PostGIS 3.4
 
 - **Image**: `postgis/postgis:16-3.4`
 - **Port**: 5432
@@ -328,16 +351,28 @@ Copy `.env.example` to `.env` before starting development. All variables below s
 | `NODE_ENV` | `development` | Runtime environment (`development`, `test`, `production`) |
 | `LOG_LEVEL` | `debug` | Logging verbosity (`debug`, `info`, `warn`, `error`) |
 
-### PostgreSQL + PostGIS
+### PostgreSQL + PostGIS + PgBouncer
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `POSTGRES_HOST` | `localhost` | Database host |
-| `POSTGRES_PORT` | `5432` | Database port |
+| `POSTGRES_HOST` | `localhost` | Database host (direct) |
+| `POSTGRES_PORT` | `5432` | Database port (direct) |
 | `POSTGRES_USER` | `aris` | Database user |
 | `POSTGRES_PASSWORD` | `aris_dev_2024` | Database password |
 | `POSTGRES_DB` | `aris` | Database name |
-| `DATABASE_URL` | `postgresql://aris:aris_dev_2024@localhost:5432/aris` | Prisma connection string |
+| `PGBOUNCER_PORT` | `6432` | PgBouncer proxy port |
+| `DATABASE_URL` | `postgresql://aris:aris_dev_2024@localhost:6432/aris?pgbouncer=true` | Prisma connection string (via PgBouncer) |
+| `DIRECT_DATABASE_URL` | `postgresql://aris:aris_dev_2024@localhost:5432/aris` | Direct PostgreSQL (for migrations) |
+
+**Important**: Application queries use `DATABASE_URL` (through PgBouncer on port 6432). Prisma migrations use `DIRECT_DATABASE_URL` (direct to PostgreSQL on port 5432) because advisory locks are not supported in transaction pooling mode.
+
+```prisma
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")        // PgBouncer (runtime queries)
+  directUrl = env("DIRECT_DATABASE_URL") // Direct PG (migrations)
+}
+```
 
 ### Kafka
 
@@ -377,7 +412,7 @@ Copy `.env.example` to `.env` before starting development. All variables below s
 |----------|---------|-------------|
 | `SMTP_HOST` | `localhost` | SMTP server host |
 | `SMTP_PORT` | `1025` | SMTP server port (Mailpit) |
-| `SMTP_FROM` | `noreply@aris.africa` | Default sender address |
+| `SMTP_FROM` | `noreply@au-aris.org` | Default sender address |
 
 ### JWT Authentication
 
@@ -557,7 +592,8 @@ All 22 backend services and their assigned ports:
 |------|---------|---------|
 | 4000 | Traefik | API gateway HTTP entrypoint |
 | 4443 | Traefik | HTTPS entrypoint (future TLS) |
-| 5432 | PostgreSQL | Database connections |
+| 5432 | PostgreSQL | Direct database connections (migrations) |
+| 6432 | PgBouncer | Connection-pooled database access (application) |
 | 6379 | Redis | Cache/session connections |
 | 8025 | Mailpit | Email testing web UI |
 | 8080 | Kafka UI | Kafka monitoring dashboard |
@@ -699,7 +735,7 @@ JWT_REFRESH_EXPIRY=7d
 - Deploy streaming replicas for read-heavy workloads (analytics, dashboards, reporting).
 - Use `DATABASE_READ_URL` environment variable to route read queries to replicas.
 - Replicas serve the analytics service, geo-services, and knowledge-hub read paths.
-- Consider PgBouncer for connection pooling in production (each NestJS service opens its own Prisma connection pool).
+- PgBouncer is deployed for connection pooling (all 22 services route through `pgbouncer:6432`). In production, scale PgBouncer `default_pool_size` based on workload.
 - Schema-per-service isolation means replicas carry all schemas; use `pg_hba.conf` to restrict per-service access.
 
 ### 9.3 Redis Cluster

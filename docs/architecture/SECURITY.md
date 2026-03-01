@@ -15,7 +15,7 @@ sequenceDiagram
     participant Service as Any Service
     participant AuthMW as @aris/auth-middleware
 
-    Client->>Credential: POST /api/v1/auth/login {email, password}
+    Client->>Credential: POST /api/v1/credential/auth/login {email, password}
     Credential->>Credential: Verify bcrypt hash
     Credential->>Credential: Sign JWT with RS256 private key
     Credential-->>Client: {accessToken, refreshToken, expiresIn}
@@ -27,7 +27,7 @@ sequenceDiagram
     Service-->>Client: Response {data, meta}
 
     Note over Client: Token expires (15 min default)
-    Client->>Credential: POST /api/v1/auth/refresh {refreshToken}
+    Client->>Credential: POST /api/v1/credential/auth/refresh {refreshToken}
     Credential-->>Client: {accessToken, refreshToken, expiresIn}
 ```
 
@@ -234,7 +234,111 @@ interface AuditEntry {
 - Domain service audit: Kafka events (retained for compliance)
 - Shared audit table: `audit.audit_log` with indexes on entity, actor, tenant, timestamp
 
-## 8. Security Checklist
+## 8. PgBouncer Security
+
+### Connection Pooling Isolation
+
+PgBouncer provides an additional security layer between services and PostgreSQL:
+
+| Aspect | Configuration |
+|--------|--------------|
+| **Authentication** | MD5 password authentication via `userlist.txt` |
+| **Connection limit** | `max_client_conn = 500` prevents connection exhaustion attacks |
+| **Admin access** | Restricted to `admin_users = aris` |
+| **Stats access** | Restricted to `stats_users = aris` |
+| **Network** | Runs on internal `aris-network` only; port 6432 exposed for host access |
+
+### Production Hardening
+
+- Use MD5-hashed passwords in `userlist.txt` (not plaintext)
+- Restrict `admin_users` to a dedicated monitoring account
+- Enable TLS between PgBouncer and PostgreSQL (`server_tls_sslmode = require`)
+- Limit `max_client_conn` per service using separate PgBouncer instances or databases
+
+## 9. Redis Cache Security
+
+### Key Prefix Isolation
+
+The `@aris/cache` package uses domain-aware key prefixes to logically isolate cache data:
+
+```
+aris:master-data:species:*       # Master data domain
+aris:credential:session:*        # Session data
+aris:animal-health:outbreak:*    # Animal health domain
+aris:rate-limit:login:*          # Rate limiting
+aris:lock:import:*               # Distributed locks
+```
+
+### Security Considerations
+
+| Aspect | Implementation |
+|--------|---------------|
+| **Key isolation** | Domain prefix prevents cross-service key collisions |
+| **Eviction policy** | `allkeys-lru` (512 MB max) — no sensitive data persists indefinitely |
+| **No PII in cache** | Cache aggregated data; avoid caching personal information |
+| **Rate limiting** | `incrWithTtl` for login attempt tracking per IP/user |
+| **Lock tokens** | Random UUID tokens prevent lock theft between services |
+
+### Production Hardening
+
+- Enable Redis AUTH with a strong password
+- Enable TLS (`tls-port 6380`)
+- Use Redis ACLs to restrict command access per service
+- Deploy Redis Sentinel or Cluster for HA
+
+## 10. JWT Key Loading
+
+The credential service supports loading RSA keys from PEM files with an inline environment variable fallback:
+
+```
+Priority:
+1. File path: keys/private.pem, keys/public.pem (JWT_PRIVATE_KEY_PATH, JWT_PUBLIC_KEY_PATH)
+2. Environment variable: JWT_PRIVATE_KEY, JWT_PUBLIC_KEY (inline PEM content)
+```
+
+### File-Based Keys (Recommended)
+
+```env
+JWT_PRIVATE_KEY_PATH=./keys/private.pem
+JWT_PUBLIC_KEY_PATH=./keys/public.pem
+```
+
+- Keys directory is in `.gitignore`
+- File permissions should be `600` (owner read/write only)
+- In production, mount keys from Kubernetes Secrets or HashiCorp Vault
+
+### Environment Variable Fallback
+
+```env
+JWT_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIB..."
+JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\nMIIBIjAN..."
+```
+
+Used in Docker Compose and CI/CD environments where file mounting is impractical.
+
+## 11. NestJS Module Naming
+
+To avoid NestJS dependency injection conflicts, service-specific modules must use unique names when the same module name exists in shared packages.
+
+### Known Conflict: `AuthModule`
+
+The `@aris/auth-middleware` package exports a `@Global()` `AuthModule`. The credential service also has its own auth module. To prevent injection conflicts:
+
+```typescript
+// packages/auth-middleware: @Global() AuthModule — validates JWTs
+// services/credential: CredentialAuthModule — handles login/register
+
+// services/credential/src/auth/auth.module.ts
+@Module({ ... })
+export class CredentialAuthModule {}  // NOT "AuthModule"
+```
+
+### Convention
+
+- Shared package modules: Use generic names (`AuthModule`, `KafkaModule`, `CacheModule`)
+- Service-specific modules: Prefix with service name (`CredentialAuthModule`, `MasterDataGeoModule`)
+
+## 12. Security Checklist
 
 - [x] JWT RS256 asymmetric key authentication
 - [x] bcrypt password hashing (12 salt rounds)
@@ -245,6 +349,10 @@ interface AuditEntry {
 - [x] Rate limiting on auth endpoints
 - [x] MFA support (TOTP)
 - [x] DLQ for failed message processing
+- [x] PgBouncer connection pooling with MD5 auth
+- [x] Redis key prefix isolation per domain
+- [x] JWT RSA key loading from PEM files
+- [x] NestJS module naming convention (no injection conflicts)
 - [ ] Kafka SASL_SSL (production)
 - [ ] TLS between all services (production)
 - [ ] WAF (Web Application Firewall)

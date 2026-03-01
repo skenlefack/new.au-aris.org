@@ -1,0 +1,264 @@
+// ARIS 3.0 — Settings Models
+// Managed by: tenant service (port 3001)
+// Schema: governance
+// RECs, Countries, SystemConfig, Domains for the Settings module + public landing page.
+
+model Rec {
+  id            String       @id @default(uuid()) @db.Uuid
+  code          String       @unique @db.VarChar(20)
+  name          Json         // { "en": "ECOWAS", "fr": "CEDEAO", "pt": "CEDEAO", "ar": "..." }
+  fullName      Json         @map("full_name")
+  description   Json
+  region        Json         // { "en": "West Africa", "fr": "Afrique de l'Ouest", ... }
+  headquarters  String       @db.VarChar(255)
+  established   Int?
+  accentColor   String       @map("accent_color") @db.VarChar(20)
+  logoUrl       String?      @map("logo_url") @db.VarChar(500)
+  website       String?      @db.VarChar(500)
+  isActive      Boolean      @default(true) @map("is_active")
+  sortOrder     Int          @default(0) @map("sort_order")
+  stats         Json?        // { activeCampaigns: 12, reportsSubmitted: 450, ... }
+  metadata      Json?
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  countries     CountryRec[]
+
+  @@index([isActive], map: "idx_rec_is_active")
+  @@index([sortOrder], map: "idx_rec_sort_order")
+  @@map("recs")
+  @@schema("governance")
+}
+
+model Country {
+  id                String       @id @default(uuid()) @db.Uuid
+  code              String       @unique @db.VarChar(2)     // ISO 3166-1 alpha-2
+  code3             String?      @db.VarChar(3)             // ISO 3166-1 alpha-3
+  name              Json         // { "en": "Kenya", "fr": "Kenya", "pt": "Quénia", "ar": "كينيا" }
+  officialName      Json?        @map("official_name")
+  capital           Json         // { "en": "Nairobi", ... }
+  flag              String       @db.VarChar(20)            // emoji flag
+  population        BigInt?      // total population
+  area              Float?       // km²
+  timezone          String?      @db.VarChar(50)
+  languages         Json?        // ["sw", "en"]
+  currency          String?      @db.VarChar(10)
+  phoneCode         String?      @map("phone_code") @db.VarChar(10)
+  isActive          Boolean      @default(true) @map("is_active")
+  isOperational     Boolean      @default(false) @map("is_operational")
+  tenantId          String?      @map("tenant_id") @db.Uuid
+  sortOrder         Int          @default(0) @map("sort_order")
+  stats             Json?        // { activeOutbreaks: 6, vaccinationCoverage: 52, ... }
+  sectorPerformance Json?        @map("sector_performance") // { vaccination: 52, fisheries: 74, ... }
+  metadata          Json?
+  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  recs              CountryRec[]
+  adminLevels       AdminLevel[]
+  tenant            Tenant?      @relation(fields: [tenantId], references: [id])
+  collecteWorkflow  CollecteWorkflow?
+
+  @@index([isActive], map: "idx_country_is_active")
+  @@index([isOperational], map: "idx_country_is_operational")
+  @@index([tenantId], map: "idx_country_tenant_id")
+  @@map("countries")
+  @@schema("governance")
+}
+
+model CountryRec {
+  id         String    @id @default(uuid()) @db.Uuid
+  countryId  String    @map("country_id") @db.Uuid
+  recId      String    @map("rec_id") @db.Uuid
+  joinedDate DateTime? @map("joined_date") @db.Timestamptz
+  isActive   Boolean   @default(true) @map("is_active")
+  country    Country   @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  rec        Rec       @relation(fields: [recId], references: [id], onDelete: Cascade)
+
+  @@unique([countryId, recId])
+  @@index([recId], map: "idx_country_rec_rec_id")
+  @@map("country_recs")
+  @@schema("governance")
+}
+
+model SystemConfig {
+  id          String   @id @default(uuid()) @db.Uuid
+  category    String   @db.VarChar(50)  // "general", "security", "notifications", "branding", "i18n", "data-quality"
+  key         String   @db.VarChar(100) // "platform.name", "security.mfa.required", etc.
+  value       Json
+  label       Json     // { "en": "Platform Name", "fr": "Nom de la plateforme", ... }
+  description Json?
+  type        String   @db.VarChar(20)  // "string", "number", "boolean", "json", "color", "url", "enum"
+  options     Json?    // for type "enum": ["option1", "option2"]
+  isEditable  Boolean  @default(true) @map("is_editable")
+  scope       String   @default("global") @db.VarChar(20) // "global", "rec", "national"
+  tenantId    String?  @map("tenant_id") @db.Uuid
+  validatedBy String?  @map("validated_by") @db.VarChar(255) // regex validation
+  updatedBy   String?  @map("updated_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([category, key], map: "uq_config_category_key")
+  @@index([category], map: "idx_system_config_category")
+  @@index([tenantId], map: "idx_system_config_tenant_id")
+  @@map("system_configs")
+  @@schema("governance")
+}
+
+model Domain {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(30) // "animal-health", "livestock-prod", etc.
+  name        Json     // { "en": "Animal Health & One Health", ... }
+  description Json?
+  icon        String   @db.VarChar(50)         // lucide icon name: "HeartPulse", "Wheat", etc.
+  color       String   @db.VarChar(20)         // "#C62828"
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([isActive], map: "idx_domain_is_active")
+  @@index([sortOrder], map: "idx_domain_sort_order")
+  @@map("domains")
+  @@schema("governance")
+}
+
+model AdminLevel {
+  id          String   @id @default(uuid()) @db.Uuid
+  countryId   String   @map("country_id") @db.Uuid
+  level       Int      // 1-5
+  name        Json     // { "en": "County", "fr": "Comté", ... }
+  code        String   @db.VarChar(50) // "county", "sub_county", etc.
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  country     Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  @@unique([countryId, level])
+  @@unique([countryId, code])
+  @@index([countryId], map: "idx_admin_level_country_id")
+  @@map("admin_levels")
+  @@schema("governance")
+}
+
+// ── Functions (job titles / roles per hierarchical level) ────────────────
+
+model Function {
+  id          String         @id @default(uuid()) @db.Uuid
+  code        String         @db.VarChar(30)
+  name        Json           // { "en": "Director General", "fr": "Directeur Général", "pt": "...", "ar": "..." }
+  description Json?
+  level       String         @db.VarChar(20) // "continental", "regional", "national"
+  category    String?        @db.VarChar(20) // "management", "technical", "data", "admin", "field"
+  permissions Json?          // domain-specific permissions
+  isActive    Boolean        @default(true) @map("is_active")
+  isDefault   Boolean        @default(false) @map("is_default")
+  sortOrder   Int            @default(0) @map("sort_order")
+  metadata    Json?
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  users       UserFunction[]
+
+  @@unique([code, level], map: "uq_function_code_level")
+  @@index([level], map: "idx_function_level")
+  @@index([isActive], map: "idx_function_is_active")
+  @@map("functions")
+  @@schema("governance")
+}
+
+model UserFunction {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  functionId String    @map("function_id") @db.Uuid
+  isPrimary  Boolean   @default(false) @map("is_primary")
+  startDate  DateTime  @default(now()) @map("start_date") @db.Timestamptz
+  endDate    DateTime? @map("end_date") @db.Timestamptz
+  assignedBy String?   @map("assigned_by") @db.Uuid
+  notes      String?
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  function   Function  @relation(fields: [functionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, functionId], map: "uq_user_function")
+  @@index([userId], map: "idx_user_function_user_id")
+  @@index([functionId], map: "idx_user_function_function_id")
+  @@map("user_functions")
+  @@schema("governance")
+}
+
+// ── BI Tools Configuration ──────────────────────────────────────────────
+
+model BiToolConfig {
+  id            String       @id @default(uuid()) @db.Uuid
+  tool          String       @unique @db.VarChar(30) // "superset", "metabase", "powerbi"
+  baseUrl       String       @map("base_url") @db.VarChar(500)
+  displayName   Json         @map("display_name")   // { "en": "Apache Superset", "fr": "..." }
+  description   Json?
+  icon          String?      @db.VarChar(50)         // lucide icon name
+  status        String       @default("active") @db.VarChar(20) // "active", "coming_soon", "maintenance", "disabled"
+  embedMode     String       @default("iframe") @map("embed_mode") @db.VarChar(30) // "iframe", "guest_token", "signed_url"
+  sortOrder     Int          @default(0) @map("sort_order")
+  metadata      Json?
+  isActive      Boolean      @default(true) @map("is_active")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  accessRules   BiDataAccessRule[]
+  dashboards    BiDashboard[]
+
+  @@index([status], map: "idx_bi_tool_config_status")
+  @@index([sortOrder], map: "idx_bi_tool_config_sort_order")
+  @@map("bi_tool_configs")
+  @@schema("governance")
+}
+
+model BiDataAccessRule {
+  id                String       @id @default(uuid()) @db.Uuid
+  biToolConfigId    String       @map("bi_tool_config_id") @db.Uuid
+  roleLevel         String?      @map("role_level") @db.VarChar(30) // UserRole value
+  entityType        String?      @map("entity_type") @db.VarChar(30) // "tenant", "rec", "country"
+  entityId          String?      @map("entity_id") @db.Uuid
+  allowedSchemas    Json         @default("[]") @map("allowed_schemas")   // ["public", "historical"]
+  allowedTables     Json         @default("[]") @map("allowed_tables")    // ["outbreaks", "campaigns"]
+  excludedTables    Json         @default("[]") @map("excluded_tables")   // ["User", "Session"]
+  dataFilters       Json?        @map("data_filters")   // RLS-like filters
+  canCreateDashboard Boolean     @default(false) @map("can_create_dashboard")
+  canExportData     Boolean      @default(false) @map("can_export_data")
+  canUseSqlLab      Boolean      @default(false) @map("can_use_sql_lab")
+  isActive          Boolean      @default(true) @map("is_active")
+  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  biToolConfig      BiToolConfig @relation(fields: [biToolConfigId], references: [id], onDelete: Cascade)
+
+  @@unique([biToolConfigId, roleLevel, entityType, entityId], map: "uq_bi_access_rule")
+  @@index([biToolConfigId], map: "idx_bi_access_rule_tool_id")
+  @@index([roleLevel], map: "idx_bi_access_rule_role")
+  @@map("bi_data_access_rules")
+  @@schema("governance")
+}
+
+model BiDashboard {
+  id              String       @id @default(uuid()) @db.Uuid
+  biToolConfigId  String       @map("bi_tool_config_id") @db.Uuid
+  externalId      String       @map("external_id") @db.VarChar(255) // ID in Superset/Metabase
+  name            Json         // { "en": "Animal Health Overview", "fr": "..." }
+  description     Json?
+  thumbnail       String?      @db.VarChar(500)
+  category        String?      @db.VarChar(50)    // "animal-health", "livestock", "overview"
+  embedUrl        String       @map("embed_url") @db.VarChar(1000)
+  scope           String       @default("global") @db.VarChar(20) // "global", "rec", "national"
+  allowedRoles    Json         @default("[]") @map("allowed_roles") // ["SUPER_ADMIN", "ANALYST"]
+  sortOrder       Int          @default(0) @map("sort_order")
+  isFeatured      Boolean      @default(false) @map("is_featured")
+  isActive        Boolean      @default(true) @map("is_active")
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  biToolConfig    BiToolConfig @relation(fields: [biToolConfigId], references: [id], onDelete: Cascade)
+
+  @@unique([biToolConfigId, externalId], map: "uq_bi_dashboard_external")
+  @@index([biToolConfigId], map: "idx_bi_dashboard_tool_id")
+  @@index([category], map: "idx_bi_dashboard_category")
+  @@index([scope], map: "idx_bi_dashboard_scope")
+  @@index([isFeatured], map: "idx_bi_dashboard_featured")
+  @@map("bi_dashboards")
+  @@schema("governance")
+}

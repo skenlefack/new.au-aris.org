@@ -30,7 +30,7 @@ function mockAudit() {
 function msUser(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-ke',
-    email: 'vet@ke.aris.africa',
+    email: 'vet@ke.au-aris.org',
     role: UserRole.NATIONAL_ADMIN,
     tenantId: 'tenant-ke',
     tenantLevel: TenantLevel.MEMBER_STATE,
@@ -41,7 +41,7 @@ function msUser(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
 function continentalUser(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-au',
-    email: 'admin@aris.africa',
+    email: 'admin@au-aris.org',
     role: UserRole.SUPER_ADMIN,
     tenantId: 'tenant-au',
     tenantLevel: TenantLevel.CONTINENTAL,

@@ -5,7 +5,7 @@ import type { AuthenticatedUser } from '@aris/auth-middleware';
 
 const mockUser: AuthenticatedUser = {
   userId: '00000000-0000-0000-0000-000000000001',
-  email: 'admin@au-ibar.org',
+  email: 'admin@au-aris.org',
   role: UserRole.CONTINENTAL_ADMIN,
   tenantId: '00000000-0000-0000-0000-000000000010',
   tenantLevel: TenantLevel.CONTINENTAL,

@@ -9,7 +9,7 @@ import {
   TemplateEngine,
   SMS_TEMPLATES,
   COUNTRY_CODES,
-} from '../template-engine';
+} from '../../services/template-engine';
 
 describe('TemplateEngine', () => {
   let engine: TemplateEngine;
@@ -27,7 +27,7 @@ describe('TemplateEngine', () => {
         entityId: 'REC-001',
         recordId: 'REC-001',
         level: 2,
-        dashboardUrl: 'https://aris.africa/dashboard',
+        dashboardUrl: 'https://au-aris.org/dashboard',
       });
 
       expect(result.subject).toContain('[ARIS]');
@@ -44,7 +44,7 @@ describe('TemplateEngine', () => {
         recordId: 'CD-042',
         level: 1,
         reason: 'Missing geospatial coordinates',
-        correctionUrl: 'https://aris.africa/corrections/CD-042',
+        correctionUrl: 'https://au-aris.org/corrections/CD-042',
       });
 
       expect(result.subject).toContain('Rejected');
@@ -57,7 +57,7 @@ describe('TemplateEngine', () => {
         recordId: 'VAX-100',
         violations: ['Missing species code', 'Invalid admin code'],
         violationCount: 2,
-        correctionUrl: 'https://aris.africa/corrections/VAX-100',
+        correctionUrl: 'https://au-aris.org/corrections/VAX-100',
       });
 
       expect(result.subject).toContain('Quality');
@@ -71,7 +71,7 @@ describe('TemplateEngine', () => {
         recordId: 'TF-999',
         daysOverdue: 14,
         deadline: '2026-01-15T00:00:00Z',
-        correctionUrl: 'https://aris.africa/corrections/TF-999',
+        correctionUrl: 'https://au-aris.org/corrections/TF-999',
       });
 
       expect(result.subject).toContain('ESCALATION');
@@ -84,7 +84,7 @@ describe('TemplateEngine', () => {
         diseaseName: 'Rift Valley Fever',
         countryName: 'Kenya',
         severity: 'HIGH',
-        mapUrl: 'https://aris.africa/geo/alerts/KE-RVF',
+        mapUrl: 'https://au-aris.org/geo/alerts/KE-RVF',
       });
 
       expect(result.subject).toContain('Rift Valley Fever');
@@ -94,7 +94,7 @@ describe('TemplateEngine', () => {
     it('should render WELCOME email', () => {
       const result = engine.renderEmail('WELCOME', {
         userName: 'Dr. Amina Osei',
-        loginUrl: 'https://aris.africa/login',
+        loginUrl: 'https://au-aris.org/login',
         role: 'DATA_STEWARD',
       });
 
@@ -105,7 +105,7 @@ describe('TemplateEngine', () => {
     it('should render PASSWORD_RESET email', () => {
       const result = engine.renderEmail('PASSWORD_RESET', {
         userName: 'John',
-        resetUrl: 'https://aris.africa/reset?token=abc123',
+        resetUrl: 'https://au-aris.org/reset?token=abc123',
         expiresIn: '1 hour',
       });
 
@@ -118,7 +118,7 @@ describe('TemplateEngine', () => {
         campaignName: 'Q1 2026 Livestock Census',
         startDate: '2026-01-01',
         endDate: '2026-03-31',
-        dashboardUrl: 'https://aris.africa/campaigns/q1',
+        dashboardUrl: 'https://au-aris.org/campaigns/q1',
       });
 
       expect(result.subject).toContain('Q1 2026 Livestock Census');
@@ -132,7 +132,7 @@ describe('TemplateEngine', () => {
         overdueCorrections: 2,
         unreadCount: 12,
         date: '21 February 2026',
-        dashboardUrl: 'https://aris.africa/dashboard',
+        dashboardUrl: 'https://au-aris.org/dashboard',
         items: [
           { entityType: 'Outbreak', entityId: 'OB-1', level: '2', domain: 'health', createdAt: '15/02/2026' },
           { entityType: 'Census', entityId: 'CN-2', level: '1', domain: 'livestock', createdAt: '18/02/2026' },

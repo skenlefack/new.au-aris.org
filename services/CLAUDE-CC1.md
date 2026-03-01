@@ -33,7 +33,7 @@ interface Tenant {
   parentId?: string;     // Parent tenant UUID (null for AU-IBAR)
   countryCode?: string;  // ISO 3166-1 alpha-2 (for MS only)
   recCode?: string;      // REC identifier (for REC and MS)
-  domain: string;        // Subdomain: "ke.aris.africa"
+  domain: string;        // Subdomain: "ke.au-aris.org"
   config: JsonValue;     // Tenant-specific configuration
   isActive: boolean;
   createdAt: Date;

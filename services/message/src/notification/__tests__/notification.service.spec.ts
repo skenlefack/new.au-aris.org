@@ -1,8 +1,4 @@
 import {
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
-import {
   NotificationChannel,
   NotificationStatus,
   UserRole,
@@ -11,7 +7,7 @@ import {
   TOPIC_SYS_MESSAGE_NOTIFICATION_FAILED,
 } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
-import { NotificationService } from '../notification.service';
+import { NotificationService } from '../../services/notification.service';
 
 // ── Mock factories ──
 
@@ -46,7 +42,7 @@ function mockChannel(success = true) {
 function callerUser(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'admin-001',
-    email: 'admin@aris.africa',
+    email: 'admin@au-aris.org',
     role: UserRole.SUPER_ADMIN,
     tenantId: 'tenant-au',
     tenantLevel: TenantLevel.CONTINENTAL,
@@ -96,10 +92,12 @@ describe('NotificationService', () => {
     service = new NotificationService(
       prisma as never,
       kafka as never,
-      emailCh as never,
-      smsCh as never,
-      pushCh as never,
-      inAppCh as never,
+      {
+        email: emailCh as never,
+        sms: smsCh as never,
+        push: pushCh as never,
+        inApp: inAppCh as never,
+      },
     );
   });
 
@@ -226,10 +224,12 @@ describe('NotificationService', () => {
       service = new NotificationService(
         prisma as never,
         kafka as never,
-        emailCh as never,
-        smsCh as never,
-        pushCh as never,
-        inAppCh as never,
+        {
+          email: emailCh as never,
+          sms: smsCh as never,
+          push: pushCh as never,
+          inApp: inAppCh as never,
+        },
       );
 
       prisma.notification.create.mockResolvedValue(notificationFixture());
@@ -291,10 +291,12 @@ describe('NotificationService', () => {
       service = new NotificationService(
         prisma as never,
         kafka as never,
-        emailCh as never,
-        smsCh as never,
-        pushCh as never,
-        inAppCh as never,
+        {
+          email: emailCh as never,
+          sms: smsCh as never,
+          push: pushCh as never,
+          inApp: inAppCh as never,
+        },
       );
 
       prisma.notification.create.mockResolvedValue(notificationFixture());
@@ -490,32 +492,32 @@ describe('NotificationService', () => {
       expect(result.data.readAt).toBeDefined();
     });
 
-    it('should throw NotFoundException if notification does not exist', async () => {
+    it('should throw HttpError 404 if notification does not exist', async () => {
       prisma.notification.findUnique.mockResolvedValue(null);
 
       await expect(
         service.markAsRead('notif-999', 'user-001', 'tenant-ke'),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow('Notification notif-999 not found');
     });
 
-    it('should throw ForbiddenException if notification belongs to another user', async () => {
+    it('should throw HttpError 403 if notification belongs to another user', async () => {
       prisma.notification.findUnique.mockResolvedValue(
         notificationFixture({ userId: 'other-user' }),
       );
 
       await expect(
         service.markAsRead('notif-001', 'user-001', 'tenant-ke'),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow('Cannot access this notification');
     });
 
-    it('should throw ForbiddenException if notification belongs to another tenant', async () => {
+    it('should throw HttpError 403 if notification belongs to another tenant', async () => {
       prisma.notification.findUnique.mockResolvedValue(
         notificationFixture({ tenantId: 'other-tenant' }),
       );
 
       await expect(
         service.markAsRead('notif-001', 'user-001', 'tenant-ke'),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow('Cannot access this notification');
     });
 
     it('should return existing readAt if already read', async () => {

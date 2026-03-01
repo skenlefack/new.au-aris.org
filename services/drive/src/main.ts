@@ -1,23 +1,14 @@
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
-import { AppModule } from './app.module';
+import { buildApp } from './app';
 
-async function bootstrap(): Promise<void> {
-  const logger = new Logger('DriveService');
-  const app = await NestFactory.create(AppModule);
+async function start(): Promise<void> {
+  const app = await buildApp();
+  const port = Number(process.env['DRIVE_PORT'] ?? 3007);
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: { enableImplicitConversion: true },
-    }),
-  );
-
-  const port = process.env['DRIVE_PORT'] ?? 3007;
-  await app.listen(port);
-  logger.log(`Drive service running on port ${port}`);
+  await app.listen({ port, host: '0.0.0.0' });
+  app.log.info(`Drive service running on port ${port}`);
 }
 
-bootstrap();
+start().catch((err) => {
+  console.error('Failed to start Drive service:', err);
+  process.exit(1);
+});

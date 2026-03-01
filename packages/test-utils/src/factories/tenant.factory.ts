@@ -29,7 +29,7 @@ export function createMockTenant(
     parentId: null,
     countryCode: code,
     recCode: null,
-    domain: `${code.toLowerCase()}.aris.africa`,
+    domain: `${code.toLowerCase()}.au-aris.org`,
     config: {},
     isActive: true,
     createdAt: new Date('2024-01-01'),
@@ -60,7 +60,7 @@ export function createMockTenantTree(options?: {
     code: 'AU-IBAR',
     level: TenantLevel.CONTINENTAL,
     countryCode: null,
-    domain: 'aris.africa',
+    domain: 'au-aris.org',
   });
 
   const recData = [
@@ -82,7 +82,7 @@ export function createMockTenantTree(options?: {
       parentId: continental.id,
       countryCode: null,
       recCode: rd.code,
-      domain: `${rd.code.toLowerCase()}.aris.africa`,
+      domain: `${rd.code.toLowerCase()}.au-aris.org`,
     });
     recs.push(rec);
 
@@ -95,7 +95,7 @@ export function createMockTenantTree(options?: {
         parentId: rec.id,
         countryCode: cc,
         recCode: rd.code,
-        domain: `${cc.toLowerCase()}.aris.africa`,
+        domain: `${cc.toLowerCase()}.au-aris.org`,
       });
       memberStates.push(ms);
     }

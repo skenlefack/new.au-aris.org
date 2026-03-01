@@ -1,0 +1,65 @@
+// ARIS 3.0 — Analytics Worker Schema
+// Aggregated metrics and worker state for Kafka Streams-style processing
+
+enum MetricType {
+  COUNT
+  SUM
+  AVG
+  MIN
+  MAX
+  RATE
+  RATIO
+
+  @@schema("analytics")
+}
+
+enum PeriodType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+
+  @@schema("analytics")
+}
+
+model AggregateMetric {
+  id           String     @id @default(uuid()) @db.Uuid
+  tenant_id    String     @db.Uuid
+  domain       String     @db.VarChar(50)
+  metric_name  String     @db.VarChar(100)
+  metric_type  MetricType
+  period_type  PeriodType
+  period_start DateTime
+  period_end   DateTime
+  value        Float
+  dimensions   Json?
+  metadata     Json?
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+
+  @@unique([tenant_id, domain, metric_name, metric_type, period_type, period_start], name: "uq_aggregate_metric")
+  @@index([tenant_id, domain])
+  @@index([domain, period_type, period_start])
+  @@index([tenant_id, period_type, period_start])
+  @@map("aggregate_metrics")
+  @@schema("analytics")
+}
+
+model WorkerState {
+  id                String   @id @default(uuid()) @db.Uuid
+  consumer_group    String   @db.VarChar(100)
+  topic             String   @db.VarChar(255)
+  partition         Int
+  last_offset       String   @db.VarChar(50)
+  last_processed_at DateTime
+  records_processed Int      @default(0)
+  error_count       Int      @default(0)
+  last_error        String?  @db.Text
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  @@unique([consumer_group, topic, partition], name: "uq_worker_state")
+  @@map("worker_states")
+  @@schema("analytics")
+}

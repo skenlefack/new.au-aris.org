@@ -7,6 +7,7 @@ import { ChevronRight, Home } from 'lucide-react';
 
 const LABEL_MAP: Record<string, string> = {
   '': 'Home',
+  home: 'Home',
   'animal-health': 'Animal Health',
   events: 'Events',
   new: 'New Event',
@@ -52,8 +53,22 @@ const LABEL_MAP: Record<string, string> = {
   settings: 'Settings',
   profile: 'Profile',
   'data-contracts': 'Data Contracts',
+  general: 'General',
+  security: 'Security',
+  i18n: 'Languages',
+  'data-quality': 'Data Quality',
+  countries: 'Countries',
+  domains: 'Domains',
+  recs: 'RECs',
+  audit: 'Audit Log',
+  system: 'System',
 };
 
+/**
+ * Standalone breadcrumb component.
+ * Note: Breadcrumbs are also rendered inline in the Header.
+ * This component is kept for pages that need breadcrumbs outside the header.
+ */
 export function Breadcrumbs() {
   const pathname = usePathname();
   const segments = pathname.split('/').filter(Boolean);
@@ -70,20 +85,25 @@ export function Breadcrumbs() {
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm">
       <Link
-        href="/"
-        className="flex items-center text-gray-400 hover:text-gray-600"
+        href="/home"
+        className="flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
       >
         <Home className="h-3.5 w-3.5" />
       </Link>
       {crumbs.map((crumb) => (
         <React.Fragment key={crumb.href}>
-          <ChevronRight className="h-3 w-3 text-gray-300" />
+          <ChevronRight className="h-3 w-3 text-gray-300 dark:text-gray-600" />
           {crumb.isLast ? (
-            <span className="font-medium text-gray-700">{crumb.label}</span>
+            <span
+              className="font-medium"
+              style={{ color: 'var(--color-accent)' }}
+            >
+              {crumb.label}
+            </span>
           ) : (
             <Link
               href={crumb.href}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             >
               {crumb.label}
             </Link>

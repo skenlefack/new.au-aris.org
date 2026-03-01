@@ -1,0 +1,91 @@
+// ARIS 3.0 — Offline Sync Schema
+// Delta-based offline synchronization for mobile field agents
+
+enum SyncStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  PARTIAL
+
+  @@schema("offline")
+}
+
+enum DeltaOperation {
+  CREATE
+  UPDATE
+  DELETE
+
+  @@schema("offline")
+}
+
+enum ConflictStatus {
+  NONE
+  DETECTED
+  AUTO_RESOLVED
+  MANUAL_REQUIRED
+
+  @@schema("offline")
+}
+
+model SyncSession {
+  id                String      @id @default(uuid()) @db.Uuid
+  device_id         String      @db.VarChar(255)
+  user_id           String      @db.Uuid
+  tenant_id         String      @db.Uuid
+  started_at        DateTime    @default(now())
+  completed_at      DateTime?
+  status            SyncStatus  @default(PENDING)
+  deltas_sent       Int         @default(0)
+  deltas_received   Int         @default(0)
+  conflicts_resolved Int        @default(0)
+  error_message     String?
+  metadata          Json?
+
+  deltas            SyncDelta[]
+
+  @@index([device_id, status])
+  @@index([tenant_id, user_id])
+  @@map("sync_sessions")
+  @@schema("offline")
+}
+
+model SyncDelta {
+  id                String          @id @default(uuid()) @db.Uuid
+  session_id        String          @db.Uuid
+  entity_type       String          @db.VarChar(100)
+  entity_id         String          @db.VarChar(255)
+  operation         DeltaOperation
+  payload           Json
+  version           Int
+  client_timestamp  DateTime
+  server_timestamp  DateTime        @default(now())
+  conflict_status   ConflictStatus  @default(NONE)
+  resolved_payload  Json?
+  tenant_id         String          @db.Uuid
+
+  session           SyncSession     @relation(fields: [session_id], references: [id])
+
+  @@index([session_id])
+  @@index([entity_type, entity_id])
+  @@index([tenant_id, server_timestamp])
+  @@map("sync_deltas")
+  @@schema("offline")
+}
+
+model DeviceRegistry {
+  id                String    @id @default(uuid()) @db.Uuid
+  device_id         String    @unique @db.VarChar(255)
+  user_id           String    @db.Uuid
+  tenant_id         String    @db.Uuid
+  platform          String    @db.VarChar(50)
+  app_version       String    @db.VarChar(20)
+  last_sync_at      DateTime?
+  last_known_offset Json?
+  is_active         Boolean   @default(true)
+  registered_at     DateTime  @default(now())
+
+  @@index([tenant_id, user_id])
+  @@map("device_registry")
+  @@schema("offline")
+}

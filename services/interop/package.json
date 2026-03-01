@@ -1,0 +1,36 @@
+{
+  "name": "@aris/interop-service",
+  "version": "0.2.0",
+  "private": true,
+  "description": "ARIS 3.0 — Interop V2: external system integration (WAHIS, DHIS2, FHIR R4, OMS, EMPRES, FAOSTAT)",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc --build",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@aris/auth-middleware": "workspace:*",
+    "@aris/kafka-client": "workspace:*",
+    "@aris/shared-types": "workspace:*",
+    "@fastify/cors": "^10.0.0",
+    "@prisma/client": "^6.2.0",
+    "@sinclair/typebox": "^0.32.0",
+    "ajv": "^8.17.1",
+    "dotenv": "^17.3.1",
+    "fastify": "^5.2.0",
+    "fastify-plugin": "^5.0.0",
+    "ioredis": "^5.4.0",
+    "jsonata": "^2.0.5",
+    "pino-pretty": "^13.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.11.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

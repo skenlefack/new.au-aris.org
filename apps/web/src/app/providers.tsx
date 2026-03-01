@@ -14,6 +14,7 @@ import { KeyboardShortcutsHelp } from '@/components/ui/KeyboardShortcutsHelp';
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
 import { useRealtimeStore } from '@/lib/realtime/realtime-store';
 import { ApiClientError } from '@/lib/api/client';
+import { useDirection } from '@/hooks/useDirection';
 
 function buildMutationCache() {
   return new MutationCache({
@@ -84,6 +85,11 @@ function buildMutationCache() {
   });
 }
 
+function DirectionProvider({ children }: { children: React.ReactNode }) {
+  useDirection();
+  return <>{children}</>;
+}
+
 function KeyboardShortcutsProvider({ children }: { children: React.ReactNode }) {
   useKeyboardShortcuts();
   return <>{children}</>;
@@ -107,13 +113,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        <KeyboardShortcutsProvider>
-          <NetworkBanner />
-          {children}
-          <InstallPrompt />
-          <CommandPalette />
-          <KeyboardShortcutsHelp />
-        </KeyboardShortcutsProvider>
+        <DirectionProvider>
+          <KeyboardShortcutsProvider>
+            <NetworkBanner />
+            {children}
+            <InstallPrompt />
+            <CommandPalette />
+            <KeyboardShortcutsHelp />
+          </KeyboardShortcutsProvider>
+        </DirectionProvider>
       </ErrorBoundary>
     </QueryClientProvider>
   );

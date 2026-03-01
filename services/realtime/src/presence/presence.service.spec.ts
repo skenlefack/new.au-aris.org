@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { PresenceService } from './presence.service';
+import { PresenceService } from '../services/presence.service';
 
 describe('PresenceService', () => {
   let service: PresenceService;
@@ -10,14 +10,14 @@ describe('PresenceService', () => {
 
   describe('setOnline / setOffline', () => {
     it('should mark a user as online', () => {
-      service.setOnline('tenant-ke', 'user-1', 'user1@aris.africa');
+      service.setOnline('tenant-ke', 'user-1', 'user1@au-aris.org');
 
       expect(service.isUserOnline('tenant-ke', 'user-1')).toBe(true);
       expect(service.getOnlineCount('tenant-ke')).toBe(1);
     });
 
     it('should mark a user as offline', () => {
-      service.setOnline('tenant-ke', 'user-1', 'user1@aris.africa');
+      service.setOnline('tenant-ke', 'user-1', 'user1@au-aris.org');
       service.setOffline('tenant-ke', 'user-1');
 
       expect(service.isUserOnline('tenant-ke', 'user-1')).toBe(false);
@@ -31,9 +31,9 @@ describe('PresenceService', () => {
     });
 
     it('should overwrite existing presence on re-connect', () => {
-      service.setOnline('tenant-ke', 'user-1', 'user1@aris.africa');
+      service.setOnline('tenant-ke', 'user-1', 'user1@au-aris.org');
       service.setOffline('tenant-ke', 'user-1');
-      service.setOnline('tenant-ke', 'user-1', 'user1@aris.africa');
+      service.setOnline('tenant-ke', 'user-1', 'user1@au-aris.org');
 
       expect(service.isUserOnline('tenant-ke', 'user-1')).toBe(true);
     });
@@ -49,9 +49,9 @@ describe('PresenceService', () => {
     });
 
     it('should return only online users', () => {
-      service.setOnline('tenant-ke', 'user-1', 'user1@aris.africa');
-      service.setOnline('tenant-ke', 'user-2', 'user2@aris.africa');
-      service.setOnline('tenant-ke', 'user-3', 'user3@aris.africa');
+      service.setOnline('tenant-ke', 'user-1', 'user1@au-aris.org');
+      service.setOnline('tenant-ke', 'user-2', 'user2@au-aris.org');
+      service.setOnline('tenant-ke', 'user-3', 'user3@au-aris.org');
       service.setOffline('tenant-ke', 'user-2');
 
       const presence = service.getTenantPresence('tenant-ke');
@@ -64,10 +64,10 @@ describe('PresenceService', () => {
     });
 
     it('should include email in presence data', () => {
-      service.setOnline('tenant-ke', 'user-1', 'user1@aris.africa');
+      service.setOnline('tenant-ke', 'user-1', 'user1@au-aris.org');
       const presence = service.getTenantPresence('tenant-ke');
 
-      expect(presence.onlineUsers[0].email).toBe('user1@aris.africa');
+      expect(presence.onlineUsers[0].email).toBe('user1@au-aris.org');
     });
   });
 
@@ -77,7 +77,7 @@ describe('PresenceService', () => {
     });
 
     it('should return false for unknown user in known tenant', () => {
-      service.setOnline('tenant-ke', 'user-1', 'user1@aris.africa');
+      service.setOnline('tenant-ke', 'user-1', 'user1@au-aris.org');
       expect(service.isUserOnline('tenant-ke', 'unknown')).toBe(false);
     });
   });
@@ -88,8 +88,8 @@ describe('PresenceService', () => {
     });
 
     it('should count only online users', () => {
-      service.setOnline('tenant-ke', 'user-1', 'u1@aris.africa');
-      service.setOnline('tenant-ke', 'user-2', 'u2@aris.africa');
+      service.setOnline('tenant-ke', 'user-1', 'u1@au-aris.org');
+      service.setOnline('tenant-ke', 'user-2', 'u2@au-aris.org');
       service.setOffline('tenant-ke', 'user-1');
 
       expect(service.getOnlineCount('tenant-ke')).toBe(1);
@@ -98,16 +98,16 @@ describe('PresenceService', () => {
 
   describe('getAllOnlineCount', () => {
     it('should count across all tenants', () => {
-      service.setOnline('tenant-ke', 'user-1', 'u1@aris.africa');
-      service.setOnline('tenant-ke', 'user-2', 'u2@aris.africa');
-      service.setOnline('tenant-ng', 'user-3', 'u3@aris.africa');
+      service.setOnline('tenant-ke', 'user-1', 'u1@au-aris.org');
+      service.setOnline('tenant-ke', 'user-2', 'u2@au-aris.org');
+      service.setOnline('tenant-ng', 'user-3', 'u3@au-aris.org');
 
       expect(service.getAllOnlineCount()).toBe(3);
     });
 
     it('should exclude offline users', () => {
-      service.setOnline('tenant-ke', 'user-1', 'u1@aris.africa');
-      service.setOnline('tenant-ng', 'user-2', 'u2@aris.africa');
+      service.setOnline('tenant-ke', 'user-1', 'u1@au-aris.org');
+      service.setOnline('tenant-ng', 'user-2', 'u2@au-aris.org');
       service.setOffline('tenant-ke', 'user-1');
 
       expect(service.getAllOnlineCount()).toBe(1);
@@ -120,7 +120,7 @@ describe('PresenceService', () => {
       const now = Date.now();
       vi.setSystemTime(now);
 
-      service.setOnline('tenant-ke', 'user-1', 'u1@aris.africa');
+      service.setOnline('tenant-ke', 'user-1', 'u1@au-aris.org');
       service.setOffline('tenant-ke', 'user-1');
 
       // The user is offline but still tracked
@@ -136,7 +136,7 @@ describe('PresenceService', () => {
     });
 
     it('should not remove online users', () => {
-      service.setOnline('tenant-ke', 'user-1', 'u1@aris.africa');
+      service.setOnline('tenant-ke', 'user-1', 'u1@au-aris.org');
 
       const removed = service.cleanup(0);
       expect(removed).toBe(0);
@@ -144,7 +144,7 @@ describe('PresenceService', () => {
     });
 
     it('should clean up empty tenant maps', () => {
-      service.setOnline('tenant-ke', 'user-1', 'u1@aris.africa');
+      service.setOnline('tenant-ke', 'user-1', 'u1@au-aris.org');
       service.setOffline('tenant-ke', 'user-1');
       service.cleanup(0);
 
@@ -157,8 +157,8 @@ describe('PresenceService', () => {
 
   describe('multi-tenant isolation', () => {
     it('should isolate presence per tenant', () => {
-      service.setOnline('tenant-ke', 'user-1', 'u1@ke.aris.africa');
-      service.setOnline('tenant-ng', 'user-2', 'u2@ng.aris.africa');
+      service.setOnline('tenant-ke', 'user-1', 'u1@ke.au-aris.org');
+      service.setOnline('tenant-ng', 'user-2', 'u2@ng.au-aris.org');
 
       const kePresence = service.getTenantPresence('tenant-ke');
       const ngPresence = service.getTenantPresence('tenant-ng');

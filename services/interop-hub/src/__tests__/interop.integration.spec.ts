@@ -139,7 +139,7 @@ describe('Interop Hub — WAHIS Export Integration', () => {
 
     const user = {
       userId: USER_ID,
-      email: 'cvo@ke.aris.africa',
+      email: 'cvo@ke.au-aris.org',
       role: 'NATIONAL_ADMIN' as const,
       tenantId: TENANT_ID,
       tenantLevel: 'MEMBER_STATE' as const,
@@ -228,7 +228,7 @@ describe('Interop Hub — WAHIS Export Integration', () => {
 
     const user = {
       userId: USER_ID,
-      email: 'admin@aris.africa',
+      email: 'admin@au-aris.org',
       role: 'CONTINENTAL_ADMIN' as const,
       tenantId: TENANT_ID,
       tenantLevel: 'CONTINENTAL' as const,

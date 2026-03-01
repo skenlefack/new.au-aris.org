@@ -6,19 +6,39 @@ import {
   TOPIC_AU_QUALITY_CORRECTION_OVERDUE,
   TOPIC_MS_COLLECTE_FORM_SUBMITTED,
 } from '@aris/shared-types';
-import { NotificationConsumerService } from '../notification-consumer.service';
+import { NotificationConsumer } from '../notification.consumer';
 
 // ── Mock factories ──
 
 function mockKafkaConsumer() {
   return {
     subscribe: vi.fn().mockResolvedValue({}),
+    disconnectAll: vi.fn().mockResolvedValue(undefined),
   };
 }
 
 function mockNotificationService() {
   return {
     send: vi.fn().mockResolvedValue({ data: { id: 'notif-001' } }),
+  };
+}
+
+function mockTemplateEngine() {
+  return {
+    renderEmail: vi.fn().mockReturnValue({ subject: '[ARIS] Approved', html: '<p>approved</p>' }),
+    renderSms: vi.fn().mockReturnValue('ARIS: approved'),
+    renderSubject: vi.fn().mockReturnValue('Submission Approved'),
+  };
+}
+
+function mockPreferencesService() {
+  return {
+    getChannelsForEvent: vi.fn().mockResolvedValue({
+      email: true,
+      sms: false,
+      push: false,
+      inApp: true,
+    }),
   };
 }
 
@@ -40,22 +60,28 @@ function getHandler(
 
 // ── Tests ──
 
-describe('NotificationConsumerService', () => {
-  let consumer: NotificationConsumerService;
+describe('NotificationConsumer', () => {
+  let consumer: NotificationConsumer;
   let kafkaConsumer: ReturnType<typeof mockKafkaConsumer>;
   let notificationService: ReturnType<typeof mockNotificationService>;
+  let templateEngine: ReturnType<typeof mockTemplateEngine>;
+  let preferencesService: ReturnType<typeof mockPreferencesService>;
 
   beforeEach(async () => {
     kafkaConsumer = mockKafkaConsumer();
     notificationService = mockNotificationService();
+    templateEngine = mockTemplateEngine();
+    preferencesService = mockPreferencesService();
 
-    consumer = new NotificationConsumerService(
+    consumer = new NotificationConsumer(
       kafkaConsumer as never,
       notificationService as never,
+      templateEngine as never,
+      preferencesService as never,
     );
 
     // Trigger subscriptions
-    await consumer.subscribeAll();
+    await consumer.start();
   });
 
   it('should subscribe to all 5 topics', () => {
@@ -81,7 +107,7 @@ describe('NotificationConsumerService', () => {
   });
 
   describe('workflow approved', () => {
-    it('should send IN_APP and EMAIL notifications to submitter', async () => {
+    it('should send notifications to submitter based on preferences', async () => {
       const handler = getHandler(kafkaConsumer, TOPIC_AU_WORKFLOW_VALIDATION_APPROVED);
 
       await handler({
@@ -92,6 +118,7 @@ describe('NotificationConsumerService', () => {
         level: 2,
       });
 
+      // email + inApp = 2 sends (preferences have email=true, inApp=true)
       expect(notificationService.send).toHaveBeenCalledTimes(2);
 
       // IN_APP
@@ -99,7 +126,6 @@ describe('NotificationConsumerService', () => {
         expect.objectContaining({
           userId: 'user-001',
           channel: NotificationChannel.IN_APP,
-          subject: 'Submission Approved',
         }),
         'tenant-ke',
       );
@@ -109,7 +135,6 @@ describe('NotificationConsumerService', () => {
         expect.objectContaining({
           userId: 'user-001',
           channel: NotificationChannel.EMAIL,
-          subject: expect.stringContaining('Approved'),
         }),
         'tenant-ke',
       );
@@ -186,7 +211,6 @@ describe('NotificationConsumerService', () => {
       expect(notificationService.send).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'steward-001',
-          subject: expect.stringContaining('Overdue'),
           body: expect.stringContaining('7 days overdue'),
         }),
         'tenant-ke',
@@ -205,8 +229,8 @@ describe('NotificationConsumerService', () => {
         daysOverdue: 14,
       });
 
-      // 3 calls: IN_APP + EMAIL to steward + EMAIL to supervisor
-      expect(notificationService.send).toHaveBeenCalledTimes(3);
+      // 4 calls: EMAIL + IN_APP to steward + EMAIL + IN_APP to supervisor
+      expect(notificationService.send).toHaveBeenCalledTimes(4);
 
       expect(notificationService.send).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -237,7 +261,6 @@ describe('NotificationConsumerService', () => {
         expect.objectContaining({
           userId: 'supervisor-001',
           channel: NotificationChannel.IN_APP,
-          subject: 'New Form Submission',
           body: expect.stringContaining('Monthly Disease Report'),
         }),
         'tenant-ke',

@@ -46,8 +46,8 @@ class LoginScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Email").performTextInput("test@au-ibar.org")
-        composeTestRule.onNodeWithText("test@au-ibar.org").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Email").performTextInput("test@au-aris.org")
+        composeTestRule.onNodeWithText("test@au-aris.org").assertIsDisplayed()
     }
 
     @Test

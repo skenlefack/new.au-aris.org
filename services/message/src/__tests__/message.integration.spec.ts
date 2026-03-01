@@ -51,7 +51,7 @@ beforeAll(async () => {
   process.env['SMTP_HOST'] = mailpitHost;
   process.env['SMTP_PORT'] = String(smtpPort);
   process.env['SMTP_SECURE'] = 'false';
-  process.env['SMTP_FROM'] = 'noreply@aris.africa';
+  process.env['SMTP_FROM'] = 'noreply@au-aris.org';
 
   // Push Prisma schema
   const schemaPath = require
@@ -77,7 +77,7 @@ beforeAll(async () => {
       name: 'African Union - IBAR',
       code: 'AU-IBAR',
       level: 'CONTINENTAL',
-      domain: 'aris.africa',
+      domain: 'au-aris.org',
       config: {},
     },
   });
@@ -92,7 +92,7 @@ afterAll(async () => {
 describe('Message Service Integration', () => {
   it('should create notification in DB and send email via Mailpit', async () => {
     // Dynamically import to use env vars set above
-    const { EmailChannel } = await import('../channels/email.channel');
+    const { EmailChannel } = await import('../services/channels/email.channel');
 
     const emailChannel = new EmailChannel();
 
@@ -113,7 +113,7 @@ describe('Message Service Integration', () => {
 
     // Send via email channel
     const result = await emailChannel.send({
-      to: 'steward@ke.aris.africa',
+      to: 'steward@ke.au-aris.org',
       subject: 'Integration Test — Submission Approved',
       body: '<p>Your outbreak report has been approved.</p>',
     });
@@ -146,7 +146,7 @@ describe('Message Service Integration', () => {
       (m) => m.Subject === 'Integration Test — Submission Approved',
     );
     expect(sent).toBeDefined();
-    expect(sent!.To[0].Address).toBe('steward@ke.aris.africa');
+    expect(sent!.To[0].Address).toBe('steward@ke.au-aris.org');
 
     // Verify notification in DB is now SENT
     const dbNotif = await prisma.notification.findUnique({

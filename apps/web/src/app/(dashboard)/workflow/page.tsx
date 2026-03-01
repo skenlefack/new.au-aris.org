@@ -3,360 +3,460 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import {
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  Clock,
+  Inbox,
+  CheckCircle,
+  AlertTriangle,
+  TrendingUp,
+  Eye,
   CheckCircle2,
   XCircle,
-  CornerUpLeft,
+  RotateCcw,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useWorkflowItems, type WorkflowItem } from '@/lib/api/hooks';
-import { TableSkeleton } from '@/components/ui/Skeleton';
-import { QueryError } from '@/components/ui/QueryError';
+import {
+  useMyWorkflowTasks,
+  useMyWorkflowSubmissions,
+  useWorkflowStats,
+} from '@/lib/api/workflow-hooks';
 
-const STATUS_BADGE: Record<string, { class: string; icon: React.ReactNode }> = {
-  pending: {
-    class: 'bg-amber-100 text-amber-700',
-    icon: <Clock className="h-3 w-3" />,
-  },
-  approved: {
-    class: 'bg-green-100 text-green-700',
-    icon: <CheckCircle2 className="h-3 w-3" />,
-  },
-  rejected: {
-    class: 'bg-red-100 text-red-700',
-    icon: <XCircle className="h-3 w-3" />,
-  },
-  returned: {
-    class: 'bg-blue-100 text-blue-700',
-    icon: <CornerUpLeft className="h-3 w-3" />,
-  },
+/* ── Status & Priority styling ── */
+
+const STATUS_STYLE: Record<string, { bg: string; text: string; label: string }> = {
+  IN_PROGRESS: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300', label: 'In Progress' },
+  COMPLETED: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300', label: 'Completed' },
+  REJECTED: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300', label: 'Rejected' },
+  RETURNED: { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-300', label: 'Returned' },
+  EXPIRED: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', label: 'Expired' },
+  CANCELLED: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-500 dark:text-gray-500', label: 'Cancelled' },
 };
 
-const PRIORITY_BADGE: Record<string, string> = {
-  low: 'bg-gray-100 text-gray-600',
-  medium: 'bg-amber-100 text-amber-700',
-  high: 'bg-red-100 text-red-700',
+const PRIORITY_STYLE: Record<string, { bg: string; text: string; dot: string }> = {
+  CRITICAL: { bg: 'bg-red-100 dark:bg-red-900/40', text: 'text-red-700 dark:text-red-300', dot: 'bg-red-500' },
+  URGENT: { bg: 'bg-orange-100 dark:bg-orange-900/40', text: 'text-orange-700 dark:text-orange-300', dot: 'bg-orange-500' },
+  HIGH: { bg: 'bg-yellow-100 dark:bg-yellow-900/40', text: 'text-yellow-700 dark:text-yellow-300', dot: 'bg-yellow-500' },
+  NORMAL: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', dot: 'bg-gray-400' },
+  LOW: { bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-blue-600 dark:text-blue-400', dot: 'bg-blue-400' },
 };
 
-const ENTITY_LABELS: Record<string, string> = {
-  health_event: 'Health Event',
-  vaccination: 'Vaccination',
-  lab_result: 'Lab Result',
-  census: 'Census',
-};
+function StatusBadge({ status }: { status: string }) {
+  const s = STATUS_STYLE[status] ?? STATUS_STYLE['IN_PROGRESS'];
+  return (
+    <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium', s.bg, s.text)}>
+      {s.label}
+    </span>
+  );
+}
 
-const LEVEL_LABELS: Record<number, string> = {
-  1: 'L1 — National Technical',
-  2: 'L2 — National Official',
-  3: 'L3 — REC Harmonization',
-  4: 'L4 — Continental',
-};
+function PriorityBadge({ priority }: { priority: string }) {
+  const p = PRIORITY_STYLE[priority] ?? PRIORITY_STYLE['NORMAL'];
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium', p.bg, p.text)}>
+      <span className={cn('h-1.5 w-1.5 rounded-full', p.dot)} />
+      {priority}
+    </span>
+  );
+}
 
-const PLACEHOLDER_ITEMS: WorkflowItem[] = [
-  {
-    id: 'wf-1', entityType: 'health_event', entityId: 'ev-1',
-    title: 'FMD Outbreak — Kenya, Rift Valley',
-    country: 'Kenya', submittedBy: 'Dr. Ochieng',
-    submittedAt: '2026-02-16T09:00:00Z', currentLevel: 2,
-    status: 'pending', priority: 'high',
-  },
-  {
-    id: 'wf-2', entityType: 'health_event', entityId: 'ev-2',
-    title: 'PPR Outbreak — Ethiopia, Oromia',
-    country: 'Ethiopia', submittedBy: 'Dr. Bekele',
-    submittedAt: '2026-02-13T11:00:00Z', currentLevel: 3,
-    status: 'pending', priority: 'high',
-  },
-  {
-    id: 'wf-3', entityType: 'vaccination', entityId: 'vc-2',
-    title: 'PPR National Campaign data — Ethiopia',
-    country: 'Ethiopia', submittedBy: 'Dr. Bekele',
-    submittedAt: '2026-02-14T08:00:00Z', currentLevel: 2,
-    status: 'pending', assignedTo: 'Dr. Nakato', priority: 'medium',
-  },
-  {
-    id: 'wf-4', entityType: 'health_event', entityId: 'ev-3',
-    title: 'HPAI Report — Nigeria, Kano',
-    country: 'Nigeria', submittedBy: 'Dr. Adamu',
-    submittedAt: '2026-02-10T10:00:00Z', currentLevel: 2,
-    status: 'approved', priority: 'high',
-  },
-  {
-    id: 'wf-5', entityType: 'lab_result', entityId: 'lr-3',
-    title: 'FMD virus isolation — AU-PANVAC',
-    country: 'Kenya', submittedBy: 'KARI Muguga',
-    submittedAt: '2026-02-17T12:00:00Z', currentLevel: 1,
-    status: 'pending', priority: 'medium',
-  },
-  {
-    id: 'wf-6', entityType: 'health_event', entityId: 'ev-4',
-    title: 'ASF Suspected — Senegal, Dakar',
-    country: 'Senegal', submittedBy: 'Dr. Diop',
-    submittedAt: '2026-02-18T14:00:00Z', currentLevel: 1,
-    status: 'pending', priority: 'low',
-  },
-  {
-    id: 'wf-7', entityType: 'vaccination', entityId: 'vc-5',
-    title: 'ND Village Poultry campaign — Ghana',
-    country: 'Ghana', submittedBy: 'Dr. Mensah',
-    submittedAt: '2026-01-05T09:00:00Z', currentLevel: 4,
-    status: 'approved', priority: 'low',
-  },
-  {
-    id: 'wf-8', entityType: 'health_event', entityId: 'ev-6',
-    title: 'LSD Outbreak — Egypt, Nile Delta',
-    country: 'Egypt', submittedBy: 'Dr. Hassan',
-    submittedAt: '2026-02-08T11:00:00Z', currentLevel: 1,
-    status: 'returned', priority: 'medium',
-  },
-];
+function deadlineColor(deadline: string | null): string {
+  if (!deadline) return 'text-gray-500 dark:text-gray-400';
+  const remaining = new Date(deadline).getTime() - Date.now();
+  const hours = remaining / (1000 * 60 * 60);
+  if (hours < 0) return 'text-red-600 dark:text-red-400 font-semibold';
+  if (hours < 24) return 'text-red-500 dark:text-red-400';
+  if (hours < 48) return 'text-orange-500 dark:text-orange-400';
+  return 'text-gray-600 dark:text-gray-400';
+}
 
-export default function WorkflowPage() {
-  const [page, setPage] = useState(1);
-  const [levelFilter, setLevelFilter] = useState<number | undefined>();
-  const [statusFilter, setStatusFilter] = useState('');
-  const [entityFilter, setEntityFilter] = useState('');
-  const limit = 10;
+function formatDate(date: string | null): string {
+  if (!date) return '—';
+  return new Date(date).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
-  const { data, isLoading, isError, error, refetch } = useWorkflowItems({
-    page,
-    limit,
-    level: levelFilter,
-    status: statusFilter || undefined,
-    entityType: entityFilter || undefined,
-  });
+function formatDeadline(deadline: string | null): string {
+  if (!deadline) return '—';
+  const d = new Date(deadline);
+  const remaining = d.getTime() - Date.now();
+  const hours = Math.round(remaining / (1000 * 60 * 60));
+  if (hours < 0) return `${Math.abs(hours)}h overdue`;
+  if (hours < 24) return `${hours}h remaining`;
+  const days = Math.round(hours / 24);
+  return `${days}d remaining`;
+}
 
-  const items = data?.data ?? PLACEHOLDER_ITEMS;
-  const meta = data?.meta ?? {
-    total: PLACEHOLDER_ITEMS.length,
-    page: 1,
-    limit: 10,
-  };
-  const totalPages = Math.ceil(meta.total / meta.limit);
+function i18nText(val: unknown): string {
+  if (!val) return '—';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object' && val !== null) {
+    const obj = val as Record<string, string>;
+    return obj['en'] ?? obj['fr'] ?? Object.values(obj)[0] ?? '—';
+  }
+  return String(val);
+}
 
-  // Level tabs
-  const levels = [
-    { label: 'All Levels', value: undefined },
-    { label: 'L1 Technical', value: 1 },
-    { label: 'L2 Official', value: 2 },
-    { label: 'L3 REC', value: 3 },
-    { label: 'L4 Continental', value: 4 },
-  ];
+/* ── Loading skeleton ── */
+function KpiSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="h-24 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
+      ))}
+    </div>
+  );
+}
+
+function TableSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="h-12 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
+      ))}
+    </div>
+  );
+}
+
+/* ── Main Page ── */
+export default function WorkflowDashboardPage() {
+  const [activeTab, setActiveTab] = useState<'tasks' | 'submissions'>('tasks');
+  const [taskPage, setTaskPage] = useState(1);
+  const [subPage, setSubPage] = useState(1);
+
+  const { data: statsRes, isLoading: statsLoading } = useWorkflowStats();
+  const { data: tasksRes, isLoading: tasksLoading } = useMyWorkflowTasks({ page: taskPage, limit: 20 });
+  const { data: subsRes, isLoading: subsLoading } = useMyWorkflowSubmissions({ page: subPage, limit: 20 });
+
+  const stats = statsRes?.data;
+  const tasks = tasksRes?.data ?? [];
+  const tasksMeta = tasksRes?.meta;
+  const subs = subsRes?.data ?? [];
+  const subsMeta = subsRes?.meta;
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6 p-6">
+      {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Workflow Validations
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          4-level validation pipeline — review and approve submissions
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Workflow Dashboard</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Manage validations, track submissions, and monitor workflow progress
         </p>
       </div>
 
-      {/* Level tabs */}
-      <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
-        {levels.map((lvl) => (
-          <button
-            key={lvl.label}
-            onClick={() => {
-              setLevelFilter(lvl.value);
-              setPage(1);
-            }}
-            className={cn(
-              'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-              levelFilter === lvl.value
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700',
-            )}
-          >
-            {lvl.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="flex items-center gap-3">
-        <Filter className="h-4 w-4 text-gray-400" />
-        <select
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
-        >
-          <option value="">All Status</option>
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-          <option value="returned">Returned</option>
-        </select>
-        <select
-          value={entityFilter}
-          onChange={(e) => {
-            setEntityFilter(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
-        >
-          <option value="">All Types</option>
-          <option value="health_event">Health Event</option>
-          <option value="vaccination">Vaccination</option>
-          <option value="lab_result">Lab Result</option>
-          <option value="census">Census</option>
-        </select>
-      </div>
-
-      {/* Summary */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-card border border-amber-200 bg-amber-50 p-4">
-          <p className="text-xs text-amber-600">Pending</p>
-          <p className="text-xl font-bold text-amber-700">
-            {items.filter((i) => i.status === 'pending').length}
-          </p>
-        </div>
-        <div className="rounded-card border border-green-200 bg-green-50 p-4">
-          <p className="text-xs text-green-600">Approved</p>
-          <p className="text-xl font-bold text-green-700">
-            {items.filter((i) => i.status === 'approved').length}
-          </p>
-        </div>
-        <div className="rounded-card border border-red-200 bg-red-50 p-4">
-          <p className="text-xs text-red-600">Rejected</p>
-          <p className="text-xl font-bold text-red-700">
-            {items.filter((i) => i.status === 'rejected').length}
-          </p>
-        </div>
-        <div className="rounded-card border border-blue-200 bg-blue-50 p-4">
-          <p className="text-xs text-blue-600">Returned</p>
-          <p className="text-xl font-bold text-blue-700">
-            {items.filter((i) => i.status === 'returned').length}
-          </p>
-        </div>
-      </div>
-
-      {/* Table */}
-      {isLoading ? (
-        <TableSkeleton rows={6} cols={7} />
-      ) : isError ? (
-        <QueryError
-          message={
-            error instanceof Error
-              ? error.message
-              : 'Failed to load workflow items'
-          }
-          onRetry={() => refetch()}
-        />
+      {/* KPI Cards */}
+      {statsLoading ? (
+        <KpiSkeleton />
       ) : (
-        <div className="overflow-hidden rounded-card border border-gray-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Title</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Type</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Level</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Priority</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Submitted</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {items.map((item) => {
-                  const badge = STATUS_BADGE[item.status];
-                  return (
-                    <tr key={item.id} className="cursor-pointer hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <Link
-                          href={`/workflow/${item.id}`}
-                          className="font-medium text-gray-900 hover:text-aris-primary-600"
-                        >
-                          {item.title}
-                        </Link>
-                        <p className="text-xs text-gray-400">
-                          by {item.submittedBy}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
-                          {ENTITY_LABELS[item.entityType] ?? item.entityType}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-700">{item.country}</td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs font-medium text-gray-700">
-                          {LEVEL_LABELS[item.currentLevel] ?? `L${item.currentLevel}`}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={cn(
-                            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium capitalize',
-                            badge?.class ?? 'bg-gray-100 text-gray-600',
-                          )}
-                        >
-                          {badge?.icon}
-                          {item.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={cn(
-                            'inline-block rounded-full px-2 py-0.5 text-xs font-medium capitalize',
-                            PRIORITY_BADGE[item.priority],
-                          )}
-                        >
-                          {item.priority}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">
-                        {new Date(item.submittedAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {items.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                      No workflow items found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
-            <p className="text-xs text-gray-500">
-              Showing {items.length} of {meta.total} items
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="px-2 text-xs text-gray-600">
-                Page {page} of {totalPages || 1}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <KpiCard
+            icon={<Inbox className="h-5 w-5 text-blue-600" />}
+            label="Pending Validation"
+            value={stats?.pendingValidation ?? 0}
+            bg="bg-blue-50 dark:bg-blue-900/20"
+            accent="text-blue-600 dark:text-blue-400"
+          />
+          <KpiCard
+            icon={<CheckCircle className="h-5 w-5 text-green-600" />}
+            label="Validated Today"
+            value={stats?.validatedToday ?? 0}
+            bg="bg-green-50 dark:bg-green-900/20"
+            accent="text-green-600 dark:text-green-400"
+          />
+          <KpiCard
+            icon={<AlertTriangle className="h-5 w-5 text-red-600" />}
+            label="Overdue"
+            value={stats?.overdue ?? 0}
+            bg="bg-red-50 dark:bg-red-900/20"
+            accent={cn(
+              'text-red-600 dark:text-red-400',
+              (stats?.overdue ?? 0) > 0 && 'font-bold',
+            )}
+          />
+          <KpiCard
+            icon={<TrendingUp className="h-5 w-5 text-purple-600" />}
+            label="Completion Rate"
+            value={`${stats?.completionRate ?? 0}%`}
+            bg="bg-purple-50 dark:bg-purple-900/20"
+            accent="text-purple-600 dark:text-purple-400"
+          />
         </div>
       )}
+
+      {/* Tabs */}
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+        <div className="flex border-b border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => setActiveTab('tasks')}
+            className={cn(
+              'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+              activeTab === 'tasks'
+                ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
+            )}
+          >
+            Awaiting My Validation
+            {(stats?.pendingValidation ?? 0) > 0 && (
+              <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-600 px-1.5 text-xs text-white">
+                {stats?.pendingValidation}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('submissions')}
+            className={cn(
+              'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+              activeTab === 'submissions'
+                ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
+            )}
+          >
+            My Submissions
+          </button>
+        </div>
+
+        <div className="p-4">
+          {activeTab === 'tasks' ? (
+            tasksLoading ? (
+              <TableSkeleton />
+            ) : tasks.length === 0 ? (
+              <EmptyState
+                icon={<Inbox className="h-12 w-12 text-gray-300 dark:text-gray-600" />}
+                title="No pending tasks"
+                description="You have no submissions awaiting your validation."
+              />
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        <th className="px-3 py-2">Submission</th>
+                        <th className="px-3 py-2">Country</th>
+                        <th className="px-3 py-2">Step</th>
+                        <th className="px-3 py-2">Priority</th>
+                        <th className="px-3 py-2">Deadline</th>
+                        <th className="px-3 py-2">Status</th>
+                        <th className="px-3 py-2 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                      {tasks.map((task: any) => {
+                        const step = task.workflow?.steps?.find(
+                          (s: any) => s.stepOrder === task.currentStepOrder,
+                        );
+                        return (
+                          <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                            <td className="px-3 py-3">
+                              <span className="font-mono text-xs text-gray-500">
+                                {task.submissionId?.slice(0, 8)}...
+                              </span>
+                            </td>
+                            <td className="px-3 py-3">
+                              {i18nText(task.workflow?.country?.name)}
+                            </td>
+                            <td className="px-3 py-3 text-xs">
+                              {i18nText(step?.name) ?? `Step ${task.currentStepOrder}`}
+                            </td>
+                            <td className="px-3 py-3">
+                              <PriorityBadge priority={task.priority} />
+                            </td>
+                            <td className={cn('px-3 py-3 text-xs', deadlineColor(task.currentDeadline))}>
+                              {formatDeadline(task.currentDeadline)}
+                            </td>
+                            <td className="px-3 py-3">
+                              <StatusBadge status={task.status} />
+                            </td>
+                            <td className="px-3 py-3 text-right">
+                              <Link
+                                href={`/workflow/${task.id}`}
+                                className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                View
+                              </Link>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <Pagination
+                  page={taskPage}
+                  total={tasksMeta?.total ?? 0}
+                  limit={20}
+                  onPageChange={setTaskPage}
+                />
+              </>
+            )
+          ) : subsLoading ? (
+            <TableSkeleton />
+          ) : subs.length === 0 ? (
+            <EmptyState
+              icon={<Inbox className="h-12 w-12 text-gray-300 dark:text-gray-600" />}
+              title="No submissions yet"
+              description="You haven't submitted any forms through the workflow."
+            />
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                      <th className="px-3 py-2">Submission</th>
+                      <th className="px-3 py-2">Date</th>
+                      <th className="px-3 py-2">Current Step</th>
+                      <th className="px-3 py-2">Status</th>
+                      <th className="px-3 py-2">Progress</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {subs.map((sub: any) => {
+                      const steps = sub.workflow?.steps ?? [];
+                      const totalSteps = steps.length;
+                      const currentStep = steps.find(
+                        (s: any) => s.stepOrder === sub.currentStepOrder,
+                      );
+                      const progress = totalSteps > 1
+                        ? Math.round((sub.currentStepOrder / (totalSteps - 1)) * 100)
+                        : sub.status === 'COMPLETED' ? 100 : 0;
+
+                      return (
+                        <tr
+                          key={sub.id}
+                          className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                          onClick={() => window.location.href = `/workflow/${sub.id}`}
+                        >
+                          <td className="px-3 py-3">
+                            <span className="font-mono text-xs text-gray-500">
+                              {sub.submissionId?.slice(0, 8)}...
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-xs text-gray-500">
+                            {formatDate(sub.submittedAt)}
+                          </td>
+                          <td className="px-3 py-3 text-xs">
+                            {i18nText(currentStep?.name) ?? `Step ${sub.currentStepOrder}`}
+                          </td>
+                          <td className="px-3 py-3">
+                            <StatusBadge status={sub.status} />
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 w-24 rounded-full bg-gray-200 dark:bg-gray-700">
+                                <div
+                                  className={cn(
+                                    'h-2 rounded-full transition-all',
+                                    sub.status === 'COMPLETED'
+                                      ? 'bg-green-500'
+                                      : sub.status === 'REJECTED'
+                                        ? 'bg-red-500'
+                                        : 'bg-blue-500',
+                                  )}
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                              <span className="text-xs text-gray-500">{progress}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination
+                page={subPage}
+                total={subsMeta?.total ?? 0}
+                limit={20}
+                onPageChange={setSubPage}
+              />
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Components ── */
+
+function KpiCard({
+  icon,
+  label,
+  value,
+  bg,
+  accent,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number | string;
+  bg: string;
+  accent: string;
+}) {
+  return (
+    <div className={cn('rounded-xl p-4', bg)}>
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/60 dark:bg-gray-800/60">
+          {icon}
+        </div>
+        <div>
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
+          <p className={cn('text-2xl font-bold', accent)}>{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12">
+      {icon}
+      <h3 className="mt-3 text-sm font-medium text-gray-900 dark:text-white">{title}</h3>
+      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>
+    </div>
+  );
+}
+
+function Pagination({
+  page,
+  total,
+  limit,
+  onPageChange,
+}: {
+  page: number;
+  total: number;
+  limit: number;
+  onPageChange: (p: number) => void;
+}) {
+  const totalPages = Math.ceil(total / limit);
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="mt-4 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-3">
+      <p className="text-xs text-gray-500 dark:text-gray-400">
+        Showing {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total}
+      </p>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onPageChange(page - 1)}
+          disabled={page <= 1}
+          className="rounded-md p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <span className="px-2 text-xs text-gray-600 dark:text-gray-400">
+          {page} / {totalPages}
+        </span>
+        <button
+          onClick={() => onPageChange(page + 1)}
+          disabled={page >= totalPages}
+          className="rounded-md p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   );
 }

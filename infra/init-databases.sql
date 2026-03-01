@@ -29,6 +29,9 @@ CREATE SCHEMA IF NOT EXISTS analytics;
 CREATE SCHEMA IF NOT EXISTS geo_services;
 CREATE SCHEMA IF NOT EXISTS knowledge_hub;
 CREATE SCHEMA IF NOT EXISTS interop_hub;
+CREATE SCHEMA IF NOT EXISTS interop_v2;
+CREATE SCHEMA IF NOT EXISTS offline;
+CREATE SCHEMA IF NOT EXISTS support;
 CREATE SCHEMA IF NOT EXISTS audit;
 
 -- Audit log table (shared across all services)
@@ -60,3 +63,14 @@ GRANT ALL ON ALL TABLES IN SCHEMA audit TO aris;
 GRANT USAGE ON ALL SCHEMAS TO aris;
 
 COMMENT ON DATABASE aris IS 'ARIS 3.0 — Animal Resources Information System — AU-IBAR';
+
+-- Datalake OLAP schema
+CREATE SCHEMA IF NOT EXISTS datalake;
+GRANT ALL ON ALL TABLES IN SCHEMA datalake TO aris;
+
+-- Historical data schema
+CREATE SCHEMA IF NOT EXISTS historical;
+GRANT ALL ON ALL TABLES IN SCHEMA historical TO aris;
+
+-- Metabase needs its own database for internal application tables
+-- Run separately: CREATE DATABASE metabase OWNER aris;

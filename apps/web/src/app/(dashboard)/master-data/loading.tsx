@@ -1,9 +1,11 @@
-import { TableSkeleton } from '@/components/ui/Skeleton';
+import { TableSkeleton, LoadingShell } from '@/components/ui/Skeleton';
 
 export default function MasterDataLoading() {
   return (
-    <div className="space-y-6">
-      <TableSkeleton rows={10} cols={5} />
-    </div>
+    <LoadingShell>
+      <div className="space-y-6">
+        <TableSkeleton rows={10} cols={5} />
+      </div>
+    </LoadingShell>
   );
 }

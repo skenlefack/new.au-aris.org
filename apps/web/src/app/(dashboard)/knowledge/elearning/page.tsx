@@ -26,7 +26,7 @@ const LEVEL_BADGE: Record<string, string> = {
 const PLACEHOLDER_COURSES: ElearningCourse[] = [
   {
     id: 'course-1',
-    title: 'Introduction to ARIS 3.0 Platform',
+    title: 'Introduction to ARIS Platform',
     description: 'Learn the fundamentals of the ARIS platform, from data entry to report generation. Covers the multi-tenant hierarchy, form submission workflows, and dashboard navigation.',
     domain: 'Platform',
     level: 'beginner',

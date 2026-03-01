@@ -27,7 +27,7 @@ function mockAudit() {
 function msUser(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-ke',
-    email: 'lab@ke.aris.africa',
+    email: 'lab@ke.au-aris.org',
     role: UserRole.DATA_STEWARD,
     tenantId: 'tenant-ke',
     tenantLevel: TenantLevel.MEMBER_STATE,

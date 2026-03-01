@@ -1,0 +1,119 @@
+// ARIS 3.0 — Datalake OLAP Models
+// Event store for domain events, partition management, and async exports
+
+enum DatalakeSource {
+  HEALTH
+  LIVESTOCK
+  FISHERIES
+  WILDLIFE
+  APICULTURE
+  TRADE
+  GOVERNANCE
+  CLIMATE
+  COLLECTE
+  WORKFLOW
+  QUALITY
+  INTEROP
+  MASTER
+  CREDENTIAL
+  MESSAGE
+  REALTIME
+  FORMATION
+  SUPPORT
+  UNKNOWN
+
+  @@schema("datalake")
+}
+
+enum DatalakePartitionStatus {
+  ACTIVE
+  ARCHIVING
+  ARCHIVED
+
+  @@schema("datalake")
+}
+
+enum DatalakeExportFormat {
+  CSV
+  XLSX
+  JSON
+  PARQUET
+
+  @@schema("datalake")
+}
+
+enum DatalakeExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+
+  @@schema("datalake")
+}
+
+model DataLakeEntry {
+  id           String          @id @default(uuid()) @db.Uuid
+  source       DatalakeSource
+  entity_type  String          @db.VarChar(100)
+  entity_id    String          @db.VarChar(255)
+  action       String          @db.VarChar(50)
+  payload      Json            @db.JsonB
+  metadata     Json?           @db.JsonB
+  tenant_id    String          @db.Uuid
+  country_code String?         @db.VarChar(3)
+  rec_code     String?         @db.VarChar(10)
+  geo_point    Json?           @db.JsonB
+  year         Int
+  month        Int
+  week         Int
+  ingested_at  DateTime        @default(now()) @db.Timestamptz(6)
+
+  @@index([tenant_id])
+  @@index([source, entity_type])
+  @@index([tenant_id, year, month])
+  @@index([country_code, entity_type, year])
+  @@index([rec_code, entity_type, year])
+  @@index([ingested_at])
+  @@map("data_lake_entry")
+  @@schema("datalake")
+}
+
+model DataLakePartition {
+  id            String                   @id @default(uuid()) @db.Uuid
+  table_name    String                   @db.VarChar(128)
+  partition_key String                   @db.VarChar(128)
+  source        DatalakeSource
+  row_count     Int                      @default(0)
+  size_bytes    BigInt                   @default(0)
+  status        DatalakePartitionStatus  @default(ACTIVE)
+  archived_at   DateTime?                @db.Timestamptz(6)
+  archive_path  String?                  @db.VarChar(500)
+  created_at    DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime                 @updatedAt @db.Timestamptz(6)
+
+  @@unique([table_name, partition_key])
+  @@map("data_lake_partition")
+  @@schema("datalake")
+}
+
+model DataExport {
+  id            String                @id @default(uuid()) @db.Uuid
+  name          String                @db.VarChar(255)
+  query         Json                  @db.JsonB
+  format        DatalakeExportFormat
+  status        DatalakeExportStatus  @default(PENDING)
+  file_path     String?               @db.VarChar(500)
+  file_size     BigInt?
+  row_count     Int?
+  error_message String?               @db.Text
+  requested_by  String                @db.Uuid
+  tenant_id     String                @db.Uuid
+  completed_at  DateTime?             @db.Timestamptz(6)
+  created_at    DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime              @updatedAt @db.Timestamptz(6)
+
+  @@index([tenant_id, status])
+  @@index([requested_by])
+  @@map("data_export")
+  @@schema("datalake")
+}

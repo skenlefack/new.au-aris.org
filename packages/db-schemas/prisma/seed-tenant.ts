@@ -1,3 +1,7 @@
+import { config } from 'dotenv';
+import { resolve } from 'path';
+config({ path: resolve(__dirname, '../../../.env') });
+
 import { PrismaClient, TenantLevel } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -37,7 +41,7 @@ async function main(): Promise<void> {
       parentId: null,
       countryCode: null,
       recCode: null,
-      domain: 'aris.africa',
+      domain: 'au-aris.org',
       config: {},
       isActive: true,
     },
@@ -45,14 +49,14 @@ async function main(): Promise<void> {
 
   // ── RECs ──
   const recs = [
-    { id: TENANT_IDS.IGAD, name: 'Intergovernmental Authority on Development', code: 'IGAD', domain: 'igad.aris.africa' },
-    { id: TENANT_IDS.ECOWAS, name: 'Economic Community of West African States', code: 'ECOWAS', domain: 'ecowas.aris.africa' },
-    { id: TENANT_IDS.SADC, name: 'Southern African Development Community', code: 'SADC', domain: 'sadc.aris.africa' },
-    { id: TENANT_IDS.EAC, name: 'East African Community', code: 'EAC', domain: 'eac.aris.africa' },
-    { id: TENANT_IDS.ECCAS, name: 'Economic Community of Central African States', code: 'ECCAS', domain: 'eccas.aris.africa' },
-    { id: TENANT_IDS.UMA, name: 'Arab Maghreb Union', code: 'UMA', domain: 'uma.aris.africa' },
-    { id: TENANT_IDS.CEN_SAD, name: 'Community of Sahel-Saharan States', code: 'CENSAD', domain: 'censad.aris.africa' },
-    { id: TENANT_IDS.COMESA, name: 'Common Market for Eastern and Southern Africa', code: 'COMESA', domain: 'comesa.aris.africa' },
+    { id: TENANT_IDS.IGAD, name: 'Intergovernmental Authority on Development', code: 'IGAD', domain: 'igad.au-aris.org' },
+    { id: TENANT_IDS.ECOWAS, name: 'Economic Community of West African States', code: 'ECOWAS', domain: 'ecowas.au-aris.org' },
+    { id: TENANT_IDS.SADC, name: 'Southern African Development Community', code: 'SADC', domain: 'sadc.au-aris.org' },
+    { id: TENANT_IDS.EAC, name: 'East African Community', code: 'EAC', domain: 'eac.au-aris.org' },
+    { id: TENANT_IDS.ECCAS, name: 'Economic Community of Central African States', code: 'ECCAS', domain: 'eccas.au-aris.org' },
+    { id: TENANT_IDS.UMA, name: 'Arab Maghreb Union', code: 'UMA', domain: 'uma.au-aris.org' },
+    { id: TENANT_IDS.CEN_SAD, name: 'Community of Sahel-Saharan States', code: 'CENSAD', domain: 'censad.au-aris.org' },
+    { id: TENANT_IDS.COMESA, name: 'Common Market for Eastern and Southern Africa', code: 'COMESA', domain: 'comesa.au-aris.org' },
   ];
 
   for (const rec of recs) {
@@ -76,11 +80,11 @@ async function main(): Promise<void> {
 
   // ── Pilot Member States ──
   const memberStates = [
-    { id: TENANT_IDS.KENYA, name: 'Republic of Kenya', code: 'KE', countryCode: 'KE', recCode: 'IGAD', parentId: TENANT_IDS.IGAD, domain: 'ke.aris.africa' },
-    { id: TENANT_IDS.ETHIOPIA, name: 'Federal Democratic Republic of Ethiopia', code: 'ET', countryCode: 'ET', recCode: 'IGAD', parentId: TENANT_IDS.IGAD, domain: 'et.aris.africa' },
-    { id: TENANT_IDS.NIGERIA, name: 'Federal Republic of Nigeria', code: 'NG', countryCode: 'NG', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'ng.aris.africa' },
-    { id: TENANT_IDS.SENEGAL, name: 'Republic of Senegal', code: 'SN', countryCode: 'SN', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'sn.aris.africa' },
-    { id: TENANT_IDS.SOUTH_AFRICA, name: 'Republic of South Africa', code: 'ZA', countryCode: 'ZA', recCode: 'SADC', parentId: TENANT_IDS.SADC, domain: 'za.aris.africa' },
+    { id: TENANT_IDS.KENYA, name: 'Republic of Kenya', code: 'KE', countryCode: 'KE', recCode: 'IGAD', parentId: TENANT_IDS.IGAD, domain: 'ke.au-aris.org' },
+    { id: TENANT_IDS.ETHIOPIA, name: 'Federal Democratic Republic of Ethiopia', code: 'ET', countryCode: 'ET', recCode: 'IGAD', parentId: TENANT_IDS.IGAD, domain: 'et.au-aris.org' },
+    { id: TENANT_IDS.NIGERIA, name: 'Federal Republic of Nigeria', code: 'NG', countryCode: 'NG', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'ng.au-aris.org' },
+    { id: TENANT_IDS.SENEGAL, name: 'Republic of Senegal', code: 'SN', countryCode: 'SN', recCode: 'ECOWAS', parentId: TENANT_IDS.ECOWAS, domain: 'sn.au-aris.org' },
+    { id: TENANT_IDS.SOUTH_AFRICA, name: 'Republic of South Africa', code: 'ZA', countryCode: 'ZA', recCode: 'SADC', parentId: TENANT_IDS.SADC, domain: 'za.au-aris.org' },
   ];
 
   for (const ms of memberStates) {

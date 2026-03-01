@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TenantLevel } from '@aris/shared-types';
-import { RoomManagerService } from './room-manager.service';
-import type { ConnectedClient } from './room-manager.service';
+import { RoomManagerService } from '../services/room-manager.service';
+import type { ConnectedClient } from '../services/room-manager.service';
 
 function makeClient(
   overrides: Partial<ConnectedClient> = {},
@@ -9,7 +9,7 @@ function makeClient(
   return {
     socketId: 'socket-1',
     userId: 'user-1',
-    email: 'test@aris.africa',
+    email: 'test@au-aris.org',
     tenantId: 'tenant-ke',
     tenantLevel: TenantLevel.MEMBER_STATE,
     role: 'DATA_STEWARD',

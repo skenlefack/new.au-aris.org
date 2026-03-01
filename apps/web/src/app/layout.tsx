@@ -7,7 +7,7 @@ import { Providers } from './providers';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'ARIS 3.0 — Animal Resources Information System',
+  title: 'ARIS — Animal Resources Information System',
   description:
     'AU-IBAR Continental Digital Infrastructure for Animal Resources across 55 Member States',
   manifest: '/manifest.json',
@@ -17,8 +17,8 @@ export const metadata: Metadata = {
     title: 'ARIS',
   },
   icons: {
-    icon: '/icons/icon.svg',
-    apple: '/icons/icon.svg',
+    icon: '/au-logo.png',
+    apple: '/au-logo.png',
   },
 };
 
@@ -64,9 +64,19 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').catch(function() {});
-                });
+                if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+                  // Dev mode: unregister SW and clear caches to avoid stale content
+                  navigator.serviceWorker.getRegistrations().then(function(regs) {
+                    regs.forEach(function(r) { r.unregister(); });
+                  });
+                  caches.keys().then(function(keys) {
+                    keys.forEach(function(k) { caches.delete(k); });
+                  });
+                } else {
+                  window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/sw.js').catch(function() {});
+                  });
+                }
               }
             `,
           }}

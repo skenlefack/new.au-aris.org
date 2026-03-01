@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "ARIS 3.0",
+    "appName": "ARIS",
     "appSubtitle": "Sistema de Informa\u00e7\u00e3o sobre Recursos Animais",
     "auIbar": "Uni\u00e3o Africana \u2014 Bureau Interafricano dos Recursos Animais",
     "loading": "Carregando...",
@@ -150,7 +150,7 @@
     "officialDocument": "Documento oficial",
     "generated": "Gerado em {date}",
     "classification": "Classifica\u00e7\u00e3o dos dados: {level}",
-    "disclaimer": "Este documento \u00e9 gerado pelo ARIS 3.0. A proveni\u00eancia dos dados e o status de valida\u00e7\u00e3o devem ser verificados antes de qualquer uso oficial."
+    "disclaimer": "Este documento \u00e9 gerado pelo ARIS. A proveni\u00eancia dos dados e o status de valida\u00e7\u00e3o devem ser verificados antes de qualquer uso oficial."
   },
   "errors": {
     "notFound": "P\u00e1gina n\u00e3o encontrada",

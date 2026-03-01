@@ -1,35 +1,32 @@
 /**
  * E2E Pipeline Test: Submission → Quality → Workflow → Domain Callback
  *
- * Tests the full cross-service pipeline:
+ * Tests the full cross-service pipeline using event-driven architecture:
  *   1. Create campaign + submit form data
- *   2. Data quality validation (mocked) → PASSED / FAILED
- *   3. Workflow instance creation → 4-level approval
- *   4. Level 2 approval → wahisReady flag set on source entity
- *   5. Level 4 approval → analyticsReady flag set on source entity
- *   6. Graceful degradation when downstream services are unavailable
+ *   2. Quality validation request published to Kafka
+ *   3. Simulate quality PASSED/FAILED callback → triggers workflow creation event
+ *   4. Simulate workflow created callback → links workflow to submission
+ *   5. Workflow 4-level approval → publishes flag-ready events (wahisReady, analyticsReady)
+ *   6. Graceful degradation when Kafka publishing fails
  *
- * Both SubmissionService (collecte) and WorkflowService (workflow) are
- * instantiated with in-memory Prisma mocks. The HTTP inter-service calls
- * (DataQualityClient → data-quality, WorkflowClient → workflow, AnimalHealthClient → animal-health)
- * are wired to either mock responses or route through the real WorkflowService.
+ * SubmissionService (collecte/Fastify) publishes events via Kafka.
+ * WorkflowService (workflow/NestJS) publishes flag-ready events via EventPublisher.
+ * No synchronous inter-service REST calls — all communication is async via Kafka.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { KafkaProducerService } from '@aris/kafka-client';
 import {
   TenantLevel,
   UserRole,
   DataClassification,
   TOPIC_MS_COLLECTE_FORM_SUBMITTED,
-  TOPIC_AU_QUALITY_RECORD_REJECTED,
   TOPIC_AU_WORKFLOW_VALIDATION_SUBMITTED,
   TOPIC_AU_WORKFLOW_VALIDATION_APPROVED,
   TOPIC_AU_WORKFLOW_WAHIS_READY,
   TOPIC_AU_WORKFLOW_ANALYTICS_READY,
 } from '@aris/shared-types';
+import { EVENTS } from '@aris/kafka-client';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
-import { DataQualityClient, WorkflowClient, AnimalHealthClient } from '@aris/service-clients';
-import { SubmissionService } from '../src/submission/submission.service';
+import { SubmissionService } from '../src/services/submission.service';
 import { WorkflowService } from '../../workflow/src/instance/workflow.service';
 
 // ── Test users (one per workflow level RBAC requirement) ──
@@ -74,7 +71,7 @@ const recAdmin: AuthenticatedUser = {
 
 const continentalAdmin: AuthenticatedUser = {
   userId: '00000000-0000-0000-0000-000000000005',
-  email: 'officer@au-ibar.org',
+  email: 'officer@au-aris.org',
   role: UserRole.CONTINENTAL_ADMIN,
   tenantId: AU_TENANT_ID,
   tenantLevel: TenantLevel.CONTINENTAL,
@@ -136,6 +133,17 @@ function createCollectePrisma() {
       findUnique: vi.fn().mockImplementation(({ where }) =>
         Promise.resolve(submissions.find((s) => s.id === where.id) ?? null),
       ),
+      findMany: vi.fn().mockImplementation(({ where, skip, take, orderBy }) => {
+        let filtered = [...submissions];
+        if (where?.tenantId) filtered = filtered.filter((s) => s.tenantId === where.tenantId);
+        if (where?.campaignId) filtered = filtered.filter((s) => s.campaignId === where.campaignId);
+        return Promise.resolve(filtered.slice(skip ?? 0, (skip ?? 0) + (take ?? 100)));
+      }),
+      count: vi.fn().mockImplementation(({ where }) => {
+        let filtered = [...submissions];
+        if (where?.tenantId) filtered = filtered.filter((s) => s.tenantId === where.tenantId);
+        return Promise.resolve(filtered.length);
+      }),
       update: vi.fn().mockImplementation(({ where, data }) => {
         const s = submissions.find((x) => x.id === where.id);
         if (s) Object.assign(s, data, { updatedAt: new Date() });
@@ -234,82 +242,44 @@ function createWorkflowPrisma() {
   };
 }
 
-// ── Patched entity tracker ──
+// ── Mock Kafka interfaces ──
 
-let patchedEntities: Array<{ entityType: string; entityId: string; body: Record<string, unknown> }> = [];
+function createMockKafkaProducer() {
+  return { send: vi.fn().mockResolvedValue(undefined) };
+}
+
+/** Mock FastifyKafka instance for SubmissionService (publish = event-driven, send = legacy) */
+function createMockFastifyKafka() {
+  return {
+    publish: vi.fn().mockResolvedValue(undefined),
+    send: vi.fn().mockResolvedValue(undefined),
+    subscribe: vi.fn().mockResolvedValue(undefined),
+    producer: null,
+    consumer: null,
+  };
+}
+
+/** Mock EventPublisher for WorkflowService (replaces AnimalHealthClient) */
+function createMockEventPublisher() {
+  return { publish: vi.fn().mockResolvedValue(undefined) };
+}
 
 // ── Quality report mock ──
 
 const QUALITY_REPORT_ID = '00000000-0000-0000-0000-0000000000aa';
 
-function createMockDataQualityClient(overallStatus: string = 'PASSED') {
-  return {
-    validate: vi.fn().mockResolvedValue({
-      status: 200,
-      data: {
-        data: {
-          id: QUALITY_REPORT_ID,
-          overallStatus,
-          gateResults: [],
-        },
-      },
-    }),
-  } as unknown as DataQualityClient;
-}
-
-// ── Workflow client wired to real WorkflowService ──
-
-function createWiredWorkflowClient(workflowService: WorkflowService) {
-  return {
-    createInstance: vi.fn().mockImplementation(async (request: any, tenantId: string) => {
-      // Build a user for workflow service (the calling service acts as itself)
-      const callingUser: AuthenticatedUser = {
-        userId: 'system-collecte',
-        email: 'system@collecte.internal',
-        role: UserRole.DATA_STEWARD,
-        tenantId,
-        tenantLevel: TenantLevel.MEMBER_STATE,
-      };
-
-      const result = await workflowService.create(
-        {
-          entityType: request.entityType,
-          entityId: request.entityId,
-          domain: request.domain,
-          qualityReportId: request.qualityReportId,
-        } as any,
-        callingUser,
-      );
-
-      return { status: 201, data: { data: result.data } };
-    }),
-    getInstance: vi.fn(),
-  } as unknown as WorkflowClient;
-}
-
-function createMockAnimalHealthClient() {
-  return {
-    patchEntity: vi.fn().mockImplementation(async (entityType: string, entityId: string, body: Record<string, unknown>) => {
-      patchedEntities.push({ entityType, entityId, body });
-      return { status: 200, data: { data: { id: entityId, ...body } } };
-    }),
-    patchHealthEvent: vi.fn().mockResolvedValue({ status: 200, data: {} }),
-  } as unknown as AnimalHealthClient;
-}
-
 // ── Test Suite ──
 
-describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback', () => {
+describe('E2E Pipeline: Submission → Quality → Workflow (Event-Driven)', () => {
   let collectePrisma: ReturnType<typeof createCollectePrisma>;
   let workflowPrisma: ReturnType<typeof createWorkflowPrisma>;
-  let collecteKafka: { send: ReturnType<typeof vi.fn> };
-  let workflowKafka: { send: ReturnType<typeof vi.fn> };
+  let collecteKafkaProducer: ReturnType<typeof createMockKafkaProducer>;
+  let collecteKafka: ReturnType<typeof createMockFastifyKafka>;
+  let workflowKafkaProducer: ReturnType<typeof createMockKafkaProducer>;
+  let eventPublisher: ReturnType<typeof createMockEventPublisher>;
 
   let submissionService: SubmissionService;
   let workflowService: WorkflowService;
-  let dataQualityClient: DataQualityClient;
-  let workflowClient: WorkflowClient;
-  let animalHealthClient: AnimalHealthClient;
 
   let campaignId: string;
 
@@ -319,35 +289,28 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
     campaigns = [];
     workflowInstances = [];
     workflowTransitions = [];
-    patchedEntities = [];
     idCounter = 0;
 
     // Create mock infrastructure
     collectePrisma = createCollectePrisma();
     workflowPrisma = createWorkflowPrisma();
-    collecteKafka = { send: vi.fn().mockResolvedValue(undefined) };
-    workflowKafka = { send: vi.fn().mockResolvedValue(undefined) };
-    animalHealthClient = createMockAnimalHealthClient();
+    collecteKafkaProducer = createMockKafkaProducer();
+    collecteKafka = createMockFastifyKafka();
+    workflowKafkaProducer = createMockKafkaProducer();
+    eventPublisher = createMockEventPublisher();
 
-    // Workflow service (real logic, mock Prisma + Kafka + AH client)
+    // Workflow service (real logic, mock Prisma + Kafka + EventPublisher)
     workflowService = new WorkflowService(
       workflowPrisma as never,
-      workflowKafka as never,
-      animalHealthClient,
+      workflowKafkaProducer as never,
+      eventPublisher as never,
     );
 
-    // Data quality client (mock)
-    dataQualityClient = createMockDataQualityClient('PASSED');
-
-    // Workflow client wired to real WorkflowService
-    workflowClient = createWiredWorkflowClient(workflowService);
-
-    // Submission service (real logic, mock Prisma + Kafka + service clients)
+    // Submission service (real logic, mock Prisma + Kafka — no service clients)
     submissionService = new SubmissionService(
       collectePrisma as never,
+      collecteKafkaProducer as never,
       collecteKafka as never,
-      dataQualityClient,
-      workflowClient,
     );
 
     // Seed a campaign
@@ -364,6 +327,57 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
     campaigns.push(campaign);
     campaignId = campaign.id;
   });
+
+  // ── Helper: simulate full async pipeline ──
+
+  /**
+   * Simulates the async event-driven pipeline that happens after submit():
+   * 1. Quality validation result arrives via Kafka → handleQualityResult()
+   * 2. If quality passed → workflow creation event published → WorkflowService.create()
+   * 3. Workflow created event arrives → handleWorkflowCreated()
+   */
+  async function simulateQualityAndWorkflow(
+    submissionId: string,
+    overallStatus: string = 'PASSED',
+    domain: string = 'health',
+  ) {
+    // Simulate quality result callback
+    await submissionService.handleQualityResult(
+      submissionId,
+      QUALITY_REPORT_ID,
+      overallStatus,
+      domain,
+      TENANT_ID,
+      fieldAgent.userId,
+    );
+
+    // If quality passed, simulate workflow service consuming the event
+    if (overallStatus === 'PASSED' || overallStatus === 'WARNING') {
+      const callingUser: AuthenticatedUser = {
+        userId: 'system-collecte',
+        email: 'system@collecte.internal',
+        role: UserRole.DATA_STEWARD,
+        tenantId: TENANT_ID,
+        tenantLevel: TenantLevel.MEMBER_STATE,
+      };
+
+      const wfResult = await workflowService.create(
+        {
+          entityType: 'Submission',
+          entityId: submissionId,
+          domain,
+          qualityReportId: QUALITY_REPORT_ID,
+        } as any,
+        callingUser,
+      );
+
+      // Simulate workflow-created event arriving back at collecte
+      await submissionService.handleWorkflowCreated(
+        submissionId,
+        wfResult.data.id,
+      );
+    }
+  }
 
   // ── Happy Path: Full Pipeline ──
 
@@ -390,33 +404,39 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
 
       const submissionId = result.data.id;
 
-      // Verify quality validation was called
-      expect(dataQualityClient.validate).toHaveBeenCalledWith(
+      // Verify quality validation request was published via Kafka
+      expect(collecteKafka.publish).toHaveBeenCalledWith(
         expect.objectContaining({
-          recordId: submissionId,
-          entityType: 'Submission',
-          domain: 'health',
+          eventType: EVENTS.QUALITY.VALIDATION_REQUESTED,
+          source: 'collecte-service',
+          payload: expect.objectContaining({
+            recordId: submissionId,
+            entityType: 'Submission',
+            domain: 'health',
+          }),
         }),
-        TENANT_ID,
       );
 
-      // Verify submission updated with quality report
+      // Submission is in SUBMITTED status (quality hasn't responded yet)
       const submissionRecord = submissions.find((s) => s.id === submissionId);
+      expect(submissionRecord.status).toBe('SUBMITTED');
+
+      // Verify submitted event published to Kafka
+      expect(collecteKafkaProducer.send).toHaveBeenCalledWith(
+        TOPIC_MS_COLLECTE_FORM_SUBMITTED,
+        expect.any(String),
+        expect.objectContaining({ submissionId }),
+        expect.any(Object),
+      );
+
+      // ── Step 2: Simulate async quality result + workflow creation ──
+      await simulateQualityAndWorkflow(submissionId, 'PASSED');
+
+      // Verify submission updated with quality report
       expect(submissionRecord.qualityReportId).toBe(QUALITY_REPORT_ID);
       expect(submissionRecord.status).toBe('VALIDATED');
 
-      // Verify workflow client was called
-      expect((workflowClient as any).createInstance).toHaveBeenCalledWith(
-        expect.objectContaining({
-          entityType: 'Submission',
-          entityId: submissionId,
-          domain: 'health',
-          qualityReportId: QUALITY_REPORT_ID,
-        }),
-        TENANT_ID,
-      );
-
-      // Verify workflow instance was created (via wired WorkflowService)
+      // Verify workflow instance was created
       expect(workflowInstances).toHaveLength(1);
       const wfInstance = workflowInstances[0];
       expect(wfInstance.entity_id).toBe(submissionId);
@@ -426,21 +446,22 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
       // Verify workflowInstanceId stored on submission
       expect(submissionRecord.workflowInstanceId).toBe(wfInstance.id);
 
-      // Verify Kafka events published
-      expect(collecteKafka.send).toHaveBeenCalledWith(
-        TOPIC_MS_COLLECTE_FORM_SUBMITTED,
-        expect.any(String),
-        expect.objectContaining({ submissionId }),
-        expect.any(Object),
-      );
-      expect(workflowKafka.send).toHaveBeenCalledWith(
+      // Verify workflow creation event published
+      expect(workflowKafkaProducer.send).toHaveBeenCalledWith(
         TOPIC_AU_WORKFLOW_VALIDATION_SUBMITTED,
         expect.any(String),
         expect.any(Object),
         expect.any(Object),
       );
 
-      // ── Step 2: Approve Level 1 (NATIONAL_TECHNICAL → NATIONAL_OFFICIAL) ──
+      // Verify workflow creation request was published by collecte
+      expect(collecteKafka.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: EVENTS.WORKFLOW.INSTANCE_REQUESTED,
+        }),
+      );
+
+      // ── Step 3: Approve Level 1 (NATIONAL_TECHNICAL → NATIONAL_OFFICIAL) ──
       const l1Result = await workflowService.approve(
         wfInstance.id,
         'Technical validation passed',
@@ -452,7 +473,7 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
       expect(l1Result.data.wahisReady).toBe(false);
       expect(l1Result.data.analyticsReady).toBe(false);
 
-      // ── Step 3: Approve Level 2 (NATIONAL_OFFICIAL → REC_HARMONIZATION) ──
+      // ── Step 4: Approve Level 2 (NATIONAL_OFFICIAL → REC_HARMONIZATION) ──
       const l2Result = await workflowService.approve(
         wfInstance.id,
         'Official approval — WAHIS ready',
@@ -463,22 +484,25 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
       expect(l2Result.data.status).toBe('PENDING');
       expect(l2Result.data.wahisReady).toBe(true);
 
-      // Verify wahisReady callback to animal-health service
-      expect(workflowKafka.send).toHaveBeenCalledWith(
+      // Verify wahisReady event published via EventPublisher (replaces REST PATCH)
+      expect(workflowKafkaProducer.send).toHaveBeenCalledWith(
         TOPIC_AU_WORKFLOW_WAHIS_READY,
         expect.any(String),
         expect.any(Object),
         expect.any(Object),
       );
-      expect(patchedEntities).toContainEqual(
+      expect(eventPublisher.publish).toHaveBeenCalledWith(
+        EVENTS.WORKFLOW.WAHIS_READY,
         expect.objectContaining({
-          entityType: 'Submission',
-          entityId: submissionId,
-          body: { wahisReady: true },
+          payload: expect.objectContaining({
+            entityId: submissionId,
+            flag: 'wahisReady',
+          }),
         }),
+        expect.objectContaining({ key: submissionId }),
       );
 
-      // ── Step 4: Approve Level 3 (REC_HARMONIZATION → CONTINENTAL_PUBLICATION) ──
+      // ── Step 5: Approve Level 3 (REC_HARMONIZATION → CONTINENTAL_PUBLICATION) ──
       const l3Result = await workflowService.approve(
         wfInstance.id,
         'REC harmonized',
@@ -488,7 +512,7 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
       expect(l3Result.data.currentLevel).toBe('CONTINENTAL_PUBLICATION');
       expect(l3Result.data.status).toBe('PENDING');
 
-      // ── Step 5: Approve Level 4 (CONTINENTAL_PUBLICATION → final APPROVED) ──
+      // ── Step 6: Approve Level 4 (CONTINENTAL_PUBLICATION → final APPROVED) ──
       const l4Result = await workflowService.approve(
         wfInstance.id,
         'Published to continental analytics',
@@ -500,25 +524,25 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
       expect(l4Result.data.wahisReady).toBe(true);
       expect(l4Result.data.analyticsReady).toBe(true);
 
-      // Verify analyticsReady callback to animal-health service
-      expect(workflowKafka.send).toHaveBeenCalledWith(
+      // Verify analyticsReady event published via EventPublisher
+      expect(workflowKafkaProducer.send).toHaveBeenCalledWith(
         TOPIC_AU_WORKFLOW_ANALYTICS_READY,
         expect.any(String),
         expect.any(Object),
         expect.any(Object),
       );
-      expect(patchedEntities).toContainEqual(
+      expect(eventPublisher.publish).toHaveBeenCalledWith(
+        EVENTS.WORKFLOW.ANALYTICS_READY,
         expect.objectContaining({
-          entityType: 'Submission',
-          entityId: submissionId,
-          body: { analyticsReady: true },
+          payload: expect.objectContaining({
+            entityId: submissionId,
+            flag: 'analyticsReady',
+          }),
         }),
+        expect.objectContaining({ key: submissionId }),
       );
 
       // Verify full transition history (4 approvals stored in global array)
-      // Note: the $transaction mock evaluates update before create, so the
-      // last transition may not appear in l4Result.data.transitions. We verify
-      // from the authoritative workflowTransitions store instead.
       const instanceTransitions = workflowTransitions.filter(
         (t) => t.instance_id === wfInstance.id,
       );
@@ -533,16 +557,7 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
   // ── Quality Failure Path ──
 
   describe('Quality failure path', () => {
-    it('submit → quality FAILED → submission REJECTED → no workflow → rejection event', async () => {
-      // Override quality client to return FAILED
-      dataQualityClient = createMockDataQualityClient('FAILED');
-      submissionService = new SubmissionService(
-        collectePrisma as never,
-        collecteKafka as never,
-        dataQualityClient,
-        workflowClient,
-      );
-
+    it('submit → quality FAILED → submission REJECTED → no workflow', async () => {
       const result = await submissionService.submit(
         {
           campaignId,
@@ -558,6 +573,10 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
       );
 
       const submissionId = result.data.id;
+
+      // Simulate quality FAILED callback
+      await simulateQualityAndWorkflow(submissionId, 'FAILED');
+
       const submissionRecord = submissions.find((s) => s.id === submissionId);
 
       // Submission should be rejected
@@ -565,33 +584,12 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
       expect(submissionRecord.qualityReportId).toBe(QUALITY_REPORT_ID);
 
       // No workflow should be created
-      expect((workflowClient as any).createInstance).not.toHaveBeenCalled();
       expect(workflowInstances).toHaveLength(0);
       expect(submissionRecord.workflowInstanceId).toBeNull();
-
-      // Rejection event published
-      expect(collecteKafka.send).toHaveBeenCalledWith(
-        TOPIC_AU_QUALITY_RECORD_REJECTED,
-        submissionId,
-        expect.objectContaining({
-          submissionId,
-          reportId: QUALITY_REPORT_ID,
-          overallStatus: 'FAILED',
-        }),
-        expect.any(Object),
-      );
     });
 
     it('quality WARNING is treated as passed — workflow created', async () => {
-      dataQualityClient = createMockDataQualityClient('WARNING');
-      submissionService = new SubmissionService(
-        collectePrisma as never,
-        collecteKafka as never,
-        dataQualityClient,
-        workflowClient,
-      );
-
-      await submissionService.submit(
+      const result = await submissionService.submit(
         {
           campaignId,
           data: { speciesCode: 'BOV', countryCode: 'KE' },
@@ -599,9 +597,10 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
         fieldAgent,
       );
 
+      await simulateQualityAndWorkflow(result.data.id, 'WARNING');
+
       const submissionRecord = submissions[0];
       expect(submissionRecord.status).toBe('VALIDATED');
-      expect((workflowClient as any).createInstance).toHaveBeenCalledOnce();
       expect(workflowInstances).toHaveLength(1);
     });
   });
@@ -609,17 +608,9 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
   // ── Graceful Degradation ──
 
   describe('Graceful degradation', () => {
-    it('quality service unavailable → submission proceeds → workflow still created', async () => {
-      const failingQualityClient = {
-        validate: vi.fn().mockRejectedValue(new Error('ECONNREFUSED')),
-      } as unknown as DataQualityClient;
-
-      submissionService = new SubmissionService(
-        collectePrisma as never,
-        collecteKafka as never,
-        failingQualityClient,
-        workflowClient,
-      );
+    it('kafka publish failure during quality request → submission still saved', async () => {
+      // Make Kafka publish fail (simulates broker unavailable)
+      collecteKafka.publish.mockRejectedValue(new Error('Kafka broker unavailable'));
 
       const result = await submissionService.submit(
         {
@@ -632,27 +623,20 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
       // Submission should still succeed (graceful degradation)
       expect(result.data).toBeDefined();
       const sub = submissions[0];
-      // Quality report is null (service unavailable)
+      expect(sub.status).toBe('SUBMITTED');
+      // Quality report is null (async request failed, will be retried)
       expect(sub.qualityReportId).toBeNull();
-      // Workflow should still be created (passed: true by default on error)
-      expect((workflowClient as any).createInstance).toHaveBeenCalledOnce();
-      expect(workflowInstances).toHaveLength(1);
     });
 
-    it('workflow service unavailable → submission still saved', async () => {
-      const failingWorkflowClient = {
-        createInstance: vi.fn().mockRejectedValue(new Error('ECONNREFUSED')),
-        getInstance: vi.fn(),
-      } as unknown as WorkflowClient;
-
-      submissionService = new SubmissionService(
+    it('null kafka → submission still saved without quality request', async () => {
+      // Create submission service with null kafka (no Kafka available)
+      const noKafkaService = new SubmissionService(
         collectePrisma as never,
-        collecteKafka as never,
-        dataQualityClient,
-        failingWorkflowClient,
+        collecteKafkaProducer as never,
+        null,
       );
 
-      const result = await submissionService.submit(
+      const result = await noKafkaService.submit(
         {
           campaignId,
           data: { speciesCode: 'BOV', countryCode: 'KE' },
@@ -660,35 +644,24 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
         fieldAgent,
       );
 
-      // Submission should still succeed
+      // Submission should succeed
       expect(result.data).toBeDefined();
-      const sub = submissions[0];
-      expect(sub.status).toBe('VALIDATED');
-      expect(sub.qualityReportId).toBe(QUALITY_REPORT_ID);
-      // No workflow instance ID (service was down)
-      expect(sub.workflowInstanceId).toBeNull();
+      expect(submissions).toHaveLength(1);
+      expect(submissions[0].status).toBe('SUBMITTED');
     });
 
-    it('domain service callback failure → workflow approval still succeeds', async () => {
-      const failingAhClient = {
-        patchEntity: vi.fn().mockRejectedValue(new Error('ECONNREFUSED')),
-        patchHealthEvent: vi.fn(),
-      } as unknown as AnimalHealthClient;
+    it('event publisher failure → workflow approval still succeeds', async () => {
+      // EventPublisher.publish fails (Kafka broker down for flag-ready events)
+      const failingEventPublisher = {
+        publish: vi.fn().mockRejectedValue(new Error('Kafka broker unavailable')),
+      };
 
       workflowService = new WorkflowService(
         workflowPrisma as never,
-        workflowKafka as never,
-        failingAhClient,
-      );
-      workflowClient = createWiredWorkflowClient(workflowService);
-      submissionService = new SubmissionService(
-        collectePrisma as never,
-        collecteKafka as never,
-        dataQualityClient,
-        workflowClient,
+        workflowKafkaProducer as never,
+        failingEventPublisher as never,
       );
 
-      // Submit → creates workflow
       const result = await submissionService.submit(
         {
           campaignId,
@@ -696,19 +669,22 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
         } as any,
         fieldAgent,
       );
+
+      // Run async pipeline
+      await simulateQualityAndWorkflow(result.data.id, 'PASSED');
 
       const wfId = workflowInstances[0].id;
 
       // Approve L1
       await workflowService.approve(wfId, 'L1 ok', dataSteward);
-      // Approve L2 — this triggers wahisReady callback which will fail
+      // Approve L2 — triggers wahisReady flag-ready event which will fail
       const l2 = await workflowService.approve(wfId, 'L2 ok', nationalAdmin);
 
-      // Workflow approval should succeed despite callback failure
+      // Workflow approval should succeed despite event publish failure
       expect(l2.data.currentLevel).toBe('REC_HARMONIZATION');
       expect(l2.data.wahisReady).toBe(true);
-      // patchEntity was called but failed — no crash
-      expect(failingAhClient.patchEntity).toHaveBeenCalled();
+      // eventPublisher.publish was called but failed — no crash
+      expect(failingEventPublisher.publish).toHaveBeenCalled();
     });
   });
 
@@ -717,13 +693,15 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
   describe('Auto-advance Level 1 via quality event', () => {
     it('quality PASSED event auto-advances workflow from L1 to L2', async () => {
       // Submit and create workflow
-      await submissionService.submit(
+      const result = await submissionService.submit(
         {
           campaignId,
           data: { speciesCode: 'BOV', countryCode: 'KE' },
         } as any,
         fieldAgent,
       );
+
+      await simulateQualityAndWorkflow(result.data.id, 'PASSED');
 
       const wfInstance = workflowInstances[0];
       const submissionId = submissions[0].id;
@@ -760,13 +738,15 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
 
   describe('Workflow rejection and return', () => {
     it('reject at Level 2 → workflow REJECTED', async () => {
-      await submissionService.submit(
+      const result = await submissionService.submit(
         {
           campaignId,
           data: { speciesCode: 'BOV', countryCode: 'KE' },
         } as any,
         fieldAgent,
       );
+
+      await simulateQualityAndWorkflow(result.data.id, 'PASSED');
 
       const wfId = workflowInstances[0].id;
 
@@ -779,17 +759,20 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
 
       expect(rejected.data.status).toBe('REJECTED');
       expect(rejected.data.currentLevel).toBe('NATIONAL_OFFICIAL');
-      expect(patchedEntities).toHaveLength(0); // No domain callback on rejection
+      // No flag-ready events published on rejection
+      expect(eventPublisher.publish).not.toHaveBeenCalled();
     });
 
     it('return at Level 3 → drops back to Level 2', async () => {
-      await submissionService.submit(
+      const result = await submissionService.submit(
         {
           campaignId,
           data: { speciesCode: 'BOV', countryCode: 'KE' },
         } as any,
         fieldAgent,
       );
+
+      await simulateQualityAndWorkflow(result.data.id, 'PASSED');
 
       const wfId = workflowInstances[0].id;
 
@@ -817,7 +800,7 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
 
   describe('Multiple submissions in pipeline', () => {
     it('two submissions create independent workflow instances', async () => {
-      await submissionService.submit(
+      const r1 = await submissionService.submit(
         {
           campaignId,
           data: { speciesCode: 'BOV', countryCode: 'KE', cases: 5 },
@@ -825,13 +808,17 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
         fieldAgent,
       );
 
-      await submissionService.submit(
+      const r2 = await submissionService.submit(
         {
           campaignId,
           data: { speciesCode: 'OVI', countryCode: 'KE', cases: 3 },
         } as any,
         fieldAgent,
       );
+
+      // Simulate async pipeline for both
+      await simulateQualityAndWorkflow(r1.data.id, 'PASSED');
+      await simulateQualityAndWorkflow(r2.data.id, 'PASSED');
 
       expect(submissions).toHaveLength(2);
       expect(workflowInstances).toHaveLength(2);
@@ -855,6 +842,70 @@ describe('E2E Pipeline: Submission → Quality → Workflow → Domain Callback'
       // Second workflow untouched
       expect(workflowInstances[1].status).toBe('PENDING');
       expect(workflowInstances[1].current_level).toBe('NATIONAL_TECHNICAL');
+    });
+  });
+
+  // ── Event-Driven Specific Tests ──
+
+  describe('Event-driven pipeline verification', () => {
+    it('submit only publishes quality request — no synchronous inter-service calls', async () => {
+      const result = await submissionService.submit(
+        {
+          campaignId,
+          data: { speciesCode: 'BOV', countryCode: 'KE' },
+        } as any,
+        fieldAgent,
+      );
+
+      // After submit, submission is SUBMITTED (not VALIDATED)
+      expect(submissions[0].status).toBe('SUBMITTED');
+      expect(submissions[0].qualityReportId).toBeNull();
+      expect(submissions[0].workflowInstanceId).toBeNull();
+
+      // No workflow instances created yet
+      expect(workflowInstances).toHaveLength(0);
+
+      // Quality validation was requested via Kafka event
+      expect(collecteKafka.publish).toHaveBeenCalledTimes(1);
+      expect(collecteKafka.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: EVENTS.QUALITY.VALIDATION_REQUESTED,
+        }),
+      );
+    });
+
+    it('workflow flag-ready events contain correct payload', async () => {
+      const result = await submissionService.submit(
+        {
+          campaignId,
+          data: { speciesCode: 'BOV', countryCode: 'KE' },
+        } as any,
+        fieldAgent,
+      );
+
+      await simulateQualityAndWorkflow(result.data.id, 'PASSED');
+
+      const wfId = workflowInstances[0].id;
+      await workflowService.approve(wfId, 'L1', dataSteward);
+      await workflowService.approve(wfId, 'L2', nationalAdmin);
+
+      // Verify wahisReady event payload structure
+      expect(eventPublisher.publish).toHaveBeenCalledWith(
+        EVENTS.WORKFLOW.WAHIS_READY,
+        expect.objectContaining({
+          eventType: EVENTS.WORKFLOW.WAHIS_READY,
+          source: 'workflow-service',
+          version: 1,
+          payload: expect.objectContaining({
+            instanceId: wfId,
+            entityType: 'Submission',
+            entityId: result.data.id,
+            domain: 'health',
+            flag: 'wahisReady',
+          }),
+        }),
+        expect.any(Object),
+      );
     });
   });
 });

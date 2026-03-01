@@ -68,7 +68,7 @@ describe('AuthGuard', () => {
   it('should throw UnauthorizedException for expired token', async () => {
     const token = signToken({
       sub: 'user-1',
-      email: 'test@aris.africa',
+      email: 'test@au-aris.org',
       role: UserRole.ANALYST,
       tenantId: 'tenant-1',
       tenantLevel: TenantLevel.MEMBER_STATE,
@@ -81,7 +81,7 @@ describe('AuthGuard', () => {
   it('should allow valid token and set user on request', async () => {
     const token = signToken({
       sub: 'user-1',
-      email: 'test@aris.africa',
+      email: 'test@au-aris.org',
       role: UserRole.NATIONAL_ADMIN,
       tenantId: 'tenant-1',
       tenantLevel: TenantLevel.MEMBER_STATE,
@@ -93,7 +93,7 @@ describe('AuthGuard', () => {
     const request = context.switchToHttp().getRequest() as { user: unknown };
     expect(request.user).toEqual({
       userId: 'user-1',
-      email: 'test@aris.africa',
+      email: 'test@au-aris.org',
       role: UserRole.NATIONAL_ADMIN,
       tenantId: 'tenant-1',
       tenantLevel: TenantLevel.MEMBER_STATE,

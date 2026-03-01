@@ -1,10 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  NotFoundException,
-  ConflictException,
-  BadRequestException,
-} from '@nestjs/common';
-import { TemplateService } from '../template.service';
+import { TemplateService, HttpError } from '../../services/template.service';
 import { TenantLevel, UserRole, DataClassification } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 
@@ -32,7 +27,7 @@ function mockKafkaProducer() {
 function continentalUser(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-au',
-    email: 'admin@aris.africa',
+    email: 'admin@au-aris.org',
     role: UserRole.SUPER_ADMIN,
     tenantId: 'tenant-au',
     tenantLevel: TenantLevel.CONTINENTAL,
@@ -43,7 +38,7 @@ function continentalUser(overrides: Partial<AuthenticatedUser> = {}): Authentica
 function recUser(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-igad',
-    email: 'coord@igad.aris.africa',
+    email: 'coord@igad.au-aris.org',
     role: UserRole.REC_ADMIN,
     tenantId: 'tenant-igad',
     tenantLevel: TenantLevel.REC,
@@ -54,7 +49,7 @@ function recUser(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser 
 function msUser(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-ke',
-    email: 'admin@ke.aris.africa',
+    email: 'admin@ke.au-aris.org',
     role: UserRole.NATIONAL_ADMIN,
     tenantId: 'tenant-ke',
     tenantLevel: TenantLevel.MEMBER_STATE,
@@ -134,7 +129,7 @@ describe('TemplateService', () => {
       );
     });
 
-    it('should throw ConflictException if duplicate name+version exists', async () => {
+    it('should throw HttpError 409 if duplicate name+version exists', async () => {
       prisma.formTemplate.findFirst.mockResolvedValue(templateFixture());
 
       await expect(
@@ -142,10 +137,19 @@ describe('TemplateService', () => {
           { name: 'Animal Disease Event Report', domain: 'health', schema: {} },
           continentalUser(),
         ),
-      ).rejects.toThrow(ConflictException);
+      ).rejects.toThrow(HttpError);
+
+      try {
+        await service.create(
+          { name: 'Animal Disease Event Report', domain: 'health', schema: {} },
+          continentalUser(),
+        );
+      } catch (e) {
+        expect((e as HttpError).statusCode).toBe(409);
+      }
     });
 
-    it('should throw NotFoundException if parentTemplateId does not exist', async () => {
+    it('should throw HttpError 404 if parentTemplateId does not exist', async () => {
       prisma.formTemplate.findUnique.mockResolvedValue(null);
 
       await expect(
@@ -158,7 +162,7 @@ describe('TemplateService', () => {
           },
           continentalUser(),
         ),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(HttpError);
     });
 
     it('should not fail request if Kafka publish errors', async () => {
@@ -267,12 +271,12 @@ describe('TemplateService', () => {
       expect(result.data.name).toBe('Animal Disease Event Report');
     });
 
-    it('should throw NotFoundException for nonexistent template', async () => {
+    it('should throw HttpError 404 for nonexistent template', async () => {
       prisma.formTemplate.findUnique.mockResolvedValue(null);
 
       await expect(
         service.findOne('nonexistent', continentalUser()),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(HttpError);
     });
 
     it('should deny access to other tenant templates for MS user', async () => {
@@ -282,7 +286,7 @@ describe('TemplateService', () => {
 
       await expect(
         service.findOne('tmpl-1', msUser()),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(HttpError);
     });
   });
 
@@ -304,22 +308,22 @@ describe('TemplateService', () => {
       expect(prisma.formTemplate.update).toHaveBeenCalledOnce();
     });
 
-    it('should throw NotFoundException when updating nonexistent template', async () => {
+    it('should throw HttpError 404 when updating nonexistent template', async () => {
       prisma.formTemplate.findUnique.mockResolvedValue(null);
 
       await expect(
         service.update('nonexistent', { name: 'X' }, continentalUser()),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(HttpError);
     });
 
-    it('should throw BadRequestException when updating an archived template', async () => {
+    it('should throw HttpError 400 when updating an archived template', async () => {
       prisma.formTemplate.findUnique.mockResolvedValue(
         templateFixture({ status: 'ARCHIVED' }),
       );
 
       await expect(
         service.update('tmpl-1', { name: 'X' }, continentalUser()),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(HttpError);
     });
   });
 
@@ -333,7 +337,6 @@ describe('TemplateService', () => {
       });
       prisma.formTemplate.findUnique.mockResolvedValue(published);
 
-      // findFirst for latest version
       prisma.formTemplate.findFirst.mockResolvedValue(
         templateFixture({ version: 1 }),
       );
@@ -354,7 +357,6 @@ describe('TemplateService', () => {
       expect(result.data.version).toBe(2);
       expect(result.data.status).toBe('DRAFT');
       expect(prisma.formTemplate.create).toHaveBeenCalledOnce();
-      // Original should NOT have been updated
       expect(prisma.formTemplate.update).not.toHaveBeenCalled();
     });
 
@@ -365,7 +367,6 @@ describe('TemplateService', () => {
       });
       prisma.formTemplate.findUnique.mockResolvedValue(published);
 
-      // Latest version is 2
       prisma.formTemplate.findFirst.mockResolvedValue(
         templateFixture({ version: 2 }),
       );
@@ -432,22 +433,22 @@ describe('TemplateService', () => {
       );
     });
 
-    it('should throw BadRequestException when publishing a non-DRAFT template', async () => {
+    it('should throw HttpError 400 when publishing a non-DRAFT template', async () => {
       prisma.formTemplate.findUnique.mockResolvedValue(
         templateFixture({ status: 'PUBLISHED' }),
       );
 
       await expect(
         service.publish('tmpl-1', continentalUser()),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(HttpError);
     });
 
-    it('should throw NotFoundException for nonexistent template', async () => {
+    it('should throw HttpError 404 for nonexistent template', async () => {
       prisma.formTemplate.findUnique.mockResolvedValue(null);
 
       await expect(
         service.publish('nonexistent', continentalUser()),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(HttpError);
     });
   });
 
@@ -465,14 +466,14 @@ describe('TemplateService', () => {
       expect(result.data.status).toBe('ARCHIVED');
     });
 
-    it('should throw BadRequestException when archiving already archived template', async () => {
+    it('should throw HttpError 400 when archiving already archived template', async () => {
       prisma.formTemplate.findUnique.mockResolvedValue(
         templateFixture({ status: 'ARCHIVED' }),
       );
 
       await expect(
         service.archive('tmpl-1', continentalUser()),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(HttpError);
     });
   });
 
@@ -519,26 +520,23 @@ describe('TemplateService', () => {
         },
       });
 
-      // When resolveInheritance walks up, it calls findUnique for parent
       prisma.formTemplate.findUnique.mockResolvedValueOnce(parentTmpl);
 
       const resolved = await service.resolveInheritance(childTmpl);
 
-      // Should have merged properties from both parent and child
       const schema = resolved.schema as Record<string, unknown>;
       const properties = schema['properties'] as Record<string, unknown>;
       expect(properties).toHaveProperty('country');
       expect(properties).toHaveProperty('disease');
       expect(properties).toHaveProperty('species');
 
-      // Required arrays should be merged and deduplicated
       const required = schema['required'] as string[];
       expect(required).toContain('country');
       expect(required).toContain('disease');
       expect(required).toContain('species');
     });
 
-    it('should support 3-level inheritance chain (AU → REC → MS)', async () => {
+    it('should support 3-level inheritance chain (AU -> REC -> MS)', async () => {
       const auTmpl = templateFixture({
         id: 'tmpl-au',
         parent_template_id: null,
@@ -578,18 +576,17 @@ describe('TemplateService', () => {
         ui_schema: {},
       });
 
-      // Walk up chain: tmpl-rec → tmpl-au
       prisma.formTemplate.findUnique
-        .mockResolvedValueOnce(recTmpl)   // parent of MS
-        .mockResolvedValueOnce(auTmpl);   // parent of REC
+        .mockResolvedValueOnce(recTmpl)
+        .mockResolvedValueOnce(auTmpl);
 
       const resolved = await service.resolveInheritance(msTmpl);
 
       const schema = resolved.schema as Record<string, unknown>;
       const properties = schema['properties'] as Record<string, unknown>;
-      expect(properties).toHaveProperty('country');    // from AU
-      expect(properties).toHaveProperty('region');     // from REC
-      expect(properties).toHaveProperty('local_id');   // from MS
+      expect(properties).toHaveProperty('country');
+      expect(properties).toHaveProperty('region');
+      expect(properties).toHaveProperty('local_id');
 
       const required = schema['required'] as string[];
       expect(required).toContain('country');
@@ -662,7 +659,6 @@ describe('TemplateService', () => {
     });
 
     it('should detect circular inheritance and throw', async () => {
-      // tmpl-a → tmpl-b → tmpl-a (circular)
       const tmplA = templateFixture({
         id: 'tmpl-a',
         parent_template_id: 'tmpl-b',
@@ -678,11 +674,11 @@ describe('TemplateService', () => {
       });
 
       prisma.formTemplate.findUnique
-        .mockResolvedValueOnce(tmplB)  // parent of A
-        .mockResolvedValueOnce(tmplA); // parent of B — causes circular
+        .mockResolvedValueOnce(tmplB)
+        .mockResolvedValueOnce(tmplA);
 
       await expect(service.resolveInheritance(tmplA)).rejects.toThrow(
-        BadRequestException,
+        HttpError,
       );
     });
   });
@@ -769,7 +765,7 @@ describe('TemplateService', () => {
 
       await expect(
         service.findOne('tmpl-1', msUser()),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(HttpError);
     });
   });
 });

@@ -36,7 +36,7 @@ function mockKafkaProducer() {
 function dataSteward(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-steward-ke',
-    email: 'steward@ke.aris.africa',
+    email: 'steward@ke.au-aris.org',
     role: UserRole.DATA_STEWARD,
     tenantId: 'tenant-ke',
     tenantLevel: TenantLevel.MEMBER_STATE,
@@ -47,7 +47,7 @@ function dataSteward(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedU
 function nationalAdmin(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-cvo-ke',
-    email: 'cvo@ke.aris.africa',
+    email: 'cvo@ke.au-aris.org',
     role: UserRole.NATIONAL_ADMIN,
     tenantId: 'tenant-ke',
     tenantLevel: TenantLevel.MEMBER_STATE,
@@ -58,7 +58,7 @@ function nationalAdmin(overrides: Partial<AuthenticatedUser> = {}): Authenticate
 function recAdmin(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-igad',
-    email: 'coord@igad.aris.africa',
+    email: 'coord@igad.au-aris.org',
     role: UserRole.REC_ADMIN,
     tenantId: 'tenant-igad',
     tenantLevel: TenantLevel.REC,
@@ -69,7 +69,7 @@ function recAdmin(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser
 function continentalAdmin(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-au',
-    email: 'admin@aris.africa',
+    email: 'admin@au-aris.org',
     role: UserRole.CONTINENTAL_ADMIN,
     tenantId: 'tenant-au',
     tenantLevel: TenantLevel.CONTINENTAL,
@@ -80,7 +80,7 @@ function continentalAdmin(overrides: Partial<AuthenticatedUser> = {}): Authentic
 function superAdmin(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-super',
-    email: 'super@aris.africa',
+    email: 'super@au-aris.org',
     role: UserRole.SUPER_ADMIN,
     tenantId: 'tenant-au',
     tenantLevel: TenantLevel.CONTINENTAL,
@@ -91,7 +91,7 @@ function superAdmin(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUs
 function analyst(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     userId: 'user-analyst',
-    email: 'analyst@ke.aris.africa',
+    email: 'analyst@ke.au-aris.org',
     role: UserRole.ANALYST,
     tenantId: 'tenant-ke',
     tenantLevel: TenantLevel.MEMBER_STATE,
@@ -130,10 +130,9 @@ function instanceWithTransitions(overrides: Record<string, unknown> = {}) {
 
 // ── Tests ──
 
-function mockAnimalHealthClient() {
+function mockEventPublisher() {
   return {
-    patchEntity: vi.fn().mockResolvedValue({ status: 200, data: {} }),
-    patchHealthEvent: vi.fn().mockResolvedValue({ status: 200, data: {} }),
+    publish: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -141,13 +140,13 @@ describe('WorkflowService', () => {
   let service: WorkflowService;
   let prisma: ReturnType<typeof mockPrismaService>;
   let kafka: ReturnType<typeof mockKafkaProducer>;
-  let ahClient: ReturnType<typeof mockAnimalHealthClient>;
+  let eventPublisher: ReturnType<typeof mockEventPublisher>;
 
   beforeEach(() => {
     prisma = mockPrismaService();
     kafka = mockKafkaProducer();
-    ahClient = mockAnimalHealthClient();
-    service = new WorkflowService(prisma as never, kafka as never, ahClient as never);
+    eventPublisher = mockEventPublisher();
+    service = new WorkflowService(prisma as never, kafka as never, eventPublisher as never);
   });
 
   // ── create ──
@@ -225,12 +224,17 @@ describe('WorkflowService', () => {
       const result = await service.approve('wf-1', undefined, nationalAdmin());
 
       expect(result.data.wahisReady).toBe(true);
-      // Should publish both approval and WAHIS ready
-      expect(kafka.send).toHaveBeenCalledTimes(2);
+      // Should publish approval event + WAHIS ready event via kafkaProducer.send
       expect(kafka.send).toHaveBeenCalledWith(
         'au.workflow.wahis.ready.v1',
         expect.anything(),
         expect.anything(),
+        expect.anything(),
+      );
+      // Should also publish typed flag event via eventPublisher
+      expect(eventPublisher.publish).toHaveBeenCalledWith(
+        'au.workflow.wahis.ready.v1',
+        expect.objectContaining({ payload: expect.objectContaining({ flag: 'wahisReady' }) }),
         expect.anything(),
       );
     });
@@ -505,7 +509,7 @@ describe('WorkflowService', () => {
       it('should allow WAHIS_FOCAL_POINT', () => {
         const wahis: AuthenticatedUser = {
           userId: 'user-wahis',
-          email: 'wahis@ke.aris.africa',
+          email: 'wahis@ke.au-aris.org',
           role: UserRole.WAHIS_FOCAL_POINT,
           tenantId: 'tenant-ke',
           tenantLevel: TenantLevel.MEMBER_STATE,
@@ -668,8 +672,8 @@ describe('WorkflowService', () => {
 
   // ── Domain service callbacks ──
 
-  describe('domain service callbacks', () => {
-    it('should call patchEntity with wahisReady when Level 2 approved', async () => {
+  describe('domain service callbacks via events', () => {
+    it('should publish wahisReady event when Level 2 approved', async () => {
       prisma.workflowInstance.findUnique.mockResolvedValue(
         instanceFixture({
           current_level: 'NATIONAL_OFFICIAL',
@@ -687,15 +691,20 @@ describe('WorkflowService', () => {
 
       await service.approve('wf-1', undefined, nationalAdmin());
 
-      expect(ahClient.patchEntity).toHaveBeenCalledWith(
-        'submission',
-        'sub-1',
-        { wahisReady: true },
-        'tenant-ke',
+      expect(eventPublisher.publish).toHaveBeenCalledWith(
+        'au.workflow.wahis.ready.v1',
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            entityType: 'submission',
+            entityId: 'sub-1',
+            flag: 'wahisReady',
+          }),
+        }),
+        expect.anything(),
       );
     });
 
-    it('should call patchEntity with analyticsReady when Level 4 approved', async () => {
+    it('should publish analyticsReady event when Level 4 approved', async () => {
       prisma.workflowInstance.findUnique.mockResolvedValue(
         instanceFixture({
           current_level: 'CONTINENTAL_PUBLICATION',
@@ -715,16 +724,21 @@ describe('WorkflowService', () => {
 
       await service.approve('wf-1', 'Published', continentalAdmin());
 
-      expect(ahClient.patchEntity).toHaveBeenCalledWith(
-        'submission',
-        'sub-1',
-        { analyticsReady: true },
-        'tenant-au',
+      expect(eventPublisher.publish).toHaveBeenCalledWith(
+        'au.workflow.analytics.ready.v1',
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            entityType: 'submission',
+            entityId: 'sub-1',
+            flag: 'analyticsReady',
+          }),
+        }),
+        expect.anything(),
       );
     });
 
-    it('should NOT fail workflow approval if domain callback fails', async () => {
-      ahClient.patchEntity.mockRejectedValue(new Error('ECONNREFUSED'));
+    it('should NOT fail workflow approval if event publishing fails', async () => {
+      eventPublisher.publish.mockRejectedValue(new Error('Kafka unavailable'));
 
       prisma.workflowInstance.findUnique.mockResolvedValue(
         instanceFixture({
