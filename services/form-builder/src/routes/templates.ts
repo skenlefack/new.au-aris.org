@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import type { FastifyInstance } from 'fastify';
 import { UserRole } from '@aris/shared-types';
 import { authHook, rolesHook, tenantHook } from '@aris/auth-middleware';
@@ -36,11 +37,19 @@ const ARCHIVE_ROLES = [
   UserRole.CONTINENTAL_ADMIN,
 ];
 
+function loadPublicKey(): string {
+  let key = (process.env['JWT_PUBLIC_KEY'] ?? '').replace(/\\n/g, '\n');
+  if (!key && process.env['JWT_PUBLIC_KEY_PATH']) {
+    try { key = readFileSync(process.env['JWT_PUBLIC_KEY_PATH'], 'utf8'); } catch { /* ignore */ }
+  }
+  return key;
+}
+
 export default async function templateRoutes(app: FastifyInstance): Promise<void> {
   const service = new TemplateService(app.prisma, app.kafka.producer);
 
   const authOpts: AuthHookOptions = {
-    publicKey: process.env['JWT_PUBLIC_KEY'] ?? '',
+    publicKey: loadPublicKey(),
   };
   const auth = authHook(authOpts);
   const tenant = tenantHook();

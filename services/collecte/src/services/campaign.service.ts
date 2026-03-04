@@ -49,12 +49,17 @@ export class CampaignService {
       name: string;
       domain: string;
       templateId: string;
+      templateIds?: string[];
+      targetCountries?: string[];
       startDate: string;
       endDate: string;
-      targetZones: string[];
-      assignedAgents: string[];
+      targetZones?: string[];
+      assignedAgents?: string[];
       targetSubmissions?: number;
       description?: string;
+      frequency?: string;
+      sendReminders?: boolean;
+      reminderDaysBefore?: number;
       conflictStrategy?: 'LAST_WRITE_WINS' | 'MANUAL_MERGE';
       dataContractId?: string;
     },
@@ -73,10 +78,12 @@ export class CampaignService {
         name: dto.name,
         domain: dto.domain,
         templateId: dto.templateId,
+        templateIds: dto.templateIds ?? [],
+        targetCountries: dto.targetCountries ?? [],
         startDate,
         endDate,
-        targetZones: dto.targetZones,
-        assignedAgents: dto.assignedAgents,
+        targetZones: dto.targetZones ?? [],
+        assignedAgents: dto.assignedAgents ?? [],
         targetSubmissions: dto.targetSubmissions ?? null,
         description: dto.description ?? null,
         conflictStrategy: dto.conflictStrategy ?? 'LAST_WRITE_WINS',
@@ -96,13 +103,13 @@ export class CampaignService {
 
   async findAll(
     user: AuthenticatedUser,
-    query: PaginationQuery & { domain?: string; status?: string; zone?: string },
+    query: PaginationQuery & { domain?: string; status?: string; zone?: string; search?: string },
   ): Promise<PaginatedResponse<CampaignEntity>> {
     const page = query.page ?? DEFAULT_PAGE;
     const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
     const skip = (page - 1) * limit;
 
-    const where = this.buildFilter(user, query);
+    const where = await this.buildFilter(user, query);
 
     const [data, total] = await Promise.all([
       (this.prisma as any).campaign.findMany({
@@ -132,12 +139,15 @@ export class CampaignService {
       throw new HttpError(404, `Campaign ${id} not found`);
     }
 
-    // Tenant isolation
+    // Tenant isolation — allow access if the campaign targets the user's scope
     if (
       user.tenantLevel !== TenantLevel.CONTINENTAL &&
       campaign.tenantId !== user.tenantId
     ) {
-      throw new HttpError(404, `Campaign ${id} not found`);
+      const canAccess = await this.canAccessCampaign(user, campaign);
+      if (!canAccess) {
+        throw new HttpError(404, `Campaign ${id} not found`);
+      }
     }
 
     // Compute progress stats
@@ -178,6 +188,8 @@ export class CampaignService {
       endDate?: string;
       targetZones?: string[];
       assignedAgents?: string[];
+      templateIds?: string[];
+      targetCountries?: string[];
       targetSubmissions?: number;
       description?: string;
       status?: 'PLANNED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
@@ -217,6 +229,8 @@ export class CampaignService {
         ...(dto.endDate !== undefined && { endDate: new Date(dto.endDate) }),
         ...(dto.targetZones !== undefined && { targetZones: dto.targetZones }),
         ...(dto.assignedAgents !== undefined && { assignedAgents: dto.assignedAgents }),
+        ...(dto.templateIds !== undefined && { templateIds: dto.templateIds }),
+        ...(dto.targetCountries !== undefined && { targetCountries: dto.targetCountries }),
         ...(dto.targetSubmissions !== undefined && { targetSubmissions: dto.targetSubmissions }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.status !== undefined && { status: dto.status }),
@@ -229,14 +243,86 @@ export class CampaignService {
     return { data: campaign as unknown as CampaignEntity };
   }
 
-  private buildFilter(
+  async delete(
+    id: string,
     user: AuthenticatedUser,
-    query: { domain?: string; status?: string; zone?: string },
-  ): Record<string, unknown> {
+  ): Promise<{ data: { id: string } }> {
+    const existing = await (this.prisma as any).campaign.findUnique({ where: { id } });
+    if (!existing) {
+      throw new HttpError(404, `Campaign ${id} not found`);
+    }
+
+    if (
+      user.tenantLevel !== TenantLevel.CONTINENTAL &&
+      existing.tenantId !== user.tenantId
+    ) {
+      throw new HttpError(404, `Campaign ${id} not found`);
+    }
+
+    // Only PLANNED campaigns can be deleted
+    if (existing.status !== 'PLANNED') {
+      throw new HttpError(400, `Only PLANNED campaigns can be deleted. This campaign is ${existing.status}.`);
+    }
+
+    await (this.prisma as any).campaign.delete({ where: { id } });
+    console.log(`[CampaignService] Campaign deleted: ${existing.name} (${id})`);
+
+    return { data: { id } };
+  }
+
+  /**
+   * Build Prisma WHERE filter for campaign listing.
+   *
+   * Visibility rules:
+   *  - CONTINENTAL → sees everything
+   *  - REC → own campaigns + any campaign whose targetCountries overlaps
+   *    with the REC's member-state country codes
+   *  - MEMBER_STATE → own campaigns + any campaign whose targetCountries
+   *    includes this country's ISO code
+   */
+  private async buildFilter(
+    user: AuthenticatedUser,
+    query: { domain?: string; status?: string; zone?: string; search?: string },
+  ): Promise<Record<string, unknown>> {
     const where: Record<string, unknown> = {};
 
-    if (user.tenantLevel !== TenantLevel.CONTINENTAL) {
-      where['tenantId'] = user.tenantId;
+    if (user.tenantLevel === TenantLevel.CONTINENTAL) {
+      // AU sees everything — no tenant filter
+    } else {
+      // Resolve the user's tenant to find country codes
+      const tenant = await (this.prisma as any).tenant.findUnique({
+        where: { id: user.tenantId },
+        select: { level: true, countryCode: true },
+      });
+
+      if (tenant?.level === 'MEMBER_STATE' && tenant.countryCode) {
+        // Country sees: own campaigns OR campaigns targeting this country
+        where['OR'] = [
+          { tenantId: user.tenantId },
+          { targetCountries: { has: tenant.countryCode.toUpperCase() } },
+        ];
+      } else if (tenant?.level === 'REC') {
+        // REC sees: own campaigns OR campaigns targeting any of its member countries
+        const memberTenants = await (this.prisma as any).tenant.findMany({
+          where: { parentId: user.tenantId, level: 'MEMBER_STATE' },
+          select: { countryCode: true },
+        });
+        const countryCodes: string[] = memberTenants
+          .map((t: { countryCode: string | null }) => t.countryCode?.toUpperCase())
+          .filter(Boolean);
+
+        if (countryCodes.length > 0) {
+          where['OR'] = [
+            { tenantId: user.tenantId },
+            { targetCountries: { hasSome: countryCodes } },
+          ];
+        } else {
+          where['tenantId'] = user.tenantId;
+        }
+      } else {
+        // Fallback: strict tenant isolation
+        where['tenantId'] = user.tenantId;
+      }
     }
 
     if (query.domain) where['domain'] = query.domain;
@@ -244,8 +330,43 @@ export class CampaignService {
     if (query.zone) {
       where['targetZones'] = { has: query.zone };
     }
+    if (query.search) {
+      where['name'] = { contains: query.search, mode: 'insensitive' };
+    }
 
     return where;
+  }
+
+  /** Check if a REC/MS user can access a campaign that wasn't created by them */
+  private async canAccessCampaign(
+    user: AuthenticatedUser,
+    campaign: { targetCountries?: string[] },
+  ): Promise<boolean> {
+    const targets = campaign.targetCountries ?? [];
+    if (targets.length === 0) return false;
+
+    const tenant = await (this.prisma as any).tenant.findUnique({
+      where: { id: user.tenantId },
+      select: { level: true, countryCode: true },
+    });
+    if (!tenant) return false;
+
+    if (tenant.level === 'MEMBER_STATE' && tenant.countryCode) {
+      return targets.includes(tenant.countryCode.toUpperCase());
+    }
+
+    if (tenant.level === 'REC') {
+      const memberTenants = await (this.prisma as any).tenant.findMany({
+        where: { parentId: user.tenantId, level: 'MEMBER_STATE' },
+        select: { countryCode: true },
+      });
+      const countryCodes: string[] = memberTenants
+        .map((t: { countryCode: string | null }) => t.countryCode?.toUpperCase())
+        .filter(Boolean);
+      return targets.some((c: string) => countryCodes.includes(c.toUpperCase()));
+    }
+
+    return false;
   }
 
   private async publishEvent(

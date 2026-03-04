@@ -1,6 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient, ApiClientError } from './client';
+import { apiClient, collecteClient, ApiClientError } from './client';
 import { useAuthStore, type UserRole } from '../stores/auth-store';
+import { useTenantStore } from '../stores/tenant-store';
+
+/**
+ * Returns the currently selected tenantId.
+ * Include this in query keys so cache invalidates on tenant switch.
+ */
+export function useTenantId(): string | null {
+  return useTenantStore((s) => s.selectedTenantId);
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -45,6 +54,7 @@ interface LoginResponse {
       role: string;
       tenantId: string;
       tenantLevel?: string;
+      locale?: string;
     };
   };
 }
@@ -245,6 +255,7 @@ export function useLogin() {
           role: user.role as UserRole,
           tenantId: user.tenantId,
           tenantLevel: user.tenantLevel,
+          locale: user.locale,
         },
         accessToken,
         refreshToken,
@@ -257,6 +268,13 @@ export function useRegister() {
   return useMutation({
     mutationFn: async (data: RegisterRequest) =>
       apiClient.post<{ data: { id: string } }>('/credential/auth/register', data),
+  });
+}
+
+export function useUpdateLocale() {
+  return useMutation({
+    mutationFn: async (locale: string) =>
+      apiClient.put<{ data: { locale: string } }>('/credential/users/me/locale', { locale }),
   });
 }
 
@@ -284,8 +302,9 @@ const DASHBOARD_KPIS_FALLBACK: DashboardKpis = {
 };
 
 export function useDashboardKpis() {
+  const tenantId = useTenantId();
   return useQuery({
-    queryKey: ['dashboard', 'kpis'],
+    queryKey: ['dashboard', 'kpis', tenantId],
     queryFn: withFallback(
       () => apiClient.get<DashboardKpis>('/analytics/dashboard/kpis'),
       DASHBOARD_KPIS_FALLBACK,
@@ -295,9 +314,10 @@ export function useDashboardKpis() {
 }
 
 export function useUnreadNotifications() {
+  const tenantId = useTenantId();
   const fallback = { data: { count: 0 } };
   return useQuery({
-    queryKey: ['notifications', 'unread-count'],
+    queryKey: ['notifications', 'unread-count', tenantId],
     queryFn: withFallback(
       () => apiClient.get<{ data: { count: number } }>('/messages/unread-count'),
       fallback,
@@ -332,6 +352,7 @@ export function useHealthEvents(params?: {
   sort?: string;
   order?: string;
 }) {
+  const tenantId = useTenantId();
   const searchParams: Record<string, string> = {};
   if (params?.page) searchParams.page = String(params.page);
   if (params?.limit) searchParams.limit = String(params.limit);
@@ -343,7 +364,7 @@ export function useHealthEvents(params?: {
   if (params?.order) searchParams.order = params.order;
 
   return useQuery({
-    queryKey: ['health-events', params],
+    queryKey: ['health-events', tenantId, params],
     queryFn: () =>
       apiClient.get<PaginatedResponse<HealthEvent>>(
         '/animal-health/events',
@@ -376,6 +397,7 @@ export function useCreateHealthEvent() {
 }
 
 export function useOutbreakMarkers() {
+  const tenantId = useTenantId();
   const fallback = { data: [] as Array<{
     id: string;
     lat: number;
@@ -387,7 +409,7 @@ export function useOutbreakMarkers() {
     status: string;
   }> };
   return useQuery({
-    queryKey: ['health-events', 'markers'],
+    queryKey: ['health-events', 'markers', tenantId],
     queryFn: withFallback(
       () => apiClient.get<typeof fallback>('/animal-health/events/markers'),
       fallback,
@@ -500,17 +522,20 @@ export interface CollecteCampaign {
   id: string;
   name: string;
   description: string;
+  domain: string;
   templateId: string;
-  templateName: string;
-  status: 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
+  templateIds?: string[];
+  templateName?: string;
+  status: 'PLANNED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
   startDate: string;
   endDate: string;
-  zones: string[];
-  assignedAgents: number;
-  totalSubmissions: number;
-  targetSubmissions: number;
-  validatedSubmissions: number;
-  rejectedSubmissions: number;
+  targetZones: string[];
+  targetCountries?: string[];
+  assignedAgents: string[] | number;
+  targetSubmissions: number | null;
+  totalSubmissions?: number;
+  validatedSubmissions?: number;
+  rejectedSubmissions?: number;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -565,12 +590,22 @@ export interface CorrectionEntry {
 
 export interface CreateCampaignRequest {
   name: string;
-  description: string;
+  domain: string;
   templateId: string;
-  startDate: string;
-  endDate: string;
-  zones: string[];
-  agentIds: string[];
+  startDate: string;           // ISO date-time, e.g. '2026-04-01T00:00:00Z'
+  endDate: string;             // ISO date-time
+  targetZones: string[];       // UUID array (admin-division IDs)
+  assignedAgents: string[];    // UUID array
+  description?: string;
+  targetSubmissions?: number;
+  conflictStrategy?: 'LAST_WRITE_WINS' | 'MANUAL_MERGE';
+  dataContractId?: string;
+  // ── Extended fields (ignored by backend if unsupported, kept for future) ──
+  templateIds?: string[];
+  targetCountries?: string[];
+  frequency?: string;
+  sendReminders?: boolean;
+  reminderDaysBefore?: number;
 }
 
 // ─── Collecte Hooks ──────────────────────────────────────────────────────────
@@ -590,7 +625,7 @@ export function useCampaigns(params?: {
   return useQuery({
     queryKey: ['collecte', 'campaigns', params],
     queryFn: () =>
-      apiClient.get<PaginatedResponse<CollecteCampaign>>(
+      collecteClient.get<PaginatedResponse<CollecteCampaign>>(
         '/collecte/campaigns',
         searchParams,
       ),
@@ -601,7 +636,7 @@ export function useCampaign(id: string) {
   return useQuery({
     queryKey: ['collecte', 'campaigns', id],
     queryFn: () =>
-      apiClient.get<{ data: CollecteCampaignDetail }>(
+      collecteClient.get<{ data: CollecteCampaignDetail }>(
         `/collecte/campaigns/${id}`,
       ),
     enabled: !!id,
@@ -613,9 +648,55 @@ export function useCreateCampaign() {
 
   return useMutation({
     mutationFn: (data: CreateCampaignRequest) =>
-      apiClient.post<{ data: CollecteCampaign }>('/collecte/campaigns', data),
+      collecteClient.post<{ data: CollecteCampaign }>('/collecte/campaigns', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collecte', 'campaigns'] });
+    },
+  });
+}
+
+export function useUpdateCampaign() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string } & Partial<{
+      name: string;
+      description: string;
+      status: 'PLANNED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+      startDate: string;
+      endDate: string;
+      targetSubmissions: number;
+      templateIds: string[];
+      targetCountries: string[];
+      targetZones: string[];
+      assignedAgents: string[];
+    }>) =>
+      collecteClient.patch<{ data: CollecteCampaign }>(`/collecte/campaigns/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collecte', 'campaigns'] });
+    },
+  });
+}
+
+export function useDeleteCampaign() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      collecteClient.delete<{ data: { id: string } }>(`/collecte/campaigns/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collecte', 'campaigns'] });
+    },
+  });
+}
+
+export function useSubmitCampaignForm() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { campaignId: string; data: Record<string, unknown> }) =>
+      collecteClient.post<{ data: unknown }>('/collecte/submissions', body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collecte'] });
     },
   });
 }
@@ -624,7 +705,7 @@ export function useSubmission(id: string) {
   return useQuery({
     queryKey: ['collecte', 'submissions', id],
     queryFn: () =>
-      apiClient.get<{ data: CollecteSubmissionDetail }>(
+      collecteClient.get<{ data: CollecteSubmissionDetail }>(
         `/collecte/submissions/${id}`,
       ),
     enabled: !!id,
@@ -2114,13 +2195,66 @@ export function useFaqItems(params?: { domain?: string }) {
   });
 }
 
+// ─── Audit Log Types & Hooks ──────────────────────────────────────────────────
+
+export interface AuditEntry {
+  id: string;
+  entityType: string;
+  entityId: string;
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'VALIDATE' | 'REJECT' | 'EXPORT';
+  actor: {
+    userId: string;
+    email: string;
+    role: string;
+    tenantId: string;
+  };
+  timestamp: string;
+  reason?: string;
+  dataClassification: 'PUBLIC' | 'PARTNER' | 'RESTRICTED' | 'CONFIDENTIAL';
+}
+
+export function useAuditLog(params?: {
+  page?: number;
+  limit?: number;
+  action?: string;
+  entityType?: string;
+  search?: string;
+}) {
+  const selectedTenantId = useTenantId();
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.action) searchParams.action = params.action;
+  if (params?.entityType) searchParams.entityType = params.entityType;
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<AuditEntry> = {
+    data: [],
+    meta: { total: 0, page: 1, limit: 20 },
+  };
+
+  return useQuery({
+    queryKey: ['audit', 'log', selectedTenantId, params],
+    queryFn: withFallback(
+      () =>
+        apiClient.get<PaginatedResponse<AuditEntry>>(
+          '/credential/audit',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
 // ─── Dashboard Expanded KPIs Hook (time-range aware) ─────────────────────────
 
 export type TimeRange = '7d' | '30d' | '90d' | '1y';
 
 export function useDashboardKpisRange(range: TimeRange) {
+  const tenantId = useTenantId();
   return useQuery({
-    queryKey: ['dashboard', 'kpis', range],
+    queryKey: ['dashboard', 'kpis', tenantId, range],
     queryFn: withFallback(
       () => apiClient.get<DashboardKpis>('/analytics/dashboard/kpis', { range }),
       DASHBOARD_KPIS_FALLBACK,
@@ -2145,8 +2279,9 @@ export interface OutbreakAlert {
 const OUTBREAK_ALERTS_FALLBACK: { data: OutbreakAlert[] } = { data: [] };
 
 export function useOutbreakAlerts() {
+  const tenantId = useTenantId();
   return useQuery({
-    queryKey: ['dashboard', 'alerts'],
+    queryKey: ['dashboard', 'alerts', tenantId],
     queryFn: withFallback(
       () => apiClient.get<{ data: OutbreakAlert[] }>('/animal-health/alerts'),
       OUTBREAK_ALERTS_FALLBACK,
@@ -2208,8 +2343,9 @@ export interface CountryOutbreakDensity {
 }
 
 export function useCountryOutbreakDensity(range?: TimeRange) {
+  const tenantId = useTenantId();
   return useQuery({
-    queryKey: ['dashboard', 'outbreak-density', range],
+    queryKey: ['dashboard', 'outbreak-density', tenantId, range],
     queryFn: () =>
       apiClient.get<{ data: CountryOutbreakDensity[] }>(
         '/analytics/dashboard/outbreak-density',
@@ -2249,13 +2385,14 @@ export function useAnalyticsTrends(params?: {
   domain?: string;
   country?: string;
 }) {
+  const tenantId = useTenantId();
   const searchParams: Record<string, string> = {};
   if (params?.range) searchParams.range = params.range;
   if (params?.domain) searchParams.domain = params.domain;
   if (params?.country) searchParams.country = params.country;
 
   return useQuery({
-    queryKey: ['analytics', 'trends', params],
+    queryKey: ['analytics', 'trends', tenantId, params],
     queryFn: () =>
       apiClient.get<{ data: TrendDataPoint[] }>(
         '/analytics/trends',
@@ -2515,8 +2652,9 @@ export interface AnalyticsSummary {
 }
 
 export function useAnalyticsSummary(range?: TimeRange) {
+  const tenantId = useTenantId();
   return useQuery({
-    queryKey: ['analytics', 'summary', range],
+    queryKey: ['analytics', 'summary', tenantId, range],
     queryFn: () =>
       apiClient.get<AnalyticsSummary>(
         '/analytics/summary',

@@ -147,7 +147,7 @@ export class TemplateService {
       throw new HttpError(404, `Template ${id} not found`);
     }
 
-    this.verifyTenantAccess(user, template.tenant_id);
+    this.verifyTenantAccess(user, template.tenant_id, template.status);
 
     const resolved = await this.resolveInheritance(template);
 
@@ -742,11 +742,16 @@ export class TemplateService {
   private verifyTenantAccess(
     user: AuthenticatedUser,
     templateTenantId: string,
+    templateStatus?: string,
   ): void {
     if (user.tenantLevel === TenantLevel.CONTINENTAL) {
       return;
     }
     if (templateTenantId === user.tenantId) {
+      return;
+    }
+    // REC / MS users can read PUBLISHED templates from any tenant
+    if (templateStatus === 'PUBLISHED') {
       return;
     }
     throw new HttpError(404, 'Template not found');

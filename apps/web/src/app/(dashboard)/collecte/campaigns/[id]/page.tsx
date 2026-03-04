@@ -1,370 +1,380 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Calendar,
-  Target,
   Users,
   Play,
-  Pause,
   CheckCircle2,
   Clock,
   XCircle,
-  Plus,
-  Trash2,
-  BarChart3,
+  FileText,
   Globe,
-  Mail,
+  BarChart3,
+  Pencil,
+  Target,
+  ClipboardEdit,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  useCollectionCampaign,
-  useActivateCampaign,
-  usePauseCampaign,
-  useCompleteCampaign,
-  useAddCampaignAssignment,
-  useRemoveCampaignAssignment,
-} from '@/lib/api/workflow-hooks';
+  useCampaign,
+  useUpdateCampaign,
+  type CollecteCampaign,
+} from '@/lib/api/hooks';
+import {
+  useFormBuilderTemplates,
+  type FormTemplateListItem,
+} from '@/lib/api/form-builder-hooks';
+import { COUNTRIES } from '@/data/countries-config';
+import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
+import { TableSkeleton } from '@/components/ui/Skeleton';
 
-function i18n(val: unknown): string {
-  if (!val) return '—';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'object' && val !== null) {
-    const obj = val as Record<string, string>;
-    return obj['en'] ?? obj['fr'] ?? Object.values(obj)[0] ?? '—';
-  }
-  return String(val);
+// Fallback templates — same deterministic UUIDs as new/edit pages
+const SEED_TEMPLATES: FormTemplateListItem[] = [
+  { id: 'a0000001-0001-4000-8000-000000000001', tenantId: '', name: 'AU-IBAR Monthly Animal Health Report', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
+  { id: 'a0000001-0002-4000-8000-000000000002', tenantId: '', name: 'Emergency Disease Reporting', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
+  { id: 'a0000001-0003-4000-8000-000000000003', tenantId: '', name: 'Mass Vaccination', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
+  { id: 'a0000001-0004-4000-8000-000000000004', tenantId: '', name: 'Meat Inspection', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
+  { id: 'a0000001-0005-4000-8000-000000000005', tenantId: '', name: 'Monthly Abattoir Report', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
+  { id: 'a0000001-0006-4000-8000-000000000006', tenantId: '', name: 'Monthly Vaccination Report', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
+  { id: 'b0000002-0001-4000-8000-000000000007', tenantId: '', name: 'Animal Breeding and Genomics', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
+  { id: 'b0000002-0002-4000-8000-000000000008', tenantId: '', name: 'Animal Population (Genetic Diversity)', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
+  { id: 'b0000002-0003-4000-8000-000000000009', tenantId: '', name: 'Animal Population and Composition', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
+  { id: 'c0000003-0001-4000-8000-00000000000e', tenantId: '', name: 'Cost of Production', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
+  { id: 'c0000003-0002-4000-8000-00000000000f', tenantId: '', name: 'Import and Export', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
+];
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
+  PLANNED: {
+    label: 'Planned',
+    color: 'text-amber-700 dark:text-amber-400',
+    bg: 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800',
+    icon: <Clock className="h-3.5 w-3.5" />,
+  },
+  ACTIVE: {
+    label: 'Active',
+    color: 'text-green-700 dark:text-green-400',
+    bg: 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800',
+    icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+  },
+  COMPLETED: {
+    label: 'Completed',
+    color: 'text-blue-700 dark:text-blue-400',
+    bg: 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800',
+    icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+  },
+  CANCELLED: {
+    label: 'Archived',
+    color: 'text-gray-600 dark:text-gray-400',
+    bg: 'bg-gray-50 border-gray-200 dark:bg-gray-800/50 dark:border-gray-700',
+    icon: <XCircle className="h-3.5 w-3.5" />,
+  },
+};
+
+function getDomainLabel(domain?: string): string {
+  if (!domain) return '—';
+  return DOMAIN_OPTIONS.find((d) => d.value === domain)?.label ?? domain;
 }
-
-const STATUS_CONFIG: Record<string, { label: string; class: string }> = {
-  PLANNED: { label: 'Planned', class: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
-  ACTIVE: { label: 'Active', class: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
-  PAUSED: { label: 'Paused', class: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
-  COMPLETED: { label: 'Completed', class: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-  CANCELLED: { label: 'Cancelled', class: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
-};
-
-const ASSIGN_STATUS: Record<string, { label: string; class: string }> = {
-  ASSIGNED: { label: 'Assigned', class: 'bg-gray-100 text-gray-700' },
-  IN_PROGRESS: { label: 'In Progress', class: 'bg-blue-100 text-blue-700' },
-  COMPLETED: { label: 'Completed', class: 'bg-green-100 text-green-700' },
-  OVERDUE: { label: 'Overdue', class: 'bg-red-100 text-red-700' },
-};
 
 export default function CampaignDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const campaignId = params.id as string;
 
-  const { data: res, isLoading } = useCollectionCampaign(campaignId);
-  const activateMut = useActivateCampaign();
-  const pauseMut = usePauseCampaign();
-  const completeMut = useCompleteCampaign();
-  const addAssignment = useAddCampaignAssignment();
-  const removeAssignment = useRemoveCampaignAssignment();
+  const { data: campaignRes, isLoading } = useCampaign(campaignId);
+  const updateCampaign = useUpdateCampaign();
 
-  const [showAddAgent, setShowAddAgent] = useState(false);
-  const [newAgent, setNewAgent] = useState({
-    userId: '',
-    countryCode: '',
-    targetSubmissions: 10,
-    dueDate: '',
-  });
+  const { data: templatesData } = useFormBuilderTemplates({ page: 1, limit: 100 });
+  const apiTemplates = useMemo(() => templatesData?.data ?? [], [templatesData]);
+
+  const campaign = (campaignRes as any)?.data as (CollecteCampaign & {
+    progress?: {
+      totalSubmissions: number;
+      validated: number;
+      rejected: number;
+      pending: number;
+      completionRate: number;
+    };
+  }) | undefined;
+
+  // Resolve each campaign templateId to a { name, tpl, tplId } object.
+  // Matching strategy: try ID match first (real DB IDs), then fall back to
+  // name match via SEED_TEMPLATES (campaigns created when form-builder was offline
+  // use hardcoded seed UUIDs that differ from the real DB UUIDs).
+  const resolvedTemplates = useMemo(() => {
+    if (!campaign) return [];
+    const tplIds = campaign.templateIds ?? (campaign.templateId ? [campaign.templateId] : []);
+    return tplIds.map((id) => {
+      // 1. Direct ID match against API templates
+      const byId = apiTemplates.find((t) => t.id === id);
+      if (byId) return { name: byId.name, tpl: byId, tplId: id };
+
+      // 2. Seed UUID → get name → match against API templates by name
+      const seed = SEED_TEMPLATES.find((s) => s.id === id);
+      if (seed) {
+        const byName = apiTemplates.find((t) => t.name === seed.name);
+        if (byName) return { name: seed.name, tpl: byName, tplId: id };
+        // API offline — use seed for display (no schema)
+        return { name: seed.name, tpl: seed, tplId: id };
+      }
+
+      return { name: id.slice(0, 8) + '...', tpl: undefined, tplId: id };
+    });
+  }, [campaign, apiTemplates]);
+
+  const templateNames = useMemo(
+    () => resolvedTemplates.map((r) => r.name),
+    [resolvedTemplates],
+  );
+
+  // Resolve country info
+  const countryInfos = useMemo(() => {
+    if (!campaign) return [];
+    return (campaign.targetCountries ?? []).map((code) => {
+      const c = COUNTRIES[code.toUpperCase()];
+      return c ? { code: c.code, name: c.name, flag: c.flag } : { code, name: code, flag: '' };
+    });
+  }, [campaign]);
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-5xl p-6">
-        <div className="space-y-4 animate-pulse">
-          <div className="h-8 w-48 rounded bg-gray-200 dark:bg-gray-800" />
-          <div className="h-64 rounded-xl bg-gray-100 dark:bg-gray-800" />
+      <div className="space-y-6 pb-12">
+        <div>
+          <Link
+            href="/collecte"
+            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Campaigns
+          </Link>
+          <div className="mt-2 h-8 w-64 rounded bg-gray-200 dark:bg-gray-800 animate-pulse" />
         </div>
+        <TableSkeleton rows={6} cols={3} />
       </div>
     );
   }
 
-  const campaign = res?.data;
   if (!campaign) {
     return (
-      <div className="mx-auto max-w-5xl p-6">
-        <p className="text-gray-500">Campaign not found.</p>
-        <Link href="/collecte/campaigns" className="mt-2 text-sm text-blue-600 hover:underline">
-          Back to campaigns
+      <div className="space-y-4 pb-12">
+        <Link
+          href="/collecte"
+          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Campaigns
         </Link>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Campaign not found</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          The campaign you&apos;re looking for doesn&apos;t exist or has been deleted.
+        </p>
       </div>
     );
   }
 
-  const statusCfg = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG['PLANNED'];
-  const assignments = campaign.assignments ?? [];
-  const progress = campaign.progress ?? {};
+  const statusCfg = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG.PLANNED;
+  const progress = campaign.progress;
+  const totalSubmissions = progress?.totalSubmissions ?? campaign.totalSubmissions ?? 0;
+  const validated = progress?.validated ?? campaign.validatedSubmissions ?? 0;
+  const rejected = progress?.rejected ?? campaign.rejectedSubmissions ?? 0;
+  const pending = totalSubmissions - validated - rejected;
   const target = campaign.targetSubmissions ?? 0;
-  const submitted = progress.submitted ?? 0;
-  const pct = target > 0 ? Math.round((submitted / target) * 100) : 0;
+  const pct = target > 0 ? Math.round((totalSubmissions / target) * 100) : 0;
+  const agentCount = Array.isArray(campaign.assignedAgents) ? campaign.assignedAgents.length : 0;
 
-  const handleAddAgent = async () => {
-    await addAssignment.mutateAsync({
-      campaignId,
-      userId: newAgent.userId,
-      countryCode: newAgent.countryCode || undefined,
-      targetSubmissions: newAgent.targetSubmissions,
-      dueDate: newAgent.dueDate || undefined,
-    });
-    setShowAddAgent(false);
-    setNewAgent({ userId: '', countryCode: '', targetSubmissions: 10, dueDate: '' });
-  };
-
-  const handleRemoveAgent = async (assignId: string) => {
-    if (!confirm('Remove this assignment?')) return;
-    await removeAssignment.mutateAsync({ campaignId, assignId });
+  const handleStatusChange = async (newStatus: 'ACTIVE' | 'COMPLETED' | 'CANCELLED') => {
+    try {
+      await updateCampaign.mutateAsync({ id: campaignId, status: newStatus });
+    } catch (err) {
+      console.error('[CampaignDetail] Status change failed:', err);
+    }
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div>
         <Link
-          href="/collecte/campaigns"
-          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+          href="/collecte"
+          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-4 w-4" />
+          Back to Campaigns
         </Link>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white truncate">
-            {i18n(campaign.name)}
-          </h1>
-          <p className="text-xs text-gray-500 font-mono">{campaign.code}</p>
-        </div>
-        <span className={cn('rounded-full px-3 py-1 text-xs font-medium', statusCfg.class)}>
-          {statusCfg.label}
-        </span>
+        <div className="mt-2 flex items-center justify-between">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
+              {campaign.name}
+            </h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {campaign.description || 'No description provided'}
+            </p>
+          </div>
+          <div className="ml-4 flex items-center gap-2 shrink-0">
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium',
+                statusCfg.bg,
+                statusCfg.color,
+              )}
+            >
+              {statusCfg.icon}
+              {statusCfg.label}
+            </span>
 
-        {/* Status action buttons */}
-        {campaign.status === 'PLANNED' && (
-          <button
-            onClick={() => activateMut.mutate(campaignId)}
-            className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
-          >
-            <Play className="h-3 w-3" /> Activate
-          </button>
-        )}
-        {campaign.status === 'ACTIVE' && (
-          <>
-            <button
-              onClick={() => pauseMut.mutate(campaignId)}
-              className="inline-flex items-center gap-1 rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50"
-            >
-              <Pause className="h-3 w-3" /> Pause
-            </button>
-            <button
-              onClick={() => completeMut.mutate(campaignId)}
-              className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
-            >
-              <CheckCircle2 className="h-3 w-3" /> Complete
-            </button>
-          </>
-        )}
-        {campaign.status === 'PAUSED' && (
-          <button
-            onClick={() => activateMut.mutate(campaignId)}
-            className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
-          >
-            <Play className="h-3 w-3" /> Resume
-          </button>
-        )}
+            {/* Status action buttons */}
+            {campaign.status === 'PLANNED' && (
+              <>
+                <button
+                  onClick={() => handleStatusChange('ACTIVE')}
+                  disabled={updateCampaign.isPending}
+                  className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                >
+                  <Play className="h-3 w-3" /> Activate
+                </button>
+                <Link
+                  href={`/collecte/campaigns/${campaignId}/edit`}
+                  className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  <Pencil className="h-3 w-3" /> Edit
+                </Link>
+              </>
+            )}
+            {campaign.status === 'ACTIVE' && (
+              <button
+                onClick={() => handleStatusChange('COMPLETED')}
+                disabled={updateCampaign.isPending}
+                className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                <CheckCircle2 className="h-3 w-3" /> Complete
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Campaign details grid */}
+      {/* Content grid */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left — Info + Progress */}
+        {/* Left — Main content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Description */}
-          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5">
-            <p className="text-sm text-gray-700 dark:text-gray-300">
-              {i18n(campaign.description)}
-            </p>
-            <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <div>
-                <label className="text-[10px] uppercase tracking-wider text-gray-500">Domain</label>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{campaign.domain ?? '—'}</p>
-              </div>
-              <div>
-                <label className="text-[10px] uppercase tracking-wider text-gray-500">Frequency</label>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{campaign.frequency ?? '—'}</p>
-              </div>
-              <div>
-                <label className="text-[10px] uppercase tracking-wider text-gray-500">Scope</label>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{campaign.scope ?? '—'}</p>
-              </div>
-              <div>
-                <label className="text-[10px] uppercase tracking-wider text-gray-500">Reminders</label>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {campaign.sendReminders ? `${campaign.reminderDaysBefore}d before` : 'Off'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Progress */}
-          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Progress</h3>
-            <div className="mt-3 grid grid-cols-3 gap-4">
+          {/* Progress card */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+              <BarChart3 className="h-4 w-4 text-gray-400" />
+              Progress
+            </h3>
+            <div className="grid grid-cols-3 gap-4 mb-4">
               <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3 text-center">
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{submitted}</p>
-                <p className="text-[10px] text-gray-500">Submitted</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalSubmissions}</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Submitted</p>
               </div>
               <div className="rounded-lg bg-green-50 dark:bg-green-900/20 p-3 text-center">
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{progress.validated ?? 0}</p>
-                <p className="text-[10px] text-gray-500">Validated</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{validated}</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Validated</p>
               </div>
               <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-3 text-center">
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{progress.rejected ?? 0}</p>
-                <p className="text-[10px] text-gray-500">Rejected</p>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{rejected}</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Rejected</p>
               </div>
             </div>
-            <div className="mt-4">
-              <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                <span>{submitted} / {target}</span>
-                <span>{pct}%</span>
+            <div>
+              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
+                <span>{totalSubmissions} / {target || '—'} submissions</span>
+                <span className="font-semibold text-gray-700 dark:text-gray-300">{pct}%</span>
               </div>
-              <div className="h-3 w-full rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-blue-500 transition-all"
-                  style={{ width: `${pct}%` }}
-                />
+              <div className="h-2.5 w-full rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                <div className="flex h-full">
+                  <div className="bg-green-500 rounded-l-full transition-all" style={{ width: `${target > 0 ? Math.min((validated / target) * 100, 100) : 0}%` }} />
+                  <div className="bg-blue-300 dark:bg-blue-700 transition-all" style={{ width: `${target > 0 ? Math.min((pending / target) * 100, 100) : 0}%` }} />
+                  {rejected > 0 && (
+                    <div className="bg-red-400 dark:bg-red-600 transition-all" style={{ width: `${target > 0 ? Math.min((rejected / target) * 100, 100) : 0}%` }} />
+                  )}
+                </div>
+              </div>
+              <div className="mt-2 flex items-center gap-4 text-[10px] text-gray-400 dark:text-gray-500">
+                <span className="flex items-center gap-1">
+                  <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
+                  Validated ({validated})
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block h-2 w-2 rounded-full bg-blue-300 dark:bg-blue-700" />
+                  Pending ({pending})
+                </span>
+                {rejected > 0 && (
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block h-2 w-2 rounded-full bg-red-400" />
+                    Rejected ({rejected})
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Assignments */}
-          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                Agent Assignments ({assignments.length})
-              </h3>
-              <button
-                onClick={() => setShowAddAgent(true)}
-                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
-              >
-                <Plus className="h-3 w-3" /> Add Agent
-              </button>
-            </div>
-
-            {showAddAgent && (
-              <div className="mb-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10 p-4 space-y-3">
-                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  <div>
-                    <label className="text-xs font-medium text-gray-600">User ID</label>
-                    <input
-                      value={newAgent.userId}
-                      onChange={(e) => setNewAgent((s) => ({ ...s, userId: e.target.value }))}
-                      className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
-                      placeholder="UUID"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-600">Country Code</label>
-                    <input
-                      value={newAgent.countryCode}
-                      onChange={(e) => setNewAgent((s) => ({ ...s, countryCode: e.target.value.toUpperCase() }))}
-                      maxLength={2}
-                      className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm uppercase"
-                      placeholder="KE"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-600">Target</label>
-                    <input
-                      type="number"
-                      value={newAgent.targetSubmissions}
-                      onChange={(e) => setNewAgent((s) => ({ ...s, targetSubmissions: Number(e.target.value) }))}
-                      className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-600">Due Date</label>
-                    <input
-                      type="date"
-                      value={newAgent.dueDate}
-                      onChange={(e) => setNewAgent((s) => ({ ...s, dueDate: e.target.value }))}
-                      className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => setShowAddAgent(false)}
-                    className="rounded border border-gray-300 px-3 py-1 text-xs text-gray-600 hover:bg-gray-100"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleAddAgent}
-                    disabled={!newAgent.userId || addAssignment.isPending}
-                    className="rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {addAssignment.isPending ? 'Adding...' : 'Add'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {assignments.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">No agents assigned yet.</p>
+          {/* Form Templates card */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+              <FileText className="h-4 w-4 text-gray-400" />
+              Form Templates ({templateNames.length})
+            </h3>
+            {resolvedTemplates.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No templates assigned.</p>
             ) : (
               <div className="space-y-2">
-                {assignments.map((a: any) => {
-                  const aPct = a.targetSubmissions > 0
-                    ? Math.round((a.completedSubmissions / a.targetSubmissions) * 100)
-                    : 0;
-                  const aStatus = ASSIGN_STATUS[a.status] ?? ASSIGN_STATUS['ASSIGNED'];
-
+                {resolvedTemplates.map((rt, i) => {
+                  // Use the real DB ID for the submit link (so schema lookup works)
+                  const linkId = rt.tpl?.id ?? rt.tplId;
                   return (
                     <div
-                      key={a.id}
-                      className="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-4 py-3"
+                      key={rt.tplId ?? i}
+                      className="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50"
                     >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700">
-                        <Users className="h-4 w-4 text-gray-500" />
-                      </div>
+                      <FileText className="h-4 w-4 text-gray-400 shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {a.user?.displayName ?? a.user?.email ?? a.userId?.slice(0, 8)}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          {a.countryCode && (
-                            <span className="flex items-center gap-0.5">
-                              <Globe className="h-3 w-3" /> {a.countryCode}
-                            </span>
-                          )}
-                          <span>{a.completedSubmissions} / {a.targetSubmissions}</span>
-                          {a.dueDate && (
-                            <span>Due: {new Date(a.dueDate).toLocaleDateString()}</span>
-                          )}
-                        </div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{rt.name}</p>
+                        {rt.tpl && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {getDomainLabel(rt.tpl.domain)} &middot; v{rt.tpl.version}
+                          </p>
+                        )}
                       </div>
-                      <div className="w-24">
-                        <div className="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
-                          <div
-                            className="h-full rounded-full bg-blue-500"
-                            style={{ width: `${aPct}%` }}
-                          />
-                        </div>
-                        <p className="mt-0.5 text-[10px] text-right text-gray-500">{aPct}%</p>
-                      </div>
-                      <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', aStatus.class)}>
-                        {aStatus.label}
-                      </span>
-                      <button
-                        onClick={() => handleRemoveAgent(a.id)}
-                        className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      {campaign.status === 'ACTIVE' && linkId && (
+                        <Link
+                          href={`/collecte/campaigns/${campaignId}/submit/${linkId}`}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 shrink-0"
+                        >
+                          <ClipboardEdit className="h-3.5 w-3.5" />
+                          Fill Form
+                        </Link>
+                      )}
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+          {/* Target Countries card */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+              <Globe className="h-4 w-4 text-gray-400" />
+              Target Countries ({countryInfos.length})
+            </h3>
+            {countryInfos.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No countries specified.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {countryInfos.map((c) => (
+                  <span
+                    key={c.code}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                  >
+                    <span className="text-sm">{c.flag}</span>
+                    {c.name}
+                  </span>
+                ))}
               </div>
             )}
           </div>
@@ -372,58 +382,133 @@ export default function CampaignDetailPage() {
 
         {/* Right sidebar */}
         <div className="space-y-4">
-          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Campaign Info</h3>
-            <dl className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Status</dt>
-                <dd><span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', statusCfg.class)}>{statusCfg.label}</span></dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Start Date</dt>
-                <dd className="text-xs">{campaign.startDate ? new Date(campaign.startDate).toLocaleDateString() : '—'}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">End Date</dt>
-                <dd className="text-xs">{campaign.endDate ? new Date(campaign.endDate).toLocaleDateString() : '—'}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Target</dt>
-                <dd className="text-xs font-medium">{target} submissions</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Per Agent</dt>
-                <dd className="text-xs">{campaign.targetPerAgent ?? '—'}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Countries</dt>
-                <dd className="text-xs">{(campaign.targetCountries ?? []).join(', ') || '—'}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Form Template</dt>
-                <dd className="text-xs truncate max-w-[120px]">
-                  {campaign.formTemplate?.title ?? campaign.formTemplateId?.slice(0, 8) ?? '—'}
+          {/* Campaign Info */}
+          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Campaign Info</h3>
+            <dl className="space-y-3 text-sm">
+              <div className="flex justify-between items-center">
+                <dt className="text-gray-500 dark:text-gray-400">Status</dt>
+                <dd>
+                  <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium', statusCfg.bg, statusCfg.color)}>
+                    {statusCfg.icon}
+                    {statusCfg.label}
+                  </span>
                 </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-500 dark:text-gray-400">Domain</dt>
+                <dd className="text-xs font-medium text-gray-900 dark:text-white">{getDomainLabel(campaign.domain)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" /> Start
+                </dt>
+                <dd className="text-xs text-gray-900 dark:text-white">
+                  {campaign.startDate ? new Date(campaign.startDate).toLocaleDateString() : '—'}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" /> End
+                </dt>
+                <dd className="text-xs text-gray-900 dark:text-white">
+                  {campaign.endDate ? new Date(campaign.endDate).toLocaleDateString() : '—'}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                  <Target className="h-3.5 w-3.5" /> Target
+                </dt>
+                <dd className="text-xs font-medium text-gray-900 dark:text-white">{target || '—'} submissions</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                  <FileText className="h-3.5 w-3.5" /> Forms
+                </dt>
+                <dd className="text-xs font-medium text-gray-900 dark:text-white">{templateNames.length}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                  <Globe className="h-3.5 w-3.5" /> Countries
+                </dt>
+                <dd className="text-xs font-medium text-gray-900 dark:text-white">{countryInfos.length}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                  <Users className="h-3.5 w-3.5" /> Agents
+                </dt>
+                <dd className="text-xs font-medium text-gray-900 dark:text-white">{agentCount}</dd>
               </div>
             </dl>
           </div>
 
-          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Notifications</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-gray-400" />
-                <span className="text-gray-600 dark:text-gray-400">
-                  Reminders: {campaign.sendReminders ? 'Enabled' : 'Disabled'}
-                </span>
-              </div>
-              {campaign.sendReminders && campaign.reminderDaysBefore && (
-                <p className="text-xs text-gray-500 pl-6">
-                  {campaign.reminderDaysBefore} days before deadline
+          {/* Quick Actions */}
+          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Actions</h3>
+            <div className="space-y-2">
+              {campaign.status === 'PLANNED' && (
+                <>
+                  <Link
+                    href={`/collecte/campaigns/${campaignId}/edit`}
+                    className="flex w-full items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                  >
+                    <Pencil className="h-4 w-4 text-gray-400" />
+                    Edit Campaign
+                  </Link>
+                  <button
+                    onClick={() => handleStatusChange('ACTIVE')}
+                    disabled={updateCampaign.isPending}
+                    className="flex w-full items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 disabled:opacity-50"
+                  >
+                    <Play className="h-4 w-4" />
+                    {updateCampaign.isPending ? 'Activating...' : 'Activate Campaign'}
+                  </button>
+                </>
+              )}
+              {campaign.status === 'ACTIVE' && (
+                <>
+                  <button
+                    onClick={() => handleStatusChange('COMPLETED')}
+                    disabled={updateCampaign.isPending}
+                    className="flex w-full items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    {updateCampaign.isPending ? 'Completing...' : 'Mark as Complete'}
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange('CANCELLED')}
+                    disabled={updateCampaign.isPending}
+                    className="flex w-full items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 disabled:opacity-50"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Archive
+                  </button>
+                </>
+              )}
+              {(campaign.status === 'COMPLETED' || campaign.status === 'CANCELLED') && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">
+                  No actions available for {statusCfg.label.toLowerCase()} campaigns.
                 </p>
               )}
             </div>
           </div>
+
+          {/* Country flags visual */}
+          {countryInfos.length > 0 && (
+            <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Coverage</h3>
+              <div className="flex flex-wrap gap-1">
+                {countryInfos.map((c) => (
+                  <span key={c.code} className="text-lg" title={c.name}>
+                    {c.flag}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                {countryInfos.length} countr{countryInfos.length !== 1 ? 'ies' : 'y'} targeted
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

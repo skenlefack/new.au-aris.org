@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore, type UserRole } from '@/lib/stores/auth-store';
+import { useTranslations } from '@/lib/i18n/translations';
 import type { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard,
@@ -33,7 +34,7 @@ import {
 /* ------------------------------------------------------------------ */
 
 interface NavItem {
-  label: string;
+  tKey: string;
   href: string;
   icon: LucideIcon;
   matchPrefix: string;
@@ -42,7 +43,7 @@ interface NavItem {
 }
 
 interface NavGroup {
-  label: string;
+  tKey: string;
   items: NavItem[];
 }
 
@@ -52,51 +53,51 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'OVERVIEW',
+    tKey: 'sectionOverview',
     items: [
-      { label: 'Dashboard', href: '/home', icon: LayoutDashboard, matchPrefix: '/home' },
+      { tKey: 'home', href: '/home', icon: LayoutDashboard, matchPrefix: '/home' },
     ],
   },
   {
-    label: 'DOMAIN',
+    tKey: 'sectionDomain',
     items: [
-      { label: 'Animal Health', href: '/animal-health', icon: HeartPulse, matchPrefix: '/animal-health' },
-      { label: 'Livestock', href: '/livestock', icon: Wheat, matchPrefix: '/livestock' },
-      { label: 'Fisheries', href: '/fisheries', icon: Fish, matchPrefix: '/fisheries' },
-      { label: 'Trade & SPS', href: '/trade', icon: TrendingUp, matchPrefix: '/trade' },
-      { label: 'Knowledge', href: '/knowledge', icon: BookOpen, matchPrefix: '/knowledge' },
+      { tKey: 'animalHealth', href: '/animal-health', icon: HeartPulse, matchPrefix: '/animal-health' },
+      { tKey: 'livestock', href: '/livestock', icon: Wheat, matchPrefix: '/livestock' },
+      { tKey: 'fisheries', href: '/fisheries', icon: Fish, matchPrefix: '/fisheries' },
+      { tKey: 'tradeSps', href: '/trade', icon: TrendingUp, matchPrefix: '/trade' },
+      { tKey: 'knowledge', href: '/knowledge', icon: BookOpen, matchPrefix: '/knowledge' },
     ],
   },
   {
-    label: 'OPERATIONS',
+    tKey: 'sectionOperations',
     items: [
-      { label: 'Collecte', href: '/collecte', icon: ClipboardList, matchPrefix: '/collecte' },
-      { label: 'Workflow', href: '/workflow', icon: GitPullRequestArrow, matchPrefix: '/workflow' },
-      { label: 'Master Data', href: '/master-data', icon: Database, matchPrefix: '/master-data' },
+      { tKey: 'collecte', href: '/collecte', icon: ClipboardList, matchPrefix: '/collecte' },
+      { tKey: 'workflow', href: '/workflow', icon: GitPullRequestArrow, matchPrefix: '/workflow' },
+      { tKey: 'masterData', href: '/master-data', icon: Database, matchPrefix: '/master-data' },
     ],
   },
   {
-    label: 'MONITORING',
+    tKey: 'sectionMonitoring',
     items: [
-      { label: 'Quality', href: '/quality', icon: ShieldCheck, matchPrefix: '/quality' },
-      { label: 'Interop', href: '/interop', icon: ArrowLeftRight, matchPrefix: '/interop' },
-      { label: 'Analytics', href: '/analytics', icon: BarChart3, matchPrefix: '/analytics' },
-      { label: 'Historical Data', href: '/historical', icon: HardDrive, matchPrefix: '/historical' },
-      { label: 'Reports', href: '/reports', icon: FileBarChart, matchPrefix: '/reports' },
+      { tKey: 'quality', href: '/quality', icon: ShieldCheck, matchPrefix: '/quality' },
+      { tKey: 'interop', href: '/interop', icon: ArrowLeftRight, matchPrefix: '/interop' },
+      { tKey: 'analytics', href: '/analytics', icon: BarChart3, matchPrefix: '/analytics' },
+      { tKey: 'historicalData', href: '/historical', icon: HardDrive, matchPrefix: '/historical' },
+      { tKey: 'reports', href: '/reports', icon: FileBarChart, matchPrefix: '/reports' },
     ],
   },
   {
-    label: 'BI TOOLS',
+    tKey: 'sectionBiTools',
     items: [
-      { label: 'Superset', href: '/bi-tools/superset', icon: Layers, matchPrefix: '/bi-tools/superset' },
-      { label: 'Metabase', href: '/bi-tools/metabase', icon: PieChart, matchPrefix: '/bi-tools/metabase' },
-      { label: 'Power BI', href: '#', icon: BarChart2, matchPrefix: '/bi-tools/powerbi', badge: 'Soon', disabled: true },
+      { tKey: 'superset', href: '/bi-tools/superset', icon: Layers, matchPrefix: '/bi-tools/superset' },
+      { tKey: 'metabase', href: '/bi-tools/metabase', icon: PieChart, matchPrefix: '/bi-tools/metabase' },
+      { tKey: 'powerBi', href: '#', icon: BarChart2, matchPrefix: '/bi-tools/powerbi', badge: 'Soon', disabled: true },
     ],
   },
   {
-    label: 'ADMIN',
+    tKey: 'sectionAdmin',
     items: [
-      { label: 'Settings', href: '/settings', icon: Settings, matchPrefix: '/settings' },
+      { tKey: 'settings', href: '/settings', icon: Settings, matchPrefix: '/settings' },
     ],
   },
 ];
@@ -117,17 +118,17 @@ const ROLE_ACCESS: Record<UserRole, Set<string>> = {
   ]),
   WAHIS_FOCAL_POINT: new Set([
     '/home', '/animal-health', '/livestock', '/fisheries', '/trade',
-    '/knowledge', '/analytics', '/historical', '/reports', '/interop',
+    '/knowledge', '/collecte', '/analytics', '/historical', '/reports', '/interop',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/powerbi',
   ]),
   DATA_STEWARD: new Set([
     '/home', '/animal-health', '/livestock', '/fisheries', '/trade',
-    '/knowledge', '/analytics', '/historical', '/reports', '/quality', '/workflow',
+    '/knowledge', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/powerbi',
   ]),
   NATIONAL_ADMIN: new Set([
     '/home', '/animal-health', '/livestock', '/fisheries', '/trade',
-    '/knowledge', '/analytics', '/historical', '/reports', '/quality', '/workflow',
+    '/knowledge', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
     '/master-data', '/settings',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/powerbi',
   ]),
@@ -171,6 +172,7 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuthStore();
+  const t = useTranslations('nav');
   const visibleGroups = filterGroupsByRole(user?.role);
 
   const sidebarRef = useRef<HTMLElement>(null);
@@ -233,7 +235,7 @@ export function Sidebar({
             <Icon className="h-[18px] w-[18px]" />
           </span>
           {!collapsed && (
-            <span className="truncate text-slate-400 dark:text-slate-600">{item.label}</span>
+            <span className="truncate text-slate-400 dark:text-slate-600">{t(item.tKey)}</span>
           )}
           {!collapsed && item.badge && (
             <span className="ml-auto rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-400 dark:bg-slate-800 dark:text-slate-500">
@@ -244,7 +246,7 @@ export function Sidebar({
         {collapsed && (
           <div className="sidebar-tooltip">
             <div className="sidebar-tooltip-arrow" />
-            {item.label} ({item.badge})
+            {t(item.tKey)} ({item.badge})
           </div>
         )}
       </div>
@@ -280,14 +282,14 @@ export function Sidebar({
           >
             <Icon className="h-[18px] w-[18px]" />
           </span>
-          {!collapsed && <span className="truncate">{item.label}</span>}
+          {!collapsed && <span className="truncate">{t(item.tKey)}</span>}
         </Link>
 
         {/* Tooltip — fixed position, escapes overflow-y-auto clipping */}
         {collapsed && (
           <div className="sidebar-tooltip">
             <div className="sidebar-tooltip-arrow" />
-            {item.label}
+            {t(item.tKey)}
           </div>
         )}
       </div>
@@ -392,13 +394,13 @@ export function Sidebar({
         aria-label="Main navigation"
       >
         {visibleGroups.map((group, gi) => (
-          <div key={group.label} className={cn(gi > 0 && 'mt-5')}>
+          <div key={group.tKey} className={cn(gi > 0 && 'mt-5')}>
             {/* Section label */}
             {collapsed ? (
               <div className="mx-auto my-2 h-px w-6 bg-slate-200 dark:bg-white/10" />
             ) : (
               <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">
-                {group.label}
+                {t(group.tKey)}
               </p>
             )}
             <div className="space-y-0.5">

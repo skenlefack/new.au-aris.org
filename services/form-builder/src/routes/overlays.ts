@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import type { FastifyInstance } from 'fastify';
 import { UserRole } from '@aris/shared-types';
 import { authHook, rolesHook, tenantHook } from '@aris/auth-middleware';
@@ -39,10 +40,11 @@ const PROPAGATE_ROLES = [
 export default async function overlayRoutes(app: FastifyInstance): Promise<void> {
   const service = new OverlayService(app.prisma, app.kafka.producer);
 
-  const authOpts: AuthHookOptions = {
-    publicKey: process.env['JWT_PUBLIC_KEY'] ?? '',
-  };
-  const auth = authHook(authOpts);
+  let pubKey = (process.env['JWT_PUBLIC_KEY'] ?? '').replace(/\\n/g, '\n');
+  if (!pubKey && process.env['JWT_PUBLIC_KEY_PATH']) {
+    try { pubKey = readFileSync(process.env['JWT_PUBLIC_KEY_PATH'], 'utf8'); } catch { /* ignore */ }
+  }
+  const auth = authHook({ publicKey: pubKey });
   const tenant = tenantHook();
 
   // ── POST /api/v1/form-builder/templates/:id/overlays ──
