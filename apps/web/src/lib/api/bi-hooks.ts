@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const TENANT_API =
-  process.env.NEXT_PUBLIC_TENANT_API_URL ?? 'http://localhost:3001/api/v1';
+  process.env.NEXT_PUBLIC_TENANT_API_URL ?? '/api/v1';
 
 /* ── Types ── */
 
@@ -58,7 +58,7 @@ const FALLBACK_TOOLS: BiToolConfig[] = [
   {
     id: 'superset',
     tool: 'superset',
-    baseUrl: 'http://localhost:8088',
+    baseUrl: process.env.NEXT_PUBLIC_SUPERSET_URL ?? '/api/bi-proxy/superset',
     displayName: { en: 'Apache Superset', fr: 'Apache Superset' },
     description: {
       en: 'Advanced analytics and data exploration platform',
@@ -72,7 +72,7 @@ const FALLBACK_TOOLS: BiToolConfig[] = [
   {
     id: 'metabase',
     tool: 'metabase',
-    baseUrl: 'http://localhost:3035',
+    baseUrl: process.env.NEXT_PUBLIC_METABASE_URL ?? '/api/bi-proxy/metabase',
     displayName: { en: 'Metabase', fr: 'Metabase' },
     description: {
       en: 'Simple and intuitive business intelligence tool',
@@ -84,16 +84,16 @@ const FALLBACK_TOOLS: BiToolConfig[] = [
     sortOrder: 2,
   },
   {
-    id: 'powerbi',
-    tool: 'powerbi',
-    baseUrl: '',
-    displayName: { en: 'Power BI', fr: 'Power BI' },
+    id: 'grafana',
+    tool: 'grafana',
+    baseUrl: process.env.NEXT_PUBLIC_GRAFANA_URL ?? '/api/bi-proxy/grafana',
+    displayName: { en: 'Grafana', fr: 'Grafana' },
     description: {
-      en: 'Microsoft Power BI integration (coming soon)',
-      fr: 'Integration Microsoft Power BI (bientot disponible)',
+      en: 'Dashboard builder with PostgreSQL queries, variables, and alerting',
+      fr: 'Constructeur de tableaux de bord avec requetes PostgreSQL, variables et alertes',
     },
     icon: 'BarChart2',
-    status: 'coming_soon',
+    status: 'active',
     embedMode: 'iframe',
     sortOrder: 3,
   },
@@ -128,7 +128,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
-/* ── Hooks ── */
+/* ── Hooks — Tool Configs ── */
 
 export function useBiTools() {
   return useQuery({
@@ -174,10 +174,7 @@ export function useBiEmbedUrl(tool: string) {
         if (!config || config.status !== 'active') {
           return { data: { url: null, guestToken: null } };
         }
-        const url =
-          tool === 'superset'
-            ? `${config.baseUrl}/superset/welcome/?standalone=true`
-            : config.baseUrl;
+        const url = config.baseUrl;
         return { data: { url, guestToken: null } };
       }
     },
@@ -185,6 +182,8 @@ export function useBiEmbedUrl(tool: string) {
     staleTime: 5 * 60_000,
   });
 }
+
+/* ── Hooks — Dashboards ── */
 
 export function useBiDashboards(tool?: string) {
   return useQuery({
@@ -200,6 +199,8 @@ export function useBiDashboards(tool?: string) {
     staleTime: 5 * 60_000,
   });
 }
+
+/* ── Hooks — Access Rules ── */
 
 export function useBiAccessRules(tool?: string) {
   return useQuery({
@@ -254,5 +255,48 @@ export function useUpsertBiAccessRule() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['bi', 'access-rules'] });
     },
+  });
+}
+
+/* ── Hooks — Superset Guest Token ── */
+
+export function useRequestSupersetGuestToken() {
+  return useMutation({
+    mutationFn: async (params: { dashboardId: string }) => {
+      return apiFetch<{ data: { guestToken: string } }>('/bi/superset/guest-token', {
+        method: 'POST',
+        body: JSON.stringify(params),
+      });
+    },
+  });
+}
+
+/* ── Hooks — Metabase Session ── */
+
+export function useRequestMetabaseSession() {
+  return useMutation({
+    mutationFn: async () => {
+      return apiFetch<{ data: { sessionToken: string } }>('/bi/metabase/session', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+    },
+  });
+}
+
+/* ── Hooks — Grafana Embed URL ── */
+
+export function useGrafanaEmbedUrl(dashboardUid?: string) {
+  return useQuery({
+    queryKey: ['bi', 'grafana', 'embed-url', dashboardUid],
+    queryFn: async () => {
+      try {
+        const params = dashboardUid ? `?dashboardUid=${dashboardUid}` : '';
+        return await apiFetch<{ data: { url: string } }>(`/bi/grafana/embed-url${params}`);
+      } catch {
+        return { data: { url: '/api/bi-proxy/grafana/?kiosk' } };
+      }
+    },
+    staleTime: 5 * 60_000,
   });
 }

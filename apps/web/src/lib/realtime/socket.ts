@@ -3,7 +3,7 @@
 import { io, type Socket } from 'socket.io-client';
 
 const WS_URL =
-  process.env.NEXT_PUBLIC_REALTIME_URL ?? 'http://localhost:3008';
+  process.env.NEXT_PUBLIC_WS_URL ?? process.env.NEXT_PUBLIC_REALTIME_URL ?? '';
 
 let socket: Socket | null = null;
 

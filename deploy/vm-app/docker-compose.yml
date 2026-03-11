@@ -1,0 +1,871 @@
+# ═══════════════════════════════════════════════════════════════
+# ARIS 4.0 — VM-APP: All Microservices + Traefik + Monitoring + BI
+# Host: 10.202.101.183 (nbo-aris04)
+# ═══════════════════════════════════════════════════════════════
+# External dependencies (on other VMs):
+#   PostgreSQL/PgBouncer → 10.202.101.185:6432/5432
+#   Kafka               → 10.202.101.184:9092,9094,9096
+#   Redis               → 10.202.101.186:6379
+#   OpenSearch           → 10.202.101.186:9200
+# ═══════════════════════════════════════════════════════════════
+
+x-service-common: &service-common
+  restart: unless-stopped
+  networks:
+    - aris-app-network
+
+x-service-env: &service-env
+  NODE_ENV: production
+  LOG_LEVEL: info
+  DATABASE_URL: postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-Ar1s_Pr0d_2024!xK9mZ}@10.202.101.185:6432/${POSTGRES_DB:-aris}?pgbouncer=true
+  DIRECT_DATABASE_URL: postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-Ar1s_Pr0d_2024!xK9mZ}@10.202.101.185:5432/${POSTGRES_DB:-aris}
+  REDIS_URL: redis://:${REDIS_PASSWORD:-R3d1s_Pr0d_2024!vN7wQ}@10.202.101.186:6379
+  KAFKA_BROKERS: 10.202.101.184:9092,10.202.101.184:9094,10.202.101.184:9096
+  SCHEMA_REGISTRY_URL: http://10.202.101.184:8081
+  OPENSEARCH_URL: http://10.202.101.186:9200
+  MINIO_ENDPOINT: minio
+  MINIO_PORT: "9000"
+  MINIO_ROOT_USER: ${MINIO_ROOT_USER:-aris_minio_prod}
+  MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-M1n10_Pr0d_2024!jH6pR}
+  MINIO_BUCKET: aris-documents
+  SMTP_HOST: mailpit
+  SMTP_PORT: "1025"
+  SMTP_FROM: noreply@au-aris.org
+  JWT_PRIVATE_KEY_PATH: /app/keys/private.pem
+  JWT_PUBLIC_KEY_PATH: /app/keys/public.pem
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+  OTEL_EXPORTER_OTLP_PROTOCOL: http
+  OTEL_ENVIRONMENT: production
+  OTEL_TRACES_SAMPLER_ARG: "0.1"
+
+x-service-build: &service-build
+  context: /opt/aris
+  dockerfile: Dockerfile.service
+
+x-service-volumes: &service-volumes
+  - /opt/aris/keys:/app/keys:ro
+
+services:
+
+  # ═══════════════════════════════════════════════════
+  #  TRAEFIK — API Gateway & Reverse Proxy
+  # ═══════════════════════════════════════════════════
+  traefik:
+    image: traefik:latest
+    container_name: aris-traefik
+    <<: *service-common
+    environment:
+      DOCKER_API_VERSION: "1.45"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8090:8080"
+    command:
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=aris-app-network"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+      - "--accesslog.format=json"
+      - "--ping=true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ═══════════════════════════════════════════════════
+  #  MINIO — S3-compatible Object Storage
+  # ═══════════════════════════════════════════════════
+  minio:
+    image: minio/minio:RELEASE.2024-04-18T19-09-19Z
+    container_name: aris-minio
+    <<: *service-common
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-aris_minio_prod}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-M1n10_Pr0d_2024!jH6pR}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ═══════════════════════════════════════════════════
+  #  MAILPIT — Email (production: replace with real SMTP relay)
+  # ═══════════════════════════════════════════════════
+  mailpit:
+    image: axllent/mailpit:v1.18
+    container_name: aris-mailpit
+    <<: *service-common
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  # ═══════════════════════════════════════════════════
+  #  MONITORING — Prometheus + Grafana + Jaeger
+  # ═══════════════════════════════════════════════════
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    container_name: aris-prometheus
+    <<: *service-common
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=90d"
+      - "--web.enable-lifecycle"
+    volumes:
+      - /opt/aris-deploy/vm-app/prometheus-production.yml:/etc/prometheus/prometheus.yml:ro
+      - /opt/aris/infra/prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus-data:/prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: aris-grafana
+    <<: *service-common
+    ports:
+      - "3200:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-Gr4f4na_Pr0d_2024!aS7dF}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_PROXY_ENABLED: "true"
+      GF_AUTH_PROXY_HEADER_NAME: "X-WEBAUTH-USER"
+      GF_AUTH_PROXY_HEADER_PROPERTY: "email"
+      GF_AUTH_PROXY_AUTO_SIGN_UP: "true"
+      GF_AUTH_PROXY_HEADERS: "Name:X-WEBAUTH-NAME Role:X-WEBAUTH-ROLE"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_SERVER_ROOT_URL: "http://10.202.101.183:3200"
+    volumes:
+      - /opt/aris/infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - /opt/aris-deploy/vm-app/grafana-datasources.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
+      - /opt/aris/infra/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - jaeger
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: aris-jaeger
+    <<: *service-common
+    user: "0"
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+      - "14268:14268"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      SPAN_STORAGE_TYPE: "badger"
+      BADGER_EPHEMERAL: "false"
+      BADGER_DIRECTORY_VALUE: "/badger/data"
+      BADGER_DIRECTORY_KEY: "/badger/key"
+    volumes:
+      - jaeger-data:/badger
+
+  # ═══════════════════════════════════════════════════
+  #  BI TOOLS — Superset + Metabase
+  # ═══════════════════════════════════════════════════
+  superset:
+    image: apache/superset:3.1.3
+    container_name: aris-superset
+    <<: *service-common
+    ports:
+      - "8088:8088"
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-Sup3rs3t_Pr0d_S3cr3t_2024!mW8nX}
+      TALISMAN_ENABLED: "false"
+      ENABLE_CORS: "true"
+      SQLALCHEMY_DATABASE_URI: "postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-Ar1s_Pr0d_2024!xK9mZ}@10.202.101.185:5432/${POSTGRES_DB:-aris}"
+    volumes:
+      - /opt/aris/docker/superset/superset_config.py:/app/pythonpath/superset_config.py
+      - /opt/aris/docker/superset/bootstrap_datasource.py:/app/pythonpath/bootstrap_datasource.py
+      - superset_home:/app/superset_home
+    command: >
+      bash -c "
+        superset db upgrade &&
+        superset fab create-admin --username admin --firstname ARIS --lastname Admin --email admin@au-aris.org --password '${SUPERSET_ADMIN_PASSWORD:-Sup3rs3t_Pr0d_2024!qR5tY}' || true &&
+        superset init &&
+        python /app/pythonpath/bootstrap_datasource.py &&
+        superset run -h 0.0.0.0 -p 8088 --with-threads
+      "
+
+  metabase:
+    image: metabase/metabase:v0.49.6
+    container_name: aris-metabase
+    <<: *service-common
+    ports:
+      - "3035:3000"
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: metabase
+      MB_DB_PORT: "5432"
+      MB_DB_USER: ${POSTGRES_USER:-aris}
+      MB_DB_PASS: ${POSTGRES_PASSWORD:-Ar1s_Pr0d_2024!xK9mZ}
+      MB_DB_HOST: 10.202.101.185
+      MB_EMBEDDING_SECRET_KEY: ${METABASE_EMBEDDING_SECRET:-M3tab4se_Emb3d_Pr0d_2024!uI2oP}
+      MB_ENABLE_EMBEDDING: "true"
+      MB_EMBEDDING_APP_ORIGIN: "http://10.202.101.183"
+      MB_SITE_LOCALE: en
+      MB_SITE_NAME: "ARIS BI Analytics"
+      MB_ANON_TRACKING_ENABLED: "false"
+      JAVA_OPTS: "-Dmetabase.embedding.app.origin=http://10.202.101.183"
+    volumes:
+      - metabase_data:/metabase-data
+
+  # ═══════════════════════════════════════════════════
+  #  VECTOR TILE SERVER
+  # ═══════════════════════════════════════════════════
+  pg-tileserv:
+    image: pramsey/pg_tileserv:latest
+    container_name: aris-pg-tileserv
+    <<: *service-common
+    ports:
+      - "7800:7800"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-Ar1s_Pr0d_2024!xK9mZ}@10.202.101.185:5432/${POSTGRES_DB:-aris}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pg-tileserv.rule=PathPrefix(`/api/v1/geo/tiles`)"
+      - "traefik.http.services.pg-tileserv.loadbalancer.server.port=7800"
+
+  # ═══════════════════════════════════════════════════
+  #  NEXT.JS FRONTEND
+  # ═══════════════════════════════════════════════════
+  web:
+    container_name: aris-web
+    <<: *service-common
+    build:
+      context: /opt/aris
+      dockerfile: Dockerfile.web
+      args:
+        APP: web
+        NEXT_PUBLIC_API_URL: http://10.202.101.183
+        NEXT_PUBLIC_WS_URL: ws://10.202.101.183
+    ports:
+      - "3100:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://10.202.101.183
+      NEXT_PUBLIC_WS_URL: ws://10.202.101.183
+      # Server-side env vars for BI proxy API routes (Docker service names)
+      METABASE_INTERNAL_URL: http://metabase:3000
+      GRAFANA_INTERNAL_URL: http://grafana:3000
+      SUPERSET_INTERNAL_URL: http://superset:8088
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.web.priority=1"
+      - "traefik.http.services.web.loadbalancer.server.port=3000"
+
+  # ═══════════════════════════════════════════════════
+  #  PLATFORM TIER (CC-1)
+  # ═══════════════════════════════════════════════════
+  tenant:
+    container_name: aris-tenant
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: tenant
+        SERVICE_PORT: "3001"
+    ports:
+      - "3001:3001"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3001"
+      KAFKA_CLIENT_ID: aris-tenant-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tenant.rule=PathPrefix(`/api/v1/tenants`)"
+      - "traefik.http.services.tenant.loadbalancer.server.port=3001"
+
+  credential:
+    container_name: aris-credential
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: credential
+        SERVICE_PORT: "3002"
+    ports:
+      - "3002:3002"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3002"
+      KAFKA_CLIENT_ID: aris-credential-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.credential.rule=PathPrefix(`/api/v1/credential`) || PathPrefix(`/api/v1/auth`) || PathPrefix(`/api/v1/users`) || PathPrefix(`/api/v1/i18n`)"
+      - "traefik.http.services.credential.loadbalancer.server.port=3002"
+
+  message:
+    container_name: aris-message
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: message
+        SERVICE_PORT: "3006"
+    ports:
+      - "3006:3006"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3006"
+      KAFKA_CLIENT_ID: aris-message-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.message.rule=PathPrefix(`/api/v1/messages`)"
+      - "traefik.http.services.message.loadbalancer.server.port=3006"
+
+  drive:
+    container_name: aris-drive
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: drive
+        SERVICE_PORT: "3007"
+    ports:
+      - "3007:3007"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3007"
+      KAFKA_CLIENT_ID: aris-drive-service
+    volumes: *service-volumes
+    depends_on:
+      - minio
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.drive.rule=PathPrefix(`/api/v1/drive`)"
+      - "traefik.http.services.drive.loadbalancer.server.port=3007"
+
+  realtime:
+    container_name: aris-realtime
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: realtime
+        SERVICE_PORT: "3008"
+    ports:
+      - "3008:3008"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3008"
+      KAFKA_CLIENT_ID: aris-realtime-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.realtime.rule=PathPrefix(`/api/v1/realtime`) || PathPrefix(`/socket.io`)"
+      - "traefik.http.services.realtime.loadbalancer.server.port=3008"
+
+  # ═══════════════════════════════════════════════════
+  #  DATA HUB TIER (CC-2)
+  # ═══════════════════════════════════════════════════
+  master-data:
+    container_name: aris-master-data
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: master-data
+        SERVICE_PORT: "3003"
+    ports:
+      - "3003:3003"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3003"
+      KAFKA_CLIENT_ID: aris-master-data-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.master-data.rule=PathPrefix(`/api/v1/master-data`)"
+      - "traefik.http.services.master-data.loadbalancer.server.port=3003"
+
+  data-quality:
+    container_name: aris-data-quality
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: data-quality
+        SERVICE_PORT: "3004"
+    ports:
+      - "3004:3004"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3004"
+      KAFKA_CLIENT_ID: aris-data-quality-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.data-quality.rule=PathPrefix(`/api/v1/data-quality`)"
+      - "traefik.http.services.data-quality.loadbalancer.server.port=3004"
+
+  data-contract:
+    container_name: aris-data-contract
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: data-contract
+        SERVICE_PORT: "3005"
+    ports:
+      - "3005:3005"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3005"
+      KAFKA_CLIENT_ID: aris-data-contract-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.data-contract.rule=PathPrefix(`/api/v1/data-contracts`)"
+      - "traefik.http.services.data-contract.loadbalancer.server.port=3005"
+
+  interop-hub:
+    container_name: aris-interop-hub
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: interop-hub
+        SERVICE_PORT: "3032"
+    ports:
+      - "3032:3032"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3032"
+      KAFKA_CLIENT_ID: aris-interop-hub-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.interop-hub.rule=PathPrefix(`/api/v1/interop`)"
+      - "traefik.http.services.interop-hub.loadbalancer.server.port=3032"
+
+  # ═══════════════════════════════════════════════════
+  #  COLLECTE & WORKFLOW TIER (CC-3)
+  # ═══════════════════════════════════════════════════
+  form-builder:
+    container_name: aris-form-builder
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: form-builder
+        SERVICE_PORT: "3010"
+    ports:
+      - "3010:3010"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3010"
+      KAFKA_CLIENT_ID: aris-form-builder-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.form-builder.rule=PathPrefix(`/api/v1/form-builder`)"
+      - "traefik.http.services.form-builder.loadbalancer.server.port=3010"
+
+  collecte:
+    container_name: aris-collecte
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: collecte
+        SERVICE_PORT: "3011"
+    ports:
+      - "3011:3011"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3011"
+      KAFKA_CLIENT_ID: aris-collecte-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.collecte.rule=PathPrefix(`/api/v1/collecte`)"
+      - "traefik.http.services.collecte.loadbalancer.server.port=3011"
+
+  workflow:
+    container_name: aris-workflow
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: workflow
+        SERVICE_PORT: "3012"
+    ports:
+      - "3012:3012"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3012"
+      KAFKA_CLIENT_ID: aris-workflow-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.workflow.rule=PathPrefix(`/api/v1/workflow`)"
+      - "traefik.http.services.workflow.loadbalancer.server.port=3012"
+
+  # ═══════════════════════════════════════════════════
+  #  DOMAIN SERVICES TIER (CC-4)
+  # ═══════════════════════════════════════════════════
+  animal-health:
+    container_name: aris-animal-health
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: animal-health
+        SERVICE_PORT: "3020"
+    ports:
+      - "3020:3020"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3020"
+      KAFKA_CLIENT_ID: aris-animal-health-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.animal-health.rule=PathPrefix(`/api/v1/animal-health`)"
+      - "traefik.http.services.animal-health.loadbalancer.server.port=3020"
+
+  livestock-prod:
+    container_name: aris-livestock-prod
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: livestock-prod
+        SERVICE_PORT: "3021"
+    ports:
+      - "3021:3021"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3021"
+      KAFKA_CLIENT_ID: aris-livestock-prod-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.livestock-prod.rule=PathPrefix(`/api/v1/livestock`)"
+      - "traefik.http.services.livestock-prod.loadbalancer.server.port=3021"
+
+  fisheries:
+    container_name: aris-fisheries
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: fisheries
+        SERVICE_PORT: "3022"
+    ports:
+      - "3022:3022"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3022"
+      KAFKA_CLIENT_ID: aris-fisheries-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fisheries.rule=PathPrefix(`/api/v1/fisheries`)"
+      - "traefik.http.services.fisheries.loadbalancer.server.port=3022"
+
+  wildlife:
+    container_name: aris-wildlife
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: wildlife
+        SERVICE_PORT: "3023"
+    ports:
+      - "3023:3023"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3023"
+      KAFKA_CLIENT_ID: aris-wildlife-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wildlife.rule=PathPrefix(`/api/v1/wildlife`)"
+      - "traefik.http.services.wildlife.loadbalancer.server.port=3023"
+
+  apiculture:
+    container_name: aris-apiculture
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: apiculture
+        SERVICE_PORT: "3024"
+    ports:
+      - "3024:3024"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3024"
+      KAFKA_CLIENT_ID: aris-apiculture-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.apiculture.rule=PathPrefix(`/api/v1/apiculture`)"
+      - "traefik.http.services.apiculture.loadbalancer.server.port=3024"
+
+  trade-sps:
+    container_name: aris-trade-sps
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: trade-sps
+        SERVICE_PORT: "3025"
+    ports:
+      - "3025:3025"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3025"
+      KAFKA_CLIENT_ID: aris-trade-sps-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.trade-sps.rule=PathPrefix(`/api/v1/trade`)"
+      - "traefik.http.services.trade-sps.loadbalancer.server.port=3025"
+
+  governance:
+    container_name: aris-governance
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: governance
+        SERVICE_PORT: "3026"
+    ports:
+      - "3026:3026"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3026"
+      KAFKA_CLIENT_ID: aris-governance-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.governance.rule=PathPrefix(`/api/v1/governance`)"
+      - "traefik.http.services.governance.loadbalancer.server.port=3026"
+
+  climate-env:
+    container_name: aris-climate-env
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: climate-env
+        SERVICE_PORT: "3027"
+    ports:
+      - "3027:3027"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3027"
+      KAFKA_CLIENT_ID: aris-climate-env-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.climate-env.rule=PathPrefix(`/api/v1/climate`)"
+      - "traefik.http.services.climate-env.loadbalancer.server.port=3027"
+
+  # ═══════════════════════════════════════════════════
+  #  DATA & INTEGRATION TIER
+  # ═══════════════════════════════════════════════════
+  analytics:
+    container_name: aris-analytics
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: analytics
+        SERVICE_PORT: "3030"
+    ports:
+      - "3030:3030"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3030"
+      KAFKA_CLIENT_ID: aris-analytics-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.analytics.rule=PathPrefix(`/api/v1/analytics`)"
+      - "traefik.http.services.analytics.loadbalancer.server.port=3030"
+
+  geo-services:
+    container_name: aris-geo-services
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: geo-services
+        SERVICE_PORT: "3031"
+    ports:
+      - "3031:3031"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3031"
+      KAFKA_CLIENT_ID: aris-geo-services-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.geo-services.rule=PathPrefix(`/api/v1/geo`)"
+      - "traefik.http.services.geo-services.loadbalancer.server.port=3031"
+
+  knowledge-hub:
+    container_name: aris-knowledge-hub
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: knowledge-hub
+        SERVICE_PORT: "3033"
+    ports:
+      - "3033:3033"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3033"
+      KAFKA_CLIENT_ID: aris-knowledge-hub-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.knowledge-hub.rule=PathPrefix(`/api/v1/knowledge`)"
+      - "traefik.http.services.knowledge-hub.loadbalancer.server.port=3033"
+
+  # ═══════════════════════════════════════════════════
+  #  FASTIFY SERVICES
+  # ═══════════════════════════════════════════════════
+  support:
+    container_name: aris-support
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: support
+        SERVICE_PORT: "3041"
+    ports:
+      - "3041:3041"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3041"
+      KAFKA_CLIENT_ID: aris-support-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.support.rule=PathPrefix(`/api/v1/support`)"
+      - "traefik.http.services.support.loadbalancer.server.port=3041"
+
+  interop:
+    container_name: aris-interop
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: interop
+        SERVICE_PORT: "3042"
+    ports:
+      - "3042:3042"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3042"
+      KAFKA_CLIENT_ID: aris-interop-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.interop.rule=PathPrefix(`/api/v1/interop-v2`)"
+      - "traefik.http.services.interop.loadbalancer.server.port=3042"
+
+  analytics-worker:
+    container_name: aris-analytics-worker
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: analytics-worker
+        SERVICE_PORT: "3043"
+    ports:
+      - "3043:3043"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3043"
+      KAFKA_CLIENT_ID: aris-analytics-worker-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.analytics-worker.rule=PathPrefix(`/api/v1/analytics-worker`)"
+      - "traefik.http.services.analytics-worker.loadbalancer.server.port=3043"
+
+  datalake:
+    container_name: aris-datalake
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: datalake
+        SERVICE_PORT: "3044"
+    ports:
+      - "3044:3044"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3044"
+      KAFKA_CLIENT_ID: aris-datalake-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.datalake.rule=PathPrefix(`/api/v1/datalake`)"
+      - "traefik.http.services.datalake.loadbalancer.server.port=3044"
+
+  offline:
+    container_name: aris-offline
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: offline
+        SERVICE_PORT: "3040"
+    ports:
+      - "3040:3040"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3040"
+      KAFKA_CLIENT_ID: aris-offline-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.offline.rule=PathPrefix(`/api/v1/offline`)"
+      - "traefik.http.services.offline.loadbalancer.server.port=3040"
+
+volumes:
+  minio-data:
+  prometheus-data:
+  grafana-data:
+  jaeger-data:
+  superset_home:
+  metabase_data:
+
+networks:
+  aris-app-network:
+    driver: bridge
+    name: aris-app-network

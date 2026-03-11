@@ -1,5 +1,5 @@
 const BASE_URL =
-  process.env['NEXT_PUBLIC_API_BASE_URL'] ?? 'http://localhost:3002/api/v1';
+  process.env['NEXT_PUBLIC_API_BASE_URL'] ?? '/api/v1';
 
 export class ApiClientError extends Error {
   constructor(

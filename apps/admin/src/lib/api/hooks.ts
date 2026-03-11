@@ -550,7 +550,7 @@ export function useAuditRetention() {
 
 // ── Helper for bulk operations (re-export BASE_URL + token access) ──
 
-const BASE_URL = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? 'http://localhost:3002/api/v1';
+const BASE_URL = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? '/api/v1';
 
 function getTokensFromStorage(): { accessToken: string | null } {
   if (typeof window === 'undefined') return { accessToken: null };
