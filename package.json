@@ -60,6 +60,6 @@
   },
   "dependencies": {
     "@prisma/client": "6.2.0",
-    "pg": "^8.18.0"
+    "pg": "^8.20.0"
   }
 }
