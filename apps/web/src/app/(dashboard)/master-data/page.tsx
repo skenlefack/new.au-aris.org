@@ -39,8 +39,12 @@ function DomainSection({
   return (
     <section className="space-y-3">
       {/* Domain header */}
-      <div className="flex items-center gap-3">
-        <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', domain.bgColor, 'dark:bg-opacity-20')}>
+      <div className={cn(
+        'flex items-center gap-3 rounded-xl border px-4 py-3',
+        domain.bgColor, 'border-transparent',
+        'dark:bg-opacity-10 dark:border-gray-700',
+      )}>
+        <div className={cn('flex h-10 w-10 items-center justify-center rounded-lg bg-white/80 shadow-sm', 'dark:bg-gray-800/80')}>
           <DomainIcon className={cn('h-5 w-5', domain.color)} />
         </div>
         <div className="flex-1">
@@ -48,16 +52,16 @@ function DomainSection({
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               {domain.label}
             </h2>
-            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+            <span className="rounded-full bg-white/60 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800/60 dark:text-gray-400">
               {types.length} types
             </span>
             {!isLoading && (
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+              <span className="rounded-full bg-white/60 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800/60 dark:text-gray-400">
                 {totalCount} records
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-400">
             {domain.descriptionFr}
           </p>
         </div>
@@ -142,7 +146,7 @@ export default function MasterDataDashboard() {
       </div>
 
       {/* Domain sections */}
-      <div className="space-y-8">
+      <div className="space-y-10">
         {DOMAIN_CONFIG.map((domain) => (
           <DomainSection
             key={domain.slug}
