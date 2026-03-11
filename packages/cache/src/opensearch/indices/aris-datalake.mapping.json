@@ -1,0 +1,26 @@
+{
+  "mappings": {
+    "properties": {
+      "source": { "type": "keyword" },
+      "entity_type": { "type": "keyword" },
+      "entity_id": { "type": "keyword" },
+      "action": { "type": "keyword" },
+      "tenant_id": { "type": "keyword" },
+      "country_code": { "type": "keyword" },
+      "rec_code": { "type": "keyword" },
+      "geo_point": { "type": "geo_point" },
+      "year": { "type": "integer" },
+      "month": { "type": "integer" },
+      "week": { "type": "integer" },
+      "ingested_at": { "type": "date" },
+      "payload": { "type": "object", "enabled": true }
+    }
+  },
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "index": {
+      "refresh_interval": "5s"
+    }
+  }
+}

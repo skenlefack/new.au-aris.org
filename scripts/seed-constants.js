@@ -1,6 +1,6 @@
 "use strict";
 /**
- * ARIS 3.0 — Shared Seed Constants
+ * ARIS 4.0 — Shared Seed Constants
  *
  * Deterministic UUIDs and cross-service references for all domain seeds.
  * These match the values established by tenant, credential, and master-data seeds.

@@ -1,6 +1,6 @@
 // ─── Dynamic Entity Theme — Color Utilities ────────────────────────────────
 // Provides color manipulation, contrast calculation, and CSS variable management
-// for ARIS 3.0's dynamic entity-based theming (AU-IBAR, RECs, Countries).
+// for ARIS 4.0's dynamic entity-based theming (AU-IBAR, RECs, Countries).
 
 export interface EntityThemeColors {
   accent: string;

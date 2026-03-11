@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MutationCache,
   QueryClient,
@@ -85,6 +85,18 @@ function buildMutationCache() {
   });
 }
 
+/**
+ * Prevents SSR/client hydration mismatch for Zustand persist stores.
+ * On the server and during initial hydration, renders nothing.
+ * After client mount (when localStorage has been read), renders children.
+ */
+function HydrationBoundary({ children }: { children: React.ReactNode }) {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
+  if (!hydrated) return null;
+  return <>{children}</>;
+}
+
 function DirectionProvider({ children }: { children: React.ReactNode }) {
   useDirection();
   return <>{children}</>;
@@ -113,15 +125,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        <DirectionProvider>
-          <KeyboardShortcutsProvider>
-            <NetworkBanner />
-            {children}
-            <InstallPrompt />
-            <CommandPalette />
-            <KeyboardShortcutsHelp />
-          </KeyboardShortcutsProvider>
-        </DirectionProvider>
+        <HydrationBoundary>
+          <DirectionProvider>
+            <KeyboardShortcutsProvider>
+              <NetworkBanner />
+              {children}
+              <InstallPrompt />
+              <CommandPalette />
+              <KeyboardShortcutsHelp />
+            </KeyboardShortcutsProvider>
+          </DirectionProvider>
+        </HydrationBoundary>
       </ErrorBoundary>
     </QueryClientProvider>
   );

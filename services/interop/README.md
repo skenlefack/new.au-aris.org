@@ -2,7 +2,7 @@
 
 **Port**: 3042 | **Prefix**: `/api/v1/interop-v2`
 
-Next-generation interoperability service for ARIS 3.0. Manages connections to external animal health systems with a pluggable adapter architecture, JSONata transformation engine, and native FHIR R4 endpoints.
+Next-generation interoperability service for ARIS 4.0. Manages connections to external animal health systems with a pluggable adapter architecture, JSONata transformation engine, and native FHIR R4 endpoints.
 
 ## Supported External Systems
 

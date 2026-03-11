@@ -9,7 +9,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Eye, EyeOff, LogIn, Shield } from 'lucide-react';
 import { useLogin } from '@/lib/api/hooks';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTenantStore } from '@/lib/stores/tenant-store';
+import { useLocaleStore } from '@/lib/stores/locale-store';
+import type { Locale } from '@/lib/i18n/config';
+import { LOCALES } from '@/lib/i18n/config';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -33,6 +38,7 @@ interface LoginPanelProps {
 export function LoginPanel({ context }: LoginPanelProps) {
   const router = useRouter();
   const loginMutation = useLogin();
+  const ta = useTranslations('auth');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -55,6 +61,15 @@ export function LoginPanel({ context }: LoginPanelProps) {
         await useTenantStore.getState().fetchTenantTree();
       } catch {
         // non-blocking
+      }
+      // Sync tenant store to the logged-in user's tenant
+      const user = useAuthStore.getState().user;
+      if (user?.tenantId) {
+        useTenantStore.getState().initFromUser(user.tenantId, user.email);
+      }
+      // Sync locale store from server preference
+      if (user?.locale && LOCALES.includes(user.locale as Locale)) {
+        useLocaleStore.getState().setLocale(user.locale as Locale);
       }
       router.push('/home');
     } catch {
@@ -110,7 +125,7 @@ export function LoginPanel({ context }: LoginPanelProps) {
               style={{ borderColor: `${accentColor}33`, borderTopColor: accentColor }}
             />
             <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-              Signing you in...
+              {ta('signingIn')}
             </p>
           </div>
         </div>
@@ -128,7 +143,7 @@ export function LoginPanel({ context }: LoginPanelProps) {
         {/* Email */}
         <div>
           <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Email address
+            {ta('email')}
           </label>
           <input
             id="login-email"
@@ -150,7 +165,7 @@ export function LoginPanel({ context }: LoginPanelProps) {
         {/* Password */}
         <div>
           <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Password
+            {ta('password')}
           </label>
           <div className="relative mt-1">
             <input
@@ -191,11 +206,11 @@ export function LoginPanel({ context }: LoginPanelProps) {
               style={{ accentColor }}
             />
             <label htmlFor="remember-me" className="text-sm text-gray-600 select-none dark:text-gray-400">
-              Remember me
+              {ta('rememberMe')}
             </label>
           </div>
           <Link href="/forgot-password" className="text-sm font-medium hover:underline" style={{ color: accentColor }}>
-            Forgot password?
+            {ta('forgotPassword')}
           </Link>
         </div>
 
@@ -214,7 +229,7 @@ export function LoginPanel({ context }: LoginPanelProps) {
           ) : (
             <LogIn className="h-4 w-4" />
           )}
-          {loginMutation.isPending || isLoggingIn ? 'Signing in...' : 'Sign in'}
+          {loginMutation.isPending || isLoggingIn ? ta('signingIn') : ta('signIn')}
         </button>
       </form>
 

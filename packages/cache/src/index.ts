@@ -28,3 +28,7 @@ export { MockCacheService } from './testing/mock-cache.service';
 
 // Standalone (no NestJS)
 export { getRedisClient, StandaloneCacheService } from './standalone';
+
+// OpenSearch client
+export { createOpenSearchClient } from './opensearch.client';
+export type { OpenSearchConfig } from './opensearch.client';

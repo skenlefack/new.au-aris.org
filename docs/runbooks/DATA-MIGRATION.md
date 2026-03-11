@@ -1,6 +1,6 @@
 # Data Migration Runbook
 
-> Schema migration procedures, data seeding, and backup/restore for ARIS 3.0.
+> Schema migration procedures, data seeding, and backup/restore for ARIS 4.0.
 
 ## 1. Prisma Migration Overview
 
@@ -317,4 +317,4 @@ npx prisma migrate diff \
 | Redis | 5 minutes | Rebuiltable | N/A (CQRS read model) |
 | MinIO | 2 hours | 24 hours | Daily |
 | Kafka | 30 minutes | 0 (replicated) | Built-in replication |
-| Elasticsearch | 1 hour | Rebuiltable | N/A (re-indexable) |
+| OpenSearch | 1 hour | Rebuiltable | N/A (re-indexable) |

@@ -7,8 +7,10 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardFilters } from './GlobalFilterContext';
-import { getAllRecs, type RecConfig } from '@/data/recs-config';
+import { getAllRecs, getRecsForCountry, type RecConfig } from '@/data/recs-config';
 import { COUNTRIES, getCountriesByRec } from '@/data/countries-config';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTenantStore, findParentRec, deriveCountryCodeFromEmail } from '@/lib/stores/tenant-store';
 
 interface DashboardFilterPanelProps {
   collapsed: boolean;
@@ -53,11 +55,13 @@ function FilterSelect({
   value,
   options,
   onChange,
+  disabled,
 }: {
   label: string;
   value: string;
   options: Array<{ value: string; label: string }>;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <div>
@@ -68,12 +72,14 @@ function FilterSelect({
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
           className={cn(
             'w-full appearance-none rounded-lg border border-gray-200 dark:border-gray-700',
             'bg-white dark:bg-gray-800 px-3 py-2 pr-8 text-xs font-medium',
             'text-gray-700 dark:text-gray-300',
             'focus:outline-none focus:ring-2 focus:ring-offset-0',
             'transition-colors duration-150',
+            disabled && 'opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-800/50',
           )}
           style={{ focusRingColor: 'var(--color-accent)' } as any}
         >
@@ -94,20 +100,69 @@ export function DashboardFilterPanel({
   onPageChange,
 }: DashboardFilterPanelProps) {
   const { filters, setFilter, resetFilters, activeFilterCount } = useDashboardFilters();
+  const user = useAuthStore((s) => s.user);
+  const tenantTree = useTenantStore((s) => s.tenantTree);
+  const selectedTenant = useTenantStore((s) => s.selectedTenant);
+
+  const tenantLevel = user?.tenantLevel ?? selectedTenant?.level;
+  const isMemberState = tenantLevel === 'MEMBER_STATE';
+  const isRec = tenantLevel === 'REC';
 
   const allRecs = getAllRecs();
-  const recOptions = [
-    { value: 'all', label: 'All RECs' },
-    ...allRecs.map((r: RecConfig) => ({ value: r.code, label: r.name })),
-  ];
 
-  const countryList = filters.rec !== 'all'
-    ? getCountriesByRec(filters.rec)
-    : Object.values(COUNTRIES).sort((a, b) => a.name.localeCompare(b.name));
-  const countryOptions = [
-    { value: 'all', label: 'All Countries' },
-    ...countryList.map((c) => ({ value: c.code, label: c.name })),
-  ];
+  // For MEMBER_STATE: derive a reliable country code from multiple sources
+  const resolvedCountryCode: string | null = isMemberState
+    ? (selectedTenant?.level === 'MEMBER_STATE' ? selectedTenant.code : null)
+      ?? deriveCountryCodeFromEmail(user?.email)
+      ?? null
+    : null;
+
+  // Compute REC options based on tenant level
+  let recOptions: Array<{ value: string; label: string }>;
+  let recDisabled = false;
+  if (isMemberState) {
+    // MEMBER_STATE: lock to their REC only
+    const lookupKey = resolvedCountryCode
+      ?? (selectedTenant?.level === 'MEMBER_STATE' ? selectedTenant.id : (user?.tenantId ?? ''));
+    const parentRec = findParentRec(tenantTree, lookupKey);
+    recOptions = parentRec
+      ? [{ value: parentRec.code.toLowerCase(), label: parentRec.name }]
+      : [{ value: filters.rec, label: filters.rec.toUpperCase() }];
+    recDisabled = true;
+  } else if (isRec && selectedTenant) {
+    // REC_ADMIN: lock to their REC
+    recOptions = [{ value: selectedTenant.code.toLowerCase(), label: selectedTenant.name }];
+    recDisabled = true;
+  } else {
+    // CONTINENTAL / SUPER_ADMIN: all RECs
+    recOptions = [
+      { value: 'all', label: 'All RECs' },
+      ...allRecs.map((r: RecConfig) => ({ value: r.code, label: r.name })),
+    ];
+  }
+
+  // Compute country options based on tenant level
+  let countryOptions: Array<{ value: string; label: string }>;
+  let countryDisabled = false;
+  if (isMemberState && resolvedCountryCode) {
+    // MEMBER_STATE: lock to their country only
+    const countryName = COUNTRIES[resolvedCountryCode]?.name ?? resolvedCountryCode;
+    countryOptions = [{ value: resolvedCountryCode, label: countryName }];
+    countryDisabled = true;
+  } else if (isMemberState) {
+    // MEMBER_STATE but couldn't resolve code — show locked placeholder
+    countryOptions = [{ value: filters.country, label: filters.country }];
+    countryDisabled = true;
+  } else {
+    // REC or CONTINENTAL: show countries within selected REC, with "All" option
+    const countryList = filters.rec !== 'all'
+      ? getCountriesByRec(filters.rec)
+      : Object.values(COUNTRIES).sort((a, b) => a.name.localeCompare(b.name));
+    countryOptions = [
+      { value: 'all', label: 'All Countries' },
+      ...countryList.map((c) => ({ value: c.code, label: c.name })),
+    ];
+  }
 
   if (collapsed) {
     return (
@@ -167,6 +222,7 @@ export function DashboardFilterPanel({
           value={filters.rec}
           options={recOptions}
           onChange={(v) => setFilter('rec', v)}
+          disabled={recDisabled}
         />
 
         <FilterSelect
@@ -174,6 +230,7 @@ export function DashboardFilterPanel({
           value={filters.country}
           options={countryOptions}
           onChange={(v) => setFilter('country', v)}
+          disabled={countryDisabled}
         />
 
         <FilterSelect
@@ -248,11 +305,14 @@ export function DashboardFilterPanel({
             Metabase
             <span className="ml-auto text-[9px] rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5">Active</span>
           </a>
-          <div className="flex items-center gap-2 px-3 py-1.5 text-[11px] text-gray-400 dark:text-gray-500 opacity-50">
+          <a
+            href="/bi-tools/grafana"
+            className="flex items-center gap-2 px-3 py-1.5 text-[11px] text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors"
+          >
             <BarChart3 className="h-3 w-3" />
-            Power BI
-            <span className="ml-auto text-[9px] rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5">Soon</span>
-          </div>
+            Grafana
+            <span className="ml-auto text-[9px] rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5">Active</span>
+          </a>
         </div>
       </div>
     </div>

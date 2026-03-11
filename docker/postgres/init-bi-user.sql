@@ -25,27 +25,51 @@ GRANT USAGE ON SCHEMA historical TO aris_bi_reader;
 GRANT SELECT ON ALL TABLES IN SCHEMA historical TO aris_bi_reader;
 ALTER DEFAULT PRIVILEGES IN SCHEMA historical GRANT SELECT ON TABLES TO aris_bi_reader;
 
--- Revoke access to sensitive tables (ignore errors if tables don't exist yet)
-DO $$
+-- ═══════════════════════════════════════════
+-- Domain schemas — grant read access to ALL business schemas
+-- ═══════════════════════════════════════════
+DO $$ DECLARE s TEXT;
 BEGIN
-  EXECUTE 'REVOKE SELECT ON TABLE "User" FROM aris_bi_reader';
-EXCEPTION WHEN undefined_table THEN NULL;
+  FOR s IN SELECT unnest(ARRAY[
+    'animal_health','livestock_prod','fisheries','wildlife','apiculture',
+    'trade_sps','governance','climate_env','collecte','workflow',
+    'form_builder','master_data','analytics','geo_services',
+    'knowledge_hub','datalake','tenant','credential'
+  ]) LOOP
+    -- Create schema if not exists (some may not be created yet)
+    EXECUTE format('CREATE SCHEMA IF NOT EXISTS %I', s);
+    EXECUTE format('GRANT USAGE ON SCHEMA %I TO aris_bi_reader', s);
+    EXECUTE format('GRANT SELECT ON ALL TABLES IN SCHEMA %I TO aris_bi_reader', s);
+    EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT SELECT ON TABLES TO aris_bi_reader', s);
+  END LOOP;
 END $$;
 
-DO $$
+-- ═══════════════════════════════════════════
+-- Revoke access to sensitive tables (credentials, sessions, tokens)
+-- ═══════════════════════════════════════════
+DO $$ DECLARE tbl TEXT; sch TEXT;
 BEGIN
-  EXECUTE 'REVOKE SELECT ON TABLE "Session" FROM aris_bi_reader';
-EXCEPTION WHEN undefined_table THEN NULL;
-END $$;
+  -- Sensitive tables in public schema
+  FOR tbl IN SELECT unnest(ARRAY['User','Session','RefreshToken','AuditLog']) LOOP
+    BEGIN
+      EXECUTE format('REVOKE SELECT ON TABLE public.%I FROM aris_bi_reader', tbl);
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
+  END LOOP;
 
-DO $$
-BEGIN
-  EXECUTE 'REVOKE SELECT ON TABLE "RefreshToken" FROM aris_bi_reader';
-EXCEPTION WHEN undefined_table THEN NULL;
-END $$;
+  -- Sensitive tables in credential schema
+  FOR tbl IN SELECT unnest(ARRAY['users','sessions','refresh_tokens','audit_logs','mfa_secrets']) LOOP
+    BEGIN
+      EXECUTE format('REVOKE SELECT ON TABLE credential.%I FROM aris_bi_reader', tbl);
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
+  END LOOP;
 
-DO $$
-BEGIN
-  EXECUTE 'REVOKE SELECT ON TABLE "AuditLog" FROM aris_bi_reader';
-EXCEPTION WHEN undefined_table THEN NULL;
+  -- Sensitive tables in tenant schema
+  FOR tbl IN SELECT unnest(ARRAY['settings']) LOOP
+    BEGIN
+      EXECUTE format('REVOKE SELECT ON TABLE tenant.%I FROM aris_bi_reader', tbl);
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
+  END LOOP;
 END $$;

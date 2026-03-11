@@ -1,4 +1,4 @@
-// ARIS 3.0 — Geo Services Schema
+// ARIS 4.0 — Geo Services Schema
 // PostGIS spatial queries, risk layers, admin boundaries
 //
 // NOTE: The `geom` column on admin_boundaries and geo_events
@@ -85,5 +85,55 @@ model GeoEvent {
   @@index([disease_id])
   @@index([occurred_at])
   @@map("geo_events")
+  @@schema("geo_services")
+}
+
+enum RiskLayerType {
+  DISEASE_RISK
+  CLIMATE
+  TRADE_CORRIDOR
+  WILDLIFE_HABITAT
+
+  @@schema("geo_services")
+}
+
+enum RiskSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@schema("geo_services")
+}
+
+/// Spatial risk layers for overlay on maps.
+/// Geometry column managed via raw SQL ($queryRaw).
+/// Spatial index created via migration SQL:
+///   CREATE INDEX idx_risk_layers_geom
+///     ON geo_services.risk_layers USING GIST (geom);
+model RiskLayer {
+  id                  String                                @id @default(uuid()) @db.Uuid
+  tenant_id           String                                @db.Uuid
+  name                String                                @db.VarChar(255)
+  description         String?
+  layer_type          RiskLayerType
+  severity            RiskSeverity
+  geom                Unsupported("geometry(Geometry, 4326)")?
+  properties          Json                                  @default("{}")
+  data_classification String                                @default("PUBLIC") @db.VarChar(20)
+  valid_from          DateTime?
+  valid_until         DateTime?
+  source              String?                               @db.VarChar(255)
+  is_active           Boolean                               @default(true)
+  created_by          String?                               @db.Uuid
+  created_at          DateTime                              @default(now())
+  updated_at          DateTime                              @updatedAt
+
+  @@index([tenant_id])
+  @@index([layer_type])
+  @@index([severity])
+  @@index([is_active])
+  @@index([valid_from, valid_until])
+  @@map("risk_layers")
   @@schema("geo_services")
 }

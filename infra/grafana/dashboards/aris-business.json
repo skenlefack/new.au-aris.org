@@ -48,7 +48,7 @@
       }
     ]
   },
-  "description": "ARIS 3.0 — Business KPIs across all 9 domains. Tracks events, forms, workflows, outbreaks, interop exports, and active users/campaigns.",
+  "description": "ARIS 4.0 — Business KPIs across all 9 domains. Tracks events, forms, workflows, outbreaks, interop exports, and active users/campaigns.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,

@@ -2,7 +2,7 @@
   "name": "@aris/message-service",
   "version": "0.1.0",
   "private": true,
-  "description": "ARIS 3.0 — Message service: multi-channel notifications (Email, SMS, Push, In-App)",
+  "description": "ARIS 4.0 — Message service: multi-channel notifications (Email, SMS, Push, In-App)",
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc --build && npm run copy-templates",
@@ -13,6 +13,7 @@
     "lint": "eslint src/",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {

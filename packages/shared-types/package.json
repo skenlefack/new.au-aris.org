@@ -2,7 +2,7 @@
   "name": "@aris/shared-types",
   "version": "0.1.0",
   "private": true,
-  "description": "ARIS 3.0 — Shared TypeScript types, enums, DTOs, Kafka contracts",
+  "description": "ARIS 4.0 — Shared TypeScript types, enums, DTOs, Kafka contracts",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

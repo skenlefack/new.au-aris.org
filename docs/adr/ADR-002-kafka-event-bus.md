@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-ARIS 3.0 adopts a microservices architecture (see ADR-001) with 22 services spanning 9 business domains. These services must communicate asynchronously to maintain loose coupling, support event replay for audit and debugging, and enable real-time data pipelines for analytics and interoperability exports. The system must handle several distinct messaging patterns:
+ARIS 4.0 adopts a microservices architecture (see ADR-001) with 22 services spanning 9 business domains. These services must communicate asynchronously to maintain loose coupling, support event replay for audit and debugging, and enable real-time data pipelines for analytics and interoperability exports. The system must handle several distinct messaging patterns:
 
 1. **Domain event propagation:** When an outbreak is created in animal-health, data-quality must validate it, workflow must route it through 4-level approval, analytics must update KPIs, and interop-hub must prepare WAHIS/EMPRES exports.
 2. **Audit trail:** Every mutation across all 55 Member States must be durably logged with full provenance, supporting regulatory compliance and dispute resolution. Events must be replayable to reconstruct the state of any record at any point in time.
@@ -22,7 +22,7 @@ The chosen message broker must support durable ordered logs, consumer groups for
 
 ## Decision
 
-We adopt **Apache Kafka 3.7 in KRaft mode** (no ZooKeeper dependency) as the sole event bus for ARIS 3.0. The deployment topology is a 3-broker cluster with replication factor 3 and `min.insync.replicas=2`, ensuring no data loss if a single broker fails.
+We adopt **Apache Kafka 3.7 in KRaft mode** (no ZooKeeper dependency) as the sole event bus for ARIS 4.0. The deployment topology is a 3-broker cluster with replication factor 3 and `min.insync.replicas=2`, ensuring no data loss if a single broker fails.
 
 Key configuration decisions:
 

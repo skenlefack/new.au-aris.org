@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-ARIS 3.0 requires a mobile application for field data collection across 55 African countries. The mobile app serves the FIELD_AGENT role -- veterinary officers, livestock inspectors, fisheries observers, and wildlife rangers who collect data in the field and submit it to ARIS through the 4-level validation workflow. The mobile application has the following critical requirements:
+ARIS 4.0 requires a mobile application for field data collection across 55 African countries. The mobile app serves the FIELD_AGENT role -- veterinary officers, livestock inspectors, fisheries observers, and wildlife rangers who collect data in the field and submit it to ARIS through the 4-level validation workflow. The mobile application has the following critical requirements:
 
 1. **Offline-first operation:** Field agents frequently work in rural and remote areas with no cellular coverage or extremely limited bandwidth (2G/EDGE). The app must function fully offline: authenticate users, display assigned collection forms, capture data with validation, store submissions locally, and sync when connectivity returns. Offline periods can last days or weeks in some regions.
 

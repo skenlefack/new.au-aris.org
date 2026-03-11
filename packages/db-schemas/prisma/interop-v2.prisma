@@ -1,4 +1,4 @@
-// ARIS 3.0 — Interop V2 Schema
+// ARIS 4.0 — Interop V2 Schema
 // External system connectors: WAHIS, DHIS2, FHIR R4, OMS, EMPRES, FAOSTAT
 
 enum ExternalSystem {

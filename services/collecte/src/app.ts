@@ -24,7 +24,12 @@ export async function buildApp() {
     origin: (process.env['CORS_ORIGINS'] ?? 'http://localhost:3000,http://localhost:3100').split(','),
     credentials: true,
   });
-  await app.register(helmet);
+  await app.register(helmet, {
+    // Disable security headers that interfere with cross-origin API access
+    contentSecurityPolicy: false,          // CSP is for HTML pages, not JSON APIs
+    crossOriginResourcePolicy: false,      // CORP blocks cross-origin reads
+    crossOriginEmbedderPolicy: false,      // COEP not needed for APIs
+  });
 
   // Plugins
   await app.register(prismaPlugin);

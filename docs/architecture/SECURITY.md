@@ -1,6 +1,6 @@
 # Security Architecture
 
-> Authentication, authorization, data classification, and encryption for ARIS 3.0.
+> Authentication, authorization, data classification, and encryption for ARIS 4.0.
 
 ## 1. Authentication Flow
 
@@ -192,7 +192,7 @@ AU-IBAR (CONTINENTAL)
 | PostgreSQL | Filesystem-level encryption (LUKS/dm-crypt) |
 | Redis | No built-in encryption (use network-level isolation) |
 | MinIO | Server-side encryption (SSE-S3) |
-| Elasticsearch | Filesystem-level encryption |
+| OpenSearch | Filesystem-level encryption |
 | JWT private keys | File permissions (600), stored outside repo |
 
 ### In Transit

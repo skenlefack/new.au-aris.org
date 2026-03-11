@@ -1,8 +1,9 @@
-// In production with Traefik gateway: set NEXT_PUBLIC_API_BASE_URL=http://localhost:4000/api/v1
-// In dev without gateway: defaults to credential service directly (port 3002).
-// Each service that needs a different base URL has its own env var (see form-builder-hooks.ts).
+// All API calls use relative paths by default (same origin → no CORS).
+// In dev: Next.js rewrites proxy /api/v1/* to the correct backend port.
+// In production: Traefik routes /api/v1/* to the correct backend service.
+// Override with NEXT_PUBLIC_API_BASE_URL if you need a different base.
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3002/api/v1';
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/v1';
 
 interface ApiError {
   statusCode: number;
@@ -60,6 +61,20 @@ function getSelectedTenantId(): string | null {
   return null;
 }
 
+function getStoredLocale(): string {
+  if (typeof window === 'undefined') return 'en';
+  try {
+    const raw = localStorage.getItem('aris-locale');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return parsed?.state?.locale ?? 'en';
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return 'en';
+}
+
 function buildHeaders(token?: string | null): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -74,6 +89,8 @@ function buildHeaders(token?: string | null): Record<string, string> {
   if (tenantId) {
     headers['X-Tenant-Id'] = tenantId;
   }
+
+  headers['X-Locale'] = getStoredLocale();
 
   return headers;
 }
@@ -214,16 +231,55 @@ async function fetchWithRefresh<T>(
   return handleResponse<T>(res);
 }
 
+// ─── Service client factory ───────────────────────────────────────────────
+// In production, set NEXT_PUBLIC_API_BASE_URL to the Traefik gateway (port 4000)
+// and all clients will use it. In dev, each service has its own port.
+
+function buildServiceClient(baseUrl: string) {
+  return {
+    get: async <T>(path: string, params?: Record<string, string>): Promise<T> => {
+      let url = `${baseUrl}${path}`;
+      if (params && Object.keys(params).length > 0) {
+        url += `?${new URLSearchParams(params).toString()}`;
+      }
+      return fetchWithRefresh<T>(url, { method: 'GET', headers: buildHeaders() });
+    },
+    post: async <T>(path: string, body?: unknown): Promise<T> =>
+      fetchWithRefresh<T>(`${baseUrl}${path}`, { method: 'POST', headers: buildHeaders(), body: body ? JSON.stringify(body) : undefined }),
+    put: async <T>(path: string, body?: unknown): Promise<T> =>
+      fetchWithRefresh<T>(`${baseUrl}${path}`, { method: 'PUT', headers: buildHeaders(), body: body ? JSON.stringify(body) : undefined }),
+    patch: async <T>(path: string, body?: unknown): Promise<T> =>
+      fetchWithRefresh<T>(`${baseUrl}${path}`, { method: 'PATCH', headers: buildHeaders(), body: body ? JSON.stringify(body) : undefined }),
+    delete: async <T>(path: string): Promise<T> =>
+      fetchWithRefresh<T>(`${baseUrl}${path}`, { method: 'DELETE', headers: buildHeaders() }),
+  };
+}
+
+// All domain clients share the same base URL.
+// Next.js rewrites (next.config.js) proxy each path prefix to the correct backend port.
+// This eliminates CORS issues in dev mode since all requests stay on the same origin.
+export const collecteClient     = buildServiceClient(API_BASE_URL);
+export const animalHealthClient = buildServiceClient(API_BASE_URL);
+export const livestockClient    = buildServiceClient(API_BASE_URL);
+export const fisheriesClient    = buildServiceClient(API_BASE_URL);
+export const wildlifeClient     = buildServiceClient(API_BASE_URL);
+export const apicultureClient   = buildServiceClient(API_BASE_URL);
+export const tradeSpsClient     = buildServiceClient(API_BASE_URL);
+export const governanceClient   = buildServiceClient(API_BASE_URL);
+export const climateEnvClient   = buildServiceClient(API_BASE_URL);
+export const analyticsClient    = buildServiceClient(API_BASE_URL);
+export const knowledgeHubClient = buildServiceClient(API_BASE_URL);
+
 export const apiClient = {
   get: async <T>(
     path: string,
     params?: Record<string, string>,
   ): Promise<T> => {
-    const url = new URL(`${API_BASE_URL}${path}`);
-    if (params) {
-      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    let url = `${API_BASE_URL}${path}`;
+    if (params && Object.keys(params).length > 0) {
+      url += `?${new URLSearchParams(params).toString()}`;
     }
-    return fetchWithRefresh<T>(url.toString(), {
+    return fetchWithRefresh<T>(url, {
       method: 'GET',
       headers: buildHeaders(),
     });

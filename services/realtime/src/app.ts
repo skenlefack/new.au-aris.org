@@ -2,6 +2,7 @@ import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import authPlugin from './plugins/auth.plugin';
+import redisPlugin from './plugins/redis';
 import websocketPlugin from './plugins/websocket';
 import kafkaConsumersPlugin from './plugins/kafka-consumers';
 import { RoomManagerService } from './services/room-manager.service';
@@ -10,6 +11,7 @@ import { registerHealthRoutes } from './routes/health';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
+    pluginTimeout: 60_000,
     logger: {
       level: process.env['LOG_LEVEL'] ?? 'info',
       transport: process.env['NODE_ENV'] !== 'production'
@@ -48,16 +50,22 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.decorate('roomManager', roomManager);
   app.decorate('presenceService', presenceService);
 
+  // Redis (ioredis for presence + room counts)
+  await app.register(redisPlugin);
+
+  // Wire Redis into PresenceService for distributed presence
+  presenceService.setRedis(app.redis);
+
   // Auth plugin (JWT public key for Socket.IO and HTTP route guards)
   await app.register(authPlugin);
 
   // Socket.IO mounted on Fastify's http.Server
   await app.register(websocketPlugin);
 
-  // Kafka consumers (subscribe to 7 topics, broadcast to rooms via Socket.IO)
+  // Kafka consumers (subscribe to topics, broadcast to rooms via Socket.IO)
   await app.register(kafkaConsumersPlugin);
 
-  // HTTP routes (health, ready, stats)
+  // HTTP routes (health, ready, stats, rooms, metrics)
   await app.register(registerHealthRoutes);
 
   // Presence cleanup every 15 minutes

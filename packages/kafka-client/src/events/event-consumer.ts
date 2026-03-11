@@ -1,5 +1,5 @@
 /**
- * ARIS 3.0 — Typed Event Consumer
+ * ARIS 4.0 — Typed Event Consumer
  *
  * Wraps KafkaConsumerService to subscribe to topics and dispatch typed events
  * to registered handlers. Integrates with @aris/cache for automatic cache

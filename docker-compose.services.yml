@@ -1,4 +1,4 @@
-# ARIS 3.0 — Microservices Overlay
+# ARIS 4.0 — Microservices Overlay
 # Usage: docker compose -f docker-compose.yml -f docker-compose.services.yml up -d
 #
 # All 22 NestJS microservices grouped by tier.
@@ -30,7 +30,7 @@ x-service-env: &service-env
   REDIS_URL: redis://redis:6379
   KAFKA_BROKERS: kafka-1:29092,kafka-2:29092,kafka-3:29092
   KAFKA_CLIENT_ID: aris-services
-  ELASTICSEARCH_URL: http://elasticsearch:9200
+  OPENSEARCH_URL: http://opensearch:9200
   MINIO_ENDPOINT: minio
   MINIO_PORT: "9000"
   MINIO_ROOT_USER: ${MINIO_ROOT_USER:-aris_minio}
@@ -534,28 +534,30 @@ services:
       - "traefik.http.services.knowledge-hub.loadbalancer.server.port=3033"
 
   # ═══════════════════════════════════════════════════
-  #  FASTIFY SERVICES (Pure Fastify, no NestJS)
+  #  VECTOR TILE SERVER
   # ═══════════════════════════════════════════════════
 
-  formation:
-    <<: *service-common
-    container_name: aris-formation
-    build:
-      context: .
-      dockerfile: Dockerfile.service
-      args:
-        SERVICE_NAME: formation
-        SERVICE_PORT: "3040"
+  pg-tileserv:
+    image: pramsey/pg_tileserv:latest
+    container_name: aris-pg-tileserv
+    restart: unless-stopped
     ports:
-      - "3040:3040"
+      - "7800:7800"
     environment:
-      <<: *service-env
-      SERVICE_PORT: "3040"
-      KAFKA_CLIENT_ID: aris-formation-service
+      DATABASE_URL: postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-aris_dev_2024}@postgres:5432/${POSTGRES_DB:-aris}
+    networks:
+      - aris-network
+    depends_on:
+      postgres:
+        condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.formation.rule=PathPrefix(`/api/v1/formation`)"
-      - "traefik.http.services.formation.loadbalancer.server.port=3040"
+      - "traefik.http.routers.pg-tileserv.rule=PathPrefix(`/api/v1/geo/tiles`)"
+      - "traefik.http.services.pg-tileserv.loadbalancer.server.port=7800"
+
+  # ═══════════════════════════════════════════════════
+  #  FASTIFY SERVICES (Pure Fastify, no NestJS)
+  # ═══════════════════════════════════════════════════
 
   support:
     <<: *service-common
@@ -639,7 +641,7 @@ services:
         condition: service_healthy
       kafka-1:
         condition: service_started
-      elasticsearch:
+      opensearch:
         condition: service_healthy
     labels:
       - "traefik.enable=true"

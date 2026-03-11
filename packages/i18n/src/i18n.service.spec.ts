@@ -155,10 +155,10 @@ describe('I18nService', () => {
   });
 
   describe('getSupportedLocales()', () => {
-    it('should return all 4 supported locales', () => {
+    it('should return all 5 supported locales', () => {
       const locales = service.getSupportedLocales();
-      expect(locales).toEqual(['en', 'fr', 'pt', 'ar']);
-      expect(locales).toHaveLength(4);
+      expect(locales).toEqual(['en', 'fr', 'pt', 'ar', 'es']);
+      expect(locales).toHaveLength(5);
     });
 
     it('should return a new array each time (no mutation risk)', () => {
@@ -266,7 +266,7 @@ describe('I18nService', () => {
 
   describe('SUPPORTED_LOCALES constant', () => {
     it('should export SUPPORTED_LOCALES', () => {
-      expect(SUPPORTED_LOCALES).toEqual(['en', 'fr', 'pt', 'ar']);
+      expect(SUPPORTED_LOCALES).toEqual(['en', 'fr', 'pt', 'ar', 'es']);
     });
 
     it('should export DEFAULT_LOCALE as en', () => {

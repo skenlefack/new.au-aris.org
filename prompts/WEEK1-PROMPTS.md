@@ -1,4 +1,4 @@
-# ARIS 3.0 — Prompts Semaine 1 (Phase 0)
+# ARIS 4.0 — Prompts Semaine 1 (Phase 0)
 # Instructions pour chaque instance Claude Code
 
 ---

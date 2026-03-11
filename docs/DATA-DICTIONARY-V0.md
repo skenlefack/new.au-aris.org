@@ -1,4 +1,4 @@
-# ARIS 3.0 — Data Dictionary v0
+# ARIS 4.0 — Data Dictionary v0
 # Master Data Referentials — Structure initiale Phase 0
 
 ## 1. Geography (geo_entities)

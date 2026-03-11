@@ -1,4 +1,4 @@
-# ARIS 3.0 — Animal Resources Information System
+# ARIS 4.0 — Animal Resources Information System
 # AU-IBAR Continental Digital Infrastructure
 
 ## Project Overview
@@ -34,7 +34,7 @@ Aligned with: AU Agenda 2063, LiDeSA, PFRS, AU Digital Transformation Strategy 2
 - **Database**: PostgreSQL 16 + PostGIS 3.4
 - **Connection Pool**: PgBouncer (transaction pooling, port 6432)
 - **Cache**: Redis 7 + `@aris/cache` (domain-aware keys, TTL, Kafka invalidation, distributed locks)
-- **Search**: Elasticsearch 8
+- **Search**: OpenSearch 2 (Apache 2.0, replaces Elasticsearch)
 - **Object Storage**: MinIO (S3-compatible)
 - **API Gateway**: Traefik v3 (port 4000)
 - **Geo Services**: PostGIS + pg_tileserv (vector tiles)

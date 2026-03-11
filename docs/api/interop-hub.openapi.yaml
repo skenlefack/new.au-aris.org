@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: ARIS 3.0 — Interoperability Hub Service
+  title: ARIS 4.0 — Interoperability Hub Service
   version: 1.0.0
   description: >
     Connectors for external system integration: WAHIS (WOAH), EMPRES (FAO),

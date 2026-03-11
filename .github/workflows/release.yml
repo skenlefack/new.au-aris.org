@@ -1,4 +1,4 @@
-# ARIS 3.0 — Release Pipeline
+# ARIS 4.0 — Release Pipeline
 # Triggered on version tag push (v*)
 
 name: Release
@@ -146,7 +146,7 @@ jobs:
         with:
           generate_release_notes: true
           body: |
-            ## ARIS 3.0 — ${{ github.ref_name }}
+            ## ARIS 4.0 — ${{ github.ref_name }}
 
             ### Docker Images
             All service images tagged `${{ github.ref_name }}` are available at `ghcr.io/${{ github.repository_owner }}/aris/<service>`.

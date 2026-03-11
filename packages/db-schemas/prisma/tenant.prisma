@@ -1,4 +1,4 @@
-// ARIS 3.0 — Tenant Model
+// ARIS 4.0 — Tenant Model
 // Multi-tenant hierarchy: AU-IBAR → RECs → Member States
 
 enum TenantLevel {
@@ -28,6 +28,7 @@ model Tenant {
   children  Tenant[]   @relation("TenantHierarchy")
   users     User[]
   countries Country[]
+  functions Function[]
 
   @@index([parentId], map: "idx_tenant_parent_id")
   @@index([level], map: "idx_tenant_level")

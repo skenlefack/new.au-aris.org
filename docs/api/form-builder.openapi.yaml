@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: ARIS 3.0 — Form Builder Service
+  title: ARIS 4.0 — Form Builder Service
   version: 1.0.0
   description: |
     No-Code form template builder for the ARIS data collection framework.

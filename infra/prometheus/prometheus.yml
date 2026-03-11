@@ -1,4 +1,4 @@
-# ARIS 3.0 — Prometheus Scrape Configuration
+# ARIS 4.0 — Prometheus Scrape Configuration
 # Scrapes all 22 microservices + infrastructure
 
 global:

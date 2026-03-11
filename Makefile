@@ -1,4 +1,4 @@
-# ARIS 3.0 — Developer Makefile
+# ARIS 4.0 — Developer Makefile
 # Usage: make <target>
 
 .PHONY: install build test lint format typecheck ci clean \

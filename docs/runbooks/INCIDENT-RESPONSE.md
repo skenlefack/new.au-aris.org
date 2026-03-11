@@ -1,6 +1,6 @@
 # Incident Response Runbook
 
-> Common issues, diagnostics, and resolution procedures for ARIS 3.0.
+> Common issues, diagnostics, and resolution procedures for ARIS 4.0.
 
 ## Severity Levels
 
@@ -297,15 +297,15 @@ docker exec minio mc ls local/aris-documents/
 
 ---
 
-## 7. Elasticsearch Issues
+## 7. OpenSearch Issues
 
 ### Search Not Returning Results
 
-**Symptoms:** Knowledge hub search returns empty, publication search broken.
+**Symptoms:** Datalake search returns empty, full-text search broken.
 
 **Diagnosis:**
 ```bash
-# Check ES health
+# Check OpenSearch health
 curl -s http://localhost:9200/_cluster/health | jq
 
 # Check indices
@@ -313,9 +313,9 @@ curl -s http://localhost:9200/_cat/indices?v
 ```
 
 **Resolution:**
-1. If cluster RED: `docker compose restart elasticsearch`
-2. Re-index: trigger re-indexing from the knowledge-hub service
-3. Check disk space (ES requires 5% free disk minimum)
+1. If cluster RED: `docker compose restart opensearch`
+2. Re-index: trigger re-indexing from the datalake service
+3. Check disk space (OpenSearch requires 5% free disk minimum)
 
 ---
 

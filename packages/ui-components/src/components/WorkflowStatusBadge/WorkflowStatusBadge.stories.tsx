@@ -70,3 +70,38 @@ export const WithoutIcon: Story = {
     showIcon: false,
   },
 };
+
+export const Loading: Story = {
+  render: () => (
+    <div className="animate-pulse">
+      <span className="inline-flex items-center rounded-full bg-gray-200 px-2.5 py-1 text-xs text-gray-400">
+        Loading...
+      </span>
+    </div>
+  ),
+};
+
+export const Error: Story = {
+  args: {
+    status: 'REJECTED',
+    level: 1,
+    size: 'lg',
+  },
+};
+
+export const DarkMode: Story = {
+  render: () => {
+    const statuses: WorkflowStatus[] = [
+      'DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'WAHIS_READY', 'PUBLISHED',
+    ];
+    return (
+      <div className="dark bg-gray-900 p-6 rounded-lg">
+        <div className="flex flex-wrap gap-3">
+          {statuses.map((status) => (
+            <WorkflowStatusBadge key={status} status={status} />
+          ))}
+        </div>
+      </div>
+    );
+  },
+};

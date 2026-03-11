@@ -2,7 +2,7 @@
   "name": "@aris/db-schemas",
   "version": "0.1.0",
   "private": true,
-  "description": "ARIS 3.0 — Prisma schemas and migrations (one schema per service)",
+  "description": "ARIS 4.0 — Prisma schemas and migrations (one schema per service)",
   "scripts": {
     "generate": "cd ../.. && npx prisma generate --schema=packages/db-schemas/prisma",
     "migrate:dev": "cd ../.. && npx prisma migrate dev --schema=packages/db-schemas/prisma",
@@ -11,7 +11,8 @@
     "db:push": "cd ../.. && npx prisma db push --schema=packages/db-schemas/prisma --skip-generate",
     "db:seed": "tsx prisma/seed-tenant.ts && tsx prisma/seed-credential.ts",
     "db:seed:settings": "tsx prisma/seed-settings.ts",
-    "db:seed:all": "tsx prisma/seed-tenant.ts && tsx prisma/seed-credential.ts && tsx prisma/seed-settings.ts",
+    "db:seed:functions": "tsx prisma/seed-functions.ts",
+    "db:seed:all": "tsx prisma/seed-tenant.ts && tsx prisma/seed-credential.ts && tsx prisma/seed-settings.ts && tsx prisma/seed-functions.ts",
     "studio": "cd ../.. && npx prisma studio --schema=packages/db-schemas/prisma",
     "build": "echo 'db-schemas: generate only'",
     "clean": "rm -rf node_modules/.prisma"

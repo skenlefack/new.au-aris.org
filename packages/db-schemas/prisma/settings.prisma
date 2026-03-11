@@ -1,4 +1,4 @@
-// ARIS 3.0 — Settings Models
+// ARIS 4.0 — Settings Models
 // Managed by: tenant service (port 3001)
 // Schema: governance
 // RECs, Countries, SystemConfig, Domains for the Settings module + public landing page.
@@ -153,14 +153,17 @@ model Function {
   isActive    Boolean        @default(true) @map("is_active")
   isDefault   Boolean        @default(false) @map("is_default")
   sortOrder   Int            @default(0) @map("sort_order")
+  tenantId    String         @map("tenant_id") @db.Uuid
   metadata    Json?
   createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  tenant      Tenant         @relation(fields: [tenantId], references: [id])
   users       UserFunction[]
 
-  @@unique([code, level], map: "uq_function_code_level")
+  @@unique([tenantId, code, level], map: "uq_function_code_level")
   @@index([level], map: "idx_function_level")
   @@index([isActive], map: "idx_function_is_active")
+  @@index([tenantId], map: "idx_function_tenant_id")
   @@map("functions")
   @@schema("governance")
 }
@@ -190,7 +193,7 @@ model UserFunction {
 
 model BiToolConfig {
   id            String       @id @default(uuid()) @db.Uuid
-  tool          String       @unique @db.VarChar(30) // "superset", "metabase", "powerbi"
+  tool          String       @unique @db.VarChar(30) // "superset", "metabase", "grafana"
   baseUrl       String       @map("base_url") @db.VarChar(500)
   displayName   Json         @map("display_name")   // { "en": "Apache Superset", "fr": "..." }
   description   Json?

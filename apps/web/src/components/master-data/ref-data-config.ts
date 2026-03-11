@@ -51,7 +51,8 @@ export type RefDataDomain =
   | 'wildlife'
   | 'trade'
   | 'apiculture'
-  | 'governance';
+  | 'governance'
+  | 'infrastructure';
 
 export interface DomainConfig {
   slug: RefDataDomain;
@@ -144,6 +145,16 @@ export const DOMAIN_CONFIG: DomainConfig[] = [
     icon: Scale,
     color: 'text-indigo-600',
     bgColor: 'bg-indigo-50',
+  },
+  {
+    slug: 'infrastructure',
+    label: 'Infrastructures & Institutions',
+    labelFr: 'Infrastructures & Institutions',
+    description: 'Labs, markets, checkpoints, stations, offices and all infrastructure types',
+    descriptionFr: 'Laboratoires, marchés, postes de contrôle, stations, bureaux et tous types d\'infrastructures',
+    icon: Building2,
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-50',
   },
 ];
 
@@ -562,6 +573,22 @@ export const REF_DATA_TYPES: RefDataTypeConfig[] = [
     bgColor: 'bg-purple-50',
     domain: 'governance',
     extraColumns: [{ key: 'sector', label: 'Sector' }],
+  },
+
+  // ── Infrastructures & Institutions ──
+  {
+    slug: 'infrastructures',
+    label: 'Infrastructures',
+    labelFr: 'Infrastructures & Institutions',
+    icon: Building2,
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-50',
+    domain: 'infrastructure',
+    extraColumns: [
+      { key: 'category', label: 'Category' },
+      { key: 'subType', label: 'Type' },
+      { key: 'status', label: 'Status' },
+    ],
   },
 ];
 

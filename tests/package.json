@@ -1,0 +1,19 @@
+{
+  "name": "@aris/tests",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ARIS 4.0 — Cross-service integration and E2E tests",
+  "scripts": {
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@aris/test-utils": "workspace:*",
+    "@aris/shared-types": "workspace:*",
+    "@prisma/client": "^6.2.0",
+    "ioredis": "^5.4.0",
+    "testcontainers": "^10.9.0",
+    "vitest": "^1.6.1",
+    "typescript": "^5.4.0"
+  }
+}

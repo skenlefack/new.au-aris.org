@@ -1,5 +1,5 @@
 /**
- * ARIS 3.0 — Standardized Event Publisher
+ * ARIS 4.0 — Standardized Event Publisher
  *
  * Wraps KafkaProducerService to publish typed BaseEvent envelopes.
  * Automatically fills eventId, timestamp, and correlationId if not provided.

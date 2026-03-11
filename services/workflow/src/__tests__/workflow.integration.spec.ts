@@ -53,7 +53,7 @@ describe('Workflow Service — Integration (4-level approval flow)', () => {
   }, 30_000);
 
   async function createWorkflowService() {
-    const { WorkflowService } = await import('../instance/workflow.service');
+    const { WorkflowService } = await import('../services/workflow.service');
 
     // Mock Kafka producer (no-op for integration tests)
     const kafkaProducer = {
@@ -113,7 +113,7 @@ describe('Workflow Service — Integration (4-level approval flow)', () => {
     const instanceId = created.data.id;
 
     // Verify persisted in DB
-    const dbRow = await prisma.workflowInstance.findUnique({ where: { id: instanceId } });
+    const dbRow = await (prisma as any).workflowInstance.findUnique({ where: { id: instanceId } });
     expect(dbRow).not.toBeNull();
     expect(dbRow!.current_level).toBe('NATIONAL_TECHNICAL');
 
@@ -159,7 +159,7 @@ describe('Workflow Service — Integration (4-level approval flow)', () => {
     expect(afterL4.data.transitions).toHaveLength(4);
 
     // ── 6. Verify final state in DB ──
-    const finalRow = await prisma.workflowInstance.findUnique({
+    const finalRow = await (prisma as any).workflowInstance.findUnique({
       where: { id: instanceId },
       include: { transitions: { orderBy: { created_at: 'asc' } } },
     });

@@ -22,6 +22,7 @@ import {
   GitPullRequestArrow,
   Link2,
   BarChart3,
+  Building2,
 } from 'lucide-react';
 
 interface SettingsNavItem {
@@ -45,6 +46,7 @@ const NAV_ITEMS: SettingsNavItem[] = [
   { href: '/settings/domains', label: 'Domains', icon: <Layers className="h-4 w-4" />, section: 'domains' },
   { href: '/settings/workflow', label: 'Workflow', icon: <GitPullRequestArrow className="h-4 w-4" />, section: 'workflow' },
   { href: '/settings/validation-chains', label: 'Validation Chains', icon: <Link2 className="h-4 w-4" />, section: 'validation-chains' },
+  { href: '/settings/infrastructures', label: 'Infra. Types', icon: <Building2 className="h-4 w-4" />, section: 'infrastructures' },
   { href: '/settings/bi-access', label: 'BI Data Access', icon: <BarChart3 className="h-4 w-4" />, section: 'bi-access' },
   { href: '/settings/audit', label: 'Audit Log', icon: <ClipboardList className="h-4 w-4" />, section: 'audit' },
   { href: '/settings/system', label: 'System', icon: <Server className="h-4 w-4" />, section: 'system' },

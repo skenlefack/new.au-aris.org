@@ -1,5 +1,5 @@
 /**
- * ARIS 3.0 — Typed Event Interfaces
+ * ARIS 4.0 — Typed Event Interfaces
  *
  * Every inter-service Kafka event has a strongly-typed interface.
  * The BaseEvent envelope is shared; domain payloads are specific.

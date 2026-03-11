@@ -37,7 +37,10 @@ CORS_OPTIONS = {
 TALISMAN_ENABLED = False
 
 # ── Session ──
-SESSION_COOKIE_SAMESITE = "Lax"
+# SameSite=None required for cross-origin iframe embedding (localhost:3100 → localhost:8088)
+# Secure=False for dev over HTTP; set Secure=True in production with HTTPS
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = False
 SESSION_COOKIE_HTTPONLY = True
 
 # ── Guest Token for secure embedding ──
@@ -74,9 +77,15 @@ DATA_CACHE_CONFIG = {
 }
 
 # ── Allow iframe embedding ──
-HTTP_HEADERS = {
-    "X-Frame-Options": "ALLOWALL",
-}
+# With TALISMAN_ENABLED = False, no X-Frame-Options header is sent,
+# so browsers allow rendering inside iframes.
+# Do NOT set X-Frame-Options here — "ALLOWALL" is not a valid value
+# and Chrome treats unknown values as DENY, blocking the iframe.
+HTTP_HEADERS = {}
+
+# ── Disable CSRF for dev (cross-origin iframe login forms) ──
+# In production with HTTPS + same domain, re-enable this.
+WTF_CSRF_ENABLED = False
 
 # ── Public role ──
 PUBLIC_ROLE_LIKE = "Gamma"

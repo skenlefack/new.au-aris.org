@@ -4,12 +4,17 @@ export const CreateCampaignSchema = Type.Object({
   name: Type.String({ minLength: 2, maxLength: 255 }),
   domain: Type.String({ minLength: 2, maxLength: 100 }),
   templateId: Type.String({ format: 'uuid' }),
+  templateIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
+  targetCountries: Type.Optional(Type.Array(Type.String({ minLength: 2, maxLength: 2 }))),
   startDate: Type.String({ format: 'date-time' }),
   endDate: Type.String({ format: 'date-time' }),
-  targetZones: Type.Array(Type.String({ format: 'uuid' })),
-  assignedAgents: Type.Array(Type.String({ format: 'uuid' })),
+  targetZones: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
+  assignedAgents: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
   targetSubmissions: Type.Optional(Type.Integer({ minimum: 1 })),
   description: Type.Optional(Type.String()),
+  frequency: Type.Optional(Type.String()),
+  sendReminders: Type.Optional(Type.Boolean()),
+  reminderDaysBefore: Type.Optional(Type.Integer({ minimum: 1 })),
   conflictStrategy: Type.Optional(
     Type.Union([
       Type.Literal('LAST_WRITE_WINS'),
@@ -26,6 +31,8 @@ export const UpdateCampaignSchema = Type.Object({
   endDate: Type.Optional(Type.String({ format: 'date-time' })),
   targetZones: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
   assignedAgents: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
+  templateIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
+  targetCountries: Type.Optional(Type.Array(Type.String({ minLength: 2, maxLength: 2 }))),
   targetSubmissions: Type.Optional(Type.Integer({ minimum: 1 })),
   description: Type.Optional(Type.String()),
   status: Type.Optional(
@@ -51,6 +58,7 @@ export const ListCampaignsQuerySchema = Type.Object({
   domain: Type.Optional(Type.String()),
   status: Type.Optional(Type.String()),
   zone: Type.Optional(Type.String()),
+  search: Type.Optional(Type.String()),
 });
 export type ListCampaignsQuery = Static<typeof ListCampaignsQuerySchema>;
 

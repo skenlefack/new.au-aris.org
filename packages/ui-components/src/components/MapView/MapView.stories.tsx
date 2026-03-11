@@ -47,3 +47,36 @@ export const WithLayers: Story = {
     ],
   },
 };
+
+export const Loading: Story = {
+  args: {
+    center: [1.5, 20.0],
+    zoom: 4,
+    height: '500px',
+    className: 'animate-pulse opacity-60',
+  },
+};
+
+export const Error: Story = {
+  render: () => (
+    <div className="relative overflow-hidden rounded-lg border border-red-300 bg-red-50" style={{ height: '500px' }}>
+      <div className="flex h-full items-center justify-center text-red-600">
+        <div className="text-center">
+          <p className="text-lg font-medium">Map failed to load</p>
+          <p className="text-sm text-red-400">Check your network connection</p>
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const DarkMode: Story = {
+  args: Default.args,
+  decorators: [
+    (Story) => (
+      <div className="dark bg-gray-900 p-6 rounded-lg">
+        <Story />
+      </div>
+    ),
+  ],
+};

@@ -64,13 +64,8 @@ export function PreviewModal({ onClose }: PreviewModalProps) {
 
         {/* Preview Content */}
         <div className="flex-1 overflow-y-auto bg-gray-50 p-6 dark:bg-gray-800/50">
-          <div
-            className={cn(
-              'mx-auto',
-              mode === 'mobile' ? 'max-w-sm' : 'max-w-3xl',
-            )}
-          >
-            <FormRenderer schema={schema} formName={form.name} />
+          <div className={cn('mx-auto', mode === 'mobile' && 'max-w-sm')}>
+            <FormRenderer schema={schema} formName={form.name} mobile={mode === 'mobile'} />
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-// ARIS 3.0 — Master Data Models
+// ARIS 4.0 — Master Data Models
 // 7 Referential Tables: Geography, Species, Disease, Unit, Temporality, Identifier, Denominator
 // All versioned with audit trail. PostGIS geometry for GeoEntity.
 

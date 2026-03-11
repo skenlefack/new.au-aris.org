@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiClientError } from './client';
 
-const MASTER_DATA_API = process.env['NEXT_PUBLIC_MASTER_DATA_API_URL'] ?? 'http://localhost:3003';
+const MASTER_DATA_API = process.env['NEXT_PUBLIC_MASTER_DATA_API_URL'] ?? '';
 
 // ─── Auth helpers (same pattern as settings-hooks) ─────────────────────────
 
@@ -35,13 +35,14 @@ async function handleRes<T>(res: Response): Promise<T> {
 }
 
 async function mdGet<T = any>(path: string, params?: Record<string, string>): Promise<T> {
-  const url = new URL(`${MASTER_DATA_API}${path}`);
+  let url = `${MASTER_DATA_API}${path}`;
   if (params) {
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
-    });
+    const filtered = Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '');
+    if (filtered.length > 0) {
+      url += `?${new URLSearchParams(filtered).toString()}`;
+    }
   }
-  const res = await fetch(url.toString(), { headers: getAuthHeaders() });
+  const res = await fetch(url, { headers: getAuthHeaders() });
   return handleRes<T>(res);
 }
 
@@ -80,7 +81,9 @@ export type RefDataType =
   | 'conservation-statuses' | 'habitat-types' | 'crime-types'
   | 'commodities'
   | 'hive-types' | 'bee-diseases' | 'floral-sources'
-  | 'legal-framework-types' | 'stakeholder-types';
+  | 'legal-framework-types' | 'stakeholder-types'
+  // Phase 3 — Infrastructures & Institutions
+  | 'infrastructures';
 
 export interface MultilingualValue {
   en?: string;
@@ -173,6 +176,21 @@ export interface RefDataItem {
   nectarType?: string;
   frameworkCategory?: string;
   sector?: string;
+  // Phase 3 — Infrastructure fields
+  subType?: string;
+  year?: number;
+  yearEstablished?: number;
+  countryCode?: string;
+  adminLevel4?: string;
+  adminLevel5?: string;
+  locationName?: string;
+  abbreviation?: string;
+  quantity?: number;
+  contactPerson?: string;
+  email?: string;
+  telephone?: string;
+  status?: string;
+  comment?: string;
 }
 
 export interface SelectOption {
@@ -192,6 +210,10 @@ export interface RefDataListParams {
   diseaseId?: string;
   adminLevel1?: string;
   type?: string;
+  category?: string;
+  subType?: string;
+  countryCode?: string;
+  status?: string;
 }
 
 interface PaginatedResponse<T> {
@@ -224,6 +246,10 @@ export function useRefDataList(type: RefDataType, params: RefDataListParams = {}
   if (params.diseaseId) queryParams['diseaseId'] = params.diseaseId;
   if (params.adminLevel1) queryParams['adminLevel1'] = params.adminLevel1;
   if (params.type) queryParams['type'] = params.type;
+  if (params.category) queryParams['category'] = params.category;
+  if (params.subType) queryParams['subType'] = params.subType;
+  if (params.countryCode) queryParams['countryCode'] = params.countryCode;
+  if (params.status) queryParams['status'] = params.status;
 
   return useQuery({
     queryKey: ['ref-data', type, params],

@@ -26,7 +26,7 @@ export function useSettingsAccess() {
     canEditRecStats: isSuperAdmin || isContinentalAdmin || isRecAdmin,
 
     // Country management
-    canManageCountries: isSuperAdmin || isContinentalAdmin || isRecAdmin,
+    canManageCountries: isSuperAdmin || isContinentalAdmin || isRecAdmin || isNationalAdmin,
     canCreateCountry: isSuperAdmin,
     canDeleteCountry: isSuperAdmin,
     canEditCountryStats: isSuperAdmin || isContinentalAdmin || isRecAdmin || isNationalAdmin,
@@ -40,9 +40,9 @@ export function useSettingsAccess() {
     },
 
     // Functions management
-    canManageFunctions: isSuperAdmin || isContinentalAdmin,
-    canCreateFunction: isSuperAdmin || isContinentalAdmin,
-    canDeleteFunction: isSuperAdmin,
+    canManageFunctions: isSuperAdmin || isContinentalAdmin || isRecAdmin || isNationalAdmin,
+    canCreateFunction: isSuperAdmin || isContinentalAdmin || isRecAdmin || isNationalAdmin,
+    canDeleteFunction: isSuperAdmin || isContinentalAdmin || isRecAdmin || isNationalAdmin,
 
     // Users management
     canManageUsers: isSuperAdmin || isContinentalAdmin || isRecAdmin || isNationalAdmin,
@@ -60,7 +60,7 @@ export function useSettingsAccess() {
         case 'countries':
           return isRecAdmin || isNationalAdmin;
         case 'functions':
-          return false; // only super/continental admins
+          return isRecAdmin || isNationalAdmin;
         case 'users':
           return isRecAdmin || isNationalAdmin;
         case 'general':
@@ -77,6 +77,8 @@ export function useSettingsAccess() {
         case 'validation-chains':
           return isRecAdmin || isNationalAdmin;
         case 'audit':
+          return isRecAdmin || isNationalAdmin;
+        case 'infrastructures':
           return isRecAdmin || isNationalAdmin;
         case 'bi-access':
           return false; // only super/continental admins

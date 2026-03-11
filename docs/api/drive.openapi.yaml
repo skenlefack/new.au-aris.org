@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: ARIS 3.0 — Drive Service
+  title: ARIS 4.0 — Drive Service
   version: 1.0.0
   description: >
     Document and file storage service for the ARIS platform.

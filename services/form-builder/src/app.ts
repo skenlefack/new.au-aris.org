@@ -23,7 +23,11 @@ export async function buildApp() {
     origin: (process.env['CORS_ORIGINS'] ?? 'http://localhost:3000,http://localhost:3100').split(','),
     credentials: true,
   });
-  await app.register(helmet);
+  await app.register(helmet, {
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: false,
+    crossOriginEmbedderPolicy: false,
+  });
 
   // Plugins
   await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB max

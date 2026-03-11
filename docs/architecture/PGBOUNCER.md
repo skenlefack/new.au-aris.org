@@ -1,6 +1,6 @@
 # PgBouncer -- Connection Pooling
 
-> PostgreSQL connection pooling proxy for ARIS 3.0 microservices.
+> PostgreSQL connection pooling proxy for ARIS 4.0 microservices.
 
 ---
 

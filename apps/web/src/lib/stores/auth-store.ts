@@ -22,6 +22,7 @@ export interface AuthUser {
   tenantId: string;
   tenantLevel?: string;
   avatarUrl?: string;
+  locale?: string;
 }
 
 interface AuthState {

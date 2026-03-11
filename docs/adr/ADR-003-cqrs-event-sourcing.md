@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-ARIS 3.0 serves two fundamentally different access patterns across its 22 microservices:
+ARIS 4.0 serves two fundamentally different access patterns across its 22 microservices:
 
 1. **Write path (command):** Domain services (animal-health, livestock-prod, fisheries, etc.) receive data submissions from 55 Member States through web forms, mobile offline sync, and interoperability imports. These writes must enforce strict business rules, pass 8 data quality gates, traverse a 4-level validation workflow, and maintain full audit trail with version history. Write consistency and data integrity are paramount. The PostgreSQL + Prisma stack provides ACID transactions, referential integrity, and schema enforcement that the write path demands.
 
@@ -80,6 +80,6 @@ Use PostgreSQL materialized views to pre-compute read-optimized queries. Rejecte
 
 Route all events to a dedicated Trino or ClickHouse instance for analytical queries. This approach is partially adopted -- Trino is used for complex ad-hoc analytics and historical reporting. However, it was rejected as the primary read path because: (1) Trino query latency (seconds) is too high for real-time dashboard widgets, (2) maintaining a full data warehouse schema adds significant complexity, and (3) Redis provides the sub-millisecond response times needed for the web and mobile applications' interactive dashboards.
 
-### Elasticsearch as Read Model
+### OpenSearch as Read Model
 
-Use Elasticsearch 8 (already in the stack for full-text search) as the read model store. Rejected as the primary read model because: (1) Elasticsearch is optimized for full-text search and document retrieval, not for numeric aggregations and time-series KPIs, (2) its eventual consistency model is less predictable than Redis (segment merges, refresh intervals), (3) memory consumption for numeric aggregation indices would be significantly higher than Redis hashes and sorted sets, and (4) Elasticsearch is designated for the knowledge-hub search use case, and overloading it with KPI read models would complicate capacity planning. Elasticsearch remains in the stack for document search, but Redis serves as the primary CQRS read model store.
+Use OpenSearch 2 (already in the stack for full-text search) as the read model store. Rejected as the primary read model because: (1) OpenSearch is optimized for full-text search and document retrieval, not for numeric aggregations and time-series KPIs, (2) its eventual consistency model is less predictable than Redis (segment merges, refresh intervals), (3) memory consumption for numeric aggregation indices would be significantly higher than Redis hashes and sorted sets, and (4) OpenSearch is designated for the datalake search use case, and overloading it with KPI read models would complicate capacity planning. OpenSearch remains in the stack for document search, but Redis serves as the primary CQRS read model store.

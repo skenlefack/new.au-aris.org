@@ -9,6 +9,10 @@ if (envResult.error) {
   console.warn('Warning: could not load .env file:', envResult.error.message);
 }
 
+// Initialize OpenTelemetry tracing BEFORE any other imports
+import { initTracing } from '@aris/observability/tracing';
+initTracing('tenant', '0.1.0');
+
 import { buildApp } from './app.js';
 
 const SERVICE_NAME = 'tenant';

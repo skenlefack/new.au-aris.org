@@ -4,6 +4,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Languages, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLocaleStore } from '@/lib/stores/locale-store';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { useUpdateLocale } from '@/lib/api/hooks';
 import { LOCALES, LOCALE_LABELS, type Locale } from '@/lib/i18n/config';
 
 export function LanguageSwitcher() {
@@ -11,6 +13,8 @@ export function LanguageSwitcher() {
   const containerRef = useRef<HTMLDivElement>(null);
   const locale = useLocaleStore((s) => s.locale);
   const setLocale = useLocaleStore((s) => s.setLocale);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const updateLocaleMutation = useUpdateLocale();
 
   const currentLabel = LOCALE_LABELS[locale];
 
@@ -41,6 +45,10 @@ export function LanguageSwitcher() {
   function handleSelect(selectedLocale: Locale) {
     setLocale(selectedLocale);
     setOpen(false);
+    // Persist to backend (fire-and-forget) if user is logged in
+    if (isAuthenticated) {
+      updateLocaleMutation.mutate(selectedLocale);
+    }
   }
 
   return (

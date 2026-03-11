@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from './client';
 import { ADMIN_DIVISIONS } from '@/data/admin-divisions';
+import { ApiClientError } from './client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -328,5 +329,183 @@ export function useUpdateGeoEntity() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['geo'] });
     },
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Risk Layer hooks (geo-services)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface RiskLayerResponse {
+  id: string;
+  tenantId: string;
+  name: string;
+  description: string | null;
+  layerType: 'DISEASE_RISK' | 'CLIMATE' | 'TRADE_CORRIDOR' | 'WILDLIFE_HABITAT';
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  geometry: { type: string; coordinates: unknown } | null;
+  properties: Record<string, unknown>;
+  dataClassification: string;
+  validFrom: string | null;
+  validUntil: string | null;
+  source: string | null;
+  isActive: boolean;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface RiskLayerListResponse {
+  data: RiskLayerResponse[];
+  meta: { total: number; page: number; limit: number };
+}
+
+interface SpatialAnalysisResult {
+  data: {
+    riskLayers: RiskLayerResponse[];
+    nearbyEvents: Array<{
+      id: string;
+      entityType: string;
+      entityId: string;
+      latitude: number;
+      longitude: number;
+      occurredAt: string;
+      properties: Record<string, unknown>;
+      distanceMeters: number;
+    }>;
+    bufferZone: { type: string; coordinates: unknown };
+  };
+}
+
+function withGeoFallback<T>(queryFn: () => Promise<T>, fallback: T): () => Promise<T> {
+  return async () => {
+    try {
+      return await queryFn();
+    } catch (err) {
+      if (err instanceof ApiClientError && [404, 500, 502, 503].includes(err.statusCode)) {
+        return fallback;
+      }
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        return fallback;
+      }
+      throw err;
+    }
+  };
+}
+
+export function useRiskLayers(filters?: {
+  layerType?: string;
+  severity?: string;
+  isActive?: boolean;
+  page?: number;
+  limit?: number;
+}) {
+  const params: Record<string, string> = {};
+  if (filters?.layerType) params.layerType = filters.layerType;
+  if (filters?.severity) params.severity = filters.severity;
+  if (filters?.isActive !== undefined) params.isActive = String(filters.isActive);
+  if (filters?.page) params.page = String(filters.page);
+  if (filters?.limit) params.limit = String(filters.limit);
+
+  return useQuery({
+    queryKey: ['risk-layers', filters],
+    queryFn: withGeoFallback(
+      () => apiClient.get<RiskLayerListResponse>('/geo/risk-layers', params),
+      { data: [], meta: { total: 0, page: 1, limit: 20 } },
+    ),
+    staleTime: 2 * 60_000,
+  });
+}
+
+export function useRiskLayersBbox(bbox?: {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+  layerType?: string;
+  severity?: string;
+}) {
+  const params: Record<string, string> = {};
+  if (bbox) {
+    params.west = String(bbox.west);
+    params.south = String(bbox.south);
+    params.east = String(bbox.east);
+    params.north = String(bbox.north);
+    if (bbox.layerType) params.layerType = bbox.layerType;
+    if (bbox.severity) params.severity = bbox.severity;
+  }
+
+  return useQuery({
+    queryKey: ['risk-layers', 'bbox', bbox],
+    queryFn: withGeoFallback(
+      () => apiClient.get<{ data: RiskLayerResponse[] }>('/geo/risk-layers/bbox', params),
+      { data: [] },
+    ),
+    enabled: !!bbox,
+    staleTime: 60_000,
+  });
+}
+
+export function useCreateRiskLayer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      name: string;
+      description?: string;
+      layerType: string;
+      severity: string;
+      geometry: { type: string; coordinates: unknown };
+      properties?: Record<string, unknown>;
+      dataClassification?: string;
+      validFrom?: string;
+      validUntil?: string;
+      source?: string;
+    }) => apiClient.post<{ data: RiskLayerResponse }>('/geo/risk-layers', body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['risk-layers'] });
+    },
+  });
+}
+
+export function useUpdateRiskLayer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: {
+      id: string;
+      name?: string;
+      description?: string | null;
+      layerType?: string;
+      severity?: string;
+      geometry?: { type: string; coordinates: unknown };
+      properties?: Record<string, unknown>;
+      dataClassification?: string;
+      validFrom?: string | null;
+      validUntil?: string | null;
+      source?: string | null;
+      isActive?: boolean;
+    }) => apiClient.put<{ data: RiskLayerResponse }>(`/geo/risk-layers/${id}`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['risk-layers'] });
+    },
+  });
+}
+
+export function useDeleteRiskLayer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/geo/risk-layers/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['risk-layers'] });
+    },
+  });
+}
+
+export function useSpatialAnalysis() {
+  return useMutation({
+    mutationFn: (body: {
+      point: { lat: number; lng: number };
+      radiusKm: number;
+      layerTypes?: string[];
+    }) => apiClient.post<SpatialAnalysisResult>('/geo/spatial-analysis', body),
   });
 }

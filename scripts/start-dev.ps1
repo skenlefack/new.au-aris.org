@@ -1,4 +1,4 @@
-# ARIS 3.0 — Development Startup Script (PowerShell)
+# ARIS 4.0 — Development Startup Script (PowerShell)
 # Usage:
 #   .\scripts\start-dev.ps1              # Infrastructure only (default)
 #   .\scripts\start-dev.ps1 services     # Infrastructure + all 22 microservices
@@ -22,7 +22,7 @@ $ComposeAll = "$ComposeServices -f docker-compose.apps.yml"
 function Write-Banner {
     Write-Host ""
     Write-Host "+==============================================+" -ForegroundColor Cyan
-    Write-Host "|       ARIS 3.0 - Development Environment     |" -ForegroundColor Cyan
+    Write-Host "|       ARIS 4.0 - Development Environment     |" -ForegroundColor Cyan
     Write-Host "|       AU-IBAR Digital Infrastructure          |" -ForegroundColor Cyan
     Write-Host "+==============================================+" -ForegroundColor Cyan
     Write-Host ""

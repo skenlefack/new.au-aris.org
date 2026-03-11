@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: ARIS 3.0 — Realtime Service
+  title: ARIS 4.0 — Realtime Service
   version: 1.0.0
   description: >
     WebSocket synchronisation and real-time event relay for the ARIS platform.

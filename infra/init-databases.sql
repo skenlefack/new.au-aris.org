@@ -1,4 +1,4 @@
--- ARIS 3.0 — PostgreSQL Database Initialization
+-- ARIS 4.0 — PostgreSQL Database Initialization
 -- Creates one schema per microservice for isolation + PostGIS extension
 
 -- Enable PostGIS
@@ -62,7 +62,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit.audit_log(timestamp);
 GRANT ALL ON ALL TABLES IN SCHEMA audit TO aris;
 GRANT USAGE ON ALL SCHEMAS TO aris;
 
-COMMENT ON DATABASE aris IS 'ARIS 3.0 — Animal Resources Information System — AU-IBAR';
+COMMENT ON DATABASE aris IS 'ARIS 4.0 — Animal Resources Information System — AU-IBAR';
 
 -- Datalake OLAP schema
 CREATE SCHEMA IF NOT EXISTS datalake;

@@ -13,22 +13,28 @@ import {
   Fingerprint,
   Minus,
   Info,
+  CircleHelp,
   Star,
 } from 'lucide-react';
 
 const GeoPointMap = lazy(() => import('./GeoPointMap').then((m) => ({ default: m.GeoPointMap })));
 const GeoPolygonMap = lazy(() => import('./GeoPolygonMap').then((m) => ({ default: m.GeoPolygonMap })));
 const AdminLocationField = lazy(() => import('./AdminLocationField').then((m) => ({ default: m.AdminLocationField })));
+const MasterDataSelectField = lazy(() => import('./MasterDataSelectField').then((m) => ({ default: m.MasterDataSelectField })));
+const RepeaterField = lazy(() => import('./RepeaterField').then((m) => ({ default: m.RepeaterField })));
+const GeoSelectorField = lazy(() => import('./GeoSelectorField').then((m) => ({ default: m.GeoSelectorField })));
 
 interface FieldRendererProps {
   field: FormField;
   value: unknown;
   onChange: (value: unknown) => void;
+  /** Cross-field validation error message */
+  error?: string;
 }
 
 const ml = (text?: MultilingualText) => text?.en || text?.fr || '';
 
-export function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
+export function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
   const label = ml(field.label);
   const placeholder = ml(field.placeholder);
   const helpText = ml(field.helpText);
@@ -70,10 +76,13 @@ export function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
   return (
     <div className="space-y-1">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          {label}
-          {field.required && <span className="ml-0.5 text-red-500">*</span>}
-        </label>
+        <div className="flex items-center gap-1.5">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {label}
+            {field.required && <span className="ml-0.5 text-red-500">*</span>}
+          </label>
+          {helpText && <FieldTooltip text={helpText} />}
+        </div>
       )}
 
       {field.type === 'text' && (
@@ -137,7 +146,7 @@ export function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
             min={field.validation.min}
             max={field.validation.max}
             step={field.validation.step || (field.properties.step as number)}
-            className={inputClass}
+            className={cn(inputClass, error && 'border-red-400 focus:border-red-500 focus:ring-red-400/30')}
           />
           {typeof field.properties.unit === 'string' && field.properties.unit && (
             <span className="text-sm text-gray-500 flex-shrink-0">{field.properties.unit}</span>
@@ -145,24 +154,44 @@ export function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
         </div>
       )}
 
-      {(field.type === 'select' || field.type === 'master-data-select' || field.type === 'form-data-select') && (
+      {field.type === 'select' && (
         <select
           value={(value as string) || ''}
           onChange={(e) => onChange(e.target.value)}
           className={inputClass}
         >
           <option value="">{placeholder || 'Select...'}</option>
-          {field.type === 'master-data-select' ? (
-            <option value="" disabled>
-              [{(field.properties.masterDataType as string) || 'master data'}]
+          {((field.properties.options || []) as SelectOption[]).map((opt, i) => (
+            <option key={i} value={opt.value}>
+              {ml(opt.label) || opt.value}
             </option>
-          ) : (
-            ((field.properties.options || []) as SelectOption[]).map((opt, i) => (
-              <option key={i} value={opt.value}>
-                {ml(opt.label) || opt.value}
-              </option>
-            ))
-          )}
+          ))}
+        </select>
+      )}
+
+      {field.type === 'master-data-select' && (
+        <Suspense fallback={
+          <select className={inputClass} disabled>
+            <option>Loading...</option>
+          </select>
+        }>
+          <MasterDataSelectField
+            masterDataType={(field.properties.masterDataType as string) || ''}
+            value={(value as string) || ''}
+            onChange={(v) => onChange(v)}
+            placeholder={placeholder}
+            className={inputClass}
+          />
+        </Suspense>
+      )}
+
+      {field.type === 'form-data-select' && (
+        <select
+          value={(value as string) || ''}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputClass}
+        >
+          <option value="">{placeholder || 'Select...'}</option>
         </select>
       )}
 
@@ -252,7 +281,7 @@ export function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
           type="date"
           value={(value as string) || ''}
           onChange={(e) => onChange(e.target.value)}
-          className={inputClass}
+          className={cn(inputClass, error && 'border-red-400 focus:border-red-500 focus:ring-red-400/30')}
         />
       )}
 
@@ -295,8 +324,8 @@ export function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
           <div className="h-32 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">Loading...</div>
         }>
           <AdminLocationField
-            levels={(field.properties.levels as number[]) || [1, 2, 3]}
-            requiredLevels={(field.properties.requiredLevels as number[]) || []}
+            levels={(field.properties.levels as number[]) || [0, 1, 2]}
+            requiredLevels={(field.properties.requiredLevels as number[]) || [0]}
             value={value && typeof value === 'object' ? value as Record<string, string> : null}
             onChange={(v) => onChange(v)}
           />
@@ -319,15 +348,28 @@ export function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
         </Suspense>
       )}
 
-      {(field.type === 'geo-polygon' || field.type === 'geo-selector') && (
+      {field.type === 'geo-polygon' && (
         <Suspense fallback={
           <div className="h-52 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">Loading map...</div>
         }>
           <GeoPolygonMap
             value={Array.isArray(value) ? value as Array<[number, number]> : null}
             onChange={(v) => onChange(v)}
-            mode={field.type === 'geo-polygon' ? 'polygon' : 'selector'}
+            mode="polygon"
             maxPoints={(field.properties.maxPoints as number) || 50}
+          />
+        </Suspense>
+      )}
+
+      {field.type === 'geo-selector' && (
+        <Suspense fallback={
+          <div className="h-52 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">Loading map...</div>
+        }>
+          <GeoSelectorField
+            value={value}
+            onChange={onChange}
+            modes={(field.properties.modes as Array<'point' | 'line' | 'polygon'>) || ['point', 'line', 'polygon']}
+            defaultMode={(field.properties.defaultMode as 'point' | 'line' | 'polygon') || 'point'}
           />
         </Suspense>
       )}
@@ -381,15 +423,15 @@ export function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
       )}
 
       {field.type === 'repeater' && (
-        <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-          <p className="text-xs text-gray-400 mb-2">Repeatable rows ({String(field.properties.minRows ?? 1)}-{String(field.properties.maxRows ?? 10)})</p>
-          <div className="h-16 rounded bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-xs text-gray-400">
-            Row fields appear here
-          </div>
-          <button type="button" className="mt-2 text-xs text-blue-500 hover:text-blue-600">
-            + {ml(field.properties.addLabel as MultilingualText) || 'Add row'}
-          </button>
-        </div>
+        <Suspense fallback={
+          <div className="h-24 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">Loading...</div>
+        }>
+          <RepeaterField
+            field={field}
+            value={value}
+            onChange={onChange}
+          />
+        </Suspense>
       )}
 
       {field.type === 'matrix' && (
@@ -421,9 +463,50 @@ export function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
         </div>
       )}
 
-      {helpText && (
-        <p className="text-xs text-gray-400">{helpText}</p>
-      )}
+      {error && <FieldError message={error} />}
+
+    </div>
+  );
+}
+
+/* ── Tooltip component ────────────────────────────────────────────────────── */
+
+function FieldTooltip({ text }: { text: string }) {
+  return (
+    <span className="relative group/tip inline-flex">
+      <CircleHelp className="h-3.5 w-3.5 text-gray-400 cursor-help transition-colors group-hover/tip:text-blue-500" />
+      <span
+        role="tooltip"
+        className={cn(
+          'pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50',
+          'w-max max-w-[220px] rounded-lg px-3 py-2',
+          'bg-gray-900 dark:bg-gray-100 text-[11px] leading-relaxed',
+          'text-gray-100 dark:text-gray-800 shadow-lg',
+          'opacity-0 scale-95 transition-all duration-150',
+          'group-hover/tip:opacity-100 group-hover/tip:scale-100',
+          // Arrow
+          'after:absolute after:top-full after:left-1/2 after:-translate-x-1/2',
+          'after:border-4 after:border-transparent',
+          'after:border-t-gray-900 dark:after:border-t-gray-100',
+        )}
+      >
+        {text}
+      </span>
+    </span>
+  );
+}
+
+/* ── Error message component ──────────────────────────────────────────────── */
+
+function FieldError({ message }: { message: string }) {
+  return (
+    <div className="flex items-center gap-1.5 animate-in slide-in-from-top-2 duration-200">
+      <div className="flex items-center gap-1.5 rounded-md bg-red-50 dark:bg-red-950/40 px-2.5 py-1.5 text-[11px] font-medium text-red-600 dark:text-red-400">
+        <svg className="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
+          <path fillRule="evenodd" d="M8 15A7 7 0 108 1a7 7 0 000 14zM8 4a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 018 4zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+        </svg>
+        {message}
+      </div>
     </div>
   );
 }

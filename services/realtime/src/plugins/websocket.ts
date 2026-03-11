@@ -10,6 +10,10 @@ declare module 'fastify' {
   }
 }
 
+/** Heartbeat interval (30s) and timeout (90s) */
+const HEARTBEAT_INTERVAL_MS = 30_000;
+const HEARTBEAT_TIMEOUT_MS = 90_000;
+
 export default fp(async (app: FastifyInstance) => {
   const io = new SocketIOServer(app.server, {
     cors: {
@@ -18,6 +22,8 @@ export default fp(async (app: FastifyInstance) => {
     },
     transports: ['websocket', 'polling'],
     path: '/ws',
+    pingInterval: HEARTBEAT_INTERVAL_MS,
+    pingTimeout: HEARTBEAT_TIMEOUT_MS,
   });
 
   // JWT auth middleware on Socket.IO handshake
@@ -49,9 +55,24 @@ export default fp(async (app: FastifyInstance) => {
     }
   });
 
-  // Connection/disconnection handlers using RoomManagerService and PresenceService
   const roomManager = app.roomManager;
   const presence = app.presenceService;
+
+  // ── Server-side heartbeat: disconnect stale clients every 30s ──
+
+  const heartbeatTimer = setInterval(() => {
+    const stale = roomManager.getStaleClients(HEARTBEAT_TIMEOUT_MS);
+    for (const socketId of stale) {
+      const sock = io.sockets.sockets.get(socketId);
+      if (sock) {
+        app.log.info(`Heartbeat timeout for socket ${socketId}, disconnecting`);
+        sock.emit('message', { type: 'ERROR', code: 'HEARTBEAT_TIMEOUT', message: 'No heartbeat received within 90s' });
+        sock.disconnect(true);
+      }
+    }
+  }, HEARTBEAT_INTERVAL_MS);
+
+  // ── Connection handler ──
 
   io.on('connection', async (socket) => {
     const user = socket.data.user;
@@ -65,10 +86,12 @@ export default fp(async (app: FastifyInstance) => {
       role: user.role,
       connectedAt: new Date(),
       rooms: new Set(),
+      lastHeartbeat: Date.now(),
     });
 
     // Update presence
-    presence.setOnline(user.tenantId, user.userId, user.email);
+    await presence.setOnline(user.tenantId, user.userId, user.email);
+    await presence.recordHeartbeat(socket.id);
 
     // Join Socket.IO rooms
     await socket.join(`tenant:${user.tenantId}`);
@@ -91,20 +114,99 @@ export default fp(async (app: FastifyInstance) => {
       tenantId: user.tenantId,
     });
 
-    // ── Subscribe handler ──
+    // ── JOIN_ROOM handler (hierarchical rooms with RBAC) ──
+
+    socket.on('JOIN_ROOM', async (data: { roomId?: string; token?: string }, callback?: (res: unknown) => void) => {
+      const roomId = data?.roomId;
+      if (!roomId) {
+        const res = { type: 'ERROR', code: 'BAD_REQUEST', message: 'roomId is required' };
+        callback?.(res);
+        socket.emit('message', res);
+        return;
+      }
+
+      // Validate room format
+      if (!roomManager.isValidHierarchicalRoom(roomId)) {
+        const res = { type: 'ERROR', code: 'BAD_REQUEST', message: `Invalid room format: ${roomId}` };
+        callback?.(res);
+        socket.emit('message', res);
+        return;
+      }
+
+      // If a token is provided in the message, re-validate it
+      if (data.token) {
+        try {
+          jwt.verify(data.token, app.jwtPublicKey, { algorithms: ['RS256'] });
+        } catch {
+          const res = { type: 'ERROR', code: 'UNAUTHORIZED', message: 'Invalid token' };
+          callback?.(res);
+          socket.emit('message', res);
+          return;
+        }
+      }
+
+      // RBAC authorization
+      const auth = roomManager.authorizeRoom(socket.id, roomId);
+      if (!auth.authorized) {
+        const res = { type: 'ERROR', code: 'UNAUTHORIZED', message: auth.reason };
+        callback?.(res);
+        socket.emit('message', res);
+        return;
+      }
+
+      // Join the room
+      roomManager.joinRoom(socket.id, roomId);
+      await socket.join(roomId);
+      await presence.incrementRoomCount(roomId);
+
+      const memberCount = roomManager.getRoomMemberCount(roomId);
+      const res = { type: 'ROOM_JOINED', roomId, memberCount };
+      callback?.(res);
+      socket.emit('message', res);
+
+      app.log.debug(`Socket ${socket.id} joined ${roomId} (members: ${memberCount})`);
+    });
+
+    // ── LEAVE_ROOM handler ──
+
+    socket.on('LEAVE_ROOM', async (data: { roomId?: string }, callback?: (res: unknown) => void) => {
+      const roomId = data?.roomId;
+      if (!roomId) {
+        callback?.({ type: 'ERROR', code: 'BAD_REQUEST', message: 'roomId is required' });
+        return;
+      }
+
+      roomManager.leaveRoom(socket.id, roomId);
+      await socket.leave(roomId);
+      await presence.decrementRoomCount(roomId);
+
+      callback?.({ type: 'ROOM_LEFT', roomId });
+    });
+
+    // ── PING handler ──
+
+    socket.on('PING', (data: { timestamp?: number }, callback?: (res: unknown) => void) => {
+      roomManager.updateHeartbeat(socket.id);
+      presence.recordHeartbeat(socket.id);
+
+      const res = { type: 'PONG', timestamp: data?.timestamp ?? Date.now() };
+      callback?.(res);
+      socket.emit('message', res);
+    });
+
+    // ── Legacy subscribe handler (backward compatibility) ──
+
     socket.on('subscribe', async (data: { channel: string }, callback?: (res: unknown) => void) => {
       if (!data?.channel) {
-        const res = { success: false, error: 'Channel is required' };
-        callback?.(res);
+        callback?.({ success: false, error: 'Channel is required' });
         return;
       }
 
       if (!roomManager.isValidChannel(data.channel)) {
-        const res = {
+        callback?.({
           success: false,
-          error: `Invalid channel. Valid: outbreaks, workflow, notifications, sync-status, alerts`,
-        };
-        callback?.(res);
+          error: 'Invalid channel. Valid: outbreaks, workflow, notifications, sync-status, alerts',
+        });
         return;
       }
 
@@ -118,7 +220,8 @@ export default fp(async (app: FastifyInstance) => {
       callback?.({ success: true, room });
     });
 
-    // ── Unsubscribe handler ──
+    // ── Legacy unsubscribe handler ──
+
     socket.on('unsubscribe', async (data: { channel: string }, callback?: (res: unknown) => void) => {
       if (!data?.channel || !roomManager.isValidChannel(data.channel)) {
         callback?.({ success: false });
@@ -132,16 +235,27 @@ export default fp(async (app: FastifyInstance) => {
       callback?.({ success: true });
     });
 
-    // ── Ping handler ──
+    // ── Legacy ping handler ──
+
     socket.on('ping', (callback?: (res: unknown) => void) => {
+      roomManager.updateHeartbeat(socket.id);
       callback?.({ event: 'pong', data: { time: Date.now() } });
     });
 
     // ── Disconnect handler ──
-    socket.on('disconnect', () => {
+
+    socket.on('disconnect', async () => {
       const clientInfo = roomManager.getClient(socket.id);
       if (clientInfo) {
-        presence.setOffline(clientInfo.tenantId, clientInfo.userId);
+        await presence.setOffline(clientInfo.tenantId, clientInfo.userId);
+        await presence.removeHeartbeat(socket.id);
+
+        // Decrement room counts for all hierarchical rooms
+        for (const room of clientInfo.rooms) {
+          if (roomManager.isValidHierarchicalRoom(room)) {
+            await presence.decrementRoomCount(room);
+          }
+        }
 
         // Broadcast presence update
         const updatedPresence = presence.getTenantPresence(clientInfo.tenantId);
@@ -153,5 +267,8 @@ export default fp(async (app: FastifyInstance) => {
   });
 
   app.decorate('io', io);
-  app.addHook('onClose', () => io.close());
+  app.addHook('onClose', () => {
+    clearInterval(heartbeatTimer);
+    io.close();
+  });
 }, { name: 'websocket-plugin' });

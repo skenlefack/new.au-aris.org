@@ -1,9 +1,26 @@
 import type { PrismaClient } from '@prisma/client';
+import type Redis from 'ioredis';
+
+interface BiUser {
+  userId: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  role: string;
+  tenantId: string;
+  tenantLevel?: string;
+}
 
 export class BiService {
-  constructor(private prisma: PrismaClient) {}
+  private redis: Redis | null;
 
-  /* ── Tool Configs ── */
+  constructor(private prisma: PrismaClient, redis?: Redis) {
+    this.redis = redis ?? null;
+  }
+
+  /* ═══════════════════════════════════════════
+     Tool Configs
+     ═══════════════════════════════════════════ */
 
   async listTools() {
     const tools = await this.prisma.$queryRawUnsafe<any[]>(`
@@ -35,7 +52,7 @@ export class BiService {
     return { data: rows[0] };
   }
 
-  async getToolEmbedUrl(tool: string) {
+  async getToolEmbedUrl(tool: string, user?: BiUser) {
     const rows = await this.prisma.$queryRawUnsafe<any[]>(`
       SELECT base_url as "baseUrl", status, embed_mode as "embedMode"
       FROM governance.bi_tool_configs
@@ -47,22 +64,294 @@ export class BiService {
     }
 
     const config = rows[0];
-    let url = config.baseUrl;
 
-    // Superset: add standalone query param for embedded mode
+    // Superset: use embedded SDK (frontend handles guest token separately)
     if (tool === 'superset') {
-      url = `${config.baseUrl}/superset/welcome/?standalone=true`;
+      return {
+        data: {
+          url: `${config.baseUrl}/superset/welcome/?standalone=true`,
+          guestToken: null,
+        },
+      };
     }
 
-    return {
-      data: {
-        url,
-        guestToken: null, // TODO: implement Superset Guest Token provisioning
-      },
-    };
+    // Grafana: build URL with tenant variables via proxy
+    if (tool === 'grafana' && user) {
+      const url = await this.getGrafanaEmbedUrl(user);
+      return { data: { url, guestToken: null } };
+    }
+
+    return { data: { url: config.baseUrl, guestToken: null } };
   }
 
-  /* ── Access Rules ── */
+  /* ═══════════════════════════════════════════
+     Tenant Resolution (shared across BI tools)
+     ═══════════════════════════════════════════ */
+
+  async resolveTenantIds(user: BiUser): Promise<string[]> {
+    const level = user.tenantLevel ?? await this.getTenantLevel(user.tenantId);
+
+    // Continental sees everything — no filter
+    if (level === 'CONTINENTAL') return [];
+
+    // Check cache
+    const cacheKey = `aris:bi:tenant-children:${user.tenantId}`;
+    if (this.redis) {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    }
+
+    let ids: string[];
+
+    if (level === 'REC') {
+      // REC sees itself + all member state children
+      const children = await this.prisma.$queryRawUnsafe<{ id: string }[]>(`
+        SELECT id::text FROM tenant.tenants WHERE parent_id = $1::uuid
+      `, user.tenantId);
+      ids = [user.tenantId, ...children.map((c) => c.id)];
+    } else {
+      // MEMBER_STATE sees only itself
+      ids = [user.tenantId];
+    }
+
+    // Cache for 5 minutes
+    if (this.redis) {
+      await this.redis.set(cacheKey, JSON.stringify(ids), 'EX', 300);
+    }
+
+    return ids;
+  }
+
+  private async getTenantLevel(tenantId: string): Promise<string> {
+    const rows = await this.prisma.$queryRawUnsafe<{ level: string }[]>(`
+      SELECT level FROM tenant.tenants WHERE id = $1::uuid
+    `, tenantId);
+    return rows[0]?.level ?? 'MEMBER_STATE';
+  }
+
+  /* ═══════════════════════════════════════════
+     Superset — Guest Token API
+     ═══════════════════════════════════════════ */
+
+  private async getSupersetAdminSession(): Promise<string> {
+    // Check cache first
+    const cacheKey = 'aris:bi:superset:admin-session';
+    if (this.redis) {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) return cached;
+    }
+
+    const supersetUrl = process.env['SUPERSET_INTERNAL_URL'] ?? 'http://localhost:8088';
+    const username = process.env['SUPERSET_ADMIN_USERNAME'] ?? 'admin';
+    const password = process.env['SUPERSET_ADMIN_PASSWORD'] ?? 'ArisSuperset2024!';
+
+    const res = await fetch(`${supersetUrl}/api/v1/security/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username,
+        password,
+        provider: 'db',
+        refresh: true,
+      }),
+    });
+
+    if (!res.ok) {
+      throw Object.assign(new Error('Superset admin login failed'), { statusCode: 502 });
+    }
+
+    const body = await res.json() as { access_token: string };
+    const token = body.access_token;
+
+    // Cache for 30 minutes
+    if (this.redis) {
+      await this.redis.set(cacheKey, token, 'EX', 1800);
+    }
+
+    return token;
+  }
+
+  async getSupersetGuestToken(user: BiUser, dashboardId: string): Promise<string> {
+    const adminToken = await this.getSupersetAdminSession();
+    const tenantIds = await this.resolveTenantIds(user);
+    const supersetUrl = process.env['SUPERSET_INTERNAL_URL'] ?? 'http://localhost:8088';
+
+    // Build RLS clause
+    const rls: { clause: string }[] = [];
+    if (tenantIds.length > 0) {
+      const inList = tenantIds.map((id) => `'${id}'`).join(',');
+      rls.push({ clause: `tenant_id IN (${inList})` });
+    }
+    // Continental (tenantIds empty) → no RLS filter, sees everything
+
+    const res = await fetch(`${supersetUrl}/api/v1/security/guest_token/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        user: {
+          username: user.email,
+          first_name: user.firstName ?? 'ARIS',
+          last_name: user.lastName ?? 'User',
+        },
+        resources: [{ type: 'dashboard', id: dashboardId }],
+        rls,
+      }),
+    });
+
+    if (!res.ok) {
+      // If admin session expired, clear cache and retry once
+      if (res.status === 401 && this.redis) {
+        await this.redis.del('aris:bi:superset:admin-session');
+        return this.getSupersetGuestToken(user, dashboardId);
+      }
+      const errBody = await res.text();
+      throw Object.assign(
+        new Error(`Superset guest token failed: ${res.status} ${errBody}`),
+        { statusCode: 502 },
+      );
+    }
+
+    const body = await res.json() as { token: string };
+    return body.token;
+  }
+
+  /* ═══════════════════════════════════════════
+     Grafana — Embed URL with tenant variables
+     ═══════════════════════════════════════════ */
+
+  async getGrafanaEmbedUrl(user: BiUser, dashboardUid?: string): Promise<string> {
+    const tenantIds = await this.resolveTenantIds(user);
+
+    let path = dashboardUid ? `/d/${dashboardUid}` : '/';
+
+    const params = new URLSearchParams();
+    params.set('kiosk', '');
+
+    if (tenantIds.length === 0) {
+      // Continental — wildcard
+      params.set('var-tenant_id', '*');
+    } else {
+      for (const id of tenantIds) {
+        params.append('var-tenant_id', id);
+      }
+    }
+
+    return `/api/bi-proxy/grafana${path}?${params.toString()}`;
+  }
+
+  /* ═══════════════════════════════════════════
+     Metabase — Session Proxy
+     ═══════════════════════════════════════════ */
+
+  private async getMetabaseAdminSession(): Promise<string> {
+    const cacheKey = 'aris:bi:metabase:admin-session';
+    if (this.redis) {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) return cached;
+    }
+
+    const metabaseUrl = process.env['METABASE_INTERNAL_URL'] ?? 'http://localhost:3035';
+    const email = process.env['METABASE_ADMIN_EMAIL'] ?? 'admin@au-aris.org';
+    const password = process.env['METABASE_ADMIN_PASSWORD'] ?? 'ArisMetabase2024!';
+
+    const res = await fetch(`${metabaseUrl}/api/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: email, password }),
+    });
+
+    if (!res.ok) {
+      throw Object.assign(new Error('Metabase admin login failed'), { statusCode: 502 });
+    }
+
+    const body = await res.json() as { id: string };
+    const sessionId = body.id;
+
+    // Cache for 30 minutes
+    if (this.redis) {
+      await this.redis.set(cacheKey, sessionId, 'EX', 1800);
+    }
+
+    return sessionId;
+  }
+
+  async getMetabaseSession(user: BiUser): Promise<string> {
+    const metabaseUrl = process.env['METABASE_INTERNAL_URL'] ?? 'http://localhost:3035';
+    const adminSession = await this.getMetabaseAdminSession();
+
+    // Check if user exists in Metabase
+    const usersRes = await fetch(`${metabaseUrl}/api/user`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Metabase-Session': adminSession,
+      },
+    });
+
+    let userExists = false;
+    if (usersRes.ok) {
+      const usersBody = await usersRes.json() as { data?: { email: string }[] };
+      const users = usersBody.data ?? usersBody as any;
+      if (Array.isArray(users)) {
+        userExists = users.some((u: any) => u.email === user.email);
+      }
+    }
+
+    // Generate a deterministic password for this user (they never need to know it)
+    const userPassword = `Aris_${Buffer.from(user.userId).toString('base64').slice(0, 16)}!1A`;
+
+    if (!userExists) {
+      // Create user in Metabase
+      const createRes = await fetch(`${metabaseUrl}/api/user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Metabase-Session': adminSession,
+        },
+        body: JSON.stringify({
+          email: user.email,
+          first_name: user.firstName ?? 'ARIS',
+          last_name: user.lastName ?? 'User',
+          password: userPassword,
+        }),
+      });
+
+      if (!createRes.ok) {
+        // User may already exist (race condition), try to proceed
+        const errText = await createRes.text();
+        if (!errText.includes('already exists')) {
+          throw Object.assign(
+            new Error(`Metabase user creation failed: ${errText}`),
+            { statusCode: 502 },
+          );
+        }
+      }
+    }
+
+    // Create a session for this user
+    const sessionRes = await fetch(`${metabaseUrl}/api/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: user.email,
+        password: userPassword,
+      }),
+    });
+
+    if (!sessionRes.ok) {
+      // If login fails, use admin session as fallback
+      return adminSession;
+    }
+
+    const sessionBody = await sessionRes.json() as { id: string };
+    return sessionBody.id;
+  }
+
+  /* ═══════════════════════════════════════════
+     Access Rules
+     ═══════════════════════════════════════════ */
 
   async listAccessRules(toolName?: string) {
     let query = `
@@ -166,7 +455,9 @@ export class BiService {
     return { data: { deleted: true } };
   }
 
-  /* ── Dashboards ── */
+  /* ═══════════════════════════════════════════
+     Dashboards
+     ═══════════════════════════════════════════ */
 
   async listDashboards(toolName?: string) {
     let query = `

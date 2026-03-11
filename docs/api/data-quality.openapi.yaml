@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: ARIS 3.0 — Data Quality Service
+  title: ARIS 4.0 — Data Quality Service
   version: 1.0.0
   description: >
     Quality gates, confidence scoring, and correction loop for ARIS data records.

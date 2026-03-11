@@ -68,4 +68,14 @@ export default async function campaignRoutes(app: FastifyInstance): Promise<void
     const user = request.user as AuthenticatedUser;
     return service.update(request.params.id, request.body, user);
   });
+
+  // DELETE /api/v1/collecte/campaigns/:id (only PLANNED campaigns)
+  app.delete<{ Params: IdParam }>('/api/v1/collecte/campaigns/:id', {
+    schema: { params: IdParamSchema },
+    preHandler: [auth, tenant, rolesHook(...WRITE_ROLES)],
+  }, async (request, reply) => {
+    const user = request.user as AuthenticatedUser;
+    const result = await service.delete(request.params.id, user);
+    return reply.code(200).send(result);
+  });
 }

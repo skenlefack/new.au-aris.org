@@ -20,7 +20,7 @@ function createMockPrisma() {
   } as any;
 }
 
-function createMockElastic() {
+function createMockOpenSearch() {
   return {
     index: vi.fn().mockResolvedValue({}),
   } as any;
@@ -40,7 +40,7 @@ function createMockKafka() {
 
 describe('OLAP Integration', () => {
   let prisma: ReturnType<typeof createMockPrisma>;
-  let elastic: ReturnType<typeof createMockElastic>;
+  let elastic: ReturnType<typeof createMockOpenSearch>;
   let redis: ReturnType<typeof createMockRedis>;
   let kafka: ReturnType<typeof createMockKafka>;
   let ingestionService: IngestionService;
@@ -48,7 +48,7 @@ describe('OLAP Integration', () => {
 
   beforeEach(() => {
     prisma = createMockPrisma();
-    elastic = createMockElastic();
+    elastic = createMockOpenSearch();
     redis = createMockRedis();
     kafka = createMockKafka();
     ingestionService = new IngestionService(prisma, elastic, redis, kafka);

@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: ARIS 3.0 — Tenant Service
+  title: ARIS 4.0 — Tenant Service
   version: 1.0.0
   description: >
     Multi-tenant hierarchy management for the ARIS platform.

@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-ARIS 3.0 must authenticate and authorize users across a complex multi-tenant hierarchy: AU-IBAR (continental), 8 Regional Economic Communities, and 55 Member States. The authentication system must satisfy the following requirements:
+ARIS 4.0 must authenticate and authorize users across a complex multi-tenant hierarchy: AU-IBAR (continental), 8 Regional Economic Communities, and 55 Member States. The authentication system must satisfy the following requirements:
 
 1. **No external dependency:** AU-IBAR operates critical continental infrastructure for animal resource management. A dependency on an external identity provider (commercial SaaS or third-party open source) introduces a single point of failure outside AU-IBAR's operational control. Internet connectivity across African Member States is variable; authentication must work even when external services are unreachable.
 

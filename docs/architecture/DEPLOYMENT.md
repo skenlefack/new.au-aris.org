@@ -1,4 +1,4 @@
-# ARIS 3.0 -- Deployment Guide
+# ARIS 4.0 -- Deployment Guide
 
 AU-IBAR Animal Resources Information System -- Continental Digital Infrastructure
 
@@ -78,7 +78,7 @@ Review and customize `.env` as needed. The defaults are configured for local dev
 docker compose up -d
 ```
 
-This starts all infrastructure containers: Kafka cluster (3 brokers), PostgreSQL + PostGIS, Redis, Elasticsearch, MinIO, Mailpit, Traefik, Schema Registry, Kafka UI, and the topic initializer.
+This starts all infrastructure containers: Kafka cluster (3 brokers), PostgreSQL + PostGIS, Redis, OpenSearch, MinIO, Mailpit, Traefik, Schema Registry, Kafka UI, and the topic initializer.
 
 Wait for all containers to become healthy:
 
@@ -136,7 +136,7 @@ After startup, verify that the key interfaces are accessible:
 |-----------|-----|---------|
 | Kafka UI | http://localhost:8080 | Monitor Kafka brokers, topics, consumer groups |
 | Schema Registry | http://localhost:8081 | View and manage Avro/JSON schemas |
-| Elasticsearch | http://localhost:9200 | Search engine API (verify `cluster_name: aris-search`) |
+| OpenSearch | http://localhost:9200 | Search engine API (verify `cluster_name: aris-search`) |
 | MinIO Console | http://localhost:9001 | Object storage management UI |
 | Mailpit Web | http://localhost:8025 | View captured development emails |
 | Traefik Dashboard | http://localhost:8090 | API gateway routing and health |
@@ -233,16 +233,24 @@ Listener layout per broker:
 - **Volume**: `redis-data` persists data
 - **Healthcheck**: `redis-cli ping` every 10s
 
-### 3.6 Elasticsearch 8.13.4
+### 3.6 OpenSearch 2.17.1
 
-- **Image**: `docker.elastic.co/elasticsearch/elasticsearch:8.13.4`
-- **Port**: 9200
+- **Image**: `opensearchproject/opensearch:2.17.1`
+- **Ports**: 9200 (REST API), 9600 (Performance Analyzer)
 - **Cluster name**: `aris-search`
 - **Mode**: Single-node discovery (development)
-- **Security**: Disabled (`xpack.security.enabled=false` for dev)
+- **Security**: Disabled (`plugins.security.disabled=true` for dev)
 - **JVM Heap**: 512 MB min/max
-- **Volume**: `es-data` persists indices
+- **Volume**: `opensearch-data` persists indices
 - **Healthcheck**: HTTP `/_cluster/health` every 30s
+- **License**: Apache 2.0 (open-source)
+
+### 3.6.1 OpenSearch Dashboards 2.17.1
+
+- **Image**: `opensearchproject/opensearch-dashboards:2.17.1`
+- **Port**: 5601
+- **Purpose**: Index visualization, search analytics, dev tools
+- **Security**: Dashboard security plugin disabled for dev
 
 ### 3.7 MinIO (S3-Compatible Object Storage)
 
@@ -328,7 +336,7 @@ High-throughput topics (form submissions, authentication events, health events, 
 | `kafka-3-data` | kafka-3 | Broker 3 log segments |
 | `postgres-data` | postgres | Database files |
 | `redis-data` | redis | AOF persistence |
-| `es-data` | elasticsearch | Search indices |
+| `opensearch-data` | opensearch | Search indices |
 | `minio-data` | minio | Object storage |
 
 To reset all data and start fresh:
@@ -390,11 +398,13 @@ datasource db {
 | `REDIS_PORT` | `6379` | Redis port |
 | `REDIS_URL` | `redis://localhost:6379` | Redis connection string |
 
-### Elasticsearch
+### OpenSearch
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ELASTICSEARCH_URL` | `http://localhost:9200` | Elasticsearch endpoint |
+| `OPENSEARCH_URL` | `http://localhost:9200` | OpenSearch REST endpoint |
+| `OPENSEARCH_USER` | `admin` | OpenSearch admin username |
+| `OPENSEARCH_PASSWORD` | `ArisSearch2024!` | OpenSearch admin password |
 
 ### MinIO (S3-Compatible Storage)
 
@@ -604,7 +614,7 @@ All 22 backend services and their assigned ports:
 | 9092 | Kafka Broker 1 | Client connections |
 | 9094 | Kafka Broker 2 | Client connections |
 | 9096 | Kafka Broker 3 | Client connections |
-| 9200 | Elasticsearch | Search API |
+| 9200 | OpenSearch | Search API |
 | 1025 | Mailpit | SMTP server (dev) |
 
 ---
@@ -757,7 +767,7 @@ JWT_REFRESH_EXPIRY=7d
   - Form submission ingestion (collecte): Scale aggressively during campaign periods.
 - Use Pod Disruption Budgets (PDB) to ensure availability during rolling updates.
 
-### 9.5 Elasticsearch Scaling
+### 9.5 OpenSearch Scaling
 
 - Move from single-node to a 3-node cluster in production (1 master, 2 data nodes minimum).
 - Index lifecycle management (ILM) for time-series data (audit logs, event history).
@@ -778,7 +788,7 @@ JWT_REFRESH_EXPIRY=7d
 - [ ] Enable TLS termination at the Traefik ingress (Let's Encrypt or organizational CA).
 - [ ] Configure PostgreSQL with `sslmode=require` and provide server certificates.
 - [ ] Enable Redis TLS (`tls-port 6380`, provide cert/key/ca files).
-- [ ] Enable Elasticsearch `xpack.security.enabled=true` with TLS for transport and HTTP layers.
+- [ ] Enable OpenSearch security plugin with TLS for transport and HTTP layers.
 - [ ] Configure MinIO with TLS certificates for the S3 API endpoint.
 - [ ] All inter-service communication must use HTTPS or mTLS within the Kubernetes cluster.
 
@@ -804,7 +814,7 @@ JWT_REFRESH_EXPIRY=7d
 - [ ] PostgreSQL: Configure continuous WAL archiving to object storage (S3/MinIO). Schedule daily `pg_basebackup`.
 - [ ] Test restore procedures monthly. Document RTO (Recovery Time Objective) and RPO (Recovery Point Objective).
 - [ ] Redis: Enable RDB snapshots in addition to AOF for point-in-time recovery.
-- [ ] Elasticsearch: Configure snapshot repository (S3-compatible) with daily snapshots.
+- [ ] OpenSearch: Configure snapshot repository (S3-compatible) with daily snapshots.
 - [ ] MinIO: Enable bucket replication to a secondary site for disaster recovery.
 - [ ] Kafka: Log retention (7 days default) provides inherent replay capability. For longer retention, configure tiered storage.
 
@@ -816,7 +826,7 @@ JWT_REFRESH_EXPIRY=7d
   - Kafka consumer lag, throughput, and broker health.
   - PostgreSQL connection pool utilization, query latency, replication lag.
   - Redis memory usage, hit rate, eviction count.
-  - Elasticsearch cluster health, indexing rate, search latency.
+  - OpenSearch cluster health, indexing rate, search latency.
 - [ ] Deploy Loki for centralized log aggregation (structured JSON logs from all services).
 - [ ] Configure alerting rules:
   - Service down (pod not ready for >2 minutes).
@@ -940,12 +950,12 @@ docker compose up -d
 
 If any port is already in use, modify the port mapping in `docker-compose.yml` and update the corresponding variable in `.env`.
 
-### Elasticsearch heap errors
+### OpenSearch heap errors
 
-If Elasticsearch crashes with OOM, increase the JVM heap in `docker-compose.yml`:
+If OpenSearch crashes with OOM, increase the JVM heap in `docker-compose.yml`:
 
 ```yaml
-ES_JAVA_OPTS=-Xms1g -Xmx1g
+OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
 ```
 
 Ensure your Docker daemon has sufficient memory allocated (16 GB recommended).

@@ -1,6 +1,6 @@
 # Cache Strategy -- `@aris/cache`
 
-> Centralized Redis cache architecture for ARIS 3.0.
+> Centralized Redis cache architecture for ARIS 4.0.
 
 ---
 

@@ -3,7 +3,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiClientError } from './client';
 
-const TENANT_API = process.env['NEXT_PUBLIC_TENANT_API_URL'] ?? 'http://localhost:3001';
+const TENANT_API = process.env['NEXT_PUBLIC_TENANT_API_URL'] ?? '';
+
+/** Returns the logged-in user's tenantId for use in query keys (cache isolation per user). */
+function getCurrentUserTenantId(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('aris-auth');
+    if (raw) return JSON.parse(raw)?.state?.user?.tenantId ?? null;
+  } catch { /* ignore */ }
+  return null;
+}
 
 function getAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -18,6 +28,11 @@ function getAuthHeaders(): Record<string, string> {
     if (tenant) {
       const tid = JSON.parse(tenant)?.state?.selectedTenantId;
       if (tid) headers['X-Tenant-Id'] = tid;
+    }
+    const locale = localStorage.getItem('aris-locale');
+    if (locale) {
+      const loc = JSON.parse(locale)?.state?.locale;
+      if (loc) headers['X-Locale'] = loc;
     }
   } catch { /* ignore */ }
   return headers;
@@ -448,6 +463,8 @@ export interface FunctionItem {
   isActive: boolean;
   isDefault: boolean;
   sortOrder: number;
+  tenantId?: string;
+  tenant?: { id: string; name: string; level: string; countryCode?: string };
   metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
@@ -464,8 +481,9 @@ export function useSettingsFunctions(params?: { search?: string; level?: string;
   if (params?.status) qs.set('status', params.status);
   const query = `?${qs.toString()}`;
 
+  const tid = getCurrentUserTenantId();
   return useQuery({
-    queryKey: ['settings', 'functions', params],
+    queryKey: ['settings', 'functions', tid, params],
     queryFn: () => tenantFetch<{ data: FunctionItem[]; meta: { total: number; page: number; limit: number } }>(`/api/v1/settings/functions${query}`),
     staleTime: 10 * 60_000,
   });

@@ -12,9 +12,12 @@ import {
   X,
   ArrowDown,
   Layers,
+  Search,
 } from 'lucide-react';
+import { Pagination } from '@/components/ui/Pagination';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTenantStore, deriveCountryCodeFromEmail } from '@/lib/stores/tenant-store';
 import {
   useWorkflowDefinitions,
   useWorkflowDefinition,
@@ -56,19 +59,33 @@ function Skeleton() {
 export default function WorkflowConfigPage() {
   const { user } = useAuthStore();
   const isNational = user?.role === 'NATIONAL_ADMIN';
-  // Derive country code from email pattern: admin@ke.au-aris.org → KE
-  const countryCode = user?.email?.match(/^[^@]+@([a-z]{2})\.au-aris\.org$/i)?.[1]?.toUpperCase();
+  const selectedTenant = useTenantStore((s) => s.selectedTenant);
+  const countryCode = selectedTenant?.level === 'MEMBER_STATE'
+    ? selectedTenant.code
+    : deriveCountryCodeFromEmail(user?.email) ?? undefined;
 
-  // For national admins: show their country's workflow
-  // For super/continental admins: show all workflows
-  const { data: allWfRes, isLoading: allLoading } = useWorkflowDefinitions({ limit: 50 });
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [search, setSearch] = useState('');
+
+  // Fetch all records (max 100 per backend schema) — client-side search + pagination
+  const { data: allWfRes, isLoading: allLoading } = useWorkflowDefinitions({ limit: 100 });
   const { data: countryWfRes, isLoading: countryLoading } = useWorkflowByCountry(
     isNational ? countryCode : undefined,
   );
 
-  const workflows = isNational
+  const allWorkflows = isNational
     ? (countryWfRes?.data ? [countryWfRes.data] : [])
     : (allWfRes?.data ?? []);
+  const filtered = search
+    ? allWorkflows.filter((wf: any) => {
+        const q = search.toLowerCase();
+        return i18n(wf.name).toLowerCase().includes(q)
+          || i18n(wf.country?.name).toLowerCase().includes(q);
+      })
+    : allWorkflows;
+  const totalFiltered = filtered.length;
+  const workflows = filtered.slice((page - 1) * limit, page * limit);
   const isLoading = isNational ? countryLoading : allLoading;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -98,6 +115,18 @@ export default function WorkflowConfigPage() {
         <CreateWorkflowForm onClose={() => setShowCreateForm(false)} />
       )}
 
+      {/* Search bar */}
+      <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          placeholder="Search workflows..."
+          className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
+        />
+      </div>
+
       {isLoading ? (
         <Skeleton />
       ) : workflows.length === 0 ? (
@@ -120,6 +149,15 @@ export default function WorkflowConfigPage() {
               onToggle={() => setSelectedId(selectedId === wf.id ? null : wf.id)}
             />
           ))}
+          {!isNational && (
+            <Pagination
+              page={page}
+              total={totalFiltered}
+              limit={limit}
+              onPageChange={setPage}
+              onLimitChange={(newLimit) => { setLimit(newLimit); setPage(1); }}
+            />
+          )}
         </div>
       )}
     </div>
@@ -150,7 +188,7 @@ function WorkflowCard({
     autoValidateEnabled: workflow.autoValidateEnabled ?? false,
     requireComment: workflow.requireComment ?? false,
     allowReject: workflow.allowReject ?? true,
-    allowReturnForCorrection: workflow.allowReturnForCorrection ?? true,
+    allowReturn: workflow.allowReturn ?? true,
   });
 
   const handleSave = async () => {
@@ -267,9 +305,9 @@ function WorkflowCard({
               />
               <ToggleField
                 label="Allow Return"
-                value={formState.allowReturnForCorrection}
+                value={formState.allowReturn}
                 editing={editing}
-                onChange={(v) => setFormState((s) => ({ ...s, allowReturnForCorrection: v }))}
+                onChange={(v) => setFormState((s) => ({ ...s, allowReturn: v }))}
               />
             </div>
           </div>

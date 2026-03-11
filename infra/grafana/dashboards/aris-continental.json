@@ -1,0 +1,180 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "ARIS Continental Overview — Key metrics across all AU Member States",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Active Health Events by Country",
+      "type": "barchart",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "rawSql": "SELECT c.code AS country, COUNT(he.id) AS active_events\nFROM animal_health.health_events he\nJOIN governance.countries c ON c.tenant_id = he.tenant_id\nWHERE he.status IN ('suspected', 'confirmed')\n  AND ($country = 'ALL' OR c.code = $country)\n  AND EXTRACT(YEAR FROM he.created_at) = $year\n  AND ('${tenant_id}' = '*' OR he.tenant_id::text IN (${tenant_id:sqlstring}))\nGROUP BY c.code\nORDER BY active_events DESC\nLIMIT 20;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 50 }] }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "barWidth": 0.8
+      }
+    },
+    {
+      "title": "Vaccination Coverage (%)",
+      "type": "gauge",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 10, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(AVG(CASE WHEN v.status = 'completed' THEN 100.0 ELSE 0 END), 1) AS coverage\nFROM animal_health.vaccinations v\nWHERE EXTRACT(YEAR FROM v.created_at) = $year\n  AND ('${tenant_id}' = '*' OR v.tenant_id::text IN (${tenant_id:sqlstring}));",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "unit": "percent",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "orange", "value": 40 }, { "color": "green", "value": 70 }] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Collecte Submissions (Monthly)",
+      "type": "timeseries",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 10, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "rawSql": "SELECT DATE_TRUNC('month', cs.submitted_at) AS time,\n       COUNT(*) AS submissions\nFROM collecte.submissions cs\nWHERE EXTRACT(YEAR FROM cs.submitted_at) = $year\n  AND ('${tenant_id}' = '*' OR cs.tenant_id::text IN (${tenant_id:sqlstring}))\nGROUP BY 1\nORDER BY 1;",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 20, "lineWidth": 2 }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Workflow Pipeline",
+      "type": "piechart",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 10, "w": 8, "x": 0, "y": 10 },
+      "targets": [
+        {
+          "rawSql": "SELECT wi.status, COUNT(*) AS count\nFROM workflow.workflow_instances wi\nWHERE EXTRACT(YEAR FROM wi.created_at) = $year\n  AND ('${tenant_id}' = '*' OR wi.tenant_id::text IN (${tenant_id:sqlstring}))\nGROUP BY wi.status\nORDER BY count DESC;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "options": { "legendPlacement": "right", "pieType": "donut" }
+    },
+    {
+      "title": "Top 10 Diseases Reported",
+      "type": "table",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 10, "w": 8, "x": 8, "y": 10 },
+      "targets": [
+        {
+          "rawSql": "SELECT he.disease_name AS disease,\n       COUNT(*) AS events,\n       SUM(he.cases) AS total_cases,\n       SUM(he.deaths) AS total_deaths\nFROM animal_health.health_events he\nWHERE EXTRACT(YEAR FROM he.created_at) = $year\n  AND ($country = 'ALL' OR he.country_code = $country)\n  AND ('${tenant_id}' = '*' OR he.tenant_id::text IN (${tenant_id:sqlstring}))\nGROUP BY he.disease_name\nORDER BY events DESC\nLIMIT 10;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": { "showHeader": true, "sortBy": [{ "displayName": "events", "desc": true }] }
+    },
+    {
+      "title": "Member States — Operational Status",
+      "type": "stat",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 10, "w": 8, "x": 16, "y": 10 },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COUNT(*) FILTER (WHERE is_operational = true) AS operational,\n  COUNT(*) FILTER (WHERE is_operational = false) AS pending,\n  COUNT(*) AS total\nFROM governance.countries\nWHERE is_active = true;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "green" } },
+        "overrides": []
+      },
+      "options": { "graphMode": "none", "textMode": "value_and_name" }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["aris", "continental", "overview"],
+  "templating": {
+    "list": [
+      {
+        "name": "tenant_id",
+        "type": "custom",
+        "label": "Tenant",
+        "query": "*",
+        "current": { "text": "*", "value": "*" },
+        "includeAll": false,
+        "multi": true,
+        "hide": 2,
+        "description": "Tenant ID filter injected by ARIS proxy"
+      },
+      {
+        "name": "country",
+        "type": "query",
+        "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+        "query": "SELECT 'ALL' AS __value, 'All Countries' AS __text UNION ALL SELECT code AS __value, code AS __text FROM governance.countries WHERE is_active = true ORDER BY 2;",
+        "current": { "text": "All Countries", "value": "ALL" },
+        "includeAll": false,
+        "refresh": 1
+      },
+      {
+        "name": "year",
+        "type": "custom",
+        "query": "2024,2025,2026",
+        "current": { "text": "2026", "value": "2026" },
+        "includeAll": false
+      }
+    ]
+  },
+  "time": { "from": "now-1y", "to": "now" },
+  "timepicker": {},
+  "timezone": "utc",
+  "title": "ARIS Continental Overview",
+  "uid": "aris-continental",
+  "version": 1
+}

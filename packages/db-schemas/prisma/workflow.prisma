@@ -1,4 +1,4 @@
-// ARIS 3.0 — Workflow Schema
+// ARIS 4.0 — Workflow Schema
 // 4-level validation engine (Annex B §B4.1)
 
 enum WfLevel {
@@ -77,5 +77,76 @@ model WorkflowTransition {
   @@index([instance_id])
   @@index([created_at])
   @@map("workflow_transitions")
+  @@schema("workflow")
+}
+
+// ── Workflow Definitions (configuration layer) ──
+
+model WorkflowDefinition {
+  id                        String   @id @default(uuid()) @db.Uuid
+  tenant_id                 String   @db.Uuid
+  country_code              String   @db.VarChar(2)
+  name                      Json     // { en: "...", fr: "..." }
+  description               Json?    // { en: "...", fr: "..." }
+  start_level               Int      @default(5)
+  end_level                 Int      @default(0)
+  default_transmit_delay    Int      @default(72)
+  default_validation_delay  Int      @default(48)
+  auto_transmit_enabled     Boolean  @default(true)
+  auto_validate_enabled     Boolean  @default(false)
+  require_comment           Boolean  @default(false)
+  allow_reject              Boolean  @default(true)
+  allow_return              Boolean  @default(true)
+  is_active                 Boolean  @default(true)
+  created_by                String   @db.Uuid
+  created_at                DateTime @default(now())
+  updated_at                DateTime @updatedAt
+
+  steps                     WorkflowStep[]
+
+  @@unique([tenant_id, country_code])
+  @@index([tenant_id])
+  @@index([country_code])
+  @@map("workflow_definitions")
+  @@schema("workflow")
+}
+
+model WorkflowStep {
+  id                   String   @id @default(uuid()) @db.Uuid
+  definition_id        String   @db.Uuid
+  step_order           Int
+  level_type           String   @db.VarChar(20)
+  admin_level          Int?
+  name                 Json     // { en: "...", fr: "..." }
+  can_edit             Boolean  @default(false)
+  can_validate         Boolean  @default(true)
+  transmit_delay_hours Int?
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  definition           WorkflowDefinition @relation(fields: [definition_id], references: [id], onDelete: Cascade)
+
+  @@index([definition_id])
+  @@map("workflow_steps")
+  @@schema("workflow")
+}
+
+model ValidationChain {
+  id                    String   @id @default(uuid()) @db.Uuid
+  tenant_id             String   @db.Uuid
+  user_id               String   @db.Uuid
+  validator_id          String   @db.Uuid
+  backup_validator_id   String?  @db.Uuid
+  level_type            String   @db.VarChar(20)
+  priority              Int      @default(1)
+  created_by            String   @db.Uuid
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  @@unique([tenant_id, user_id, level_type])
+  @@index([tenant_id])
+  @@index([user_id])
+  @@index([validator_id])
+  @@map("validation_chains")
   @@schema("workflow")
 }

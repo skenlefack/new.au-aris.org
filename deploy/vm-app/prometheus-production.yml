@@ -1,0 +1,274 @@
+# ARIS 4.0 — Prometheus Production Scrape Configuration
+# All services run as Docker containers on VM-APP (10.202.101.183)
+# Uses container names for scraping within the aris-app-network
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    environment: production
+    datacenter: nairobi
+
+rule_files:
+  - "alert-rules.yml"
+
+scrape_configs:
+  # ═══════════════════════════════════════
+  # Platform Services (CC-1)
+  # ═══════════════════════════════════════
+  - job_name: "aris-tenant"
+    static_configs:
+      - targets: ["aris-tenant:3001"]
+        labels:
+          service: "tenant"
+          group: "platform"
+
+  - job_name: "aris-credential"
+    static_configs:
+      - targets: ["aris-credential:3002"]
+        labels:
+          service: "credential"
+          group: "platform"
+
+  - job_name: "aris-message"
+    static_configs:
+      - targets: ["aris-message:3006"]
+        labels:
+          service: "message"
+          group: "platform"
+
+  - job_name: "aris-drive"
+    static_configs:
+      - targets: ["aris-drive:3007"]
+        labels:
+          service: "drive"
+          group: "platform"
+
+  - job_name: "aris-realtime"
+    static_configs:
+      - targets: ["aris-realtime:3008"]
+        labels:
+          service: "realtime"
+          group: "platform"
+
+  # ═══════════════════════════════════════
+  # Data Hub Services (CC-2)
+  # ═══════════════════════════════════════
+  - job_name: "aris-master-data"
+    static_configs:
+      - targets: ["aris-master-data:3003"]
+        labels:
+          service: "master-data"
+          group: "data-hub"
+
+  - job_name: "aris-data-quality"
+    static_configs:
+      - targets: ["aris-data-quality:3004"]
+        labels:
+          service: "data-quality"
+          group: "data-hub"
+
+  - job_name: "aris-data-contract"
+    static_configs:
+      - targets: ["aris-data-contract:3005"]
+        labels:
+          service: "data-contract"
+          group: "data-hub"
+
+  - job_name: "aris-interop-hub"
+    static_configs:
+      - targets: ["aris-interop-hub:3032"]
+        labels:
+          service: "interop-hub"
+          group: "data-hub"
+
+  # ═══════════════════════════════════════
+  # Collecte & Workflow (CC-3)
+  # ═══════════════════════════════════════
+  - job_name: "aris-form-builder"
+    static_configs:
+      - targets: ["aris-form-builder:3010"]
+        labels:
+          service: "form-builder"
+          group: "collecte"
+
+  - job_name: "aris-collecte"
+    static_configs:
+      - targets: ["aris-collecte:3011"]
+        labels:
+          service: "collecte"
+          group: "collecte"
+
+  - job_name: "aris-workflow"
+    static_configs:
+      - targets: ["aris-workflow:3012"]
+        labels:
+          service: "workflow"
+          group: "collecte"
+
+  # ═══════════════════════════════════════
+  # Domain Services (CC-4)
+  # ═══════════════════════════════════════
+  - job_name: "aris-animal-health"
+    static_configs:
+      - targets: ["aris-animal-health:3020"]
+        labels:
+          service: "animal-health"
+          group: "domain"
+
+  - job_name: "aris-livestock-prod"
+    static_configs:
+      - targets: ["aris-livestock-prod:3021"]
+        labels:
+          service: "livestock-prod"
+          group: "domain"
+
+  - job_name: "aris-fisheries"
+    static_configs:
+      - targets: ["aris-fisheries:3022"]
+        labels:
+          service: "fisheries"
+          group: "domain"
+
+  - job_name: "aris-wildlife"
+    static_configs:
+      - targets: ["aris-wildlife:3023"]
+        labels:
+          service: "wildlife"
+          group: "domain"
+
+  - job_name: "aris-apiculture"
+    static_configs:
+      - targets: ["aris-apiculture:3024"]
+        labels:
+          service: "apiculture"
+          group: "domain"
+
+  - job_name: "aris-trade-sps"
+    static_configs:
+      - targets: ["aris-trade-sps:3025"]
+        labels:
+          service: "trade-sps"
+          group: "domain"
+
+  - job_name: "aris-governance"
+    static_configs:
+      - targets: ["aris-governance:3026"]
+        labels:
+          service: "governance"
+          group: "domain"
+
+  - job_name: "aris-climate-env"
+    static_configs:
+      - targets: ["aris-climate-env:3027"]
+        labels:
+          service: "climate-env"
+          group: "domain"
+
+  # ═══════════════════════════════════════
+  # Data & Integration (CC-4)
+  # ═══════════════════════════════════════
+  - job_name: "aris-analytics"
+    static_configs:
+      - targets: ["aris-analytics:3030"]
+        labels:
+          service: "analytics"
+          group: "integration"
+
+  - job_name: "aris-geo-services"
+    static_configs:
+      - targets: ["aris-geo-services:3031"]
+        labels:
+          service: "geo-services"
+          group: "integration"
+
+  - job_name: "aris-knowledge-hub"
+    static_configs:
+      - targets: ["aris-knowledge-hub:3033"]
+        labels:
+          service: "knowledge-hub"
+          group: "integration"
+
+  # ═══════════════════════════════════════
+  # Fastify Services
+  # ═══════════════════════════════════════
+  - job_name: "aris-support"
+    static_configs:
+      - targets: ["aris-support:3041"]
+        labels:
+          service: "support"
+          group: "fastify"
+
+  - job_name: "aris-interop"
+    static_configs:
+      - targets: ["aris-interop:3042"]
+        labels:
+          service: "interop"
+          group: "fastify"
+
+  - job_name: "aris-analytics-worker"
+    static_configs:
+      - targets: ["aris-analytics-worker:3043"]
+        labels:
+          service: "analytics-worker"
+          group: "fastify"
+
+  - job_name: "aris-datalake"
+    static_configs:
+      - targets: ["aris-datalake:3044"]
+        labels:
+          service: "datalake"
+          group: "fastify"
+
+  - job_name: "aris-offline"
+    static_configs:
+      - targets: ["aris-offline:3040"]
+        labels:
+          service: "offline"
+          group: "fastify"
+
+  # ═══════════════════════════════════════
+  # Infrastructure — Local (VM-APP)
+  # ═══════════════════════════════════════
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "traefik"
+    static_configs:
+      - targets: ["aris-traefik:8080"]
+        labels:
+          service: "traefik"
+          group: "infrastructure"
+
+  # ═══════════════════════════════════════
+  # Infrastructure — Remote VMs
+  # ═══════════════════════════════════════
+  - job_name: "node-exporter-db"
+    static_configs:
+      - targets: ["10.202.101.185:9100"]
+        labels:
+          vm: "vm-db"
+          hostname: "nbo-dbms03"
+
+  - job_name: "node-exporter-kafka"
+    static_configs:
+      - targets: ["10.202.101.184:9100"]
+        labels:
+          vm: "vm-kafka"
+          hostname: "nbo-brk01"
+
+  - job_name: "node-exporter-cache"
+    static_configs:
+      - targets: ["10.202.101.186:9100"]
+        labels:
+          vm: "vm-cache"
+          hostname: "nbo-cch01"
+
+  - job_name: "node-exporter-app"
+    static_configs:
+      - targets: ["10.202.101.183:9100"]
+        labels:
+          vm: "vm-app"
+          hostname: "nbo-aris04"

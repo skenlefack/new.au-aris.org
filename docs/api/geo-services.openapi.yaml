@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: ARIS 3.0 — Geo Services
+  title: ARIS 4.0 — Geo Services
   version: 1.0.0
   description: |
-    Geospatial service for ARIS 3.0.
+    Geospatial service for ARIS 4.0.
     Provides PostGIS-backed spatial queries, administrative boundary lookups,
     risk-map layers, and pg_tileserv integration for vector tiles.
     All endpoints require AuthGuard and TenantGuard (JWT with tenantId).

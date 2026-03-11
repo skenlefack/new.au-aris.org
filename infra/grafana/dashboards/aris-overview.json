@@ -43,7 +43,7 @@
   ],
   "uid": "aris-overview",
   "title": "ARIS \u2014 System Overview",
-  "description": "ARIS 3.0 System-of-Systems continental dashboard. Displays service availability, HTTP traffic, error rates, resource usage across all 22 microservices (AU-IBAR / AU Agenda 2063).",
+  "description": "ARIS 4.0 System-of-Systems continental dashboard. Displays service availability, HTTP traffic, error rates, resource usage across all 22 microservices (AU-IBAR / AU Agenda 2063).",
   "tags": ["aris", "overview"],
   "style": "dark",
   "editable": true,

@@ -51,7 +51,7 @@
       }
     ]
   },
-  "description": "ARIS 3.0 — Kafka broker and consumer group metrics. Covers produce/consume throughput, consumer lag, failed messages, and produce latency.",
+  "description": "ARIS 4.0 — Kafka broker and consumer group metrics. Covers produce/consume throughput, consumer lag, failed messages, and produce latency.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,

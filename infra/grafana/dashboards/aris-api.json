@@ -54,7 +54,7 @@
       }
     ]
   },
-  "description": "ARIS 3.0 — HTTP API performance metrics across all 22 microservices: request rates, latency percentiles, error rates, status code distribution, slowest endpoints and in-flight requests.",
+  "description": "ARIS 4.0 — HTTP API performance metrics across all 22 microservices: request rates, latency percentiles, error rates, status code distribution, slowest endpoints and in-flight requests.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,

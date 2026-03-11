@@ -971,10 +971,45 @@ export class SettingsService {
 
   // ───────────────────── Functions ─────────────────────
 
+  private buildFunctionTenantFilter(caller: AuthenticatedUser): Record<string, unknown> {
+    if (!caller.tenantId) {
+      throw new HttpError(403, 'Missing tenant context');
+    }
+    switch (caller.tenantLevel) {
+      case 'CONTINENTAL': return {};
+      case 'REC': return { tenant: { OR: [{ id: caller.tenantId }, { parentId: caller.tenantId }] } };
+      case 'MEMBER_STATE': return { tenantId: caller.tenantId };
+      default: return { tenantId: caller.tenantId };
+    }
+  }
+
+  private async assertFunctionTenantAccess(fn: { tenantId: string }, caller: AuthenticatedUser): Promise<void> {
+    if (caller.tenantLevel === 'CONTINENTAL') return;
+    if (caller.tenantLevel === 'MEMBER_STATE') {
+      if (fn.tenantId !== caller.tenantId) throw new HttpError(403, 'Access denied: function belongs to a different tenant');
+      return;
+    }
+    if (caller.tenantLevel === 'REC') {
+      if (fn.tenantId === caller.tenantId) return;
+      // Check if the function's tenant is a child of the caller's tenant
+      const fnTenant = await (this.prisma as any).tenant.findUnique({
+        where: { id: fn.tenantId },
+        select: { parentId: true },
+      });
+      if (fnTenant?.parentId !== caller.tenantId) {
+        throw new HttpError(403, 'Access denied: function belongs to a different tenant');
+      }
+      return;
+    }
+    throw new HttpError(403, 'Access denied');
+  }
+
+  private readonly functionTenantSelect = { id: true, name: true, level: true, countryCode: true };
+
   async listFunctions(query: {
     page?: number; limit?: number; sort?: string; order?: string;
     search?: string; level?: string; category?: string; status?: string;
-  }) {
+  }, user: AuthenticatedUser) {
     const page = query.page ?? DEFAULT_PAGE;
     const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
     const skip = (page - 1) * limit;
@@ -982,7 +1017,7 @@ export class SettingsService {
       ? { [query.sort]: query.order ?? 'asc' }
       : [{ level: 'asc' as const }, { sortOrder: 'asc' as const }];
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { ...this.buildFunctionTenantFilter(user) };
     if (query.search) {
       where.OR = [
         { code: { contains: query.search, mode: 'insensitive' } },
@@ -993,7 +1028,8 @@ export class SettingsService {
     if (query.status === 'active') where.isActive = true;
     if (query.status === 'inactive') where.isActive = false;
 
-    const cacheKey = `aris:settings:functions:list:${JSON.stringify({ where, skip, limit })}`;
+    const scopeTag = user.tenantLevel === 'CONTINENTAL' ? 'all' : user.tenantId;
+    const cacheKey = `aris:settings:functions:list:${scopeTag}:${JSON.stringify({ where, skip, limit })}`;
     const cached = await this.cacheGet<{ data: any[]; meta: any }>(cacheKey);
     if (cached) return cached;
 
@@ -1003,7 +1039,10 @@ export class SettingsService {
         skip,
         take: limit,
         orderBy,
-        include: { _count: { select: { users: true } } },
+        include: {
+          _count: { select: { users: true } },
+          tenant: { select: this.functionTenantSelect },
+        },
       }),
       (this.prisma as any).function.count({ where }),
     ]);
@@ -1013,15 +1052,19 @@ export class SettingsService {
     return result;
   }
 
-  async getFunctionById(id: string) {
+  async getFunctionById(id: string, user: AuthenticatedUser) {
     const cacheKey = `aris:settings:functions:detail:${id}`;
     const cached = await this.cacheGet<{ data: any }>(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      await this.assertFunctionTenantAccess(cached.data, user);
+      return cached;
+    }
 
     const fn = await (this.prisma as any).function.findUnique({
       where: { id },
       include: {
         _count: { select: { users: true } },
+        tenant: { select: this.functionTenantSelect },
         users: {
           include: {
             user: { select: { id: true, email: true, firstName: true, lastName: true, role: true } },
@@ -1033,16 +1076,26 @@ export class SettingsService {
     });
     if (!fn) throw new HttpError(404, `Function ${id} not found`);
 
+    await this.assertFunctionTenantAccess(fn, user);
+
     const result = { data: fn };
     await this.cacheSet(cacheKey, result, CACHE_TTL_DETAIL);
     return result;
   }
 
   async createFunction(dto: Record<string, unknown>, user: AuthenticatedUser) {
+    // Determine tenantId: continental admins can optionally specify; others use their own
+    let tenantId: string;
+    if (user.tenantLevel === 'CONTINENTAL' && dto.tenantId) {
+      tenantId = dto.tenantId as string;
+    } else {
+      tenantId = user.tenantId;
+    }
+
     const existing = await (this.prisma as any).function.findFirst({
-      where: { code: dto.code as string, level: dto.level as string },
+      where: { code: dto.code as string, level: dto.level as string, tenantId },
     });
-    if (existing) throw new HttpError(409, `Function "${dto.code}" at level "${dto.level}" already exists`);
+    if (existing) throw new HttpError(409, `Function "${dto.code}" at level "${dto.level}" already exists for this tenant`);
 
     const fn = await (this.prisma as any).function.create({
       data: {
@@ -1056,7 +1109,9 @@ export class SettingsService {
         isDefault: (dto.isDefault as boolean) ?? false,
         sortOrder: (dto.sortOrder as number) ?? 0,
         metadata: (dto.metadata ?? null) as Prisma.InputJsonValue,
+        tenantId,
       },
+      include: { tenant: { select: this.functionTenantSelect } },
     });
 
     await this.publishEvent(TOPIC_SETTINGS_FUNCTION_UPDATED, { ...fn, action: 'created' }, user);
@@ -1065,6 +1120,11 @@ export class SettingsService {
   }
 
   async updateFunction(id: string, dto: Record<string, unknown>, user: AuthenticatedUser) {
+    const existing = await (this.prisma as any).function.findUnique({ where: { id } });
+    if (!existing) throw new HttpError(404, `Function ${id} not found`);
+
+    await this.assertFunctionTenantAccess(existing, user);
+
     const updateData: Record<string, unknown> = {};
     if (dto.name !== undefined) updateData.name = dto.name as Prisma.InputJsonValue;
     if (dto.description !== undefined) updateData.description = dto.description as Prisma.InputJsonValue;
@@ -1079,6 +1139,7 @@ export class SettingsService {
       const fn = await (this.prisma as any).function.update({
         where: { id },
         data: updateData,
+        include: { tenant: { select: this.functionTenantSelect } },
       });
       await this.publishEvent(TOPIC_SETTINGS_FUNCTION_UPDATED, { ...fn, action: 'updated' }, user);
       await this.invalidateFunctionCache();
@@ -1095,6 +1156,9 @@ export class SettingsService {
       include: { _count: { select: { users: true } } },
     });
     if (!existing) throw new HttpError(404, `Function ${id} not found`);
+
+    await this.assertFunctionTenantAccess(existing, user);
+
     if (existing._count.users > 0) {
       throw new HttpError(409, `Cannot delete function with ${existing._count.users} assigned users`);
     }

@@ -1,4 +1,4 @@
-# ARIS 3.0 — Architecture Overview
+# ARIS 4.0 — Architecture Overview
 
 > Quick reference for architects, developers, and decision-makers.
 > For detailed documentation, see [docs/architecture/](./docs/architecture/).
@@ -67,7 +67,7 @@ graph TB
         PGBOUNCER["PgBouncer :6432<br/>Transaction Pooling"]
         KAFKA["Apache Kafka<br/>3 Brokers (KRaft)"]
         REDIS["Redis 7<br/>Cache + Locks"]
-        ES["Elasticsearch 8"]
+        ES["OpenSearch 2"]
         MINIO["MinIO (S3)"]
         PROM["Prometheus + Grafana"]
     end

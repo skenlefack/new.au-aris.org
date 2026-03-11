@@ -1,4 +1,4 @@
-// ARIS 3.0 — Datalake / Historical Data Models
+// ARIS 4.0 — Datalake / Historical Data Models
 // Manages imported datasets (Excel, CSV, JSON) with auto-analysis
 
 model HistoricalDataset {

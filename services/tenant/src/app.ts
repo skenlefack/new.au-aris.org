@@ -3,6 +3,7 @@
 
 import Fastify, { FastifyInstance, FastifyError } from 'fastify';
 import cors from '@fastify/cors';
+import { tracingPlugin } from '@aris/observability';
 import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
 import { readFileSync } from 'fs';
@@ -29,6 +30,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
   await app.register(cors, { origin: true, credentials: true });
+
+  // OpenTelemetry log-trace correlation (injects traceId/spanId into Pino logs)
+  await app.register(tracingPlugin);
 
   // Prisma
   const prisma = new PrismaClient();
@@ -88,7 +92,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   const settingsService = new SettingsService(app.prisma, kafka, redis);
   app.decorate('settingsService', settingsService);
 
-  const biService = new BiService(app.prisma);
+  const biService = new BiService(app.prisma, redis);
   app.decorate('biService', biService);
 
   // Error handler

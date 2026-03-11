@@ -1,4 +1,4 @@
-// ─── ARIS 3.0 — Dashboard Demo Data ─────────────────────────────────────────
+// ─── ARIS 4.0 — Dashboard Demo Data ─────────────────────────────────────────
 // Realistic demonstration data for the continental dashboard.
 // Used when backend APIs are unavailable or return empty datasets.
 

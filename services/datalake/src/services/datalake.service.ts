@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import type { Client } from '@elastic/elasticsearch';
+import type { Client } from '@opensearch-project/opensearch';
 import type Redis from 'ioredis';
 import type { StandaloneKafkaProducer } from '@aris/kafka-client';
 import type { KafkaHeaders } from '@aris/shared-types';
@@ -75,8 +75,9 @@ export class DatalakeService {
       body: searchBody,
     });
 
-    const hits = Array.isArray(response.hits?.hits)
-      ? response.hits.hits.map((hit: any) => ({
+    const body = response.body;
+    const hits = Array.isArray(body.hits?.hits)
+      ? body.hits.hits.map((hit: any) => ({
           _index: hit._index,
           _id: hit._id,
           _score: hit._score,
@@ -84,9 +85,9 @@ export class DatalakeService {
         }))
       : [];
 
-    const total = typeof response.hits?.total === 'object'
-      ? (response.hits.total as any).value
-      : response.hits?.total ?? 0;
+    const total = typeof body.hits?.total === 'object'
+      ? (body.hits.total as any).value
+      : body.hits?.total ?? 0;
 
     const result = {
       data: hits,
@@ -104,7 +105,7 @@ export class DatalakeService {
       format: 'json',
     });
 
-    const indices = Array.isArray(response) ? response : [];
+    const indices = Array.isArray(response.body) ? response.body : [];
 
     return { data: indices };
   }
@@ -116,7 +117,7 @@ export class DatalakeService {
   ): Promise<{ data: { taskId: string; message: string } }> {
     // Validate index exists
     const exists = await this.elastic.indices.exists({ index: indexName });
-    if (!exists) {
+    if (!exists.body) {
       throw new HttpError(404, `Index '${indexName}' not found`);
     }
 
@@ -130,7 +131,7 @@ export class DatalakeService {
       },
     });
 
-    const taskId = response.task ? String(response.task) : 'unknown';
+    const taskId = response.body.task ? String(response.body.task) : 'unknown';
 
     // Publish reindex event to Kafka
     await this.publishEvent(
@@ -171,17 +172,18 @@ export class DatalakeService {
       },
     });
 
-    const hits = Array.isArray(response.hits?.hits)
-      ? response.hits.hits.map((hit: any) => ({
+    const body = response.body;
+    const hits = Array.isArray(body.hits?.hits)
+      ? body.hits.hits.map((hit: any) => ({
           _index: hit._index,
           _id: hit._id,
           ...hit._source,
         }))
       : [];
 
-    const total = typeof response.hits?.total === 'object'
-      ? (response.hits.total as any).value
-      : response.hits?.total ?? 0;
+    const total = typeof body.hits?.total === 'object'
+      ? (body.hits.total as any).value
+      : body.hits?.total ?? 0;
 
     const format = dto.format ?? 'json';
 

@@ -2,7 +2,7 @@
   "name": "@aris/support-service",
   "version": "0.1.0",
   "private": true,
-  "description": "ARIS 3.0 — Support service: tickets, SLA tracking, escalation",
+  "description": "ARIS 4.0 — Support service: tickets, SLA tracking, escalation",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc --build",
@@ -11,7 +11,8 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "lint": "eslint src/",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@aris/auth-middleware": "workspace:*",

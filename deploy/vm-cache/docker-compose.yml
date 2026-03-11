@@ -1,0 +1,94 @@
+# ═══════════════════════════════════════════════════════════════
+# ARIS 4.0 — VM-CACHE: Redis 7 + OpenSearch 2.17.1
+# Host: 10.202.101.186 (nbo-cch01)
+# ═══════════════════════════════════════════════════════════════
+
+services:
+
+  redis:
+    image: redis:7-alpine
+    container_name: aris-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 8gb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:-R3d1s_Pr0d_2024!vN7wQ}
+      --tcp-backlog 65535
+      --timeout 300
+      --tcp-keepalive 60
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    volumes:
+      - /var/lib/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-R3d1s_Pr0d_2024!vN7wQ}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aris-cache-network
+    deploy:
+      resources:
+        limits:
+          memory: 10G
+
+  opensearch:
+    image: opensearchproject/opensearch:2.17.1
+    container_name: aris-opensearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    environment:
+      - discovery.type=single-node
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:-0pnSrch_Pr0d_2024!bT4kL}
+      - plugins.security.disabled=true
+      - OPENSEARCH_JAVA_OPTS=-Xms8g -Xmx8g
+      - cluster.name=aris-search-production
+      - node.name=opensearch-node-1
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - /var/lib/opensearch:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - aris-cache-network
+    deploy:
+      resources:
+        limits:
+          memory: 12G
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.17.1
+    container_name: aris-opensearch-dashboards
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      - OPENSEARCH_HOSTS=["http://opensearch:9200"]
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    networks:
+      - aris-cache-network
+
+networks:
+  aris-cache-network:
+    driver: bridge
+    name: aris-cache-network

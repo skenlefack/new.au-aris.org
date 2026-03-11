@@ -124,7 +124,7 @@ to initialize tenant-specific resources (e.g., default quality rule configuratio
 - The tenant hierarchy is relatively static (countries and RECs rarely change), so the overhead of
   hierarchy lookups is minimal in practice.
 - The 3-level hierarchy (CONTINENTAL/REC/MEMBER_STATE) is fixed. Sub-national tenancy (provinces,
-  districts) is explicitly out of scope for ARIS 3.0 but could be added as a fourth level in the
+  districts) is explicitly out of scope for ARIS 4.0 but could be added as a fourth level in the
   future by extending the `TenantLevel` enum.
 
 ## Alternatives Considered

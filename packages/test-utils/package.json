@@ -2,7 +2,7 @@
   "name": "@aris/test-utils",
   "version": "0.1.0",
   "private": true,
-  "description": "ARIS 3.0 — Test factories, Testcontainers helpers",
+  "description": "ARIS 4.0 — Test factories, Testcontainers helpers",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -15,7 +15,11 @@
   "scripts": {
     "build": "tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@aris/shared-types": "workspace:*",
@@ -24,6 +28,7 @@
   "devDependencies": {
     "typescript": "^5.4.0",
     "@prisma/client": "^6.2.0",
-    "ioredis": "^5.4.0"
+    "ioredis": "^5.4.0",
+    "vitest": "^1.6.1"
   }
 }

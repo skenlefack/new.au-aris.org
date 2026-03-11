@@ -82,6 +82,48 @@ export const FailedGates: Story = {
   },
 };
 
+export const Loading: Story = {
+  render: () => (
+    <div className="animate-pulse">
+      <div className="flex items-center gap-1.5">
+        <span className="h-4 w-4 rounded-full bg-gray-300" />
+        <span className="h-4 w-16 rounded bg-gray-300" />
+      </div>
+    </div>
+  ),
+};
+
+export const Error: Story = {
+  args: {
+    overallResult: 'FAIL',
+    showDetails: true,
+    gates: [
+      { gate: 'COMPLETENESS', result: 'FAIL', message: 'Missing required field: species' },
+      { gate: 'TEMPORAL_CONSISTENCY', result: 'FAIL', message: 'Confirmation date before suspicion date' },
+      { gate: 'GEOGRAPHIC_CONSISTENCY', result: 'FAIL', message: 'Invalid coordinates (0, 0)' },
+    ],
+  },
+};
+
+export const DarkMode: Story = {
+  args: {
+    overallResult: 'WARNING',
+    showDetails: true,
+    gates: [
+      { gate: 'COMPLETENESS', result: 'PASS' },
+      { gate: 'TEMPORAL_CONSISTENCY', result: 'WARNING', message: 'Check dates' },
+      { gate: 'GEOGRAPHIC_CONSISTENCY', result: 'PASS' },
+    ],
+  },
+  decorators: [
+    (Story) => (
+      <div className="dark bg-gray-900 p-6 rounded-lg">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
 export const Sizes: Story = {
   render: () => (
     <div className="flex items-start gap-6">

@@ -1,5 +1,5 @@
 /**
- * ARIS 3.0 — Unified Database Seeder
+ * ARIS 4.0 — Unified Database Seeder
  *
  * Executes all service seeds in dependency order:
  *   1. tenant        — Multi-tenant hierarchy (AU-IBAR, RECs, pilot MS)
@@ -178,7 +178,7 @@ async function runSeed(step: SeedStep, index: number): Promise<boolean> {
 
 async function main(): Promise<void> {
   console.log(`\n${DIVIDER}`);
-  console.log('  ARIS 3.0 — Unified Database Seeder');
+  console.log('  ARIS 4.0 — Unified Database Seeder');
   console.log(`  Steps: ${SEED_STEPS.length} | Mode: idempotent (upsert)`);
   console.log(`${DIVIDER}`);
 

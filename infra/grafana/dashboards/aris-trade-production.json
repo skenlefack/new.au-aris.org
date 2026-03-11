@@ -1,0 +1,190 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "ARIS Trade & Production — Trade flows, market prices, livestock census, production records",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Trade Flows by Country",
+      "type": "barchart",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "rawSql": "SELECT tf.origin_country AS origin,\n       tf.destination_country AS destination,\n       COUNT(*) AS flows,\n       SUM(tf.quantity) AS total_quantity\nFROM trade_sps.trade_flows tf\nWHERE ($country = 'ALL' OR tf.origin_country = $country OR tf.destination_country = $country)\n  AND EXTRACT(YEAR FROM tf.created_at) = $year\n  AND ('${tenant_id}' = '*' OR tf.tenant_id::text IN (${tenant_id:sqlstring}))\nGROUP BY tf.origin_country, tf.destination_country\nORDER BY total_quantity DESC\nLIMIT 20;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "options": { "orientation": "horizontal", "showValue": "auto" }
+    },
+    {
+      "title": "Market Price Trends",
+      "type": "timeseries",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "rawSql": "SELECT DATE_TRUNC('month', mp.price_date) AS time,\n       mp.commodity,\n       AVG(mp.price) AS avg_price\nFROM trade_sps.market_prices mp\nWHERE ($country = 'ALL' OR mp.country_code = $country)\n  AND EXTRACT(YEAR FROM mp.price_date) = $year\n  AND ('${tenant_id}' = '*' OR mp.tenant_id::text IN (${tenant_id:sqlstring}))\nGROUP BY 1, mp.commodity\nORDER BY 1;",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 10, "lineWidth": 2 }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Livestock Census by Species",
+      "type": "piechart",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 10, "w": 8, "x": 0, "y": 10 },
+      "targets": [
+        {
+          "rawSql": "SELECT lc.species_name AS species,\n       SUM(lc.head_count) AS total_heads\nFROM livestock_prod.livestock_census lc\nWHERE ($country = 'ALL' OR lc.country_code = $country)\n  AND ($species = 'ALL' OR lc.species_name = $species)\n  AND EXTRACT(YEAR FROM lc.census_date) = $year\n  AND ('${tenant_id}' = '*' OR lc.tenant_id::text IN (${tenant_id:sqlstring}))\nGROUP BY lc.species_name\nORDER BY total_heads DESC;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "options": { "legendPlacement": "right", "pieType": "donut" }
+    },
+    {
+      "title": "Production Records (Monthly)",
+      "type": "timeseries",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 10, "w": 8, "x": 8, "y": 10 },
+      "targets": [
+        {
+          "rawSql": "SELECT DATE_TRUNC('month', pr.production_date) AS time,\n       pr.product_type,\n       SUM(pr.quantity) AS total_qty\nFROM livestock_prod.production_records pr\nWHERE ($country = 'ALL' OR pr.country_code = $country)\n  AND EXTRACT(YEAR FROM pr.production_date) = $year\n  AND ('${tenant_id}' = '*' OR pr.tenant_id::text IN (${tenant_id:sqlstring}))\nGROUP BY 1, pr.product_type\nORDER BY 1;",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 15, "lineWidth": 2 }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "SPS Certificates Issued",
+      "type": "stat",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 10 },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS certificates\nFROM trade_sps.sps_certificates sc\nWHERE ($country = 'ALL' OR sc.country_code = $country)\n  AND EXTRACT(YEAR FROM sc.issued_date) = $year\n  AND ('${tenant_id}' = '*' OR sc.tenant_id::text IN (${tenant_id:sqlstring}));",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "blue", "mode": "fixed" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": { "graphMode": "none", "textMode": "value_and_name" }
+    },
+    {
+      "title": "Fishery Captures (Tonnes)",
+      "type": "stat",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 15 },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(SUM(fc.quantity_tonnes)::numeric, 0) AS tonnes\nFROM fisheries.fishery_captures fc\nWHERE ($country = 'ALL' OR fc.country_code = $country)\n  AND EXTRACT(YEAR FROM fc.capture_date) = $year\n  AND ('${tenant_id}' = '*' OR fc.tenant_id::text IN (${tenant_id:sqlstring}));",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "cyan", "mode": "fixed" },
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "cyan", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": { "graphMode": "none", "textMode": "value_and_name" }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["aris", "trade", "production", "livestock"],
+  "templating": {
+    "list": [
+      {
+        "name": "tenant_id",
+        "type": "custom",
+        "label": "Tenant",
+        "query": "*",
+        "current": { "text": "*", "value": "*" },
+        "includeAll": false,
+        "multi": true,
+        "hide": 2,
+        "description": "Tenant ID filter injected by ARIS proxy"
+      },
+      {
+        "name": "country",
+        "type": "query",
+        "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+        "query": "SELECT 'ALL' AS __value, 'All Countries' AS __text UNION ALL SELECT code AS __value, code AS __text FROM governance.countries WHERE is_active = true ORDER BY 2;",
+        "current": { "text": "All Countries", "value": "ALL" },
+        "includeAll": false,
+        "refresh": 1
+      },
+      {
+        "name": "species",
+        "type": "query",
+        "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+        "query": "SELECT 'ALL' AS __value, 'All Species' AS __text UNION ALL SELECT DISTINCT species_name AS __value, species_name AS __text FROM livestock_prod.livestock_census ORDER BY 2;",
+        "current": { "text": "All Species", "value": "ALL" },
+        "includeAll": false,
+        "refresh": 1
+      },
+      {
+        "name": "year",
+        "type": "custom",
+        "query": "2024,2025,2026",
+        "current": { "text": "2026", "value": "2026" },
+        "includeAll": false
+      }
+    ]
+  },
+  "time": { "from": "now-1y", "to": "now" },
+  "timepicker": {},
+  "timezone": "utc",
+  "title": "ARIS Trade & Production",
+  "uid": "aris-trade-production",
+  "version": 1
+}

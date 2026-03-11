@@ -1,4 +1,4 @@
-# ARIS 3.0 — Multi-stage Dockerfile for NestJS services
+# ARIS 4.0 — Multi-stage Dockerfile for NestJS services
 # Usage: docker build --build-arg SERVICE=tenant -t aris-tenant .
 
 # ═══════════════════════════════════════════════

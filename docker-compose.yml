@@ -1,5 +1,5 @@
-# ARIS 3.0 — Docker Compose Infrastructure
-# Kafka KRaft (3 brokers), PostgreSQL+PostGIS, Redis, Elasticsearch, MinIO, Mailpit
+# ARIS 4.0 — Docker Compose Infrastructure
+# Kafka KRaft (3 brokers), PostgreSQL+PostGIS, Redis, OpenSearch, MinIO, Mailpit
 # Usage: docker compose up -d
 
 version: '3.9'
@@ -209,26 +209,46 @@ services:
       - aris-network
 
   # ═══════════════════════════════════════════════════
-  # ELASTICSEARCH — Search Engine
+  # OPENSEARCH — Search Engine (Apache 2.0)
   # ═══════════════════════════════════════════════════
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
-    container_name: aris-elasticsearch
+  opensearch:
+    image: opensearchproject/opensearch:2.17.1
+    container_name: aris-opensearch
     restart: unless-stopped
     ports:
       - "9200:9200"
+      - "9600:9600"
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:-ArisSearch2024!}
+      - plugins.security.disabled=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
       - cluster.name=aris-search
     volumes:
-      - es-data:/usr/share/elasticsearch/data
+      - opensearch-data:/usr/share/opensearch/data
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
+    networks:
+      - aris-network
+
+  # ═══════════════════════════════════════════════════
+  # OPENSEARCH DASHBOARDS — Visualization (replaces Kibana)
+  # ═══════════════════════════════════════════════════
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.17.1
+    container_name: aris-opensearch-dashboards
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      - OPENSEARCH_HOSTS=["http://opensearch:9200"]
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    depends_on:
+      opensearch:
+        condition: service_healthy
     networks:
       - aris-network
 
@@ -340,14 +360,52 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-aris_grafana_2024}
       GF_USERS_ALLOW_SIGN_UP: "false"
+      # Auth Proxy — ARIS backend injects X-WEBAUTH-USER header
+      GF_AUTH_PROXY_ENABLED: "true"
+      GF_AUTH_PROXY_HEADER_NAME: "X-WEBAUTH-USER"
+      GF_AUTH_PROXY_HEADER_PROPERTY: "email"
+      GF_AUTH_PROXY_AUTO_SIGN_UP: "true"
+      GF_AUTH_PROXY_HEADERS: "Name:X-WEBAUTH-NAME Role:X-WEBAUTH-ROLE"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
     volumes:
       - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana-data:/var/lib/grafana
     depends_on:
       - prometheus
+      - jaeger
+      - postgres
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - aris-network
+
+  # ═══════════════════════════════════════════════════
+  # JAEGER — Distributed Tracing (OpenTelemetry)
+  # ═══════════════════════════════════════════════════
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: aris-jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4317:4317"     # OTLP gRPC receiver
+      - "4318:4318"     # OTLP HTTP receiver
+      - "14268:14268"   # Jaeger HTTP thrift receiver
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      SPAN_STORAGE_TYPE: "badger"
+      BADGER_EPHEMERAL: "false"
+      BADGER_DIRECTORY_VALUE: "/badger/data"
+      BADGER_DIRECTORY_KEY: "/badger/key"
+    volumes:
+      - jaeger-data:/badger
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:16686/ || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -370,6 +428,7 @@ services:
       SQLALCHEMY_DATABASE_URI: "postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-aris_dev_2024}@postgres:5432/${POSTGRES_DB:-aris}"
     volumes:
       - ./docker/superset/superset_config.py:/app/pythonpath/superset_config.py
+      - ./docker/superset/bootstrap_datasource.py:/app/pythonpath/bootstrap_datasource.py
       - superset_home:/app/superset_home
     depends_on:
       postgres:
@@ -381,6 +440,7 @@ services:
         superset db upgrade &&
         superset fab create-admin --username admin --firstname ARIS --lastname Admin --email admin@au-aris.org --password 'ArisSuperset2024!' || true &&
         superset init &&
+        python /app/pythonpath/bootstrap_datasource.py &&
         superset run -h 0.0.0.0 -p 8088 --with-threads
       "
 
@@ -489,12 +549,6 @@ services:
       kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic au.interop.empres.fed.v1 --partitions 3 --replication-factor 3
       kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic au.interop.faostat.synced.v1 --partitions 3 --replication-factor 3
 
-      # === Formation Topics ===
-      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.formation.session.created.v1 --partitions 3 --replication-factor 3
-      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.formation.session.updated.v1 --partitions 3 --replication-factor 3
-      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.formation.participant.enrolled.v1 --partitions 3 --replication-factor 3
-      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.formation.certification.issued.v1 --partitions 3 --replication-factor 3
-
       # === Support Topics ===
       kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.support.ticket.created.v1 --partitions 3 --replication-factor 3
       kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.support.ticket.updated.v1 --partitions 3 --replication-factor 3
@@ -528,10 +582,11 @@ volumes:
   kafka-3-data:
   postgres-data:
   redis-data:
-  es-data:
+  opensearch-data:
   minio-data:
   prometheus-data:
   grafana-data:
+  jaeger-data:
   superset_home:
   metabase_data:
 

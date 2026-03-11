@@ -12,7 +12,7 @@ function createMockPrisma() {
   } as any;
 }
 
-function createMockElastic() {
+function createMockOpenSearch() {
   return {
     index: vi.fn().mockResolvedValue({}),
   } as any;
@@ -32,14 +32,14 @@ function createMockKafka() {
 
 describe('IngestionService', () => {
   let prisma: ReturnType<typeof createMockPrisma>;
-  let elastic: ReturnType<typeof createMockElastic>;
+  let elastic: ReturnType<typeof createMockOpenSearch>;
   let redis: ReturnType<typeof createMockRedis>;
   let kafka: ReturnType<typeof createMockKafka>;
   let service: IngestionService;
 
   beforeEach(() => {
     prisma = createMockPrisma();
-    elastic = createMockElastic();
+    elastic = createMockOpenSearch();
     redis = createMockRedis();
     kafka = createMockKafka();
     service = new IngestionService(prisma, elastic, redis, kafka);
@@ -111,10 +111,10 @@ describe('IngestionService', () => {
     expect(createData.tenant_id).toBe('tenant-2');
     expect(createData.country_code).toBe('KE');
 
-    // ES index
+    // OpenSearch index
     expect(elastic.index).toHaveBeenCalledTimes(1);
-    const esCall = elastic.index.mock.calls[0][0];
-    expect(esCall.index).toBe('aris-datalake-livestock');
-    expect(esCall.body.source).toBe('LIVESTOCK');
+    const osCall = elastic.index.mock.calls[0][0];
+    expect(osCall.index).toBe('aris-datalake-livestock');
+    expect(osCall.body.source).toBe('LIVESTOCK');
   });
 });

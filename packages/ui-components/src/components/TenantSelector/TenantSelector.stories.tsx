@@ -87,6 +87,41 @@ export const Disabled: Story = {
   },
 };
 
+export const Loading: Story = {
+  args: {
+    tenants: [],
+    onSelect: () => {},
+    placeholder: 'Loading tenants...',
+    disabled: true,
+    className: 'animate-pulse opacity-60',
+  },
+};
+
+export const Error: Story = {
+  args: {
+    tenants: [],
+    onSelect: () => {},
+    placeholder: 'Failed to load tenants',
+    disabled: true,
+    className: 'border-red-300',
+  },
+};
+
+export const DarkMode: Story = {
+  args: {
+    tenants: sampleTenants,
+    selectedId: 'ke',
+    onSelect: (id) => console.log('Selected:', id),
+  },
+  decorators: [
+    (Story) => (
+      <div className="dark bg-gray-900 p-6 rounded-lg max-w-sm">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
 export const Interactive: Story = {
   render: () => {
     const [selectedId, setSelectedId] = useState<string | undefined>();

@@ -8,6 +8,7 @@ import { DISEASE_SEEDS } from './disease-seed-data';
 import { UNIT_SEEDS } from './unit-seed-data';
 import { DENOMINATOR_SEEDS } from './denominator-seed-data';
 import { IDENTIFIER_SEEDS } from './identifier-seed-data';
+import { INFRASTRUCTURE_SEEDS } from './infrastructure-seed-data';
 
 const prisma = new PrismaClient();
 
@@ -225,6 +226,33 @@ async function main(): Promise<void> {
   }
   console.log(`  ✓ ${idCount} identifiers`);
 
+  // ── 7. Infrastructure Types ──
+  console.log('\n🏗️  Seeding infrastructure types...');
+  let infraCount = 0;
+  for (const infra of INFRASTRUCTURE_SEEDS) {
+    const existing = await (prisma as any).refInfrastructure.findFirst({
+      where: { code: infra.code },
+    });
+    if (!existing) {
+      await (prisma as any).refInfrastructure.create({
+        data: {
+          code: infra.code,
+          name: { en: infra.nameEn, fr: infra.nameFr },
+          category: infra.category,
+          subType: infra.subType,
+          status: 'operational',
+          scope: 'continental',
+          ownerType: 'continental',
+          isActive: true,
+          isDefault: false,
+          sortOrder: infra.sortOrder,
+        },
+      });
+      infraCount++;
+    }
+  }
+  console.log(`  ✓ ${infraCount} infrastructure types`);
+
   // ── Summary ──
   const counts = await Promise.all([
     prisma.geoEntity.count(),
@@ -233,17 +261,19 @@ async function main(): Promise<void> {
     prisma.unit.count(),
     prisma.denominator.count(),
     prisma.identifier.count(),
+    (prisma as any).refInfrastructure.count(),
   ]);
 
   console.log('\n═══════════════════════════════════════');
   console.log('  Master Data Seed Summary');
   console.log('═══════════════════════════════════════');
-  console.log(`  Geo Entities:   ${counts[0]}`);
-  console.log(`  Species:        ${counts[1]}`);
-  console.log(`  Diseases:       ${counts[2]}`);
-  console.log(`  Units:          ${counts[3]}`);
-  console.log(`  Denominators:   ${counts[4]}`);
-  console.log(`  Identifiers:    ${counts[5]}`);
+  console.log(`  Geo Entities:      ${counts[0]}`);
+  console.log(`  Species:           ${counts[1]}`);
+  console.log(`  Diseases:          ${counts[2]}`);
+  console.log(`  Units:             ${counts[3]}`);
+  console.log(`  Denominators:      ${counts[4]}`);
+  console.log(`  Identifiers:       ${counts[5]}`);
+  console.log(`  Infrastructures:   ${counts[6]}`);
   console.log('═══════════════════════════════════════');
   console.log('\n✅ Seed completed successfully!');
 }

@@ -1,8 +1,8 @@
-# ARIS 3.0 Data Model Reference
+# ARIS 4.0 Data Model Reference
 
 > **Version:** 1.0.0 | **Date:** 2026-02-20 | **Status:** Living Document
 >
-> Comprehensive entity-relationship documentation for the Animal Resources Information System (ARIS 3.0),
+> Comprehensive entity-relationship documentation for the Animal Resources Information System (ARIS 4.0),
 > the AU-IBAR continental digital infrastructure serving 55 Member States and 8 RECs.
 
 ---

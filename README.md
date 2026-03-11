@@ -2,7 +2,7 @@
   <img src="apps/web/public/au-logo.png" alt="AU-IBAR Logo" width="120" />
 </p>
 
-<h1 align="center">ARIS 3.0 — Animal Resources Information System</h1>
+<h1 align="center">ARIS 4.0 — Animal Resources Information System</h1>
 
 <p align="center">
   <strong>AU-IBAR Continental Digital Infrastructure</strong><br/>
@@ -76,8 +76,8 @@ ARIS (Animal Resources Information System) is the **digital backbone** of the Af
    +-------------+             +-------------+              +-------------+
          |                            |
    +-----v------+             +------v------+
-   | Elasticsearch|            | MinIO       |
-   | 8 (Search)  |            | S3 Storage  |
+   | OpenSearch   |            | MinIO       |
+   | 2 (Search)  |            | S3 Storage  |
    | :9200       |            | :9000/:9001 |
    +-------------+            +-------------+
 ```
@@ -98,7 +98,7 @@ ARIS (Animal Resources Information System) is the **digital backbone** of the Af
 | **Connection Pool** | PgBouncer (transaction pooling) | Latest |
 | **Message Broker** | Apache Kafka (KRaft mode, 3 brokers) + Schema Registry | 7.6 |
 | **Cache** | Redis (sessions, CQRS, locks, rate limiting) | 7 |
-| **Search** | Elasticsearch | 8.13 |
+| **Search** | OpenSearch (Apache 2.0) | 2.17 |
 | **Object Storage** | MinIO (S3-compatible) | Latest |
 | **API Gateway** | Traefik | v3.0 |
 | **Monitoring** | Prometheus + Grafana | Latest |
@@ -281,7 +281,8 @@ After startup, these interfaces should be accessible:
 | **Prometheus** | http://localhost:9090 | Metrics collection |
 | **Mailpit** | http://localhost:8025 | Email testing (dev) |
 | **MinIO Console** | http://localhost:9001 | Object storage |
-| **Elasticsearch** | http://localhost:9200 | Search engine |
+| **OpenSearch** | http://localhost:9200 | Search engine |
+| **OpenSearch Dashboards** | http://localhost:5601 | Search visualization |
 
 ### Default Credentials (Development)
 

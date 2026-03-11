@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════════════════
-# ARIS 3.0 — Database Setup Script (PowerShell)
+# ARIS 4.0 — Database Setup Script (PowerShell)
 # Creates PostgreSQL schemas, enables extensions, runs migrations & seeds
 # ═══════════════════════════════════════════════════════════════════════════
 $ErrorActionPreference = "Stop"
@@ -192,7 +192,7 @@ function Invoke-Seeds {
 # ── Main ──────────────────────────────────────────────────────────────────
 Write-Host ""
 Write-Host "========================================================"
-Write-Host "  ARIS 3.0 - Database Setup"
+Write-Host "  ARIS 4.0 - Database Setup"
 Write-Host "  Database: ${DbName}@${DbHost}:${DbPort}"
 Write-Host "========================================================"
 Write-Host ""

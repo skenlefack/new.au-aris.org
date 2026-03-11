@@ -26,7 +26,7 @@ export default function AdminDashboardPage() {
           System Dashboard
         </h1>
         <p className="text-sm text-admin-muted mt-1">
-          Overview of the ARIS 3.0 continental infrastructure
+          Overview of the ARIS 4.0 continental infrastructure
         </p>
       </div>
 

@@ -2,7 +2,7 @@
   "name": "@aris/interop-service",
   "version": "0.2.0",
   "private": true,
-  "description": "ARIS 3.0 — Interop V2: external system integration (WAHIS, DHIS2, FHIR R4, OMS, EMPRES, FAOSTAT)",
+  "description": "ARIS 4.0 — Interop V2: external system integration (WAHIS, DHIS2, FHIR R4, OMS, EMPRES, FAOSTAT)",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc --build",
@@ -11,7 +11,8 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "lint": "eslint src/",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@aris/auth-middleware": "workspace:*",

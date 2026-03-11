@@ -4,7 +4,7 @@ import multipart from '@fastify/multipart';
 import { authHook } from '@aris/auth-middleware';
 import type { AuthHookOptions } from '@aris/auth-middleware';
 import Redis from 'ioredis';
-import { Client } from '@elastic/elasticsearch';
+import { Client } from '@opensearch-project/opensearch';
 import { StandaloneKafkaProducer, StandaloneKafkaConsumer } from '@aris/kafka-client';
 import prismaPlugin from './plugins/prisma';
 import { DatalakeService } from './services/datalake.service';
@@ -20,7 +20,6 @@ import { registerDatalakeRoutes } from './routes/datalake.routes';
 import { registerHistoricalRoutes } from './routes/historical.routes';
 import { registerOlapRoutes } from './routes/olap.routes';
 
-import './types/fastify.d';
 
 const SERVICE_NAME = 'datalake-service';
 
@@ -76,9 +75,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   await redis.connect();
   app.decorate('redis', redis);
 
-  // Elasticsearch
+  // OpenSearch
   const elastic = new Client({
-    node: process.env['ELASTICSEARCH_URL'] ?? 'http://localhost:9200',
+    node: process.env['OPENSEARCH_URL'] ?? 'http://localhost:9200',
+    ssl: { rejectUnauthorized: process.env['NODE_ENV'] === 'production' },
   });
   app.decorate('elastic', elastic);
 
@@ -94,7 +94,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   }
   app.decorate('kafkaProducer', kafka);
 
-  // Kafka Consumer — consumes domain events to index into Elasticsearch
+  // Kafka Consumer — consumes domain events to index into OpenSearch
   const kafkaConsumer = new StandaloneKafkaConsumer({
     clientId: `${process.env['KAFKA_CLIENT_ID'] ?? 'aris-datalake-service'}-consumer`,
     brokers: (process.env['KAFKA_BROKERS'] ?? 'localhost:9092').split(','),
@@ -130,7 +130,7 @@ export async function buildApp(): Promise<FastifyInstance> {
           }
         },
       );
-      app.log.info(`Subscribed to topic ${topic} for ES indexing`);
+      app.log.info(`Subscribed to topic ${topic} for OpenSearch indexing`);
     } catch (subErr) {
       app.log.warn(`Failed to subscribe to topic ${topic}: ${subErr}`);
     }

@@ -27,6 +27,10 @@ import {
   Layers,
   Settings,
   X,
+  PawPrint,
+  Bug,
+  Landmark,
+  CloudSun,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -65,6 +69,10 @@ const NAV_GROUPS: NavGroup[] = [
       { tKey: 'livestock', href: '/livestock', icon: Wheat, matchPrefix: '/livestock' },
       { tKey: 'fisheries', href: '/fisheries', icon: Fish, matchPrefix: '/fisheries' },
       { tKey: 'tradeSps', href: '/trade', icon: TrendingUp, matchPrefix: '/trade' },
+      { tKey: 'wildlife', href: '/wildlife', icon: PawPrint, matchPrefix: '/wildlife' },
+      { tKey: 'apiculture', href: '/apiculture', icon: Bug, matchPrefix: '/apiculture' },
+      { tKey: 'governance', href: '/governance', icon: Landmark, matchPrefix: '/governance' },
+      { tKey: 'climateEnv', href: '/climate-env', icon: CloudSun, matchPrefix: '/climate-env' },
       { tKey: 'knowledge', href: '/knowledge', icon: BookOpen, matchPrefix: '/knowledge' },
     ],
   },
@@ -91,7 +99,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { tKey: 'superset', href: '/bi-tools/superset', icon: Layers, matchPrefix: '/bi-tools/superset' },
       { tKey: 'metabase', href: '/bi-tools/metabase', icon: PieChart, matchPrefix: '/bi-tools/metabase' },
-      { tKey: 'powerBi', href: '#', icon: BarChart2, matchPrefix: '/bi-tools/powerbi', badge: 'Soon', disabled: true },
+      { tKey: 'grafana', href: '/bi-tools/grafana', icon: BarChart2, matchPrefix: '/bi-tools/grafana' },
     ],
   },
   {
@@ -113,30 +121,35 @@ const ROLE_ACCESS: Record<UserRole, Set<string>> = {
   FIELD_AGENT: new Set(['/home', '/collecte', '/workflow', '/animal-health']),
   ANALYST: new Set([
     '/home', '/animal-health', '/livestock', '/fisheries', '/trade',
+    '/wildlife', '/apiculture', '/governance', '/climate-env',
     '/knowledge', '/analytics', '/historical', '/reports',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/powerbi',
+    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   WAHIS_FOCAL_POINT: new Set([
     '/home', '/animal-health', '/livestock', '/fisheries', '/trade',
+    '/wildlife', '/apiculture', '/governance', '/climate-env',
     '/knowledge', '/collecte', '/analytics', '/historical', '/reports', '/interop',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/powerbi',
+    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   DATA_STEWARD: new Set([
     '/home', '/animal-health', '/livestock', '/fisheries', '/trade',
+    '/wildlife', '/apiculture', '/governance', '/climate-env',
     '/knowledge', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/powerbi',
+    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   NATIONAL_ADMIN: new Set([
     '/home', '/animal-health', '/livestock', '/fisheries', '/trade',
+    '/wildlife', '/apiculture', '/governance', '/climate-env',
     '/knowledge', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
     '/master-data', '/settings',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/powerbi',
+    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   REC_ADMIN: new Set([
     '/home', '/animal-health', '/livestock', '/fisheries', '/trade',
+    '/wildlife', '/apiculture', '/governance', '/climate-env',
     '/knowledge', '/collecte', '/workflow', '/master-data', '/quality',
     '/interop', '/analytics', '/historical', '/reports', '/settings',
-    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/powerbi',
+    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   CONTINENTAL_ADMIN: new Set(ALL_NAV_ITEMS.map((i) => i.matchPrefix)),
   SUPER_ADMIN: new Set(ALL_NAV_ITEMS.map((i) => i.matchPrefix)),
@@ -220,7 +233,7 @@ export function Sidebar({
     tooltip.style.left = `${rect.right + 14}px`;
   }, [collapsed]);
 
-  /* ---- Render a DISABLED nav item (Power BI "Soon") ---- */
+  /* ---- Render a DISABLED nav item ---- */
   function renderDisabledItem(item: NavItem) {
     const Icon = item.icon;
     return (

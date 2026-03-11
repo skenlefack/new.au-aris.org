@@ -1,4 +1,4 @@
-// ARIS 3.0 — Animal Health domain schema
+// ARIS 4.0 — Animal Health domain schema
 // Service: animal-health (port 3020)
 // Owner: CC-4
 
@@ -1051,6 +1051,57 @@ model RefStakeholderType {
   @@unique([code, scope, ownerId], map: "uq_ref_stakeholder_type_code_scope")
   @@index([scope], map: "idx_ref_stakeholder_type_scope")
   @@map("ref_stakeholder_types")
+  @@schema("animal_health")
+}
+
+// ── Infrastructures & Institutions ──
+
+model RefInfrastructure {
+  id               String    @id @default(uuid()) @db.Uuid
+  code             String    @db.VarChar(50)
+  name             Json      @db.JsonB
+  description      Json?     @db.JsonB
+  category         String    @db.VarChar(50)
+  subType          String    @map("sub_type") @db.VarChar(50)
+  year             Int?
+  yearEstablished  Int?      @map("year_established")
+  countryCode      String?   @map("country_code") @db.VarChar(3)
+  adminLevel1      String?   @map("admin_level_1") @db.VarChar(50)
+  adminLevel2      String?   @map("admin_level_2") @db.VarChar(50)
+  adminLevel3      String?   @map("admin_level_3") @db.VarChar(50)
+  adminLevel4      String?   @map("admin_level_4") @db.VarChar(50)
+  adminLevel5      String?   @map("admin_level_5") @db.VarChar(50)
+  locationName     String?   @map("location_name") @db.VarChar(255)
+  latitude         Float?
+  longitude        Float?
+  abbreviation     String?   @db.VarChar(50)
+  quantity         Int?
+  capacity         Int?
+  contactPerson    String?   @map("contact_person") @db.VarChar(255)
+  address          String?   @db.Text
+  email            String?   @db.VarChar(255)
+  telephone        String?   @db.VarChar(50)
+  status           String    @default("operational") @db.VarChar(50)
+  comment          String?   @db.Text
+  scope            String    @default("national") @db.VarChar(20)
+  ownerId          String?   @map("owner_id") @db.Uuid
+  ownerType        String    @default("country") @map("owner_type") @db.VarChar(20)
+  isActive         Boolean   @default(true) @map("is_active")
+  isDefault        Boolean   @default(false) @map("is_default")
+  sortOrder        Int       @default(0) @map("sort_order")
+  metadata         Json?     @db.JsonB
+  createdBy        String?   @map("created_by") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([code, ownerId], map: "uq_ref_infrastructure_code_owner")
+  @@index([category], map: "idx_ref_infrastructure_category")
+  @@index([subType], map: "idx_ref_infrastructure_sub_type")
+  @@index([countryCode], map: "idx_ref_infrastructure_country")
+  @@index([scope], map: "idx_ref_infrastructure_scope")
+  @@index([ownerId], map: "idx_ref_infrastructure_owner")
+  @@index([status], map: "idx_ref_infrastructure_status")
+  @@map("ref_infrastructures")
   @@schema("animal_health")
 }
 

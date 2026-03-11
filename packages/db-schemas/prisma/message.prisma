@@ -1,4 +1,4 @@
-// ARIS 3.0 — Notification Model
+// ARIS 4.0 — Notification Model
 // Multi-channel notification system (Email, SMS, Push, In-App)
 
 enum NotificationChannel {

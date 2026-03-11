@@ -37,6 +37,8 @@ const REF_DATA_TYPES = [
   'floral-sources',
   'legal-framework-types',
   'stakeholder-types',
+  // Phase 3 — Infrastructures & Institutions
+  'infrastructures',
 ];
 
 export async function registerRefDataRoutes(app: FastifyInstance): Promise<void> {

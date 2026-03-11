@@ -44,6 +44,14 @@ export const Default: Story = {
   },
 };
 
+export const WithData: Story = {
+  args: {
+    ...Default.args,
+    data: sampleData.slice(0, 5),
+    pageSize: 20,
+  },
+};
+
 export const Empty: Story = {
   args: {
     columns: [
@@ -62,4 +70,28 @@ export const Loading: Story = {
     data: [],
     loading: true,
   },
+};
+
+export const Error: Story = {
+  args: {
+    columns: [
+      { key: 'id', header: 'ID' },
+      { key: 'disease', header: 'Disease' },
+    ],
+    data: [],
+    keyExtractor: (row: Outbreak) => row.id,
+    emptyMessage: 'Error loading data. Please try again.',
+    className: 'border-red-300',
+  },
+};
+
+export const DarkMode: Story = {
+  args: Default.args,
+  decorators: [
+    (Story) => (
+      <div className="dark bg-gray-900 p-6 rounded-lg">
+        <Story />
+      </div>
+    ),
+  ],
 };

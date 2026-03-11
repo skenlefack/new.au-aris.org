@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: ARIS 3.0 — Animal Health & One Health Service
+  title: ARIS 4.0 — Animal Health & One Health Service
   version: 1.0.0
   description: |
     Manages animal health events (outbreaks, surveillance signals), laboratory results,

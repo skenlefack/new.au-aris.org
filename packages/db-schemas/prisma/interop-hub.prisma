@@ -1,4 +1,4 @@
-// ARIS 3.0 — Interop Hub Schema
+// ARIS 4.0 — Interop Hub Schema
 // External system connectors: WAHIS, EMPRES, FAOSTAT
 
 enum InteropStatus {

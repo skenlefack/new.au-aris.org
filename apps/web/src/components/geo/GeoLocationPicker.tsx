@@ -20,6 +20,8 @@ interface GeoLocationPickerProps {
   maxLevel?: number;
   disabled?: boolean;
   className?: string;
+  /** 'vertical' stacks selectors, 'horizontal' puts them in a single row */
+  layout?: 'vertical' | 'horizontal';
 }
 
 export function GeoLocationPicker({
@@ -30,6 +32,7 @@ export function GeoLocationPicker({
   maxLevel,
   disabled = false,
   className,
+  layout = 'vertical',
 }: GeoLocationPickerProps) {
   const { data: adminLevelsData, isLoading: levelsLoading } = useAdminLevels(countryId, countryCode);
   const adminLevels: AdminLevel[] = useMemo(() => {
@@ -99,8 +102,17 @@ export function GeoLocationPicker({
     );
   }
 
+  const isHorizontal = layout === 'horizontal';
+
   return (
-    <div className={cn('space-y-3', className)}>
+    <div className={cn(
+      isHorizontal
+        ? 'grid gap-4 overflow-visible'
+        : 'space-y-3',
+      className,
+    )}
+    style={isHorizontal ? { gridTemplateColumns: `repeat(${adminLevels.length}, minmax(0, 1fr))` } : undefined}
+    >
       {adminLevels.map((al) => (
         <LevelCombobox
           key={al.level}
@@ -175,7 +187,7 @@ function LevelCombobox({
   const levelLabel = adminLevel.name?.en ?? `Level ${levelNum}`;
 
   return (
-    <div>
+    <div className="relative overflow-visible">
       <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
         {levelLabel}
       </label>

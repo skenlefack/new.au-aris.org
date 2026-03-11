@@ -22,8 +22,13 @@ export default async function submissionRoutes(app: FastifyInstance): Promise<vo
   const auth = authHook(authOpts);
   const tenant = tenantHook();
 
-  // Set up Kafka event consumers for quality/workflow callbacks
-  await service.setupEventConsumers();
+  // Set up Kafka event consumers AFTER server is ready (non-blocking)
+  // This avoids Fastify plugin timeout when Kafka broker is slow to respond
+  app.addHook('onReady', async () => {
+    service.setupEventConsumers().catch((err) => {
+      app.log.warn(`Kafka event consumers setup failed: ${err instanceof Error ? err.message : String(err)}`);
+    });
+  });
 
   // POST /api/v1/collecte/submissions
   app.post<{ Body: CreateSubmissionBody }>('/api/v1/collecte/submissions', {

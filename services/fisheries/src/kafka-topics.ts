@@ -1,9 +1,0 @@
-// Fisheries domain Kafka topics
-export const TOPIC_MS_FISHERIES_CAPTURE_RECORDED = 'ms.fisheries.capture.recorded.v1';
-export const TOPIC_MS_FISHERIES_CAPTURE_UPDATED = 'ms.fisheries.capture.updated.v1';
-export const TOPIC_MS_FISHERIES_VESSEL_REGISTERED = 'ms.fisheries.vessel.registered.v1';
-export const TOPIC_MS_FISHERIES_VESSEL_UPDATED = 'ms.fisheries.vessel.updated.v1';
-export const TOPIC_MS_FISHERIES_FARM_CREATED = 'ms.fisheries.farm.created.v1';
-export const TOPIC_MS_FISHERIES_FARM_UPDATED = 'ms.fisheries.farm.updated.v1';
-export const TOPIC_MS_FISHERIES_AQUACULTURE_HARVESTED = 'ms.fisheries.aquaculture.harvested.v1';
-export const TOPIC_MS_FISHERIES_AQUACULTURE_UPDATED = 'ms.fisheries.aquaculture.updated.v1';

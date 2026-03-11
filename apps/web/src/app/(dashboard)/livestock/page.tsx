@@ -19,6 +19,15 @@ import {
 } from '@/lib/api/hooks';
 import { TableSkeleton, KpiCardSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
+import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
+
+const LIVESTOCK_ALERT_FIELDS: AlertField[] = [
+  { name: 'species', label: 'Species', type: 'text', placeholder: 'e.g. Cattle', required: true },
+  { name: 'location', label: 'Location', type: 'text', placeholder: 'e.g. Oromia, ET', required: true },
+  { name: 'issueType', label: 'Issue Type', type: 'select', required: true, options: ['Census Discrepancy', 'Movement Restriction', 'Feed Shortage', 'Market Disruption', 'Other'] },
+  { name: 'count', label: 'Estimated Count', type: 'text', placeholder: 'e.g. 1000' },
+];
 
 const STATUS_BADGE: Record<string, string> = {
   draft: 'bg-blue-100 text-blue-700',
@@ -297,6 +306,12 @@ export default function LivestockPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Campaigns & Alert */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <DomainCampaignsSection domain="livestock" />
+        <QuickAlertCard domain="livestock" alertFields={LIVESTOCK_ALERT_FIELDS} title="Report Livestock Issue" />
       </div>
     </div>
   );

@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: ARIS 3.0 — Knowledge Hub Service
+  title: ARIS 4.0 — Knowledge Hub Service
   version: 1.0.0
   description: |
-    Knowledge management service for ARIS 3.0.
+    Knowledge management service for ARIS 4.0.
     Manages publications (policy briefs, reports, datasets), e-learning modules
     (enrollment, progress tracking), and FAQs across all business domains.
     All endpoints require AuthGuard and TenantGuard (JWT with tenantId).

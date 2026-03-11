@@ -40,4 +40,4 @@ Thumbs.db
 
 # Misc
 *.log
-*.tsbuildinfo
+**/*.tsbuildinfo

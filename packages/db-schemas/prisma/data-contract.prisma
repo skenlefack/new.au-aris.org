@@ -1,4 +1,4 @@
-// ARIS 3.0 — Data Contract Schema
+// ARIS 4.0 — Data Contract Schema
 // Contract registry & SLA compliance tracking
 
 enum ContractStatus {

@@ -38,4 +38,53 @@ export async function registerHealthRoutes(app: FastifyInstance): Promise<void> 
       },
     };
   });
+
+  // GET /api/v1/realtime/rooms — list active hierarchical rooms + memberCount
+  app.get('/api/v1/realtime/rooms', {
+    preHandler: [app.authHookFn],
+  }, async () => {
+    const allRooms = app.roomManager.getAllRooms();
+    const redisCounts = await app.presenceService.getAllRoomCounts();
+
+    // Merge in-memory and Redis counts for each room
+    const rooms = allRooms.map((room) => ({
+      name: room.name,
+      memberCount: room.clientCount,
+      redisMemberCount: redisCounts.get(room.name) ?? 0,
+    }));
+
+    return {
+      data: {
+        rooms,
+        totalRooms: rooms.length,
+      },
+    };
+  });
+
+  // GET /api/v1/realtime/metrics — global stats (presence, rooms, throughput)
+  app.get('/api/v1/realtime/metrics', {
+    preHandler: [app.authHookFn],
+  }, async () => {
+    const stats = app.roomManager.getStats();
+    const presenceMetrics = await app.presenceService.getMetrics();
+
+    return {
+      data: {
+        connections: {
+          current: stats.connectedClients,
+          activeRooms: stats.activeRooms,
+        },
+        throughput: {
+          totalMessages: stats.totalMessages,
+          messagesPerSecond: stats.messagesPerSecond,
+          uptimeSeconds: stats.uptimeSeconds,
+        },
+        presence: {
+          totalOnline: presenceMetrics.totalOnline,
+          roomsWithPresence: presenceMetrics.roomsWithPresence,
+          tenantBreakdown: presenceMetrics.tenantBreakdown,
+        },
+      },
+    };
+  });
 }

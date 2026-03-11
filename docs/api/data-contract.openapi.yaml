@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: ARIS 3.0 — Data Contract Service
+  title: ARIS 4.0 — Data Contract Service
   version: 1.0.0
   description: >
     Contract registry for ARIS data exchanges. Each contract defines a schema,

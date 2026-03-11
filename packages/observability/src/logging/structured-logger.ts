@@ -1,4 +1,5 @@
 import { LoggerService, Injectable, Scope } from '@nestjs/common';
+import { trace as otelTrace, context as otelContext } from '@opentelemetry/api';
 
 export interface StructuredLogEntry {
   timestamp: string;
@@ -6,6 +7,8 @@ export interface StructuredLogEntry {
   message: string;
   service?: string;
   correlationId?: string;
+  traceId?: string;
+  spanId?: string;
   context?: string;
   [key: string]: unknown;
 }
@@ -57,7 +60,7 @@ export class StructuredLogger implements LoggerService {
     message: string,
     optionalParams: unknown[],
   ): void {
-    let context = this.context;
+    let ctx = this.context;
     let stack: string | undefined;
 
     if (level === 'error') {
@@ -65,14 +68,14 @@ export class StructuredLogger implements LoggerService {
       // optionalParams[0] = stack trace (string or Error)
       // optionalParams[1] = context (string)
       if (optionalParams.length >= 2 && typeof optionalParams[1] === 'string') {
-        context = optionalParams[1] as string;
+        ctx = optionalParams[1] as string;
       }
       if (optionalParams.length >= 1) {
-        const trace = optionalParams[0];
-        if (typeof trace === 'string') {
-          stack = trace;
-        } else if (trace instanceof Error) {
-          stack = trace.stack;
+        const traceParam = optionalParams[0];
+        if (typeof traceParam === 'string') {
+          stack = traceParam;
+        } else if (traceParam instanceof Error) {
+          stack = traceParam.stack;
         }
       }
     } else {
@@ -81,9 +84,13 @@ export class StructuredLogger implements LoggerService {
         optionalParams.length > 0 &&
         typeof optionalParams[optionalParams.length - 1] === 'string'
       ) {
-        context = optionalParams.pop() as string;
+        ctx = optionalParams.pop() as string;
       }
     }
+
+    // Extract OTel trace context for log-trace correlation
+    const activeSpan = otelTrace.getSpan(otelContext.active());
+    const spanContext = activeSpan?.spanContext();
 
     const entry: StructuredLogEntry = {
       timestamp: new Date().toISOString(),
@@ -91,7 +98,9 @@ export class StructuredLogger implements LoggerService {
       message,
       service: this.serviceName || undefined,
       correlationId: StructuredLogger.currentCorrelationId || undefined,
-      context: context || undefined,
+      traceId: spanContext?.traceId || undefined,
+      spanId: spanContext?.spanId || undefined,
+      context: ctx || undefined,
     };
 
     if (stack) {

@@ -32,6 +32,7 @@ import {
   Eye,
   EyeOff,
   Copy,
+  ArrowLeft,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -120,18 +121,18 @@ export default function UsersPage() {
   const assignFnMut = useAssignUserFunction();
   const removeFnMut = useRemoveUserFunction();
 
-  // Form state
-  const [showForm, setShowForm] = useState(false);
+  // View state
+  const [view, setView] = useState<'list' | 'form'>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<UserFormData>(EMPTY_USER_FORM);
   const [showPwd, setShowPwd] = useState(false);
 
-  // Password reset dialog
+  // Password reset dialog (keep as modal — quick action)
   const [resetPwdUser, setResetPwdUser] = useState<ManagedUser | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [showNewPwd, setShowNewPwd] = useState(false);
 
-  // Function assignment dialog
+  // Function assignment dialog (keep as modal — contextual list)
   const [assignFnUser, setAssignFnUser] = useState<ManagedUser | null>(null);
   const [selectedFnId, setSelectedFnId] = useState('');
   const [fnIsPrimary, setFnIsPrimary] = useState(false);
@@ -140,7 +141,7 @@ export default function UsersPage() {
     const pwd = generatePassword();
     setForm({ ...EMPTY_USER_FORM, password: pwd });
     setEditingId(null);
-    setShowForm(true);
+    setView('form');
     setShowPwd(false);
   }, []);
 
@@ -156,7 +157,12 @@ export default function UsersPage() {
       isActive: u.isActive,
     });
     setEditingId(u.id);
-    setShowForm(true);
+    setView('form');
+  }, []);
+
+  const handleBack = useCallback(() => {
+    setView('list');
+    setEditingId(null);
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -181,7 +187,7 @@ export default function UsersPage() {
         locale: form.locale,
       });
     }
-    setShowForm(false);
+    setView('list');
     setEditingId(null);
   }, [form, editingId, createMut, updateMut]);
 
@@ -212,6 +218,201 @@ export default function UsersPage() {
   const handleRemoveFunction = useCallback(async (userId: string, functionId: string) => {
     await removeFnMut.mutateAsync({ userId, functionId });
   }, [removeFnMut]);
+
+  if (view === 'form') {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <UsersIcon className="h-6 w-6 text-aris-primary-600" />
+              {editingId ? 'Edit User' : 'New User'}
+            </h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {editingId ? `Editing: ${form.firstName} ${form.lastName}` : 'Create a new user account'}
+            </p>
+          </div>
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+        </div>
+
+        {/* Inline form */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* First Name */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                First Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                value={form.firstName}
+                onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                placeholder="John"
+              />
+            </div>
+
+            {/* Last Name */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Last Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                value={form.lastName}
+                onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                placeholder="Doe"
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Email <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                placeholder="user@au-aris.org"
+              />
+            </div>
+
+            {/* Role */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Role <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={form.role}
+                onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+              >
+                {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+              </select>
+            </div>
+
+            {/* Language */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Language
+              </label>
+              <select
+                value={form.locale}
+                onChange={(e) => setForm((f) => ({ ...f, locale: e.target.value }))}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+              >
+                <option value="en">English</option>
+                <option value="fr">Français</option>
+                <option value="pt">Português</option>
+                <option value="ar">العربية</option>
+              </select>
+            </div>
+
+            {/* Tenant ID (only on create) */}
+            {!editingId && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Tenant ID <span className="text-red-500">*</span>
+                </label>
+                <input
+                  value={form.tenantId}
+                  onChange={(e) => setForm((f) => ({ ...f, tenantId: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                  placeholder="UUID of tenant"
+                />
+              </div>
+            )}
+
+            {/* Active toggle (edit only) */}
+            {editingId && (
+              <div className="flex items-end pb-1">
+                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={form.isActive}
+                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
+                    className="h-4 w-4 rounded border-gray-300 text-aris-primary-600"
+                  />
+                  Active account
+                </label>
+              </div>
+            )}
+          </div>
+
+          {/* Password (only on create) */}
+          {!editingId && (
+            <div className="mt-4">
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Password <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-2 max-w-lg">
+                <div className="relative flex-1">
+                  <input
+                    type={showPwd ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 pr-16 text-sm font-mono dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd(!showPwd)}
+                    className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard.writeText(form.password)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    title="Copy"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, password: generatePassword() }))}
+                  className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  Generate
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="mt-6 flex items-center justify-end gap-3 border-t border-gray-100 dark:border-gray-700 pt-4">
+            <button
+              onClick={handleBack}
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!form.email || !form.firstName || !form.lastName || createMut.isPending || updateMut.isPending}
+              className="flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-5 py-2 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50"
+            >
+              {(createMut.isPending || updateMut.isPending) ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
+              {editingId ? 'Update' : 'Create'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -396,173 +597,7 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* ─── Create/Edit User Modal ─── */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {editingId ? 'Edit User' : 'New User'}
-              </h2>
-              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-              {/* Name */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">First Name</label>
-                  <input
-                    value={form.firstName}
-                    onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    placeholder="John"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Last Name</label>
-                  <input
-                    value={form.lastName}
-                    onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    placeholder="Doe"
-                  />
-                </div>
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  placeholder="user@au-aris.org"
-                />
-              </div>
-
-              {/* Role */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Role</label>
-                <select
-                  value={form.role}
-                  onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                >
-                  {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </select>
-              </div>
-
-              {/* Tenant ID (only on create) */}
-              {!editingId && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tenant ID</label>
-                  <input
-                    value={form.tenantId}
-                    onChange={(e) => setForm((f) => ({ ...f, tenantId: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    placeholder="UUID of tenant"
-                  />
-                </div>
-              )}
-
-              {/* Language */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Language</label>
-                <select
-                  value={form.locale}
-                  onChange={(e) => setForm((f) => ({ ...f, locale: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                >
-                  <option value="en">English</option>
-                  <option value="fr">Français</option>
-                  <option value="pt">Português</option>
-                  <option value="ar">العربية</option>
-                </select>
-              </div>
-
-              {/* Password (only on create) */}
-              {!editingId && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Password</label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type={showPwd ? 'text' : 'password'}
-                        value={form.password}
-                        onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                        className="w-full rounded-lg border border-gray-200 px-3 py-2 pr-16 text-sm font-mono dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPwd(!showPwd)}
-                        className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => navigator.clipboard.writeText(form.password)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        title="Copy"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setForm((f) => ({ ...f, password: generatePassword() }))}
-                      className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                    >
-                      Generate
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Active toggle (edit only) */}
-              {editingId && (
-                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                  <input
-                    type="checkbox"
-                    checked={form.isActive}
-                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                    className="rounded"
-                  />
-                  Active account
-                </label>
-              )}
-            </div>
-
-            {/* Actions */}
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={() => setShowForm(false)}
-                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={!form.email || !form.firstName || !form.lastName || createMut.isPending || updateMut.isPending}
-                className="flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50"
-              >
-                {(createMut.isPending || updateMut.isPending) ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="h-4 w-4" />
-                )}
-                {editingId ? 'Update' : 'Create'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Reset Password Modal ─── */}
+      {/* ─── Reset Password Modal (essential — quick security action) ─── */}
       {resetPwdUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
@@ -635,7 +670,7 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* ─── Assign Function Modal ─── */}
+      {/* ─── Assign Function Modal (essential — contextual list management) ─── */}
       {assignFnUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">

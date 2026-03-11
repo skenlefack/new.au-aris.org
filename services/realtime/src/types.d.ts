@@ -3,6 +3,7 @@ import type { RoomManagerService } from './services/room-manager.service';
 import type { PresenceService } from './services/presence.service';
 import type { StandaloneKafkaConsumer } from '@aris/kafka-client';
 import type { FastifyRequest } from 'fastify';
+import type Redis from 'ioredis';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -12,5 +13,6 @@ declare module 'fastify' {
     kafkaConsumer: StandaloneKafkaConsumer;
     jwtPublicKey: string;
     authHookFn: (request: FastifyRequest, reply: any) => Promise<void>;
+    redis: Redis;
   }
 }

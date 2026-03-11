@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
 interface AuthGuardProps {
@@ -9,7 +10,7 @@ interface AuthGuardProps {
 }
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3002/api/v1';
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/v1';
 
 /** Seconds before expiry at which we proactively refresh */
 const REFRESH_THRESHOLD_SEC = 5 * 60; // 5 minutes
@@ -51,11 +52,13 @@ function isTokenExpiringSoon(token: string, thresholdSec: number): boolean {
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const accessToken = useAuthStore((s) => s.accessToken);
   const refreshToken = useAuthStore((s) => s.refreshToken);
   const updateTokens = useAuthStore((s) => s.updateTokens);
-  const logout = useAuthStore((s) => s.logout);
+  const logoutStore = useAuthStore((s) => s.logout);
+  const logout = useCallback(() => { queryClient.clear(); logoutStore(); }, [queryClient, logoutStore]);
   const [hydrated, setHydrated] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const refreshInProgressRef = useRef(false);

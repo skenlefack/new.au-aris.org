@@ -2,8 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-const API_BASE = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? 'http://localhost:3011/api/v1';
-const COLLECTE_BASE = process.env['NEXT_PUBLIC_COLLECTE_URL'] ?? 'http://localhost:3011';
+const API_BASE = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? '/api/v1';
+const COLLECTE_BASE = process.env['NEXT_PUBLIC_COLLECTE_URL'] ?? '';
 
 function getHeaders(): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };

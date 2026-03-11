@@ -3,10 +3,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiClientError } from './client';
 
-// Form-builder service has its own base URL (port 3010 in dev).
-// With Traefik gateway: set NEXT_PUBLIC_FORM_BUILDER_URL=http://localhost:4000/api/v1/form-builder
+// Form-builder service: proxied via Next.js rewrites in dev (no CORS).
+// In production: Traefik routes /api/v1/form-builder/* to the form-builder service.
 const FB_API_BASE =
-  process.env.NEXT_PUBLIC_FORM_BUILDER_URL ?? 'http://localhost:3010/api/v1/form-builder';
+  process.env.NEXT_PUBLIC_FORM_BUILDER_URL ?? '/api/v1/form-builder';
 
 // ── lightweight fetch helper for form-builder service ──
 function getAuthHeaders(): Record<string, string> {
@@ -41,12 +41,16 @@ async function fbFetch<T>(url: string, init?: RequestInit): Promise<T> {
 
 const fb = {
   get: <T>(path: string, params?: Record<string, string>): Promise<T> => {
-    const u = new URL(`${FB_API_BASE}${path}`);
-    if (params) Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
-    return fbFetch<T>(u.toString());
+    let url = `${FB_API_BASE}${path}`;
+    if (params && Object.keys(params).length > 0) {
+      url += `?${new URLSearchParams(params).toString()}`;
+    }
+    return fbFetch<T>(url);
   },
   post: <T>(path: string, body?: unknown): Promise<T> =>
     fbFetch<T>(`${FB_API_BASE}${path}`, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
+  put: <T>(path: string, body?: unknown): Promise<T> =>
+    fbFetch<T>(`${FB_API_BASE}${path}`, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
   patch: <T>(path: string, body?: unknown): Promise<T> =>
     fbFetch<T>(`${FB_API_BASE}${path}`, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
   del: <T>(path: string): Promise<T> =>
@@ -315,5 +319,177 @@ export function useFieldValues(templateId: string | undefined, fieldCode: string
     ),
     enabled: !!templateId && !!fieldCode,
     staleTime: 30_000,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// OVERLAYS (Form Customization)
+// ════════════════════════════════════════════════════════════════
+
+export interface FieldOverride {
+  fieldId: string;
+  action: 'ADD' | 'MODIFY' | 'REMOVE' | 'REORDER';
+  data: Record<string, unknown>;
+}
+
+export interface SectionOverride {
+  sectionId: string;
+  action: 'ADD' | 'MODIFY' | 'REMOVE' | 'REORDER';
+  data: Record<string, unknown>;
+}
+
+export interface FormOverlayEntity {
+  id: string;
+  templateId: string;
+  templateVersion: number;
+  tenantId: string;
+  tenantLevel: string;
+  parentOverlayId: string | null;
+  fieldOverrides: FieldOverride[];
+  sectionOverrides: SectionOverride[] | null;
+  metadataOverrides: unknown | null;
+  isActive: boolean;
+  needsReview: boolean;
+  createdBy: string;
+  updatedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ResolvedForm {
+  template: FormTemplateListItem;
+  appliedOverlays: FormOverlayEntity[];
+  resolvedFields: unknown[];
+  resolvedSections: unknown[];
+  inheritance: {
+    level: string;
+    chain: string[];
+  };
+}
+
+// ---- List overlays for a template ----
+export function useFormOverlays(
+  templateId: string | undefined,
+  params?: { page?: number; limit?: number; tenantLevel?: string },
+) {
+  const queryParams: Record<string, string> = {};
+  if (params?.page) queryParams.page = String(params.page);
+  if (params?.limit) queryParams.limit = String(params.limit);
+  if (params?.tenantLevel) queryParams.tenantLevel = params.tenantLevel;
+
+  return useQuery({
+    queryKey: ['form-builder', 'overlays', templateId, params],
+    queryFn: () =>
+      fb.get<PaginatedResponse<FormOverlayEntity>>(
+        `/templates/${templateId}/overlays`,
+        queryParams,
+      ),
+    enabled: !!templateId,
+    staleTime: 10_000,
+  });
+}
+
+// ---- Get single overlay ----
+export function useFormOverlay(
+  templateId: string | undefined,
+  overlayId: string | undefined,
+) {
+  return useQuery({
+    queryKey: ['form-builder', 'overlay', templateId, overlayId],
+    queryFn: () =>
+      fb.get<ApiResponse<FormOverlayEntity>>(
+        `/templates/${templateId}/overlays/${overlayId}`,
+      ),
+    enabled: !!templateId && !!overlayId,
+    staleTime: 10_000,
+  });
+}
+
+// ---- Resolve merged form ----
+export function useResolvedForm(
+  templateId: string | undefined,
+  tenantId: string | undefined,
+) {
+  return useQuery({
+    queryKey: ['form-builder', 'resolved', templateId, tenantId],
+    queryFn: () =>
+      fb.get<{ data: ResolvedForm }>(
+        `/templates/${templateId}/resolve`,
+        { tenantId: tenantId! },
+      ),
+    enabled: !!templateId && !!tenantId,
+    staleTime: 10_000,
+  });
+}
+
+// ---- Create overlay ----
+export function useCreateOverlay() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      templateId,
+      ...body
+    }: {
+      templateId: string;
+      tenantId: string;
+      tenantLevel: string;
+      fieldOverrides: FieldOverride[];
+      sectionOverrides?: SectionOverride[];
+      metadataOverrides?: Record<string, unknown>;
+    }) =>
+      fb.post<ApiResponse<FormOverlayEntity>>(
+        `/templates/${templateId}/overlays`,
+        body,
+      ),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['form-builder', 'overlays', vars.templateId] });
+      qc.invalidateQueries({ queryKey: ['form-builder', 'resolved', vars.templateId] });
+    },
+  });
+}
+
+// ---- Update overlay ----
+export function useUpdateOverlay() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      templateId,
+      overlayId,
+      ...body
+    }: {
+      templateId: string;
+      overlayId: string;
+      fieldOverrides?: FieldOverride[];
+      sectionOverrides?: SectionOverride[];
+      metadataOverrides?: Record<string, unknown>;
+    }) =>
+      fb.put<ApiResponse<FormOverlayEntity>>(
+        `/templates/${templateId}/overlays/${overlayId}`,
+        body,
+      ),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['form-builder', 'overlays', vars.templateId] });
+      qc.invalidateQueries({ queryKey: ['form-builder', 'overlay', vars.templateId, vars.overlayId] });
+      qc.invalidateQueries({ queryKey: ['form-builder', 'resolved', vars.templateId] });
+    },
+  });
+}
+
+// ---- Delete overlay ----
+export function useDeleteOverlay() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      templateId,
+      overlayId,
+    }: {
+      templateId: string;
+      overlayId: string;
+    }) =>
+      fb.del<void>(`/templates/${templateId}/overlays/${overlayId}`),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['form-builder', 'overlays', vars.templateId] });
+      qc.invalidateQueries({ queryKey: ['form-builder', 'resolved', vars.templateId] });
+    },
   });
 }

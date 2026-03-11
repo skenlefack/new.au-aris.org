@@ -29,6 +29,15 @@ import {
   type CaptureTrend,
 } from '@/lib/api/hooks';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
+import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
+
+const FISHERIES_ALERT_FIELDS: AlertField[] = [
+  { name: 'species', label: 'Species', type: 'text', placeholder: 'e.g. Nile Perch', required: true },
+  { name: 'area', label: 'Fishing Area', type: 'text', placeholder: 'e.g. Lake Victoria', required: true },
+  { name: 'issueType', label: 'Issue Type', type: 'select', required: true, options: ['IUU Fishing', 'Stock Depletion', 'Aquatic Disease', 'License Violation', 'Environmental Impact', 'Other'] },
+  { name: 'vessels', label: 'Vessels Involved', type: 'text', placeholder: 'e.g. 5' },
+];
 
 const PLACEHOLDER_KPIS: FisheriesKpis['data'] = {
   totalCaptures: 12_450_000,
@@ -316,6 +325,12 @@ export default function FisheriesPage() {
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-orange-600" />
         </Link>
+      </div>
+
+      {/* Campaigns & Alert */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <DomainCampaignsSection domain="fisheries" />
+        <QuickAlertCard domain="fisheries" alertFields={FISHERIES_ALERT_FIELDS} title="Report Fisheries Issue" />
       </div>
     </div>
   );

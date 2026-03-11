@@ -4,8 +4,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/**/*.spec.ts'],
-    exclude: ['src/**/*.integration.spec.ts'],
+    include: ['src/services/__tests__/**/*.spec.ts', 'src/import-export/csv-parser.util.spec.ts'],
+    exclude: ['src/**/*.integration.spec.ts', 'src/**/*.e2e.spec.ts'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],

@@ -32,7 +32,7 @@ interface RoleConfig {
 const BI_TOOLS: BiTool[] = [
   { id: 'superset', name: 'Apache Superset', icon: BarChart3, color: '#1FC2A7', status: 'active' },
   { id: 'metabase', name: 'Metabase', icon: PieChart, color: '#509EE3', status: 'active' },
-  { id: 'powerbi', name: 'Power BI', icon: BarChart2, color: '#F2C811', status: 'coming_soon' },
+  { id: 'grafana', name: 'Grafana', icon: BarChart2, color: '#FF6600', status: 'active' },
 ];
 
 const SCHEMAS = ['public', 'historical'];

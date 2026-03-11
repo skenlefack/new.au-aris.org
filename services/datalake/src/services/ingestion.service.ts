@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import type { PrismaClient } from '@prisma/client';
-import type { Client } from '@elastic/elasticsearch';
+import type { Client } from '@opensearch-project/opensearch';
 import type Redis from 'ioredis';
 import type { StandaloneKafkaProducer } from '@aris/kafka-client';
 import type { KafkaHeaders } from '@aris/shared-types';
@@ -25,7 +25,6 @@ const DOMAIN_TO_SOURCE: Record<string, string> = {
   credential: 'CREDENTIAL',
   message: 'MESSAGE',
   realtime: 'REALTIME',
-  formation: 'FORMATION',
   support: 'SUPPORT',
   formbuilder: 'COLLECTE',
   datalake: 'UNKNOWN',
@@ -100,7 +99,7 @@ export class IngestionService {
       },
     });
 
-    // 2. Index into Elasticsearch
+    // 2. Index into OpenSearch
     try {
       await this.elastic.index({
         index: `aris-datalake-${parsed.domain}`,
@@ -122,8 +121,8 @@ export class IngestionService {
         },
       });
     } catch (err) {
-      // ES indexing is non-critical
-      console.error(`[IngestionService] ES index failed: ${err}`);
+      // OpenSearch indexing is non-critical
+      console.error(`[IngestionService] OpenSearch index failed: ${err}`);
     }
 
     // 3. Publish ingestion event (non-blocking)

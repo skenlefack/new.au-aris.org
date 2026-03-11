@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: ARIS 3.0 — Master Data Service
+  title: ARIS 4.0 — Master Data Service
   version: 1.0.0
   description: >
     Dictionary service for ARIS reference data: geography (ISO 3166, admin 1-3),

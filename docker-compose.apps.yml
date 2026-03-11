@@ -1,4 +1,4 @@
-# ARIS 3.0 — Frontend Applications Overlay
+# ARIS 4.0 — Frontend Applications Overlay
 # Usage: docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.apps.yml up -d
 #
 # Next.js frontend applications.

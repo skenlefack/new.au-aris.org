@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Settings, Download, RefreshCw, Clock,
@@ -8,10 +8,12 @@ import {
   LayoutGrid, Layers, Maximize, Minimize,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { DashboardFilterProvider, useDashboardFilters } from './GlobalFilterContext';
+import { DashboardFilterProvider, useDashboardFilters, type DashboardFilters } from './GlobalFilterContext';
 import { DashboardFilterPanel } from './DashboardFilterPanel';
 import { DashboardKpiBar } from './DashboardKpiBar';
 import { DashboardSynthetic } from './DashboardSynthetic';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTenantStore, findParentRec, deriveCountryCodeFromEmail } from '@/lib/stores/tenant-store';
 
 // Widget imports
 import { ChartLineWidget } from './widgets/ChartLineWidget';
@@ -537,8 +539,43 @@ function AlertsGrid({ alerts }: { alerts: any[] }) {
 // ─── Main Export (with Provider) ────────────────────────────────────────────
 
 export function DashboardPage() {
+  const user = useAuthStore((s) => s.user);
+  const tenantTree = useTenantStore((s) => s.tenantTree);
+  const selectedTenant = useTenantStore((s) => s.selectedTenant);
+
+  const initialFilters = useMemo((): Partial<DashboardFilters> => {
+    const level = user?.tenantLevel ?? selectedTenant?.level;
+
+    if (level === 'MEMBER_STATE') {
+      // Derive country code reliably: selectedTenant (if resolved) > email > fallback
+      const countryCode =
+        (selectedTenant?.level === 'MEMBER_STATE' ? selectedTenant.code : null)
+        ?? deriveCountryCodeFromEmail(user?.email)
+        ?? null;
+
+      if (countryCode) {
+        // Use the country code to find the parent REC in the tree
+        const parentRec = findParentRec(tenantTree, countryCode);
+        return {
+          rec: parentRec?.code?.toLowerCase() ?? 'all',
+          country: countryCode,
+        };
+      }
+    }
+
+    if (level === 'REC' && selectedTenant) {
+      return {
+        rec: selectedTenant.code.toLowerCase(),
+        country: 'all',
+      };
+    }
+
+    // CONTINENTAL / SUPER_ADMIN: no restriction
+    return {};
+  }, [user?.tenantLevel, user?.email, selectedTenant, tenantTree]);
+
   return (
-    <DashboardFilterProvider>
+    <DashboardFilterProvider initialFilters={initialFilters}>
       <DashboardContent />
     </DashboardFilterProvider>
   );

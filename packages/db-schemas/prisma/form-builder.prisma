@@ -1,4 +1,4 @@
-// ARIS 3.0 — Form Builder Schema
+// ARIS 4.0 — Form Builder Schema
 // JSON Schema-based form template system with inheritance
 
 enum FormTemplateStatus {

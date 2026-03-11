@@ -1,4 +1,4 @@
-// ARIS 3.0 — Offline Sync Schema
+// ARIS 4.0 — Offline Sync Schema
 // Delta-based offline synchronization for mobile field agents
 
 enum SyncStatus {

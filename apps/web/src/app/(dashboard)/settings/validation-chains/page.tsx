@@ -11,6 +11,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Pagination } from '@/components/ui/Pagination';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import {
   useValidationChains,
@@ -18,6 +19,8 @@ import {
   useUpdateValidationChain,
   useDeleteValidationChain,
 } from '@/lib/api/workflow-hooks';
+import { SearchCombobox } from '@/components/ui/SearchCombobox';
+import { useSettingsUsers, type ManagedUser } from '@/lib/api/settings-hooks';
 
 const LEVEL_TYPES = ['admin5', 'admin4', 'admin3', 'admin2', 'admin1', 'national', 'regional', 'continental'];
 
@@ -35,19 +38,34 @@ const LEVEL_COLORS: Record<string, string> = {
 export default function ValidationChainsPage() {
   const { user } = useAuthStore();
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [search, setSearch] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
   const [showCreate, setShowCreate] = useState(false);
 
-  const { data: chainsRes, isLoading } = useValidationChains({
-    page,
-    limit: 50,
-  });
+  // Fetch all records — backend caps at 100/page, so fetch 2 pages to cover ~116 chains
+  const { data: chainsP1, isLoading: p1Loading } = useValidationChains({ page: 1, limit: 100 });
+  const { data: chainsP2, isLoading: p2Loading } = useValidationChains({ page: 2, limit: 100 });
+  const isLoading = p1Loading || p2Loading;
   const deleteMut = useDeleteValidationChain();
 
-  const chains = chainsRes?.data ?? [];
-  const filtered = filterLevel
-    ? chains.filter((c: any) => c.levelType === filterLevel)
+  const chains = [...(chainsP1?.data ?? []), ...(chainsP2?.data ?? [])];
+  const searched = search
+    ? chains.filter((c: any) => {
+        const q = search.toLowerCase();
+        const userName = (c.user?.displayName ?? c.user?.email ?? '').toLowerCase();
+        const userEmail = (c.user?.email ?? '').toLowerCase();
+        const validatorName = (c.validator?.displayName ?? c.validator?.email ?? '').toLowerCase();
+        const validatorEmail = (c.validator?.email ?? '').toLowerCase();
+        return userName.includes(q) || userEmail.includes(q)
+          || validatorName.includes(q) || validatorEmail.includes(q);
+      })
     : chains;
+  const allFiltered = filterLevel
+    ? searched.filter((c: any) => c.levelType === filterLevel)
+    : searched;
+  const totalFiltered = allFiltered.length;
+  const filtered = allFiltered.slice((page - 1) * limit, page * limit);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Remove this validation chain?')) return;
@@ -76,33 +94,45 @@ export default function ValidationChainsPage() {
         <CreateChainForm onClose={() => setShowCreate(false)} />
       )}
 
-      {/* Filter bar */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setFilterLevel('')}
-          className={cn(
-            'rounded-full px-3 py-1 text-xs font-medium transition-colors',
-            !filterLevel
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700',
-          )}
-        >
-          All
-        </button>
-        {LEVEL_TYPES.map((lt) => (
+      {/* Search + Filter bar */}
+      <div className="space-y-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            placeholder="Search by user or validator..."
+            className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
           <button
-            key={lt}
-            onClick={() => setFilterLevel(lt === filterLevel ? '' : lt)}
+            onClick={() => { setFilterLevel(''); setPage(1); }}
             className={cn(
               'rounded-full px-3 py-1 text-xs font-medium transition-colors',
-              filterLevel === lt
-                ? LEVEL_COLORS[lt]
+              !filterLevel
+                ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700',
             )}
           >
-            {lt}
+            All
           </button>
-        ))}
+          {LEVEL_TYPES.map((lt) => (
+            <button
+              key={lt}
+              onClick={() => { setFilterLevel(lt === filterLevel ? '' : lt); setPage(1); }}
+              className={cn(
+                'rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                filterLevel === lt
+                  ? LEVEL_COLORS[lt]
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700',
+              )}
+            >
+              {lt}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Chain list */}
@@ -188,6 +218,13 @@ export default function ValidationChainsPage() {
               </button>
             </div>
           ))}
+          <Pagination
+            page={page}
+            total={totalFiltered}
+            limit={limit}
+            onPageChange={setPage}
+            onLimitChange={(newLimit) => { setLimit(newLimit); setPage(1); }}
+          />
         </div>
       )}
     </div>
@@ -196,21 +233,37 @@ export default function ValidationChainsPage() {
 
 /* ── Create Chain Form ── */
 
+const userLabel = (u: ManagedUser) =>
+  u.firstName && u.lastName ? `${u.firstName} ${u.lastName} (${u.email})` : u.email;
+
+const userFilter = (u: ManagedUser) =>
+  `${u.firstName} ${u.lastName} ${u.email} ${u.role}`;
+
 function CreateChainForm({ onClose }: { onClose: () => void }) {
   const createMut = useCreateValidationChain();
-  const [form, setForm] = useState({
-    userId: '',
-    validatorId: '',
-    backupValidatorId: '',
+  const { data: usersRes, isLoading: usersLoading } = useSettingsUsers({ limit: 100 });
+  const users = usersRes?.data ?? [];
+
+  const [form, setForm] = useState<{
+    user: ManagedUser | null;
+    validator: ManagedUser | null;
+    backupValidator: ManagedUser | null;
+    priority: number;
+    levelType: string;
+  }>({
+    user: null,
+    validator: null,
+    backupValidator: null,
     priority: 1,
     levelType: 'national',
   });
 
   const handleCreate = async () => {
+    if (!form.user || !form.validator) return;
     await createMut.mutateAsync({
-      userId: form.userId,
-      validatorId: form.validatorId,
-      backupValidatorId: form.backupValidatorId || undefined,
+      userId: form.user.id,
+      validatorId: form.validator.id,
+      backupValidatorId: form.backupValidator?.id ?? undefined,
       priority: form.priority,
       levelType: form.levelType,
     });
@@ -222,30 +275,42 @@ function CreateChainForm({ onClose }: { onClose: () => void }) {
       <h3 className="text-sm font-semibold text-gray-900 dark:text-white">New Validation Chain</h3>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <div>
-          <label className="text-xs font-medium text-gray-600">User ID (submitter)</label>
-          <input
-            value={form.userId}
-            onChange={(e) => setForm((s) => ({ ...s, userId: e.target.value }))}
-            className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
-            placeholder="User UUID"
+          <label className="text-xs font-medium text-gray-600">User (submitter)</label>
+          <SearchCombobox<ManagedUser>
+            value={form.user}
+            onChange={(u) => setForm((s) => ({ ...s, user: u }))}
+            items={users}
+            labelKey={userLabel}
+            filterKey={userFilter}
+            placeholder="Search user..."
+            loading={usersLoading}
+            className="mt-1"
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-600">Validator ID</label>
-          <input
-            value={form.validatorId}
-            onChange={(e) => setForm((s) => ({ ...s, validatorId: e.target.value }))}
-            className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
-            placeholder="Validator UUID"
+          <label className="text-xs font-medium text-gray-600">Validator</label>
+          <SearchCombobox<ManagedUser>
+            value={form.validator}
+            onChange={(u) => setForm((s) => ({ ...s, validator: u }))}
+            items={users}
+            labelKey={userLabel}
+            filterKey={userFilter}
+            placeholder="Search validator..."
+            loading={usersLoading}
+            className="mt-1"
           />
         </div>
         <div>
           <label className="text-xs font-medium text-gray-600">Backup Validator (optional)</label>
-          <input
-            value={form.backupValidatorId}
-            onChange={(e) => setForm((s) => ({ ...s, backupValidatorId: e.target.value }))}
-            className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
-            placeholder="Backup UUID"
+          <SearchCombobox<ManagedUser>
+            value={form.backupValidator}
+            onChange={(u) => setForm((s) => ({ ...s, backupValidator: u }))}
+            items={users}
+            labelKey={userLabel}
+            filterKey={userFilter}
+            placeholder="Search backup..."
+            loading={usersLoading}
+            className="mt-1"
           />
         </div>
         <div>
@@ -281,7 +346,7 @@ function CreateChainForm({ onClose }: { onClose: () => void }) {
         </button>
         <button
           onClick={handleCreate}
-          disabled={!form.userId || !form.validatorId || createMut.isPending}
+          disabled={!form.user || !form.validator || createMut.isPending}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
         >
           {createMut.isPending ? 'Creating...' : 'Create Chain'}

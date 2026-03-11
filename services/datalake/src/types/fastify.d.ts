@@ -1,6 +1,6 @@
 import type Redis from 'ioredis';
 import type { PrismaClient } from '@prisma/client';
-import type { Client } from '@elastic/elasticsearch';
+import type { Client } from '@opensearch-project/opensearch';
 import type { StandaloneKafkaProducer, StandaloneKafkaConsumer } from '@aris/kafka-client';
 import type { authHook } from '@aris/auth-middleware';
 import type { DatalakeService } from '../services/datalake.service';

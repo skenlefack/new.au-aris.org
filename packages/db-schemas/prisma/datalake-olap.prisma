@@ -1,4 +1,4 @@
-// ARIS 3.0 — Datalake OLAP Models
+// ARIS 4.0 — Datalake OLAP Models
 // Event store for domain events, partition management, and async exports
 
 enum DatalakeSource {
@@ -18,7 +18,6 @@ enum DatalakeSource {
   CREDENTIAL
   MESSAGE
   REALTIME
-  FORMATION
   SUPPORT
   UNKNOWN
 

@@ -2,7 +2,7 @@
   "name": "@aris/cache",
   "version": "0.1.0",
   "private": true,
-  "description": "ARIS 3.0 — Centralized Redis cache with domain key patterns, TTL, and monitoring for NestJS",
+  "description": "ARIS 4.0 — Centralized Redis cache with domain key patterns, TTL, and monitoring for NestJS",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -17,10 +17,12 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "lint": "eslint src/",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "ioredis": "^5.4.0"
+    "ioredis": "^5.4.0",
+    "@opensearch-project/opensearch": "^2.12.0"
   },
   "peerDependencies": {
     "@aris/shared-types": "workspace:*",

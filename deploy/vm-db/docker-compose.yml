@@ -1,0 +1,61 @@
+# ═══════════════════════════════════════════════════════════════
+# ARIS 4.0 — VM-DB: PostgreSQL 16 + PostGIS 3.4 + PgBouncer
+# Host: 10.202.101.185 (nbo-dbms03)
+# ═══════════════════════════════════════════════════════════════
+
+services:
+
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: aris-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aris}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Ar1s_Pr0d_2024!xK9mZ}
+      POSTGRES_DB: ${POSTGRES_DB:-aris}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      - /var/lib/postgresql/data:/var/lib/postgresql/data
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql
+      - ./init-bi-user.sql:/docker-entrypoint-initdb.d/02-init-bi-user.sql
+      - ./init-metabase-db.sql:/docker-entrypoint-initdb.d/03-init-metabase-db.sql
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aris -d aris"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aris-db-network
+    deploy:
+      resources:
+        limits:
+          memory: 28G
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: aris-pgbouncer
+    restart: unless-stopped
+    ports:
+      - "6432:6432"
+    volumes:
+      - ./pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U aris -d aris"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aris-db-network
+
+networks:
+  aris-db-network:
+    driver: bridge
+    name: aris-db-network

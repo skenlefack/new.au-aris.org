@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { BarChart3, PieChart, BarChart2, ExternalLink, ArrowRight } from 'lucide-react';
+import { BarChart3, PieChart, BarChart2, ArrowRight, CheckCircle2, Shield } from 'lucide-react';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 const BI_TOOLS = [
   {
@@ -12,9 +13,9 @@ const BI_TOOLS = [
     icon: BarChart3,
     color: '#1FC2A7',
     href: '/bi-tools/superset',
-    externalUrl: 'http://localhost:8088',
     status: 'active' as const,
     features: ['SQL Lab', 'Custom Dashboards', 'Chart Builder', 'Data Exploration'],
+    authMethod: 'Guest Token + RLS',
   },
   {
     id: 'metabase',
@@ -23,48 +24,62 @@ const BI_TOOLS = [
     icon: PieChart,
     color: '#509EE3',
     href: '/bi-tools/metabase',
-    externalUrl: 'http://localhost:3035',
     status: 'active' as const,
     features: ['Question Builder', 'Auto Dashboards', 'Alerts', 'Collections'],
+    authMethod: 'Session Proxy',
   },
   {
-    id: 'powerbi',
-    name: 'Power BI',
-    description: 'Microsoft Power BI integration for enterprise reporting. Connect your existing Power BI reports to ARIS data sources.',
+    id: 'grafana',
+    name: 'Grafana',
+    description: 'Powerful observability and BI platform. Build dashboards with PostgreSQL queries, template variables, drill-down, and alerting.',
     icon: BarChart2,
-    color: '#F2C811',
-    href: '#',
-    externalUrl: '',
-    status: 'coming_soon' as const,
-    features: ['Report Embedding', 'DirectQuery', 'Dataflows', 'AI Insights'],
+    color: '#FF6600',
+    href: '/bi-tools/grafana',
+    status: 'active' as const,
+    features: ['Dashboard Builder', 'PostgreSQL Queries', 'Variables & Drill-down', 'Alerting'],
+    authMethod: 'Auth Proxy',
   },
 ];
 
 export default function BiToolsPage() {
+  const user = useAuthStore((s) => s.user);
+
+  const accessLabel = user?.tenantLevel === 'CONTINENTAL'
+    ? 'All AU Member States'
+    : user?.tenantLevel === 'REC'
+      ? 'Regional countries'
+      : 'Country data';
+
   return (
     <div className="px-6 py-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">BI Tools</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Integrated business intelligence and analytics platforms connected to ARIS data
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">BI Tools</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Integrated business intelligence and analytics platforms connected to ARIS data
+          </p>
+        </div>
+
+        {/* Access level indicator */}
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 dark:border-emerald-800 dark:bg-emerald-900/20">
+          <Shield className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+          <div>
+            <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Data Access Level</p>
+            <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">{accessLabel}</p>
+          </div>
+        </div>
       </div>
 
       {/* Tool Cards */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {BI_TOOLS.map((tool) => {
           const Icon = tool.icon;
-          const isActive = tool.status === 'active';
 
           return (
             <div
               key={tool.id}
-              className={`relative overflow-hidden rounded-2xl border bg-white dark:bg-slate-900 ${
-                isActive
-                  ? 'border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow'
-                  : 'border-slate-100 dark:border-slate-800 opacity-60'
-              }`}
+              className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 hover:shadow-lg transition-shadow"
             >
               {/* Color accent bar */}
               <div className="h-1.5" style={{ backgroundColor: tool.color }} />
@@ -81,16 +96,10 @@ export default function BiToolsPage() {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{tool.name}</h3>
-                      {!isActive && (
-                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-400 dark:bg-slate-800 dark:text-slate-500">
-                          Coming Soon
-                        </span>
-                      )}
-                      {isActive && (
-                        <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400">
-                          Active
-                        </span>
-                      )}
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Auto-connected
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -113,32 +122,15 @@ export default function BiToolsPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="mt-6 flex items-center gap-3">
-                  {isActive ? (
-                    <>
-                      <Link
-                        href={tool.href}
-                        className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
-                        style={{ backgroundColor: tool.color }}
-                      >
-                        Open in ARIS
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                      <a
-                        href={tool.externalUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        Open Standalone
-                      </a>
-                    </>
-                  ) : (
-                    <span className="text-sm text-slate-400 dark:text-slate-500">
-                      Integration coming soon
-                    </span>
-                  )}
+                <div className="mt-6">
+                  <Link
+                    href={tool.href}
+                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: tool.color }}
+                  >
+                    Open in ARIS
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
                 </div>
               </div>
             </div>
@@ -146,28 +138,40 @@ export default function BiToolsPage() {
         })}
       </div>
 
-      {/* Connection Info */}
+      {/* Info box */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Connection Details</h2>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">How it works</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Both BI tools connect to the ARIS PostgreSQL database with read-only access.
+          All BI tools are automatically authenticated with your ARIS account. Data is filtered based on your access level.
         </p>
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <InfoCard label="Database" value="aris" />
-          <InfoCard label="Host" value="localhost:5432" />
-          <InfoCard label="Read-Only User" value="aris_bi_reader" />
-          <InfoCard label="Sensitive Tables" value="Excluded (User, Session, etc.)" />
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <InfoCard
+            label="Authentication"
+            value="Automatic SSO"
+            detail="No separate login needed"
+          />
+          <InfoCard
+            label="Data Filtering"
+            value="Tenant-scoped"
+            detail="Only your authorized data"
+          />
+          <InfoCard
+            label="Database Access"
+            value="Read-only"
+            detail="Sensitive tables excluded"
+          />
         </div>
       </div>
     </div>
   );
 }
 
-function InfoCard({ label, value }: { label: string; value: string }) {
+function InfoCard({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
     <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 dark:border-slate-800 dark:bg-slate-800/30">
       <p className="text-xs font-medium text-slate-400 dark:text-slate-500">{label}</p>
       <p className="mt-0.5 text-sm font-medium text-slate-700 dark:text-slate-300">{value}</p>
+      <p className="text-xs text-slate-400 dark:text-slate-500">{detail}</p>
     </div>
   );
 }

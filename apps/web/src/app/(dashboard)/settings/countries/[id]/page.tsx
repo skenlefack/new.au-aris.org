@@ -15,7 +15,7 @@ const emptyML = { en: '', fr: '', pt: '', ar: '' };
 
 export default function CountryDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { canManageCountries, canEditCountryStats, canEditCountrySectors, isSuperAdmin, isContinentalAdmin } = useSettingsAccess();
+  const { canManageCountries, canEditCountryStats, canEditCountrySectors, isSuperAdmin, isContinentalAdmin, isNationalAdmin } = useSettingsAccess();
   const { data, isLoading } = useSettingsCountry(id);
   const { data: recsData } = useSettingsRecs();
   const updateMutation = useUpdateCountry();
@@ -26,7 +26,7 @@ export default function CountryDetailPage() {
   // Admin levels — pass resolved country code for GADM fallback
   const { data: adminLevelsData, isLoading: adminLevelsLoading } = useAdminLevels(id, resolvedCode);
   const upsertAdminLevelsMutation = useUpsertAdminLevels();
-  const canEditAdminLevels = isSuperAdmin || isContinentalAdmin;
+  const canEditAdminLevels = isSuperAdmin || isContinentalAdmin || isNationalAdmin;
 
   const allRecs: any[] = recsData?.data ?? [];
 

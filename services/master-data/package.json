@@ -2,7 +2,7 @@
   "name": "@aris/master-data-service",
   "version": "0.1.0",
   "private": true,
-  "description": "ARIS 3.0 — Master Data service: common dictionary & referentials (geo, species, diseases, units, temporality, identifiers, denominators)",
+  "description": "ARIS 4.0 — Master Data service: common dictionary & referentials (geo, species, diseases, units, temporality, identifiers, denominators)",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc --build",
@@ -12,6 +12,7 @@
     "lint": "eslint src/",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "db:migrate": "prisma migrate dev --schema=../../packages/db-schemas/prisma/schema.prisma",
     "db:seed": "tsx src/seed/run-seed.ts"

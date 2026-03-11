@@ -15,6 +15,16 @@ import { cn } from '@/lib/utils';
 import { useHealthEvents, type HealthEvent } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
+import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
+
+const ANIMAL_HEALTH_ALERT_FIELDS: AlertField[] = [
+  { name: 'disease', label: 'Disease', type: 'text', placeholder: 'e.g. Foot-and-Mouth Disease', required: true },
+  { name: 'species', label: 'Species', type: 'text', placeholder: 'e.g. Cattle', required: true },
+  { name: 'location', label: 'Location', type: 'text', placeholder: 'e.g. Rift Valley, KE', required: true },
+  { name: 'severity', label: 'Severity', type: 'select', required: true, options: ['Low', 'Medium', 'High', 'Critical'] },
+  { name: 'cases', label: 'Estimated Cases', type: 'text', placeholder: 'e.g. 50' },
+];
 
 const STATUS_BADGE: Record<string, string> = {
   suspected: 'bg-amber-100 text-amber-700',
@@ -296,6 +306,12 @@ export default function AnimalHealthPage() {
           </div>
         </div>
       )}
+
+      {/* Campaigns & Alert */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <DomainCampaignsSection domain="animal_health" />
+        <QuickAlertCard domain="animal_health" alertFields={ANIMAL_HEALTH_ALERT_FIELDS} title="Report Disease Event" />
+      </div>
     </div>
   );
 }

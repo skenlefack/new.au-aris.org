@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiClientError } from './client';
 
 const HIST_API_BASE =
-  process.env.NEXT_PUBLIC_DATALAKE_URL ?? 'http://localhost:3044/api/v1/historical';
+  process.env.NEXT_PUBLIC_DATALAKE_URL ?? '/api/v1/historical';
 
 /* ------------------------------------------------------------------ */
 /*  Auth helper                                                         */

@@ -2,7 +2,7 @@
   "name": "@aris/ui-components",
   "version": "0.1.0",
   "private": true,
-  "description": "ARIS 3.0 — Design System (Shadcn/UI + Tailwind) for AU-IBAR",
+  "description": "ARIS 4.0 — Design System (Shadcn/UI + Tailwind) for AU-IBAR",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -24,6 +24,7 @@
     "lint": "eslint src/",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

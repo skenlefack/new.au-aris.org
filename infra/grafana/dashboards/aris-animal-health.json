@@ -1,0 +1,180 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "ARIS Animal Health — Outbreaks, surveillance, lab results, vaccinations",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Health Events by Status",
+      "type": "piechart",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 9, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "rawSql": "SELECT he.status, COUNT(*) AS count\nFROM animal_health.health_events he\nWHERE ($country = 'ALL' OR he.country_code = $country)\n  AND ($disease = 'ALL' OR he.disease_name = $disease)\n  AND he.created_at >= $__timeFrom() AND he.created_at <= $__timeTo()\n  AND ('${tenant_id}' = '*' OR he.tenant_id::text IN (${tenant_id:sqlstring}))\nGROUP BY he.status\nORDER BY count DESC;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "options": { "legendPlacement": "right", "pieType": "donut" }
+    },
+    {
+      "title": "Cases & Deaths Timeline",
+      "type": "timeseries",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 9, "w": 16, "x": 8, "y": 0 },
+      "targets": [
+        {
+          "rawSql": "SELECT DATE_TRUNC('week', he.event_date) AS time,\n       SUM(he.cases) AS cases,\n       SUM(he.deaths) AS deaths\nFROM animal_health.health_events he\nWHERE ($country = 'ALL' OR he.country_code = $country)\n  AND ($disease = 'ALL' OR he.disease_name = $disease)\n  AND he.event_date >= $__timeFrom() AND he.event_date <= $__timeTo()\n  AND ('${tenant_id}' = '*' OR he.tenant_id::text IN (${tenant_id:sqlstring}))\nGROUP BY 1\nORDER BY 1;",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 10, "lineWidth": 2 }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "deaths" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "cases" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "title": "Lab Positivity Rate",
+      "type": "gauge",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 9 },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(\n  100.0 * COUNT(*) FILTER (WHERE lr.result = 'positive') / NULLIF(COUNT(*), 0),\n  1\n) AS positivity_rate\nFROM animal_health.lab_results lr\nWHERE ($country = 'ALL' OR lr.country_code = $country)\n  AND lr.created_at >= $__timeFrom() AND lr.created_at <= $__timeTo()\n  AND ('${tenant_id}' = '*' OR lr.tenant_id::text IN (${tenant_id:sqlstring}));",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "unit": "percent",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 20 }, { "color": "red", "value": 50 }] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Surveillance Reports by Type",
+      "type": "barchart",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 8, "w": 10, "x": 6, "y": 9 },
+      "targets": [
+        {
+          "rawSql": "SELECT s.surveillance_type AS type, COUNT(*) AS reports\nFROM animal_health.surveillances s\nWHERE ($country = 'ALL' OR s.country_code = $country)\n  AND s.created_at >= $__timeFrom() AND s.created_at <= $__timeTo()\n  AND ('${tenant_id}' = '*' OR s.tenant_id::text IN (${tenant_id:sqlstring}))\nGROUP BY s.surveillance_type\nORDER BY reports DESC;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "options": { "orientation": "horizontal", "showValue": "auto" }
+    },
+    {
+      "title": "Vaccinations — Monthly Doses",
+      "type": "timeseries",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 9 },
+      "targets": [
+        {
+          "rawSql": "SELECT DATE_TRUNC('month', v.vaccination_date) AS time,\n       SUM(v.doses_administered) AS doses\nFROM animal_health.vaccinations v\nWHERE ($country = 'ALL' OR v.country_code = $country)\n  AND v.vaccination_date >= $__timeFrom() AND v.vaccination_date <= $__timeTo()\n  AND ('${tenant_id}' = '*' OR v.tenant_id::text IN (${tenant_id:sqlstring}))\nGROUP BY 1\nORDER BY 1;",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "blue", "mode": "fixed" },
+          "custom": { "fillOpacity": 30, "lineWidth": 2 }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Recent Health Events",
+      "type": "table",
+      "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 17 },
+      "targets": [
+        {
+          "rawSql": "SELECT he.disease_name AS disease,\n       he.country_code AS country,\n       he.status,\n       he.cases,\n       he.deaths,\n       he.species_name AS species,\n       he.event_date,\n       he.confidence_level\nFROM animal_health.health_events he\nWHERE ($country = 'ALL' OR he.country_code = $country)\n  AND ($disease = 'ALL' OR he.disease_name = $disease)\n  AND he.created_at >= $__timeFrom() AND he.created_at <= $__timeTo()\n  AND ('${tenant_id}' = '*' OR he.tenant_id::text IN (${tenant_id:sqlstring}))\nORDER BY he.event_date DESC\nLIMIT 50;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": { "showHeader": true }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["aris", "animal-health"],
+  "templating": {
+    "list": [
+      {
+        "name": "tenant_id",
+        "type": "custom",
+        "label": "Tenant",
+        "query": "*",
+        "current": { "text": "*", "value": "*" },
+        "includeAll": false,
+        "multi": true,
+        "hide": 2,
+        "description": "Tenant ID filter injected by ARIS proxy"
+      },
+      {
+        "name": "country",
+        "type": "query",
+        "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+        "query": "SELECT 'ALL' AS __value, 'All Countries' AS __text UNION ALL SELECT code AS __value, code AS __text FROM governance.countries WHERE is_active = true ORDER BY 2;",
+        "current": { "text": "All Countries", "value": "ALL" },
+        "includeAll": false,
+        "refresh": 1
+      },
+      {
+        "name": "disease",
+        "type": "query",
+        "datasource": { "type": "postgres", "uid": "ARIS-PostgreSQL" },
+        "query": "SELECT 'ALL' AS __value, 'All Diseases' AS __text UNION ALL SELECT DISTINCT disease_name AS __value, disease_name AS __text FROM animal_health.health_events ORDER BY 2;",
+        "current": { "text": "All Diseases", "value": "ALL" },
+        "includeAll": false,
+        "refresh": 1
+      }
+    ]
+  },
+  "time": { "from": "now-6M", "to": "now" },
+  "timepicker": {},
+  "timezone": "utc",
+  "title": "ARIS Animal Health",
+  "uid": "aris-animal-health",
+  "version": 1
+}

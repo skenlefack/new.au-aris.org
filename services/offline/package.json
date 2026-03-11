@@ -2,7 +2,7 @@
   "name": "@aris/offline-service",
   "version": "0.1.0",
   "private": true,
-  "description": "ARIS 3.0 — Offline sync service: session-based delta sync, conflict resolution, device registry",
+  "description": "ARIS 4.0 — Offline sync service: session-based delta sync, conflict resolution, device registry",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc --build",
@@ -12,6 +12,7 @@
     "lint": "eslint src/",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {

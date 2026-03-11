@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   useSettingsFunctions,
   useCreateFunction,
@@ -9,6 +9,7 @@ import {
   type FunctionItem,
 } from '@/lib/api/settings-hooks';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { Pagination } from '@/components/ui/Pagination';
 import {
   Briefcase,
@@ -23,6 +24,7 @@ import {
   Globe,
   Building2,
   Flag,
+  ArrowLeft,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -90,8 +92,25 @@ export default function FunctionsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
   const [limit] = useState(50);
-  const { isSuperAdmin, isContinentalAdmin } = useSettingsAccess();
-  const canManage = isSuperAdmin || isContinentalAdmin;
+  const { isSuperAdmin, isContinentalAdmin, isRecAdmin, canManageFunctions, canDeleteFunction, tenantLevel } = useSettingsAccess();
+  const user = useAuthStore((s) => s.user);
+  const canManage = canManageFunctions;
+
+  // Only allow creating functions at or below the user's level
+  const allowedLevels = useMemo(() => {
+    if (isSuperAdmin || isContinentalAdmin) return LEVELS;
+    if (isRecAdmin) return LEVELS.filter((l) => l.key !== 'continental');
+    return LEVELS.filter((l) => l.key === 'national');
+  }, [isSuperAdmin, isContinentalAdmin, isRecAdmin]);
+
+  // Check if a function belongs to the current user's tenant (editable)
+  const isOwnFunction = useCallback((fn: FunctionItem) => {
+    if (isSuperAdmin || isContinentalAdmin) return true;
+    return fn.tenantId === user?.tenantId;
+  }, [isSuperAdmin, isContinentalAdmin, user?.tenantId]);
+
+  // View state
+  const [view, setView] = useState<'list' | 'form'>('list');
 
   const { data, isLoading } = useSettingsFunctions({
     search,
@@ -108,15 +127,17 @@ export default function FunctionsPage() {
   const updateMut = useUpdateFunction();
   const deleteMut = useDeleteFunction();
 
-  const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FunctionFormData>(EMPTY_FORM);
 
   const openCreate = useCallback(() => {
-    setForm({ ...EMPTY_FORM, level: (activeTab as FunctionFormData['level']) || 'continental' });
+    const defaultLevel = (activeTab && allowedLevels.some((l) => l.key === activeTab))
+      ? activeTab as FunctionFormData['level']
+      : allowedLevels[0]?.key as FunctionFormData['level'] ?? 'national';
+    setForm({ ...EMPTY_FORM, level: defaultLevel });
     setEditingId(null);
-    setShowForm(true);
-  }, [activeTab]);
+    setView('form');
+  }, [activeTab, allowedLevels]);
 
   const openEdit = useCallback((fn: FunctionItem) => {
     setForm({
@@ -133,7 +154,12 @@ export default function FunctionsPage() {
       sortOrder: fn.sortOrder,
     });
     setEditingId(fn.id);
-    setShowForm(true);
+    setView('form');
+  }, []);
+
+  const handleBack = useCallback(() => {
+    setView('list');
+    setEditingId(null);
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -153,7 +179,7 @@ export default function FunctionsPage() {
     } else {
       await createMut.mutateAsync(payload);
     }
-    setShowForm(false);
+    setView('list');
     setEditingId(null);
   }, [form, editingId, createMut, updateMut]);
 
@@ -168,6 +194,170 @@ export default function FunctionsPage() {
     items: functions.filter((f) => f.level === l.key),
     count: functions.filter((f) => f.level === l.key).length,
   }));
+
+  if (view === 'form') {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Briefcase className="h-6 w-6 text-aris-primary-600" />
+              {editingId ? 'Edit Function' : 'New Function'}
+            </h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {editingId ? `Editing: ${form.name.en || form.code}` : 'Define a new function for the hierarchy'}
+            </p>
+          </div>
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+        </div>
+
+        {/* Inline form */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Code */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Code <span className="text-red-500">*</span>
+              </label>
+              <input
+                value={form.code}
+                onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase().replace(/\s/g, '_') }))}
+                disabled={!!editingId}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:opacity-50"
+                placeholder="DIR_GEN"
+              />
+            </div>
+
+            {/* Level */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Level <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={form.level}
+                onChange={(e) => setForm((f) => ({ ...f, level: e.target.value as FunctionFormData['level'] }))}
+                disabled={!!editingId}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:opacity-50"
+              >
+                {allowedLevels.map((l) => <option key={l.key} value={l.key}>{l.label}</option>)}
+              </select>
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Category
+              </label>
+              <select
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+              >
+                {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Names (4 languages) */}
+          <div className="mt-5">
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Name <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {(['en', 'fr', 'pt', 'ar'] as const).map((lang) => (
+                <div key={lang} className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase text-gray-400">
+                    {lang}
+                  </span>
+                  <input
+                    value={form.name[lang]}
+                    onChange={(e) => setForm((f) => ({ ...f, name: { ...f.name, [lang]: e.target.value } }))}
+                    placeholder={lang === 'en' ? 'Name (required)' : `Name (${lang})`}
+                    dir={lang === 'ar' ? 'rtl' : 'ltr'}
+                    className="w-full rounded-lg border border-gray-200 pl-10 pr-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="mt-4">
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Description (EN)
+            </label>
+            <input
+              value={form.description.en}
+              onChange={(e) => setForm((f) => ({ ...f, description: { ...f.description, en: e.target.value } }))}
+              placeholder="Brief description..."
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            />
+          </div>
+
+          {/* Flags row */}
+          <div className="mt-4 flex flex-wrap items-center gap-6">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input
+                type="checkbox"
+                checked={form.isActive}
+                onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
+                className="h-4 w-4 rounded border-gray-300 text-aris-primary-600"
+              />
+              Active
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input
+                type="checkbox"
+                checked={form.isDefault}
+                onChange={(e) => setForm((f) => ({ ...f, isDefault: e.target.checked }))}
+                className="h-4 w-4 rounded border-gray-300 text-aris-primary-600"
+              />
+              Default
+            </label>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-500 dark:text-gray-400">Sort:</label>
+              <input
+                type="number"
+                value={form.sortOrder}
+                onChange={(e) => setForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))}
+                className="w-20 rounded-lg border border-gray-200 px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                min={0}
+              />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="mt-6 flex items-center justify-end gap-3 border-t border-gray-100 dark:border-gray-700 pt-4">
+            <button
+              onClick={handleBack}
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!form.code || !form.name.en || createMut.isPending || updateMut.isPending}
+              className="flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-5 py-2 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50"
+            >
+              {(createMut.isPending || updateMut.isPending) ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
+              {editingId ? 'Update' : 'Create'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -265,6 +455,9 @@ export default function FunctionsPage() {
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name (FR)</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Level</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Category</th>
+                {(isSuperAdmin || isContinentalAdmin) && (
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Tenant</th>
+                )}
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Users</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Status</th>
                 {canManage && (
@@ -288,6 +481,17 @@ export default function FunctionsPage() {
                   </td>
                   <td className="px-4 py-3">{getLevelBadge(fn.level)}</td>
                   <td className="px-4 py-3">{getCategoryBadge(fn.category)}</td>
+                  {(isSuperAdmin || isContinentalAdmin) && (
+                    <td className="px-4 py-3">
+                      {fn.tenant ? (
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                          {fn.tenant.countryCode ? fn.tenant.countryCode.toUpperCase() : fn.tenant.name}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">-</span>
+                      )}
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <span className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
                       <Users className="h-3.5 w-3.5 text-gray-400" />
@@ -306,32 +510,36 @@ export default function FunctionsPage() {
                   </td>
                   {canManage && (
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openEdit(fn)}
-                          className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-white"
-                          title="Edit"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        {isSuperAdmin && (
+                      {isOwnFunction(fn) ? (
+                        <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleDelete(fn.id, fn.code)}
-                            className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                            title="Delete"
-                            disabled={deleteMut.isPending}
+                            onClick={() => openEdit(fn)}
+                            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-white"
+                            title="Edit"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Pencil className="h-4 w-4" />
                           </button>
-                        )}
-                      </div>
+                          {canDeleteFunction && (
+                            <button
+                              onClick={() => handleDelete(fn.id, fn.code)}
+                              className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                              title="Delete"
+                              disabled={deleteMut.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-gray-400">—</span>
+                      )}
                     </td>
                   )}
                 </tr>
               ))}
               {functions.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <td colSpan={10} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                     No functions found
                   </td>
                 </tr>
@@ -345,143 +553,6 @@ export default function FunctionsPage() {
             onPageChange={setPage}
             onLimitChange={() => {}}
           />
-        </div>
-      )}
-
-      {/* Create/Edit Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {editingId ? 'Edit Function' : 'New Function'}
-              </h2>
-              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-              {/* Code & Level */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Code</label>
-                  <input
-                    value={form.code}
-                    onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase().replace(/\s/g, '_') }))}
-                    disabled={!!editingId}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono dark:border-gray-700 dark:bg-gray-800 dark:text-white disabled:opacity-50"
-                    placeholder="DIR_GEN"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Level</label>
-                  <select
-                    value={form.level}
-                    onChange={(e) => setForm((f) => ({ ...f, level: e.target.value as FunctionFormData['level'] }))}
-                    disabled={!!editingId}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white disabled:opacity-50"
-                  >
-                    {LEVELS.map((l) => <option key={l.key} value={l.key}>{l.label}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* Category */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Category</label>
-                <select
-                  value={form.category}
-                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                >
-                  {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
-                </select>
-              </div>
-
-              {/* Name (4 languages) */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Name</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['en', 'fr', 'pt', 'ar'] as const).map((lang) => (
-                    <input
-                      key={lang}
-                      value={form.name[lang]}
-                      onChange={(e) => setForm((f) => ({ ...f, name: { ...f.name, [lang]: e.target.value } }))}
-                      placeholder={lang.toUpperCase()}
-                      dir={lang === 'ar' ? 'rtl' : 'ltr'}
-                      className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Description (EN)</label>
-                <input
-                  value={form.description.en}
-                  onChange={(e) => setForm((f) => ({ ...f, description: { ...f.description, en: e.target.value } }))}
-                  placeholder="Brief description..."
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                />
-              </div>
-
-              {/* Flags */}
-              <div className="flex items-center gap-6">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={form.isActive}
-                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                    className="rounded"
-                  />
-                  Active
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={form.isDefault}
-                    onChange={(e) => setForm((f) => ({ ...f, isDefault: e.target.checked }))}
-                    className="rounded"
-                  />
-                  Default
-                </label>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-500">Sort:</label>
-                  <input
-                    type="number"
-                    value={form.sortOrder}
-                    onChange={(e) => setForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))}
-                    className="w-16 rounded-lg border border-gray-200 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    min={0}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={() => setShowForm(false)}
-                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={!form.code || !form.name.en || createMut.isPending || updateMut.isPending}
-                className="flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50"
-              >
-                {(createMut.isPending || updateMut.isPending) ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="h-4 w-4" />
-                )}
-                {editingId ? 'Update' : 'Create'}
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

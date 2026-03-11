@@ -25,6 +25,16 @@ export class HttpError extends Error {
 
 // ── Workflow Definitions ──
 
+// Country includes BigInt `population` — select only safe fields to avoid JSON serialization errors
+const COUNTRY_SELECT = {
+  select: { id: true, code: true, name: true, flag: true, isActive: true, tenantId: true },
+};
+
+const WF_INCLUDE = {
+  steps: { orderBy: { stepOrder: 'asc' as const } },
+  country: COUNTRY_SELECT,
+};
+
 export class WorkflowDefinitionService {
   constructor(
     private readonly prisma: PrismaClient,
@@ -53,7 +63,7 @@ export class WorkflowDefinitionService {
         metadata: dto.metadata ?? null,
         createdBy: user.userId,
       },
-      include: { steps: true, country: true },
+      include: WF_INCLUDE,
     });
 
     return { data: workflow };
@@ -76,7 +86,7 @@ export class WorkflowDefinitionService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: { steps: { orderBy: { stepOrder: 'asc' } }, country: true },
+        include: WF_INCLUDE,
       }),
       (this.prisma as any).collecteWorkflow.count({ where }),
     ]);
@@ -87,7 +97,7 @@ export class WorkflowDefinitionService {
   async findOne(id: string): Promise<ApiResponse<unknown>> {
     const workflow = await (this.prisma as any).collecteWorkflow.findUnique({
       where: { id },
-      include: { steps: { orderBy: { stepOrder: 'asc' } }, country: true },
+      include: WF_INCLUDE,
     });
     if (!workflow) throw new HttpError(404, `Workflow ${id} not found`);
     return { data: workflow };
@@ -101,7 +111,7 @@ export class WorkflowDefinitionService {
 
     const workflow = await (this.prisma as any).collecteWorkflow.findUnique({
       where: { countryId: country.id },
-      include: { steps: { orderBy: { stepOrder: 'asc' } }, country: true },
+      include: WF_INCLUDE,
     });
     if (!workflow) throw new HttpError(404, `No workflow defined for country ${code}`);
     return { data: workflow };
@@ -124,7 +134,7 @@ export class WorkflowDefinitionService {
     const workflow = await (this.prisma as any).collecteWorkflow.update({
       where: { id },
       data,
-      include: { steps: { orderBy: { stepOrder: 'asc' } }, country: true },
+      include: WF_INCLUDE,
     });
 
     return { data: workflow };

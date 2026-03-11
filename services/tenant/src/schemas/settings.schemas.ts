@@ -189,6 +189,7 @@ export const FunctionBodySchema = Type.Object({
   isDefault: Type.Optional(Type.Boolean()),
   sortOrder: Type.Optional(Type.Integer({ minimum: 0 })),
   metadata: Type.Optional(Type.Union([Type.Record(Type.String(), Type.Unknown()), Type.Null()])),
+  tenantId: Type.Optional(Type.String({ format: 'uuid' })),
 });
 export type FunctionBodyInput = Static<typeof FunctionBodySchema>;
 

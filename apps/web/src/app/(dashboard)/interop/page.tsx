@@ -10,6 +10,7 @@ import {
   XCircle,
   HelpCircle,
   RefreshCw,
+  History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useInteropConnectors } from '@/lib/api/hooks';
@@ -50,6 +51,8 @@ const CONNECTOR_LINKS: Record<string, string> = {
   EMPRES: '/interop/empres',
   FAOSTAT: '/interop/faostat',
 };
+
+const EXPORT_HISTORY_LINK = '/interop/exports';
 
 const CONNECTOR_DESCRIPTIONS: Record<string, string> = {
   WAHIS: 'World Animal Health Information System — disease event reporting to WOAH',
@@ -132,6 +135,27 @@ export default function InteropDashboardPage() {
           </>
         )}
       </div>
+
+      {/* Export History link */}
+      <Link
+        href={EXPORT_HISTORY_LINK}
+        className="flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-shadow hover:shadow-md"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-aris-primary-50">
+            <History className="h-5 w-5 text-aris-primary-600" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">
+              Export History
+            </h3>
+            <p className="text-xs text-gray-500">
+              View all exports across WAHIS, EMPRES, and FAOSTAT with download and retry
+            </p>
+          </div>
+        </div>
+        <ExternalLink className="h-4 w-4 text-gray-400" />
+      </Link>
 
       {/* Connector cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">

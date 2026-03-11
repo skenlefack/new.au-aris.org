@@ -1,5 +1,5 @@
 /**
- * ARIS 3.0 — Domain Services Seed Orchestrator
+ * ARIS 4.0 — Domain Services Seed Orchestrator
  *
  * Seeds all 8 domain services with Kenya pilot data.
  * Runs AFTER: tenant, credential, master-data seeds (prerequisite).
@@ -35,7 +35,7 @@ const THIN = '─'.repeat(60);
 
 async function main(): Promise<void> {
   console.log(`\n${DIVIDER}`);
-  console.log('  ARIS 3.0 — Domain Services Seeder (Kenya Pilot)');
+  console.log('  ARIS 4.0 — Domain Services Seeder (Kenya Pilot)');
   console.log(`  Services: ${DOMAIN_SEEDS.length} | Mode: idempotent (upsert)`);
   console.log(`${DIVIDER}`);
 

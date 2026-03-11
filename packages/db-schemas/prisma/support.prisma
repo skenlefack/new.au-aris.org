@@ -1,4 +1,4 @@
-// ARIS 3.0 — Support Service Schema
+// ARIS 4.0 — Support Service Schema
 // Ticketing system for technical support, data quality issues, access requests
 
 enum TicketCategory {

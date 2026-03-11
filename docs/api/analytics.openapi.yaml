@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: ARIS 3.0 — Analytics Service
+  title: ARIS 4.0 — Analytics Service
   version: 1.0.0
   description: |
-    Kafka Streams-powered analytics engine for ARIS 3.0.
+    Kafka Streams-powered analytics engine for ARIS 4.0.
     Provides pre-computed KPIs, trend time-series, data-quality dashboards,
     workflow timeliness metrics, denominator lookups, and CSV export.
     All analytics endpoints are public (no auth guards).

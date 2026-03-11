@@ -1,4 +1,4 @@
-# ARIS 3.0 — Main CI Pipeline
+# ARIS 4.0 — Main CI Pipeline
 # Runs on push/PR to main and develop
 
 name: CI
@@ -153,10 +153,25 @@ jobs:
         ports:
           - 9092:9092
 
+      opensearch:
+        image: opensearchproject/opensearch:2.17.1
+        env:
+          discovery.type: single-node
+          plugins.security.disabled: 'true'
+          OPENSEARCH_JAVA_OPTS: -Xms256m -Xmx256m
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl -f http://localhost:9200/_cluster/health || exit 1"
+          --health-interval 15s
+          --health-timeout 10s
+          --health-retries 10
+
     env:
       DATABASE_URL: postgresql://aris:aris_test@localhost:5432/aris_test
       REDIS_URL: redis://localhost:6379
       KAFKA_BROKERS: localhost:9092
+      OPENSEARCH_URL: http://localhost:9200
 
     steps:
       - uses: actions/checkout@v4

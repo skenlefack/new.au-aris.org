@@ -58,6 +58,8 @@ const MODEL_MAP: Record<string, string> = {
   'floral-sources': 'refFloralSource',
   'legal-framework-types': 'refLegalFrameworkType',
   'stakeholder-types': 'refStakeholderType',
+  // Phase 3 — Infrastructures & Institutions
+  'infrastructures': 'refInfrastructure',
 };
 
 // Models with parent relationships (for filtered queries)
@@ -150,7 +152,16 @@ export class RefDataService {
     const skip = (page - 1) * limit;
 
     const visibilityFilter = await this.buildVisibilityFilter(user);
-    const where: Record<string, unknown> = { isActive: true, OR: visibilityFilter };
+    const where: Record<string, unknown> = { OR: visibilityFilter };
+
+    // Allow admins to see inactive items (e.g. settings type config pages)
+    if (query.isActive === 'all' && (user.role === 'SUPER_ADMIN' || user.role === 'CONTINENTAL_ADMIN')) {
+      // No isActive filter — show all (active + inactive)
+    } else if (query.isActive === 'false' && (user.role === 'SUPER_ADMIN' || user.role === 'CONTINENTAL_ADMIN')) {
+      where['isActive'] = false;
+    } else {
+      where['isActive'] = true;
+    }
 
     // Apply parent filters
     const parentField = PARENT_FILTERS[type];
@@ -164,7 +175,16 @@ export class RefDataService {
     if (query.type && (type === 'abattoirs' || type === 'checkpoints' || type === 'markets')) {
       where['type'] = query.type;
     }
-    if (query.adminLevel1 && (type === 'abattoirs' || type === 'markets')) {
+    if (query.subType && type === 'infrastructures') {
+      where['subType'] = query.subType;
+    }
+    if (query.countryCode && type === 'infrastructures') {
+      where['countryCode'] = query.countryCode;
+    }
+    if (query.status && type === 'infrastructures') {
+      where['status'] = query.status;
+    }
+    if (query.adminLevel1 && (type === 'abattoirs' || type === 'markets' || type === 'infrastructures')) {
       where['adminLevel1'] = query.adminLevel1;
     }
     if (query.isNotifiable && type === 'diseases') {

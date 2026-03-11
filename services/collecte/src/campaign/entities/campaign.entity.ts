@@ -7,6 +7,8 @@ export interface CampaignEntity {
   name: string;
   domain: string;
   templateId: string;
+  templateIds: string[];
+  targetCountries: string[];
   startDate: Date;
   endDate: Date;
   targetZones: string[];

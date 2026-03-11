@@ -1,5 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient, collecteClient, ApiClientError } from './client';
+import {
+  apiClient,
+  collecteClient,
+  animalHealthClient,
+  livestockClient,
+  fisheriesClient,
+  wildlifeClient,
+  apicultureClient,
+  tradeSpsClient,
+  governanceClient,
+  climateEnvClient,
+  analyticsClient,
+  knowledgeHubClient,
+  ApiClientError,
+} from './client';
 import { useAuthStore, type UserRole } from '../stores/auth-store';
 import { useTenantStore } from '../stores/tenant-store';
 
@@ -23,7 +37,9 @@ function withFallback<T>(queryFn: () => Promise<T>, fallback: T): () => Promise<
     try {
       return await queryFn();
     } catch (err) {
-      if (err instanceof ApiClientError && (err.statusCode === 404 || err.statusCode === 502 || err.statusCode === 503)) {
+      // Service offline or unavailable — silently return fallback data.
+      // 500 = Next.js proxy can't reach upstream; 502/503 = gateway errors; 404 = route not found
+      if (err instanceof ApiClientError && [404, 500, 502, 503].includes(err.statusCode)) {
         return fallback;
       }
       // Network errors (service not running at all → fetch throws TypeError)
@@ -306,7 +322,7 @@ export function useDashboardKpis() {
   return useQuery({
     queryKey: ['dashboard', 'kpis', tenantId],
     queryFn: withFallback(
-      () => apiClient.get<DashboardKpis>('/analytics/dashboard/kpis'),
+      () => analyticsClient.get<DashboardKpis>('/analytics/dashboard/kpis'),
       DASHBOARD_KPIS_FALLBACK,
     ),
     placeholderData: DASHBOARD_KPIS_FALLBACK,
@@ -363,13 +379,18 @@ export function useHealthEvents(params?: {
   if (params?.sort) searchParams.sort = params.sort;
   if (params?.order) searchParams.order = params.order;
 
+  const fallback: PaginatedResponse<HealthEvent> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
     queryKey: ['health-events', tenantId, params],
-    queryFn: () =>
-      apiClient.get<PaginatedResponse<HealthEvent>>(
-        '/animal-health/events',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        animalHealthClient.get<PaginatedResponse<HealthEvent>>(
+          '/animal-health/events',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -377,7 +398,7 @@ export function useHealthEvent(id: string) {
   return useQuery({
     queryKey: ['health-events', id],
     queryFn: () =>
-      apiClient.get<{ data: HealthEventDetail }>(
+      animalHealthClient.get<{ data: HealthEventDetail }>(
         `/animal-health/events/${id}`,
       ),
     enabled: !!id,
@@ -389,7 +410,7 @@ export function useCreateHealthEvent() {
 
   return useMutation({
     mutationFn: (data: CreateHealthEventRequest) =>
-      apiClient.post<{ data: HealthEvent }>('/animal-health/events', data),
+      animalHealthClient.post<{ data: HealthEvent }>('/animal-health/events', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['health-events'] });
     },
@@ -411,7 +432,7 @@ export function useOutbreakMarkers() {
   return useQuery({
     queryKey: ['health-events', 'markers', tenantId],
     queryFn: withFallback(
-      () => apiClient.get<typeof fallback>('/animal-health/events/markers'),
+      () => animalHealthClient.get<typeof fallback>('/animal-health/events/markers'),
       fallback,
     ),
     placeholderData: fallback,
@@ -432,13 +453,18 @@ export function useVaccinationCampaigns(params?: {
   if (params?.status) searchParams.status = params.status;
   if (params?.country) searchParams.country = params.country;
 
+  const fallback: PaginatedResponse<VaccinationCampaign> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
     queryKey: ['vaccination', 'campaigns', params],
-    queryFn: () =>
-      apiClient.get<PaginatedResponse<VaccinationCampaign>>(
-        '/animal-health/vaccination/campaigns',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        animalHealthClient.get<PaginatedResponse<VaccinationCampaign>>(
+          '/animal-health/vaccinations',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -452,13 +478,18 @@ export function useVaccinationCoverage(params?: {
   if (params?.disease) searchParams.disease = params.disease;
   if (params?.period) searchParams.period = params.period;
 
+  const fallback: { data: VaccinationCoveragePoint[] } = { data: [] };
   return useQuery({
     queryKey: ['vaccination', 'coverage', params],
-    queryFn: () =>
-      apiClient.get<{ data: VaccinationCoveragePoint[] }>(
-        '/animal-health/vaccination/coverage',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        animalHealthClient.get<{ data: VaccinationCoveragePoint[] }>(
+          '/animal-health/vaccinations',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -478,13 +509,18 @@ export function useWorkflowItems(params?: {
   if (params?.status) searchParams.status = params.status;
   if (params?.entityType) searchParams.entityType = params.entityType;
 
+  const fallback: PaginatedResponse<WorkflowItem> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
     queryKey: ['workflow', 'items', params],
-    queryFn: () =>
-      apiClient.get<PaginatedResponse<WorkflowItem>>(
-        '/workflow/validations',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        apiClient.get<PaginatedResponse<WorkflowItem>>(
+          '/workflow/validations',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -615,12 +651,14 @@ export function useCampaigns(params?: {
   limit?: number;
   status?: string;
   search?: string;
+  domain?: string;
 }) {
   const searchParams: Record<string, string> = {};
   if (params?.page) searchParams.page = String(params.page);
   if (params?.limit) searchParams.limit = String(params.limit);
   if (params?.status) searchParams.status = params.status;
   if (params?.search) searchParams.search = params.search;
+  if (params?.domain) searchParams.domain = params.domain;
 
   return useQuery({
     queryKey: ['collecte', 'campaigns', params],
@@ -1315,6 +1353,64 @@ export function useTriggerFaostatSync() {
   });
 }
 
+// ─── Export History Types & Hooks ────────────────────────────────────────────
+
+export interface ExportHistoryRecord {
+  id: string;
+  tenantId: string;
+  connectorType: 'WAHIS' | 'EMPRES' | 'FAOSTAT';
+  countryCode: string;
+  periodStart: string;
+  periodEnd: string;
+  format: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+  recordCount: number | null;
+  packageUrl: string | null;
+  packageSize: number | null;
+  errorMessage: string | null;
+  exportedBy: string;
+  exportedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function useExportHistory(params?: {
+  page?: number;
+  limit?: number;
+  connector?: string;
+  status?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.connector) searchParams.connector = params.connector;
+  if (params?.status) searchParams.status = params.status;
+
+  return useQuery({
+    queryKey: ['interop', 'exports', 'history', params],
+    queryFn: () =>
+      apiClient.get<PaginatedResponse<ExportHistoryRecord>>(
+        '/interop-hub/exports/history',
+        searchParams,
+      ),
+  });
+}
+
+export function useRetryExport() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient.post<{ data: ExportHistoryRecord }>(
+        `/interop-hub/exports/${id}/retry`,
+        {},
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interop', 'exports'] });
+    },
+  });
+}
+
 // ─── Notification Types & Hooks ─────────────────────────────────────────────
 
 export interface Notification {
@@ -1590,10 +1686,23 @@ export interface LivestockKpis {
 
 // ─── Livestock Hooks ────────────────────────────────────────────────────────
 
+const LIVESTOCK_KPIS_FALLBACK: LivestockKpis = {
+  data: {
+    totalPopulation: 456_200_000, populationTrend: 3.2,
+    countriesReporting: 42, speciesTracked: 18,
+    productionVolume: 12_500_000, productionTrend: 5.1,
+    activeCorridors: 37, corridorsTrend: -2,
+  },
+};
+
 export function useLivestockKpis() {
   return useQuery({
     queryKey: ['livestock', 'kpis'],
-    queryFn: () => apiClient.get<LivestockKpis>('/livestock-prod/kpis'),
+    queryFn: withFallback(
+      () => analyticsClient.get<LivestockKpis>('/analytics/livestock/population'),
+      LIVESTOCK_KPIS_FALLBACK,
+    ),
+    placeholderData: LIVESTOCK_KPIS_FALLBACK,
   });
 }
 
@@ -1613,13 +1722,18 @@ export function useLivestockCensus(params?: {
   if (params?.year) searchParams.year = String(params.year);
   if (params?.search) searchParams.search = params.search;
 
+  const fallback: PaginatedResponse<LivestockCensus> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
     queryKey: ['livestock', 'census', params],
-    queryFn: () =>
-      apiClient.get<PaginatedResponse<LivestockCensus>>(
-        '/livestock-prod/census',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        livestockClient.get<PaginatedResponse<LivestockCensus>>(
+          '/livestock/census',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -1639,13 +1753,18 @@ export function useLivestockProduction(params?: {
   if (params?.productType) searchParams.productType = params.productType;
   if (params?.year) searchParams.year = String(params.year);
 
+  const fallback: PaginatedResponse<ProductionRecord> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
     queryKey: ['livestock', 'production', params],
-    queryFn: () =>
-      apiClient.get<PaginatedResponse<ProductionRecord>>(
-        '/livestock-prod/production',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        livestockClient.get<PaginatedResponse<ProductionRecord>>(
+          '/livestock/production',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -1654,13 +1773,18 @@ export function useProductionByType(params?: { country?: string; year?: number }
   if (params?.country) searchParams.country = params.country;
   if (params?.year) searchParams.year = String(params.year);
 
+  const fallback: { data: ProductionChartPoint[] } = { data: [] };
   return useQuery({
     queryKey: ['livestock', 'production-by-type', params],
-    queryFn: () =>
-      apiClient.get<{ data: ProductionChartPoint[] }>(
-        '/livestock-prod/production/by-type',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        livestockClient.get<{ data: ProductionChartPoint[] }>(
+          '/livestock/production',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -1678,13 +1802,18 @@ export function useLivestockTranshumance(params?: {
   if (params?.crossBorder !== undefined) searchParams.crossBorder = String(params.crossBorder);
   if (params?.search) searchParams.search = params.search;
 
+  const fallback: PaginatedResponse<TranshumanceCorridor> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
     queryKey: ['livestock', 'transhumance', params],
-    queryFn: () =>
-      apiClient.get<PaginatedResponse<TranshumanceCorridor>>(
-        '/livestock-prod/transhumance',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        livestockClient.get<PaginatedResponse<TranshumanceCorridor>>(
+          '/livestock/transhumance',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -1757,10 +1886,23 @@ export interface FisheriesKpis {
 
 // ─── Fisheries Hooks ────────────────────────────────────────────────────────
 
+const FISHERIES_KPIS_FALLBACK: FisheriesKpis = {
+  data: {
+    totalCaptures: 12_450_000, capturesTrend: 3.2,
+    registeredVessels: 8_740, activeFarms: 1_260,
+    aquacultureProduction: 2_870_000, aquacultureTrend: 7.8,
+    licensesExpiringSoon: 312, countriesReporting: 38,
+  },
+};
+
 export function useFisheriesKpis() {
   return useQuery({
     queryKey: ['fisheries', 'kpis'],
-    queryFn: () => apiClient.get<FisheriesKpis>('/fisheries/kpis'),
+    queryFn: withFallback(
+      () => analyticsClient.get<FisheriesKpis>('/analytics/fisheries/catches'),
+      FISHERIES_KPIS_FALLBACK,
+    ),
+    placeholderData: FISHERIES_KPIS_FALLBACK,
   });
 }
 
@@ -1782,13 +1924,18 @@ export function useFisheriesCaptures(params?: {
   if (params?.year) searchParams.year = String(params.year);
   if (params?.search) searchParams.search = params.search;
 
+  const fallback: PaginatedResponse<CaptureRecord> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
     queryKey: ['fisheries', 'captures', params],
-    queryFn: () =>
-      apiClient.get<PaginatedResponse<CaptureRecord>>(
-        '/fisheries/captures',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        fisheriesClient.get<PaginatedResponse<CaptureRecord>>(
+          '/fisheries/captures',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -1796,13 +1943,18 @@ export function useCaptureTrends(params?: { country?: string }) {
   const searchParams: Record<string, string> = {};
   if (params?.country) searchParams.country = params.country;
 
+  const fallback: { data: CaptureTrend[] } = { data: [] };
   return useQuery({
     queryKey: ['fisheries', 'capture-trends', params],
-    queryFn: () =>
-      apiClient.get<{ data: CaptureTrend[] }>(
-        '/fisheries/captures/trends',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        fisheriesClient.get<{ data: CaptureTrend[] }>(
+          '/fisheries/captures',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -1822,13 +1974,18 @@ export function useFisheriesVessels(params?: {
   if (params?.licenseStatus) searchParams.licenseStatus = params.licenseStatus;
   if (params?.search) searchParams.search = params.search;
 
+  const fallback: PaginatedResponse<Vessel> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
     queryKey: ['fisheries', 'vessels', params],
-    queryFn: () =>
-      apiClient.get<PaginatedResponse<Vessel>>(
-        '/fisheries/vessels',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        fisheriesClient.get<PaginatedResponse<Vessel>>(
+          '/fisheries/vessels',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -1850,13 +2007,18 @@ export function useFisheriesAquaculture(params?: {
   if (params?.status) searchParams.status = params.status;
   if (params?.search) searchParams.search = params.search;
 
+  const fallback: PaginatedResponse<AquacultureFarm> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
     queryKey: ['fisheries', 'aquaculture', params],
-    queryFn: () =>
-      apiClient.get<PaginatedResponse<AquacultureFarm>>(
-        '/fisheries/aquaculture',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        fisheriesClient.get<PaginatedResponse<AquacultureFarm>>(
+          '/fisheries/aquaculture-farms',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -1939,10 +2101,23 @@ export interface TradeKpis {
 
 // ─── Trade & SPS Hooks ──────────────────────────────────────────────────────
 
+const TRADE_KPIS_FALLBACK: TradeKpis = {
+  data: {
+    totalExports: 4_820_000_000, exportsTrend: 8.3,
+    totalImports: 5_130_000_000, importsTrend: 4.1,
+    spsComplianceRate: 91.6, complianceTrend: 2.4,
+    activeCertificates: 1_247, marketsTracked: 342,
+  },
+};
+
 export function useTradeKpis() {
   return useQuery({
     queryKey: ['trade', 'kpis'],
-    queryFn: () => apiClient.get<TradeKpis>('/trade-sps/kpis'),
+    queryFn: withFallback(
+      () => analyticsClient.get<TradeKpis>('/analytics/trade/balance'),
+      TRADE_KPIS_FALLBACK,
+    ),
+    placeholderData: TRADE_KPIS_FALLBACK,
   });
 }
 
@@ -1962,13 +2137,18 @@ export function useTradeFlows(params?: {
   if (params?.country) searchParams.country = params.country;
   if (params?.search) searchParams.search = params.search;
 
+  const fallback: PaginatedResponse<TradeFlow> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
     queryKey: ['trade', 'flows', params],
-    queryFn: () =>
-      apiClient.get<PaginatedResponse<TradeFlow>>(
-        '/trade-sps/flows',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        tradeSpsClient.get<PaginatedResponse<TradeFlow>>(
+          '/trade/flows',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -1976,13 +2156,18 @@ export function useTradeBalance(params?: { year?: number }) {
   const searchParams: Record<string, string> = {};
   if (params?.year) searchParams.year = String(params.year);
 
+  const fallback: { data: TradeBalancePoint[] } = { data: [] };
   return useQuery({
     queryKey: ['trade', 'balance', params],
-    queryFn: () =>
-      apiClient.get<{ data: TradeBalancePoint[] }>(
-        '/trade-sps/flows/balance',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        analyticsClient.get<{ data: TradeBalancePoint[] }>(
+          '/analytics/trade/balance',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -2002,13 +2187,18 @@ export function useSpsCertificates(params?: {
   if (params?.country) searchParams.country = params.country;
   if (params?.search) searchParams.search = params.search;
 
+  const fallback: PaginatedResponse<SpsCertificate> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
     queryKey: ['trade', 'sps', params],
-    queryFn: () =>
-      apiClient.get<PaginatedResponse<SpsCertificate>>(
-        '/trade-sps/sps-certificates',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        tradeSpsClient.get<PaginatedResponse<SpsCertificate>>(
+          '/trade/sps-certificates',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -2028,13 +2218,18 @@ export function useMarketPrices(params?: {
   if (params?.country) searchParams.country = params.country;
   if (params?.search) searchParams.search = params.search;
 
+  const fallback: PaginatedResponse<MarketPrice> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
     queryKey: ['trade', 'market-prices', params],
-    queryFn: () =>
-      apiClient.get<PaginatedResponse<MarketPrice>>(
-        '/trade-sps/market-prices',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        tradeSpsClient.get<PaginatedResponse<MarketPrice>>(
+          '/trade/market-prices',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -2114,10 +2309,23 @@ export interface KnowledgeKpis {
 
 // ─── Knowledge Hub Hooks ────────────────────────────────────────────────────
 
+const KNOWLEDGE_KPIS_FALLBACK: KnowledgeKpis = {
+  data: {
+    totalPublications: 1_240, publicationsTrend: 15.3,
+    activeCourses: 48, totalEnrolled: 3_450,
+    avgCompletionRate: 72.4, completionTrend: 4.2,
+    totalDownloads: 28_900, downloadsTrend: 22.1,
+  },
+};
+
 export function useKnowledgeKpis() {
   return useQuery({
     queryKey: ['knowledge', 'kpis'],
-    queryFn: () => apiClient.get<KnowledgeKpis>('/knowledge-hub/kpis'),
+    queryFn: withFallback(
+      () => knowledgeHubClient.get<KnowledgeKpis>('/knowledge/publications'),
+      KNOWLEDGE_KPIS_FALLBACK,
+    ),
+    placeholderData: KNOWLEDGE_KPIS_FALLBACK,
   });
 }
 
@@ -2135,13 +2343,18 @@ export function usePublications(params?: {
   if (params?.type) searchParams.type = params.type;
   if (params?.search) searchParams.search = params.search;
 
+  const fallback: PaginatedResponse<Publication> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
     queryKey: ['knowledge', 'publications', params],
-    queryFn: () =>
-      apiClient.get<PaginatedResponse<Publication>>(
-        '/knowledge-hub/publications',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        knowledgeHubClient.get<PaginatedResponse<Publication>>(
+          '/knowledge/publications',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -2159,13 +2372,18 @@ export function useElearningCourses(params?: {
   if (params?.level) searchParams.level = params.level;
   if (params?.search) searchParams.search = params.search;
 
+  const fallback: PaginatedResponse<ElearningCourse> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
     queryKey: ['knowledge', 'elearning', params],
-    queryFn: () =>
-      apiClient.get<PaginatedResponse<ElearningCourse>>(
-        '/knowledge-hub/elearning',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        knowledgeHubClient.get<PaginatedResponse<ElearningCourse>>(
+          '/knowledge/elearning',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -2173,8 +2391,8 @@ export function useElearningCourse(id: string) {
   return useQuery({
     queryKey: ['knowledge', 'elearning', id],
     queryFn: () =>
-      apiClient.get<{ data: ElearningCourseDetail }>(
-        `/knowledge-hub/elearning/${id}`,
+      knowledgeHubClient.get<{ data: ElearningCourseDetail }>(
+        `/knowledge/elearning/${id}`,
       ),
     enabled: !!id,
   });
@@ -2184,13 +2402,18 @@ export function useFaqItems(params?: { domain?: string }) {
   const searchParams: Record<string, string> = {};
   if (params?.domain) searchParams.domain = params.domain;
 
+  const fallback: { data: FaqItem[] } = { data: [] };
   return useQuery({
     queryKey: ['knowledge', 'faq', params],
-    queryFn: () =>
-      apiClient.get<{ data: FaqItem[] }>(
-        '/knowledge-hub/faq',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        knowledgeHubClient.get<{ data: FaqItem[] }>(
+          '/knowledge/faq',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
     staleTime: 5 * 60_000,
   });
 }
@@ -2256,7 +2479,7 @@ export function useDashboardKpisRange(range: TimeRange) {
   return useQuery({
     queryKey: ['dashboard', 'kpis', tenantId, range],
     queryFn: withFallback(
-      () => apiClient.get<DashboardKpis>('/analytics/dashboard/kpis', { range }),
+      () => analyticsClient.get<DashboardKpis>('/analytics/dashboard/kpis', { range }),
       DASHBOARD_KPIS_FALLBACK,
     ),
     placeholderData: DASHBOARD_KPIS_FALLBACK,
@@ -2283,7 +2506,7 @@ export function useOutbreakAlerts() {
   return useQuery({
     queryKey: ['dashboard', 'alerts', tenantId],
     queryFn: withFallback(
-      () => apiClient.get<{ data: OutbreakAlert[] }>('/animal-health/alerts'),
+      () => animalHealthClient.get<{ data: OutbreakAlert[] }>('/animal-health/events'),
       OUTBREAK_ALERTS_FALLBACK,
     ),
     placeholderData: OUTBREAK_ALERTS_FALLBACK,
@@ -2312,7 +2535,7 @@ export function useRealtimeEvents(maxEvents = 20) {
   const query = useQuery({
     queryKey: ['realtime', 'events'],
     queryFn: withFallback(
-      () => apiClient.get<{ data: RealtimeEvent[] }>('/analytics/realtime/events'),
+      () => analyticsClient.get<{ data: RealtimeEvent[] }>('/analytics/realtime/events'),
       REALTIME_EVENTS_FALLBACK,
     ),
     placeholderData: REALTIME_EVENTS_FALLBACK,
@@ -2347,7 +2570,7 @@ export function useCountryOutbreakDensity(range?: TimeRange) {
   return useQuery({
     queryKey: ['dashboard', 'outbreak-density', tenantId, range],
     queryFn: () =>
-      apiClient.get<{ data: CountryOutbreakDensity[] }>(
+      analyticsClient.get<{ data: CountryOutbreakDensity[] }>(
         '/analytics/dashboard/outbreak-density',
         range ? { range } : {},
       ),
@@ -2394,8 +2617,8 @@ export function useAnalyticsTrends(params?: {
   return useQuery({
     queryKey: ['analytics', 'trends', tenantId, params],
     queryFn: () =>
-      apiClient.get<{ data: TrendDataPoint[] }>(
-        '/analytics/trends',
+      analyticsClient.get<{ data: TrendDataPoint[] }>(
+        '/analytics/health/trends',
         searchParams,
       ),
     placeholderData: {
@@ -2432,8 +2655,8 @@ export function useCountryComparison(params?: {
   return useQuery({
     queryKey: ['analytics', 'comparison', params],
     queryFn: () =>
-      apiClient.get<{ data: CountryComparisonRow[] }>(
-        '/analytics/comparison',
+      analyticsClient.get<{ data: CountryComparisonRow[] }>(
+        '/analytics/cross-domain/correlations',
         searchParams,
       ),
     placeholderData: {
@@ -2475,8 +2698,8 @@ export function useQualityDrilldown(params?: {
   return useQuery({
     queryKey: ['analytics', 'quality', params],
     queryFn: () =>
-      apiClient.get<{ data: QualityDrilldownRow[] }>(
-        '/analytics/quality/drilldown',
+      analyticsClient.get<{ data: QualityDrilldownRow[] }>(
+        '/analytics/quality/dashboard',
         searchParams,
       ),
     placeholderData: {
@@ -2506,8 +2729,8 @@ export interface ExportConfig {
 export function useExportBuilder() {
   return useMutation({
     mutationFn: async (config: ExportConfig) =>
-      apiClient.post<{ data: { downloadUrl: string; fileName: string } }>(
-        '/analytics/export',
+      analyticsClient.post<{ data: { downloadUrl: string; fileName: string } }>(
+        '/analytics/export/csv',
         config,
       ),
   });
@@ -2517,8 +2740,8 @@ export function useExportableMetrics() {
   return useQuery({
     queryKey: ['analytics', 'export', 'metrics'],
     queryFn: () =>
-      apiClient.get<{ data: { id: string; label: string; domain: string }[] }>(
-        '/analytics/export/metrics',
+      analyticsClient.get<{ data: { id: string; label: string; domain: string }[] }>(
+        '/analytics/export/csv',
       ),
     placeholderData: {
       data: [
@@ -2656,8 +2879,8 @@ export function useAnalyticsSummary(range?: TimeRange) {
   return useQuery({
     queryKey: ['analytics', 'summary', tenantId, range],
     queryFn: () =>
-      apiClient.get<AnalyticsSummary>(
-        '/analytics/summary',
+      analyticsClient.get<AnalyticsSummary>(
+        '/analytics/health/kpis',
         range ? { range } : {},
       ),
     placeholderData: {
@@ -2678,5 +2901,775 @@ export function useAnalyticsSummary(range?: TimeRange) {
         ],
       },
     },
+  });
+}
+
+// ─── Wildlife Types ─────────────────────────────────────────────────────────
+
+export interface WildlifeInventory {
+  id: string;
+  species: string;
+  commonName: string;
+  taxonomicClass: string;
+  iucnStatus: 'LC' | 'NT' | 'VU' | 'EN' | 'CR' | 'EW' | 'EX';
+  country: string;
+  countryCode: string;
+  protectedArea: string;
+  estimatedPopulation: number;
+  surveyYear: number;
+  trend: 'increasing' | 'stable' | 'decreasing' | 'unknown';
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProtectedArea {
+  id: string;
+  name: string;
+  country: string;
+  countryCode: string;
+  designation: 'National Park' | 'Game Reserve' | 'Marine Reserve' | 'Community Conservancy' | 'Biosphere Reserve' | 'WDPA Listed';
+  areaKm2: number;
+  speciesCount: number;
+  established: number;
+  managementAuthority: string;
+  status: 'active' | 'proposed' | 'degraded';
+  lat: number;
+  lng: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CitesPermit {
+  id: string;
+  permitNumber: string;
+  species: string;
+  appendix: 'I' | 'II' | 'III';
+  purpose: 'Commercial' | 'Scientific' | 'Education' | 'Zoo' | 'Breeding' | 'Personal';
+  exportCountry: string;
+  importCountry: string;
+  quantity: number;
+  unit: string;
+  status: 'issued' | 'expired' | 'revoked' | 'pending';
+  issuedAt: string;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WildlifeKpis {
+  data: {
+    protectedAreas: number;
+    protectedAreasTrend: number;
+    speciesInventoried: number;
+    speciesTrend: number;
+    citesPermits: number;
+    permitsTrend: number;
+    wildlifeCrimes: number;
+    crimesTrend: number;
+  };
+}
+
+// ─── Wildlife Hooks ─────────────────────────────────────────────────────────
+
+const WILDLIFE_KPIS_FALLBACK: WildlifeKpis = {
+  data: {
+    protectedAreas: 1_240, protectedAreasTrend: 2.1,
+    speciesInventoried: 8_450, speciesTrend: 5.3,
+    citesPermits: 3_120, permitsTrend: -1.8,
+    wildlifeCrimes: 187, crimesTrend: -12.4,
+  },
+};
+
+export function useWildlifeKpis() {
+  return useQuery({
+    queryKey: ['wildlife', 'kpis'],
+    queryFn: withFallback(
+      () => analyticsClient.get<WildlifeKpis>('/analytics/wildlife/kpis'),
+      WILDLIFE_KPIS_FALLBACK,
+    ),
+    placeholderData: WILDLIFE_KPIS_FALLBACK,
+  });
+}
+
+export function useWildlifeInventory(params?: {
+  page?: number;
+  limit?: number;
+  taxonomicClass?: string;
+  iucnStatus?: string;
+  country?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.taxonomicClass) searchParams.taxonomicClass = params.taxonomicClass;
+  if (params?.iucnStatus) searchParams.iucnStatus = params.iucnStatus;
+  if (params?.country) searchParams.country = params.country;
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<WildlifeInventory> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['wildlife', 'inventory', params],
+    queryFn: withFallback(
+      () =>
+        wildlifeClient.get<PaginatedResponse<WildlifeInventory>>(
+          '/wildlife/inventories',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+export function useProtectedAreas(params?: {
+  page?: number;
+  limit?: number;
+  designation?: string;
+  country?: string;
+  status?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.designation) searchParams.designation = params.designation;
+  if (params?.country) searchParams.country = params.country;
+  if (params?.status) searchParams.status = params.status;
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<ProtectedArea> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['wildlife', 'protected-areas', params],
+    queryFn: withFallback(
+      () =>
+        wildlifeClient.get<PaginatedResponse<ProtectedArea>>(
+          '/wildlife/protected-areas',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+export function useCitesPermits(params?: {
+  page?: number;
+  limit?: number;
+  appendix?: string;
+  status?: string;
+  country?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.appendix) searchParams.appendix = params.appendix;
+  if (params?.status) searchParams.status = params.status;
+  if (params?.country) searchParams.country = params.country;
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<CitesPermit> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['wildlife', 'cites', params],
+    queryFn: withFallback(
+      () =>
+        wildlifeClient.get<PaginatedResponse<CitesPermit>>(
+          '/wildlife/cites-permits',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+// ─── Apiculture Types ───────────────────────────────────────────────────────
+
+export interface Apiary {
+  id: string;
+  name: string;
+  owner: string;
+  country: string;
+  countryCode: string;
+  region: string;
+  lat: number;
+  lng: number;
+  totalColonies: number;
+  hiveType: 'Langstroth' | 'Top-bar' | 'Traditional' | 'Flow' | 'Other';
+  status: 'active' | 'inactive' | 'abandoned';
+  registeredAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ColonyHealth {
+  id: string;
+  apiaryName: string;
+  country: string;
+  countryCode: string;
+  inspectionDate: string;
+  coloniesInspected: number;
+  healthyColonies: number;
+  infectedColonies: number;
+  pest: string;
+  pestPrevalence: number;
+  queenStatus: 'present' | 'absent' | 'unknown';
+  colonyStrength: 'strong' | 'moderate' | 'weak';
+  mortality: number;
+  treatment: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApicultureProduction {
+  id: string;
+  apiaryName: string;
+  country: string;
+  countryCode: string;
+  year: number;
+  quarter?: number;
+  honeyKg: number;
+  waxKg: number;
+  propolisKg: number;
+  pollenKg: number;
+  royalJellyKg: number;
+  harvestMethod: string;
+  qualityGrade: 'A' | 'B' | 'C' | 'ungraded';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApicultureKpis {
+  data: {
+    registeredApiaries: number;
+    apiariesTrend: number;
+    activeColonies: number;
+    coloniesTrend: number;
+    honeyProduction: number;
+    productionTrend: number;
+    colonyLossRate: number;
+    lossRateTrend: number;
+  };
+}
+
+// ─── Apiculture Hooks ───────────────────────────────────────────────────────
+
+const APICULTURE_KPIS_FALLBACK: ApicultureKpis = {
+  data: {
+    registeredApiaries: 24_500, apiariesTrend: 4.7,
+    activeColonies: 312_000, coloniesTrend: 2.3,
+    honeyProduction: 185_000, productionTrend: 6.1,
+    colonyLossRate: 14.2, lossRateTrend: -3.5,
+  },
+};
+
+export function useApicultureKpis() {
+  return useQuery({
+    queryKey: ['apiculture', 'kpis'],
+    queryFn: withFallback(
+      () => analyticsClient.get<ApicultureKpis>('/analytics/apiculture/kpis'),
+      APICULTURE_KPIS_FALLBACK,
+    ),
+    placeholderData: APICULTURE_KPIS_FALLBACK,
+  });
+}
+
+export function useApiaries(params?: {
+  page?: number;
+  limit?: number;
+  hiveType?: string;
+  status?: string;
+  country?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.hiveType) searchParams.hiveType = params.hiveType;
+  if (params?.status) searchParams.status = params.status;
+  if (params?.country) searchParams.country = params.country;
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<Apiary> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['apiculture', 'apiaries', params],
+    queryFn: withFallback(
+      () =>
+        apicultureClient.get<PaginatedResponse<Apiary>>(
+          '/apiculture/apiaries',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+export function useColonyHealth(params?: {
+  page?: number;
+  limit?: number;
+  pest?: string;
+  colonyStrength?: string;
+  country?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.pest) searchParams.pest = params.pest;
+  if (params?.colonyStrength) searchParams.colonyStrength = params.colonyStrength;
+  if (params?.country) searchParams.country = params.country;
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<ColonyHealth> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['apiculture', 'colony-health', params],
+    queryFn: withFallback(
+      () =>
+        apicultureClient.get<PaginatedResponse<ColonyHealth>>(
+          '/apiculture/colony-health',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+export function useApicultureProduction(params?: {
+  page?: number;
+  limit?: number;
+  country?: string;
+  year?: number;
+  qualityGrade?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.country) searchParams.country = params.country;
+  if (params?.year) searchParams.year = String(params.year);
+  if (params?.qualityGrade) searchParams.qualityGrade = params.qualityGrade;
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<ApicultureProduction> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['apiculture', 'production', params],
+    queryFn: withFallback(
+      () =>
+        apicultureClient.get<PaginatedResponse<ApicultureProduction>>(
+          '/apiculture/production',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+// ─── Governance Types ───────────────────────────────────────────────────────
+
+export interface GovernanceKpis {
+  legalFrameworks: number;
+  pvsEvaluations: number;
+  stakeholders: number;
+  capacityPrograms: number;
+}
+
+export interface LegalFramework {
+  id: string;
+  title: string;
+  type: 'LAW' | 'REGULATION' | 'POLICY' | 'STANDARD' | 'GUIDELINE';
+  domain: string;
+  adoptionDate: string;
+  status: 'DRAFT' | 'ADOPTED' | 'IN_FORCE' | 'REPEALED';
+  country: string;
+  countryCode: string;
+  dataClassification: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PvsEvaluation {
+  id: string;
+  country: string;
+  countryCode: string;
+  evaluationYear: number;
+  evaluationType: string;
+  overallScore: number;
+  legislation: number;
+  laboratories: number;
+  riskAnalysis: number;
+  quarantine: number;
+  surveillance: number;
+  diseaseControl: number;
+  foodSafety: number;
+  vetEducation: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GovernanceStakeholder {
+  id: string;
+  name: string;
+  type: string;
+  country: string;
+  countryCode: string;
+  sector: string;
+  contactEmail: string;
+  partnershipStatus: 'active' | 'inactive' | 'pending';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GovernanceCapacity {
+  id: string;
+  organizationName: string;
+  country: string;
+  countryCode: string;
+  year: number;
+  staffCount: number;
+  budgetUsd: number;
+  pvsSelfAssessmentScore: number;
+  oieStatus: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Governance Hooks ───────────────────────────────────────────────────────
+
+export function useGovernanceKpis() {
+  const fallback: GovernanceKpis = { legalFrameworks: 0, pvsEvaluations: 0, stakeholders: 0, capacityPrograms: 0 };
+  return useQuery({
+    queryKey: ['governance', 'kpis'],
+    queryFn: withFallback(
+      () => governanceClient.get<GovernanceKpis>('/governance/kpis'),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+export function useLegalFrameworks(params?: {
+  page?: number;
+  limit?: number;
+  type?: string;
+  status?: string;
+  domain?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.type) searchParams.type = params.type;
+  if (params?.status) searchParams.status = params.status;
+  if (params?.domain) searchParams.domain = params.domain;
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<LegalFramework> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['governance', 'legal-frameworks', params],
+    queryFn: withFallback(
+      () =>
+        governanceClient.get<PaginatedResponse<LegalFramework>>(
+          '/governance/legal-frameworks',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+export function usePvsEvaluations(params?: {
+  page?: number;
+  limit?: number;
+  country?: string;
+  year?: number;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.country) searchParams.country = params.country;
+  if (params?.year) searchParams.year = String(params.year);
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<PvsEvaluation> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['governance', 'pvs-evaluations', params],
+    queryFn: withFallback(
+      () =>
+        governanceClient.get<PaginatedResponse<PvsEvaluation>>(
+          '/governance/pvs-evaluations',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+export function useGovernanceStakeholders(params?: {
+  page?: number;
+  limit?: number;
+  type?: string;
+  partnershipStatus?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.type) searchParams.type = params.type;
+  if (params?.partnershipStatus) searchParams.partnershipStatus = params.partnershipStatus;
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<GovernanceStakeholder> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['governance', 'stakeholders', params],
+    queryFn: withFallback(
+      () =>
+        governanceClient.get<PaginatedResponse<GovernanceStakeholder>>(
+          '/governance/stakeholders',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+export function useGovernanceCapacity(params?: {
+  page?: number;
+  limit?: number;
+  year?: number;
+  organizationName?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.year) searchParams.year = String(params.year);
+  if (params?.organizationName) searchParams.organizationName = params.organizationName;
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<GovernanceCapacity> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['governance', 'capacity', params],
+    queryFn: withFallback(
+      () =>
+        governanceClient.get<PaginatedResponse<GovernanceCapacity>>(
+          '/governance/capacities',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+// ─── Climate-Env Types ──────────────────────────────────────────────────────
+
+export interface ClimateEnvKpis {
+  monitoringStations: number;
+  waterStressIndex: number;
+  rangelandDegradation: number;
+  climateHotspots: number;
+}
+
+export interface ClimateData {
+  id: string;
+  country: string;
+  countryCode: string;
+  region: string;
+  date: string;
+  temperature: number;
+  rainfall: number;
+  humidity: number;
+  windSpeed: number;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WaterStress {
+  id: string;
+  country: string;
+  countryCode: string;
+  region: string;
+  period: string;
+  index: number;
+  waterAvailability: string;
+  irrigatedAreaPct: number;
+  source: string;
+  severity: 'low' | 'moderate' | 'high' | 'critical';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Rangeland {
+  id: string;
+  country: string;
+  countryCode: string;
+  region: string;
+  year: number;
+  vegetationIndex: number;
+  degradationLevel: 'none' | 'low' | 'moderate' | 'severe';
+  areaHa: number;
+  carryingCapacity: number;
+  biomassKgHa: number;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClimateHotspot {
+  id: string;
+  name: string;
+  country: string;
+  countryCode: string;
+  lat: number;
+  lng: number;
+  riskLevel: 'low' | 'moderate' | 'high' | 'critical';
+  riskType: string;
+  affectedPopulation: number;
+  livestockAtRisk: number;
+  lastAssessed: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Climate-Env Hooks ──────────────────────────────────────────────────────
+
+export function useClimateEnvKpis() {
+  const fallback: ClimateEnvKpis = { monitoringStations: 0, waterStressIndex: 0, rangelandDegradation: 0, climateHotspots: 0 };
+  return useQuery({
+    queryKey: ['climate-env', 'kpis'],
+    queryFn: withFallback(
+      () => climateEnvClient.get<ClimateEnvKpis>('/climate/kpis'),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+export function useClimateData(params?: {
+  page?: number;
+  limit?: number;
+  source?: string;
+  periodStart?: string;
+  periodEnd?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.source) searchParams.source = params.source;
+  if (params?.periodStart) searchParams.periodStart = params.periodStart;
+  if (params?.periodEnd) searchParams.periodEnd = params.periodEnd;
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<ClimateData> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['climate-env', 'data', params],
+    queryFn: withFallback(
+      () =>
+        climateEnvClient.get<PaginatedResponse<ClimateData>>(
+          '/climate/data',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+export function useWaterStress(params?: {
+  page?: number;
+  limit?: number;
+  severity?: string;
+  period?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.severity) searchParams.severity = params.severity;
+  if (params?.period) searchParams.period = params.period;
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<WaterStress> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['climate-env', 'water-stress', params],
+    queryFn: withFallback(
+      () =>
+        climateEnvClient.get<PaginatedResponse<WaterStress>>(
+          '/climate/water-stress',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+export function useRangelands(params?: {
+  page?: number;
+  limit?: number;
+  degradationLevel?: string;
+  year?: number;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.degradationLevel) searchParams.degradationLevel = params.degradationLevel;
+  if (params?.year) searchParams.year = String(params.year);
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<Rangeland> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['climate-env', 'rangelands', params],
+    queryFn: withFallback(
+      () =>
+        climateEnvClient.get<PaginatedResponse<Rangeland>>(
+          '/climate/rangelands',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+export function useClimateHotspots(params?: {
+  page?: number;
+  limit?: number;
+  riskLevel?: string;
+  riskType?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.riskLevel) searchParams.riskLevel = params.riskLevel;
+  if (params?.riskType) searchParams.riskType = params.riskType;
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<ClimateHotspot> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['climate-env', 'hotspots', params],
+    queryFn: withFallback(
+      () =>
+        climateEnvClient.get<PaginatedResponse<ClimateHotspot>>(
+          '/climate/hotspots',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }

@@ -1,4 +1,4 @@
-// ARIS 3.0 — Collecte Models
+// ARIS 4.0 — Collecte Models
 // Campaign orchestration, form submissions, offline sync
 // + Workflow engine: validation pyramid (admin5→national→REC→continental)
 
@@ -85,6 +85,8 @@ model Campaign {
   name              String         @db.VarChar(255)
   domain            String         @db.VarChar(100)
   templateId        String         @map("template_id") @db.Uuid
+  templateIds       String[]       @map("template_ids") @db.Uuid
+  targetCountries   String[]       @map("target_countries") @db.VarChar(2)
   startDate         DateTime       @map("start_date") @db.Date
   endDate           DateTime       @map("end_date") @db.Date
   targetZones       String[]       @map("target_zones") @db.Uuid

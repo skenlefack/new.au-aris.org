@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: ARIS 3.0 — Livestock Production & Pastoralism Service
+  title: ARIS 4.0 — Livestock Production & Pastoralism Service
   version: 1.0.0
   description: |
     Manages livestock census data, production records, slaughter statistics,

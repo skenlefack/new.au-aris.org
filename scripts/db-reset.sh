@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════════
-# ARIS 3.0 — Database Reset Script
+# ARIS 4.0 — Database Reset Script
 # Drops all schemas, recreates them, runs migrations, and seeds
 # ═══════════════════════════════════════════════════════════════════════════
 set -euo pipefail
@@ -63,7 +63,7 @@ DROP_SCHEMAS=(
 # ── Safety check ───────────────────────────────────────────────────────────
 echo ""
 echo "═══════════════════════════════════════════════════════════"
-echo -e "  ${RED}ARIS 3.0 — Database RESET${NC}"
+echo -e "  ${RED}ARIS 4.0 — Database RESET${NC}"
 echo "  Database: ${DB_NAME}@${DB_HOST}:${DB_PORT}"
 echo ""
 echo -e "  ${YELLOW}WARNING: This will DROP ALL DATA and recreate from scratch.${NC}"

@@ -2,7 +2,7 @@
   "name": "@aris/i18n",
   "version": "0.1.0",
   "private": true,
-  "description": "ARIS 3.0 — Internationalization framework (EN, FR, PT, AR)",
+  "description": "ARIS 4.0 — Internationalization framework (EN, FR, PT, AR)",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -17,7 +17,8 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "lint": "eslint src/",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "peerDependencies": {
     "@nestjs/common": "^10.0.0",

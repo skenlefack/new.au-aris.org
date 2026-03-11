@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ARIS 3.0 — Development Startup Script
+# ARIS 4.0 — Development Startup Script
 # Usage:
 #   ./scripts/start-dev.sh              # Infrastructure only (default)
 #   ./scripts/start-dev.sh services     # Infrastructure + all 22 microservices
@@ -22,7 +22,7 @@ NC='\033[0m'
 banner() {
   echo ""
   echo -e "${CYAN}╔══════════════════════════════════════════════╗${NC}"
-  echo -e "${CYAN}║       ARIS 3.0 — Development Environment    ║${NC}"
+  echo -e "${CYAN}║       ARIS 4.0 — Development Environment    ║${NC}"
   echo -e "${CYAN}║       AU-IBAR Digital Infrastructure         ║${NC}"
   echo -e "${CYAN}╚══════════════════════════════════════════════╝${NC}"
   echo ""

@@ -1,18 +1,21 @@
 {
   "name": "aris",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "private": true,
-  "description": "ARIS 3.0 — Animal Resources Information System — AU-IBAR",
+  "description": "ARIS 4.0 — Animal Resources Information System — AU-IBAR",
   "packageManager": "pnpm@9.1.0",
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
   },
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --concurrency=31",
     "build": "turbo run build",
     "test": "turbo run test",
     "test:integration": "turbo run test:integration",
+    "test:coverage": "turbo run test:coverage",
+    "test:e2e": "playwright test",
+    "test:load": "k6 run tests/load/field-agent-submissions.js",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
@@ -41,6 +44,8 @@
     "prettier": "^3.2.0",
     "prisma": "6.2.0",
     "tsx": "^4.21.0",
+    "@playwright/test": "^1.45.0",
+    "@vitest/coverage-v8": "^1.6.1",
     "turbo": "^2.0.0",
     "typescript": "^5.4.0"
   },

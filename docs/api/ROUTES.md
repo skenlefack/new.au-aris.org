@@ -1,6 +1,6 @@
 # API Routes Catalogue
 
-> Complete HTTP endpoint reference for all 22 ARIS 3.0 microservices.
+> Complete HTTP endpoint reference for all 22 ARIS 4.0 microservices.
 > All routes are versioned (`/api/v1/`) and return `{ data, meta?, errors? }`.
 
 ---

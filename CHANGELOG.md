@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the ARIS 3.0 project will be documented in this file.
+All notable changes to the ARIS 4.0 project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -148,7 +148,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Kafka KRaft cluster (3 brokers)
   - PostgreSQL + PostGIS
   - Redis 7 (cache, sessions, pub/sub)
-  - Elasticsearch 8 (search)
+  - OpenSearch 2 (search, Apache 2.0)
   - MinIO (S3-compatible object storage)
   - Mailpit (email testing)
   - Traefik v3 (API gateway)

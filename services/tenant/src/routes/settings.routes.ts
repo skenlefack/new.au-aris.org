@@ -329,45 +329,47 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
 
   // ───────────────────── Functions ─────────────────────
 
-  // GET /api/v1/settings/functions — list functions (with optional level/category filter)
+  // GET /api/v1/settings/functions — list functions (tenant-scoped)
   app.get<{ Querystring: FunctionQueryInput }>('/api/v1/settings/functions', {
     schema: { querystring: FunctionQuerySchema },
     preHandler: authAndTenant,
   }, async (request) => {
-    return app.settingsService.listFunctions(request.query);
+    const user = request.user as AuthenticatedUser;
+    return app.settingsService.listFunctions(request.query, user);
   });
 
-  // GET /api/v1/settings/functions/:id — get function detail
+  // GET /api/v1/settings/functions/:id — get function detail (tenant-scoped)
   app.get<{ Params: UuidParamInput }>('/api/v1/settings/functions/:id', {
     schema: { params: UuidParamSchema },
     preHandler: authAndTenant,
   }, async (request) => {
-    return app.settingsService.getFunctionById(request.params.id);
+    const user = request.user as AuthenticatedUser;
+    return app.settingsService.getFunctionById(request.params.id, user);
   });
 
-  // POST /api/v1/settings/functions — create function (SUPER_ADMIN, CONTINENTAL_ADMIN)
+  // POST /api/v1/settings/functions — create function (SUPER_ADMIN, CONTINENTAL_ADMIN, REC_ADMIN, NATIONAL_ADMIN)
   app.post<{ Body: FunctionBodyInput }>('/api/v1/settings/functions', {
     schema: { body: FunctionBodySchema },
-    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN)],
   }, async (request, reply) => {
     const user = request.user as AuthenticatedUser;
     const result = await app.settingsService.createFunction(request.body as Record<string, unknown>, user);
     return reply.code(201).send(result);
   });
 
-  // PUT /api/v1/settings/functions/:id — update function (SUPER_ADMIN, CONTINENTAL_ADMIN)
+  // PUT /api/v1/settings/functions/:id — update function (SUPER_ADMIN, CONTINENTAL_ADMIN, REC_ADMIN, NATIONAL_ADMIN)
   app.put<{ Params: UuidParamInput; Body: FunctionUpdateBodyInput }>('/api/v1/settings/functions/:id', {
     schema: { params: UuidParamSchema, body: FunctionUpdateBodySchema },
-    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN)],
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.settingsService.updateFunction(request.params.id, request.body as Record<string, unknown>, user);
   });
 
-  // DELETE /api/v1/settings/functions/:id — delete function (SUPER_ADMIN)
+  // DELETE /api/v1/settings/functions/:id — delete function (SUPER_ADMIN, CONTINENTAL_ADMIN, REC_ADMIN, NATIONAL_ADMIN; service-level scope check)
   app.delete<{ Params: UuidParamInput }>('/api/v1/settings/functions/:id', {
     schema: { params: UuidParamSchema },
-    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN)],
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN)],
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.settingsService.deleteFunction(request.params.id, user);

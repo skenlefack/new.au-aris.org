@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import { TenantSelector, TenantNode } from './TenantSelector';
@@ -40,11 +40,25 @@ describe('TenantSelector', () => {
     expect(screen.getByText('Kenya')).toBeInTheDocument();
   });
 
+  it('shows selected CONTINENTAL tenant with level label', () => {
+    render(<TenantSelector tenants={tenants} selectedId="au" onSelect={vi.fn()} />);
+    expect(screen.getByText('AU-IBAR')).toBeInTheDocument();
+    expect(screen.getByText('(Continental)')).toBeInTheDocument();
+  });
+
+  it('shows selected REC tenant with level label', () => {
+    render(<TenantSelector tenants={tenants} selectedId="igad" onSelect={vi.fn()} />);
+    expect(screen.getByText('IGAD')).toBeInTheDocument();
+    expect(screen.getByText('(REC)')).toBeInTheDocument();
+  });
+
   it('opens dropdown on click', async () => {
     const user = userEvent.setup();
     render(<TenantSelector tenants={tenants} onSelect={vi.fn()} />);
 
-    await user.click(screen.getByTestId('tenant-trigger'));
+    await act(async () => {
+      await user.click(screen.getByTestId('tenant-trigger'));
+    });
     expect(screen.getByTestId('tenant-dropdown')).toBeInTheDocument();
   });
 
@@ -53,8 +67,12 @@ describe('TenantSelector', () => {
     const onSelect = vi.fn();
     render(<TenantSelector tenants={tenants} onSelect={onSelect} />);
 
-    await user.click(screen.getByTestId('tenant-trigger'));
-    await user.click(screen.getByTestId('tenant-option-au'));
+    await act(async () => {
+      await user.click(screen.getByTestId('tenant-trigger'));
+    });
+    await act(async () => {
+      await user.click(screen.getByTestId('tenant-option-au'));
+    });
 
     expect(onSelect).toHaveBeenCalledWith('au', expect.objectContaining({ name: 'AU-IBAR' }));
   });
@@ -63,8 +81,12 @@ describe('TenantSelector', () => {
     const user = userEvent.setup();
     render(<TenantSelector tenants={tenants} onSelect={vi.fn()} />);
 
-    await user.click(screen.getByTestId('tenant-trigger'));
-    await user.click(screen.getByTestId('tenant-option-au'));
+    await act(async () => {
+      await user.click(screen.getByTestId('tenant-trigger'));
+    });
+    await act(async () => {
+      await user.click(screen.getByTestId('tenant-option-au'));
+    });
 
     expect(screen.queryByTestId('tenant-dropdown')).not.toBeInTheDocument();
   });
@@ -73,19 +95,46 @@ describe('TenantSelector', () => {
     const user = userEvent.setup();
     render(<TenantSelector tenants={tenants} onSelect={vi.fn()} />);
 
-    await user.click(screen.getByTestId('tenant-trigger'));
+    await act(async () => {
+      await user.click(screen.getByTestId('tenant-trigger'));
+    });
 
     // Initially, children of AU should not show because IGAD is not expanded
     expect(screen.queryByTestId('tenant-option-ke')).not.toBeInTheDocument();
 
     // Expand AU
-    await user.click(screen.getByTestId('expand-au'));
+    await act(async () => {
+      await user.click(screen.getByTestId('expand-au'));
+    });
     expect(screen.getByTestId('tenant-option-igad')).toBeInTheDocument();
 
     // Expand IGAD
-    await user.click(screen.getByTestId('expand-igad'));
+    await act(async () => {
+      await user.click(screen.getByTestId('expand-igad'));
+    });
     expect(screen.getByTestId('tenant-option-ke')).toBeInTheDocument();
     expect(screen.getByTestId('tenant-option-et')).toBeInTheDocument();
+  });
+
+  it('collapses children on second expand click', async () => {
+    const user = userEvent.setup();
+    render(<TenantSelector tenants={tenants} onSelect={vi.fn()} />);
+
+    await act(async () => {
+      await user.click(screen.getByTestId('tenant-trigger'));
+    });
+
+    // Expand AU
+    await act(async () => {
+      await user.click(screen.getByTestId('expand-au'));
+    });
+    expect(screen.getByTestId('tenant-option-igad')).toBeInTheDocument();
+
+    // Collapse AU
+    await act(async () => {
+      await user.click(screen.getByTestId('expand-au'));
+    });
+    expect(screen.queryByTestId('tenant-option-igad')).not.toBeInTheDocument();
   });
 
   it('does not open when disabled', async () => {
@@ -99,5 +148,33 @@ describe('TenantSelector', () => {
   it('shows tenant level badge', () => {
     render(<TenantSelector tenants={tenants} selectedId="ke" onSelect={vi.fn()} />);
     expect(screen.getByText('(Member State)')).toBeInTheDocument();
+  });
+
+  it('applies custom className', () => {
+    render(<TenantSelector tenants={tenants} onSelect={vi.fn()} className="custom" />);
+    expect(screen.getByTestId('tenant-selector').className).toContain('custom');
+  });
+
+  it('handles selectedId that does not exist', () => {
+    render(<TenantSelector tenants={tenants} selectedId="nonexistent" onSelect={vi.fn()} />);
+    // Should fall back to placeholder
+    expect(screen.getByText('Select tenant...')).toBeInTheDocument();
+  });
+
+  it('toggles dropdown open and closed', async () => {
+    const user = userEvent.setup();
+    render(<TenantSelector tenants={tenants} onSelect={vi.fn()} />);
+
+    // Open
+    await act(async () => {
+      await user.click(screen.getByTestId('tenant-trigger'));
+    });
+    expect(screen.getByTestId('tenant-dropdown')).toBeInTheDocument();
+
+    // Close
+    await act(async () => {
+      await user.click(screen.getByTestId('tenant-trigger'));
+    });
+    expect(screen.queryByTestId('tenant-dropdown')).not.toBeInTheDocument();
   });
 });

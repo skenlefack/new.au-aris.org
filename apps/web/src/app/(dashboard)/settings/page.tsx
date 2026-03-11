@@ -17,6 +17,7 @@ import {
   ChevronRight,
   GitPullRequestArrow,
   Link2,
+  Building2,
 } from 'lucide-react';
 
 interface SettingsCard {
@@ -113,6 +114,15 @@ const SETTINGS_CARDS: SettingsCard[] = [
     icon: <Link2 className="h-5 w-5" />,
     section: 'validation-chains',
     color: '#0277BD',
+  },
+  {
+    href: '/settings/infrastructures',
+    label: 'Infrastructure Types',
+    description: 'Configure infrastructure categories and sub-types (labs, markets, checkpoints, etc.)',
+    icon: <Building2 className="h-5 w-5" />,
+    section: 'infrastructures',
+    badge: '15 Categories',
+    color: '#2E7D32',
   },
   {
     href: '/settings/audit',

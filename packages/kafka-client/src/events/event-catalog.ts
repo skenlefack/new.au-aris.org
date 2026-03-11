@@ -1,5 +1,5 @@
 /**
- * ARIS 3.0 — Centralized Event Catalog
+ * ARIS 4.0 — Centralized Event Catalog
  *
  * Every inter-service event in the system is declared here with its topic name.
  * Services import from this catalog rather than using string literals.

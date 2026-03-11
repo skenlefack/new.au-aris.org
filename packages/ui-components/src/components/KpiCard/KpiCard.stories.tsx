@@ -65,6 +65,38 @@ export const WithoutTrend: Story = {
   },
 };
 
+export const Loading: Story = {
+  args: {
+    label: 'Loading...',
+    value: '—',
+    className: 'animate-pulse opacity-60',
+  },
+};
+
+export const Error: Story = {
+  args: {
+    label: 'Failed to load',
+    value: 'N/A',
+    variant: 'accent',
+    trend: { direction: 'down', value: 'Error', label: 'data unavailable' },
+  },
+};
+
+export const DarkMode: Story = {
+  args: {
+    label: 'Active Outbreaks',
+    value: 42,
+    trend: { direction: 'up', value: '+12%', label: 'vs last month' },
+  },
+  decorators: [
+    (Story) => (
+      <div className="dark bg-gray-900 p-6 rounded-lg">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
 export const DashboardRow: Story = {
   render: () => (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">

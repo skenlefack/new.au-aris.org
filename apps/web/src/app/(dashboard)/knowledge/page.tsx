@@ -23,6 +23,14 @@ import {
 } from '@/lib/api/hooks';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
+import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
+
+const KNOWLEDGE_ALERT_FIELDS: AlertField[] = [
+  { name: 'topic', label: 'Topic', type: 'text', placeholder: 'e.g. Outbreak Response Guidelines', required: true },
+  { name: 'type', label: 'Resource Type', type: 'select', required: true, options: ['Publication', 'Course', 'Dataset', 'FAQ', 'Guideline'] },
+  { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Describe the content request or issue...' },
+];
 
 const TYPE_BADGE: Record<string, string> = {
   brief: 'bg-blue-100 text-blue-700',
@@ -408,6 +416,12 @@ export default function KnowledgePortalPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Campaigns & Alert */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <DomainCampaignsSection domain="knowledge" />
+        <QuickAlertCard domain="knowledge" alertFields={KNOWLEDGE_ALERT_FIELDS} title="Request Content" />
       </div>
     </div>
   );

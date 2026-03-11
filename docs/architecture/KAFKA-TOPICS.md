@@ -1,6 +1,6 @@
 # Kafka Topic Registry
 
-> Complete registry of all Kafka topics in the ARIS 3.0 platform.
+> Complete registry of all Kafka topics in the ARIS 4.0 platform.
 > Apache Kafka 3.7 — KRaft mode (no ZooKeeper), 3-broker cluster.
 
 ## Naming Convention

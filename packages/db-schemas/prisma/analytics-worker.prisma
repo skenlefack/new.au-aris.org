@@ -1,4 +1,4 @@
-// ARIS 3.0 — Analytics Worker Schema
+// ARIS 4.0 — Analytics Worker Schema
 // Aggregated metrics and worker state for Kafka Streams-style processing
 
 enum MetricType {

@@ -40,18 +40,20 @@ export default function DivisionsPage() {
   const country = countryData?.data as Record<string, any> | undefined;
   const countryCode = country?.code ?? '';
 
-  // Admin levels — pass resolved countryCode for GADM fallback
+  // Admin levels
   const { data: adminLevelsData } = useAdminLevels(countryId, countryCode || undefined);
   const adminLevels: AdminLevel[] = useMemo(() => {
     const levels = (adminLevelsData?.data ?? []) as AdminLevel[];
     return [...levels].sort((a, b) => a.level - b.level);
   }, [adminLevelsData]);
 
-  // Only show level options that are actually configured
   const levelOptions = useMemo(
     () => ['ALL', ...adminLevels.map((al) => `ADMIN${al.level}`)],
     [adminLevels],
   );
+
+  // View state
+  const [view, setView] = useState<'list' | 'form'>('list');
 
   // Filters
   const [levelFilter, setLevelFilter] = useState<string>('ALL');
@@ -87,8 +89,7 @@ export default function DivisionsPage() {
   const geoEntities: GeoEntity[] = geoData?.data ?? [];
   const total = geoData?.meta?.total ?? 0;
 
-  // ── Add / Edit dialog ──
-  const [dialogMode, setDialogMode] = useState<'closed' | 'add' | 'edit'>('closed');
+  // Form state
   const [dialogForm, setDialogForm] = useState({
     id: '',
     code: '',
@@ -98,6 +99,7 @@ export default function DivisionsPage() {
     latitude: '',
     longitude: '',
   });
+  const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
 
   const createMutation = useCreateGeoEntity();
   const updateMutation = useUpdateGeoEntity();
@@ -120,7 +122,8 @@ export default function DivisionsPage() {
       latitude: '',
       longitude: '',
     });
-    setDialogMode('add');
+    setFormMode('add');
+    setView('form');
   };
 
   const openEdit = (entity: GeoEntity) => {
@@ -133,16 +136,17 @@ export default function DivisionsPage() {
       latitude: entity.latitude != null ? String(entity.latitude) : '',
       longitude: entity.longitude != null ? String(entity.longitude) : '',
     });
-    setDialogMode('edit');
+    setFormMode('edit');
+    setView('form');
   };
 
-  const closeDialog = () => setDialogMode('closed');
+  const handleBack = () => setView('list');
 
   const handleSave = async () => {
     if (!dialogForm.code.trim() || !dialogForm.name.en.trim()) return;
 
     try {
-      if (dialogMode === 'add') {
+      if (formMode === 'add') {
         await createMutation.mutateAsync({
           code: dialogForm.code.trim(),
           name: dialogForm.name,
@@ -163,7 +167,7 @@ export default function DivisionsPage() {
         });
         setToast({ type: 'success', message: 'Division updated successfully' });
       }
-      closeDialog();
+      setView('list');
     } catch (err: any) {
       setToast({ type: 'error', message: err?.message ?? 'Operation failed' });
     }
@@ -188,9 +192,221 @@ export default function DivisionsPage() {
     );
   }
 
+  if (view === 'form') {
+    return (
+      <div className="space-y-5 pb-20">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/settings/countries/${countryId}`}
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-white"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                {country?.flag} {formMode === 'add' ? 'Add Division' : 'Edit Division'}
+              </h1>
+              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                {formMode === 'add'
+                  ? `Create a new geographic division for ${country?.name?.en ?? 'this country'}`
+                  : `Editing: ${dialogForm.name.en || dialogForm.code}`}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+        </div>
+
+        {/* Inline form */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+            {/* Level */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Level <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={dialogForm.level}
+                onChange={(e) =>
+                  setDialogForm((p) => ({
+                    ...p,
+                    level: e.target.value,
+                    parentId: undefined,
+                  }))
+                }
+                disabled={formMode === 'edit'}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {adminLevels.map((al) => (
+                  <option key={al.level} value={`ADMIN${al.level}`}>
+                    L{al.level} — {al.name?.en ?? `Level ${al.level}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Code */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="flex items-center gap-1">
+                  <Hash className="h-3.5 w-3.5" />
+                  Code <span className="text-red-500">*</span>
+                </span>
+              </label>
+              <input
+                type="text"
+                value={dialogForm.code}
+                onChange={(e) =>
+                  setDialogForm((p) => ({ ...p, code: e.target.value }))
+                }
+                placeholder="KE-001"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+              />
+            </div>
+          </div>
+
+          {/* Parent picker (for level 2+) */}
+          {formMode === 'add' && dialogParentMaxLevel > 0 && countryCode && (
+            <div className="mt-4">
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Parent Division <span className="text-red-500">*</span>
+              </label>
+              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/50">
+                <GeoLocationPicker
+                  countryCode={countryCode}
+                  countryId={countryId}
+                  maxLevel={dialogParentMaxLevel}
+                  onChange={(entityId) =>
+                    setDialogForm((p) => ({
+                      ...p,
+                      parentId: entityId ?? undefined,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Multilingual Name */}
+          <div className="mt-4">
+            <div className="mb-1 flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Globe className="h-3.5 w-3.5" />
+              Division Name <span className="text-red-500">*</span>
+            </div>
+            <MultilingualInput
+              label=""
+              value={dialogForm.name}
+              onChange={(val) =>
+                setDialogForm((p) => ({ ...p, name: val as Record<string, string> }))
+              }
+              required
+              placeholder="Enter division name..."
+            />
+          </div>
+
+          {/* Coordinates */}
+          <div className="mt-4">
+            <p className="mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+              Coordinates <span className="text-xs font-normal text-gray-400">(optional)</span>
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
+                  Latitude
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  value={dialogForm.latitude}
+                  onChange={(e) =>
+                    setDialogForm((p) => ({ ...p, latitude: e.target.value }))
+                  }
+                  placeholder="-1.2921"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
+                  Longitude
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  value={dialogForm.longitude}
+                  onChange={(e) =>
+                    setDialogForm((p) => ({ ...p, longitude: e.target.value }))
+                  }
+                  placeholder="36.8219"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="mt-6 flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-4">
+            <p className="text-xs text-gray-400">
+              <span className="text-red-500">*</span> Required fields
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleBack}
+                disabled={isSaving}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!dialogForm.code.trim() || !dialogForm.name.en.trim() || isSaving}
+                className="flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-aris-primary-700 disabled:opacity-50"
+              >
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {formMode === 'add' ? 'Create' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Toast */}
+        {toast && (
+          <div
+            className={`fixed bottom-6 right-6 z-[60] flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium shadow-lg transition-all ${
+              toast.type === 'success'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-red-600 text-white'
+            }`}
+          >
+            {toast.message}
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="ml-2 rounded p-0.5 hover:bg-white/20"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5 pb-20">
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
@@ -228,7 +444,7 @@ export default function DivisionsPage() {
         )}
       </div>
 
-      {/* ── Stats bar ── */}
+      {/* Stats bar */}
       <div className="flex items-center gap-4 rounded-lg border border-gray-100 bg-gray-50 px-4 py-2.5 dark:border-gray-800 dark:bg-gray-900/50">
         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
           Total: <span className="font-semibold text-gray-900 dark:text-white">{total}</span> divisions
@@ -240,7 +456,7 @@ export default function DivisionsPage() {
         ))}
       </div>
 
-      {/* ── Filters ── */}
+      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -269,7 +485,7 @@ export default function DivisionsPage() {
         </select>
       </div>
 
-      {/* ── Parent filter ── */}
+      {/* Parent filter */}
       {levelFilter !== 'ALL' &&
         parseInt(levelFilter.replace('ADMIN', ''), 10) > 1 &&
         countryCode && (
@@ -289,31 +505,23 @@ export default function DivisionsPage() {
           </div>
         )}
 
-      {/* ── Table ── */}
+      {/* Table */}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
               <tr>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Code</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">
-                  Name (EN)
-                </th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">
-                  Name (FR)
-                </th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">
-                  Name (PT)
-                </th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name (EN)</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name (FR)</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name (PT)</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">
                   <span dir="rtl">Name (AR)</span>
                 </th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Level</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Parent</th>
                 {canEdit && (
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-16">
-                    Edit
-                  </th>
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-16">Edit</th>
                 )}
               </tr>
             </thead>
@@ -397,203 +605,7 @@ export default function DivisionsPage() {
         )}
       </div>
 
-      {/* ── Add / Edit Dialog ── */}
-      {dialogMode !== 'closed' && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-12"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) closeDialog();
-          }}
-        >
-          <div className="w-full max-w-xl rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800">
-            {/* Dialog header */}
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-700">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-aris-primary-50 dark:bg-aris-primary-900/30">
-                  <MapPin className="h-4 w-4 text-aris-primary-600 dark:text-aris-primary-400" />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                    {dialogMode === 'add' ? 'Add Division' : 'Edit Division'}
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {dialogMode === 'add'
-                      ? 'Create a new geographic division'
-                      : `Editing: ${dialogForm.name.en || dialogForm.code}`}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={closeDialog}
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Dialog body */}
-            <div className="space-y-5 px-6 py-5">
-              {/* Level + Code row */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                {/* Level select */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Level <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={dialogForm.level}
-                    onChange={(e) =>
-                      setDialogForm((p) => ({
-                        ...p,
-                        level: e.target.value,
-                        parentId: undefined,
-                      }))
-                    }
-                    disabled={dialogMode === 'edit'}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {adminLevels.map((al) => (
-                      <option key={al.level} value={`ADMIN${al.level}`}>
-                        L{al.level} — {al.name?.en ?? `Level ${al.level}`}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Code */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    <span className="flex items-center gap-1">
-                      <Hash className="h-3.5 w-3.5" />
-                      Code <span className="text-red-500">*</span>
-                    </span>
-                  </label>
-                  <input
-                    type="text"
-                    value={dialogForm.code}
-                    onChange={(e) =>
-                      setDialogForm((p) => ({ ...p, code: e.target.value }))
-                    }
-                    placeholder="KE-001"
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                  />
-                </div>
-              </div>
-
-              {/* Parent picker (for level 2+) */}
-              {dialogMode === 'add' && dialogParentMaxLevel > 0 && countryCode && (
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Parent Division <span className="text-red-500">*</span>
-                  </label>
-                  <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/50">
-                    <GeoLocationPicker
-                      countryCode={countryCode}
-                      countryId={countryId}
-                      maxLevel={dialogParentMaxLevel}
-                      onChange={(entityId) =>
-                        setDialogForm((p) => ({
-                          ...p,
-                          parentId: entityId ?? undefined,
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Multilingual Name */}
-              <div>
-                <div className="mb-1 flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  <Globe className="h-3.5 w-3.5" />
-                  Division Name
-                </div>
-                <MultilingualInput
-                  label=""
-                  value={dialogForm.name}
-                  onChange={(val) =>
-                    setDialogForm((p) => ({ ...p, name: val as Record<string, string> }))
-                  }
-                  required
-                  placeholder="Enter division name..."
-                />
-              </div>
-
-              {/* Coordinates */}
-              <div>
-                <p className="mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Coordinates <span className="text-xs font-normal text-gray-400">(optional)</span>
-                </p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
-                      Latitude
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={dialogForm.latitude}
-                      onChange={(e) =>
-                        setDialogForm((p) => ({ ...p, latitude: e.target.value }))
-                      }
-                      placeholder="-1.2921"
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
-                      Longitude
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={dialogForm.longitude}
-                      onChange={(e) =>
-                        setDialogForm((p) => ({ ...p, longitude: e.target.value }))
-                      }
-                      placeholder="36.8219"
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Dialog footer */}
-            <div className="flex items-center justify-between border-t border-gray-100 px-6 py-4 dark:border-gray-700">
-              <p className="text-xs text-gray-400">
-                <span className="text-red-500">*</span> Required fields
-              </p>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={closeDialog}
-                  disabled={isSaving}
-                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={!dialogForm.code.trim() || !dialogForm.name.en.trim() || isSaving}
-                  className="flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-aris-primary-700 disabled:opacity-50"
-                >
-                  {isSaving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  {dialogMode === 'add' ? 'Create' : 'Save Changes'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Toast ── */}
+      {/* Toast */}
       {toast && (
         <div
           className={`fixed bottom-6 right-6 z-[60] flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium shadow-lg transition-all ${

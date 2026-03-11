@@ -1,4 +1,4 @@
-// ARIS 3.0 — Drive / File Storage Model
+// ARIS 4.0 — Drive / File Storage Model
 // MinIO S3-compatible document storage with tenant isolation
 
 enum FileStatus {

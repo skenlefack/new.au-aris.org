@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { useAuthStore, type UserRole } from '@/lib/stores/auth-store';
 import { useTenantStore } from '@/lib/stores/tenant-store';
@@ -29,6 +30,7 @@ import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { useUiStore } from '@/lib/stores/ui-store';
 import { useUserFunctions } from '@/lib/api/settings-hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 
 /* ------------------------------------------------------------------ */
 /*  Role labels & colors                                               */
@@ -158,8 +160,13 @@ export function Header({ sidebarCollapsed, onSidebarToggle }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
+  const queryClient = useQueryClient();
   const { selectedTenantId, tenantTree, isLoading: isTenantLoading, setSelectedTenant } =
     useTenantStore();
+
+  const tc = useTranslations('common');
+  const th = useTranslations('header');
+  const tn = useTranslations('nav');
 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [tenantMenuOpen, setTenantMenuOpen] = useState(false);
@@ -288,6 +295,7 @@ export function Header({ sidebarCollapsed, onSidebarToggle }: HeaderProps) {
   }
 
   function handleLogout() {
+    queryClient.clear();
     logout();
     router.push('/');
   }
@@ -367,7 +375,7 @@ export function Header({ sidebarCollapsed, onSidebarToggle }: HeaderProps) {
           aria-label="Search (Ctrl+K)"
         >
           <Search className="h-4 w-4 flex-shrink-0 text-gray-400" />
-          <span className="hidden sm:inline truncate text-gray-400">Search across ARIS...</span>
+          <span className="hidden sm:inline truncate text-gray-400">{tn('searchPlaceholder')}</span>
           <kbd className="hidden rounded-md bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 px-1.5 py-0.5 text-[10px] font-mono text-gray-400 sm:inline ml-auto shadow-sm">
             {typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent) ? '\u2318' : 'Ctrl+'}K
           </kbd>
@@ -396,8 +404,8 @@ export function Header({ sidebarCollapsed, onSidebarToggle }: HeaderProps) {
             )}
             <span className="hidden font-medium text-gray-700 dark:text-gray-200 sm:inline max-w-[100px] truncate">
               {isTenantLoading
-                ? 'Loading...'
-                : selectedTenant?.name ?? 'Select tenant'}
+                ? th('loadingTenants')
+                : selectedTenant?.name ?? th('selectTenant')}
             </span>
             <ChevronDown
               className={cn(
@@ -414,13 +422,13 @@ export function Header({ sidebarCollapsed, onSidebarToggle }: HeaderProps) {
             >
               <div className="border-b border-gray-100 dark:border-gray-800 px-3 py-2">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                  Context selector
+                  {th('tenantHierarchy')}
                 </p>
               </div>
               {isTenantLoading ? (
                 <div className="flex items-center justify-center py-6">
                   <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-                  <span className="ml-2 text-sm text-gray-500">Loading tenants...</span>
+                  <span className="ml-2 text-sm text-gray-500">{th('loadingTenants')}</span>
                 </div>
               ) : (
                 tenantTree.map((t) => renderTenantNode(t))
@@ -527,7 +535,7 @@ export function Header({ sidebarCollapsed, onSidebarToggle }: HeaderProps) {
                     className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     <User className="h-4 w-4" />
-                    Profile & Settings
+                    {tc('profileSettings')}
                   </button>
                 </div>
                 <div className="border-t border-gray-100 dark:border-gray-800 py-1">
@@ -537,7 +545,7 @@ export function Header({ sidebarCollapsed, onSidebarToggle }: HeaderProps) {
                     className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                   >
                     <LogOut className="h-4 w-4" />
-                    Sign out
+                    {tc('signOut')}
                   </button>
                 </div>
               </div>

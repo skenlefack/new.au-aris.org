@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════════
-# ARIS 3.0 — Database Setup Script
+# ARIS 4.0 — Database Setup Script
 # Creates PostgreSQL schemas, enables extensions, runs migrations & seeds
 # ═══════════════════════════════════════════════════════════════════════════
 set -euo pipefail
@@ -197,7 +197,7 @@ run_seeds() {
 main() {
   echo ""
   echo "═══════════════════════════════════════════════════════════"
-  echo "  ARIS 3.0 — Database Setup"
+  echo "  ARIS 4.0 — Database Setup"
   echo "  Database: ${DB_NAME}@${DB_HOST}:${DB_PORT}"
   echo "═══════════════════════════════════════════════════════════"
   echo ""

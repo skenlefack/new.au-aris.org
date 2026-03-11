@@ -2,7 +2,7 @@
   "name": "@aris/service-clients",
   "version": "0.1.0",
   "private": true,
-  "description": "ARIS 3.0 — Inter-service HTTP clients with retry, circuit breaker, timeout",
+  "description": "ARIS 4.0 — Inter-service HTTP clients with retry, circuit breaker, timeout",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -17,7 +17,8 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "lint": "eslint src/",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "peerDependencies": {
     "@nestjs/common": "^10.0.0",

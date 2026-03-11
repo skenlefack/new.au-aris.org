@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 
 export interface DashboardFilters {
   period: string;        // 'last_12_months', 'last_6_months', '2025', '2024', 'custom'
@@ -34,8 +34,31 @@ const FilterContext = createContext<FilterContextValue>({
   activeFilterCount: 0,
 });
 
-export function DashboardFilterProvider({ children }: { children: React.ReactNode }) {
-  const [filters, setFilters] = useState<DashboardFilters>(DEFAULT_FILTERS);
+export interface DashboardFilterProviderProps {
+  children: React.ReactNode;
+  /** Initial filters based on user's tenant context */
+  initialFilters?: Partial<DashboardFilters>;
+}
+
+export function DashboardFilterProvider({ children, initialFilters }: DashboardFilterProviderProps) {
+  const [filters, setFilters] = useState<DashboardFilters>(() => ({
+    ...DEFAULT_FILTERS,
+    ...initialFilters,
+  }));
+
+  // Sync filters when initialFilters changes (handles zustand persist hydration race)
+  const initialRef = useRef(initialFilters);
+  useEffect(() => {
+    if (
+      initialFilters &&
+      Object.keys(initialFilters).length > 0 &&
+      (initialFilters.rec !== initialRef.current?.rec ||
+        initialFilters.country !== initialRef.current?.country)
+    ) {
+      initialRef.current = initialFilters;
+      setFilters((prev) => ({ ...prev, ...initialFilters }));
+    }
+  }, [initialFilters]);
 
   const setFilter = useCallback((key: keyof DashboardFilters, value: string) => {
     setFilters((prev) => {
@@ -53,20 +76,25 @@ export function DashboardFilterProvider({ children }: { children: React.ReactNod
     });
   }, []);
 
+  const baseFilters = useMemo(() => ({
+    ...DEFAULT_FILTERS,
+    ...initialFilters,
+  }), [initialFilters]);
+
   const resetFilters = useCallback(() => {
-    setFilters(DEFAULT_FILTERS);
-  }, []);
+    setFilters(baseFilters);
+  }, [baseFilters]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (filters.period !== 'last_12_months') count++;
-    if (filters.rec !== 'all') count++;
-    if (filters.country !== 'all') count++;
-    if (filters.domain !== 'all') count++;
-    if (filters.disease !== 'all') count++;
-    if (filters.species !== 'all') count++;
+    if (filters.period !== baseFilters.period) count++;
+    if (filters.rec !== baseFilters.rec) count++;
+    if (filters.country !== baseFilters.country) count++;
+    if (filters.domain !== baseFilters.domain) count++;
+    if (filters.disease !== baseFilters.disease) count++;
+    if (filters.species !== baseFilters.species) count++;
     return count;
-  }, [filters]);
+  }, [filters, baseFilters]);
 
   const value = useMemo(
     () => ({ filters, setFilter, resetFilters, activeFilterCount }),

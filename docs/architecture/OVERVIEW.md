@@ -1,11 +1,11 @@
-# ARIS 3.0 — System Architecture Overview
+# ARIS 4.0 — System Architecture Overview
 
 > Animal Resources Information System
 > AU-IBAR Continental Digital Infrastructure
 
 ## 1. Vision
 
-ARIS 3.0 is the **digital backbone** of the African Union's Inter-African Bureau for Animal Resources (AU-IBAR). It is a federated System-of-Systems covering all animal resources across **55 Member States** and **8 Regional Economic Communities (RECs)**.
+ARIS 4.0 is the **digital backbone** of the African Union's Inter-African Bureau for Animal Resources (AU-IBAR). It is a federated System-of-Systems covering all animal resources across **55 Member States** and **8 Regional Economic Communities (RECs)**.
 
 **Aligned with:** AU Agenda 2063, LiDeSA, PFRS, AU Digital Transformation Strategy 2020-2030.
 
@@ -70,7 +70,7 @@ graph TB
         PGBOUNCER[PgBouncer :6432<br/>Transaction Pooling]
         PG[(PostgreSQL 16<br/>+ PostGIS 3.4)]
         REDIS[(Redis 7<br/>+ @aris/cache)]
-        ES[(Elasticsearch 8)]
+        ES[(OpenSearch 2)]
         MINIO[(MinIO<br/>S3-Compatible)]
         PROM[Prometheus + Grafana]
     end
@@ -156,7 +156,7 @@ graph TB
 | Database | PostgreSQL + PostGIS | 16 / 3.4 |
 | Connection Pool | PgBouncer (transaction pooling) | Latest |
 | Cache | Redis + `@aris/cache` (domain-aware, Kafka invalidation) | 7 |
-| Search | Elasticsearch | 8.13 |
+| Search | OpenSearch (Apache 2.0) | 2.17 |
 | Object Storage | MinIO (S3-compatible) | Latest |
 | API Gateway | Traefik | v3.0 |
 | Auth | Custom JWT RS256 + bcrypt + MFA TOTP | - |

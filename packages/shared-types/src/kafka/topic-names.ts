@@ -50,10 +50,42 @@ export const TOPIC_MS_HEALTH_SURVEILLANCE_REPORTED = 'ms.health.surveillance.rep
 export const TOPIC_REC_HEALTH_OUTBREAK_ALERT = 'rec.health.outbreak.alert.v1' as const;
 export const TOPIC_MS_HEALTH_ENTITY_FLAGS_UPDATED = 'ms.health.entity.flags-updated.v1' as const;
 
+// ── Livestock Production Topics ──
+export const TOPIC_MS_LIVESTOCK_CENSUS_CREATED = 'ms.livestock.census.created.v1' as const;
+export const TOPIC_MS_LIVESTOCK_CENSUS_UPDATED = 'ms.livestock.census.updated.v1' as const;
+export const TOPIC_MS_LIVESTOCK_PRODUCTION_CREATED = 'ms.livestock.production.created.v1' as const;
+export const TOPIC_MS_LIVESTOCK_PRODUCTION_UPDATED = 'ms.livestock.production.updated.v1' as const;
+export const TOPIC_MS_LIVESTOCK_SLAUGHTER_CREATED = 'ms.livestock.slaughter.created.v1' as const;
+export const TOPIC_MS_LIVESTOCK_SLAUGHTER_UPDATED = 'ms.livestock.slaughter.updated.v1' as const;
+export const TOPIC_MS_LIVESTOCK_TRANSHUMANCE_CREATED = 'ms.livestock.transhumance.created.v1' as const;
+export const TOPIC_MS_LIVESTOCK_TRANSHUMANCE_UPDATED = 'ms.livestock.transhumance.updated.v1' as const;
+
+// ── Fisheries Topics ──
+export const TOPIC_MS_FISHERIES_CAPTURE_CREATED = 'ms.fisheries.capture.created.v1' as const;
+export const TOPIC_MS_FISHERIES_CAPTURE_UPDATED = 'ms.fisheries.capture.updated.v1' as const;
+export const TOPIC_MS_FISHERIES_VESSEL_CREATED = 'ms.fisheries.vessel.created.v1' as const;
+export const TOPIC_MS_FISHERIES_VESSEL_UPDATED = 'ms.fisheries.vessel.updated.v1' as const;
+export const TOPIC_MS_FISHERIES_AQUACULTURE_FARM_CREATED = 'ms.fisheries.aquaculture-farm.created.v1' as const;
+export const TOPIC_MS_FISHERIES_AQUACULTURE_FARM_UPDATED = 'ms.fisheries.aquaculture-farm.updated.v1' as const;
+export const TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_CREATED = 'ms.fisheries.aquaculture-production.created.v1' as const;
+export const TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_UPDATED = 'ms.fisheries.aquaculture-production.updated.v1' as const;
+
+// ── Wildlife Topics ──
+export const TOPIC_MS_WILDLIFE_INVENTORY_CREATED = 'ms.wildlife.inventory.created.v1' as const;
+export const TOPIC_MS_WILDLIFE_INVENTORY_UPDATED = 'ms.wildlife.inventory.updated.v1' as const;
+export const TOPIC_MS_WILDLIFE_PROTECTED_AREA_CREATED = 'ms.wildlife.protected-area.created.v1' as const;
+export const TOPIC_MS_WILDLIFE_PROTECTED_AREA_UPDATED = 'ms.wildlife.protected-area.updated.v1' as const;
+export const TOPIC_MS_WILDLIFE_CITES_PERMIT_CREATED = 'ms.wildlife.cites-permit.created.v1' as const;
+export const TOPIC_MS_WILDLIFE_CITES_PERMIT_UPDATED = 'ms.wildlife.cites-permit.updated.v1' as const;
+export const TOPIC_MS_WILDLIFE_CRIME_CREATED = 'ms.wildlife.crime.created.v1' as const;
+export const TOPIC_MS_WILDLIFE_CRIME_UPDATED = 'ms.wildlife.crime.updated.v1' as const;
+
 // ── Interop Topics ──
 export const TOPIC_AU_INTEROP_WAHIS_EXPORTED = 'au.interop.wahis.exported.v1' as const;
 export const TOPIC_AU_INTEROP_EMPRES_FED = 'au.interop.empres.fed.v1' as const;
 export const TOPIC_AU_INTEROP_FAOSTAT_SYNCED = 'au.interop.faostat.synced.v1' as const;
+export const TOPIC_AU_INTEROP_EXPORT_COMPLETED = 'au.interop.export.completed.v1' as const;
+export const TOPIC_AU_INTEROP_EXPORT_FAILED = 'au.interop.export.failed.v1' as const;
 
 // ── Knowledge Hub Topics ──
 export const TOPIC_AU_KNOWLEDGE_PUBLICATION_CREATED = 'au.knowledge.publication.created.v1' as const;
@@ -63,12 +95,6 @@ export const TOPIC_AU_KNOWLEDGE_ELEARNING_CREATED = 'au.knowledge.elearning.crea
 export const TOPIC_AU_KNOWLEDGE_ELEARNING_UPDATED = 'au.knowledge.elearning.updated.v1' as const;
 export const TOPIC_AU_KNOWLEDGE_FAQ_CREATED = 'au.knowledge.faq.created.v1' as const;
 export const TOPIC_AU_KNOWLEDGE_FAQ_UPDATED = 'au.knowledge.faq.updated.v1' as const;
-
-// ── Formation Topics ──
-export const TOPIC_SYS_FORMATION_SESSION_CREATED = 'sys.formation.session.created.v1' as const;
-export const TOPIC_SYS_FORMATION_SESSION_UPDATED = 'sys.formation.session.updated.v1' as const;
-export const TOPIC_SYS_FORMATION_PARTICIPANT_ENROLLED = 'sys.formation.participant.enrolled.v1' as const;
-export const TOPIC_SYS_FORMATION_CERTIFICATION_ISSUED = 'sys.formation.certification.issued.v1' as const;
 
 // ── Support Topics ──
 export const TOPIC_SYS_SUPPORT_TICKET_CREATED = 'sys.support.ticket.created.v1' as const;
@@ -104,6 +130,12 @@ export const TOPIC_SYS_OFFLINE_SYNC_PUSHED = 'sys.offline.sync.pushed.v1' as con
 export const TOPIC_SYS_OFFLINE_SYNC_CONFLICT = 'sys.offline.sync.conflict.v1' as const;
 export const TOPIC_SYS_OFFLINE_SYNC_RESOLVED = 'sys.offline.sync.resolved.v1' as const;
 export const TOPIC_SYS_OFFLINE_SYNC_COMPLETED = 'sys.offline.sync.completed.v1' as const;
+
+// ── Geo Services Topics ──
+export const TOPIC_MS_GEO_RISK_LAYER_CREATED = 'ms.geo.risk-layer.created.v1' as const;
+export const TOPIC_MS_GEO_RISK_LAYER_UPDATED = 'ms.geo.risk-layer.updated.v1' as const;
+export const TOPIC_MS_GEO_RISK_LAYER_DELETED = 'ms.geo.risk-layer.deleted.v1' as const;
+export const TOPIC_MS_GEO_SPATIAL_ALERT_TRIGGERED = 'ms.geo.spatial-alert.triggered.v1' as const;
 
 // ── DLQ Topics ──
 export const TOPIC_DLQ_ALL = 'dlq.all.v1' as const;
@@ -150,9 +182,35 @@ export const ALL_TOPICS = [
   TOPIC_MS_HEALTH_SURVEILLANCE_REPORTED,
   TOPIC_REC_HEALTH_OUTBREAK_ALERT,
   TOPIC_MS_HEALTH_ENTITY_FLAGS_UPDATED,
+  TOPIC_MS_LIVESTOCK_CENSUS_CREATED,
+  TOPIC_MS_LIVESTOCK_CENSUS_UPDATED,
+  TOPIC_MS_LIVESTOCK_PRODUCTION_CREATED,
+  TOPIC_MS_LIVESTOCK_PRODUCTION_UPDATED,
+  TOPIC_MS_LIVESTOCK_SLAUGHTER_CREATED,
+  TOPIC_MS_LIVESTOCK_SLAUGHTER_UPDATED,
+  TOPIC_MS_LIVESTOCK_TRANSHUMANCE_CREATED,
+  TOPIC_MS_LIVESTOCK_TRANSHUMANCE_UPDATED,
+  TOPIC_MS_FISHERIES_CAPTURE_CREATED,
+  TOPIC_MS_FISHERIES_CAPTURE_UPDATED,
+  TOPIC_MS_FISHERIES_VESSEL_CREATED,
+  TOPIC_MS_FISHERIES_VESSEL_UPDATED,
+  TOPIC_MS_FISHERIES_AQUACULTURE_FARM_CREATED,
+  TOPIC_MS_FISHERIES_AQUACULTURE_FARM_UPDATED,
+  TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_CREATED,
+  TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_UPDATED,
+  TOPIC_MS_WILDLIFE_INVENTORY_CREATED,
+  TOPIC_MS_WILDLIFE_INVENTORY_UPDATED,
+  TOPIC_MS_WILDLIFE_PROTECTED_AREA_CREATED,
+  TOPIC_MS_WILDLIFE_PROTECTED_AREA_UPDATED,
+  TOPIC_MS_WILDLIFE_CITES_PERMIT_CREATED,
+  TOPIC_MS_WILDLIFE_CITES_PERMIT_UPDATED,
+  TOPIC_MS_WILDLIFE_CRIME_CREATED,
+  TOPIC_MS_WILDLIFE_CRIME_UPDATED,
   TOPIC_AU_INTEROP_WAHIS_EXPORTED,
   TOPIC_AU_INTEROP_EMPRES_FED,
   TOPIC_AU_INTEROP_FAOSTAT_SYNCED,
+  TOPIC_AU_INTEROP_EXPORT_COMPLETED,
+  TOPIC_AU_INTEROP_EXPORT_FAILED,
   TOPIC_AU_KNOWLEDGE_PUBLICATION_CREATED,
   TOPIC_AU_KNOWLEDGE_PUBLICATION_UPDATED,
   TOPIC_AU_KNOWLEDGE_PUBLICATION_DELETED,
@@ -160,10 +218,6 @@ export const ALL_TOPICS = [
   TOPIC_AU_KNOWLEDGE_ELEARNING_UPDATED,
   TOPIC_AU_KNOWLEDGE_FAQ_CREATED,
   TOPIC_AU_KNOWLEDGE_FAQ_UPDATED,
-  TOPIC_SYS_FORMATION_SESSION_CREATED,
-  TOPIC_SYS_FORMATION_SESSION_UPDATED,
-  TOPIC_SYS_FORMATION_PARTICIPANT_ENROLLED,
-  TOPIC_SYS_FORMATION_CERTIFICATION_ISSUED,
   TOPIC_SYS_SUPPORT_TICKET_CREATED,
   TOPIC_SYS_SUPPORT_TICKET_UPDATED,
   TOPIC_SYS_SUPPORT_TICKET_CLOSED,
@@ -189,6 +243,10 @@ export const ALL_TOPICS = [
   TOPIC_SYS_OFFLINE_SYNC_CONFLICT,
   TOPIC_SYS_OFFLINE_SYNC_RESOLVED,
   TOPIC_SYS_OFFLINE_SYNC_COMPLETED,
+  TOPIC_MS_GEO_RISK_LAYER_CREATED,
+  TOPIC_MS_GEO_RISK_LAYER_UPDATED,
+  TOPIC_MS_GEO_RISK_LAYER_DELETED,
+  TOPIC_MS_GEO_SPATIAL_ALERT_TRIGGERED,
   TOPIC_DLQ_ALL,
   TOPIC_DLQ_HEALTH,
   TOPIC_DLQ_COLLECTE,

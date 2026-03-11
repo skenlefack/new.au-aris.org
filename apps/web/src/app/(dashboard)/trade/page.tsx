@@ -32,6 +32,15 @@ import {
 } from '@/lib/api/hooks';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
+import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
+
+const TRADE_ALERT_FIELDS: AlertField[] = [
+  { name: 'commodity', label: 'Commodity', type: 'text', placeholder: 'e.g. Livestock', required: true },
+  { name: 'direction', label: 'Direction', type: 'select', required: true, options: ['Export', 'Import', 'Transit'] },
+  { name: 'issue', label: 'Issue', type: 'select', required: true, options: ['SPS Non-Compliance', 'Border Delay', 'Documentation', 'Quota Exceeded', 'Price Anomaly', 'Other'] },
+  { name: 'country', label: 'Country', type: 'text', placeholder: 'e.g. Kenya', required: true },
+];
 
 const PLACEHOLDER_KPIS: TradeKpis['data'] = {
   totalExports: 4_820_000_000,
@@ -347,6 +356,12 @@ export default function TradePage() {
             </div>
           </div>
         </Link>
+      </div>
+
+      {/* Campaigns & Alert */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <DomainCampaignsSection domain="trade_sps" />
+        <QuickAlertCard domain="trade_sps" alertFields={TRADE_ALERT_FIELDS} title="Report Trade Issue" />
       </div>
     </div>
   );

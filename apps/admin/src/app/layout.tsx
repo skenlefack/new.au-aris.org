@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'ARIS Admin — System Administration',
-  description: 'AU-IBAR ARIS 3.0 Administration Panel',
+  description: 'AU-IBAR ARIS 4.0 Administration Panel',
 };
 
 export default function RootLayout({
