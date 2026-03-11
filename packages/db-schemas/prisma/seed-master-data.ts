@@ -66,6 +66,19 @@ const SPECIES_IDS = {
   HONEYBEE: '20000000-0000-4000-b000-000000000024',
   DOG: '20000000-0000-4000-b000-000000000025',
   CAT: '20000000-0000-4000-b000-000000000026',
+  // Phase 4 — additional species from References-data.txt
+  GOOSE: '20000000-0000-4000-b000-000000000027',
+  QUAIL: '20000000-0000-4000-b000-000000000028',
+  ZEBRA: '20000000-0000-4000-b000-000000000029',
+  WARTHOG: '20000000-0000-4000-b000-000000000030',
+  GRASS_CUTTER: '20000000-0000-4000-b000-000000000031',
+  GUINEA_PIG: '20000000-0000-4000-b000-000000000032',
+  DEER: '20000000-0000-4000-b000-000000000033',
+  HARE: '20000000-0000-4000-b000-000000000034',
+  WILD_PIG: '20000000-0000-4000-b000-000000000035',
+  MOLLUSC: '20000000-0000-4000-b000-000000000036',
+  CRUSTACEAN: '20000000-0000-4000-b000-000000000037',
+  AFRICAN_BUFFALO: '20000000-0000-4000-b000-000000000038',
 } as const;
 
 const DISEASE_IDS = {
@@ -94,6 +107,72 @@ const DISEASE_IDS = {
   FASCIOLOSIS: '30000000-0000-4000-b000-000000000023',
   MANGE: '30000000-0000-4000-b000-000000000024',
   MASTITIS: '30000000-0000-4000-b000-000000000025',
+  // Phase 4 — additional WOAH diseases from References-data.txt
+  BLUETONGUE: '30000000-0000-4000-b000-000000000026',
+  RINDERPEST: '30000000-0000-4000-b000-000000000027',
+  CSF: '30000000-0000-4000-b000-000000000028',
+  DOURINE: '30000000-0000-4000-b000-000000000029',
+  GLANDERS: '30000000-0000-4000-b000-000000000030',
+  EQUINE_INFLUENZA: '30000000-0000-4000-b000-000000000031',
+  EQUINE_INFECTIOUS_ANAEMIA: '30000000-0000-4000-b000-000000000032',
+  EQUINE_PIROPLASMOSIS: '30000000-0000-4000-b000-000000000033',
+  EQUINE_RHINOPNEUMONITIS: '30000000-0000-4000-b000-000000000034',
+  EQUINE_VIRAL_ARTERITIS: '30000000-0000-4000-b000-000000000035',
+  EQUINE_ENCEPHALOMYELITIS: '30000000-0000-4000-b000-000000000036',
+  VEE: '30000000-0000-4000-b000-000000000037',
+  CAMELPOX: '30000000-0000-4000-b000-000000000038',
+  BSE: '30000000-0000-4000-b000-000000000039',
+  EBL: '30000000-0000-4000-b000-000000000040',
+  IBR_IPV: '30000000-0000-4000-b000-000000000041',
+  HAEMORRHAGIC_SEPTICAEMIA: '30000000-0000-4000-b000-000000000042',
+  BOV_GENITAL_CAMP: '30000000-0000-4000-b000-000000000043',
+  MAEDI_VISNA: '30000000-0000-4000-b000-000000000044',
+  CONTAGIOUS_AGALACTIA: '30000000-0000-4000-b000-000000000045',
+  NAIROBI_SHEEP: '30000000-0000-4000-b000-000000000046',
+  SCRAPIE: '30000000-0000-4000-b000-000000000047',
+  AUJESZKY: '30000000-0000-4000-b000-000000000048',
+  PRRS: '30000000-0000-4000-b000-000000000049',
+  CYSTICERCOSIS: '30000000-0000-4000-b000-000000000050',
+  TRICHINELLOSIS: '30000000-0000-4000-b000-000000000051',
+  AVIAN_SALMONELLOSIS: '30000000-0000-4000-b000-000000000052',
+  FOWL_TYPHOID: '30000000-0000-4000-b000-000000000053',
+  IBD: '30000000-0000-4000-b000-000000000054',
+  MAREKS: '30000000-0000-4000-b000-000000000055',
+  AVIAN_IB: '30000000-0000-4000-b000-000000000056',
+  AVIAN_TB: '30000000-0000-4000-b000-000000000057',
+  FOWL_POX: '30000000-0000-4000-b000-000000000058',
+  ECHINOCOCCOSIS: '30000000-0000-4000-b000-000000000059',
+  LEPTOSPIROSIS: '30000000-0000-4000-b000-000000000060',
+  LISTERIOSIS: '30000000-0000-4000-b000-000000000061',
+  BOTULISM: '30000000-0000-4000-b000-000000000062',
+  LEISHMANIOSIS: '30000000-0000-4000-b000-000000000063',
+  COCCIDIOSIS: '30000000-0000-4000-b000-000000000064',
+  Q_FEVER: '30000000-0000-4000-b000-000000000065',
+  THEILERIOSIS: '30000000-0000-4000-b000-000000000066',
+  CRIMEAN_CONGO: '30000000-0000-4000-b000-000000000067',
+  FILARIASIS: '30000000-0000-4000-b000-000000000068',
+  MYXOMATOSIS: '30000000-0000-4000-b000-000000000069',
+  RABBIT_HAEMORRHAGIC: '30000000-0000-4000-b000-000000000070',
+  PARATUBERCULOSIS: '30000000-0000-4000-b000-000000000071',
+  STRANGLES: '30000000-0000-4000-b000-000000000072',
+  EHD: '30000000-0000-4000-b000-000000000073',
+  INFECTIOUS_CORYZA: '30000000-0000-4000-b000-000000000074',
+  VESICULAR_STOMATITIS: '30000000-0000-4000-b000-000000000075',
+  SVD: '30000000-0000-4000-b000-000000000076',
+  TULAREMIA: '30000000-0000-4000-b000-000000000077',
+  // Bee diseases in RefDisease (shared)
+  VARROA_DISEASE: '30000000-0000-4000-b000-000000000078',
+  NOSEMA_DISEASE: '30000000-0000-4000-b000-000000000079',
+  AFB_DISEASE: '30000000-0000-4000-b000-000000000080',
+  SMALL_HIVE_BEETLE_DISEASE: '30000000-0000-4000-b000-000000000081',
+  // Aquatic
+  EUS: '30000000-0000-4000-b000-000000000082',
+  ISA: '30000000-0000-4000-b000-000000000083',
+  KHV: '30000000-0000-4000-b000-000000000084',
+  VHS: '30000000-0000-4000-b000-000000000085',
+  WHITE_SPOT: '30000000-0000-4000-b000-000000000086',
+  TAURA: '30000000-0000-4000-b000-000000000087',
+  YELLOWHEAD: '30000000-0000-4000-b000-000000000088',
 } as const;
 
 // ══════════════════════════════════════════════════════════════
@@ -160,8 +239,21 @@ async function seedSpecies() {
     // Bees
     { id: SPECIES_IDS.HONEYBEE, code: 'HONEYBEE', name: ml('Honeybee', 'Abeille', 'Abelha', '\u0646\u062d\u0644\u0629 \u0627\u0644\u0639\u0633\u0644'), scientificName: 'Apis mellifera', groupId: GROUP_IDS.BEES, sortOrder: 1 },
     // Pets
-    { id: SPECIES_IDS.DOG, code: 'DOG', name: ml('Dog', 'Chien', 'C\u00e3o', '\u0643\u0644\u0628'), scientificName: 'Canis lupus familiaris', groupId: GROUP_IDS.PETS, sortOrder: 1 },
+    { id: SPECIES_IDS.DOG, code: 'DOG', name: ml('Dog', 'Chien', 'Cão', '\u0643\u0644\u0628'), scientificName: 'Canis lupus familiaris', groupId: GROUP_IDS.PETS, sortOrder: 1 },
     { id: SPECIES_IDS.CAT, code: 'CAT', name: ml('Cat', 'Chat', 'Gato', '\u0642\u0637'), scientificName: 'Felis catus', groupId: GROUP_IDS.PETS, sortOrder: 2 },
+    // Phase 4 — additional species from References-data.txt
+    { id: SPECIES_IDS.GOOSE, code: 'GOOSE', name: ml('Goose', 'Oie', 'Ganso', '\u0625\u0648\u0632'), scientificName: 'Anser anser', groupId: GROUP_IDS.POULTRY, sortOrder: 6 },
+    { id: SPECIES_IDS.QUAIL, code: 'QUAIL', name: ml('Quail', 'Caille', 'Codorniz', '\u0633\u0645\u0627\u0646'), scientificName: 'Coturnix coturnix', groupId: GROUP_IDS.POULTRY, sortOrder: 7 },
+    { id: SPECIES_IDS.ZEBRA, code: 'ZEBRA', name: ml('Zebra', 'Zèbre', 'Zebra', '\u062d\u0645\u0627\u0631 \u0648\u062d\u0634\u064a'), scientificName: 'Equus quagga', groupId: GROUP_IDS.EQUIDAE, sortOrder: 4 },
+    { id: SPECIES_IDS.WARTHOG, code: 'WARTHOG', name: ml('Warthog', 'Phacochère', 'Javali africano', '\u062e\u0646\u0632\u064a\u0631 \u0628\u0631\u064a'), scientificName: 'Phacochoerus africanus', groupId: GROUP_IDS.WILDLIFE, sortOrder: 6 },
+    { id: SPECIES_IDS.GRASS_CUTTER, code: 'GRASS_CUTTER', name: ml('Grass Cutter', 'Aulacode', 'Rato-do-campo', '\u0642\u0627\u0631\u0636 \u0627\u0644\u0639\u0634\u0628'), scientificName: 'Thryonomys swinderianus', groupId: GROUP_IDS.MONOGASTRIC, sortOrder: 2 },
+    { id: SPECIES_IDS.GUINEA_PIG, code: 'GUINEA_PIG', name: ml('Guinea Pig', 'Cobaye', 'Porquinho-da-índia', '\u062e\u0646\u0632\u064a\u0631 \u063a\u064a\u0646\u064a\u0627'), scientificName: 'Cavia porcellus', groupId: GROUP_IDS.MONOGASTRIC, sortOrder: 3 },
+    { id: SPECIES_IDS.DEER, code: 'DEER', name: ml('Deer', 'Cerf', 'Cervo', '\u063a\u0632\u0627\u0644'), scientificName: null, groupId: GROUP_IDS.WILDLIFE, sortOrder: 7 },
+    { id: SPECIES_IDS.HARE, code: 'HARE', name: ml('Hare', 'Lièvre', 'Lebre', '\u0623\u0631\u0646\u0628 \u0628\u0631\u064a'), scientificName: 'Lepus capensis', groupId: GROUP_IDS.WILDLIFE, sortOrder: 8 },
+    { id: SPECIES_IDS.WILD_PIG, code: 'WILD_PIG', name: ml('Wild Pig', 'Sanglier', 'Javali', '\u062e\u0646\u0632\u064a\u0631 \u0628\u0631\u064a'), scientificName: 'Sus scrofa', groupId: GROUP_IDS.WILDLIFE, sortOrder: 9 },
+    { id: SPECIES_IDS.MOLLUSC, code: 'MOLLUSC', name: ml('Mollusc', 'Mollusque', 'Molusco', '\u0631\u062e\u0648\u064a\u0627\u062a'), scientificName: null, groupId: GROUP_IDS.AQUATIC, sortOrder: 4 },
+    { id: SPECIES_IDS.CRUSTACEAN, code: 'CRUSTACEAN', name: ml('Crustacean', 'Crustacé', 'Crustáceo', '\u0642\u0634\u0631\u064a\u0627\u062a'), scientificName: null, groupId: GROUP_IDS.AQUATIC, sortOrder: 5 },
+    { id: SPECIES_IDS.AFRICAN_BUFFALO, code: 'AFRICAN_BUFFALO', name: ml('African Buffalo', 'Buffle d\'Afrique', 'Búfalo africano', '\u062c\u0627\u0645\u0648\u0633 \u0623\u0641\u0631\u064a\u0642\u064a'), scientificName: 'Syncerus caffer', groupId: GROUP_IDS.WILDLIFE, sortOrder: 10 },
   ];
 
   for (const s of species) {
@@ -192,6 +284,29 @@ async function seedAgeGroups() {
     { code: 'CHICK', name: ml('Chick (0-8 weeks)', 'Poussin (0-8 semaines)'), speciesId: SPECIES_IDS.CHICKEN, minMonths: 0, maxMonths: 2, sortOrder: 1 },
     { code: 'GROWER', name: ml('Grower (8-20 weeks)', 'Croissance (8-20 semaines)'), speciesId: SPECIES_IDS.CHICKEN, minMonths: 2, maxMonths: 5, sortOrder: 2 },
     { code: 'LAYER_BROILER', name: ml('Layer/Broiler (>20 weeks)', 'Pondeuse/Chair (>20 semaines)'), speciesId: SPECIES_IDS.CHICKEN, minMonths: 5, maxMonths: null, sortOrder: 3 },
+    // Phase 4 — Additional species age groups from References-data.txt
+    // Buffalo
+    { code: 'BUFFALO_CALF', name: ml('Buffalo Calf (0-12 months)', 'Bufflon (0-12 mois)'), speciesId: SPECIES_IDS.BUFFALO, minMonths: 0, maxMonths: 12, sortOrder: 1 },
+    { code: 'BUFFALO_YOUNG', name: ml('Young Buffalo (1-3 years)', 'Jeune buffle (1-3 ans)'), speciesId: SPECIES_IDS.BUFFALO, minMonths: 12, maxMonths: 36, sortOrder: 2 },
+    { code: 'BUFFALO_ADULT', name: ml('Adult Buffalo (>3 years)', 'Buffle adulte (>3 ans)'), speciesId: SPECIES_IDS.BUFFALO, minMonths: 36, maxMonths: null, sortOrder: 3 },
+    // Pig
+    { code: 'PIGLET', name: ml('Piglet (0-2 months)', 'Porcelet (0-2 mois)'), speciesId: SPECIES_IDS.PIG, minMonths: 0, maxMonths: 2, sortOrder: 1 },
+    { code: 'WEANER_PIG', name: ml('Weaner (2-4 months)', 'Sevré (2-4 mois)'), speciesId: SPECIES_IDS.PIG, minMonths: 2, maxMonths: 4, sortOrder: 2 },
+    { code: 'GROWER_PIG', name: ml('Grower (4-6 months)', 'Croissance (4-6 mois)'), speciesId: SPECIES_IDS.PIG, minMonths: 4, maxMonths: 6, sortOrder: 3 },
+    { code: 'ADULT_PIG', name: ml('Adult Pig (>6 months)', 'Porc adulte (>6 mois)'), speciesId: SPECIES_IDS.PIG, minMonths: 6, maxMonths: null, sortOrder: 4 },
+    // Horse
+    { code: 'FOAL', name: ml('Foal (0-12 months)', 'Poulain (0-12 mois)'), speciesId: SPECIES_IDS.HORSE, minMonths: 0, maxMonths: 12, sortOrder: 1 },
+    { code: 'YEARLING_HORSE', name: ml('Yearling (1-2 years)', 'Yearling (1-2 ans)'), speciesId: SPECIES_IDS.HORSE, minMonths: 12, maxMonths: 24, sortOrder: 2 },
+    { code: 'YOUNG_HORSE', name: ml('Young Horse (2-4 years)', 'Jeune cheval (2-4 ans)'), speciesId: SPECIES_IDS.HORSE, minMonths: 24, maxMonths: 48, sortOrder: 3 },
+    { code: 'ADULT_HORSE', name: ml('Adult Horse (>4 years)', 'Cheval adulte (>4 ans)'), speciesId: SPECIES_IDS.HORSE, minMonths: 48, maxMonths: null, sortOrder: 4 },
+    // Camel
+    { code: 'CAMEL_CALF', name: ml('Camel Calf (0-12 months)', 'Chamelon (0-12 mois)'), speciesId: SPECIES_IDS.DROMEDARY, minMonths: 0, maxMonths: 12, sortOrder: 1 },
+    { code: 'YOUNG_CAMEL', name: ml('Young Camel (1-4 years)', 'Jeune chameau (1-4 ans)'), speciesId: SPECIES_IDS.DROMEDARY, minMonths: 12, maxMonths: 48, sortOrder: 2 },
+    { code: 'ADULT_CAMEL', name: ml('Adult Camel (>4 years)', 'Chameau adulte (>4 ans)'), speciesId: SPECIES_IDS.DROMEDARY, minMonths: 48, maxMonths: null, sortOrder: 3 },
+    // Rabbit
+    { code: 'KITTEN_RABBIT', name: ml('Kitten (0-2 months)', 'Lapereau (0-2 mois)'), speciesId: SPECIES_IDS.RABBIT, minMonths: 0, maxMonths: 2, sortOrder: 1 },
+    { code: 'YOUNG_RABBIT', name: ml('Young Rabbit (2-5 months)', 'Jeune lapin (2-5 mois)'), speciesId: SPECIES_IDS.RABBIT, minMonths: 2, maxMonths: 5, sortOrder: 2 },
+    { code: 'ADULT_RABBIT', name: ml('Adult Rabbit (>5 months)', 'Lapin adulte (>5 mois)'), speciesId: SPECIES_IDS.RABBIT, minMonths: 5, maxMonths: null, sortOrder: 3 },
   ];
 
   for (const ag of ageGroups) {
@@ -242,6 +357,80 @@ async function seedDiseases() {
     { id: DISEASE_IDS.FASCIOLOSIS, code: 'FASCIOLOSIS', name: ml('Fasciolosis', 'Fasciolose'), oieCode: null, isNotifiable: false, isZoonotic: false, category: 'parasitic', sortOrder: 23 },
     { id: DISEASE_IDS.MANGE, code: 'MANGE', name: ml('Mange', 'Gale'), oieCode: null, isNotifiable: false, isZoonotic: false, category: 'parasitic', sortOrder: 24 },
     { id: DISEASE_IDS.MASTITIS, code: 'MASTITIS', name: ml('Mastitis', 'Mammite'), oieCode: null, isNotifiable: false, isZoonotic: false, category: 'bacterial', sortOrder: 25 },
+    // Phase 4 — WOAH diseases from References-data.txt (63 new)
+    // Bovine
+    { id: DISEASE_IDS.BLUETONGUE, code: 'BLUETONGUE', name: ml('Bluetongue', 'Fièvre catarrhale du mouton'), oieCode: 'A090', isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 26 },
+    { id: DISEASE_IDS.RINDERPEST, code: 'RINDERPEST', name: ml('Rinderpest', 'Peste bovine'), oieCode: 'A020', isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 27 },
+    { id: DISEASE_IDS.BSE, code: 'BSE', name: ml('Bovine Spongiform Encephalopathy', 'Encéphalopathie spongiforme bovine'), oieCode: 'B050', isNotifiable: true, isZoonotic: true, category: 'prion', sortOrder: 28 },
+    { id: DISEASE_IDS.EBL, code: 'EBL', name: ml('Enzootic Bovine Leukosis', 'Leucose bovine enzootique'), oieCode: 'B060', isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 29 },
+    { id: DISEASE_IDS.IBR_IPV, code: 'IBR_IPV', name: ml('Infectious Bovine Rhinotracheitis / IPV', 'Rhinotrachéite infectieuse bovine / IPV'), oieCode: 'B070', isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 30 },
+    { id: DISEASE_IDS.HAEMORRHAGIC_SEPTICAEMIA, code: 'HAEMORRHAGIC_SEPTICAEMIA', name: ml('Haemorrhagic Septicaemia', 'Septicémie hémorragique'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'bacterial', sortOrder: 31 },
+    { id: DISEASE_IDS.BOV_GENITAL_CAMP, code: 'BOV_GENITAL_CAMP', name: ml('Bovine Genital Campylobacteriosis', 'Campylobactériose génitale bovine'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'bacterial', sortOrder: 32 },
+    // Equine
+    { id: DISEASE_IDS.DOURINE, code: 'DOURINE', name: ml('Dourine', 'Dourine'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'parasitic', sortOrder: 33 },
+    { id: DISEASE_IDS.GLANDERS, code: 'GLANDERS', name: ml('Glanders', 'Morve'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'bacterial', sortOrder: 34 },
+    { id: DISEASE_IDS.EQUINE_INFLUENZA, code: 'EQUINE_INFLUENZA', name: ml('Equine Influenza', 'Grippe équine'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 35 },
+    { id: DISEASE_IDS.EQUINE_INFECTIOUS_ANAEMIA, code: 'EQUINE_INFECTIOUS_ANAEMIA', name: ml('Equine Infectious Anaemia', 'Anémie infectieuse des équidés'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 36 },
+    { id: DISEASE_IDS.EQUINE_PIROPLASMOSIS, code: 'EQUINE_PIROPLASMOSIS', name: ml('Equine Piroplasmosis', 'Piroplasmose équine'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'parasitic', sortOrder: 37 },
+    { id: DISEASE_IDS.EQUINE_RHINOPNEUMONITIS, code: 'EQUINE_RHINOPNEUMONITIS', name: ml('Equine Rhinopneumonitis', 'Rhinopneumonie équine'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 38 },
+    { id: DISEASE_IDS.EQUINE_VIRAL_ARTERITIS, code: 'EQUINE_VIRAL_ARTERITIS', name: ml('Equine Viral Arteritis', 'Artérite virale équine'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 39 },
+    { id: DISEASE_IDS.EQUINE_ENCEPHALOMYELITIS, code: 'EQUINE_ENCEPHALOMYELITIS', name: ml('Equine Encephalomyelitis (Eastern/Western)', 'Encéphalomyélite équine (Est/Ouest)'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'viral', sortOrder: 40 },
+    { id: DISEASE_IDS.VEE, code: 'VEE', name: ml('Venezuelan Equine Encephalomyelitis', 'Encéphalomyélite équine vénézuélienne'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'viral', sortOrder: 41 },
+    { id: DISEASE_IDS.STRANGLES, code: 'STRANGLES', name: ml('Strangles', 'Gourme'), oieCode: null, isNotifiable: false, isZoonotic: false, category: 'bacterial', sortOrder: 42 },
+    // Camelid
+    { id: DISEASE_IDS.CAMELPOX, code: 'CAMELPOX', name: ml('Camelpox', 'Variole du chameau'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 43 },
+    // Sheep & Goat
+    { id: DISEASE_IDS.MAEDI_VISNA, code: 'MAEDI_VISNA', name: ml('Maedi-Visna', 'Maedi-Visna'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 44 },
+    { id: DISEASE_IDS.CONTAGIOUS_AGALACTIA, code: 'CONTAGIOUS_AGALACTIA', name: ml('Contagious Agalactia', 'Agalaxie contagieuse'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'bacterial', sortOrder: 45 },
+    { id: DISEASE_IDS.NAIROBI_SHEEP, code: 'NAIROBI_SHEEP', name: ml('Nairobi Sheep Disease', 'Maladie de Nairobi'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 46 },
+    { id: DISEASE_IDS.SCRAPIE, code: 'SCRAPIE', name: ml('Scrapie', 'Tremblante'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'prion', sortOrder: 47 },
+    // Swine
+    { id: DISEASE_IDS.CSF, code: 'CSF', name: ml('Classical Swine Fever', 'Peste porcine classique'), oieCode: 'A130', isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 48 },
+    { id: DISEASE_IDS.AUJESZKY, code: 'AUJESZKY', name: ml('Aujeszky\'s Disease', 'Maladie d\'Aujeszky'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 49 },
+    { id: DISEASE_IDS.PRRS, code: 'PRRS', name: ml('Porcine Reproductive & Respiratory Syndrome', 'SDRP'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 50 },
+    { id: DISEASE_IDS.SVD, code: 'SVD', name: ml('Swine Vesicular Disease', 'Maladie vésiculeuse du porc'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 51 },
+    { id: DISEASE_IDS.CYSTICERCOSIS, code: 'CYSTICERCOSIS', name: ml('Cysticercosis', 'Cysticercose'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'parasitic', sortOrder: 52 },
+    // Poultry
+    { id: DISEASE_IDS.AVIAN_SALMONELLOSIS, code: 'AVIAN_SALMONELLOSIS', name: ml('Avian Salmonellosis (S. pullorum)', 'Salmonellose aviaire (S. pullorum)'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'bacterial', sortOrder: 53 },
+    { id: DISEASE_IDS.FOWL_TYPHOID, code: 'FOWL_TYPHOID', name: ml('Fowl Typhoid', 'Typhose aviaire'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'bacterial', sortOrder: 54 },
+    { id: DISEASE_IDS.IBD, code: 'IBD', name: ml('Infectious Bursal Disease (Gumboro)', 'Maladie de Gumboro'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 55 },
+    { id: DISEASE_IDS.MAREKS, code: 'MAREKS', name: ml('Marek\'s Disease', 'Maladie de Marek'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 56 },
+    { id: DISEASE_IDS.AVIAN_IB, code: 'AVIAN_IB', name: ml('Avian Infectious Bronchitis', 'Bronchite infectieuse aviaire'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 57 },
+    { id: DISEASE_IDS.AVIAN_TB, code: 'AVIAN_TB', name: ml('Avian Tuberculosis', 'Tuberculose aviaire'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'bacterial', sortOrder: 58 },
+    { id: DISEASE_IDS.FOWL_POX, code: 'FOWL_POX', name: ml('Fowl Pox', 'Variole aviaire'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 59 },
+    { id: DISEASE_IDS.INFECTIOUS_CORYZA, code: 'INFECTIOUS_CORYZA', name: ml('Infectious Coryza', 'Coryza infectieux'), oieCode: null, isNotifiable: false, isZoonotic: false, category: 'bacterial', sortOrder: 60 },
+    // Multi-species
+    { id: DISEASE_IDS.ECHINOCOCCOSIS, code: 'ECHINOCOCCOSIS', name: ml('Echinococcosis / Hydatidosis', 'Échinococcose / Hydatidose'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'parasitic', sortOrder: 61 },
+    { id: DISEASE_IDS.LEPTOSPIROSIS, code: 'LEPTOSPIROSIS', name: ml('Leptospirosis', 'Leptospirose'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'bacterial', sortOrder: 62 },
+    { id: DISEASE_IDS.LISTERIOSIS, code: 'LISTERIOSIS', name: ml('Listeriosis', 'Listériose'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'bacterial', sortOrder: 63 },
+    { id: DISEASE_IDS.BOTULISM, code: 'BOTULISM', name: ml('Botulism', 'Botulisme'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'bacterial', sortOrder: 64 },
+    { id: DISEASE_IDS.LEISHMANIOSIS, code: 'LEISHMANIOSIS', name: ml('Leishmaniosis', 'Leishmaniose'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'parasitic', sortOrder: 65 },
+    { id: DISEASE_IDS.COCCIDIOSIS, code: 'COCCIDIOSIS', name: ml('Coccidiosis', 'Coccidiose'), oieCode: null, isNotifiable: false, isZoonotic: false, category: 'parasitic', sortOrder: 66 },
+    { id: DISEASE_IDS.Q_FEVER, code: 'Q_FEVER', name: ml('Q Fever (Coxiellosis)', 'Fièvre Q (Coxiellose)'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'bacterial', sortOrder: 67 },
+    { id: DISEASE_IDS.THEILERIOSIS, code: 'THEILERIOSIS', name: ml('Theileriosis (tropical)', 'Theilériose (tropicale)'), oieCode: null, isNotifiable: false, isZoonotic: false, category: 'parasitic', sortOrder: 68 },
+    { id: DISEASE_IDS.CRIMEAN_CONGO, code: 'CRIMEAN_CONGO', name: ml('Crimean-Congo Haemorrhagic Fever', 'Fièvre hémorragique de Crimée-Congo'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'viral', sortOrder: 69 },
+    { id: DISEASE_IDS.FILARIASIS, code: 'FILARIASIS', name: ml('Filariasis', 'Filariose'), oieCode: null, isNotifiable: false, isZoonotic: false, category: 'parasitic', sortOrder: 70 },
+    { id: DISEASE_IDS.TRICHINELLOSIS, code: 'TRICHINELLOSIS', name: ml('Trichinellosis', 'Trichinellose'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'parasitic', sortOrder: 71 },
+    { id: DISEASE_IDS.PARATUBERCULOSIS, code: 'PARATUBERCULOSIS', name: ml('Paratuberculosis (Johne\'s)', 'Paratuberculose (Johne)'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'bacterial', sortOrder: 72 },
+    { id: DISEASE_IDS.VESICULAR_STOMATITIS, code: 'VESICULAR_STOMATITIS', name: ml('Vesicular Stomatitis', 'Stomatite vésiculeuse'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'viral', sortOrder: 73 },
+    { id: DISEASE_IDS.TULAREMIA, code: 'TULAREMIA', name: ml('Tularemia', 'Tularémie'), oieCode: null, isNotifiable: true, isZoonotic: true, category: 'bacterial', sortOrder: 74 },
+    { id: DISEASE_IDS.EHD, code: 'EHD', name: ml('Epizootic Haemorrhagic Disease', 'Maladie hémorragique épizootique'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 75 },
+    // Rabbit
+    { id: DISEASE_IDS.MYXOMATOSIS, code: 'MYXOMATOSIS', name: ml('Myxomatosis', 'Myxomatose'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 76 },
+    { id: DISEASE_IDS.RABBIT_HAEMORRHAGIC, code: 'RABBIT_HAEMORRHAGIC', name: ml('Rabbit Haemorrhagic Disease', 'Maladie hémorragique du lapin'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 77 },
+    // Bee diseases (in RefDisease for cross-domain use)
+    { id: DISEASE_IDS.VARROA_DISEASE, code: 'VARROA_DISEASE', name: ml('Varroosis', 'Varroose'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'parasitic', sortOrder: 78 },
+    { id: DISEASE_IDS.NOSEMA_DISEASE, code: 'NOSEMA_DISEASE', name: ml('Nosemosis (Nosema apis/ceranae)', 'Nosémose'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'fungal', sortOrder: 79 },
+    { id: DISEASE_IDS.AFB_DISEASE, code: 'AFB_DISEASE', name: ml('American Foulbrood', 'Loque américaine'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'bacterial', sortOrder: 80 },
+    { id: DISEASE_IDS.SMALL_HIVE_BEETLE_DISEASE, code: 'SMALL_HIVE_BEETLE_DISEASE', name: ml('Small Hive Beetle Infestation', 'Infestation par le petit coléoptère'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'parasitic', sortOrder: 81 },
+    // Aquatic
+    { id: DISEASE_IDS.EUS, code: 'EUS', name: ml('Epizootic Ulcerative Syndrome', 'Syndrome ulcéreux épizootique'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'fungal', sortOrder: 82 },
+    { id: DISEASE_IDS.ISA, code: 'ISA', name: ml('Infectious Salmon Anaemia', 'Anémie infectieuse du saumon'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 83 },
+    { id: DISEASE_IDS.KHV, code: 'KHV', name: ml('Koi Herpesvirus Disease', 'Herpèsvirose de la carpe koï'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 84 },
+    { id: DISEASE_IDS.VHS, code: 'VHS', name: ml('Viral Haemorrhagic Septicaemia', 'Septicémie hémorragique virale'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 85 },
+    { id: DISEASE_IDS.WHITE_SPOT, code: 'WHITE_SPOT', name: ml('White Spot Disease', 'Maladie des points blancs'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 86 },
+    { id: DISEASE_IDS.TAURA, code: 'TAURA', name: ml('Taura Syndrome', 'Syndrome de Taura'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 87 },
+    { id: DISEASE_IDS.YELLOWHEAD, code: 'YELLOWHEAD', name: ml('Yellow Head Disease', 'Maladie de la tête jaune'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 88 },
   ];
 
   for (const d of diseases) {
@@ -344,6 +533,181 @@ async function seedDiseaseSpecies() {
     { diseaseId: DISEASE_IDS.MASTITIS, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'high' },
     { diseaseId: DISEASE_IDS.MASTITIS, speciesId: SPECIES_IDS.SHEEP, susceptibility: 'moderate' },
     { diseaseId: DISEASE_IDS.MASTITIS, speciesId: SPECIES_IDS.GOAT, susceptibility: 'moderate' },
+    // ── Phase 4 — Disease-species relations for new WOAH diseases ──
+    // BLUETONGUE
+    { diseaseId: DISEASE_IDS.BLUETONGUE, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.BLUETONGUE, speciesId: SPECIES_IDS.SHEEP, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.BLUETONGUE, speciesId: SPECIES_IDS.GOAT, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.BLUETONGUE, speciesId: SPECIES_IDS.DEER, susceptibility: 'high' },
+    // RINDERPEST
+    { diseaseId: DISEASE_IDS.RINDERPEST, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.RINDERPEST, speciesId: SPECIES_IDS.BUFFALO, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.RINDERPEST, speciesId: SPECIES_IDS.AFRICAN_BUFFALO, susceptibility: 'high' },
+    // BSE
+    { diseaseId: DISEASE_IDS.BSE, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'high' },
+    // EBL
+    { diseaseId: DISEASE_IDS.EBL, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'high' },
+    // IBR/IPV
+    { diseaseId: DISEASE_IDS.IBR_IPV, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'high' },
+    // HAEMORRHAGIC SEPTICAEMIA
+    { diseaseId: DISEASE_IDS.HAEMORRHAGIC_SEPTICAEMIA, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.HAEMORRHAGIC_SEPTICAEMIA, speciesId: SPECIES_IDS.BUFFALO, susceptibility: 'high' },
+    // BOV GENITAL CAMPYLOBACTERIOSIS
+    { diseaseId: DISEASE_IDS.BOV_GENITAL_CAMP, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'high' },
+    // DOURINE
+    { diseaseId: DISEASE_IDS.DOURINE, speciesId: SPECIES_IDS.HORSE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.DOURINE, speciesId: SPECIES_IDS.DONKEY, susceptibility: 'moderate' },
+    // GLANDERS
+    { diseaseId: DISEASE_IDS.GLANDERS, speciesId: SPECIES_IDS.HORSE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.GLANDERS, speciesId: SPECIES_IDS.DONKEY, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.GLANDERS, speciesId: SPECIES_IDS.MULE, susceptibility: 'high' },
+    // EQUINE INFLUENZA
+    { diseaseId: DISEASE_IDS.EQUINE_INFLUENZA, speciesId: SPECIES_IDS.HORSE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.EQUINE_INFLUENZA, speciesId: SPECIES_IDS.DONKEY, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.EQUINE_INFLUENZA, speciesId: SPECIES_IDS.ZEBRA, susceptibility: 'moderate' },
+    // EQUINE INFECTIOUS ANAEMIA
+    { diseaseId: DISEASE_IDS.EQUINE_INFECTIOUS_ANAEMIA, speciesId: SPECIES_IDS.HORSE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.EQUINE_INFECTIOUS_ANAEMIA, speciesId: SPECIES_IDS.DONKEY, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.EQUINE_INFECTIOUS_ANAEMIA, speciesId: SPECIES_IDS.MULE, susceptibility: 'moderate' },
+    // EQUINE PIROPLASMOSIS
+    { diseaseId: DISEASE_IDS.EQUINE_PIROPLASMOSIS, speciesId: SPECIES_IDS.HORSE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.EQUINE_PIROPLASMOSIS, speciesId: SPECIES_IDS.DONKEY, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.EQUINE_PIROPLASMOSIS, speciesId: SPECIES_IDS.ZEBRA, susceptibility: 'moderate' },
+    // EQUINE RHINOPNEUMONITIS
+    { diseaseId: DISEASE_IDS.EQUINE_RHINOPNEUMONITIS, speciesId: SPECIES_IDS.HORSE, susceptibility: 'high' },
+    // EQUINE VIRAL ARTERITIS
+    { diseaseId: DISEASE_IDS.EQUINE_VIRAL_ARTERITIS, speciesId: SPECIES_IDS.HORSE, susceptibility: 'high' },
+    // EQUINE ENCEPHALOMYELITIS
+    { diseaseId: DISEASE_IDS.EQUINE_ENCEPHALOMYELITIS, speciesId: SPECIES_IDS.HORSE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.EQUINE_ENCEPHALOMYELITIS, speciesId: SPECIES_IDS.DONKEY, susceptibility: 'moderate' },
+    // VEE
+    { diseaseId: DISEASE_IDS.VEE, speciesId: SPECIES_IDS.HORSE, susceptibility: 'high' },
+    // STRANGLES
+    { diseaseId: DISEASE_IDS.STRANGLES, speciesId: SPECIES_IDS.HORSE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.STRANGLES, speciesId: SPECIES_IDS.DONKEY, susceptibility: 'moderate' },
+    // CAMELPOX
+    { diseaseId: DISEASE_IDS.CAMELPOX, speciesId: SPECIES_IDS.DROMEDARY, susceptibility: 'high' },
+    // MAEDI-VISNA
+    { diseaseId: DISEASE_IDS.MAEDI_VISNA, speciesId: SPECIES_IDS.SHEEP, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.MAEDI_VISNA, speciesId: SPECIES_IDS.GOAT, susceptibility: 'moderate' },
+    // CONTAGIOUS AGALACTIA
+    { diseaseId: DISEASE_IDS.CONTAGIOUS_AGALACTIA, speciesId: SPECIES_IDS.SHEEP, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.CONTAGIOUS_AGALACTIA, speciesId: SPECIES_IDS.GOAT, susceptibility: 'high' },
+    // NAIROBI SHEEP DISEASE
+    { diseaseId: DISEASE_IDS.NAIROBI_SHEEP, speciesId: SPECIES_IDS.SHEEP, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.NAIROBI_SHEEP, speciesId: SPECIES_IDS.GOAT, susceptibility: 'high' },
+    // SCRAPIE
+    { diseaseId: DISEASE_IDS.SCRAPIE, speciesId: SPECIES_IDS.SHEEP, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.SCRAPIE, speciesId: SPECIES_IDS.GOAT, susceptibility: 'moderate' },
+    // CSF
+    { diseaseId: DISEASE_IDS.CSF, speciesId: SPECIES_IDS.PIG, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.CSF, speciesId: SPECIES_IDS.WILD_PIG, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.CSF, speciesId: SPECIES_IDS.WARTHOG, susceptibility: 'moderate' },
+    // AUJESZKY
+    { diseaseId: DISEASE_IDS.AUJESZKY, speciesId: SPECIES_IDS.PIG, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.AUJESZKY, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'low' },
+    // PRRS
+    { diseaseId: DISEASE_IDS.PRRS, speciesId: SPECIES_IDS.PIG, susceptibility: 'high' },
+    // SVD
+    { diseaseId: DISEASE_IDS.SVD, speciesId: SPECIES_IDS.PIG, susceptibility: 'high' },
+    // CYSTICERCOSIS
+    { diseaseId: DISEASE_IDS.CYSTICERCOSIS, speciesId: SPECIES_IDS.PIG, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.CYSTICERCOSIS, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'moderate' },
+    // AVIAN SALMONELLOSIS
+    { diseaseId: DISEASE_IDS.AVIAN_SALMONELLOSIS, speciesId: SPECIES_IDS.CHICKEN, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.AVIAN_SALMONELLOSIS, speciesId: SPECIES_IDS.TURKEY, susceptibility: 'high' },
+    // FOWL TYPHOID
+    { diseaseId: DISEASE_IDS.FOWL_TYPHOID, speciesId: SPECIES_IDS.CHICKEN, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.FOWL_TYPHOID, speciesId: SPECIES_IDS.TURKEY, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.FOWL_TYPHOID, speciesId: SPECIES_IDS.GUINEA_FOWL, susceptibility: 'moderate' },
+    // IBD (GUMBORO)
+    { diseaseId: DISEASE_IDS.IBD, speciesId: SPECIES_IDS.CHICKEN, susceptibility: 'high' },
+    // MAREK'S
+    { diseaseId: DISEASE_IDS.MAREKS, speciesId: SPECIES_IDS.CHICKEN, susceptibility: 'high' },
+    // AVIAN IB
+    { diseaseId: DISEASE_IDS.AVIAN_IB, speciesId: SPECIES_IDS.CHICKEN, susceptibility: 'high' },
+    // AVIAN TB
+    { diseaseId: DISEASE_IDS.AVIAN_TB, speciesId: SPECIES_IDS.CHICKEN, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.AVIAN_TB, speciesId: SPECIES_IDS.DUCK, susceptibility: 'moderate' },
+    // FOWL POX
+    { diseaseId: DISEASE_IDS.FOWL_POX, speciesId: SPECIES_IDS.CHICKEN, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.FOWL_POX, speciesId: SPECIES_IDS.TURKEY, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.FOWL_POX, speciesId: SPECIES_IDS.PIGEON, susceptibility: 'moderate' },
+    // INFECTIOUS CORYZA
+    { diseaseId: DISEASE_IDS.INFECTIOUS_CORYZA, speciesId: SPECIES_IDS.CHICKEN, susceptibility: 'high' },
+    // ECHINOCOCCOSIS
+    { diseaseId: DISEASE_IDS.ECHINOCOCCOSIS, speciesId: SPECIES_IDS.DOG, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.ECHINOCOCCOSIS, speciesId: SPECIES_IDS.SHEEP, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.ECHINOCOCCOSIS, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.ECHINOCOCCOSIS, speciesId: SPECIES_IDS.GOAT, susceptibility: 'moderate' },
+    // LEPTOSPIROSIS
+    { diseaseId: DISEASE_IDS.LEPTOSPIROSIS, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.LEPTOSPIROSIS, speciesId: SPECIES_IDS.PIG, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.LEPTOSPIROSIS, speciesId: SPECIES_IDS.DOG, susceptibility: 'high' },
+    // LISTERIOSIS
+    { diseaseId: DISEASE_IDS.LISTERIOSIS, speciesId: SPECIES_IDS.SHEEP, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.LISTERIOSIS, speciesId: SPECIES_IDS.GOAT, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.LISTERIOSIS, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'moderate' },
+    // BOTULISM
+    { diseaseId: DISEASE_IDS.BOTULISM, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.BOTULISM, speciesId: SPECIES_IDS.HORSE, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.BOTULISM, speciesId: SPECIES_IDS.CHICKEN, susceptibility: 'high' },
+    // LEISHMANIOSIS
+    { diseaseId: DISEASE_IDS.LEISHMANIOSIS, speciesId: SPECIES_IDS.DOG, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.LEISHMANIOSIS, speciesId: SPECIES_IDS.CAT, susceptibility: 'moderate' },
+    // COCCIDIOSIS
+    { diseaseId: DISEASE_IDS.COCCIDIOSIS, speciesId: SPECIES_IDS.CHICKEN, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.COCCIDIOSIS, speciesId: SPECIES_IDS.RABBIT, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.COCCIDIOSIS, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'moderate' },
+    // Q FEVER
+    { diseaseId: DISEASE_IDS.Q_FEVER, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.Q_FEVER, speciesId: SPECIES_IDS.SHEEP, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.Q_FEVER, speciesId: SPECIES_IDS.GOAT, susceptibility: 'high' },
+    // THEILERIOSIS
+    { diseaseId: DISEASE_IDS.THEILERIOSIS, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.THEILERIOSIS, speciesId: SPECIES_IDS.BUFFALO, susceptibility: 'moderate' },
+    // CRIMEAN-CONGO
+    { diseaseId: DISEASE_IDS.CRIMEAN_CONGO, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.CRIMEAN_CONGO, speciesId: SPECIES_IDS.SHEEP, susceptibility: 'moderate' },
+    // FILARIASIS
+    { diseaseId: DISEASE_IDS.FILARIASIS, speciesId: SPECIES_IDS.DOG, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.FILARIASIS, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'moderate' },
+    // TRICHINELLOSIS
+    { diseaseId: DISEASE_IDS.TRICHINELLOSIS, speciesId: SPECIES_IDS.PIG, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.TRICHINELLOSIS, speciesId: SPECIES_IDS.WILD_PIG, susceptibility: 'high' },
+    // PARATUBERCULOSIS
+    { diseaseId: DISEASE_IDS.PARATUBERCULOSIS, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.PARATUBERCULOSIS, speciesId: SPECIES_IDS.SHEEP, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.PARATUBERCULOSIS, speciesId: SPECIES_IDS.GOAT, susceptibility: 'moderate' },
+    // VESICULAR STOMATITIS
+    { diseaseId: DISEASE_IDS.VESICULAR_STOMATITIS, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.VESICULAR_STOMATITIS, speciesId: SPECIES_IDS.HORSE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.VESICULAR_STOMATITIS, speciesId: SPECIES_IDS.PIG, susceptibility: 'moderate' },
+    // TULAREMIA
+    { diseaseId: DISEASE_IDS.TULAREMIA, speciesId: SPECIES_IDS.RABBIT, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.TULAREMIA, speciesId: SPECIES_IDS.HARE, susceptibility: 'high' },
+    // EHD
+    { diseaseId: DISEASE_IDS.EHD, speciesId: SPECIES_IDS.CATTLE, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.EHD, speciesId: SPECIES_IDS.DEER, susceptibility: 'high' },
+    // MYXOMATOSIS
+    { diseaseId: DISEASE_IDS.MYXOMATOSIS, speciesId: SPECIES_IDS.RABBIT, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.MYXOMATOSIS, speciesId: SPECIES_IDS.HARE, susceptibility: 'moderate' },
+    // RABBIT HAEMORRHAGIC
+    { diseaseId: DISEASE_IDS.RABBIT_HAEMORRHAGIC, speciesId: SPECIES_IDS.RABBIT, susceptibility: 'high' },
+    // BEE DISEASES
+    { diseaseId: DISEASE_IDS.VARROA_DISEASE, speciesId: SPECIES_IDS.HONEYBEE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.NOSEMA_DISEASE, speciesId: SPECIES_IDS.HONEYBEE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.AFB_DISEASE, speciesId: SPECIES_IDS.HONEYBEE, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.SMALL_HIVE_BEETLE_DISEASE, speciesId: SPECIES_IDS.HONEYBEE, susceptibility: 'high' },
+    // AQUATIC DISEASES
+    { diseaseId: DISEASE_IDS.EUS, speciesId: SPECIES_IDS.TILAPIA, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.EUS, speciesId: SPECIES_IDS.CATFISH, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.ISA, speciesId: SPECIES_IDS.TILAPIA, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.KHV, speciesId: SPECIES_IDS.TILAPIA, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.VHS, speciesId: SPECIES_IDS.TILAPIA, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.WHITE_SPOT, speciesId: SPECIES_IDS.SHRIMP, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.TAURA, speciesId: SPECIES_IDS.SHRIMP, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.YELLOWHEAD, speciesId: SPECIES_IDS.SHRIMP, susceptibility: 'high' },
   ];
 
   for (const r of relations) {
@@ -418,18 +782,27 @@ async function seedClinicalSigns() {
 }
 
 async function seedControlMeasures() {
-  console.log('  Seeding control measures...');
+  console.log('  Seeding control measures (WOAH-aligned)...');
   const measures = [
-    { code: 'VACCINATION', name: ml('Vaccination', 'Vaccination'), type: 'prevention', sortOrder: 1 },
-    { code: 'QUARANTINE', name: ml('Quarantine', 'Quarantaine'), type: 'containment', sortOrder: 2 },
-    { code: 'MOVEMENT_BAN', name: ml('Movement ban', 'Interdiction de mouvement'), type: 'containment', sortOrder: 3 },
-    { code: 'CULLING', name: ml('Culling', 'Abattage sanitaire'), type: 'eradication', sortOrder: 4 },
-    { code: 'DISINFECTION', name: ml('Disinfection', 'D\u00e9sinfection'), type: 'containment', sortOrder: 5 },
-    { code: 'RING_VACC', name: ml('Ring vaccination', 'Vaccination en anneau'), type: 'prevention', sortOrder: 6 },
-    { code: 'SURVEILLANCE_ZONE', name: ml('Surveillance zone', 'Zone de surveillance'), type: 'surveillance', sortOrder: 7 },
-    { code: 'TREATMENT', name: ml('Treatment', 'Traitement'), type: 'treatment', sortOrder: 8 },
-    { code: 'VECTOR_CONTROL', name: ml('Vector control', 'Lutte anti-vectorielle'), type: 'prevention', sortOrder: 9 },
-    { code: 'BIOSECURITY', name: ml('Biosecurity', 'Bios\u00e9curit\u00e9'), type: 'prevention', sortOrder: 10 },
+    { code: 'CWR', name: ml('Control of wildlife reservoirs', 'Contrôle des réservoirs de faune sauvage'), type: 'prevention', sortOrder: 1 },
+    { code: 'DD', name: ml('Destruction of infected material', 'Destruction du matériel infecté'), type: 'eradication', sortOrder: 2 },
+    { code: 'D', name: ml('Disinfection', 'Désinfection'), type: 'containment', sortOrder: 3 },
+    { code: 'DC', name: ml('Disposal of carcass', 'Élimination de carcasses'), type: 'eradication', sortOrder: 4 },
+    { code: 'IN', name: ml('Incineration', 'Incinération'), type: 'eradication', sortOrder: 5 },
+    { code: 'IS', name: ml('Isolation', 'Isolement'), type: 'containment', sortOrder: 6 },
+    { code: 'MSO', name: ml('Modified stamping out', 'Abattage sanitaire modifié'), type: 'eradication', sortOrder: 7 },
+    { code: 'MO', name: ml('Monitoring', 'Monitoring'), type: 'surveillance', sortOrder: 8 },
+    { code: 'MC', name: ml('Movement control', 'Contrôle des mouvements'), type: 'containment', sortOrder: 9 },
+    { code: 'PB', name: ml('Precautions at the borders', 'Précautions aux frontières'), type: 'containment', sortOrder: 10 },
+    { code: 'Q', name: ml('Quarantine', 'Quarantaine'), type: 'containment', sortOrder: 11 },
+    { code: 'SC', name: ml('Screening', 'Dépistage'), type: 'surveillance', sortOrder: 12 },
+    { code: 'S', name: ml('Slaughter', 'Abattage'), type: 'eradication', sortOrder: 13 },
+    { code: 'SO', name: ml('Stamping out', 'Abattage sanitaire total'), type: 'eradication', sortOrder: 14 },
+    { code: 'SV', name: ml('Surveillance', 'Surveillance'), type: 'surveillance', sortOrder: 15 },
+    { code: 'T', name: ml('Treatment', 'Traitement'), type: 'treatment', sortOrder: 16 },
+    { code: 'V', name: ml('Vaccination', 'Vaccination'), type: 'prevention', sortOrder: 17 },
+    { code: 'VC', name: ml('Vector control', 'Lutte anti-vectorielle'), type: 'prevention', sortOrder: 18 },
+    { code: 'ZO', name: ml('Zoning', 'Zonage'), type: 'containment', sortOrder: 19 },
   ];
 
   for (const m of measures) {
@@ -625,6 +998,40 @@ async function seedBreeds() {
     { code: 'KIGEZI', name: ml('Kigezi', 'Kigezi'), speciesId: SPECIES_IDS.GOAT, origin: 'Central Africa', purpose: 'dual', sortOrder: 18 },
     { code: 'KUROILER', name: ml('Kuroiler', 'Kuroiler'), speciesId: SPECIES_IDS.CHICKEN, origin: 'South Asia', purpose: 'dual', sortOrder: 19 },
     { code: 'INDIGENOUS_CHICKEN', name: ml('Indigenous Chicken', 'Poulet local'), speciesId: SPECIES_IDS.CHICKEN, origin: 'Africa', purpose: 'dual', sortOrder: 20 },
+    // Phase 4 — Additional important African breeds from References-data.txt
+    // Cattle
+    { code: 'WHITE_FULANI', name: ml('White Fulani (Bunaji)', 'Peul blanc (Bunaji)'), speciesId: SPECIES_IDS.CATTLE, origin: 'West Africa', purpose: 'dual', sortOrder: 21 },
+    { code: 'SOKOTO_GUDALI', name: ml('Sokoto Gudali', 'Sokoto Gudali'), speciesId: SPECIES_IDS.CATTLE, origin: 'West Africa', purpose: 'meat', sortOrder: 22 },
+    { code: 'BAOULÉ', name: ml('Baoulé', 'Baoulé'), speciesId: SPECIES_IDS.CATTLE, origin: 'West Africa', purpose: 'dual', sortOrder: 23 },
+    { code: 'AZAWAK', name: ml('Azawak', 'Azawak'), speciesId: SPECIES_IDS.CATTLE, origin: 'West Africa', purpose: 'dual', sortOrder: 24 },
+    { code: 'MAURE', name: ml('Maure', 'Maure'), speciesId: SPECIES_IDS.CATTLE, origin: 'West Africa', purpose: 'dual', sortOrder: 25 },
+    { code: 'NGUNI', name: ml('Nguni', 'Nguni'), speciesId: SPECIES_IDS.CATTLE, origin: 'Southern Africa', purpose: 'dual', sortOrder: 26 },
+    { code: 'TSWANA', name: ml('Tswana', 'Tswana'), speciesId: SPECIES_IDS.CATTLE, origin: 'Southern Africa', purpose: 'meat', sortOrder: 27 },
+    { code: 'MPWAPWA', name: ml('Mpwapwa', 'Mpwapwa'), speciesId: SPECIES_IDS.CATTLE, origin: 'East Africa', purpose: 'dairy', sortOrder: 28 },
+    { code: 'KENANA', name: ml('Kenana', 'Kenana'), speciesId: SPECIES_IDS.CATTLE, origin: 'East Africa', purpose: 'dairy', sortOrder: 29 },
+    { code: 'SHEKO', name: ml('Sheko', 'Sheko'), speciesId: SPECIES_IDS.CATTLE, origin: 'East Africa', purpose: 'dual', sortOrder: 30 },
+    // Sheep
+    { code: 'UDA', name: ml('Uda', 'Ouda'), speciesId: SPECIES_IDS.SHEEP, origin: 'West Africa', purpose: 'dual', sortOrder: 31 },
+    { code: 'BALAMI', name: ml('Balami', 'Balami'), speciesId: SPECIES_IDS.SHEEP, origin: 'West Africa', purpose: 'meat', sortOrder: 32 },
+    { code: 'BLACKHEAD_OGADEN', name: ml('Blackhead Somali / Ogaden', 'Somali à tête noire'), speciesId: SPECIES_IDS.SHEEP, origin: 'East Africa', purpose: 'meat', sortOrder: 33 },
+    { code: 'MENZ', name: ml('Menz', 'Menz'), speciesId: SPECIES_IDS.SHEEP, origin: 'East Africa', purpose: 'dual', sortOrder: 34 },
+    { code: 'DAMARA', name: ml('Damara', 'Damara'), speciesId: SPECIES_IDS.SHEEP, origin: 'Southern Africa', purpose: 'meat', sortOrder: 35 },
+    // Goat
+    { code: 'RED_SOKOTO', name: ml('Red Sokoto (Maradi)', 'Rousse de Sokoto (Maradi)'), speciesId: SPECIES_IDS.GOAT, origin: 'West Africa', purpose: 'dual', sortOrder: 36 },
+    { code: 'PYGMY', name: ml('West African Dwarf / Pygmy', 'Naine d\'Afrique de l\'Ouest'), speciesId: SPECIES_IDS.GOAT, origin: 'West Africa', purpose: 'meat', sortOrder: 37 },
+    { code: 'GALLA', name: ml('Galla', 'Galla'), speciesId: SPECIES_IDS.GOAT, origin: 'East Africa', purpose: 'dual', sortOrder: 38 },
+    { code: 'SAVANNA_GOAT', name: ml('Savanna', 'Savanna'), speciesId: SPECIES_IDS.GOAT, origin: 'Southern Africa', purpose: 'meat', sortOrder: 39 },
+    // Pig
+    { code: 'LARGE_WHITE', name: ml('Large White', 'Large White'), speciesId: SPECIES_IDS.PIG, origin: 'Europe', purpose: 'meat', sortOrder: 40 },
+    { code: 'LANDRACE_PIG', name: ml('Landrace', 'Landrace'), speciesId: SPECIES_IDS.PIG, origin: 'Europe', purpose: 'meat', sortOrder: 41 },
+    { code: 'ASHANTI_BLACK', name: ml('Ashanti Black', 'Noir Ashanti'), speciesId: SPECIES_IDS.PIG, origin: 'West Africa', purpose: 'meat', sortOrder: 42 },
+    // Camel
+    { code: 'SAHEL_CAMEL', name: ml('Sahel Type', 'Type Sahélien'), speciesId: SPECIES_IDS.DROMEDARY, origin: 'West Africa', purpose: 'dual', sortOrder: 43 },
+    { code: 'SOMALI_CAMEL', name: ml('Somali / Hori', 'Somali / Hori'), speciesId: SPECIES_IDS.DROMEDARY, origin: 'East Africa', purpose: 'dairy', sortOrder: 44 },
+    // Poultry
+    { code: 'RHODE_ISLAND', name: ml('Rhode Island Red', 'Rhode Island Red'), speciesId: SPECIES_IDS.CHICKEN, origin: 'North America', purpose: 'dual', sortOrder: 45 },
+    { code: 'LEGHORN', name: ml('Leghorn', 'Leghorn'), speciesId: SPECIES_IDS.CHICKEN, origin: 'Europe', purpose: 'egg', sortOrder: 46 },
+    { code: 'BROILER_ROSS', name: ml('Broiler (Ross/Cobb)', 'Poulet de chair (Ross/Cobb)'), speciesId: SPECIES_IDS.CHICKEN, origin: 'International', purpose: 'meat', sortOrder: 47 },
   ];
 
   for (const b of breeds) {
@@ -710,20 +1117,70 @@ async function seedLabs() {
 }
 
 async function seedLivestockProducts() {
-  console.log('  Seeding livestock products...');
+  console.log('  Seeding livestock products (51 from WOAH reference)...');
   const products = [
-    { code: 'RAW_MILK', name: ml('Raw Milk', 'Lait Cru'), productCategory: 'milk', sortOrder: 1 },
-    { code: 'PASTEURIZED_MILK', name: ml('Pasteurized Milk', 'Lait Pasteurisé'), productCategory: 'milk', sortOrder: 2 },
-    { code: 'BEEF', name: ml('Beef', 'Viande Bovine'), productCategory: 'meat', sortOrder: 3 },
-    { code: 'MUTTON', name: ml('Mutton/Lamb', 'Viande Ovine'), productCategory: 'meat', sortOrder: 4 },
-    { code: 'CHEVON', name: ml('Goat Meat', 'Viande Caprine'), productCategory: 'meat', sortOrder: 5 },
-    { code: 'POULTRY_MEAT', name: ml('Poultry Meat', 'Viande de Volaille'), productCategory: 'meat', sortOrder: 6 },
-    { code: 'EGGS', name: ml('Eggs', 'Œufs'), productCategory: 'egg', sortOrder: 7 },
-    { code: 'WOOL', name: ml('Wool', 'Laine'), productCategory: 'wool', sortOrder: 8 },
-    { code: 'CATTLE_HIDES', name: ml('Cattle Hides', 'Cuirs Bovins'), productCategory: 'hide', sortOrder: 9 },
-    { code: 'SHEEPSKIN', name: ml('Sheepskin', 'Peau d\'Ovin'), productCategory: 'hide', sortOrder: 10 },
-    { code: 'GOATSKIN', name: ml('Goatskin', 'Peau de Chèvre'), productCategory: 'hide', sortOrder: 11 },
-    { code: 'MANURE', name: ml('Manure/Dung', 'Fumier/Bouse'), productCategory: 'manure', sortOrder: 12 },
+    // Meat & carcass
+    { code: 'MEAT', name: ml('Meat', 'Viande'), productCategory: 'meat', sortOrder: 1 },
+    { code: 'FRESH_MEAT', name: ml('Fresh Meat', 'Viande Fraîche'), productCategory: 'meat', sortOrder: 2 },
+    { code: 'CHILLED_MEAT', name: ml('Chilled Meat', 'Viande Réfrigérée'), productCategory: 'meat', sortOrder: 3 },
+    { code: 'DRIED_MEAT', name: ml('Dried Meat', 'Viande Séchée'), productCategory: 'meat', sortOrder: 4 },
+    { code: 'SAUSAGES', name: ml('Sausages', 'Saucisses'), productCategory: 'meat', sortOrder: 5 },
+    { code: 'OFFALS', name: ml('Offals', 'Abats'), productCategory: 'meat', sortOrder: 6 },
+    // Dairy
+    { code: 'MILK', name: ml('Milk', 'Lait'), productCategory: 'dairy', sortOrder: 7 },
+    { code: 'MILK_WHOLE', name: ml('Whole Milk', 'Lait Entier'), productCategory: 'dairy', sortOrder: 8 },
+    { code: 'MILK_SKIMMED', name: ml('Skimmed Milk', 'Lait Écrémé'), productCategory: 'dairy', sortOrder: 9 },
+    { code: 'MILK_POWDER', name: ml('Milk Powder', 'Lait en Poudre'), productCategory: 'dairy', sortOrder: 10 },
+    { code: 'MILK_CONDENSED', name: ml('Condensed Milk', 'Lait Concentré'), productCategory: 'dairy', sortOrder: 11 },
+    { code: 'MILK_EVAPORATED', name: ml('Evaporated Milk', 'Lait Évaporé'), productCategory: 'dairy', sortOrder: 12 },
+    { code: 'BUTTERMILK', name: ml('Buttermilk', 'Babeurre'), productCategory: 'dairy', sortOrder: 13 },
+    { code: 'BUTTER', name: ml('Butter', 'Beurre'), productCategory: 'dairy', sortOrder: 14 },
+    { code: 'CHEESE', name: ml('Cheese', 'Fromage'), productCategory: 'dairy', sortOrder: 15 },
+    { code: 'WHEY', name: ml('Whey', 'Lactosérum'), productCategory: 'dairy', sortOrder: 16 },
+    // Eggs & reproduction
+    { code: 'EGG_ALBUMEN', name: ml('Egg Albumen', 'Blanc d\'Œuf'), productCategory: 'egg', sortOrder: 17 },
+    { code: 'EGG_YOLK', name: ml('Egg Yolk', 'Jaune d\'Œuf'), productCategory: 'egg', sortOrder: 18 },
+    { code: 'EMBRYO', name: ml('Embryo', 'Embryon'), productCategory: 'reproduction', sortOrder: 19 },
+    { code: 'SEMEN', name: ml('Semen', 'Semence'), productCategory: 'reproduction', sortOrder: 20 },
+    { code: 'OOCYTES', name: ml('Oocytes', 'Ovocytes'), productCategory: 'reproduction', sortOrder: 21 },
+    // Hides & fibre
+    { code: 'HIDES', name: ml('Hides', 'Cuirs'), productCategory: 'hide', sortOrder: 22 },
+    { code: 'HIDES_SKINS_FUR', name: ml('Hides/Skins/Fur', 'Cuirs/Peaux/Fourrure'), productCategory: 'hide', sortOrder: 23 },
+    { code: 'SKIN', name: ml('Skin', 'Peau'), productCategory: 'hide', sortOrder: 24 },
+    { code: 'LEATHER', name: ml('Leather', 'Cuir'), productCategory: 'hide', sortOrder: 25 },
+    { code: 'WOOL_FIBRE', name: ml('Wool/Fibre', 'Laine/Fibre'), productCategory: 'fibre', sortOrder: 26 },
+    { code: 'MOHAIR', name: ml('Mohair', 'Mohair'), productCategory: 'fibre', sortOrder: 27 },
+    { code: 'FEATHERS', name: ml('Feathers', 'Plumes'), productCategory: 'fibre', sortOrder: 28 },
+    { code: 'HAIR_BRISTLES', name: ml('Hair/Bristles', 'Poils/Soies'), productCategory: 'fibre', sortOrder: 29 },
+    // Apiculture
+    { code: 'HONEY', name: ml('Honey', 'Miel'), productCategory: 'apiculture', sortOrder: 30 },
+    { code: 'BEESWAX', name: ml('Beeswax', 'Cire d\'Abeille'), productCategory: 'apiculture', sortOrder: 31 },
+    { code: 'PROPOLIS', name: ml('Propolis', 'Propolis'), productCategory: 'apiculture', sortOrder: 32 },
+    { code: 'ROYAL_JELLY', name: ml('Royal Jelly', 'Gelée Royale'), productCategory: 'apiculture', sortOrder: 33 },
+    { code: 'BEE_BREAD', name: ml('Bee Bread', 'Pain d\'Abeille'), productCategory: 'apiculture', sortOrder: 34 },
+    { code: 'VENOM', name: ml('Venom', 'Venin'), productCategory: 'apiculture', sortOrder: 35 },
+    { code: 'POLLINATION', name: ml('Pollination', 'Pollinisation'), productCategory: 'apiculture', sortOrder: 36 },
+    { code: 'LIVE_COLONIES', name: ml('Live Colonies', 'Colonies Vivantes'), productCategory: 'apiculture', sortOrder: 37 },
+    // By-products & services
+    { code: 'BONES_HOOVES', name: ml('Bones & Hooves', 'Os & Sabots'), productCategory: 'by-product', sortOrder: 38 },
+    { code: 'BONES_HORNS', name: ml('Bones & Horn Corn Cores', 'Os & Cornillons'), productCategory: 'by-product', sortOrder: 39 },
+    { code: 'FAT_TALLOW', name: ml('Fat/Tallow', 'Graisse/Suif'), productCategory: 'by-product', sortOrder: 40 },
+    { code: 'MANURE', name: ml('Manure', 'Fumier'), productCategory: 'by-product', sortOrder: 41 },
+    { code: 'BIOGAS', name: ml('Biogas', 'Biogaz'), productCategory: 'by-product', sortOrder: 42 },
+    // Live animal
+    { code: 'LIVE_ANIMAL', name: ml('Live Animal', 'Animal Vivant'), productCategory: 'live', sortOrder: 43 },
+    { code: 'LIVE_BIRD', name: ml('Live Bird', 'Oiseau Vivant'), productCategory: 'live', sortOrder: 44 },
+    // Services
+    { code: 'DRAUGHT', name: ml('Draught', 'Traction'), productCategory: 'service', sortOrder: 45 },
+    { code: 'TRACTION', name: ml('Traction', 'Traction'), productCategory: 'service', sortOrder: 46 },
+    { code: 'TRANSPORT', name: ml('Transport', 'Transport'), productCategory: 'service', sortOrder: 47 },
+    // Milk liquid
+    { code: 'LIQUID_MILK', name: ml('Liquid Milk', 'Lait Liquide'), productCategory: 'dairy', sortOrder: 48 },
+    // Bones for poultry
+    { code: 'BONES_BEAKS_CLAWS', name: ml('Bones, Beaks, Claws, Shells', 'Os, Becs, Griffes, Coquilles'), productCategory: 'by-product', sortOrder: 49 },
+    // Pelts
+    { code: 'CARRY', name: ml('Carry (Pack Animal)', 'Portage'), productCategory: 'service', sortOrder: 50 },
+    { code: 'FISH_MEAT', name: ml('Fish Meat', 'Chair de Poisson'), productCategory: 'meat', sortOrder: 51 },
   ];
 
   for (const p of products) {
@@ -1037,6 +1494,282 @@ async function seedStakeholderTypes() {
 }
 
 // ══════════════════════════════════════════════════════════════
+// Phase 4 — WOAH/References-data enrichment (13 new types)
+// ══════════════════════════════════════════════════════════════
+
+async function seedDiagnosisBases() {
+  console.log('  Seeding diagnosis bases...');
+  const bases = [
+    { code: 'PM', name: ml('Post-mortem', 'Post-mortem'), abbreviation: 'PM', description: ml('Used on carcasses to determine cause of disease', 'Utilisé sur les carcasses pour déterminer la cause de la maladie'), sortOrder: 1 },
+    { code: 'BLT', name: ml('Basic laboratory test(s)', 'Test(s) de laboratoire de base'), abbreviation: 'BLT', description: ml('Screening test', 'Test de dépistage'), sortOrder: 2 },
+    { code: 'ALT', name: ml('Advanced laboratory test(s)', 'Test(s) de laboratoire avancé(s)'), abbreviation: 'ALT', description: ml('Confirmatory test', 'Test de confirmation'), sortOrder: 3 },
+    { code: 'SP', name: ml('Suspicion', 'Suspicion'), abbreviation: 'SP', description: ml('Diagnosis from veterinarian while waiting for lab confirmation', 'Diagnostic du vétérinaire en attente de confirmation'), sortOrder: 4 },
+    { code: 'CL', name: ml('Clinical', 'Clinique'), abbreviation: 'CL', description: ml('Based on history of the disease outbreak or claims from reporter', 'Basé sur l\'historique de la maladie ou les déclarations du rapporteur'), sortOrder: 5 },
+    { code: 'OW', name: ml('Owner\'s claim', 'Déclaration du propriétaire'), abbreviation: 'OW', description: ml('What the farmer has reported to the vet', 'Ce que l\'éleveur a rapporté au vétérinaire'), sortOrder: 6 },
+  ];
+
+  for (const b of bases) {
+    await (prisma as any).refDiagnosisBasis.create({
+      data: { code: b.code, name: b.name, abbreviation: b.abbreviation, description: b.description, scope: 'continental', ownerId: null, ownerType: 'system', sortOrder: b.sortOrder },
+    }).catch(() => {});
+  }
+  console.log(`    ${bases.length} diagnosis bases seeded`);
+}
+
+async function seedBodyParts() {
+  console.log('  Seeding body parts...');
+  const parts = [
+    { code: 'FORE_QUARTER', name: ml('Fore Quarter', 'Quartier avant'), sortOrder: 1 },
+    { code: 'HEAD', name: ml('Head', 'Tête'), sortOrder: 2 },
+    { code: 'HEART', name: ml('Heart', 'Cœur'), sortOrder: 3 },
+    { code: 'HIND_QUARTER', name: ml('Hind Quarter', 'Quartier arrière'), sortOrder: 4 },
+    { code: 'KIDNEY', name: ml('Kidney', 'Rein'), sortOrder: 5 },
+    { code: 'LIVER', name: ml('Liver', 'Foie'), sortOrder: 6 },
+    { code: 'LUNG', name: ml('Lung', 'Poumon'), sortOrder: 7 },
+    { code: 'SHOULDER', name: ml('Shoulder', 'Épaule'), sortOrder: 8 },
+    { code: 'SPLEEN', name: ml('Spleen', 'Rate'), sortOrder: 9 },
+    { code: 'STOMACH', name: ml('Stomach', 'Estomac'), sortOrder: 10 },
+    { code: 'TONGUE', name: ml('Tongue', 'Langue'), sortOrder: 11 },
+    { code: 'WHOLE_CARCASS', name: ml('Whole Carcass', 'Carcasse entière'), sortOrder: 12 },
+  ];
+
+  for (const p of parts) {
+    await (prisma as any).refBodyPart.create({
+      data: { code: p.code, name: p.name, scope: 'continental', ownerId: null, ownerType: 'system', sortOrder: p.sortOrder },
+    }).catch(() => {});
+  }
+  console.log(`    ${parts.length} body parts seeded`);
+}
+
+async function seedCausalAgentTypes() {
+  console.log('  Seeding causal agent types...');
+  const agents = [
+    { code: 'BACTERIA', name: ml('Bacteria', 'Bactérie'), sortOrder: 1 },
+    { code: 'FUNGUS', name: ml('Fungus', 'Champignon'), sortOrder: 2 },
+    { code: 'METABOLIC', name: ml('Metabolic', 'Métabolique'), sortOrder: 3 },
+    { code: 'PARASITE', name: ml('Parasite', 'Parasite'), sortOrder: 4 },
+    { code: 'PRION', name: ml('Prion', 'Prion'), sortOrder: 5 },
+    { code: 'VIRUS', name: ml('Virus', 'Virus'), sortOrder: 6 },
+    { code: 'UNKNOWN', name: ml('Unknown', 'Inconnu'), sortOrder: 7 },
+  ];
+
+  for (const a of agents) {
+    await (prisma as any).refCausalAgentType.create({
+      data: { code: a.code, name: a.name, scope: 'continental', ownerId: null, ownerType: 'system', sortOrder: a.sortOrder },
+    }).catch(() => {});
+  }
+  console.log(`    ${agents.length} causal agent types seeded`);
+}
+
+async function seedOutbreakStatuses() {
+  console.log('  Seeding outbreak statuses...');
+  const statuses = [
+    { code: 'NEW', name: ml('New', 'Nouveau'), description: ml('New disease outbreak', 'Nouveau foyer de maladie'), sortOrder: 1 },
+    { code: 'FOLLOW_UP', name: ml('Follow-up', 'Suivi'), description: ml('Monitoring an outbreak to ascertain if the disease ended or is continuing', 'Suivi d\'un foyer pour déterminer si la maladie a pris fin ou se poursuit'), sortOrder: 2 },
+    { code: 'CONTAINED', name: ml('Contained', 'Contenu'), description: ml('Disease outbreak has been controlled within a geographical area', 'Le foyer est contrôlé dans une zone géographique'), sortOrder: 3 },
+    { code: 'CONTINUING', name: ml('Continuing', 'En cours'), description: ml('Disease outbreak is still active', 'Le foyer est toujours actif'), sortOrder: 4 },
+    { code: 'ENDED', name: ml('Ended', 'Terminé'), description: ml('The disease outbreak has ended', 'Le foyer de maladie est terminé'), sortOrder: 5 },
+    { code: 'RESOLVED', name: ml('Resolved', 'Résolu'), description: ml('Outbreak fully resolved', 'Foyer entièrement résolu'), sortOrder: 6 },
+  ];
+
+  for (const s of statuses) {
+    await (prisma as any).refOutbreakStatus.create({
+      data: { code: s.code, name: s.name, description: s.description, scope: 'continental', ownerId: null, ownerType: 'system', sortOrder: s.sortOrder },
+    }).catch(() => {});
+  }
+  console.log(`    ${statuses.length} outbreak statuses seeded`);
+}
+
+async function seedEpidemiologicalUnitTypes() {
+  console.log('  Seeding epidemiological unit types...');
+  const units = [
+    { code: 'COMPARTMENT', name: ml('Compartment', 'Compartiment'), sortOrder: 1 },
+    { code: 'FARM', name: ml('Farm', 'Exploitation'), sortOrder: 2 },
+    { code: 'QUARANTINE_FACILITY', name: ml('Quarantine facility', 'Installation de quarantaine'), sortOrder: 3 },
+    { code: 'VILLAGE', name: ml('Village', 'Village'), sortOrder: 4 },
+    { code: 'ZONE', name: ml('Zone', 'Zone'), sortOrder: 5 },
+  ];
+
+  for (const u of units) {
+    await (prisma as any).refEpidemiologicalUnitType.create({
+      data: { code: u.code, name: u.name, scope: 'continental', ownerId: null, ownerType: 'system', sortOrder: u.sortOrder },
+    }).catch(() => {});
+  }
+  console.log(`    ${units.length} epidemiological unit types seeded`);
+}
+
+async function seedNotificationReasons() {
+  console.log('  Seeding notification reasons...');
+  const reasons = [
+    { code: 'FIRST_OCCURRENCE', name: ml('First occurrence of a listed disease in a country or zone', 'Première apparition d\'une maladie listée dans un pays ou une zone'), sortOrder: 1 },
+    { code: 'RE_OCCURRENCE', name: ml('Re-occurrence following a report declaring the outbreak ended', 'Réapparition après un rapport déclarant la fin du foyer'), sortOrder: 2 },
+    { code: 'NEW_STRAIN', name: ml('First occurrence of a new strain of a pathogen', 'Première apparition d\'une nouvelle souche d\'un agent pathogène'), sortOrder: 3 },
+    { code: 'SUDDEN_INCREASE', name: ml('Sudden and unexpected increase in distribution, incidence, morbidity or mortality', 'Augmentation soudaine et inattendue de la distribution, l\'incidence, la morbidité ou la mortalité'), sortOrder: 4 },
+    { code: 'EMERGING_DISEASE', name: ml('An emerging disease with significant morbidity or mortality, or zoonotic potential', 'Une maladie émergente avec morbidité ou mortalité significative, ou potentiel zoonotique'), sortOrder: 5 },
+    { code: 'EPIDEMIOLOGY_CHANGE', name: ml('Evidence of a change in the epidemiology of a listed disease', 'Preuve d\'un changement dans l\'épidémiologie d\'une maladie listée'), sortOrder: 6 },
+  ];
+
+  for (const r of reasons) {
+    await (prisma as any).refNotificationReason.create({
+      data: { code: r.code, name: r.name, scope: 'continental', ownerId: null, ownerType: 'system', sortOrder: r.sortOrder },
+    }).catch(() => {});
+  }
+  console.log(`    ${reasons.length} notification reasons seeded`);
+}
+
+async function seedSourceOfInfections() {
+  console.log('  Seeding sources of infection...');
+  const sources = [
+    { code: 'AIRBORNE', name: ml('Airborne', 'Aéroporté'), sortOrder: 1 },
+    { code: 'ANIMAL_MOVEMENT', name: ml('Animal Movement', 'Mouvement d\'animaux'), sortOrder: 2 },
+    { code: 'WILDLIFE_EXTENSION', name: ml('Extension from wildlife', 'Extension depuis la faune sauvage'), sortOrder: 3 },
+    { code: 'FOMITES', name: ml('Fomites', 'Fomites'), sortOrder: 4 },
+    { code: 'FROM_FOCI', name: ml('From foci at locality', 'À partir de foyers locaux'), sortOrder: 5 },
+    { code: 'MECHANICAL', name: ml('Mechanical', 'Mécanique'), sortOrder: 6 },
+    { code: 'ANIMAL_PRODUCT', name: ml('Movement of animal product', 'Mouvement de produits animaux'), sortOrder: 7 },
+    { code: 'VECTOR', name: ml('Vector', 'Vecteur'), sortOrder: 8 },
+    { code: 'UNKNOWN', name: ml('Unknown', 'Inconnu'), sortOrder: 9 },
+  ];
+
+  for (const s of sources) {
+    await (prisma as any).refSourceOfInfection.create({
+      data: { code: s.code, name: s.name, scope: 'continental', ownerId: null, ownerType: 'system', sortOrder: s.sortOrder },
+    }).catch(() => {});
+  }
+  console.log(`    ${sources.length} sources of infection seeded`);
+}
+
+async function seedTransportModes() {
+  console.log('  Seeding transport modes...');
+  const modes = [
+    { code: 'SEA', name: ml('Sea (Ship, Dhows, Boats)', 'Mer (Navire, Boutres, Bateaux)'), sortOrder: 1 },
+    { code: 'AIR', name: ml('Air (Aeroplane)', 'Air (Avion)'), sortOrder: 2 },
+    { code: 'ROAD', name: ml('Road (Motor Vehicle)', 'Route (Véhicule motorisé)'), sortOrder: 3 },
+    { code: 'TREKKING', name: ml('Trekking', 'À pied'), sortOrder: 4 },
+    { code: 'RAIL', name: ml('Rail', 'Rail'), sortOrder: 5 },
+    { code: 'MOTORCYCLE', name: ml('Motorcycle', 'Moto'), sortOrder: 6 },
+    { code: 'BICYCLE', name: ml('Bicycle', 'Vélo'), sortOrder: 7 },
+    { code: 'OTHER', name: ml('Other', 'Autre'), sortOrder: 8 },
+  ];
+
+  for (const m of modes) {
+    await (prisma as any).refTransportMode.create({
+      data: { code: m.code, name: m.name, scope: 'continental', ownerId: null, ownerType: 'system', sortOrder: m.sortOrder },
+    }).catch(() => {});
+  }
+  console.log(`    ${modes.length} transport modes seeded`);
+}
+
+async function seedAnimalSexes() {
+  console.log('  Seeding animal sexes...');
+  const sexes = [
+    { code: 'M', name: ml('Male', 'Mâle'), sortOrder: 1 },
+    { code: 'F', name: ml('Female', 'Femelle'), sortOrder: 2 },
+    { code: 'A', name: ml('All', 'Tous'), sortOrder: 3 },
+    { code: 'U', name: ml('Unknown', 'Inconnu'), sortOrder: 4 },
+  ];
+
+  for (const s of sexes) {
+    await (prisma as any).refAnimalSex.create({
+      data: { code: s.code, name: s.name, scope: 'continental', ownerId: null, ownerType: 'system', sortOrder: s.sortOrder },
+    }).catch(() => {});
+  }
+  console.log(`    ${sexes.length} animal sexes seeded`);
+}
+
+async function seedAnimalHusbandries() {
+  console.log('  Seeding animal husbandry types...');
+  const types = [
+    { code: 'AQUACULTURE', name: ml('Aquaculture', 'Aquaculture'), sortOrder: 1 },
+    { code: 'INLAND', name: ml('Inland', 'Intérieur'), sortOrder: 2 },
+    { code: 'MARINE', name: ml('Marine', 'Marin'), sortOrder: 3 },
+    { code: 'DOMESTIC', name: ml('Domestic', 'Domestique'), sortOrder: 4 },
+    { code: 'WILD', name: ml('Wild', 'Sauvage'), sortOrder: 5 },
+  ];
+
+  for (const t of types) {
+    await (prisma as any).refAnimalHusbandry.create({
+      data: { code: t.code, name: t.name, scope: 'continental', ownerId: null, ownerType: 'system', sortOrder: t.sortOrder },
+    }).catch(() => {});
+  }
+  console.log(`    ${types.length} animal husbandry types seeded`);
+}
+
+async function seedGeneticDiversities() {
+  console.log('  Seeding genetic diversities...');
+  const types = [
+    { code: 'LOCAL', name: ml('Local', 'Local'), sortOrder: 1 },
+    { code: 'EXOTIC', name: ml('Exotic', 'Exotique'), sortOrder: 2 },
+    { code: 'CROSSBREED', name: ml('Crossbreed', 'Croisé'), sortOrder: 3 },
+  ];
+
+  for (const t of types) {
+    await (prisma as any).refGeneticDiversity.create({
+      data: { code: t.code, name: t.name, scope: 'continental', ownerId: null, ownerType: 'system', sortOrder: t.sortOrder },
+    }).catch(() => {});
+  }
+  console.log(`    ${types.length} genetic diversities seeded`);
+}
+
+async function seedDataSources() {
+  console.log('  Seeding data sources...');
+  const sources = [
+    { code: 'ASD', name: ml('Agricultural Statistics Division', 'Division des Statistiques Agricoles'), abbreviation: 'ASD', sortOrder: 1 },
+    { code: 'ABSR', name: ml('Annual Breed Society Records', 'Registres Annuels des Sociétés de Races'), abbreviation: 'ABSR', sortOrder: 2 },
+    { code: 'BA', name: ml('Breeders Associations', 'Associations d\'Éleveurs'), abbreviation: 'BA', sortOrder: 3 },
+    { code: 'CBBP', name: ml('Community-Based Breeding Programs', 'Programmes d\'Élevage Communautaires'), abbreviation: 'C', sortOrder: 4 },
+    { code: 'CSO', name: ml('Central Statistics Office', 'Office Central des Statistiques'), abbreviation: 'CSO', sortOrder: 5 },
+    { code: 'CE', name: ml('Customs and Excise', 'Douanes et Accises'), abbreviation: 'CE', sortOrder: 6 },
+    { code: 'DB', name: ml('Dairy Board', 'Office du Lait'), abbreviation: 'DB', sortOrder: 7 },
+    { code: 'DAP', name: ml('Department of Animal Production', 'Département de la Production Animale'), abbreviation: 'DAP', sortOrder: 8 },
+    { code: 'DLMT', name: ml('Department of Livestock Marketing and Trade', 'Département de la Commercialisation du Bétail'), abbreviation: 'DLMT', sortOrder: 9 },
+    { code: 'DVS', name: ml('Department of Veterinary Services', 'Département des Services Vétérinaires'), abbreviation: 'DVS', sortOrder: 10 },
+    { code: 'FA', name: ml('Farmers Associations', 'Associations de Producteurs'), abbreviation: 'FA', sortOrder: 11 },
+    { code: 'H', name: ml('Herdbook', 'Livre Généalogique'), abbreviation: 'H', sortOrder: 12 },
+    { code: 'LA', name: ml('Livestock Auctioneers', 'Commissaires-Priseurs de Bétail'), abbreviation: 'LA', sortOrder: 13 },
+    { code: 'LC', name: ml('Livestock Census', 'Recensement du Bétail'), abbreviation: 'LC', sortOrder: 14 },
+    { code: 'LD', name: ml('Livestock Department', 'Département de l\'Élevage'), abbreviation: 'LD', sortOrder: 15 },
+    { code: 'MB', name: ml('Meat Board', 'Office de la Viande'), abbreviation: 'MB', sortOrder: 16 },
+    { code: 'MTCMAR', name: ml('Ministry of Trade Annual Reports', 'Rapports Annuels du Ministère du Commerce'), abbreviation: 'MTCMAR', sortOrder: 17 },
+    { code: 'NBIP', name: ml('National Breed Improvement Programs', 'Programmes Nationaux d\'Amélioration Génétique'), abbreviation: 'NBIP', sortOrder: 18 },
+    { code: 'NGAIC', name: ml('National Genetic & AI Centres', 'Centres Nationaux de Génétique et IA'), abbreviation: 'NGAIC', sortOrder: 19 },
+    { code: 'OTHER', name: ml('Other', 'Autre'), abbreviation: 'O', sortOrder: 20 },
+  ];
+
+  for (const s of sources) {
+    await (prisma as any).refDataSource.create({
+      data: { code: s.code, name: s.name, abbreviation: s.abbreviation, scope: 'continental', ownerId: null, ownerType: 'system', sortOrder: s.sortOrder },
+    }).catch(() => {});
+  }
+  console.log(`    ${sources.length} data sources seeded`);
+}
+
+async function seedFishFamilies() {
+  console.log('  Seeding fish families...');
+  const families = [
+    { code: 'ATHERINOPSIDAE', name: ml('Atherinopsidae', 'Atherinopsidae'), sortOrder: 1 },
+    { code: 'CICHLIDAE', name: ml('Cichlidae', 'Cichlidés'), sortOrder: 2 },
+    { code: 'CLARIIDAE', name: ml('Clariidae', 'Clariidés'), sortOrder: 3 },
+    { code: 'CLUPEIDAE', name: ml('Clupeidae', 'Clupéidés'), sortOrder: 4 },
+    { code: 'CYPRINIDAE', name: ml('Cyprinidae', 'Cyprinidés'), sortOrder: 5 },
+    { code: 'GOBIIDAE', name: ml('Gobiidae', 'Gobiidés'), sortOrder: 6 },
+    { code: 'ICTALURIDAE', name: ml('Ictaluridae', 'Ictaluridés'), sortOrder: 7 },
+    { code: 'LATIDAE', name: ml('Latidae', 'Latidés'), sortOrder: 8 },
+    { code: 'LORICARIIDAE', name: ml('Loricariidae', 'Loricariidés'), sortOrder: 9 },
+    { code: 'ODONTOBUTIDAE', name: ml('Odontobutidae', 'Odontobutidés'), sortOrder: 10 },
+    { code: 'POECILIIDAE', name: ml('Poeciliidae', 'Poeciliidés'), sortOrder: 11 },
+    { code: 'SALMONIDAE', name: ml('Salmonidae', 'Salmonidés'), sortOrder: 12 },
+  ];
+
+  for (const f of families) {
+    await (prisma as any).refFishFamily.create({
+      data: { code: f.code, name: f.name, scope: 'continental', ownerId: null, ownerType: 'system', sortOrder: f.sortOrder },
+    }).catch(() => {});
+  }
+  console.log(`    ${families.length} fish families seeded`);
+}
+
+// ══════════════════════════════════════════════════════════════
 // Main
 // ══════════════════════════════════════════════════════════════
 
@@ -1045,6 +1778,20 @@ async function main(): Promise<void> {
 
   // Clean existing data (in reverse dependency order)
   console.log('  Cleaning existing reference data...');
+  // Phase 4 new types (no FK dependencies)
+  await (prisma as any).refFishFamily.deleteMany({}).catch(() => {});
+  await (prisma as any).refDataSource.deleteMany({}).catch(() => {});
+  await (prisma as any).refGeneticDiversity.deleteMany({}).catch(() => {});
+  await (prisma as any).refAnimalHusbandry.deleteMany({}).catch(() => {});
+  await (prisma as any).refAnimalSex.deleteMany({}).catch(() => {});
+  await (prisma as any).refTransportMode.deleteMany({}).catch(() => {});
+  await (prisma as any).refSourceOfInfection.deleteMany({}).catch(() => {});
+  await (prisma as any).refNotificationReason.deleteMany({}).catch(() => {});
+  await (prisma as any).refEpidemiologicalUnitType.deleteMany({}).catch(() => {});
+  await (prisma as any).refOutbreakStatus.deleteMany({}).catch(() => {});
+  await (prisma as any).refCausalAgentType.deleteMany({}).catch(() => {});
+  await (prisma as any).refBodyPart.deleteMany({}).catch(() => {});
+  await (prisma as any).refDiagnosisBasis.deleteMany({}).catch(() => {});
   // Phase 2 new types (no FK dependencies, clean first)
   await (prisma as any).refStakeholderType.deleteMany({});
   await (prisma as any).refLegalFrameworkType.deleteMany({});
@@ -1118,6 +1865,21 @@ async function main(): Promise<void> {
   await seedFloralSources();
   await seedLegalFrameworkTypes();
   await seedStakeholderTypes();
+
+  // Phase 4 seeds — WOAH/References-data enrichment
+  await seedDiagnosisBases();
+  await seedBodyParts();
+  await seedCausalAgentTypes();
+  await seedOutbreakStatuses();
+  await seedEpidemiologicalUnitTypes();
+  await seedNotificationReasons();
+  await seedSourceOfInfections();
+  await seedTransportModes();
+  await seedAnimalSexes();
+  await seedAnimalHusbandries();
+  await seedGeneticDiversities();
+  await seedDataSources();
+  await seedFishFamilies();
 
   console.log('\nMaster data seeding complete!');
 }

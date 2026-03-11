@@ -60,6 +60,20 @@ const MODEL_MAP: Record<string, string> = {
   'stakeholder-types': 'refStakeholderType',
   // Phase 3 — Infrastructures & Institutions
   'infrastructures': 'refInfrastructure',
+  // Phase 4 — WOAH/References-data enrichment (13 new types)
+  'diagnosis-bases': 'refDiagnosisBasis',
+  'body-parts': 'refBodyPart',
+  'causal-agent-types': 'refCausalAgentType',
+  'outbreak-statuses': 'refOutbreakStatus',
+  'epidemiological-unit-types': 'refEpidemiologicalUnitType',
+  'notification-reasons': 'refNotificationReason',
+  'source-of-infections': 'refSourceOfInfection',
+  'transport-modes': 'refTransportMode',
+  'animal-sexes': 'refAnimalSex',
+  'animal-husbandries': 'refAnimalHusbandry',
+  'genetic-diversities': 'refGeneticDiversity',
+  'data-sources': 'refDataSource',
+  'fish-families': 'refFishFamily',
 };
 
 // Models with parent relationships (for filtered queries)

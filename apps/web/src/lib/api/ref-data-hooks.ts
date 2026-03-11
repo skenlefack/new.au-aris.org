@@ -83,7 +83,13 @@ export type RefDataType =
   | 'hive-types' | 'bee-diseases' | 'floral-sources'
   | 'legal-framework-types' | 'stakeholder-types'
   // Phase 3 — Infrastructures & Institutions
-  | 'infrastructures';
+  | 'infrastructures'
+  // Phase 4 — WOAH/References-data enrichment (13 new types)
+  | 'diagnosis-bases' | 'body-parts' | 'causal-agent-types'
+  | 'outbreak-statuses' | 'epidemiological-unit-types' | 'notification-reasons'
+  | 'source-of-infections' | 'transport-modes' | 'animal-sexes'
+  | 'animal-husbandries' | 'genetic-diversities' | 'data-sources'
+  | 'fish-families';
 
 export interface MultilingualValue {
   en?: string;

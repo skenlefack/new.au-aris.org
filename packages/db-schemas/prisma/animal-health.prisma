@@ -1105,6 +1105,306 @@ model RefInfrastructure {
   @@schema("animal_health")
 }
 
+// ── Diagnosis & Clinical ──
+
+model RefDiagnosisBasis {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @db.VarChar(20)
+  name        Json     @db.JsonB
+  description Json?    @db.JsonB
+  abbreviation String? @db.VarChar(20)
+  scope       String   @default("continental") @db.VarChar(20)
+  ownerId     String?  @map("owner_id") @db.Uuid
+  ownerType   String   @default("system") @map("owner_type") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?    @db.JsonB
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([code, scope, ownerId], map: "uq_ref_diagnosis_basis_code_scope")
+  @@index([scope], map: "idx_ref_diagnosis_basis_scope")
+  @@map("ref_diagnosis_bases")
+  @@schema("animal_health")
+}
+
+model RefBodyPart {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @db.VarChar(50)
+  name        Json     @db.JsonB
+  description Json?    @db.JsonB
+  scope       String   @default("continental") @db.VarChar(20)
+  ownerId     String?  @map("owner_id") @db.Uuid
+  ownerType   String   @default("system") @map("owner_type") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?    @db.JsonB
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([code, scope, ownerId], map: "uq_ref_body_part_code_scope")
+  @@index([scope], map: "idx_ref_body_part_scope")
+  @@map("ref_body_parts")
+  @@schema("animal_health")
+}
+
+model RefCausalAgentType {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @db.VarChar(30)
+  name        Json     @db.JsonB
+  description Json?    @db.JsonB
+  scope       String   @default("continental") @db.VarChar(20)
+  ownerId     String?  @map("owner_id") @db.Uuid
+  ownerType   String   @default("system") @map("owner_type") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?    @db.JsonB
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([code, scope, ownerId], map: "uq_ref_causal_agent_type_code_scope")
+  @@index([scope], map: "idx_ref_causal_agent_type_scope")
+  @@map("ref_causal_agent_types")
+  @@schema("animal_health")
+}
+
+// ── Outbreak & Surveillance ──
+
+model RefOutbreakStatus {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @db.VarChar(30)
+  name        Json     @db.JsonB
+  description Json?    @db.JsonB
+  scope       String   @default("continental") @db.VarChar(20)
+  ownerId     String?  @map("owner_id") @db.Uuid
+  ownerType   String   @default("system") @map("owner_type") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?    @db.JsonB
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([code, scope, ownerId], map: "uq_ref_outbreak_status_code_scope")
+  @@index([scope], map: "idx_ref_outbreak_status_scope")
+  @@map("ref_outbreak_statuses")
+  @@schema("animal_health")
+}
+
+model RefEpidemiologicalUnitType {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @db.VarChar(50)
+  name        Json     @db.JsonB
+  description Json?    @db.JsonB
+  scope       String   @default("continental") @db.VarChar(20)
+  ownerId     String?  @map("owner_id") @db.Uuid
+  ownerType   String   @default("system") @map("owner_type") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?    @db.JsonB
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([code, scope, ownerId], map: "uq_ref_epi_unit_type_code_scope")
+  @@index([scope], map: "idx_ref_epi_unit_type_scope")
+  @@map("ref_epidemiological_unit_types")
+  @@schema("animal_health")
+}
+
+model RefNotificationReason {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @db.VarChar(50)
+  name        Json     @db.JsonB
+  description Json?    @db.JsonB
+  scope       String   @default("continental") @db.VarChar(20)
+  ownerId     String?  @map("owner_id") @db.Uuid
+  ownerType   String   @default("system") @map("owner_type") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?    @db.JsonB
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([code, scope, ownerId], map: "uq_ref_notification_reason_code_scope")
+  @@index([scope], map: "idx_ref_notification_reason_scope")
+  @@map("ref_notification_reasons")
+  @@schema("animal_health")
+}
+
+model RefSourceOfInfection {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @db.VarChar(50)
+  name        Json     @db.JsonB
+  description Json?    @db.JsonB
+  scope       String   @default("continental") @db.VarChar(20)
+  ownerId     String?  @map("owner_id") @db.Uuid
+  ownerType   String   @default("system") @map("owner_type") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?    @db.JsonB
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([code, scope, ownerId], map: "uq_ref_source_infection_code_scope")
+  @@index([scope], map: "idx_ref_source_infection_scope")
+  @@map("ref_source_of_infections")
+  @@schema("animal_health")
+}
+
+// ── Transport & Trade ──
+
+model RefTransportMode {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @db.VarChar(30)
+  name        Json     @db.JsonB
+  description Json?    @db.JsonB
+  scope       String   @default("continental") @db.VarChar(20)
+  ownerId     String?  @map("owner_id") @db.Uuid
+  ownerType   String   @default("system") @map("owner_type") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?    @db.JsonB
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([code, scope, ownerId], map: "uq_ref_transport_mode_code_scope")
+  @@index([scope], map: "idx_ref_transport_mode_scope")
+  @@map("ref_transport_modes")
+  @@schema("animal_health")
+}
+
+// ── Species Attributes ──
+
+model RefAnimalSex {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @db.VarChar(10)
+  name        Json     @db.JsonB
+  description Json?    @db.JsonB
+  scope       String   @default("continental") @db.VarChar(20)
+  ownerId     String?  @map("owner_id") @db.Uuid
+  ownerType   String   @default("system") @map("owner_type") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?    @db.JsonB
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([code, scope, ownerId], map: "uq_ref_animal_sex_code_scope")
+  @@index([scope], map: "idx_ref_animal_sex_scope")
+  @@map("ref_animal_sexes")
+  @@schema("animal_health")
+}
+
+model RefAnimalHusbandry {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @db.VarChar(30)
+  name        Json     @db.JsonB
+  description Json?    @db.JsonB
+  scope       String   @default("continental") @db.VarChar(20)
+  ownerId     String?  @map("owner_id") @db.Uuid
+  ownerType   String   @default("system") @map("owner_type") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?    @db.JsonB
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([code, scope, ownerId], map: "uq_ref_animal_husbandry_code_scope")
+  @@index([scope], map: "idx_ref_animal_husbandry_scope")
+  @@map("ref_animal_husbandries")
+  @@schema("animal_health")
+}
+
+model RefGeneticDiversity {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @db.VarChar(30)
+  name        Json     @db.JsonB
+  description Json?    @db.JsonB
+  scope       String   @default("continental") @db.VarChar(20)
+  ownerId     String?  @map("owner_id") @db.Uuid
+  ownerType   String   @default("system") @map("owner_type") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?    @db.JsonB
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([code, scope, ownerId], map: "uq_ref_genetic_diversity_code_scope")
+  @@index([scope], map: "idx_ref_genetic_diversity_scope")
+  @@map("ref_genetic_diversities")
+  @@schema("animal_health")
+}
+
+// ── Data & Reporting ──
+
+model RefDataSource {
+  id           String   @id @default(uuid()) @db.Uuid
+  code         String   @db.VarChar(30)
+  name         Json     @db.JsonB
+  description  Json?    @db.JsonB
+  abbreviation String?  @db.VarChar(20)
+  scope        String   @default("continental") @db.VarChar(20)
+  ownerId      String?  @map("owner_id") @db.Uuid
+  ownerType    String   @default("system") @map("owner_type") @db.VarChar(20)
+  isActive     Boolean  @default(true) @map("is_active")
+  isDefault    Boolean  @default(false) @map("is_default")
+  sortOrder    Int      @default(0) @map("sort_order")
+  metadata     Json?    @db.JsonB
+  createdBy    String?  @map("created_by") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([code, scope, ownerId], map: "uq_ref_data_source_code_scope")
+  @@index([scope], map: "idx_ref_data_source_scope")
+  @@map("ref_data_sources")
+  @@schema("animal_health")
+}
+
+// ── Fisheries ──
+
+model RefFishFamily {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @db.VarChar(50)
+  name        Json     @db.JsonB
+  description Json?    @db.JsonB
+  scope       String   @default("continental") @db.VarChar(20)
+  ownerId     String?  @map("owner_id") @db.Uuid
+  ownerType   String   @default("system") @map("owner_type") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json?    @db.JsonB
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([code, scope, ownerId], map: "uq_ref_fish_family_code_scope")
+  @@index([scope], map: "idx_ref_fish_family_scope")
+  @@map("ref_fish_families")
+  @@schema("animal_health")
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // End of Master Data Reference Tables
 // ══════════════════════════════════════════════════════════════════════════════
