@@ -73,9 +73,6 @@ services:
       - "--providers.docker.network=aris-app-network"
       # ── Entrypoints ──
       - "--entrypoints.web.address=:80"
-      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.websecure.http.tls=true"
       # ── TLS file provider (GoDaddy wildcard *.au-aris.org) ──
@@ -262,8 +259,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.pg-tileserv.rule=PathPrefix(`/api/v1/geo/tiles`)"
-      - "traefik.http.routers.pg-tileserv.entrypoints=websecure"
-      - "traefik.http.routers.pg-tileserv.tls=true"
+      - "traefik.http.routers.pg-tileserv.entrypoints=web,websecure"
+
       - "traefik.http.services.pg-tileserv.loadbalancer.server.port=7800"
 
   # ═══════════════════════════════════════════════════
@@ -292,8 +289,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.web.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.web.entrypoints=websecure"
-      - "traefik.http.routers.web.tls=true"
+      - "traefik.http.routers.web.entrypoints=web,websecure"
+
       - "traefik.http.routers.web.middlewares=security-headers@file"
       - "traefik.http.routers.web.priority=1"
       - "traefik.http.services.web.loadbalancer.server.port=3000"
@@ -319,8 +316,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.tenant.rule=PathPrefix(`/api/v1/tenants`) || PathPrefix(`/api/v1/settings`) || PathPrefix(`/api/v1/public`)"
-      - "traefik.http.routers.tenant.entrypoints=websecure"
-      - "traefik.http.routers.tenant.tls=true"
+      - "traefik.http.routers.tenant.entrypoints=web,websecure"
+
       - "traefik.http.services.tenant.loadbalancer.server.port=3001"
 
   credential:
@@ -341,8 +338,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.credential.rule=PathPrefix(`/api/v1/credential`) || PathPrefix(`/api/v1/auth`) || PathPrefix(`/api/v1/users`) || PathPrefix(`/api/v1/i18n`)"
-      - "traefik.http.routers.credential.entrypoints=websecure"
-      - "traefik.http.routers.credential.tls=true"
+      - "traefik.http.routers.credential.entrypoints=web,websecure"
+
       - "traefik.http.services.credential.loadbalancer.server.port=3002"
 
   message:
@@ -363,8 +360,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.message.rule=PathPrefix(`/api/v1/messages`)"
-      - "traefik.http.routers.message.entrypoints=websecure"
-      - "traefik.http.routers.message.tls=true"
+      - "traefik.http.routers.message.entrypoints=web,websecure"
       - "traefik.http.services.message.loadbalancer.server.port=3006"
 
   drive:
@@ -387,8 +383,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.drive.rule=PathPrefix(`/api/v1/drive`)"
-      - "traefik.http.routers.drive.entrypoints=websecure"
-      - "traefik.http.routers.drive.tls=true"
+      - "traefik.http.routers.drive.entrypoints=web,websecure"
       - "traefik.http.services.drive.loadbalancer.server.port=3007"
 
   realtime:
@@ -409,8 +404,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.realtime.rule=PathPrefix(`/api/v1/realtime`) || PathPrefix(`/socket.io`)"
-      - "traefik.http.routers.realtime.entrypoints=websecure"
-      - "traefik.http.routers.realtime.tls=true"
+      - "traefik.http.routers.realtime.entrypoints=web,websecure"
       - "traefik.http.services.realtime.loadbalancer.server.port=3008"
 
   # ═══════════════════════════════════════════════════
@@ -434,8 +428,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.master-data.rule=PathPrefix(`/api/v1/master-data`)"
-      - "traefik.http.routers.master-data.entrypoints=websecure"
-      - "traefik.http.routers.master-data.tls=true"
+      - "traefik.http.routers.master-data.entrypoints=web,websecure"
       - "traefik.http.services.master-data.loadbalancer.server.port=3003"
 
   data-quality:
@@ -456,8 +449,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.data-quality.rule=PathPrefix(`/api/v1/data-quality`)"
-      - "traefik.http.routers.data-quality.entrypoints=websecure"
-      - "traefik.http.routers.data-quality.tls=true"
+      - "traefik.http.routers.data-quality.entrypoints=web,websecure"
       - "traefik.http.services.data-quality.loadbalancer.server.port=3004"
 
   data-contract:
@@ -478,8 +470,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.data-contract.rule=PathPrefix(`/api/v1/data-contracts`)"
-      - "traefik.http.routers.data-contract.entrypoints=websecure"
-      - "traefik.http.routers.data-contract.tls=true"
+      - "traefik.http.routers.data-contract.entrypoints=web,websecure"
       - "traefik.http.services.data-contract.loadbalancer.server.port=3005"
 
   interop-hub:
@@ -500,8 +491,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.interop-hub.rule=PathPrefix(`/api/v1/interop`)"
-      - "traefik.http.routers.interop-hub.entrypoints=websecure"
-      - "traefik.http.routers.interop-hub.tls=true"
+      - "traefik.http.routers.interop-hub.entrypoints=web,websecure"
       - "traefik.http.services.interop-hub.loadbalancer.server.port=3032"
 
   # ═══════════════════════════════════════════════════
@@ -525,8 +515,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.form-builder.rule=PathPrefix(`/api/v1/form-builder`)"
-      - "traefik.http.routers.form-builder.entrypoints=websecure"
-      - "traefik.http.routers.form-builder.tls=true"
+      - "traefik.http.routers.form-builder.entrypoints=web,websecure"
       - "traefik.http.services.form-builder.loadbalancer.server.port=3010"
 
   collecte:
@@ -547,8 +536,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.collecte.rule=PathPrefix(`/api/v1/collecte`)"
-      - "traefik.http.routers.collecte.entrypoints=websecure"
-      - "traefik.http.routers.collecte.tls=true"
+      - "traefik.http.routers.collecte.entrypoints=web,websecure"
       - "traefik.http.services.collecte.loadbalancer.server.port=3011"
 
   workflow:
@@ -569,8 +557,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.workflow.rule=PathPrefix(`/api/v1/workflow`)"
-      - "traefik.http.routers.workflow.entrypoints=websecure"
-      - "traefik.http.routers.workflow.tls=true"
+      - "traefik.http.routers.workflow.entrypoints=web,websecure"
       - "traefik.http.services.workflow.loadbalancer.server.port=3012"
 
   # ═══════════════════════════════════════════════════
@@ -594,8 +581,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.animal-health.rule=PathPrefix(`/api/v1/animal-health`)"
-      - "traefik.http.routers.animal-health.entrypoints=websecure"
-      - "traefik.http.routers.animal-health.tls=true"
+      - "traefik.http.routers.animal-health.entrypoints=web,websecure"
       - "traefik.http.services.animal-health.loadbalancer.server.port=3020"
 
   livestock-prod:
@@ -616,8 +602,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.livestock-prod.rule=PathPrefix(`/api/v1/livestock`)"
-      - "traefik.http.routers.livestock-prod.entrypoints=websecure"
-      - "traefik.http.routers.livestock-prod.tls=true"
+      - "traefik.http.routers.livestock-prod.entrypoints=web,websecure"
       - "traefik.http.services.livestock-prod.loadbalancer.server.port=3021"
 
   fisheries:
@@ -638,8 +623,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.fisheries.rule=PathPrefix(`/api/v1/fisheries`)"
-      - "traefik.http.routers.fisheries.entrypoints=websecure"
-      - "traefik.http.routers.fisheries.tls=true"
+      - "traefik.http.routers.fisheries.entrypoints=web,websecure"
       - "traefik.http.services.fisheries.loadbalancer.server.port=3022"
 
   wildlife:
@@ -660,8 +644,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.wildlife.rule=PathPrefix(`/api/v1/wildlife`)"
-      - "traefik.http.routers.wildlife.entrypoints=websecure"
-      - "traefik.http.routers.wildlife.tls=true"
+      - "traefik.http.routers.wildlife.entrypoints=web,websecure"
       - "traefik.http.services.wildlife.loadbalancer.server.port=3023"
 
   apiculture:
@@ -682,8 +665,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.apiculture.rule=PathPrefix(`/api/v1/apiculture`)"
-      - "traefik.http.routers.apiculture.entrypoints=websecure"
-      - "traefik.http.routers.apiculture.tls=true"
+      - "traefik.http.routers.apiculture.entrypoints=web,websecure"
       - "traefik.http.services.apiculture.loadbalancer.server.port=3024"
 
   trade-sps:
@@ -704,8 +686,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.trade-sps.rule=PathPrefix(`/api/v1/trade`)"
-      - "traefik.http.routers.trade-sps.entrypoints=websecure"
-      - "traefik.http.routers.trade-sps.tls=true"
+      - "traefik.http.routers.trade-sps.entrypoints=web,websecure"
       - "traefik.http.services.trade-sps.loadbalancer.server.port=3025"
 
   governance:
@@ -726,8 +707,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.governance.rule=PathPrefix(`/api/v1/governance`)"
-      - "traefik.http.routers.governance.entrypoints=websecure"
-      - "traefik.http.routers.governance.tls=true"
+      - "traefik.http.routers.governance.entrypoints=web,websecure"
       - "traefik.http.services.governance.loadbalancer.server.port=3026"
 
   climate-env:
@@ -748,8 +728,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.climate-env.rule=PathPrefix(`/api/v1/climate`)"
-      - "traefik.http.routers.climate-env.entrypoints=websecure"
-      - "traefik.http.routers.climate-env.tls=true"
+      - "traefik.http.routers.climate-env.entrypoints=web,websecure"
       - "traefik.http.services.climate-env.loadbalancer.server.port=3027"
 
   # ═══════════════════════════════════════════════════
@@ -773,8 +752,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.analytics.rule=PathPrefix(`/api/v1/analytics`)"
-      - "traefik.http.routers.analytics.entrypoints=websecure"
-      - "traefik.http.routers.analytics.tls=true"
+      - "traefik.http.routers.analytics.entrypoints=web,websecure"
       - "traefik.http.services.analytics.loadbalancer.server.port=3030"
 
   geo-services:
@@ -795,8 +773,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.geo-services.rule=PathPrefix(`/api/v1/geo`)"
-      - "traefik.http.routers.geo-services.entrypoints=websecure"
-      - "traefik.http.routers.geo-services.tls=true"
+      - "traefik.http.routers.geo-services.entrypoints=web,websecure"
       - "traefik.http.services.geo-services.loadbalancer.server.port=3031"
 
   knowledge-hub:
@@ -817,8 +794,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.knowledge-hub.rule=PathPrefix(`/api/v1/knowledge`)"
-      - "traefik.http.routers.knowledge-hub.entrypoints=websecure"
-      - "traefik.http.routers.knowledge-hub.tls=true"
+      - "traefik.http.routers.knowledge-hub.entrypoints=web,websecure"
       - "traefik.http.services.knowledge-hub.loadbalancer.server.port=3033"
 
   # ═══════════════════════════════════════════════════
@@ -842,8 +818,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.support.rule=PathPrefix(`/api/v1/support`)"
-      - "traefik.http.routers.support.entrypoints=websecure"
-      - "traefik.http.routers.support.tls=true"
+      - "traefik.http.routers.support.entrypoints=web,websecure"
       - "traefik.http.services.support.loadbalancer.server.port=3041"
 
   interop:
@@ -864,8 +839,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.interop.rule=PathPrefix(`/api/v1/interop-v2`)"
-      - "traefik.http.routers.interop.entrypoints=websecure"
-      - "traefik.http.routers.interop.tls=true"
+      - "traefik.http.routers.interop.entrypoints=web,websecure"
       - "traefik.http.services.interop.loadbalancer.server.port=3042"
 
   analytics-worker:
@@ -886,8 +860,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.analytics-worker.rule=PathPrefix(`/api/v1/analytics-worker`)"
-      - "traefik.http.routers.analytics-worker.entrypoints=websecure"
-      - "traefik.http.routers.analytics-worker.tls=true"
+      - "traefik.http.routers.analytics-worker.entrypoints=web,websecure"
       - "traefik.http.services.analytics-worker.loadbalancer.server.port=3043"
 
   datalake:
@@ -908,8 +881,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.datalake.rule=PathPrefix(`/api/v1/datalake`)"
-      - "traefik.http.routers.datalake.entrypoints=websecure"
-      - "traefik.http.routers.datalake.tls=true"
+      - "traefik.http.routers.datalake.entrypoints=web,websecure"
       - "traefik.http.services.datalake.loadbalancer.server.port=3044"
 
   offline:
@@ -930,8 +902,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.offline.rule=PathPrefix(`/api/v1/offline`)"
-      - "traefik.http.routers.offline.entrypoints=websecure"
-      - "traefik.http.routers.offline.tls=true"
+      - "traefik.http.routers.offline.entrypoints=web,websecure"
       - "traefik.http.services.offline.loadbalancer.server.port=3040"
 
 volumes:
