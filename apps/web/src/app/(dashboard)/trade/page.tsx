@@ -77,8 +77,8 @@ export default function TradePage() {
   } = useTradeBalance();
 
   const { sections } = useDomainConfig('trade-sps');
-  const kpis = kpiData?.data ?? PLACEHOLDER_KPIS;
-  const balancePoints = balanceData?.data ?? PLACEHOLDER_BALANCE;
+  const kpis = { ...PLACEHOLDER_KPIS, ...kpiData?.data };
+  const balancePoints = balanceData?.data?.length ? balanceData.data : PLACEHOLDER_BALANCE;
 
   return (
     <div className="space-y-6">

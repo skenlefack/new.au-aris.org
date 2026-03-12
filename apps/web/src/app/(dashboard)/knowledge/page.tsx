@@ -154,7 +154,7 @@ export default function KnowledgePortalPage() {
   const { data: courseData, isLoading: courseLoading } = useElearningCourses({ limit: 3 });
   const { sections } = useDomainConfig('knowledge');
 
-  const kpis = kpiData?.data ?? PLACEHOLDER_KPIS;
+  const kpis = { ...PLACEHOLDER_KPIS, ...kpiData?.data };
   const publications = pubData?.data ?? PLACEHOLDER_PUBLICATIONS;
   const courses = courseData?.data ?? PLACEHOLDER_COURSES;
 

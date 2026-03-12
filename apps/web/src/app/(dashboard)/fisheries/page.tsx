@@ -58,8 +58,8 @@ export default function FisheriesPage() {
   const { data: trendData, isLoading: trendLoading } = useCaptureTrends();
   const { sections } = useDomainConfig('fisheries');
 
-  const kpis = kpiData?.data ?? PLACEHOLDER_KPIS;
-  const trends = trendData?.data ?? PLACEHOLDER_TRENDS;
+  const kpis = { ...PLACEHOLDER_KPIS, ...kpiData?.data };
+  const trends = trendData?.data?.length ? trendData.data : PLACEHOLDER_TRENDS;
 
   return (
     <div className="space-y-6">
