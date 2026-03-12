@@ -343,11 +343,16 @@ export function usePublicDomains() {
   return useQuery({
     queryKey: ['public', 'domains'],
     queryFn: async () => {
-      const res = await fetch('/api/v1/public/domains');
-      if (!res.ok) throw new Error(`Public domains fetch failed: ${res.status}`);
-      return res.json();
+      try {
+        const res = await fetch('/api/v1/public/domains');
+        if (!res.ok) return { data: [] };
+        return res.json();
+      } catch {
+        return { data: [] };
+      }
     },
     staleTime: 5 * 60_000,
+    placeholderData: { data: [] },
   });
 }
 

@@ -155,8 +155,8 @@ export default function KnowledgePortalPage() {
   const { sections } = useDomainConfig('knowledge');
 
   const kpis = { ...PLACEHOLDER_KPIS, ...kpiData?.data };
-  const publications = pubData?.data ?? PLACEHOLDER_PUBLICATIONS;
-  const courses = courseData?.data ?? PLACEHOLDER_COURSES;
+  const publications = Array.isArray(pubData?.data) && pubData.data.length > 0 ? pubData.data : PLACEHOLDER_PUBLICATIONS;
+  const courses = Array.isArray(courseData?.data) && courseData.data.length > 0 ? courseData.data : PLACEHOLDER_COURSES;
 
   return (
     <div className="space-y-6">

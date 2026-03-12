@@ -12,13 +12,13 @@ interface DomainCampaignsSectionProps {
 }
 
 export function DomainCampaignsSection({ domain }: DomainCampaignsSectionProps) {
-  const { data, isLoading } = useCampaigns({
+  const { data, isLoading, isError } = useCampaigns({
     domain,
     status: 'ACTIVE',
     limit: 5,
   });
 
-  const campaigns = data?.data ?? [];
+  const campaigns = Array.isArray(data?.data) ? data.data : [];
 
   return (
     <div className="rounded-card border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
@@ -47,7 +47,7 @@ export function DomainCampaignsSection({ domain }: DomainCampaignsSectionProps) 
             </div>
           ))}
         </div>
-      ) : campaigns.length === 0 ? (
+      ) : (isError || campaigns.length === 0) ? (
         <div className="mt-6 flex flex-col items-center py-4 text-center">
           <ClipboardList className="h-8 w-8 text-gray-200 dark:text-gray-600" />
           <p className="mt-2 text-sm text-gray-400 dark:text-gray-500">

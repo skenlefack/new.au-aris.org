@@ -38,8 +38,8 @@ function withFallback<T>(queryFn: () => Promise<T>, fallback: T): () => Promise<
       return await queryFn();
     } catch (err) {
       // Service offline or unavailable — silently return fallback data.
-      // 500 = Next.js proxy can't reach upstream; 502/503 = gateway errors; 404 = route not found
-      if (err instanceof ApiClientError && [404, 500, 502, 503].includes(err.statusCode)) {
+      // 401 = service auth issue; 404 = route not found; 500/502/503 = upstream errors
+      if (err instanceof ApiClientError && [401, 403, 404, 500, 502, 503].includes(err.statusCode)) {
         return fallback;
       }
       // Network errors (service not running at all → fetch throws TypeError)
@@ -660,13 +660,18 @@ export function useCampaigns(params?: {
   if (params?.search) searchParams.search = params.search;
   if (params?.domain) searchParams.domain = params.domain;
 
+  const fallback: PaginatedResponse<CollecteCampaign> = { data: [], meta: { total: 0, page: 1, limit: params?.limit ?? 20 } };
   return useQuery({
     queryKey: ['collecte', 'campaigns', params],
-    queryFn: () =>
-      collecteClient.get<PaginatedResponse<CollecteCampaign>>(
-        '/collecte/campaigns',
-        searchParams,
-      ),
+    queryFn: withFallback(
+      () =>
+        collecteClient.get<PaginatedResponse<CollecteCampaign>>(
+          '/collecte/campaigns',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
