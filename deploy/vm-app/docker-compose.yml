@@ -318,7 +318,7 @@ services:
     volumes: *service-volumes
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.tenant.rule=PathPrefix(`/api/v1/tenants`)"
+      - "traefik.http.routers.tenant.rule=PathPrefix(`/api/v1/tenants`) || PathPrefix(`/api/v1/settings`) || PathPrefix(`/api/v1/public`)"
       - "traefik.http.routers.tenant.entrypoints=websecure"
       - "traefik.http.routers.tenant.tls=true"
       - "traefik.http.services.tenant.loadbalancer.server.port=3001"
