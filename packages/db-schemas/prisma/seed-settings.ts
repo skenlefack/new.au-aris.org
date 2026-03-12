@@ -967,11 +967,11 @@ const SYSTEM_CONFIGS: SystemConfigSeedData[] = [
     value: 'en',
     label: { en: 'Default Locale', fr: 'Langue par d\u00e9faut', pt: 'Idioma padr\u00e3o' },
     description: { en: 'Default language for the platform', fr: 'Langue par d\u00e9faut de la plateforme', pt: 'Idioma padr\u00e3o da plataforma' },
-    type: 'enum', options: ['en', 'fr', 'pt', 'ar'], isEditable: true, scope: 'global',
+    type: 'enum', options: ['en', 'fr', 'pt', 'es', 'ar'], isEditable: true, scope: 'global',
   },
   {
     category: 'i18n', key: 'i18n.availableLocales',
-    value: ['en', 'fr', 'pt', 'ar'],
+    value: ['en', 'fr', 'pt', 'es', 'ar'],
     label: { en: 'Available Locales', fr: 'Langues disponibles', pt: 'Idiomas dispon\u00edveis' },
     description: { en: 'List of supported languages', fr: 'Liste des langues prises en charge', pt: 'Lista de idiomas suportados' },
     type: 'json', isEditable: true, scope: 'global',

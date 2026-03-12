@@ -10,6 +10,7 @@ export const UpdateUserSchema = Type.Object({
     Type.Literal('en'),
     Type.Literal('fr'),
     Type.Literal('pt'),
+    Type.Literal('es'),
     Type.Literal('ar'),
   ])),
 });
@@ -19,6 +20,7 @@ export const UpdateLocaleSchema = Type.Object({
     Type.Literal('en'),
     Type.Literal('fr'),
     Type.Literal('pt'),
+    Type.Literal('es'),
     Type.Literal('ar'),
   ]),
 });

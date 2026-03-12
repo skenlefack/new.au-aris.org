@@ -8,10 +8,11 @@ import { SaveBar } from '@/components/settings/SaveBar';
 import { Loader2, Globe, ArrowRightLeft, Calendar, Check } from 'lucide-react';
 
 const LANGUAGES = [
-  { code: 'en', name: 'English',    native: 'English',     flag: '\uD83C\uDDEC\uD83C\uDDE7', rtl: false },
-  { code: 'fr', name: 'French',     native: 'Fran\u00e7ais',    flag: '\uD83C\uDDEB\uD83C\uDDF7', rtl: false },
-  { code: 'pt', name: 'Portuguese', native: 'Portugu\u00eas',   flag: '\uD83C\uDDF5\uD83C\uDDF9', rtl: false },
-  { code: 'ar', name: 'Arabic',     native: '\u0627\u0644\u0639\u0631\u0628\u064a\u0629',      flag: '\uD83C\uDDF8\uD83C\uDDE6', rtl: true },
+  { code: 'en', name: 'English',    native: 'English',    flag: '\uD83C\uDDEC\uD83C\uDDE7', rtl: false },
+  { code: 'fr', name: 'French',     native: 'Fran\u00e7ais',   flag: '\uD83C\uDDEB\uD83C\uDDF7', rtl: false },
+  { code: 'pt', name: 'Portuguese', native: 'Portugu\u00eas',  flag: '\uD83C\uDDF5\uD83C\uDDF9', rtl: false },
+  { code: 'es', name: 'Spanish',    native: 'Espa\u00f1ol',    flag: '\uD83C\uDDEA\uD83C\uDDF8', rtl: false },
+  { code: 'ar', name: 'Arabic',     native: '\u0627\u0644\u0639\u0631\u0628\u064a\u0629',     flag: '\uD83C\uDDF8\uD83C\uDDE6', rtl: true },
 ] as const;
 
 export default function I18nSettingsPage() {
@@ -46,6 +47,28 @@ export default function I18nSettingsPage() {
   const defaultLocale = defaultLocaleConfig
     ? (getValue(defaultLocaleConfig) as string)
     : 'en';
+
+  // Find available locales from configs
+  const availableLocalesConfig = configs.find((c: any) => c.key === 'i18n.availableLocales');
+  const availableLocales: string[] = availableLocalesConfig
+    ? (getValue(availableLocalesConfig) as string[])
+    : LANGUAGES.map((l) => l.code);
+
+  const handleSetDefault = (code: string) => {
+    if (!canEdit) return;
+    if (!availableLocales.includes(code)) return;
+    handleChange('i18n.defaultLocale', code);
+  };
+
+  const handleToggleLocale = (code: string) => {
+    if (!canEdit) return;
+    // Cannot disable the default locale
+    if (code === defaultLocale) return;
+    const next = availableLocales.includes(code)
+      ? availableLocales.filter((c) => c !== code)
+      : [...availableLocales, code];
+    handleChange('i18n.availableLocales', next);
+  };
 
   // Separate date/format configs from locale configs
   const localeConfigs = configs.filter((c: any) =>
@@ -92,20 +115,54 @@ export default function I18nSettingsPage() {
           Supported Languages
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
         </h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {canEdit && (
+          <p className="mb-3 text-xs text-gray-400 dark:text-gray-500">
+            Click a card to set as default language. Use the toggle to enable or disable a language.
+          </p>
+        )}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {LANGUAGES.map((lang) => {
             const isDefault = defaultLocale === lang.code;
+            const isEnabled = availableLocales.includes(lang.code);
             return (
               <div
                 key={lang.code}
+                onClick={() => isEnabled && handleSetDefault(lang.code)}
                 className={`relative overflow-hidden rounded-xl border p-4 transition-all ${
-                  isDefault
-                    ? 'border-aris-primary-300 bg-aris-primary-50/50 shadow-sm ring-1 ring-aris-primary-200 dark:border-aris-primary-700 dark:bg-aris-primary-900/20 dark:ring-aris-primary-800'
-                    : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm dark:border-gray-700 dark:bg-gray-900/50 dark:hover:border-gray-600'
-                }`}
+                  !isEnabled
+                    ? 'border-gray-200 bg-gray-100 opacity-50 dark:border-gray-700 dark:bg-gray-800/50'
+                    : isDefault
+                      ? 'border-aris-primary-300 bg-aris-primary-50/50 shadow-sm ring-1 ring-aris-primary-200 dark:border-aris-primary-700 dark:bg-aris-primary-900/20 dark:ring-aris-primary-800'
+                      : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm dark:border-gray-700 dark:bg-gray-900/50 dark:hover:border-gray-600'
+                } ${canEdit && isEnabled ? 'cursor-pointer' : ''}`}
               >
+                {/* Enable/Disable toggle */}
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleLocale(lang.code);
+                    }}
+                    disabled={isDefault}
+                    className={`absolute right-2 top-2 z-10 inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-aris-primary-500 focus:ring-offset-2 ${
+                      isDefault
+                        ? 'cursor-not-allowed bg-aris-primary-400 opacity-60'
+                        : isEnabled
+                          ? 'cursor-pointer bg-aris-primary-500'
+                          : 'cursor-pointer bg-gray-300 dark:bg-gray-600'
+                    }`}
+                    title={isDefault ? 'Default language cannot be disabled' : isEnabled ? 'Disable language' : 'Enable language'}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm ring-0 transition-transform ${
+                        isEnabled ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                )}
                 {isDefault && (
-                  <div className="absolute right-2 top-2">
+                  <div className={canEdit ? 'mt-1' : 'absolute right-2 top-2'}>
                     <span className="inline-flex items-center gap-1 rounded-full bg-aris-primary-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-aris-primary-700 dark:bg-aris-primary-900/50 dark:text-aris-primary-300">
                       <Check className="h-3 w-3" />
                       Default
