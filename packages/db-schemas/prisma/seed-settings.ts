@@ -1020,6 +1020,64 @@ const SYSTEM_CONFIGS: SystemConfigSeedData[] = [
     description: { en: 'Enable automatic duplicate detection', fr: 'Activer la d\u00e9tection automatique des doublons', pt: 'Ativar dete\u00e7\u00e3o autom\u00e1tica de duplicados' },
     type: 'boolean', isEditable: true, scope: 'global',
   },
+
+  // ── EMAIL ──
+  {
+    category: 'email', key: 'email.provider',
+    value: 'smtp',
+    label: { en: 'Email Provider', fr: 'Fournisseur email', pt: 'Provedor de email' },
+    description: { en: 'Email delivery service (smtp or postmark)', fr: "Service d'envoi d'emails (smtp ou postmark)", pt: 'Servi\u00e7o de envio de emails (smtp ou postmark)' },
+    type: 'enum', options: ['smtp', 'postmark'], isEditable: true, scope: 'global',
+  },
+  {
+    category: 'email', key: 'email.postmark.serverToken',
+    value: '',
+    label: { en: 'Postmark Server Token', fr: 'Token serveur Postmark', pt: 'Token do servidor Postmark' },
+    description: { en: 'Server API token from Postmark dashboard', fr: "Token API serveur depuis le tableau de bord Postmark", pt: 'Token API do servidor do painel Postmark' },
+    type: 'secret', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'email', key: 'email.postmark.from',
+    value: 'noreply@au-aris.org',
+    label: { en: 'Postmark From Address', fr: "Adresse d'exp\u00e9dition Postmark", pt: 'Endere\u00e7o de envio Postmark' },
+    description: { en: 'Sender address (must be verified in Postmark)', fr: "Adresse d'exp\u00e9diteur (doit \u00eatre v\u00e9rifi\u00e9e dans Postmark)", pt: 'Endere\u00e7o do remetente (deve ser verificado no Postmark)' },
+    type: 'string', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'email', key: 'email.postmark.messageStream',
+    value: 'outbound',
+    label: { en: 'Message Stream', fr: 'Flux de messages', pt: 'Fluxo de mensagens' },
+    description: { en: 'Postmark message stream (outbound, broadcast, etc.)', fr: 'Flux de messages Postmark (outbound, broadcast, etc.)', pt: 'Fluxo de mensagens Postmark (outbound, broadcast, etc.)' },
+    type: 'string', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'email', key: 'email.postmark.tag',
+    value: 'aris',
+    label: { en: 'Postmark Tag', fr: 'Tag Postmark', pt: 'Tag Postmark' },
+    description: { en: 'Tag for filtering emails in Postmark dashboard', fr: 'Tag pour filtrer les emails dans le tableau de bord Postmark', pt: 'Tag para filtrar emails no painel Postmark' },
+    type: 'string', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'email', key: 'email.smtp.host',
+    value: 'localhost',
+    label: { en: 'SMTP Host', fr: 'H\u00f4te SMTP', pt: 'Servidor SMTP' },
+    description: { en: 'SMTP server hostname', fr: 'Nom du serveur SMTP', pt: 'Nome do servidor SMTP' },
+    type: 'string', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'email', key: 'email.smtp.port',
+    value: 1025,
+    label: { en: 'SMTP Port', fr: 'Port SMTP', pt: 'Porta SMTP' },
+    description: { en: 'SMTP server port', fr: 'Port du serveur SMTP', pt: 'Porta do servidor SMTP' },
+    type: 'number', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'email', key: 'email.smtp.from',
+    value: 'noreply@au-aris.org',
+    label: { en: 'SMTP From Address', fr: "Adresse d'exp\u00e9dition SMTP", pt: 'Endere\u00e7o de envio SMTP' },
+    description: { en: 'Sender address for SMTP', fr: "Adresse d'exp\u00e9diteur SMTP", pt: 'Endere\u00e7o do remetente SMTP' },
+    type: 'string', isEditable: true, scope: 'global',
+  },
 ];
 
 // ─── 9 Business Domains ──────────────────────────────────────────────────────

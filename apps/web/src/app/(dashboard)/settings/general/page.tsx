@@ -10,15 +10,18 @@ import { Loader2 } from 'lucide-react';
 export default function GeneralSettingsPage() {
   const { canManageConfig } = useSettingsAccess();
   const canEdit = canManageConfig('general');
+  const canEditEmail = canManageConfig('email');
   const { data: generalData, isLoading: loadingGeneral } = useSettingsConfig('general');
   const { data: brandingData, isLoading: loadingBranding } = useSettingsConfig('branding');
+  const { data: emailData, isLoading: loadingEmail } = useSettingsConfig('email');
   const bulkMutation = useBulkUpdateConfig();
 
   const [changes, setChanges] = useState<Record<string, unknown>>({});
 
   const generalConfigs: any[] = generalData?.data ?? [];
   const brandingConfigs: any[] = brandingData?.data ?? [];
-  const allConfigs = [...generalConfigs, ...brandingConfigs];
+  const emailConfigs: any[] = emailData?.data ?? [];
+  const allConfigs = [...generalConfigs, ...brandingConfigs, ...emailConfigs];
 
   const handleChange = (category: string, key: string, value: unknown) => {
     setChanges((prev) => ({ ...prev, [`${category}:${key}`]: value }));
@@ -38,7 +41,7 @@ export default function GeneralSettingsPage() {
     setChanges({});
   };
 
-  const isLoading = loadingGeneral || loadingBranding;
+  const isLoading = loadingGeneral || loadingBranding || loadingEmail;
 
   if (isLoading) {
     return (
@@ -91,6 +94,30 @@ export default function GeneralSettingsPage() {
                 onChange={(v) => handleChange(config.category, config.key, v)}
                 options={config.options}
                 disabled={!canEdit}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Email */}
+      {emailConfigs.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Email Delivery</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Configure the email provider used for sending notifications
+          </p>
+          <div className="space-y-2">
+            {emailConfigs.map((config: any) => (
+              <ConfigField
+                key={config.id}
+                label={config.label?.en ?? config.key}
+                description={config.description?.en}
+                type={config.type}
+                value={getValue(config)}
+                onChange={(v) => handleChange(config.category, config.key, v)}
+                options={config.options}
+                disabled={!canEditEmail}
               />
             ))}
           </div>

@@ -5,14 +5,15 @@ import { DigestService } from '../services/digest.service';
 import { NotificationService } from '../services/notification.service';
 import { TemplateEngine } from '../services/template-engine';
 import { PreferencesService } from '../services/preferences.service';
-import { EmailChannel } from '../services/channels/email.channel';
+import { createEmailChannel } from '../services/channels/email-channel.factory';
 import { SmsChannel } from '../services/channels/sms.channel';
 import { PushChannel } from '../services/channels/push.channel';
 import { InAppChannel } from '../services/channels/in-app.channel';
 
 export default fp(
   async (app: FastifyInstance) => {
-    const emailChannel = new EmailChannel();
+    const { channel: emailChannel, provider } = await createEmailChannel(app.prisma);
+    app.log.info(`Email provider: ${provider}`);
     const smsChannel = new SmsChannel();
     const pushChannel = new PushChannel();
     const inAppChannel = new InAppChannel();

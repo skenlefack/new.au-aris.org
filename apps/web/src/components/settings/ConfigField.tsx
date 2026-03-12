@@ -56,6 +56,23 @@ export function ConfigField({
           />
         )}
 
+        {type === 'secret' && (
+          <input
+            type="password"
+            value={(value as string) ?? ''}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={disabled}
+            placeholder="••••••••"
+            autoComplete="off"
+            className={cn(
+              'w-64 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-mono',
+              'focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500',
+              'dark:border-gray-700 dark:bg-gray-900 dark:text-white',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+            )}
+          />
+        )}
+
         {type === 'number' && (
           <input
             type="number"
