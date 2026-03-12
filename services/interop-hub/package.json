@@ -22,7 +22,7 @@
     "@aris/kafka-client": "workspace:*",
     "@aris/auth-middleware": "workspace:*",
     "@fastify/cors": "^10.0.0",
-    "@prisma/client": "^6.2.0",
+    "@prisma/client": "^6.19.2",
     "dotenv": "^17.3.1",
     "fast-xml-parser": "^4.3.0",
     "fastify": "^5.2.0",
@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@types/node-cron": "^3.0.0",
-    "prisma": "^6.2.0",
+    "prisma": "^6.19.2",
     "testcontainers": "^10.9.0",
     "tsx": "^4.11.0",
     "typescript": "^5.4.0",

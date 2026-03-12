@@ -42,7 +42,7 @@
     "husky": "^9.0.0",
     "lint-staged": "^15.0.0",
     "prettier": "^3.2.0",
-    "prisma": "6.2.0",
+    "prisma": "6.19.2",
     "tsx": "^4.21.0",
     "@playwright/test": "^1.45.0",
     "@vitest/coverage-v8": "^1.6.1",
@@ -59,7 +59,7 @@
     ]
   },
   "dependencies": {
-    "@prisma/client": "6.2.0",
+    "@prisma/client": "6.19.2",
     "pg": "^8.18.0"
   }
 }

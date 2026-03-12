@@ -19,7 +19,7 @@
     "@aris/kafka-client": "workspace:*",
     "@aris/shared-types": "workspace:*",
     "@fastify/cors": "^10.0.0",
-    "@prisma/client": "^6.2.0",
+    "@prisma/client": "^6.19.2",
     "@sinclair/typebox": "^0.32.0",
     "ajv": "^8.17.1",
     "dotenv": "^17.3.1",
