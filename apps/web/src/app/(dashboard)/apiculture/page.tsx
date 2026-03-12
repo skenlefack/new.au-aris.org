@@ -11,20 +11,12 @@ import {
   Droplets,
   HeartPulse,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
-import { cn } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/Skeleton';
+import dynamic from 'next/dynamic';
+
+const ProductionChart = dynamic(() => import('./ProductionChart'), { ssr: false });
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
+import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
 const PLACEHOLDER_KPIS = {
   registeredApiaries: 24_500,
@@ -70,6 +62,7 @@ function TrendIndicator({ value }: { value: number }) {
 export default function ApiculturePage() {
   const kpis = PLACEHOLDER_KPIS;
   const trends = PLACEHOLDER_TRENDS;
+  const { sections } = useDomainConfig('apiculture');
 
   return (
     <div className="space-y-6">
@@ -85,7 +78,7 @@ export default function ApiculturePage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {sections.kpis && <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-start justify-between">
             <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Registered Apiaries</p>
@@ -129,10 +122,10 @@ export default function ApiculturePage() {
           </p>
           <TrendIndicator value={kpis.lossRateTrend} />
         </div>
-      </div>
+      </div>}
 
       {/* Production Trends Chart */}
-      <div className="rounded-card border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+      {sections.chart && <div className="rounded-card border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           Production Trends
         </h2>
@@ -140,37 +133,12 @@ export default function ApiculturePage() {
           Continental bee product output in tonnes (2021-2026)
         </p>
         <div className="mt-4 h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={trends}>
-              <defs>
-                <linearGradient id="honeyGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#D97706" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#D97706" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="waxGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#92400E" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#92400E" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="propolisGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#065F46" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#065F46" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} />
-              <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickFormatter={(v) => `${(v / 1_000).toFixed(0)}K`} />
-              <Tooltip formatter={(value: number) => [`${value.toLocaleString()} tonnes`]} contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #E5E7EB' }} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Area type="monotone" dataKey="honey" stackId="1" stroke="#D97706" strokeWidth={2} fill="url(#honeyGrad)" name="Honey" />
-              <Area type="monotone" dataKey="wax" stackId="1" stroke="#92400E" strokeWidth={2} fill="url(#waxGrad)" name="Beeswax" />
-              <Area type="monotone" dataKey="propolis" stackId="1" stroke="#065F46" strokeWidth={2} fill="url(#propolisGrad)" name="Propolis" />
-            </AreaChart>
-          </ResponsiveContainer>
+          <ProductionChart data={trends} />
         </div>
-      </div>
+      </div>}
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {sections.quickLinks && <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Link
           href="/apiculture/apiaries"
           className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-amber-200 hover:bg-amber-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-amber-800 dark:hover:bg-amber-900/20"
@@ -218,13 +186,15 @@ export default function ApiculturePage() {
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-yellow-600" />
         </Link>
-      </div>
+      </div>}
 
       {/* Campaigns & Alert */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <DomainCampaignsSection domain="apiculture" />
-        <QuickAlertCard domain="apiculture" alertFields={ALERT_FIELDS} title="Report Colony Issue" />
-      </div>
+      {(sections.campaigns || sections.alertForm) && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {sections.campaigns && <DomainCampaignsSection domain="apiculture" />}
+          {sections.alertForm && <QuickAlertCard domain="apiculture" alertFields={ALERT_FIELDS} title="Report Colony Issue" />}
+        </div>
+      )}
     </div>
   );
 }

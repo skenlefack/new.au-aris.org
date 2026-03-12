@@ -1,4 +1,13 @@
-const API_BASE = process.env['NEXT_PUBLIC_TENANT_API_URL'] ?? '';
+/**
+ * Resolve the tenant API base URL:
+ * - NEXT_PUBLIC_TENANT_API_URL if explicitly set
+ * - Server-side (Node.js): Docker internal network URL
+ * - Client-side (browser): NEXT_PUBLIC_API_URL or same-origin (empty)
+ */
+const API_BASE = process.env['NEXT_PUBLIC_TENANT_API_URL']
+  || (typeof window === 'undefined'
+    ? (process.env['INTERNAL_TENANT_URL'] || 'http://aris-tenant:3001')
+    : (process.env['NEXT_PUBLIC_API_URL'] || ''));
 
 export async function getPublicRecs() {
   try {

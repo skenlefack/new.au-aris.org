@@ -12,20 +12,13 @@ import {
   ArrowRight,
   Sprout,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
+import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/Skeleton';
+
+const WaterStressChart = dynamic(() => import('./WaterStressChart'), { ssr: false });
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
+import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
 const PLACEHOLDER_KPIS = {
   monitoringStations: 2_840,
@@ -73,6 +66,7 @@ function TrendIndicator({ value, invertColor }: { value: number; invertColor?: b
 export default function ClimateEnvPage() {
   const kpis = PLACEHOLDER_KPIS;
   const waterTrends = PLACEHOLDER_WATER_TRENDS;
+  const { sections } = useDomainConfig('climate-env');
 
   return (
     <div className="space-y-6">
@@ -88,7 +82,7 @@ export default function ClimateEnvPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {sections.kpis && <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-start justify-between">
             <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Monitoring Stations</p>
@@ -132,10 +126,10 @@ export default function ClimateEnvPage() {
           </p>
           <TrendIndicator value={kpis.hotspotsTrend} invertColor />
         </div>
-      </div>
+      </div>}
 
       {/* Water Stress Trends Chart */}
-      <div className="rounded-card border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+      {sections.chart && <div className="rounded-card border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           Water Stress Index by Region
         </h2>
@@ -143,25 +137,12 @@ export default function ClimateEnvPage() {
           Annual water stress index trends across African regions (% baseline withdrawal)
         </p>
         <div className="mt-4 h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={waterTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} />
-              <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} tickFormatter={(v) => `${v}%`} />
-              <Tooltip formatter={(value: number) => [`${value.toFixed(1)}%`]} contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #E5E7EB' }} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="eastAfrica" stroke="#0891B2" strokeWidth={2} dot={{ r: 3 }} name="East Africa" />
-              <Line type="monotone" dataKey="westAfrica" stroke="#D97706" strokeWidth={2} dot={{ r: 3 }} name="West Africa" />
-              <Line type="monotone" dataKey="centralAfrica" stroke="#059669" strokeWidth={2} dot={{ r: 3 }} name="Central Africa" />
-              <Line type="monotone" dataKey="southernAfrica" stroke="#7C3AED" strokeWidth={2} dot={{ r: 3 }} name="Southern Africa" />
-              <Line type="monotone" dataKey="northAfrica" stroke="#DC2626" strokeWidth={2} dot={{ r: 3 }} name="North Africa" />
-            </LineChart>
-          </ResponsiveContainer>
+          <WaterStressChart data={waterTrends} />
         </div>
-      </div>
+      </div>}
 
       {/* Quick Links */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {sections.quickLinks && <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Link
           href="/climate-env/climate-data"
           className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-sky-200 hover:bg-sky-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-sky-800 dark:hover:bg-sky-900/20"
@@ -225,13 +206,15 @@ export default function ClimateEnvPage() {
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-red-600" />
         </Link>
-      </div>
+      </div>}
 
       {/* Campaigns & Alert */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <DomainCampaignsSection domain="climate_env" />
-        <QuickAlertCard domain="climate_env" alertFields={ALERT_FIELDS} title="Report Environmental Hazard" />
-      </div>
+      {(sections.campaigns || sections.alertForm) && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {sections.campaigns && <DomainCampaignsSection domain="climate_env" />}
+          {sections.alertForm && <QuickAlertCard domain="climate_env" alertFields={ALERT_FIELDS} title="Report Environmental Hazard" />}
+        </div>
+      )}
     </div>
   );
 }

@@ -18,6 +18,7 @@ import {
   ConfigKeyParamSchema,
   ConfigUpdateBodySchema,
   ConfigBulkBodySchema,
+  DomainCreateBodySchema,
   DomainBodySchema,
   DomainSortBodySchema,
   SearchQuerySchema,
@@ -47,6 +48,7 @@ import {
   type ConfigKeyParamInput,
   type ConfigUpdateBodyInput,
   type ConfigBulkBodyInput,
+  type DomainCreateBodyInput,
   type DomainBodyInput,
   type DomainSortBodyInput,
   type SearchQueryInput,
@@ -309,6 +311,16 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
     return app.settingsService.listDomains();
   });
 
+  // POST /api/v1/settings/domains — create domain (SUPER_ADMIN)
+  app.post<{ Body: DomainCreateBodyInput }>('/api/v1/settings/domains', {
+    schema: { body: DomainCreateBodySchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN)],
+  }, async (request, reply) => {
+    const user = request.user as AuthenticatedUser;
+    const result = await app.settingsService.createDomain(request.body as Record<string, unknown>, user);
+    return reply.code(201).send(result);
+  });
+
   // PUT /api/v1/settings/domains/:id — update domain (SUPER_ADMIN)
   app.put<{ Params: UuidParamInput; Body: DomainBodyInput }>('/api/v1/settings/domains/:id', {
     schema: { params: UuidParamSchema, body: DomainBodySchema },
@@ -316,6 +328,15 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.settingsService.updateDomain(request.params.id, request.body as Record<string, unknown>, user);
+  });
+
+  // DELETE /api/v1/settings/domains/:id — delete domain (SUPER_ADMIN)
+  app.delete<{ Params: UuidParamInput }>('/api/v1/settings/domains/:id', {
+    schema: { params: UuidParamSchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.settingsService.deleteDomain(request.params.id, user);
   });
 
   // PATCH /api/v1/settings/domains/sort — update domain sort order (SUPER_ADMIN)

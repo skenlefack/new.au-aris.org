@@ -4,7 +4,11 @@ import { StatsCounter } from './StatsCounter';
 import { TOTAL_RECS } from '@/data/recs-config';
 import { TOTAL_COUNTRIES } from '@/data/countries-config';
 
-export function HeroSection() {
+interface HeroSectionProps {
+  domainCount?: number;
+}
+
+export function HeroSection({ domainCount }: HeroSectionProps) {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-[#006B3F] via-[#005A34] to-[#003D24]">
       {/* Decorative pattern */}
@@ -59,7 +63,7 @@ export function HeroSection() {
             </div>
             <div className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 backdrop-blur-sm">
               <StatsCounter
-                value={9}
+                value={domainCount ?? 9}
                 label="Domains"
                 valueClassName="text-white text-lg"
                 labelClassName="text-white/70 text-[10px]"

@@ -15,6 +15,7 @@ const SERVICE_NAME = 'tenant-service';
 const TOPIC_SETTINGS_REC_UPDATED = 'sys.settings.rec.updated.v1';
 const TOPIC_SETTINGS_COUNTRY_UPDATED = 'sys.settings.country.updated.v1';
 const TOPIC_SETTINGS_CONFIG_UPDATED = 'sys.settings.config.updated.v1';
+const TOPIC_SETTINGS_DOMAIN_UPDATED = 'sys.settings.domain.updated.v1';
 const TOPIC_SETTINGS_FUNCTION_UPDATED = 'sys.settings.function.updated.v1';
 const TOPIC_SETTINGS_USER_UPDATED = 'sys.settings.user.updated.v1';
 
@@ -794,6 +795,42 @@ export class SettingsService {
     await this.cacheInvalidate('aris:settings:domains:*');
     await this.cacheInvalidate('aris:public:domains');
     return { data: results };
+  }
+
+  async createDomain(dto: Record<string, unknown>, user: AuthenticatedUser) {
+    const existing = await (this.prisma as any).domain.findUnique({
+      where: { code: dto.code as string },
+    });
+    if (existing) throw new HttpError(409, `Domain with code "${dto.code}" already exists`);
+
+    const domain = await (this.prisma as any).domain.create({
+      data: {
+        code: dto.code as string,
+        name: (dto.name ?? {}) as Prisma.InputJsonValue,
+        description: (dto.description ?? null) as Prisma.InputJsonValue,
+        icon: (dto.icon as string) ?? 'Layers',
+        color: (dto.color as string) ?? '#003399',
+        isActive: (dto.isActive as boolean) ?? true,
+        sortOrder: (dto.sortOrder as number) ?? 0,
+        metadata: (dto.metadata ?? null) as Prisma.InputJsonValue,
+      },
+    });
+
+    await this.publishEvent(TOPIC_SETTINGS_DOMAIN_UPDATED, { ...domain, action: 'created' }, user);
+    await this.cacheInvalidate('aris:settings:domains:*');
+    await this.cacheInvalidate('aris:public:domains');
+    return { data: domain };
+  }
+
+  async deleteDomain(id: string, user: AuthenticatedUser) {
+    const existing = await (this.prisma as any).domain.findUnique({ where: { id } });
+    if (!existing) throw new HttpError(404, `Domain ${id} not found`);
+
+    await (this.prisma as any).domain.delete({ where: { id } });
+    await this.publishEvent(TOPIC_SETTINGS_DOMAIN_UPDATED, { id, code: existing.code, action: 'deleted' }, user);
+    await this.cacheInvalidate('aris:settings:domains:*');
+    await this.cacheInvalidate('aris:public:domains');
+    return { data: { id, deleted: true } };
   }
 
   // ───────────────────── Public ─────────────────────

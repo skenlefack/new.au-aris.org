@@ -11,17 +11,10 @@ import {
   ArrowRight,
   Fish,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
+import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
+
+const CaptureTrendsChart = dynamic(() => import('./CaptureTrendsChart'), { ssr: false });
 import {
   useFisheriesKpis,
   useCaptureTrends,
@@ -31,6 +24,7 @@ import {
 import { Skeleton } from '@/components/ui/Skeleton';
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
+import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
 const FISHERIES_ALERT_FIELDS: AlertField[] = [
   { name: 'species', label: 'Species', type: 'text', placeholder: 'e.g. Nile Perch', required: true },
@@ -62,6 +56,7 @@ const PLACEHOLDER_TRENDS: CaptureTrend[] = [
 export default function FisheriesPage() {
   const { data: kpiData, isLoading: kpiLoading } = useFisheriesKpis();
   const { data: trendData, isLoading: trendLoading } = useCaptureTrends();
+  const { sections } = useDomainConfig('fisheries');
 
   const kpis = kpiData?.data ?? PLACEHOLDER_KPIS;
   const trends = trendData?.data ?? PLACEHOLDER_TRENDS;
@@ -81,7 +76,7 @@ export default function FisheriesPage() {
       </div>
 
       {/* KPI cards */}
-      {kpiLoading ? (
+      {sections.kpis && (kpiLoading ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="rounded-card border border-gray-200 bg-white p-4">
@@ -181,10 +176,10 @@ export default function FisheriesPage() {
             </div>
           </div>
         </div>
-      )}
+      ))}
 
       {/* Capture trends chart */}
-      <div className="rounded-card border border-gray-200 bg-white p-6">
+      {sections.chart && <div className="rounded-card border border-gray-200 bg-white p-6">
         <h2 className="text-sm font-semibold text-gray-900">
           Capture & Aquaculture Production Trends
         </h2>
@@ -195,79 +190,13 @@ export default function FisheriesPage() {
           <Skeleton className="mt-4 h-64 w-full" />
         ) : (
           <div className="mt-4 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trends}>
-                <defs>
-                  <linearGradient id="marineGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#006064" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#006064" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="inlandGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#1B5E20" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#1B5E20" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="aquacultureGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#E65100" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#E65100" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="year"
-                  tick={{ fontSize: 11, fill: '#9CA3AF' }}
-                  axisLine={{ stroke: '#E5E7EB' }}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: '#9CA3AF' }}
-                  axisLine={{ stroke: '#E5E7EB' }}
-                  tickFormatter={(v) => `${(v / 1_000_000).toFixed(1)}M`}
-                />
-                <Tooltip
-                  formatter={(value: number) => [
-                    `${(value / 1_000_000).toFixed(2)}M tonnes`,
-                  ]}
-                  contentStyle={{
-                    fontSize: 12,
-                    borderRadius: 8,
-                    border: '1px solid #E5E7EB',
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Area
-                  type="monotone"
-                  dataKey="marine"
-                  stackId="1"
-                  stroke="#006064"
-                  strokeWidth={2}
-                  fill="url(#marineGrad)"
-                  name="Marine"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="inland"
-                  stackId="1"
-                  stroke="#1B5E20"
-                  strokeWidth={2}
-                  fill="url(#inlandGrad)"
-                  name="Inland"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="aquaculture"
-                  stackId="1"
-                  stroke="#E65100"
-                  strokeWidth={2}
-                  fill="url(#aquacultureGrad)"
-                  name="Aquaculture"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <CaptureTrendsChart data={trends} />
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Quick links to sub-pages */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {sections.quickLinks && <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Link
           href="/fisheries/captures"
           className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-teal-200 hover:bg-teal-50"
@@ -325,13 +254,15 @@ export default function FisheriesPage() {
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-orange-600" />
         </Link>
-      </div>
+      </div>}
 
       {/* Campaigns & Alert */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <DomainCampaignsSection domain="fisheries" />
-        <QuickAlertCard domain="fisheries" alertFields={FISHERIES_ALERT_FIELDS} title="Report Fisheries Issue" />
-      </div>
+      {(sections.campaigns || sections.alertForm) && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {sections.campaigns && <DomainCampaignsSection domain="fisheries" />}
+          {sections.alertForm && <QuickAlertCard domain="fisheries" alertFields={FISHERIES_ALERT_FIELDS} title="Report Fisheries Issue" />}
+        </div>
+      )}
     </div>
   );
 }

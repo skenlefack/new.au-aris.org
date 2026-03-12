@@ -1,11 +1,14 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore, type UserRole } from '@/lib/stores/auth-store';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useTranslations } from '@/lib/i18n/translations';
+import { usePublicDomains } from '@/lib/api/settings-hooks';
+import { resolveIcon } from '@/lib/lucide-icon-map';
 import type { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard,
@@ -39,11 +42,15 @@ import {
 
 interface NavItem {
   tKey: string;
+  /** Direct label (used for dynamic domain items instead of tKey) */
+  label?: string;
   href: string;
   icon: LucideIcon;
   matchPrefix: string;
   badge?: string;
   disabled?: boolean;
+  /** Whether this item is a dynamic domain */
+  isDomain?: boolean;
 }
 
 interface NavGroup {
@@ -52,30 +59,17 @@ interface NavGroup {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Navigation structure                                               */
+/*  Static navigation groups (non-domain sections)                     */
 /* ------------------------------------------------------------------ */
 
-const NAV_GROUPS: NavGroup[] = [
+const STATIC_GROUPS: NavGroup[] = [
   {
     tKey: 'sectionOverview',
     items: [
       { tKey: 'home', href: '/home', icon: LayoutDashboard, matchPrefix: '/home' },
     ],
   },
-  {
-    tKey: 'sectionDomain',
-    items: [
-      { tKey: 'animalHealth', href: '/animal-health', icon: HeartPulse, matchPrefix: '/animal-health' },
-      { tKey: 'livestock', href: '/livestock', icon: Wheat, matchPrefix: '/livestock' },
-      { tKey: 'fisheries', href: '/fisheries', icon: Fish, matchPrefix: '/fisheries' },
-      { tKey: 'tradeSps', href: '/trade', icon: TrendingUp, matchPrefix: '/trade' },
-      { tKey: 'wildlife', href: '/wildlife', icon: PawPrint, matchPrefix: '/wildlife' },
-      { tKey: 'apiculture', href: '/apiculture', icon: Bug, matchPrefix: '/apiculture' },
-      { tKey: 'governance', href: '/governance', icon: Landmark, matchPrefix: '/governance' },
-      { tKey: 'climateEnv', href: '/climate-env', icon: CloudSun, matchPrefix: '/climate-env' },
-      { tKey: 'knowledge', href: '/knowledge', icon: BookOpen, matchPrefix: '/knowledge' },
-    ],
-  },
+  // sectionDomain is built dynamically — see buildDomainGroup()
   {
     tKey: 'sectionOperations',
     items: [
@@ -110,60 +104,141 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-/** Flat list for role access */
-const ALL_NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
-
 /* ------------------------------------------------------------------ */
-/*  Role-based access map                                              */
+/*  Fallback domain items (when API is unavailable)                    */
 /* ------------------------------------------------------------------ */
 
-const ROLE_ACCESS: Record<UserRole, Set<string>> = {
-  FIELD_AGENT: new Set(['/home', '/collecte', '/workflow', '/animal-health']),
+const FALLBACK_DOMAIN_ITEMS: NavItem[] = [
+  { tKey: 'animalHealth', href: '/animal-health', icon: HeartPulse, matchPrefix: '/animal-health', isDomain: true },
+  { tKey: 'livestock', href: '/livestock', icon: Wheat, matchPrefix: '/livestock', isDomain: true },
+  { tKey: 'fisheries', href: '/fisheries', icon: Fish, matchPrefix: '/fisheries', isDomain: true },
+  { tKey: 'tradeSps', href: '/trade', icon: TrendingUp, matchPrefix: '/trade', isDomain: true },
+  { tKey: 'wildlife', href: '/wildlife', icon: PawPrint, matchPrefix: '/wildlife', isDomain: true },
+  { tKey: 'apiculture', href: '/apiculture', icon: Bug, matchPrefix: '/apiculture', isDomain: true },
+  { tKey: 'governance', href: '/governance', icon: Landmark, matchPrefix: '/governance', isDomain: true },
+  { tKey: 'climateEnv', href: '/climate-env', icon: CloudSun, matchPrefix: '/climate-env', isDomain: true },
+  { tKey: 'knowledge', href: '/knowledge', icon: BookOpen, matchPrefix: '/knowledge', isDomain: true },
+];
+
+/* ------------------------------------------------------------------ */
+/*  Domain code → route path mapping (for known mismatches)            */
+/* ------------------------------------------------------------------ */
+
+const CODE_TO_ROUTE: Record<string, string> = {
+  'livestock-prod': '/livestock',
+  'trade-sps': '/trade',
+  'knowledge-hub': '/knowledge',
+};
+
+function domainHref(domain: { code: string; metadata?: Record<string, unknown> | null }): string {
+  // 1. Explicit href in metadata takes priority
+  if (domain.metadata && typeof domain.metadata === 'object' && typeof (domain.metadata as any).href === 'string') {
+    return (domain.metadata as any).href;
+  }
+  // 2. Known code → route mapping
+  if (CODE_TO_ROUTE[domain.code]) return CODE_TO_ROUTE[domain.code];
+  // 3. Default: /<code>
+  return `/${domain.code}`;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Build domain NavGroup from API data                                */
+/* ------------------------------------------------------------------ */
+
+function buildDomainGroup(
+  apiDomains: any[] | undefined,
+  locale: string,
+): NavGroup {
+  // If API data is available, build dynamic items
+  if (apiDomains && apiDomains.length > 0) {
+    const activeDomains = apiDomains.filter((d: any) => d.isActive !== false);
+    const items: NavItem[] = activeDomains.map((d: any) => {
+      const href = domainHref(d);
+      const name: Record<string, string> = d.name ?? {};
+      const displayLabel = name[locale] || name.en || d.code;
+      return {
+        tKey: d.code, // used as fallback key
+        label: displayLabel,
+        href,
+        icon: resolveIcon(d.icon),
+        matchPrefix: href,
+        isDomain: true,
+      };
+    });
+    return { tKey: 'sectionDomain', items };
+  }
+
+  // Fallback: use static domain items
+  return { tKey: 'sectionDomain', items: FALLBACK_DOMAIN_ITEMS };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Role-based access                                                  */
+/* ------------------------------------------------------------------ */
+
+/** Non-domain routes that each role can access */
+const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
+  FIELD_AGENT: new Set(['/home', '/collecte', '/workflow']),
   ANALYST: new Set([
-    '/home', '/animal-health', '/livestock', '/fisheries', '/trade',
-    '/wildlife', '/apiculture', '/governance', '/climate-env',
-    '/knowledge', '/analytics', '/historical', '/reports',
+    '/home', '/analytics', '/historical', '/reports',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   WAHIS_FOCAL_POINT: new Set([
-    '/home', '/animal-health', '/livestock', '/fisheries', '/trade',
-    '/wildlife', '/apiculture', '/governance', '/climate-env',
-    '/knowledge', '/collecte', '/analytics', '/historical', '/reports', '/interop',
+    '/home', '/collecte', '/analytics', '/historical', '/reports', '/interop',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   DATA_STEWARD: new Set([
-    '/home', '/animal-health', '/livestock', '/fisheries', '/trade',
-    '/wildlife', '/apiculture', '/governance', '/climate-env',
-    '/knowledge', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
+    '/home', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   NATIONAL_ADMIN: new Set([
-    '/home', '/animal-health', '/livestock', '/fisheries', '/trade',
-    '/wildlife', '/apiculture', '/governance', '/climate-env',
-    '/knowledge', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
+    '/home', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
     '/master-data', '/settings',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   REC_ADMIN: new Set([
-    '/home', '/animal-health', '/livestock', '/fisheries', '/trade',
-    '/wildlife', '/apiculture', '/governance', '/climate-env',
-    '/knowledge', '/collecte', '/workflow', '/master-data', '/quality',
+    '/home', '/collecte', '/workflow', '/master-data', '/quality',
     '/interop', '/analytics', '/historical', '/reports', '/settings',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
-  CONTINENTAL_ADMIN: new Set(ALL_NAV_ITEMS.map((i) => i.matchPrefix)),
-  SUPER_ADMIN: new Set(ALL_NAV_ITEMS.map((i) => i.matchPrefix)),
+  CONTINENTAL_ADMIN: new Set(), // full access handled below
+  SUPER_ADMIN: new Set(), // full access handled below
 };
 
-/** Filter nav groups by role — removes empty groups */
-function filterGroupsByRole(role: UserRole | undefined): NavGroup[] {
+/** Roles that have access to ALL business domains */
+const ALL_DOMAIN_ROLES: Set<UserRole> = new Set([
+  'ANALYST', 'WAHIS_FOCAL_POINT', 'DATA_STEWARD',
+  'NATIONAL_ADMIN', 'REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN',
+] as UserRole[]);
+
+/** FIELD_AGENT only sees specific domain routes */
+const FIELD_AGENT_DOMAIN_ROUTES = new Set(['/animal-health']);
+
+/** Filter nav groups by role */
+function filterGroupsByRole(role: UserRole | undefined, groups: NavGroup[]): NavGroup[] {
   if (!role) return [];
-  const allowed = ROLE_ACCESS[role];
-  if (!allowed) return [];
-  return NAV_GROUPS
+
+  // CONTINENTAL_ADMIN and SUPER_ADMIN see everything
+  if (role === 'CONTINENTAL_ADMIN' || role === 'SUPER_ADMIN') {
+    return groups.filter((g) => g.items.length > 0);
+  }
+
+  const staticAllowed = ROLE_STATIC_ACCESS[role];
+  if (!staticAllowed) return [];
+
+  return groups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => allowed.has(item.matchPrefix)),
+      items: group.items.filter((item) => {
+        if (item.isDomain) {
+          // Domain items: check role-based domain access
+          if (ALL_DOMAIN_ROLES.has(role)) return true;
+          if (role === 'FIELD_AGENT') return FIELD_AGENT_DOMAIN_ROUTES.has(item.matchPrefix);
+          return false;
+        }
+        // Static items: check the static access set
+        return staticAllowed.has(item.matchPrefix);
+      }),
     }))
     .filter((group) => group.items.length > 0);
 }
@@ -185,8 +260,21 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuthStore();
+  const locale = useLocaleStore((s) => s.locale);
   const t = useTranslations('nav');
-  const visibleGroups = filterGroupsByRole(user?.role);
+
+  // Fetch active domains from public API (no auth needed, cached 5min)
+  const { data: domainData } = usePublicDomains();
+  const apiDomains: any[] = (domainData as any)?.data ?? [];
+
+  // Build all nav groups with dynamic domain section
+  const allGroups = useMemo(() => {
+    const domainGroup = buildDomainGroup(apiDomains, locale);
+    // Insert domain group after sectionOverview (index 0)
+    return [STATIC_GROUPS[0], domainGroup, ...STATIC_GROUPS.slice(1)];
+  }, [apiDomains, locale]);
+
+  const visibleGroups = filterGroupsByRole(user?.role, allGroups);
 
   const sidebarRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -233,9 +321,16 @@ export function Sidebar({
     tooltip.style.left = `${rect.right + 14}px`;
   }, [collapsed]);
 
+  /* ---- Resolve label: dynamic label or translation key ---- */
+  function getLabel(item: NavItem): string {
+    if (item.label) return item.label;
+    return t(item.tKey);
+  }
+
   /* ---- Render a DISABLED nav item ---- */
   function renderDisabledItem(item: NavItem) {
     const Icon = item.icon;
+    const label = getLabel(item);
     return (
       <div key={item.matchPrefix} className="group relative" onMouseEnter={handleTooltipEnter}>
         <div
@@ -248,7 +343,7 @@ export function Sidebar({
             <Icon className="h-[18px] w-[18px]" />
           </span>
           {!collapsed && (
-            <span className="truncate text-slate-400 dark:text-slate-600">{t(item.tKey)}</span>
+            <span className="truncate text-slate-400 dark:text-slate-600">{label}</span>
           )}
           {!collapsed && item.badge && (
             <span className="ml-auto rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-400 dark:bg-slate-800 dark:text-slate-500">
@@ -259,7 +354,7 @@ export function Sidebar({
         {collapsed && (
           <div className="sidebar-tooltip">
             <div className="sidebar-tooltip-arrow" />
-            {t(item.tKey)} ({item.badge})
+            {label} ({item.badge})
           </div>
         )}
       </div>
@@ -270,6 +365,7 @@ export function Sidebar({
   function renderActiveItem(item: NavItem) {
     const active = isActive(item);
     const Icon = item.icon;
+    const label = getLabel(item);
     return (
       <div key={item.href} className="group relative" onMouseEnter={handleTooltipEnter}>
         <Link
@@ -295,14 +391,14 @@ export function Sidebar({
           >
             <Icon className="h-[18px] w-[18px]" />
           </span>
-          {!collapsed && <span className="truncate">{t(item.tKey)}</span>}
+          {!collapsed && <span className="truncate">{label}</span>}
         </Link>
 
         {/* Tooltip — fixed position, escapes overflow-y-auto clipping */}
         {collapsed && (
           <div className="sidebar-tooltip">
             <div className="sidebar-tooltip-arrow" />
-            {t(item.tKey)}
+            {label}
           </div>
         )}
       </div>

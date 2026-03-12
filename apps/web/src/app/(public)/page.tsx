@@ -4,7 +4,7 @@ import { ContinentalStats } from '@/components/landing/ContinentalStats';
 import { RecCard } from '@/components/landing/RecCard';
 import { LoginPanel } from '@/components/landing/LoginPanel';
 import { getAllRecs, type RecConfig } from '@/data/recs-config';
-import { getPublicRecs } from '@/lib/api/public-data';
+import { getPublicRecs, getPublicDomains } from '@/lib/api/public-data';
 
 export const revalidate = 300; // ISR: refresh every 5 min
 
@@ -37,11 +37,20 @@ export default async function ContinentalPage() {
     // Static fallback already assigned
   }
 
+  // Fetch public domains for ContinentalStats + HeroSection counter
+  let domains: any[] = [];
+  try {
+    const domainRes = await getPublicDomains();
+    domains = domainRes?.data ?? [];
+  } catch {
+    // Fallback handled inside ContinentalStats
+  }
+
   return (
     <>
       <LandingHeader />
-      <HeroSection />
-      <ContinentalStats />
+      <HeroSection domainCount={domains.length > 0 ? domains.length : undefined} />
+      <ContinentalStats domains={domains.length > 0 ? domains : undefined} />
 
       {/* Main content: RECs grid + Login sidebar */}
       <section className="mx-auto max-w-[1440px] px-4 py-10 sm:px-6 lg:px-8">

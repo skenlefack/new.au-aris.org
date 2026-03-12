@@ -12,18 +12,10 @@ import {
   ShieldCheck,
   Store,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
+import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
+
+const TradeBalanceChart = dynamic(() => import('./TradeBalanceChart'), { ssr: false });
 import {
   useTradeKpis,
   useTradeBalance,
@@ -34,6 +26,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
+import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
 const TRADE_ALERT_FIELDS: AlertField[] = [
   { name: 'commodity', label: 'Commodity', type: 'text', placeholder: 'e.g. Livestock', required: true },
@@ -83,6 +76,7 @@ export default function TradePage() {
     isLoading: balanceLoading,
   } = useTradeBalance();
 
+  const { sections } = useDomainConfig('trade-sps');
   const kpis = kpiData?.data ?? PLACEHOLDER_KPIS;
   const balancePoints = balanceData?.data ?? PLACEHOLDER_BALANCE;
 
@@ -121,7 +115,7 @@ export default function TradePage() {
       </div>
 
       {/* KPI Cards */}
-      {kpiError ? (
+      {sections.kpis && (kpiError ? (
         <QueryError
           message={kpiErr instanceof Error ? kpiErr.message : 'Failed to load KPIs'}
           onRetry={() => refetchKpis()}
@@ -233,10 +227,10 @@ export default function TradePage() {
             </>
           )}
         </div>
-      )}
+      ))}
 
       {/* Trade Balance Chart */}
-      <div className="rounded-card border border-gray-200 bg-white p-6">
+      {sections.chart && <div className="rounded-card border border-gray-200 bg-white p-6">
         <h2 className="text-sm font-semibold text-gray-900">
           Trade Balance — Animal Resources (Quarterly)
         </h2>
@@ -247,61 +241,13 @@ export default function TradePage() {
           <Skeleton className="mt-4 h-72 w-full" />
         ) : (
           <div className="mt-4 h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={balancePoints}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="period"
-                  tick={{ fontSize: 11, fill: '#9CA3AF' }}
-                  axisLine={{ stroke: '#E5E7EB' }}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: '#9CA3AF' }}
-                  axisLine={{ stroke: '#E5E7EB' }}
-                  tickFormatter={(v) => formatUsd(Math.abs(v))}
-                />
-                <Tooltip
-                  formatter={(value: number, name: string) => [
-                    formatUsd(Math.abs(value)),
-                    name,
-                  ]}
-                  contentStyle={{
-                    fontSize: 12,
-                    borderRadius: 8,
-                    border: '1px solid #E5E7EB',
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar
-                  dataKey="exports"
-                  fill="#1B5E20"
-                  name="Exports"
-                  radius={[4, 4, 0, 0]}
-                  barSize={28}
-                />
-                <Bar
-                  dataKey="imports"
-                  fill="#E65100"
-                  name="Imports"
-                  radius={[4, 4, 0, 0]}
-                  barSize={28}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="balance"
-                  stroke="#006064"
-                  strokeWidth={2}
-                  dot={{ r: 4, fill: '#006064' }}
-                  name="Balance"
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
+            <TradeBalanceChart data={balancePoints} />
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {sections.quickLinks && <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Link
           href="/trade/flows"
           className="group rounded-card border border-gray-200 bg-white p-5 transition hover:border-aris-primary-300 hover:shadow-sm"
@@ -356,13 +302,15 @@ export default function TradePage() {
             </div>
           </div>
         </Link>
-      </div>
+      </div>}
 
       {/* Campaigns & Alert */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <DomainCampaignsSection domain="trade_sps" />
-        <QuickAlertCard domain="trade_sps" alertFields={TRADE_ALERT_FIELDS} title="Report Trade Issue" />
-      </div>
+      {(sections.campaigns || sections.alertForm) && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {sections.campaigns && <DomainCampaignsSection domain="trade_sps" />}
+          {sections.alertForm && <QuickAlertCard domain="trade_sps" alertFields={TRADE_ALERT_FIELDS} title="Report Trade Issue" />}
+        </div>
+      )}
     </div>
   );
 }

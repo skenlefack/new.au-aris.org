@@ -11,19 +11,12 @@ import {
   TrendingDown,
   ArrowRight,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from 'recharts';
-import { cn } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/Skeleton';
+import dynamic from 'next/dynamic';
+
+const PvsScoresChart = dynamic(() => import('./PvsScoresChart'), { ssr: false });
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
+import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
 const PLACEHOLDER_KPIS = {
   legalFrameworks: 342,
@@ -71,6 +64,7 @@ function TrendIndicator({ value }: { value: number }) {
 export default function GovernancePage() {
   const kpis = PLACEHOLDER_KPIS;
   const pvsScores = PLACEHOLDER_PVS_SCORES;
+  const { sections } = useDomainConfig('governance');
 
   return (
     <div className="space-y-6">
@@ -86,7 +80,7 @@ export default function GovernancePage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {sections.kpis && <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-start justify-between">
             <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Legal Frameworks</p>
@@ -130,10 +124,10 @@ export default function GovernancePage() {
           </p>
           <TrendIndicator value={kpis.capacityTrend} />
         </div>
-      </div>
+      </div>}
 
       {/* PVS Scores Chart */}
-      <div className="rounded-card border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+      {sections.chart && <div className="rounded-card border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           Average PVS Scores by Competency
         </h2>
@@ -141,20 +135,12 @@ export default function GovernancePage() {
           Continental average on WOAH PVS Pathway (scale 1-5)
         </p>
         <div className="mt-4 h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={pvsScores} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis type="number" domain={[0, 5]} tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} />
-              <YAxis dataKey="competency" type="category" width={110} tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #E5E7EB' }} formatter={(value: number) => [`${value.toFixed(1)} / 5.0`]} />
-              <Bar dataKey="score" fill="#6366F1" radius={[0, 4, 4, 0]} barSize={20} />
-            </BarChart>
-          </ResponsiveContainer>
+          <PvsScoresChart data={pvsScores} />
         </div>
-      </div>
+      </div>}
 
       {/* Quick Links */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {sections.quickLinks && <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Link
           href="/governance/legal-frameworks"
           className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-indigo-200 hover:bg-indigo-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-indigo-800 dark:hover:bg-indigo-900/20"
@@ -218,13 +204,15 @@ export default function GovernancePage() {
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-green-600" />
         </Link>
-      </div>
+      </div>}
 
       {/* Campaigns & Alert */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <DomainCampaignsSection domain="governance" />
-        <QuickAlertCard domain="governance" alertFields={ALERT_FIELDS} title="Report Governance Issue" />
-      </div>
+      {(sections.campaigns || sections.alertForm) && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {sections.campaigns && <DomainCampaignsSection domain="governance" />}
+          {sections.alertForm && <QuickAlertCard domain="governance" alertFields={ALERT_FIELDS} title="Report Governance Issue" />}
+        </div>
+      )}
     </div>
   );
 }

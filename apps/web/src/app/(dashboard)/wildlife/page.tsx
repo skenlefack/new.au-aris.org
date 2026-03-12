@@ -11,20 +11,12 @@ import {
   TrendingDown,
   ArrowRight,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
-import { cn } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/Skeleton';
+import dynamic from 'next/dynamic';
+
+const InventoryChart = dynamic(() => import('./InventoryChart'), { ssr: false });
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
+import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
 const PLACEHOLDER_KPIS = {
   protectedAreas: 1_240,
@@ -70,6 +62,7 @@ function TrendIndicator({ value }: { value: number }) {
 export default function WildlifePage() {
   const kpis = PLACEHOLDER_KPIS;
   const inventory = PLACEHOLDER_INVENTORY;
+  const { sections } = useDomainConfig('wildlife');
 
   return (
     <div className="space-y-6">
@@ -85,7 +78,7 @@ export default function WildlifePage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {sections.kpis && <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-start justify-between">
             <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Protected Areas</p>
@@ -129,10 +122,10 @@ export default function WildlifePage() {
           </p>
           <TrendIndicator value={kpis.crimesTrend} />
         </div>
-      </div>
+      </div>}
 
       {/* Species Inventory Chart */}
-      <div className="rounded-card border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+      {sections.chart && <div className="rounded-card border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           Species Inventory by Conservation Status
         </h2>
@@ -140,23 +133,12 @@ export default function WildlifePage() {
           Continental species count by taxonomic category and IUCN status
         </p>
         <div className="mt-4 h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={inventory}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="category" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} />
-              <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={{ stroke: '#E5E7EB' }} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #E5E7EB' }} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="endangered" fill="#DC2626" name="Endangered" radius={[2, 2, 0, 0]} />
-              <Bar dataKey="vulnerable" fill="#F59E0B" name="Vulnerable" radius={[2, 2, 0, 0]} />
-              <Bar dataKey="leastConcern" fill="#16A34A" name="Least Concern" radius={[2, 2, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <InventoryChart data={inventory} />
         </div>
-      </div>
+      </div>}
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {sections.quickLinks && <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Link
           href="/wildlife/inventory"
           className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-amber-200 hover:bg-amber-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-amber-800 dark:hover:bg-amber-900/20"
@@ -204,13 +186,15 @@ export default function WildlifePage() {
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-emerald-600" />
         </Link>
-      </div>
+      </div>}
 
       {/* Campaigns & Alert */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <DomainCampaignsSection domain="wildlife" />
-        <QuickAlertCard domain="wildlife" alertFields={ALERT_FIELDS} title="Report Wildlife Threat" />
-      </div>
+      {(sections.campaigns || sections.alertForm) && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {sections.campaigns && <DomainCampaignsSection domain="wildlife" />}
+          {sections.alertForm && <QuickAlertCard domain="wildlife" alertFields={ALERT_FIELDS} title="Report Wildlife Threat" />}
+        </div>
+      )}
     </div>
   );
 }

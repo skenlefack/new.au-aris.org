@@ -1020,6 +1020,147 @@ const SYSTEM_CONFIGS: SystemConfigSeedData[] = [
     description: { en: 'Enable automatic duplicate detection', fr: 'Activer la d\u00e9tection automatique des doublons', pt: 'Ativar dete\u00e7\u00e3o autom\u00e1tica de duplicados' },
     type: 'boolean', isEditable: true, scope: 'global',
   },
+  // ── Validation General (new) ──
+  {
+    category: 'data-quality', key: 'dataQuality.validation.warningAsBlocking',
+    value: false,
+    label: { en: 'Warnings as Blocking', fr: 'Avertissements bloquants', pt: 'Avisos como bloqueantes' },
+    description: { en: 'Treat warning-level violations as blocking failures', fr: 'Traiter les violations de niveau avertissement comme des \u00e9checs bloquants', pt: 'Tratar viola\u00e7\u00f5es de n\u00edvel de aviso como falhas bloqueantes' },
+    type: 'boolean', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'data-quality', key: 'dataQuality.validation.maxViolations',
+    value: 5,
+    label: { en: 'Max Violations before Rejection', fr: 'Violations max avant rejet', pt: 'Viola\u00e7\u00f5es m\u00e1x. antes da rejei\u00e7\u00e3o' },
+    description: { en: 'Maximum number of violations before a record is auto-rejected', fr: "Nombre maximum de violations avant le rejet automatique d'un enregistrement", pt: 'N\u00famero m\u00e1ximo de viola\u00e7\u00f5es antes da rejei\u00e7\u00e3o autom\u00e1tica de um registo' },
+    type: 'number', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'data-quality', key: 'dataQuality.validation.autoValidateOnSubmit',
+    value: true,
+    label: { en: 'Auto-validate on Submit', fr: 'Validation auto \u00e0 la soumission', pt: 'Valida\u00e7\u00e3o autom\u00e1tica ao submeter' },
+    description: { en: 'Automatically run all quality gates when a record is submitted', fr: 'Ex\u00e9cuter automatiquement tous les contr\u00f4les qualit\u00e9 lors de la soumission', pt: 'Executar automaticamente todos os port\u00f5es de qualidade ao submeter' },
+    type: 'boolean', isEditable: true, scope: 'global',
+  },
+  // ── Completeness (new) ──
+  {
+    category: 'data-quality', key: 'dataQuality.completeness.warningThreshold',
+    value: 60,
+    label: { en: 'Completeness Warning Threshold (%)', fr: "Seuil d'avertissement de compl\u00e9tude (%)", pt: 'Limiar de aviso de completude (%)' },
+    description: { en: 'Percentage below which a warning is raised before failing', fr: "Pourcentage en dessous duquel un avertissement est \u00e9mis avant l'\u00e9chec", pt: 'Percentagem abaixo da qual um aviso \u00e9 emitido antes da falha' },
+    type: 'number', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'data-quality', key: 'dataQuality.completeness.includeOptionalFields',
+    value: false,
+    label: { en: 'Include Optional Fields', fr: 'Inclure les champs facultatifs', pt: 'Incluir campos opcionais' },
+    description: { en: 'Include optional fields when calculating completeness percentage', fr: 'Inclure les champs facultatifs dans le calcul du pourcentage de compl\u00e9tude', pt: 'Incluir campos opcionais no c\u00e1lculo da percentagem de completude' },
+    type: 'boolean', isEditable: true, scope: 'global',
+  },
+  // ── Temporal Consistency (new) ──
+  {
+    category: 'data-quality', key: 'dataQuality.temporal.enabled',
+    value: true,
+    label: { en: 'Temporal Consistency Checks', fr: 'V\u00e9rifications de coh\u00e9rence temporelle', pt: 'Verifica\u00e7\u00f5es de consist\u00eancia temporal' },
+    description: { en: 'Enable temporal consistency validation (date ordering, future dates)', fr: 'Activer la validation de coh\u00e9rence temporelle (ordre des dates, dates futures)', pt: 'Ativar valida\u00e7\u00e3o de consist\u00eancia temporal (ordena\u00e7\u00e3o de datas, datas futuras)' },
+    type: 'boolean', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'data-quality', key: 'dataQuality.temporal.futureDateTolerance',
+    value: 0,
+    label: { en: 'Future Date Tolerance (days)', fr: 'Tol\u00e9rance dates futures (jours)', pt: 'Toler\u00e2ncia de datas futuras (dias)' },
+    description: { en: 'Number of days in the future allowed (0 = future dates forbidden)', fr: 'Nombre de jours dans le futur autoris\u00e9s (0 = dates futures interdites)', pt: 'N\u00famero de dias no futuro permitidos (0 = datas futuras proibidas)' },
+    type: 'number', isEditable: true, scope: 'global',
+  },
+  // ── Geographic Consistency (new) ──
+  {
+    category: 'data-quality', key: 'dataQuality.geographic.enabled',
+    value: true,
+    label: { en: 'Geographic Consistency Checks', fr: 'V\u00e9rifications de coh\u00e9rence g\u00e9ographique', pt: 'Verifica\u00e7\u00f5es de consist\u00eancia geogr\u00e1fica' },
+    description: { en: 'Enable geographic validation (admin codes, boundary checks)', fr: 'Activer la validation g\u00e9ographique (codes admin, limites)', pt: 'Ativar valida\u00e7\u00e3o geogr\u00e1fica (c\u00f3digos admin, limites)' },
+    type: 'boolean', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'data-quality', key: 'dataQuality.geographic.coordinateValidation',
+    value: true,
+    label: { en: 'Coordinate Validation', fr: 'Validation des coordonn\u00e9es', pt: 'Valida\u00e7\u00e3o de coordenadas' },
+    description: { en: 'Validate that coordinates fall within continental/country boundaries', fr: 'V\u00e9rifier que les coordonn\u00e9es sont dans les limites continentales/nationales', pt: 'Validar que as coordenadas est\u00e3o dentro dos limites continentais/nacionais' },
+    type: 'boolean', isEditable: true, scope: 'global',
+  },
+  // ── Codes & Vocabularies (new) ──
+  {
+    category: 'data-quality', key: 'dataQuality.codes.enabled',
+    value: true,
+    label: { en: 'Code Validation', fr: 'Validation des codes', pt: 'Valida\u00e7\u00e3o de c\u00f3digos' },
+    description: { en: 'Validate codes against Master Data referentials', fr: 'Valider les codes par rapport aux r\u00e9f\u00e9rentiels Master Data', pt: 'Validar c\u00f3digos contra os referenciais Master Data' },
+    type: 'boolean', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'data-quality', key: 'dataQuality.codes.strictMatching',
+    value: false,
+    label: { en: 'Strict Code Matching', fr: 'Correspondance stricte des codes', pt: 'Correspond\u00eancia estrita de c\u00f3digos' },
+    description: { en: 'Require exact code match (disable fuzzy/partial matching)', fr: 'Exiger une correspondance exacte des codes (d\u00e9sactiver la correspondance floue)', pt: 'Exigir correspond\u00eancia exata de c\u00f3digo (desativar correspond\u00eancia parcial)' },
+    type: 'boolean', isEditable: true, scope: 'global',
+  },
+  // ── Duplicate Detection (new) ──
+  {
+    category: 'data-quality', key: 'dataQuality.duplicateDetection.fuzzyThreshold',
+    value: 80,
+    label: { en: 'Fuzzy Match Threshold (%)', fr: 'Seuil de correspondance floue (%)', pt: 'Limiar de correspond\u00eancia difusa (%)' },
+    description: { en: 'Similarity percentage for fuzzy duplicate matching (0\u2013100)', fr: 'Pourcentage de similarit\u00e9 pour la correspondance floue de doublons (0\u2013100)', pt: 'Percentagem de similaridade para correspond\u00eancia difusa de duplicados (0\u2013100)' },
+    type: 'number', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'data-quality', key: 'dataQuality.duplicateDetection.crossTenantCheck',
+    value: false,
+    label: { en: 'Cross-Tenant Duplicate Check', fr: 'V\u00e9rification inter-tenants', pt: 'Verifica\u00e7\u00e3o inter-tenants' },
+    description: { en: 'Check for duplicates across different tenants (cross-border)', fr: 'V\u00e9rifier les doublons entre diff\u00e9rents tenants (transfrontalier)', pt: 'Verificar duplicados entre diferentes tenants (transfronteiri\u00e7o)' },
+    type: 'boolean', isEditable: true, scope: 'global',
+  },
+  // ── Timeliness & SLA (new) ──
+  {
+    category: 'data-quality', key: 'dataQuality.timeliness.warningDays',
+    value: 20,
+    label: { en: 'Timeliness Warning (days)', fr: 'Avertissement de ponctualit\u00e9 (jours)', pt: 'Aviso de pontualidade (dias)' },
+    description: { en: 'Days before the deadline to raise a warning', fr: "Jours avant la date limite pour \u00e9mettre un avertissement", pt: 'Dias antes do prazo para emitir um aviso' },
+    type: 'number', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'data-quality', key: 'dataQuality.correction.deadlineHours',
+    value: 48,
+    label: { en: 'Correction Deadline (hours)', fr: 'D\u00e9lai de correction (heures)', pt: 'Prazo de corre\u00e7\u00e3o (horas)' },
+    description: { en: 'Hours allowed to correct a failed quality report', fr: "Heures autoris\u00e9es pour corriger un rapport qualit\u00e9 \u00e9chou\u00e9", pt: 'Horas permitidas para corrigir um relat\u00f3rio de qualidade falhado' },
+    type: 'number', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'data-quality', key: 'dataQuality.correction.escalationDays',
+    value: 7,
+    label: { en: 'Escalation Delay (days)', fr: "D\u00e9lai d'escalade (jours)", pt: 'Prazo de escalonamento (dias)' },
+    description: { en: 'Days before escalating an unresolved correction', fr: "Jours avant d'escalader une correction non r\u00e9solue", pt: 'Dias antes de escalar uma corre\u00e7\u00e3o n\u00e3o resolvida' },
+    type: 'number', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'data-quality', key: 'dataQuality.correction.autoExpireDays',
+    value: 30,
+    label: { en: 'Auto-Expire Corrections (days)', fr: 'Expiration auto des corrections (jours)', pt: 'Expira\u00e7\u00e3o autom\u00e1tica de corre\u00e7\u00f5es (dias)' },
+    description: { en: 'Days before a pending correction expires automatically', fr: "Jours avant qu'une correction en attente expire automatiquement", pt: 'Dias antes de uma corre\u00e7\u00e3o pendente expirar automaticamente' },
+    type: 'number', isEditable: true, scope: 'global',
+  },
+  // ── Confidence Score (new) ──
+  {
+    category: 'data-quality', key: 'dataQuality.confidence.enabled',
+    value: true,
+    label: { en: 'Confidence Scoring', fr: 'Score de confiance', pt: 'Pontua\u00e7\u00e3o de confian\u00e7a' },
+    description: { en: 'Enable automatic confidence scoring for event-based data', fr: 'Activer le calcul automatique du score de confiance pour les donn\u00e9es \u00e9v\u00e9nementielles', pt: 'Ativar pontua\u00e7\u00e3o de confian\u00e7a autom\u00e1tica para dados baseados em eventos' },
+    type: 'boolean', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'data-quality', key: 'dataQuality.confidence.minimumLevel',
+    value: 'RUMOR',
+    label: { en: 'Minimum Confidence Level', fr: 'Niveau de confiance minimum', pt: 'N\u00edvel de confian\u00e7a m\u00ednimo' },
+    description: { en: 'Minimum confidence level accepted for publication', fr: 'Niveau de confiance minimum accept\u00e9 pour publication', pt: 'N\u00edvel de confian\u00e7a m\u00ednimo aceite para publica\u00e7\u00e3o' },
+    type: 'enum', options: ['RUMOR', 'UNVERIFIED', 'VERIFIED', 'CONFIRMED'], isEditable: true, scope: 'global',
+  },
 
   // ── EMAIL ──
   {

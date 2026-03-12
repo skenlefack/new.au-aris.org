@@ -25,6 +25,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
+import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
 const KNOWLEDGE_ALERT_FIELDS: AlertField[] = [
   { name: 'topic', label: 'Topic', type: 'text', placeholder: 'e.g. Outbreak Response Guidelines', required: true },
@@ -151,6 +152,7 @@ export default function KnowledgePortalPage() {
   const { data: kpiData, isLoading: kpiLoading, isError: kpiError, error: kpiErr, refetch: refetchKpis } = useKnowledgeKpis();
   const { data: pubData, isLoading: pubLoading } = usePublications({ limit: 3 });
   const { data: courseData, isLoading: courseLoading } = useElearningCourses({ limit: 3 });
+  const { sections } = useDomainConfig('knowledge');
 
   const kpis = kpiData?.data ?? PLACEHOLDER_KPIS;
   const publications = pubData?.data ?? PLACEHOLDER_PUBLICATIONS;
@@ -192,7 +194,7 @@ export default function KnowledgePortalPage() {
       </div>
 
       {/* KPI Cards */}
-      {kpiError ? (
+      {sections.kpis && (kpiError ? (
         <QueryError
           message={kpiErr instanceof Error ? kpiErr.message : 'Failed to load KPIs'}
           onRetry={() => refetchKpis()}
@@ -282,7 +284,7 @@ export default function KnowledgePortalPage() {
             </div>
           </div>
         </div>
-      )}
+      ))}
 
       {/* Two-column layout: Recent Publications + Featured Courses */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -419,10 +421,12 @@ export default function KnowledgePortalPage() {
       </div>
 
       {/* Campaigns & Alert */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <DomainCampaignsSection domain="knowledge" />
-        <QuickAlertCard domain="knowledge" alertFields={KNOWLEDGE_ALERT_FIELDS} title="Request Content" />
-      </div>
+      {(sections.campaigns || sections.alertForm) && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {sections.campaigns && <DomainCampaignsSection domain="knowledge" />}
+          {sections.alertForm && <QuickAlertCard domain="knowledge" alertFields={KNOWLEDGE_ALERT_FIELDS} title="Request Content" />}
+        </div>
+      )}
     </div>
   );
 }

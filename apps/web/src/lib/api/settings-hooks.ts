@@ -335,12 +335,55 @@ export function useSettingsDomains() {
   });
 }
 
+/**
+ * Fetch active domains from the PUBLIC endpoint (no auth needed).
+ * Used by Sidebar and other components that need domain list without authentication context.
+ */
+export function usePublicDomains() {
+  return useQuery({
+    queryKey: ['public', 'domains'],
+    queryFn: async () => {
+      const res = await fetch('/api/v1/public/domains');
+      if (!res.ok) throw new Error(`Public domains fetch failed: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useCreateDomain() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      tenantPost('/api/v1/settings/domains', body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['settings', 'domains'] });
+      qc.invalidateQueries({ queryKey: ['public', 'domains'] });
+    },
+  });
+}
+
 export function useUpdateDomain() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, ...body }: { id: string } & Record<string, unknown>) =>
       tenantPut(`/api/v1/settings/domains/${id}`, body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'domains'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['settings', 'domains'] });
+      qc.invalidateQueries({ queryKey: ['public', 'domains'] });
+    },
+  });
+}
+
+export function useDeleteDomain() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      tenantDelete(`/api/v1/settings/domains/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['settings', 'domains'] });
+      qc.invalidateQueries({ queryKey: ['public', 'domains'] });
+    },
   });
 }
 

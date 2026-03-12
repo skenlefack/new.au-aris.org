@@ -175,8 +175,8 @@ export class ValidationChainService {
   // ── User info enrichment ──
 
   /**
-   * Enrich a single chain entity with user display info from credential schema.
-   * Uses raw SQL to cross-schema join since credential and workflow are separate schemas.
+   * Enrich a single chain entity with user display info.
+   * Uses raw SQL to cross-schema join (users table is in public schema).
    */
   private async enrichWithUsers(entity: ValidationChainEntity): Promise<ValidationChainEntity> {
     const userIds = [entity.userId, entity.validatorId];
@@ -184,11 +184,11 @@ export class ValidationChainService {
 
     try {
       const users: any[] = await (this.prisma as any).$queryRawUnsafe(
-        `SELECT id, display_name, email FROM credential.users WHERE id = ANY($1::uuid[])`,
+        `SELECT id, first_name || ' ' || last_name AS display_name, email, role FROM public.users WHERE id = ANY($1::uuid[])`,
         userIds,
       );
 
-      const userMap = new Map(users.map((u) => [u.id, { displayName: u.display_name, email: u.email }]));
+      const userMap = new Map(users.map((u: any) => [u.id, { displayName: u.display_name, email: u.email, role: u.role }]));
 
       entity.user = userMap.get(entity.userId);
       entity.validator = userMap.get(entity.validatorId);
@@ -214,11 +214,11 @@ export class ValidationChainService {
 
     try {
       const users: any[] = await (this.prisma as any).$queryRawUnsafe(
-        `SELECT id, display_name, email FROM credential.users WHERE id = ANY($1::uuid[])`,
+        `SELECT id, first_name || ' ' || last_name AS display_name, email, role FROM public.users WHERE id = ANY($1::uuid[])`,
         [...allIds],
       );
 
-      const userMap = new Map(users.map((u) => [u.id, { displayName: u.display_name, email: u.email }]));
+      const userMap = new Map(users.map((u: any) => [u.id, { displayName: u.display_name, email: u.email, role: u.role }]));
 
       for (const e of entities) {
         e.user = userMap.get(e.userId);

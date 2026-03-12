@@ -128,6 +128,18 @@ export type ConfigBulkBodyInput = Static<typeof ConfigBulkBodySchema>;
 
 // ---------- Domains ----------
 
+export const DomainCreateBodySchema = Type.Object({
+  code: Type.String({ minLength: 2, maxLength: 30 }),
+  name: JsonValue,
+  description: Type.Optional(JsonValue),
+  icon: Type.String({ maxLength: 100 }),
+  color: Type.String({ maxLength: 20 }),
+  isActive: Type.Optional(Type.Boolean()),
+  sortOrder: Type.Optional(Type.Integer({ minimum: 0 })),
+  metadata: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+});
+export type DomainCreateBodyInput = Static<typeof DomainCreateBodySchema>;
+
 export const DomainBodySchema = Type.Object({
   name: Type.Optional(JsonValue),
   description: Type.Optional(JsonValue),
