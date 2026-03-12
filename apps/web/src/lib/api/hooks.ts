@@ -1480,7 +1480,7 @@ export function useNotificationPreferences() {
   return useQuery({
     queryKey: ['settings', 'notification-preferences'],
     queryFn: () =>
-      apiClient.get<{ data: NotificationPreferences }>(
+      apiClient.get<{ data: Array<{ eventType: string; email: boolean; sms: boolean; push: boolean }> }>(
         '/messages/preferences',
       ),
   });
@@ -1490,11 +1490,24 @@ export function useUpdateNotificationPreferences() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (prefs: NotificationPreferences) =>
-      apiClient.put<{ data: NotificationPreferences }>(
-        '/messages/preferences',
-        prefs,
-      ),
+    mutationFn: async (prefs: NotificationPreferences) => {
+      // API expects one POST per event type: { eventType, email, sms, push }
+      const eventKeys = new Set([
+        ...Object.keys(prefs.email),
+        ...Object.keys(prefs.sms),
+        ...Object.keys(prefs.push),
+      ]);
+      await Promise.all(
+        Array.from(eventKeys).map((eventType) =>
+          apiClient.post('/messages/preferences', {
+            eventType,
+            email: !!prefs.email[eventType],
+            sms: !!prefs.sms[eventType],
+            push: !!prefs.push[eventType],
+          }),
+        ),
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ['settings', 'notification-preferences'],

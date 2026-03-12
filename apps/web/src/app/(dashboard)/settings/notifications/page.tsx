@@ -42,18 +42,26 @@ export default function NotificationPreferencesPage() {
   });
 
   useEffect(() => {
-    if (data?.data) {
-      setPrefs(data.data);
-    } else {
-      // Default: email on for everything, sms/push selective
-      const defaults: NotificationPreferences = { email: {}, sms: {}, push: {} };
-      for (const event of EVENT_TYPES) {
-        defaults.email[event.key] = true;
-        defaults.sms[event.key] = event.key.includes('alert') || event.key.includes('outbreak');
-        defaults.push[event.key] = true;
-      }
-      setPrefs(defaults);
+    // API returns an array of { eventType, email, sms, push } rows.
+    // Transform into the channel-grouped structure the UI expects.
+    const defaults: NotificationPreferences = { email: {}, sms: {}, push: {} };
+    for (const event of EVENT_TYPES) {
+      defaults.email[event.key] = true;
+      defaults.sms[event.key] = event.key.includes('alert') || event.key.includes('outbreak');
+      defaults.push[event.key] = true;
     }
+
+    const apiData = data?.data;
+    if (Array.isArray(apiData) && apiData.length > 0) {
+      for (const row of apiData) {
+        if (row.eventType) {
+          defaults.email[row.eventType] = !!row.email;
+          defaults.sms[row.eventType] = !!row.sms;
+          defaults.push[row.eventType] = !!row.push;
+        }
+      }
+    }
+    setPrefs(defaults);
   }, [data]);
 
   function toggle(channel: 'email' | 'sms' | 'push', eventKey: string) {
