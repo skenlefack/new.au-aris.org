@@ -5,6 +5,7 @@ import { readFileSync } from 'fs';
 import { StandaloneKafkaProducer } from '@aris/kafka-client';
 import { authHook } from '@aris/auth-middleware/fastify';
 import type { AuthHookOptions } from '@aris/auth-middleware/fastify';
+import { AuditService } from './services/audit.service.js';
 import { InventoryService } from './services/inventory.service.js';
 import { ProtectedAreaService } from './services/protected-area.service.js';
 import { CitesPermitService } from './services/cites-permit.service.js';
@@ -67,10 +68,11 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.decorate('authHookFn', authHook(authOptions));
 
   // Services
-  const inventoryService = new InventoryService(prisma, kafka);
-  const protectedAreaService = new ProtectedAreaService(prisma, kafka);
-  const citesPermitService = new CitesPermitService(prisma, kafka);
-  const crimeService = new CrimeService(prisma, kafka);
+  const audit = new AuditService();
+  const inventoryService = new InventoryService(prisma, kafka, audit);
+  const protectedAreaService = new ProtectedAreaService(prisma, kafka, audit);
+  const citesPermitService = new CitesPermitService(prisma, kafka, audit);
+  const crimeService = new CrimeService(prisma, kafka, audit);
 
   app.decorate('inventoryService', inventoryService);
   app.decorate('protectedAreaService', protectedAreaService);

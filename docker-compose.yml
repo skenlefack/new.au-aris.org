@@ -474,6 +474,145 @@ services:
       - aris-network
 
   # ═══════════════════════════════════════════════════
+  # DOMAIN SERVICES — Wildlife, Apiculture, Trade-SPS, Climate-Env
+  # ═══════════════════════════════════════════════════
+  wildlife:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: wildlife
+        SERVICE_PORT: 3023
+    container_name: aris-wildlife
+    restart: unless-stopped
+    ports:
+      - "3023:3023"
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-aris_dev_2024}@pgbouncer:6432/${POSTGRES_DB:-aris}?pgbouncer=true"
+      DIRECT_DATABASE_URL: "postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-aris_dev_2024}@postgres:5432/${POSTGRES_DB:-aris}"
+      KAFKA_BROKERS: "kafka-1:29092,kafka-2:29092,kafka-3:29092"
+      JWT_PUBLIC_KEY: "${JWT_PUBLIC_KEY:-}"
+      REDIS_URL: "redis://redis:6379"
+      LOG_LEVEL: info
+      NODE_ENV: production
+      PORT: "3023"
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka-1:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wildlife.rule=PathPrefix(`/api/v1/wildlife`)"
+      - "traefik.http.services.wildlife.loadbalancer.server.port=3023"
+    networks:
+      - aris-network
+
+  apiculture:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: apiculture
+        SERVICE_PORT: 3024
+    container_name: aris-apiculture
+    restart: unless-stopped
+    ports:
+      - "3024:3024"
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-aris_dev_2024}@pgbouncer:6432/${POSTGRES_DB:-aris}?pgbouncer=true"
+      DIRECT_DATABASE_URL: "postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-aris_dev_2024}@postgres:5432/${POSTGRES_DB:-aris}"
+      KAFKA_BROKERS: "kafka-1:29092,kafka-2:29092,kafka-3:29092"
+      JWT_PUBLIC_KEY: "${JWT_PUBLIC_KEY:-}"
+      REDIS_URL: "redis://redis:6379"
+      LOG_LEVEL: info
+      NODE_ENV: production
+      PORT: "3024"
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka-1:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.apiculture.rule=PathPrefix(`/api/v1/apiculture`)"
+      - "traefik.http.services.apiculture.loadbalancer.server.port=3024"
+    networks:
+      - aris-network
+
+  trade-sps:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: trade-sps
+        SERVICE_PORT: 3025
+    container_name: aris-trade-sps
+    restart: unless-stopped
+    ports:
+      - "3025:3025"
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-aris_dev_2024}@pgbouncer:6432/${POSTGRES_DB:-aris}?pgbouncer=true"
+      DIRECT_DATABASE_URL: "postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-aris_dev_2024}@postgres:5432/${POSTGRES_DB:-aris}"
+      KAFKA_BROKERS: "kafka-1:29092,kafka-2:29092,kafka-3:29092"
+      JWT_PUBLIC_KEY: "${JWT_PUBLIC_KEY:-}"
+      REDIS_URL: "redis://redis:6379"
+      LOG_LEVEL: info
+      NODE_ENV: production
+      PORT: "3025"
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka-1:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.trade-sps.rule=PathPrefix(`/api/v1/trade-sps`)"
+      - "traefik.http.services.trade-sps.loadbalancer.server.port=3025"
+    networks:
+      - aris-network
+
+  climate-env:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: climate-env
+        SERVICE_PORT: 3027
+    container_name: aris-climate-env
+    restart: unless-stopped
+    ports:
+      - "3027:3027"
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-aris_dev_2024}@pgbouncer:6432/${POSTGRES_DB:-aris}?pgbouncer=true"
+      DIRECT_DATABASE_URL: "postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-aris_dev_2024}@postgres:5432/${POSTGRES_DB:-aris}"
+      KAFKA_BROKERS: "kafka-1:29092,kafka-2:29092,kafka-3:29092"
+      JWT_PUBLIC_KEY: "${JWT_PUBLIC_KEY:-}"
+      REDIS_URL: "redis://redis:6379"
+      LOG_LEVEL: info
+      NODE_ENV: production
+      PORT: "3027"
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka-1:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.climate-env.rule=PathPrefix(`/api/v1/climate-env`)"
+      - "traefik.http.services.climate-env.loadbalancer.server.port=3027"
+    networks:
+      - aris-network
+
+  # ═══════════════════════════════════════════════════
   # KAFKA TOPIC INIT — Create all topics on startup
   # ═══════════════════════════════════════════════════
   kafka-init:

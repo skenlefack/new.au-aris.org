@@ -11,6 +11,7 @@ import {
 } from '@aris/shared-types';
 import type { KafkaHeaders } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
+import type { AuditService } from './audit.service.js';
 
 const SERVICE_NAME = 'wildlife-service';
 
@@ -55,6 +56,7 @@ export class ProtectedAreaService {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly kafka: StandaloneKafkaProducer,
+    private readonly audit: AuditService,
   ) {}
 
   async create(dto: CreateProtectedAreaInput, user: AuthenticatedUser) {
@@ -79,6 +81,7 @@ export class ProtectedAreaService {
     });
 
     await this.publishEvent(TOPIC_MS_WILDLIFE_PROTECTED_AREA_CREATED, area, user);
+    this.audit.log('ProtectedArea', area.id, 'CREATE', user, classification as any, { newVersion: area });
 
     return { data: area };
   }
@@ -147,6 +150,7 @@ export class ProtectedAreaService {
     });
 
     await this.publishEvent(TOPIC_MS_WILDLIFE_PROTECTED_AREA_UPDATED, updated, user);
+    this.audit.log('ProtectedArea', id, 'UPDATE', user, (updated.dataClassification ?? 'PUBLIC') as any, { previousVersion: existing, newVersion: updated });
 
     return { data: updated };
   }

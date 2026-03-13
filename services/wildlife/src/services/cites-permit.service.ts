@@ -11,6 +11,7 @@ import {
 } from '@aris/shared-types';
 import type { KafkaHeaders } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
+import type { AuditService } from './audit.service.js';
 
 const SERVICE_NAME = 'wildlife-service';
 
@@ -64,6 +65,7 @@ export class CitesPermitService {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly kafka: StandaloneKafkaProducer,
+    private readonly audit: AuditService,
   ) {}
 
   async create(dto: CreateCitesPermitInput, user: AuthenticatedUser) {
@@ -103,6 +105,7 @@ export class CitesPermitService {
     });
 
     await this.publishEvent(TOPIC_MS_WILDLIFE_CITES_PERMIT_CREATED, permit, user);
+    this.audit.log('CitesPermit', permit.id, 'CREATE', user, classification as any, { newVersion: permit });
 
     return { data: permit };
   }
@@ -174,6 +177,7 @@ export class CitesPermitService {
     });
 
     await this.publishEvent(TOPIC_MS_WILDLIFE_CITES_PERMIT_UPDATED, updated, user);
+    this.audit.log('CitesPermit', id, 'UPDATE', user, (updated.dataClassification ?? 'RESTRICTED') as any, { previousVersion: existing, newVersion: updated });
 
     return { data: updated };
   }

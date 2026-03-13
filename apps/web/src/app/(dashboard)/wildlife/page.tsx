@@ -14,6 +14,8 @@ import {
 import dynamic from 'next/dynamic';
 
 const InventoryChart = dynamic(() => import('./InventoryChart'), { ssr: false });
+import { useWildlifeKpis } from '@/lib/api/hooks';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
@@ -60,7 +62,8 @@ function TrendIndicator({ value }: { value: number }) {
 }
 
 export default function WildlifePage() {
-  const kpis = PLACEHOLDER_KPIS;
+  const { data: kpiData, isLoading: kpiLoading } = useWildlifeKpis();
+  const kpis = { ...PLACEHOLDER_KPIS, ...kpiData?.data };
   const inventory = PLACEHOLDER_INVENTORY;
   const { sections } = useDomainConfig('wildlife');
 
@@ -78,7 +81,17 @@ export default function WildlifePage() {
       </div>
 
       {/* KPI Cards */}
-      {sections.kpis && <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {sections.kpis && (kpiLoading ? (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-card border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="mt-3 h-8 w-16" />
+              <Skeleton className="mt-3 h-4 w-32" />
+            </div>
+          ))}
+        </div>
+      ) : <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-start justify-between">
             <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Protected Areas</p>
@@ -122,7 +135,7 @@ export default function WildlifePage() {
           </p>
           <TrendIndicator value={kpis.crimesTrend} />
         </div>
-      </div>}
+      </div>)}
 
       {/* Species Inventory Chart */}
       {sections.chart && <div className="rounded-card border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
