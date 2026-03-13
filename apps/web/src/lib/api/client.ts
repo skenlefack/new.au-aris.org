@@ -1,3 +1,5 @@
+import { useAuthStore } from '@/lib/stores/auth-store';
+
 // All API calls use relative paths by default (same origin → no CORS).
 // In dev: Next.js rewrites proxy /api/v1/* to the correct backend port.
 // In production: Traefik routes /api/v1/* to the correct backend service.
@@ -97,40 +99,21 @@ function buildHeaders(token?: string | null): Record<string, string> {
 
 function updateStoredTokens(accessToken: string, refreshToken?: string): void {
   if (typeof window === 'undefined') return;
-  try {
-    const raw = localStorage.getItem('aris-auth');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed?.state) {
-        parsed.state.accessToken = accessToken;
-        if (refreshToken) {
-          parsed.state.refreshToken = refreshToken;
-        }
-        localStorage.setItem('aris-auth', JSON.stringify(parsed));
-      }
-    }
-  } catch {
-    // ignore
+  // Go through Zustand so both in-memory state and localStorage (via persist) stay in sync.
+  // This prevents the desync between AuthGuard (reads Zustand) and API client (reads localStorage).
+  const store = useAuthStore.getState();
+  if (refreshToken) {
+    store.updateTokens(accessToken, refreshToken);
+  } else {
+    store.updateToken(accessToken);
   }
 }
 
 function clearStoredAuth(): void {
   if (typeof window === 'undefined') return;
-  try {
-    const raw = localStorage.getItem('aris-auth');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed?.state) {
-        parsed.state.accessToken = null;
-        parsed.state.refreshToken = null;
-        parsed.state.user = null;
-        parsed.state.isAuthenticated = false;
-        localStorage.setItem('aris-auth', JSON.stringify(parsed));
-      }
-    }
-  } catch {
-    // ignore
-  }
+  // Go through Zustand so both in-memory state and localStorage (via persist) stay in sync.
+  // AuthGuard subscribes to Zustand and will handle the redirect gracefully.
+  useAuthStore.getState().logout();
 }
 
 async function attemptTokenRefresh(): Promise<string | null> {
@@ -219,12 +202,10 @@ async function fetchWithRefresh<T>(
         return handleResponse<T>(retryRes);
       }
 
-      // Refresh failed — redirect to login
-      if (typeof window !== 'undefined') {
-        clearStoredAuth();
-        window.location.href = '/';
-      }
-      throw new ApiClientError(401, 'Session expirée. Veuillez vous reconnecter.');
+      // Refresh failed — let the error propagate.
+      // withFallback() in hooks.ts will catch 401 and return fallback data,
+      // while AuthGuard's background interval handles legitimate session expiry.
+      throw new ApiClientError(401, 'Session expired');
     }
   }
 
