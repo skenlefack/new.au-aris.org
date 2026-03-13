@@ -6,9 +6,13 @@ import {
   LoginSchema,
   RegisterSchema,
   RefreshSchema,
+  ForgotPasswordSchema,
+  ResetPasswordSchema,
   type LoginInput,
   type RegisterInput,
   type RefreshInput,
+  type ForgotPasswordInput,
+  type ResetPasswordInput,
 } from '../schemas/auth.schemas.js';
 
 export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
@@ -40,6 +44,27 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     preHandler: [rateLimitHook(app, 10, 60)],
   }, async (request, reply) => {
     const result = await app.authService.refresh(request.body.refreshToken);
+    return reply.code(200).send(result);
+  });
+
+  // POST /api/v1/credential/auth/forgot-password — rate limited, public
+  app.post<{ Body: ForgotPasswordInput }>('/api/v1/credential/auth/forgot-password', {
+    schema: { body: ForgotPasswordSchema },
+    preHandler: [rateLimitHook(app, 5, 60)],
+  }, async (request, reply) => {
+    const protocol = request.headers['x-forwarded-proto'] ?? 'http';
+    const host = request.headers['x-forwarded-host'] ?? request.headers['host'] ?? 'localhost';
+    const baseUrl = `${protocol}://${host}`;
+    const result = await app.authService.forgotPassword(request.body.email, baseUrl);
+    return reply.code(200).send(result);
+  });
+
+  // POST /api/v1/credential/auth/reset-password — rate limited, public
+  app.post<{ Body: ResetPasswordInput }>('/api/v1/credential/auth/reset-password', {
+    schema: { body: ResetPasswordSchema },
+    preHandler: [rateLimitHook(app, 5, 60)],
+  }, async (request, reply) => {
+    const result = await app.authService.resetPassword(request.body.token, request.body.newPassword);
     return reply.code(200).send(result);
   });
 

@@ -294,6 +294,20 @@ export function useUpdateLocale() {
   });
 }
 
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: async (email: string) =>
+      apiClient.post<{ data: { message: string } }>('/credential/auth/forgot-password', { email }),
+  });
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: async (data: { token: string; newPassword: string }) =>
+      apiClient.post<{ data: { message: string } }>('/credential/auth/reset-password', data),
+  });
+}
+
 // ─── Dashboard Hooks ──────────────────────────────────────────────────────────
 
 const DASHBOARD_KPIS_FALLBACK: DashboardKpis = {

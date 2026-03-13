@@ -1,6 +1,6 @@
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
-import { randomUUID } from 'crypto';
+import { randomUUID, randomBytes } from 'crypto';
 import type { PrismaClient } from '@prisma/client';
 import type Redis from 'ioredis';
 import type { FastifyKafka } from '@aris/kafka-client';
@@ -16,6 +16,7 @@ const SERVICE_NAME = 'credential-service';
 const BCRYPT_ROUNDS = 10;
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
+const PASSWORD_RESET_TTL_SECONDS = 15 * 60; // 15 minutes
 
 export interface TokenResponse {
   accessToken: string;
@@ -199,6 +200,49 @@ export class AuthService {
     const keys = await this.redis.keys(`refresh:${userId}:*`);
     if (keys.length > 0) await this.redis.del(...keys);
     return { data: { message: 'Logged out successfully' } };
+  }
+
+  async forgotPassword(email: string, baseUrl: string): Promise<{ data: { message: string } }> {
+    // Always return success to prevent email enumeration attacks
+    const successMsg = { data: { message: 'If an account with that email exists, a password reset link has been sent.' } };
+
+    const user = await (this.prisma as any).user.findUnique({ where: { email } });
+    if (!user || !user.isActive) return successMsg;
+
+    const token = randomBytes(32).toString('hex');
+    const key = `password-reset:${token}`;
+    await this.redis.set(key, user.id, 'EX', PASSWORD_RESET_TTL_SECONDS);
+
+    const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+
+    // Log the reset link (in production, integrate with the message service via Kafka)
+    console.log(`[PASSWORD_RESET] User ${user.email} — reset link: ${resetUrl}`);
+
+    return successMsg;
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ data: { message: string } }> {
+    const key = `password-reset:${token}`;
+    const userId = await this.redis.get(key);
+    if (!userId) throw new HttpError(400, 'Invalid or expired reset token');
+
+    const user = await (this.prisma as any).user.findUnique({ where: { id: userId } });
+    if (!user || !user.isActive) throw new HttpError(400, 'Invalid or expired reset token');
+
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await (this.prisma as any).user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    // Invalidate the token so it can't be reused
+    await this.redis.del(key);
+
+    // Invalidate all existing refresh tokens for this user (force re-login)
+    const refreshKeys = await this.redis.keys(`refresh:${userId}:*`);
+    if (refreshKeys.length > 0) await this.redis.del(...refreshKeys);
+
+    return { data: { message: 'Password has been reset successfully. You can now log in.' } };
   }
 
   private generateTokens(userId: string, email: string, role: string, tenantId: string, tenantLevel: string, locale?: string) {

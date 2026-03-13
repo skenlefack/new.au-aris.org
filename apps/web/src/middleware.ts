@@ -12,6 +12,7 @@ const PUBLIC_PREFIXES = [
   '/login',      // Legacy login redirect
   '/register',   // Registration page
   '/forgot-password',
+  '/reset-password',
   '/api/',       // API routes
   '/_next/',     // Next.js internals
   '/icons/',     // Static assets
