@@ -128,10 +128,11 @@ async function attemptTokenRefresh(): Promise<string | null> {
     });
 
     if (!res.ok) {
-      // Only clear auth on definitive rejection (401/403), not on network/server errors
-      if (res.status === 401 || res.status === 403) {
-        clearStoredAuth();
-      }
+      // Don't clear auth here — AuthGuard's background interval will detect
+      // the dead session and handle logout/redirect gracefully.
+      // Clearing here causes a race condition when both AuthGuard and
+      // fetchWithRefresh try to refresh simultaneously (token rotation
+      // means only one can succeed; the loser would kill the session).
       return null;
     }
 

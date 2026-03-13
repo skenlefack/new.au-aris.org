@@ -127,6 +127,13 @@ export function AuthGuard({ children }: AuthGuardProps) {
     if (isTokenExpired(accessToken)) {
       attemptRefresh().then((success) => {
         if (!success) {
+          // Before logging out, check if another path (e.g. fetchWithRefresh)
+          // already refreshed the token while we were trying. With token rotation,
+          // only one concurrent refresh can succeed; losing the race is not a failure.
+          const freshToken = useAuthStore.getState().accessToken;
+          if (freshToken && freshToken !== accessToken && !isTokenExpired(freshToken)) {
+            return; // Token was refreshed by another path, session is still alive
+          }
           handleAuthFailure();
         }
       });
@@ -142,8 +149,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
       if (!currentToken) return;
 
       if (isTokenExpiringSoon(currentToken, REFRESH_THRESHOLD_SEC)) {
+        const tokenBeforeRefresh = currentToken;
         attemptRefresh().then((success) => {
           if (!success) {
+            // Check if fetchWithRefresh already refreshed the token (race condition)
+            const freshToken = useAuthStore.getState().accessToken;
+            if (freshToken && freshToken !== tokenBeforeRefresh && !isTokenExpired(freshToken)) {
+              return; // Token was refreshed by another path
+            }
             handleAuthFailure();
           }
         });
