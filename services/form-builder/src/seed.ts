@@ -100,18 +100,67 @@ function breedSelect(code: string, label: I18n, opts: { required?: boolean } = {
 }
 
 function ageGroupSelect(code: string, label: I18n, opts: { required?: boolean } = {}) {
-  return selectField(code, label, [
-    { en: 'Young', fr: 'Jeune', pt: 'Jovem', ar: 'صغير' },
-    { en: 'Sub-adult', fr: 'Sub-adulte', pt: 'Subadulto', ar: 'شبه بالغ' },
-    { en: 'Adult', fr: 'Adulte', pt: 'Adulto', ar: 'بالغ' },
-  ], opts);
+  return f('master-data-select', code, label, { required: opts.required, properties: { masterDataType: 'age-groups', searchable: true } });
 }
 
 function sexSelect(code: string, label: I18n, opts: { required?: boolean } = {}) {
-  return selectField(code, label, [
-    { en: 'Male', fr: 'Mâle', pt: 'Macho', ar: 'ذكر' },
-    { en: 'Female', fr: 'Femelle', pt: 'Fêmea', ar: 'أنثى' },
-  ], opts);
+  return f('master-data-select', code, label, { required: opts.required, properties: { masterDataType: 'animal-sexes', searchable: true } });
+}
+
+function controlMeasureSelect(code: string, label: I18n, opts: { required?: boolean } = {}) {
+  return f('master-data-select', code, label, { required: opts.required, properties: { masterDataType: 'control-measures', searchable: true } });
+}
+
+function bodyPartSelect(code: string, label: I18n, opts: { required?: boolean } = {}) {
+  return f('master-data-select', code, label, { required: opts.required, properties: { masterDataType: 'body-parts', searchable: true } });
+}
+
+function testTypeSelect(code: string, label: I18n, opts: { required?: boolean } = {}) {
+  return f('master-data-select', code, label, { required: opts.required, properties: { masterDataType: 'test-types', searchable: true } });
+}
+
+function notificationReasonSelect(code: string, label: I18n, opts: { required?: boolean; helpText?: I18n } = {}) {
+  return f('master-data-select', code, label, { required: opts.required, helpText: opts.helpText, properties: { masterDataType: 'notification-reasons', searchable: true } });
+}
+
+function transportModeSelect(code: string, label: I18n, opts: { required?: boolean; helpText?: I18n } = {}) {
+  return f('master-data-select', code, label, { required: opts.required, helpText: opts.helpText, properties: { masterDataType: 'transport-modes', searchable: true } });
+}
+
+function livestockProductSelect(code: string, label: I18n, opts: { required?: boolean; helpText?: I18n } = {}) {
+  return f('master-data-select', code, label, { required: opts.required, helpText: opts.helpText, properties: { masterDataType: 'livestock-products', searchable: true } });
+}
+
+function epiUnitTypeSelect(code: string, label: I18n, opts: { required?: boolean } = {}) {
+  return f('master-data-select', code, label, { required: opts.required, properties: { masterDataType: 'epidemiological-unit-types', searchable: true } });
+}
+
+function animalHusbandrySelect(code: string, label: I18n, opts: { required?: boolean } = {}) {
+  return f('master-data-select', code, label, { required: opts.required, properties: { masterDataType: 'animal-husbandries', searchable: true } });
+}
+
+function sourceOfInfectionSelect(code: string, label: I18n, opts: { required?: boolean } = {}) {
+  return f('master-data-select', code, label, { required: opts.required, properties: { masterDataType: 'source-of-infections', searchable: true } });
+}
+
+function outbreakStatusSelect(code: string, label: I18n, opts: { required?: boolean; helpText?: I18n } = {}) {
+  return f('master-data-select', code, label, { required: opts.required, helpText: opts.helpText, properties: { masterDataType: 'outbreak-statuses', searchable: true } });
+}
+
+function diagnosisBasisSelect(code: string, label: I18n, opts: { required?: boolean } = {}) {
+  return f('master-data-select', code, label, { required: opts.required, properties: { masterDataType: 'diagnosis-bases', searchable: true } });
+}
+
+function labSelect(code: string, label: I18n, opts: { required?: boolean } = {}) {
+  return f('master-data-select', code, label, { required: opts.required, properties: { masterDataType: 'labs', searchable: true } });
+}
+
+function sampleTypeSelect(code: string, label: I18n, opts: { required?: boolean; helpText?: I18n } = {}) {
+  return f('master-data-select', code, label, { required: opts.required, helpText: opts.helpText, properties: { masterDataType: 'sample-types', searchable: true } });
+}
+
+function dataSourceSelect(code: string, label: I18n, opts: { required?: boolean } = {}) {
+  return f('master-data-select', code, label, { required: opts.required, properties: { masterDataType: 'data-sources', searchable: true } });
 }
 
 function textareaField(code: string, label: I18n, opts: { required?: boolean; helpText?: I18n; columnSpan?: number; maxLength?: number } = {}) {
@@ -248,8 +297,8 @@ function buildMonthlyHealthReport() {
       dateField('date_reported_vet', { en: 'Date Reported to Veterinarian', fr: 'Date de Signalement au Vétérinaire', pt: 'Data de Comunicação ao Veterinário', ar: 'تاريخ الإبلاغ للطبيب البيطري' }, { helpText: { en: 'This is the date that the outbreak was reported to the veterinarian or animal health worker.', fr: 'Il s\'agit de la date à laquelle le foyer a été signalé au vétérinaire ou au technicien de santé animale.', pt: 'Esta é a data em que o surto foi comunicado ao veterinário ou profissional de saúde animal.', ar: 'هذا هو التاريخ الذي تم فيه الإبلاغ عن البؤرة للطبيب البيطري أو عامل الصحة الحيوانية.' } }),
       dateField('date_investigated', { en: 'Date Investigated', fr: 'Date d\'Investigation', pt: 'Data da Investigação', ar: 'تاريخ التحقيق' }, { required: true, helpText: { en: 'This is the date that the veterinarian or animal health worker visited and investigated the reported outbreak.', fr: 'Il s\'agit de la date à laquelle le vétérinaire ou le technicien de santé animale a visité et enquêté sur le foyer signalé.', pt: 'Esta é a data em que o veterinário ou profissional de saúde animal visitou e investigou o surto reportado.', ar: 'هذا هو التاريخ الذي زار فيه الطبيب البيطري أو عامل الصحة الحيوانية وحقق في البؤرة المبلغ عنها.' } }),
       dateField('date_final_diagnosis', { en: 'Date of Final Diagnosis', fr: 'Date du Diagnostic Final', pt: 'Data do Diagnóstico Final', ar: 'تاريخ التشخيص النهائي' }, { required: true, helpText: { en: 'This is the date that the Veterinarian or the laboratory confirms the outbreak.', fr: 'Il s\'agit de la date à laquelle le vétérinaire ou le laboratoire confirme le foyer.', pt: 'Esta é a data em que o veterinário ou o laboratório confirma o surto.', ar: 'هذا هو التاريخ الذي يؤكد فيه الطبيب البيطري أو المختبر البؤرة.' } }),
-      textField('source_infection', { en: 'Source of Infection', fr: 'Source d\'Infection', pt: 'Fonte de Infecção', ar: 'مصدر العدوى' }),
-      textField('outbreak_status', { en: 'Outbreak Status', fr: 'Statut du Foyer', pt: 'Estado do Surto', ar: 'حالة البؤرة' }, { helpText: { en: 'Indicate whether the outbreak is controlled or is still continuing as at the time of writing this report.', fr: 'Indiquez si le foyer est maîtrisé ou s\'il se poursuit au moment de la rédaction de ce rapport.', pt: 'Indique se o surto está controlado ou ainda continua no momento da redação deste relatório.', ar: 'حدد ما إذا كانت البؤرة مسيطراً عليها أو لا تزال مستمرة وقت كتابة هذا التقرير.' } }),
+      sourceOfInfectionSelect('source_infection', { en: 'Source of Infection', fr: 'Source d\'Infection', pt: 'Fonte de Infecção', ar: 'مصدر العدوى' }),
+      outbreakStatusSelect('outbreak_status', { en: 'Outbreak Status', fr: 'Statut du Foyer', pt: 'Estado do Surto', ar: 'حالة البؤرة' }, { helpText: { en: 'Indicate whether the outbreak is controlled or is still continuing as at the time of writing this report.', fr: 'Indiquez si le foyer est maîtrisé ou s\'il se poursuit au moment de la rédaction de ce rapport.', pt: 'Indique se o surto está controlado ou ainda continua no momento da redação deste relatório.', ar: 'حدد ما إذا كانت البؤرة مسيطراً عليها أو لا تزال مستمرة وقت كتابة هذا التقرير.' } }),
     ],
     { icon: 'AlertTriangle', color: '#EF4444' },
   );
@@ -261,8 +310,8 @@ function buildMonthlyHealthReport() {
     [
       makeRepeater('animals_affected', { en: 'Animals by Species', fr: 'Animaux par Espèce', pt: 'Animais por Espécie', ar: 'الحيوانات حسب النوع' }, [
         { type: 'master-data-select', code: 'species', label: { en: 'Species', fr: 'Espèce', pt: 'Espécie', ar: 'النوع' }, required: true, properties: { masterDataType: 'species', searchable: true } },
-        { type: 'select', code: 'age_group', label: { en: 'Age Group', fr: 'Groupe d\'Âge', pt: 'Grupo Etário', ar: 'الفئة العمرية' }, properties: { options: [{ label: { en: 'Young', fr: 'Jeune', pt: 'Jovem', ar: 'صغير' }, value: 'young' }, { label: { en: 'Sub-adult', fr: 'Sub-adulte', pt: 'Subadulto', ar: 'شبه بالغ' }, value: 'sub_adult' }, { label: { en: 'Adult', fr: 'Adulte', pt: 'Adulto', ar: 'بالغ' }, value: 'adult' }] } },
-        { type: 'select', code: 'sex', label: { en: 'Sex', fr: 'Sexe', pt: 'Sexo', ar: 'الجنس' }, properties: { options: [{ label: { en: 'Male', fr: 'Mâle', pt: 'Macho', ar: 'ذكر' }, value: 'male' }, { label: { en: 'Female', fr: 'Femelle', pt: 'Fêmea', ar: 'أنثى' }, value: 'female' }] } },
+        { type: 'master-data-select', code: 'age_group', label: { en: 'Age Group', fr: 'Groupe d\'Âge', pt: 'Grupo Etário', ar: 'الفئة العمرية' }, properties: { masterDataType: 'age-groups', searchable: true } },
+        { type: 'master-data-select', code: 'sex', label: { en: 'Sex', fr: 'Sexe', pt: 'Sexo', ar: 'الجنس' }, properties: { masterDataType: 'animal-sexes', searchable: true } },
         { type: 'number', code: 'num_susceptible', label: { en: 'Number Susceptible', fr: 'Nombre Susceptible', pt: 'Número Suscetível', ar: 'العدد المعرض' }, required: true, properties: { min: 0 } },
         { type: 'number', code: 'num_at_risk', label: { en: 'Number at Risk', fr: 'Nombre à Risque', pt: 'Número em Risco', ar: 'العدد المعرض للخطر' }, required: true, properties: { min: 0 } },
         { type: 'number', code: 'num_cases', label: { en: 'Number of Cases', fr: 'Nombre de Cas', pt: 'Número de Casos', ar: 'عدد الحالات' }, required: true, properties: { min: 0 } },
@@ -279,7 +328,7 @@ function buildMonthlyHealthReport() {
   fieldOrder = 0;
   const sectionC = makeSection(
     { en: 'Bases of Diagnosis', fr: 'Bases du Diagnostic', pt: 'Bases do Diagnóstico', ar: 'أسس التشخيص' }, 3,
-    [textField('basis_diagnosis', { en: 'Bases of Diagnosis', fr: 'Bases du Diagnostic', pt: 'Bases do Diagnóstico', ar: 'أسس التشخيص' }, { required: true })],
+    [diagnosisBasisSelect('basis_diagnosis', { en: 'Bases of Diagnosis', fr: 'Bases du Diagnostic', pt: 'Bases do Diagnóstico', ar: 'أسس التشخيص' }, { required: true })],
     { icon: 'Stethoscope', color: '#8B5CF6', columns: 1 },
   );
 
@@ -289,16 +338,7 @@ function buildMonthlyHealthReport() {
     { en: 'Disease Control Measures', fr: 'Mesures de Contrôle', pt: 'Medidas de Controle de Doenças', ar: 'إجراءات مكافحة الأمراض' }, 4,
     [
       makeRepeater('control_measures', { en: 'Control Measures', fr: 'Mesures de Contrôle', pt: 'Medidas de Controle', ar: 'إجراءات المكافحة' }, [
-        { type: 'select', code: 'measure', label: { en: 'Disease Control Measure', fr: 'Mesure de Contrôle', pt: 'Medida de Controle de Doença', ar: 'إجراء مكافحة المرض' }, required: true, properties: { options: [
-          { label: { en: 'Quarantine', fr: 'Quarantaine', pt: 'Quarentena', ar: 'الحجر الصحي' }, value: 'quarantine' },
-          { label: { en: 'Movement Restriction', fr: 'Restriction de Mouvement', pt: 'Restrição de Movimento', ar: 'تقييد الحركة' }, value: 'movement_restriction' },
-          { label: { en: 'Ring Vaccination', fr: 'Vaccination en Anneau', pt: 'Vacinação em Anel', ar: 'التطعيم الحلقي' }, value: 'ring_vaccination' },
-          { label: { en: 'Stamping Out', fr: 'Abattage Sanitaire', pt: 'Abate Sanitário', ar: 'الإعدام الصحي' }, value: 'stamping_out' },
-          { label: { en: 'Disinfection', fr: 'Désinfection', pt: 'Desinfecção', ar: 'التطهير' }, value: 'disinfection' },
-          { label: { en: 'Treatment', fr: 'Traitement', pt: 'Tratamento', ar: 'العلاج' }, value: 'treatment' },
-          { label: { en: 'Surveillance Zone', fr: 'Zone de Surveillance', pt: 'Zona de Vigilância', ar: 'منطقة المراقبة' }, value: 'surveillance_zone' },
-          { label: { en: 'Vector Control', fr: 'Lutte Anti-vectorielle', pt: 'Controle de Vetores', ar: 'مكافحة النواقل' }, value: 'vector_control' },
-        ] } },
+        { type: 'master-data-select', code: 'measure', label: { en: 'Disease Control Measure', fr: 'Mesure de Contrôle', pt: 'Medida de Controle de Doença', ar: 'إجراء مكافحة المرض' }, required: true, properties: { masterDataType: 'control-measures', searchable: true } },
         { type: 'text', code: 'flag', label: { en: 'Flag', fr: 'Indicateur', pt: 'Indicador', ar: 'المؤشر' }, required: true },
       ], { addLabel: { en: 'Add measure', fr: 'Ajouter une mesure', pt: 'Adicionar medida', ar: 'إضافة إجراء' } }),
     ],
@@ -312,7 +352,7 @@ function buildMonthlyHealthReport() {
     [
       makeRepeater('outbreak_locations', { en: 'Locations', fr: 'Localisations', pt: 'Localizações', ar: 'المواقع' }, [
         { type: 'text', code: 'locality_name', label: { en: 'Name of Locality', fr: 'Nom de la Localité', pt: 'Nome da Localidade', ar: 'اسم المنطقة' }, required: true },
-        { type: 'text', code: 'epi_unit_type', label: { en: 'Epidemiological Unit Type', fr: 'Type d\'Unité Épidémiologique', pt: 'Tipo de Unidade Epidemiológica', ar: 'نوع الوحدة الوبائية' } },
+        { type: 'master-data-select', code: 'epi_unit_type', label: { en: 'Epidemiological Unit Type', fr: 'Type d\'Unité Épidémiologique', pt: 'Tipo de Unidade Epidemiológica', ar: 'نوع الوحدة الوبائية' }, properties: { masterDataType: 'epidemiological-unit-types', searchable: true } },
         { type: 'master-data-select', code: 'production_system', label: { en: 'Production System', fr: 'Système de Production', pt: 'Sistema de Produção', ar: 'نظام الإنتاج' }, properties: { masterDataType: 'production-systems', searchable: true } },
       ], { addLabel: { en: 'Add location', fr: 'Ajouter un lieu', pt: 'Adicionar local', ar: 'إضافة موقع' } }),
     ],
@@ -333,13 +373,12 @@ function buildEmergencyDiseaseReport() {
     [
       dateField('date_report_prepared', { en: 'Date Report Prepared', fr: 'Date de Préparation du Rapport', pt: 'Data de Preparação do Relatório', ar: 'تاريخ إعداد التقرير' }, { required: true }),
       numberField('notification_ref', { en: 'Notification Reference Number', fr: 'Numéro de Référence de Notification', pt: 'Número de Referência da Notificação', ar: 'رقم مرجع الإخطار' }),
-      selectField('reason_notification', { en: 'Reason for Notification', fr: 'Raison de la Notification', pt: 'Razão da Notificação', ar: 'سبب الإخطار' },
-        [{ en: 'First occurrence', fr: 'Première occurrence', pt: 'Primeira ocorrência', ar: 'أول ظهور' }, { en: 'Re-occurrence', fr: 'Réapparition', pt: 'Reocorrência', ar: 'ظهور مجدد' }, { en: 'Spread to new area', fr: 'Propagation à une nouvelle zone', pt: 'Propagação para nova área', ar: 'انتشار لمنطقة جديدة' }, { en: 'Increased virulence', fr: 'Virulence accrue', pt: 'Virulência aumentada', ar: 'زيادة الفوعة' }, { en: 'Change in epidemiology', fr: 'Changement épidémiologique', pt: 'Mudança na epidemiologia', ar: 'تغير في الوبائيات' }],
+      notificationReasonSelect('reason_notification', { en: 'Reason for Notification', fr: 'Raison de la Notification', pt: 'Razão da Notificação', ar: 'سبب الإخطار' },
         { required: true, helpText: { en: 'Select the reason for making this notification.', fr: 'Sélectionnez la raison de cette notification.', pt: 'Selecione a razão desta notificação.', ar: 'اختر سبب هذا الإخطار.' } }),
       selectField('animal_type', { en: 'Animal Type', fr: 'Type d\'Animal', pt: 'Tipo de Animal', ar: 'نوع الحيوان' },
         [{ en: 'Domestic', fr: 'Domestique', pt: 'Doméstico', ar: 'محلي' }, { en: 'Wild', fr: 'Sauvage', pt: 'Selvagem', ar: 'بري' }, { en: 'Feral', fr: 'Féral', pt: 'Feral', ar: 'وحشي' }, { en: 'Captive Wildlife', fr: 'Faune Captive', pt: 'Fauna Cativa', ar: 'حياة برية أسيرة' }],
         { required: true, helpText: { en: 'List of animal types depending on their habitat.', fr: 'Liste des types d\'animaux selon leur habitat.', pt: 'Lista de tipos de animais conforme seu habitat.', ar: 'قائمة أنواع الحيوانات حسب موطنها.' } }),
-      textField('animal_husbandry', { en: 'Animal Husbandry', fr: 'Élevage Animal', pt: 'Pecuária', ar: 'تربية الحيوانات' }, { required: true }),
+      animalHusbandrySelect('animal_husbandry', { en: 'Animal Husbandry', fr: 'Élevage Animal', pt: 'Pecuária', ar: 'تربية الحيوانات' }, { required: true }),
       dateField('date_start_event', { en: 'Date of Start of Event', fr: 'Date de Début de l\'Événement', pt: 'Data de Início do Evento', ar: 'تاريخ بدء الحدث' }, { required: true }),
       dateField('date_first_confirmation', { en: 'Date of First Confirmation', fr: 'Date de Première Confirmation', pt: 'Data da Primeira Confirmação', ar: 'تاريخ التأكيد الأول' }, { helpText: { en: 'Date that confirmation is received from the laboratory.', fr: 'Date de réception de la confirmation du laboratoire.', pt: 'Data em que a confirmação é recebida do laboratório.', ar: 'تاريخ استلام التأكيد من المختبر.' } }),
       dateField('date_end_event', { en: 'End Date of Event', fr: 'Date de Fin de l\'Événement', pt: 'Data de Término do Evento', ar: 'تاريخ انتهاء الحدث' }, { required: true }),
@@ -359,8 +398,8 @@ function buildEmergencyDiseaseReport() {
     [
       makeRepeater('animals_affected', { en: 'Animals by Species', fr: 'Animaux par Espèce', pt: 'Animais por Espécie', ar: 'الحيوانات حسب النوع' }, [
         { type: 'master-data-select', code: 'species', label: { en: 'Species', fr: 'Espèce', pt: 'Espécie', ar: 'النوع' }, properties: { masterDataType: 'species', searchable: true } },
-        { type: 'select', code: 'age_group', label: { en: 'Age Group', fr: 'Groupe d\'Âge', pt: 'Grupo Etário', ar: 'الفئة العمرية' }, properties: { options: [{ label: { en: 'Young', fr: 'Jeune', pt: 'Jovem', ar: 'صغير' }, value: 'young' }, { label: { en: 'Sub-adult', fr: 'Sub-adulte', pt: 'Subadulto', ar: 'شبه بالغ' }, value: 'sub_adult' }, { label: { en: 'Adult', fr: 'Adulte', pt: 'Adulto', ar: 'بالغ' }, value: 'adult' }] } },
-        { type: 'select', code: 'sex', label: { en: 'Sex', fr: 'Sexe', pt: 'Sexo', ar: 'الجنس' }, properties: { options: [{ label: { en: 'Male', fr: 'Mâle', pt: 'Macho', ar: 'ذكر' }, value: 'male' }, { label: { en: 'Female', fr: 'Femelle', pt: 'Fêmea', ar: 'أنثى' }, value: 'female' }] } },
+        { type: 'master-data-select', code: 'age_group', label: { en: 'Age Group', fr: 'Groupe d\'Âge', pt: 'Grupo Etário', ar: 'الفئة العمرية' }, properties: { masterDataType: 'age-groups', searchable: true } },
+        { type: 'master-data-select', code: 'sex', label: { en: 'Sex', fr: 'Sexe', pt: 'Sexo', ar: 'الجنس' }, properties: { masterDataType: 'animal-sexes', searchable: true } },
         { type: 'number', code: 'num_susceptible', label: { en: 'Number Susceptible', fr: 'Nombre Susceptible', pt: 'Número Suscetível', ar: 'العدد المعرض' }, required: true, properties: { min: 0 } },
         { type: 'number', code: 'num_cases', label: { en: 'Number of Cases', fr: 'Nombre de Cas', pt: 'Número de Casos', ar: 'عدد الحالات' }, required: true, properties: { min: 0 } },
         { type: 'number', code: 'num_deaths', label: { en: 'Number of Deaths', fr: 'Nombre de Décès', pt: 'Número de Mortes', ar: 'عدد الوفيات' }, required: true, properties: { min: 0 } },
@@ -375,7 +414,7 @@ function buildEmergencyDiseaseReport() {
   fieldOrder = 0;
   const sectionC = makeSection(
     { en: 'Basis of Diagnosis', fr: 'Base du Diagnostic', pt: 'Base do Diagnóstico', ar: 'أساس التشخيص' }, 3,
-    [textField('basis_diagnosis', { en: 'Basis of Diagnosis', fr: 'Base du Diagnostic', pt: 'Base do Diagnóstico', ar: 'أساس التشخيص' })],
+    [diagnosisBasisSelect('basis_diagnosis', { en: 'Basis of Diagnosis', fr: 'Base du Diagnostic', pt: 'Base do Diagnóstico', ar: 'أساس التشخيص' })],
     { icon: 'Stethoscope', color: '#8B5CF6', columns: 1 },
   );
 
@@ -384,14 +423,7 @@ function buildEmergencyDiseaseReport() {
     { en: 'Disease Control Measures', fr: 'Mesures de Contrôle', pt: 'Medidas de Controle de Doenças', ar: 'إجراءات مكافحة الأمراض' }, 4,
     [
       makeRepeater('control_measures', { en: 'Control Measures', fr: 'Mesures de Contrôle', pt: 'Medidas de Controle', ar: 'إجراءات المكافحة' }, [
-        { type: 'select', code: 'measure', label: { en: 'Disease Control Measure', fr: 'Mesure de Contrôle', pt: 'Medida de Controle de Doença', ar: 'إجراء مكافحة المرض' }, required: true, properties: { options: [
-          { label: { en: 'Quarantine', fr: 'Quarantaine', pt: 'Quarentena', ar: 'الحجر الصحي' }, value: 'quarantine' },
-          { label: { en: 'Movement Restriction', fr: 'Restriction de Mouvement', pt: 'Restrição de Movimento', ar: 'تقييد الحركة' }, value: 'movement_restriction' },
-          { label: { en: 'Ring Vaccination', fr: 'Vaccination en Anneau', pt: 'Vacinação em Anel', ar: 'التطعيم الحلقي' }, value: 'ring_vaccination' },
-          { label: { en: 'Stamping Out', fr: 'Abattage Sanitaire', pt: 'Abate Sanitário', ar: 'الإعدام الصحي' }, value: 'stamping_out' },
-          { label: { en: 'Disinfection', fr: 'Désinfection', pt: 'Desinfecção', ar: 'التطهير' }, value: 'disinfection' },
-          { label: { en: 'Treatment', fr: 'Traitement', pt: 'Tratamento', ar: 'العلاج' }, value: 'treatment' },
-        ] } },
+        { type: 'master-data-select', code: 'measure', label: { en: 'Disease Control Measure', fr: 'Mesure de Contrôle', pt: 'Medida de Controle de Doença', ar: 'إجراء مكافحة المرض' }, required: true, properties: { masterDataType: 'control-measures', searchable: true } },
         { type: 'select', code: 'flag', label: { en: 'Flag', fr: 'Indicateur', pt: 'Indicador', ar: 'المؤشر' }, required: true, properties: { options: [
           { label: { en: 'Applied', fr: 'Appliqué', pt: 'Aplicado', ar: 'مطبق' }, value: 'applied' },
           { label: { en: 'Planned', fr: 'Planifié', pt: 'Planejado', ar: 'مخطط' }, value: 'planned' },
@@ -408,7 +440,7 @@ function buildEmergencyDiseaseReport() {
     [
       makeRepeater('locations', { en: 'Locations', fr: 'Localisations', pt: 'Localizações', ar: 'المواقع' }, [
         { type: 'text', code: 'locality_name', label: { en: 'Name of Locality', fr: 'Nom de la Localité', pt: 'Nome da Localidade', ar: 'اسم المنطقة' }, required: true },
-        { type: 'text', code: 'epi_unit_type', label: { en: 'Epidemiological Unit Type', fr: 'Type d\'Unité Épidémiologique', pt: 'Tipo de Unidade Epidemiológica', ar: 'نوع الوحدة الوبائية' } },
+        { type: 'master-data-select', code: 'epi_unit_type', label: { en: 'Epidemiological Unit Type', fr: 'Type d\'Unité Épidémiologique', pt: 'Tipo de Unidade Epidemiológica', ar: 'نوع الوحدة الوبائية' }, properties: { masterDataType: 'epidemiological-unit-types', searchable: true } },
         { type: 'master-data-select', code: 'production_system', label: { en: 'Production System', fr: 'Système de Production', pt: 'Sistema de Produção', ar: 'نظام الإنتاج' }, properties: { masterDataType: 'production-systems', searchable: true } },
       ], { addLabel: { en: 'Add location', fr: 'Ajouter un lieu', pt: 'Adicionar local', ar: 'إضافة موقع' } }),
     ],
@@ -457,7 +489,7 @@ function buildMeatInspection() {
       textField('abattoir_abbreviation', { en: 'Abattoir Abbreviation', fr: 'Abréviation de l\'Abattoir', pt: 'Abreviação do Matadouro', ar: 'اختصار المسلخ' }),
       textField('source_animal_market', { en: 'Source of Animal or Market', fr: 'Source de l\'Animal ou Marché', pt: 'Fonte do Animal ou Mercado', ar: 'مصدر الحيوان أو السوق' }, { helpText: { en: 'Name the most likely source of the animal and/or market from where the animal presented for slaughter came.', fr: 'Nommez la source la plus probable de l\'animal et/ou du marché d\'où provient l\'animal présenté à l\'abattage.', pt: 'Nomeie a fonte mais provável do animal e/ou mercado de onde veio o animal apresentado para abate.', ar: 'اذكر المصدر الأكثر احتمالاً للحيوان و/أو السوق الذي جاء منه الحيوان المقدم للذبح.' } }),
       numberField('movement_permit_number', { en: 'Movement Permit Number', fr: 'Numéro du Permis de Mouvement', pt: 'Número da Licença de Movimento', ar: 'رقم تصريح النقل' }),
-      textField('means_transportation', { en: 'Means of Transportation', fr: 'Moyen de Transport', pt: 'Meio de Transporte', ar: 'وسيلة النقل' }, { helpText: { en: 'Means of transporting the animal(s) to the abattoir.', fr: 'Moyen de transport des animaux vers l\'abattoir.', pt: 'Meio de transporte dos animais ao matadouro.', ar: 'وسيلة نقل الحيوان(ات) إلى المسلخ.' } }),
+      transportModeSelect('means_transportation', { en: 'Means of Transportation', fr: 'Moyen de Transport', pt: 'Meio de Transporte', ar: 'وسيلة النقل' }, { helpText: { en: 'Means of transporting the animal(s) to the abattoir.', fr: 'Moyen de transport des animaux vers l\'abattoir.', pt: 'Meio de transporte dos animais ao matadouro.', ar: 'وسيلة نقل الحيوان(ات) إلى المسلخ.' } }),
       numberField('no_objection_form_number', { en: 'No Objection Form Number', fr: 'Numéro du Formulaire de Non-Objection', pt: 'Número do Formulário de Não Objeção', ar: 'رقم نموذج عدم الممانعة' }),
     ],
     { icon: 'ClipboardCheck', color: '#D97706' },
@@ -469,9 +501,9 @@ function buildMeatInspection() {
     { en: 'Ante Mortem Inspection', fr: 'Inspection Ante Mortem', pt: 'Inspeção Ante Mortem', ar: 'الفحص قبل الذبح' }, 2,
     [
       makeRepeater('ante_mortem', { en: 'Ante Mortem by Species', fr: 'Ante Mortem par Espèce', pt: 'Ante Mortem por Espécie', ar: 'الفحص قبل الذبح حسب النوع' }, [
-        { type: 'text', code: 'animal_species', label: { en: 'Animal Species', fr: 'Espèce Animale', pt: 'Espécie Animal', ar: 'النوع الحيواني' }, required: true },
-        { type: 'select', code: 'age', label: { en: 'Age', fr: 'Âge', pt: 'Idade', ar: 'العمر' }, properties: { options: [{ label: { en: 'Young', fr: 'Jeune', pt: 'Jovem', ar: 'صغير' }, value: 'young' }, { label: { en: 'Sub-adult', fr: 'Sub-adulte', pt: 'Subadulto', ar: 'شبه بالغ' }, value: 'sub_adult' }, { label: { en: 'Adult', fr: 'Adulte', pt: 'Adulto', ar: 'بالغ' }, value: 'adult' }] } },
-        { type: 'select', code: 'sex', label: { en: 'Sex', fr: 'Sexe', pt: 'Sexo', ar: 'الجنس' }, properties: { options: [{ label: { en: 'Male', fr: 'Mâle', pt: 'Macho', ar: 'ذكر' }, value: 'male' }, { label: { en: 'Female', fr: 'Femelle', pt: 'Fêmea', ar: 'أنثى' }, value: 'female' }] } },
+        { type: 'master-data-select', code: 'animal_species', label: { en: 'Animal Species', fr: 'Espèce Animale', pt: 'Espécie Animal', ar: 'النوع الحيواني' }, required: true, properties: { masterDataType: 'species', searchable: true } },
+        { type: 'master-data-select', code: 'age', label: { en: 'Age', fr: 'Âge', pt: 'Idade', ar: 'العمر' }, properties: { masterDataType: 'age-groups', searchable: true } },
+        { type: 'master-data-select', code: 'sex', label: { en: 'Sex', fr: 'Sexe', pt: 'Sexo', ar: 'الجنس' }, properties: { masterDataType: 'animal-sexes', searchable: true } },
         { type: 'number', code: 'num_consignment', label: { en: 'Number in Consignment', fr: 'Nombre dans la Consignation', pt: 'Número na Remessa', ar: 'العدد في الشحنة' }, required: true, properties: { min: 0 } },
         { type: 'number', code: 'num_clinically_sick', label: { en: 'Number Clinically Sick', fr: 'Nombre Cliniquement Malades', pt: 'Número Clinicamente Doente', ar: 'العدد المريض سريرياً' }, required: true, properties: { min: 0 } },
         { type: 'number', code: 'num_passed', label: { en: 'Number Passed for Slaughter', fr: 'Nombre Approuvé pour l\'Abattage', pt: 'Número Aprovado para Abate', ar: 'العدد الموافق عليه للذبح' }, required: true, properties: { min: 0 } },
@@ -492,14 +524,13 @@ function buildMeatInspection() {
       textField('postmortem_lesions', { en: 'Post-mortem Lesions', fr: 'Lésions Post-mortem', pt: 'Lesões Post-mortem', ar: 'الآفات بعد الذبح' }),
       textField('tentative_diagnosis', { en: 'Tentative Diagnosis', fr: 'Diagnostic Provisoire', pt: 'Diagnóstico Provisório', ar: 'التشخيص المبدئي' }, { required: true, helpText: { en: 'This is the primary disease that is suspected.', fr: 'Il s\'agit de la maladie principale suspectée.', pt: 'Esta é a doença primária suspeita.', ar: 'هذا هو المرض الأساسي المشتبه به.' } }),
       textField('differential_diagnosis', { en: 'Differential Diagnosis', fr: 'Diagnostic Différentiel', pt: 'Diagnóstico Diferencial', ar: 'التشخيص التفريقي' }, { helpText: { en: 'This is the secondary disease that is suspected.', fr: 'Il s\'agit de la maladie secondaire suspectée.', pt: 'Esta é a doença secundária suspeita.', ar: 'هذا هو المرض الثانوي المشتبه به.' } }),
-      textField('specimen_type', { en: 'Type of Laboratory Specimen', fr: 'Type de Spécimen de Laboratoire', pt: 'Tipo de Espécime de Laboratório', ar: 'نوع عينة المختبر' }, { helpText: { en: 'This is the type of laboratory specimen or sample which has been sent to the Lab.', fr: 'Il s\'agit du type de spécimen ou d\'échantillon de laboratoire envoyé au laboratoire.', pt: 'Este é o tipo de espécime ou amostra de laboratório enviada ao laboratório.', ar: 'هذا هو نوع عينة المختبر التي تم إرسالها إلى المختبر.' } }),
+      sampleTypeSelect('specimen_type', { en: 'Type of Laboratory Specimen', fr: 'Type de Spécimen de Laboratoire', pt: 'Tipo de Espécime de Laboratório', ar: 'نوع عينة المختبر' }, { helpText: { en: 'This is the type of laboratory specimen or sample which has been sent to the Lab.', fr: 'Il s\'agit du type de spécimen ou d\'échantillon de laboratoire envoyé au laboratoire.', pt: 'Este é o tipo de espécime ou amostra de laboratório enviada ao laboratório.', ar: 'هذا هو نوع عينة المختبر التي تم إرسالها إلى المختبر.' } }),
       numberField('num_specimens', { en: 'Number of Laboratory Specimens', fr: 'Nombre de Spécimens', pt: 'Número de Espécimes', ar: 'عدد العينات' }),
       dateField('date_samples_collected', { en: 'Date Samples Collected', fr: 'Date de Collecte', pt: 'Data da Coleta de Amostras', ar: 'تاريخ جمع العينات' }),
       dateField('date_samples_sent', { en: 'Date Samples Sent to Laboratory', fr: 'Date d\'Envoi au Laboratoire', pt: 'Data de Envio ao Laboratório', ar: 'تاريخ إرسال العينات للمختبر' }, { helpText: { en: 'This is the date when the samples were sent to the Primary or Reference Laboratory.', fr: 'Il s\'agit de la date d\'envoi des échantillons au laboratoire primaire ou de référence.', pt: 'Esta é a data em que as amostras foram enviadas ao laboratório primário ou de referência.', ar: 'هذا هو التاريخ الذي أُرسلت فيه العينات إلى المختبر الأساسي أو المرجعي.' } }),
-      textField('lab_name', { en: 'Name of Laboratory', fr: 'Nom du Laboratoire', pt: 'Nome do Laboratório', ar: 'اسم المختبر' }, { required: true }),
-      textField('ref_lab_name', { en: 'Name of Reference Laboratory', fr: 'Nom du Laboratoire de Référence', pt: 'Nome do Laboratório de Referência', ar: 'اسم المختبر المرجعي' }),
-      selectField('lab_test', { en: 'Laboratory Test', fr: 'Test de Laboratoire', pt: 'Teste de Laboratório', ar: 'اختبار المختبر' },
-        [{ en: 'PCR', fr: 'PCR', pt: 'PCR', ar: 'PCR' }, { en: 'ELISA', fr: 'ELISA', pt: 'ELISA', ar: 'ELISA' }, { en: 'Culture', fr: 'Culture', pt: 'Cultura', ar: 'زراعة' }, { en: 'Serology', fr: 'Sérologie', pt: 'Sorologia', ar: 'علم المصل' }, { en: 'Histopathology', fr: 'Histopathologie', pt: 'Histopatologia', ar: 'علم الأنسجة المرضية' }, { en: 'Other', fr: 'Autre', pt: 'Outro', ar: 'أخرى' }]),
+      labSelect('lab_name', { en: 'Name of Laboratory', fr: 'Nom du Laboratoire', pt: 'Nome do Laboratório', ar: 'اسم المختبر' }, { required: true }),
+      labSelect('ref_lab_name', { en: 'Name of Reference Laboratory', fr: 'Nom du Laboratoire de Référence', pt: 'Nome do Laboratório de Referência', ar: 'اسم المختبر المرجعي' }),
+      testTypeSelect('lab_test', { en: 'Laboratory Test', fr: 'Test de Laboratoire', pt: 'Teste de Laboratório', ar: 'اختبار المختبر' }),
       textField('lab_results', { en: 'Laboratory Results', fr: 'Résultats de Laboratoire', pt: 'Resultados do Laboratório', ar: 'نتائج المختبر' }, { helpText: { en: 'Laboratory Specimen Results', fr: 'Résultats des spécimens de laboratoire', pt: 'Resultados dos espécimes de laboratório', ar: 'نتائج عينات المختبر' } }),
       dateField('date_lab_results', { en: 'Date Laboratory Results Received', fr: 'Date de Réception des Résultats', pt: 'Data de Recebimento dos Resultados', ar: 'تاريخ استلام النتائج' }, { helpText: { en: 'This is the date on which the Laboratory results were received.', fr: 'Il s\'agit de la date à laquelle les résultats de laboratoire ont été reçus.', pt: 'Esta é a data em que os resultados do laboratório foram recebidos.', ar: 'هذا هو التاريخ الذي تم فيه استلام نتائج المختبر.' } }),
     ],
@@ -512,18 +543,7 @@ function buildMeatInspection() {
     { en: 'Post Mortem Inspection', fr: 'Inspection Post Mortem', pt: 'Inspeção Post Mortem', ar: 'الفحص بعد الذبح' }, 4,
     [
       makeRepeater('post_mortem', { en: 'Post Mortem by Body Part', fr: 'Post Mortem par Organe', pt: 'Post Mortem por Parte do Corpo', ar: 'الفحص بعد الذبح حسب العضو' }, [
-        { type: 'select', code: 'body_part', label: { en: 'Body Part', fr: 'Organe', pt: 'Parte do Corpo', ar: 'العضو' }, properties: { options: [
-          { label: { en: 'Head', fr: 'Tête', pt: 'Cabeça', ar: 'الرأس' }, value: 'head' },
-          { label: { en: 'Liver', fr: 'Foie', pt: 'Fígado', ar: 'الكبد' }, value: 'liver' },
-          { label: { en: 'Lungs', fr: 'Poumons', pt: 'Pulmões', ar: 'الرئتان' }, value: 'lungs' },
-          { label: { en: 'Heart', fr: 'Cœur', pt: 'Coração', ar: 'القلب' }, value: 'heart' },
-          { label: { en: 'Kidneys', fr: 'Reins', pt: 'Rins', ar: 'الكلى' }, value: 'kidneys' },
-          { label: { en: 'Spleen', fr: 'Rate', pt: 'Baço', ar: 'الطحال' }, value: 'spleen' },
-          { label: { en: 'Intestines', fr: 'Intestins', pt: 'Intestinos', ar: 'الأمعاء' }, value: 'intestines' },
-          { label: { en: 'Carcass', fr: 'Carcasse', pt: 'Carcaça', ar: 'الذبيحة' }, value: 'carcass' },
-          { label: { en: 'Skin', fr: 'Peau', pt: 'Pele', ar: 'الجلد' }, value: 'skin' },
-          { label: { en: 'Other', fr: 'Autre', pt: 'Outro', ar: 'أخرى' }, value: 'other' },
-        ] } },
+        { type: 'master-data-select', code: 'body_part', label: { en: 'Body Part', fr: 'Organe', pt: 'Parte do Corpo', ar: 'العضو' }, properties: { masterDataType: 'body-parts', searchable: true } },
         { type: 'number', code: 'num_inspected', label: { en: 'Number Inspected', fr: 'Nombre Inspecté', pt: 'Número Inspecionado', ar: 'العدد المفحوص' }, required: true, properties: { min: 0 } },
         { type: 'number', code: 'num_affected', label: { en: 'Number Affected', fr: 'Nombre Affecté', pt: 'Número Afetado', ar: 'العدد المتأثر' }, required: true, properties: { min: 0 } },
         { type: 'number', code: 'num_condemned', label: { en: 'Number Condemned', fr: 'Nombre Condamné', pt: 'Número Condenado', ar: 'العدد المُدان' }, required: true, properties: { min: 0 } },
@@ -877,12 +897,10 @@ function buildImportExport() {
       textField('activity', { en: 'Activity', fr: 'Activité', pt: 'Atividade', ar: 'النشاط' }, { required: true, helpText: { en: 'Export/import', fr: 'Exportation/importation', pt: 'Exportação/importação', ar: 'تصدير/استيراد' } }),
       dateField('date_importation', { en: 'Date of Importation', fr: 'Date d\'Importation', pt: 'Data de Importação', ar: 'تاريخ الاستيراد' }, { helpText: { en: 'Provide the date that the animals or animal products were actually imported into the country.', fr: 'Fournissez la date à laquelle les animaux ou produits animaux ont été effectivement importés dans le pays.', pt: 'Forneça a data em que os animais ou produtos animais foram efetivamente importados no país.', ar: 'قدم التاريخ الذي تم فيه فعلياً استيراد الحيوانات أو المنتجات الحيوانية إلى البلد.' } }),
       dateField('date_exportation', { en: 'Date of Exportation', fr: 'Date d\'Exportation', pt: 'Data de Exportação', ar: 'تاريخ التصدير' }, { helpText: { en: 'Provide the date that the animals or animal products were actually exported from the country.', fr: 'Fournissez la date à laquelle les animaux ou produits animaux ont été effectivement exportés du pays.', pt: 'Forneça a data em que os animais ou produtos animais foram efetivamente exportados do país.', ar: 'قدم التاريخ الذي تم فيه فعلياً تصدير الحيوانات أو المنتجات الحيوانية من البلد.' } }),
-      selectField('means_transport', { en: 'Means of Transport', fr: 'Moyen de Transport', pt: 'Meio de Transporte', ar: 'وسيلة النقل' },
-        [{ en: 'Road', fr: 'Route', pt: 'Rodoviário', ar: 'بري' }, { en: 'Rail', fr: 'Rail', pt: 'Ferroviário', ar: 'سكة حديد' }, { en: 'Sea', fr: 'Maritime', pt: 'Marítimo', ar: 'بحري' }, { en: 'Air', fr: 'Aérien', pt: 'Aéreo', ar: 'جوي' }], { helpText: { en: 'Select type of transport used.', fr: 'Sélectionnez le type de transport utilisé.', pt: 'Selecione o tipo de transporte utilizado.', ar: 'اختر نوع النقل المستخدم.' } }),
+      transportModeSelect('means_transport', { en: 'Means of Transport', fr: 'Moyen de Transport', pt: 'Meio de Transporte', ar: 'وسيلة النقل' }, { helpText: { en: 'Select type of transport used.', fr: 'Sélectionnez le type de transport utilisé.', pt: 'Selecione o tipo de transporte utilizado.', ar: 'اختر نوع النقل المستخدم.' } }),
       textField('animal_product_type', { en: 'Type of Animal or Product', fr: 'Type d\'Animal ou Produit', pt: 'Tipo de Animal ou Produto', ar: 'نوع الحيوان أو المنتج' }, { required: true }),
-      textField('animal_species', { en: 'Animal Species', fr: 'Espèce Animale', pt: 'Espécie Animal', ar: 'النوع الحيواني' }),
-      selectField('product_name', { en: 'Name of Animal Product', fr: 'Nom du Produit Animal', pt: 'Nome do Produto Animal', ar: 'اسم المنتج الحيواني' },
-        [{ en: 'Meat', fr: 'Viande', pt: 'Carne', ar: 'لحم' }, { en: 'Dairy', fr: 'Produits Laitiers', pt: 'Laticínios', ar: 'ألبان' }, { en: 'Eggs', fr: 'Œufs', pt: 'Ovos', ar: 'بيض' }, { en: 'Hides/Skins', fr: 'Cuirs/Peaux', pt: 'Couros/Peles', ar: 'جلود' }, { en: 'Wool', fr: 'Laine', pt: 'Lã', ar: 'صوف' }, { en: 'Other', fr: 'Autre', pt: 'Outro', ar: 'أخرى' }],
+      speciesSelect('animal_species', { en: 'Animal Species', fr: 'Espèce Animale', pt: 'Espécie Animal', ar: 'النوع الحيواني' }),
+      livestockProductSelect('product_name', { en: 'Name of Animal Product', fr: 'Nom du Produit Animal', pt: 'Nome do Produto Animal', ar: 'اسم المنتج الحيواني' },
         { helpText: { en: 'Select the name of animal product being imported or exported if applicable.', fr: 'Sélectionnez le nom du produit animal importé ou exporté si applicable.', pt: 'Selecione o nome do produto animal sendo importado ou exportado, se aplicável.', ar: 'اختر اسم المنتج الحيواني المستورد أو المصدر إن وجد.' } }),
       numberField('quantity', { en: 'Quantity', fr: 'Quantité', pt: 'Quantidade', ar: 'الكمية' }, { required: true }),
       numberField('unit_measurement', { en: 'Unit of Measurement', fr: 'Unité de Mesure', pt: 'Unidade de Medida', ar: 'وحدة القياس' }, { required: true, helpText: { en: 'Indicate the unit of measurement for the quantity provided.', fr: 'Indiquez l\'unité de mesure pour la quantité fournie.', pt: 'Indique a unidade de medida para a quantidade fornecida.', ar: 'حدد وحدة القياس للكمية المقدمة.' } }),
@@ -909,14 +927,13 @@ function buildMarketDemand() {
       dateField('date_of_report', { en: 'Date of Report', fr: 'Date du Rapport', pt: 'Data do Relatório', ar: 'تاريخ التقرير' }, { required: true }),
       speciesSelect('species', { en: 'Species', fr: 'Espèce', pt: 'Espécie', ar: 'النوع' }, { required: true }),
       breedSelect('breed', { en: 'Breed', fr: 'Race', pt: 'Raça', ar: 'السلالة' }),
-      selectField('product_type', { en: 'Type of Product', fr: 'Type de Produit', pt: 'Tipo de Produto', ar: 'نوع المنتج' },
-        [{ en: 'Beef', fr: 'Bœuf', pt: 'Carne Bovina', ar: 'لحم بقري' }, { en: 'Mutton', fr: 'Mouton', pt: 'Carne de Carneiro', ar: 'لحم ضأن' }, { en: 'Goat meat', fr: 'Viande de Chèvre', pt: 'Carne de Cabra', ar: 'لحم ماعز' }, { en: 'Pork', fr: 'Porc', pt: 'Carne de Porco', ar: 'لحم خنزير' }, { en: 'Poultry', fr: 'Volaille', pt: 'Aves', ar: 'دواجن' }, { en: 'Eggs', fr: 'Œufs', pt: 'Ovos', ar: 'بيض' }, { en: 'Milk', fr: 'Lait', pt: 'Leite', ar: 'حليب' }, { en: 'Hides', fr: 'Cuirs', pt: 'Couros', ar: 'جلود' }, { en: 'Other', fr: 'Autre', pt: 'Outro', ar: 'أخرى' }], { required: true }),
+      livestockProductSelect('product_type', { en: 'Type of Product', fr: 'Type de Produit', pt: 'Tipo de Produto', ar: 'نوع المنتج' }, { required: true }),
       textField('product_grade', { en: 'Product Grade', fr: 'Grade du Produit', pt: 'Grau do Produto', ar: 'درجة المنتج' }, { helpText: { en: 'Give the product grade.', fr: 'Indiquez le grade du produit.', pt: 'Informe o grau do produto.', ar: 'حدد درجة المنتج.' } }),
       numberField('quantity', { en: 'Quantity (m3)', fr: 'Quantité (m3)', pt: 'Quantidade (m3)', ar: 'الكمية (م3)' }, { required: true, helpText: { en: 'Give the quantity of the product produced in metric tonnes.', fr: 'Indiquez la quantité du produit produit en tonnes métriques.', pt: 'Informe a quantidade do produto produzido em toneladas métricas.', ar: 'حدد كمية المنتج المنتجة بالأطنان المترية.' } }),
       decimalField('price_product', { en: 'Price Product (Local Currency)', fr: 'Prix du Produit (Monnaie Locale)', pt: 'Preço do Produto (Moeda Local)', ar: 'سعر المنتج (العملة المحلية)' }, { required: true }),
       textField('monthly_demand', { en: 'Monthly Demand Product (Kg)', fr: 'Demande Mensuelle du Produit (Kg)', pt: 'Demanda Mensal do Produto (Kg)', ar: 'الطلب الشهري على المنتج (كغ)' }, { required: true }),
       textField('demand_type', { en: 'Type of Demand', fr: 'Type de Demande', pt: 'Tipo de Demanda', ar: 'نوع الطلب' }),
-      textField('data_source', { en: 'Data Source', fr: 'Source des Données', pt: 'Fonte dos Dados', ar: 'مصدر البيانات' }, { required: true }),
+      dataSourceSelect('data_source', { en: 'Data Source', fr: 'Source des Données', pt: 'Fonte dos Dados', ar: 'مصدر البيانات' }, { required: true }),
     ],
     { icon: 'TrendingUp', color: '#059669' },
   );
