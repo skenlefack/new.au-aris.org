@@ -79,7 +79,7 @@ export default function ImportDatasetPage() {
         name,
         domain,
         description: description || undefined,
-        tags: tags ? tags.split(',').map((t) => t.trim()).filter(Boolean) : undefined,
+        tags: tags ? tags.split(',').map((tag) => tag.trim()).filter(Boolean) : undefined,
       });
       router.push(`/historical/${result.data.id}`);
     } catch (err) {

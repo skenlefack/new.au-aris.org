@@ -111,13 +111,13 @@ export default function CampaignDetailPage() {
     const tplIds = campaign.templateIds ?? (campaign.templateId ? [campaign.templateId] : []);
     return tplIds.map((id) => {
       // 1. Direct ID match against API templates
-      const byId = apiTemplates.find((t) => t.id === id);
+      const byId = apiTemplates.find((tpl) => tpl.id === id);
       if (byId) return { name: byId.name, tpl: byId, tplId: id };
 
       // 2. Seed UUID → get name → match against API templates by name
       const seed = SEED_TEMPLATES.find((s) => s.id === id);
       if (seed) {
-        const byName = apiTemplates.find((t) => t.name === seed.name);
+        const byName = apiTemplates.find((tpl) => tpl.name === seed.name);
         if (byName) return { name: seed.name, tpl: byName, tplId: id };
         // API offline — use seed for display (no schema)
         return { name: seed.name, tpl: seed, tplId: id };

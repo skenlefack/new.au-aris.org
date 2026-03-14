@@ -94,9 +94,9 @@ export default function NewCampaignPage() {
   const publishedTemplates = useMemo(() => {
     const apiData = templatesData?.data ?? [];
     const all = apiData.length > 0 ? apiData : SEED_TEMPLATES;
-    return all.filter((t) => {
-      if (t.status !== 'PUBLISHED') return false;
-      if (domain && t.domain !== domain) return false;
+    return all.filter((tmpl) => {
+      if (tmpl.status !== 'PUBLISHED') return false;
+      if (domain && tmpl.domain !== domain) return false;
       return true;
     });
   }, [templatesData, domain]);
@@ -105,7 +105,7 @@ export default function NewCampaignPage() {
   const handleDomainChange = (newDomain: string) => {
     setDomain(newDomain);
     if (newDomain) {
-      setSelectedTemplates((prev) => prev.filter((t) => t.domain === newDomain));
+      setSelectedTemplates((prev) => prev.filter((tmpl) => tmpl.domain === newDomain));
     }
   };
 
@@ -137,7 +137,7 @@ export default function NewCampaignPage() {
       description: description.trim() || undefined,
       targetSubmissions: targetSubmissions ? parseInt(targetSubmissions, 10) : undefined,
       // Extended fields
-      templateIds: selectedTemplates.map((t) => t.id),
+      templateIds: selectedTemplates.map((tmpl) => tmpl.id),
       targetCountries: selectedCountries.map((c) => c.code),
       frequency,
       sendReminders,
@@ -401,17 +401,17 @@ export default function NewCampaignPage() {
                 {selectedTemplates.length} {selectedTemplates.length > 1 ? t('templates') : t('template')}
               </p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {selectedTemplates.map((t) => (
+                {selectedTemplates.map((tmpl) => (
                   <div
-                    key={t.id}
+                    key={tmpl.id}
                     className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800"
                   >
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                        {t.name}
+                        {tmpl.name}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {DOMAIN_OPTIONS.find((d) => d.value === t.domain)?.label ?? t.domain} &middot; v{t.version}
+                        {DOMAIN_OPTIONS.find((d) => d.value === tmpl.domain)?.label ?? tmpl.domain} &middot; v{tmpl.version}
                       </p>
                     </div>
                     <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">

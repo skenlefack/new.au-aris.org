@@ -66,7 +66,7 @@ function GenerateReportContent() {
   // Set template from URL param once templates load
   useEffect(() => {
     if (templateParam && templates.length > 0) {
-      const found = templates.find((t) => t.id === templateParam);
+      const found = templates.find((tpl) => tpl.id === templateParam);
       if (found) {
         setTemplateId(found.id);
         setFormat(found.outputFormat);
@@ -74,7 +74,7 @@ function GenerateReportContent() {
     }
   }, [templateParam, templates]);
 
-  const selectedTemplate = templates.find((t) => t.id === templateId);
+  const selectedTemplate = templates.find((tpl) => tpl.id === templateId);
 
   function handleGenerate() {
     if (!templateId || !periodStart || !periodEnd) return;
@@ -171,15 +171,15 @@ function GenerateReportContent() {
                 value={templateId}
                 onChange={(e) => {
                   setTemplateId(e.target.value);
-                  const tpl = templates.find((t) => t.id === e.target.value);
+                  const tpl = templates.find((tmpl) => tmpl.id === e.target.value);
                   if (tpl) setFormat(tpl.outputFormat);
                 }}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500"
               >
                 <option value="">{t('selectTemplate')}</option>
-                {templates.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
+                {templates.map((tpl) => (
+                  <option key={tpl.id} value={tpl.id}>
+                    {tpl.name}
                   </option>
                 ))}
               </select>
