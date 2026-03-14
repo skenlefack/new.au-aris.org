@@ -4,22 +4,14 @@ ARIS 4.0 — Verify production database seed data.
 SSH to VM-APP (10.202.101.183), run psql via docker on VM-DB (10.202.101.185),
 compare actual record counts against expected seed counts.
 """
-import os
 import sys
-import paramiko
 
-os.environ["PYTHONIOENCODING"] = "utf-8"
+from ssh_config import get_client as _get_client, VM_APP, VM_DB, VM_PASS, VM_USER
 
-# ── Connection settings ──────────────────────────────────────────────────────
-
-SSH_USER = "arisadmin"
-SSH_PASS = "@u-1baR.0rg$U24"
-HOST = "10.202.101.183"
-
-DB_HOST = "10.202.101.185"
+HOST = VM_APP
+DB_HOST = VM_DB
 DB_PORT = "5432"
 DB_USER = "aris"
-DB_PASS = "@u-1baR.0rg$U24"
 DB_NAME = "aris"
 
 
@@ -34,17 +26,14 @@ def safe_print(text):
 
 
 def get_client():
-    c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(HOST, 22, SSH_USER, SSH_PASS, timeout=15,
-              allow_agent=False, look_for_keys=False)
-    return c
+    return _get_client(VM_APP)
 
 
 def run_sudo(client, cmd, timeout=300):
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
-    stdin.flush()
+    if VM_PASS:
+        stdin.write(VM_PASS + "\n")
+        stdin.flush()
     stdin.channel.shutdown_write()
     out = stdout.read().decode("utf-8", errors="replace").strip()
     err = stderr.read().decode("utf-8", errors="replace").strip()
@@ -334,7 +323,7 @@ CHECKS = [
 def main():
     safe_print("=" * 80)
     safe_print("  ARIS 4.0 -- Production Seed Data Verification")
-    safe_print(f"  SSH: {SSH_USER}@{HOST} -> psql on {DB_HOST}:{DB_PORT}/{DB_NAME}")
+    safe_print(f"  SSH: {VM_USER}@{HOST} -> psql on {DB_HOST}:{DB_PORT}/{DB_NAME}")
     safe_print("=" * 80)
     safe_print("")
 

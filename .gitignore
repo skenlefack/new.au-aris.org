@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 !.env.local.example
+!.env.production.example
 keys/
 dist/
 coverage/
@@ -14,6 +15,12 @@ coverage/
 
 # Build info
 *.tsbuildinfo
+
+# Deploy secrets
+deploy/.env.production
+deploy/.env.staging
+deploy/*.pem
+deploy/*.key
 
 # Claude Code local settings
 .claude/

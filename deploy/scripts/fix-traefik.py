@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
 """Fix Traefik Docker API version mismatch and recreate container."""
-import paramiko
 import sys
-import os
 import time
-
-os.environ["PYTHONIOENCODING"] = "utf-8"
-
-SSH_USER = "arisadmin"
-SSH_PASS = "@u-1baR.0rg$U24"
-HOST = "10.202.101.183"
+from ssh_config import get_client, VM_APP, VM_PASS
 
 
 def safe_print(text):
@@ -20,17 +13,9 @@ def safe_print(text):
     sys.stdout.flush()
 
 
-def get_client():
-    c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(HOST, 22, SSH_USER, SSH_PASS, timeout=15,
-              allow_agent=False, look_for_keys=False)
-    return c
-
-
 def run_sudo(client, cmd, timeout=30):
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
+    stdin.write(VM_PASS + "\n")
     stdin.flush()
     stdin.channel.shutdown_write()
     out = stdout.read().decode("utf-8", errors="replace").strip()
@@ -40,7 +25,7 @@ def run_sudo(client, cmd, timeout=30):
 
 def run_sudo_stream(client, cmd, timeout=120):
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
+    stdin.write(VM_PASS + "\n")
     stdin.flush()
     stdin.channel.shutdown_write()
     for line in iter(stdout.readline, ""):
@@ -55,7 +40,7 @@ safe_print("=" * 60)
 safe_print("  Fix Traefik Docker API Version")
 safe_print("=" * 60)
 
-c = get_client()
+c = get_client(VM_APP)
 
 # 1. Check Docker Engine version
 safe_print("\n=== 1. Docker Engine info ===")
@@ -74,7 +59,7 @@ c.close()
 
 # 3. Add DOCKER_API_VERSION to Traefik in compose and pull latest
 safe_print("\n=== 3. Fixing docker-compose.yml on VM ===")
-c = get_client()
+c = get_client(VM_APP)
 # Use sed to add DOCKER_API_VERSION env var to Traefik service
 # We need to add an environment section with DOCKER_API_VERSION=1.45
 # In the compose, traefik uses <<: *service-common which may have environment
@@ -87,7 +72,7 @@ c.close()
 
 # 4. Add environment variable via sed
 safe_print("\n=== 4. Adding DOCKER_API_VERSION to Traefik ===")
-c = get_client()
+c = get_client(VM_APP)
 # Add environment section after the healthcheck block of traefik
 # Strategy: add DOCKER_API_VERSION=1.45 as env var
 # Use sed to add it after the 'image: traefik:v3.3' line
@@ -107,12 +92,12 @@ c.close()
 
 # 5. Pull latest traefik:v3.3 and recreate
 safe_print("\n=== 5. Pulling traefik:v3.3 and recreating ===")
-c = get_client()
+c = get_client(VM_APP)
 code, out = run_sudo(c, "bash -c 'cd /opt/aris-deploy/vm-app && set -a && source /opt/aris-deploy/.env.production 2>/dev/null && set +a && docker compose pull traefik 2>&1'", timeout=120)
 safe_print(f"  Pull: {out[:300]}")
 c.close()
 
-c = get_client()
+c = get_client(VM_APP)
 code, out = run_sudo(c, "bash -c 'cd /opt/aris-deploy/vm-app && set -a && source /opt/aris-deploy/.env.production 2>/dev/null && set +a && docker compose up -d --force-recreate traefik 2>&1'", timeout=60)
 safe_print(f"  Recreate: {out[:300]}")
 c.close()
@@ -122,7 +107,7 @@ time.sleep(10)
 
 # 6. Check Traefik logs
 safe_print("\n=== 6. Traefik logs (after fix) ===")
-c = get_client()
+c = get_client(VM_APP)
 code, out = run_sudo(c, "docker logs aris-traefik --tail 15 2>&1")
 for line in out.splitlines()[-10:]:
     safe_print(f"  {line}")

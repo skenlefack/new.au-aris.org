@@ -1,0 +1,15 @@
+# Production secrets — NEVER commit
+.env.production
+.env.staging
+.env.*.local
+
+# SSH keys
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# Backup artifacts (generated on VMs)
+*.dump
+*.rdb
+*.aof

@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
 """Fix Traefik: force remove + start latest (v3.6.10)."""
-import paramiko
 import sys
-import os
 import time
-
-os.environ["PYTHONIOENCODING"] = "utf-8"
-
-SSH_USER = "arisadmin"
-SSH_PASS = "@u-1baR.0rg$U24"
-HOST = "10.202.101.183"
+from ssh_config import get_client, VM_APP, VM_PASS
 
 
 def safe_print(text):
@@ -20,17 +13,9 @@ def safe_print(text):
     sys.stdout.flush()
 
 
-def get_client():
-    c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(HOST, 22, SSH_USER, SSH_PASS, timeout=15,
-              allow_agent=False, look_for_keys=False)
-    return c
-
-
 def run_sudo(client, cmd, timeout=60):
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
+    stdin.write(VM_PASS + "\n")
     stdin.flush()
     stdin.channel.shutdown_write()
     out = stdout.read().decode("utf-8", errors="replace").strip()
@@ -44,14 +29,14 @@ safe_print("=" * 60)
 
 # 1. Force remove old container
 safe_print("\n=== 1. Force remove old container ===")
-c = get_client()
+c = get_client(VM_APP)
 code, out = run_sudo(c, "docker rm -f aris-traefik 2>&1")
 safe_print(f"  rm -f: {out}")
 c.close()
 
 # 2. Run traefik:latest (v3.6.10) with DOCKER_API_VERSION
 safe_print("\n=== 2. Start traefik:latest (v3.6.10) ===")
-c = get_client()
+c = get_client(VM_APP)
 code, out = run_sudo(c, """docker run -d \
   --name aris-traefik \
   --restart unless-stopped \
@@ -81,7 +66,7 @@ time.sleep(8)
 
 # 3. Check logs
 safe_print("\n=== 3. Traefik logs ===")
-c = get_client()
+c = get_client(VM_APP)
 code, out = run_sudo(c, "docker logs aris-traefik 2>&1 | tail -15")
 has_api_error = "client version" in out
 for line in out.splitlines():

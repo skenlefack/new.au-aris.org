@@ -1,14 +1,9 @@
 #!/usr/bin/env python3
 """Diagnose VM-DB docker compose failure."""
-import paramiko
 import sys
-import os
+import time
+from ssh_config import get_client, VM_DB, VM_PASS
 
-# Fix Windows encoding
-os.environ["PYTHONIOENCODING"] = "utf-8"
-
-SSH_PASS = "@u-1baR.0rg$U24"
-HOST = "10.202.101.185"
 
 def safe_print(text):
     try:
@@ -24,7 +19,7 @@ def run(client, cmd, sudo=True):
         full_cmd = cmd
     stdin, stdout, stderr = client.exec_command(full_cmd, timeout=30)
     if sudo:
-        stdin.write(SSH_PASS + "\n")
+        stdin.write(VM_PASS + "\n")
         stdin.flush()
         stdin.channel.shutdown_write()
     out = stdout.read().decode("utf-8", errors="replace").strip()
@@ -32,11 +27,8 @@ def run(client, cmd, sudo=True):
     code = stdout.channel.recv_exit_status()
     return code, out, err
 
-safe_print(f"Connecting to VM-DB ({HOST})...")
-c = paramiko.SSHClient()
-c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-c.connect(HOST, 22, "arisadmin", SSH_PASS, timeout=15,
-          allow_agent=False, look_for_keys=False)
+safe_print(f"Connecting to VM-DB ({VM_DB})...")
+c = get_client(VM_DB)
 
 # 1. Running containers
 safe_print("\n=== 1. Running containers ===")
@@ -71,7 +63,6 @@ safe_print(out if out else f"(err: {err[:300]})")
 
 # 7. Check PgBouncer status after start attempt
 safe_print("\n=== 7. PgBouncer status after start ===")
-import time
 time.sleep(5)
 code, out, err = run(c, "docker ps -a --filter name=aris-pgbouncer --format '{{.Names}} {{.Status}}'")
 safe_print(out if out else "(not found)")

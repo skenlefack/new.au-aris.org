@@ -1,0 +1,147 @@
+# ARIS 4.0 — Deploy to Production
+# Triggered manually or automatically after CI passes on main
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      services:
+        description: 'Services to deploy (comma-separated, or "all")'
+        required: false
+        default: 'all'
+      vm:
+        description: 'Target VM (app, kafka, db, cache, or "all")'
+        required: false
+        default: 'app'
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  DEPLOY_PATH: /opt/aris
+  COMPOSE_PATH: /opt/aris-deploy
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Deploy to VM-APP
+  # ─────────────────────────────────────────────
+  deploy-app:
+    name: Deploy VM-APP
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    steps:
+      - name: Deploy to VM-APP
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_APP_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          password: ${{ secrets.DEPLOY_SSH_PASS }}
+          script_stop: true
+          timeout: 600s
+          script: |
+            set -e
+            echo "=== Pull latest code ==="
+            cd ${{ env.DEPLOY_PATH }} && git pull origin main
+
+            echo "=== Determine services to rebuild ==="
+            SERVICES="${{ github.event.inputs.services || 'all' }}"
+
+            cd ${{ env.COMPOSE_PATH }}/vm-app
+
+            if [ "$SERVICES" = "all" ]; then
+              echo "=== Rebuilding ALL services ==="
+              docker compose up -d --build
+            else
+              echo "=== Rebuilding: $SERVICES ==="
+              # Convert comma-separated to space-separated
+              SVC_LIST=$(echo "$SERVICES" | tr ',' ' ')
+              docker compose up -d --build --no-deps $SVC_LIST
+            fi
+
+            echo "=== Prune old images ==="
+            docker image prune -f
+
+      - name: Health checks
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_APP_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          password: ${{ secrets.DEPLOY_SSH_PASS }}
+          timeout: 120s
+          script: |
+            echo "=== Service Health Checks ==="
+            FAILED=0
+            SERVICES=(
+              "tenant:3001"
+              "credential:3002"
+              "master-data:3003"
+              "data-quality:3004"
+              "data-contract:3005"
+              "message:3006"
+              "drive:3007"
+              "realtime:3008"
+              "form-builder:3010"
+              "collecte:3011"
+              "workflow:3012"
+              "animal-health:3020"
+              "livestock-prod:3021"
+              "fisheries:3022"
+              "wildlife:3023"
+              "apiculture:3024"
+              "trade-sps:3025"
+              "governance:3026"
+              "climate-env:3027"
+              "analytics:3030"
+              "geo-services:3031"
+              "interop-hub:3032"
+              "knowledge-hub:3033"
+            )
+
+            # Wait for services to start
+            sleep 15
+
+            for entry in "${SERVICES[@]}"; do
+              NAME="${entry%%:*}"
+              PORT="${entry##*:}"
+              HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://localhost:${PORT}/health" 2>/dev/null || echo "000")
+              if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "204" ]; then
+                echo "  [OK]   ${NAME} (:${PORT}) => ${HTTP_CODE}"
+              else
+                echo "  [WARN] ${NAME} (:${PORT}) => ${HTTP_CODE}"
+                FAILED=$((FAILED + 1))
+              fi
+            done
+
+            echo ""
+            if [ $FAILED -gt 0 ]; then
+              echo "WARNING: ${FAILED} service(s) not responding. Check docker logs."
+              exit 1
+            else
+              echo "All services healthy!"
+            fi
+
+  # ─────────────────────────────────────────────
+  # Notify result
+  # ─────────────────────────────────────────────
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: [deploy-app]
+    if: always()
+    steps:
+      - name: Report status
+        run: |
+          if [ "${{ needs.deploy-app.result }}" = "success" ]; then
+            echo "::notice::Deployment to production SUCCEEDED"
+          else
+            echo "::error::Deployment to production FAILED"
+            exit 1
+          fi

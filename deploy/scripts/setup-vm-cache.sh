@@ -97,11 +97,14 @@ chown -R 1000:1000 /var/lib/opensearch
 echo "[6/6] Deploying Redis + OpenSearch..."
 cd "${DEPLOY_DIR}/vm-cache"
 
-# Load production environment
+# Load production environment (convert CRLF → LF for Linux)
 if [ -f "${DEPLOY_DIR}/.env.production" ]; then
+    ENV_FILE="/tmp/aris-env-clean"
+    sed 's/\r$//' "${DEPLOY_DIR}/.env.production" > "$ENV_FILE"
     set -a
-    source "${DEPLOY_DIR}/.env.production"
+    source "$ENV_FILE"
     set +a
+    rm -f "$ENV_FILE"
 fi
 
 docker compose down --remove-orphans 2>/dev/null || true

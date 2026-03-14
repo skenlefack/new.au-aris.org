@@ -3,15 +3,8 @@
 Diagnose why tsc produces no output in Docker on VM-APP.
 Builds ONLY shared-types in a minimal Docker image with verbose diagnostics.
 """
-import paramiko
 import sys
-import os
-
-os.environ["PYTHONIOENCODING"] = "utf-8"
-
-SSH_USER = "arisadmin"
-SSH_PASS = "@u-1baR.0rg$U24"
-HOST = "10.202.101.183"
+from ssh_config import get_client, VM_APP, VM_PASS
 
 
 def safe_print(text):
@@ -22,17 +15,9 @@ def safe_print(text):
     sys.stdout.flush()
 
 
-def get_client():
-    c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(HOST, 22, SSH_USER, SSH_PASS, timeout=15,
-              allow_agent=False, look_for_keys=False)
-    return c
-
-
 def run_sudo_stream(client, cmd, timeout=300):
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
+    stdin.write(VM_PASS + "\n")
     stdin.flush()
     stdin.channel.shutdown_write()
 
@@ -54,7 +39,7 @@ safe_print("  Diagnosing tsc in Docker on VM-APP")
 safe_print("=" * 60)
 
 # Create a diagnostic Dockerfile on the VM
-c = get_client()
+c = get_client(VM_APP)
 
 safe_print("\n=== Creating diagnostic Dockerfile ===")
 
@@ -132,7 +117,7 @@ c.close()
 
 # Build the diagnostic image
 safe_print("\n=== Building diagnostic image ===")
-c = get_client()
+c = get_client(VM_APP)
 code, out, err = run_sudo_stream(c, """bash -c '
 cd /opt/aris
 export DOCKER_BUILDKIT=1
@@ -143,7 +128,7 @@ c.close()
 safe_print(f"\n  Diagnostic build exit code: {code}")
 
 # Cleanup
-c = get_client()
+c = get_client(VM_APP)
 run_sudo_stream(c, "docker rmi aris-diag 2>/dev/null || true", timeout=10)
 run_sudo_stream(c, "rm -f /opt/aris/Dockerfile.diag", timeout=5)
 c.close()

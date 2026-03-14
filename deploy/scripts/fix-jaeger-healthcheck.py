@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
 """Fix Jaeger + run comprehensive health checks."""
-import paramiko
 import sys
 import os
 import time
+from ssh_config import get_client, VM_APP, VM_PASS
 
-os.environ["PYTHONIOENCODING"] = "utf-8"
-
-SSH_USER = "arisadmin"
-SSH_PASS = "@u-1baR.0rg$U24"
-HOST = "10.202.101.183"
 REMOTE_DEPLOY = "/opt/aris-deploy"
 
 
@@ -21,17 +16,9 @@ def sp(text):
     sys.stdout.flush()
 
 
-def get_client():
-    c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(HOST, 22, SSH_USER, SSH_PASS, timeout=15,
-              allow_agent=False, look_for_keys=False)
-    return c
-
-
 def run_sudo(client, cmd, timeout=30):
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
+    stdin.write(VM_PASS + "\n")
     stdin.flush()
     stdin.channel.shutdown_write()
     out = stdout.read().decode("utf-8", errors="replace").strip()
@@ -42,13 +29,13 @@ def run_sudo(client, cmd, timeout=30):
 # Upload fixed docker-compose
 sp("=== 1. Uploading fixed docker-compose.yml ===")
 local_compose = os.path.join(os.getcwd(), "deploy", "vm-app", "docker-compose.yml")
-c = get_client()
+c = get_client(VM_APP)
 sftp = c.open_sftp()
 sftp.put(local_compose, "/tmp/aris-compose-v8b.yml")
 sftp.close()
 c.close()
 
-c = get_client()
+c = get_client(VM_APP)
 code, out = run_sudo(c, f"cp /tmp/aris-compose-v8b.yml {REMOTE_DEPLOY}/vm-app/docker-compose.yml && rm -f /tmp/aris-compose-v8b.yml")
 sp(f"  Upload: exit {code}")
 
@@ -63,7 +50,7 @@ time.sleep(15)
 
 # Comprehensive health checks
 sp("\n=== 3. Comprehensive Health Checks ===")
-c = get_client()
+c = get_client(VM_APP)
 
 services = [
     ("Traefik dashboard", "http://localhost:8090/dashboard/", 8090),

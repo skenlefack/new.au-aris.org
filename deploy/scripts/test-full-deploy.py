@@ -1,17 +1,10 @@
 #!/usr/bin/env python3
 """Test running the full setup-vm-db.sh script on VM-DB."""
-import paramiko
 import sys
-import time
+from ssh_config import get_client, VM_DB, VM_PASS
 
-SSH_PASS = "@u-1baR.0rg$U24"
-HOST = "10.202.101.185"
-
-print(f"Connecting to {HOST}...")
-c = paramiko.SSHClient()
-c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-c.connect(HOST, 22, "arisadmin", SSH_PASS, timeout=15,
-          allow_agent=False, look_for_keys=False)
+print(f"Connecting to {VM_DB}...")
+c = get_client(VM_DB)
 
 # Run the actual setup script
 cmd = "sudo -S bash /opt/aris-deploy/scripts/setup-vm-db.sh"
@@ -19,7 +12,7 @@ print(f"Running: {cmd}")
 print("=" * 60)
 
 stdin, stdout, stderr = c.exec_command(cmd, timeout=600)
-stdin.write(SSH_PASS + "\n")
+stdin.write(VM_PASS + "\n")
 stdin.flush()
 stdin.channel.shutdown_write()
 

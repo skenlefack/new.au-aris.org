@@ -8,16 +8,13 @@ v7 fixes:
      (JS is emitted despite type errors since noEmitOnError is not set)
   2. RiskLayerMap.tsx: fix GeoJSON type error for Next.js build
 """
-import paramiko
 import sys
 import os
 import time
 
-os.environ["PYTHONIOENCODING"] = "utf-8"
+from ssh_config import get_client as _get_client, VM_APP, VM_PASS
 
-SSH_USER = "arisadmin"
-SSH_PASS = "@u-1baR.0rg$U24"
-HOST = "10.202.101.183"
+HOST = VM_APP
 REMOTE_ARIS = "/opt/aris"
 REMOTE_DEPLOY = "/opt/aris-deploy"
 
@@ -31,17 +28,14 @@ def safe_print(text):
 
 
 def get_client():
-    c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(HOST, 22, SSH_USER, SSH_PASS, timeout=15,
-              allow_agent=False, look_for_keys=False)
-    return c
+    return _get_client(VM_APP)
 
 
 def run_sudo(client, cmd, timeout=30):
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
-    stdin.flush()
+    if VM_PASS:
+        stdin.write(VM_PASS + "\n")
+        stdin.flush()
     stdin.channel.shutdown_write()
     out = stdout.read().decode("utf-8", errors="replace").strip()
     err = stderr.read().decode("utf-8", errors="replace").strip()
@@ -53,8 +47,9 @@ def run_sudo(client, cmd, timeout=30):
 def run_sudo_stream(client, cmd, timeout=600):
     """Run command and stream output line by line."""
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
-    stdin.flush()
+    if VM_PASS:
+        stdin.write(VM_PASS + "\n")
+        stdin.flush()
     stdin.channel.shutdown_write()
 
     for line in iter(stdout.readline, ""):
@@ -249,10 +244,10 @@ c.close()
 safe_print("\n" + "=" * 60)
 safe_print("  VM-APP deployment complete!")
 safe_print("=" * 60)
-safe_print("  Frontend:     http://10.202.101.183")
-safe_print("  API Gateway:  http://10.202.101.183/api/v1/")
-safe_print("  Traefik:      http://10.202.101.183:8090")
-safe_print("  Grafana:      http://10.202.101.183:3200")
-safe_print("  Superset:     http://10.202.101.183:8088")
-safe_print("  Metabase:     http://10.202.101.183:3035")
+safe_print(f"  Frontend:     http://{VM_APP}")
+safe_print(f"  API Gateway:  http://{VM_APP}/api/v1/")
+safe_print(f"  Traefik:      http://{VM_APP}:8090")
+safe_print(f"  Grafana:      http://{VM_APP}:3200")
+safe_print(f"  Superset:     http://{VM_APP}:8088")
+safe_print(f"  Metabase:     http://{VM_APP}:3035")
 safe_print("=" * 60)

@@ -113,8 +113,19 @@ fi
 echo "[8/9] Building ARIS application..."
 cd "$ARIS_DIR"
 
-# Copy production env
-cp "${DEPLOY_DIR}/.env.production" "$ARIS_DIR/.env"
+# Remove Windows 'nul' device artifact (causes Docker BuildKit 'failed to create device' error)
+rm -f "$ARIS_DIR/nul" 2>/dev/null || true
+
+# Clean BuildKit cache to avoid stale layer issues
+docker builder prune -af 2>/dev/null || true
+
+# Copy production env (convert CRLF → LF for Linux)
+sed 's/\r$//' "${DEPLOY_DIR}/.env.production" > "$ARIS_DIR/.env"
+
+# Load production environment (needed for Prisma + seed)
+set -a
+source "$ARIS_DIR/.env"
+set +a
 
 # Install dependencies
 echo "  Installing dependencies..."
@@ -137,10 +148,8 @@ pnpm run db:seed 2>&1 || echo "  Note: Seeding may need manual review"
 echo "[9/9] Deploying all services..."
 cd "${DEPLOY_DIR}/vm-app"
 
-# Load production environment
-set -a
-source "${DEPLOY_DIR}/.env.production"
-set +a
+# Symlink .env for docker compose (already LF-converted at $ARIS_DIR/.env)
+cp "$ARIS_DIR/.env" "${DEPLOY_DIR}/vm-app/.env" 2>/dev/null || true
 
 docker compose down --remove-orphans 2>/dev/null || true
 
@@ -148,11 +157,12 @@ docker compose down --remove-orphans 2>/dev/null || true
 export COMPOSE_PARALLEL_LIMIT=4
 export DOCKER_BUILDKIT=1
 
-# Build images first (limited parallelism), then start containers
-echo "  Building Docker images (parallel limit: 4)..."
-docker compose build --parallel 4 2>&1 || {
-    echo "  Parallel build failed, retrying with lower parallelism..."
-    docker compose build --parallel 2 2>&1
+# Build images first, then start containers
+echo "  Building Docker images (COMPOSE_PARALLEL_LIMIT=4)..."
+docker compose build 2>&1 || {
+    echo "  Build failed, retrying with lower parallelism..."
+    export COMPOSE_PARALLEL_LIMIT=2
+    docker compose build 2>&1
 }
 
 echo "  Starting containers..."

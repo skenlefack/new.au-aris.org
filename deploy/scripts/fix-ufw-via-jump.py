@@ -4,13 +4,13 @@ Also check which VMs are still SSH-accessible from our machine.
 """
 import paramiko
 import sys
+from ssh_config import VM_APP, VM_KAFKA, VM_DB, VM_CACHE, VM_USER, VM_PASS
 
-SSH_PASS = "@u-1baR.0rg$U24"
 vms = [
-    ("VM-APP",   "10.202.101.183"),
-    ("VM-KAFKA", "10.202.101.184"),
-    ("VM-DB",    "10.202.101.185"),
-    ("VM-CACHE", "10.202.101.186"),
+    ("VM-APP",   VM_APP),
+    ("VM-KAFKA", VM_KAFKA),
+    ("VM-DB",    VM_DB),
+    ("VM-CACHE", VM_CACHE),
 ]
 
 # Step 1: Check which VMs are SSH-accessible from our machine
@@ -20,7 +20,7 @@ for name, host in vms:
     try:
         c = paramiko.SSHClient()
         c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        c.connect(host, 22, "arisadmin", SSH_PASS, timeout=8,
+        c.connect(host, 22, VM_USER, VM_PASS, timeout=8,
                   allow_agent=False, look_for_keys=False)
         stdin, stdout, stderr = c.exec_command("hostname", timeout=5)
         hostname = stdout.read().decode().strip()
@@ -40,7 +40,7 @@ print(f"\n=== Step 2: Using {jump_name} ({jump_host}) as jump host ===")
 
 c = paramiko.SSHClient()
 c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-c.connect(jump_host, 22, "arisadmin", SSH_PASS, timeout=15,
+c.connect(jump_host, 22, VM_USER, VM_PASS, timeout=15,
           allow_agent=False, look_for_keys=False)
 
 # Check our source IP from the jump host's perspective
@@ -60,7 +60,7 @@ print(f"  sshpass on jump host: {sshpass}")
 
 # We can use Python's paramiko to create a tunnel
 # But simpler: pipe password via stdin to ssh on jump host
-fix_cmd = """sshpass -p '@u-1baR.0rg$U24' ssh -o StrictHostKeyChecking=no arisadmin@10.202.101.185 "echo '@u-1baR.0rg$U24' | sudo -S bash -c 'ufw allow 22/tcp comment SSH-any && ufw status numbered'" 2>&1"""
+fix_cmd = f"""sshpass -p '{VM_PASS}' ssh -o StrictHostKeyChecking=no {VM_USER}@{VM_DB} "echo '{VM_PASS}' | sudo -S bash -c 'ufw allow 22/tcp comment SSH-any && ufw status numbered'" 2>&1"""
 
 if "NOT_FOUND" in sshpass:
     print("  sshpass not available, trying expect-style approach...")
@@ -68,14 +68,14 @@ if "NOT_FOUND" in sshpass:
     # Open a channel to VM-DB through the jump host
     try:
         transport = c.get_transport()
-        dest_addr = ("10.202.101.185", 22)
+        dest_addr = (VM_DB, 22)
         local_addr = (jump_host, 0)
         channel = transport.open_channel("direct-tcpip", dest_addr, local_addr)
 
         # Create new SSH client over the forwarded channel
         c2 = paramiko.SSHClient()
         c2.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        c2.connect("10.202.101.185", port=22, username="arisadmin", password=SSH_PASS,
+        c2.connect(VM_DB, port=22, username=VM_USER, password=VM_PASS,
                    sock=channel, timeout=15, allow_agent=False, look_for_keys=False)
 
         print("  Connected to VM-DB via jump host!")
@@ -83,7 +83,7 @@ if "NOT_FOUND" in sshpass:
         # Fix UFW: allow SSH from anywhere (or from our specific subnet)
         fix_ufw = "ufw allow 22/tcp comment 'SSH-from-any' && ufw status numbered"
         stdin2, stdout2, stderr2 = c2.exec_command(f"sudo -S bash -c '{fix_ufw}'", timeout=15)
-        stdin2.write(SSH_PASS + "\n")
+        stdin2.write(VM_PASS + "\n")
         stdin2.flush()
         stdin2.channel.shutdown_write()
 
@@ -121,7 +121,7 @@ print("\n=== Step 4: Verifying VM-DB direct SSH access ===")
 try:
     c3 = paramiko.SSHClient()
     c3.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c3.connect("10.202.101.185", 22, "arisadmin", SSH_PASS, timeout=10,
+    c3.connect(VM_DB, 22, VM_USER, VM_PASS, timeout=10,
                allow_agent=False, look_for_keys=False)
     stdin, stdout, stderr = c3.exec_command("hostname && hostname -I", timeout=5)
     print(f"  VM-DB accessible: {stdout.read().decode().strip()}")

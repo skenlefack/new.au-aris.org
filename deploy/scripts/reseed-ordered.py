@@ -10,16 +10,12 @@ Prisma db push already done. Now seed in order:
   6. workflow    (needs settings/countries + users)
   7. bi          (needs users, UUID cast fixed)
 """
-import paramiko
 import sys
 import os
-import time
 
-os.environ["PYTHONIOENCODING"] = "utf-8"
+from ssh_config import get_client as _get_client, VM_APP, VM_PASS
 
-SSH_USER = "arisadmin"
-SSH_PASS = "@u-1baR.0rg$U24"
-HOST = "10.202.101.183"
+HOST = VM_APP
 DB_URL = "postgresql://aris:Ar1s_Pr0d_2024!xK9mZ@10.202.101.185:5432/aris"
 
 
@@ -32,17 +28,14 @@ def safe_print(text):
 
 
 def get_client():
-    c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(HOST, 22, SSH_USER, SSH_PASS, timeout=15,
-              allow_agent=False, look_for_keys=False)
-    return c
+    return _get_client(VM_APP)
 
 
 def run_sudo_stream(client, cmd, timeout=300):
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
-    stdin.flush()
+    if VM_PASS:
+        stdin.write(VM_PASS + "\n")
+        stdin.flush()
     stdin.channel.shutdown_write()
     for line in iter(stdout.readline, ""):
         line = line.rstrip()
@@ -56,8 +49,9 @@ def run_sudo_stream(client, cmd, timeout=300):
 
 def run_sudo(client, cmd, timeout=30):
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
-    stdin.flush()
+    if VM_PASS:
+        stdin.write(VM_PASS + "\n")
+        stdin.flush()
     stdin.channel.shutdown_write()
     out = stdout.read().decode("utf-8", errors="replace").strip()
     code = stdout.channel.recv_exit_status()

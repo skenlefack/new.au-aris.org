@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
 """Verify all Traefik routes work."""
-import paramiko
 import sys
-import os
 import json
-
-os.environ["PYTHONIOENCODING"] = "utf-8"
-
-SSH_USER = "arisadmin"
-SSH_PASS = "@u-1baR.0rg$U24"
-HOST = "10.202.101.183"
+from ssh_config import get_client, VM_APP, VM_PASS
 
 
 def safe_print(text):
@@ -20,17 +13,9 @@ def safe_print(text):
     sys.stdout.flush()
 
 
-def get_client():
-    c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(HOST, 22, SSH_USER, SSH_PASS, timeout=15,
-              allow_agent=False, look_for_keys=False)
-    return c
-
-
 def run_sudo(client, cmd, timeout=15):
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
+    stdin.write(VM_PASS + "\n")
     stdin.flush()
     stdin.channel.shutdown_write()
     out = stdout.read().decode("utf-8", errors="replace").strip()
@@ -38,7 +23,7 @@ def run_sudo(client, cmd, timeout=15):
     return code, out
 
 
-c = get_client()
+c = get_client(VM_APP)
 
 safe_print("=" * 60)
 safe_print("  Traefik Route Verification")

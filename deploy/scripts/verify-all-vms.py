@@ -1,24 +1,18 @@
 #!/usr/bin/env python3
 """
 ARIS 4.0 — Full verification across all 4 VMs.
-VM-DB (10.202.101.185), VM-KAFKA (10.202.101.184),
-VM-CACHE (10.202.101.186), VM-APP (10.202.101.183)
+VM-DB, VM-KAFKA, VM-CACHE, VM-APP
 """
-import paramiko
 import sys
-import os
 import json
 
-os.environ["PYTHONIOENCODING"] = "utf-8"
-
-SSH_USER = "arisadmin"
-SSH_PASS = "@u-1baR.0rg$U24"
+from ssh_config import get_client, VM_APP, VM_DB, VM_KAFKA, VM_CACHE, VM_PASS
 
 VMS = {
-    "VM-APP":   "10.202.101.183",
-    "VM-KAFKA": "10.202.101.184",
-    "VM-DB":    "10.202.101.185",
-    "VM-CACHE": "10.202.101.186",
+    "VM-APP":   VM_APP,
+    "VM-KAFKA": VM_KAFKA,
+    "VM-DB":    VM_DB,
+    "VM-CACHE": VM_CACHE,
 }
 
 
@@ -30,18 +24,11 @@ def safe_print(text):
     sys.stdout.flush()
 
 
-def get_client(host):
-    c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(host, 22, SSH_USER, SSH_PASS, timeout=15,
-              allow_agent=False, look_for_keys=False)
-    return c
-
-
 def run_sudo(client, cmd, timeout=15):
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
-    stdin.flush()
+    if VM_PASS:
+        stdin.write(VM_PASS + "\n")
+        stdin.flush()
     stdin.channel.shutdown_write()
     out = stdout.read().decode("utf-8", errors="replace").strip()
     code = stdout.channel.recv_exit_status()
@@ -59,7 +46,7 @@ total_fail = 0
 # VM-DB: PostgreSQL + PgBouncer
 # ═══════════════════════════════════════════════════════════════════════
 safe_print("\n" + "━" * 70)
-safe_print("  VM-DB (10.202.101.185) — PostgreSQL + PgBouncer")
+safe_print(f"  VM-DB ({VM_DB}) — PostgreSQL + PgBouncer")
 safe_print("━" * 70)
 
 try:
@@ -118,7 +105,7 @@ except Exception as e:
 # VM-KAFKA: Kafka KRaft + Schema Registry
 # ═══════════════════════════════════════════════════════════════════════
 safe_print("\n" + "━" * 70)
-safe_print("  VM-KAFKA (10.202.101.184) — Kafka KRaft + Schema Registry")
+safe_print(f"  VM-KAFKA ({VM_KAFKA}) — Kafka KRaft + Schema Registry")
 safe_print("━" * 70)
 
 try:
@@ -169,7 +156,7 @@ except Exception as e:
 # VM-CACHE: Redis + OpenSearch
 # ═══════════════════════════════════════════════════════════════════════
 safe_print("\n" + "━" * 70)
-safe_print("  VM-CACHE (10.202.101.186) — Redis + OpenSearch")
+safe_print(f"  VM-CACHE ({VM_CACHE}) — Redis + OpenSearch")
 safe_print("━" * 70)
 
 try:
@@ -219,7 +206,7 @@ except Exception as e:
 # VM-APP: All Services + Frontend + Monitoring
 # ═══════════════════════════════════════════════════════════════════════
 safe_print("\n" + "━" * 70)
-safe_print("  VM-APP (10.202.101.183) — Microservices + Frontend + Monitoring")
+safe_print(f"  VM-APP ({VM_APP}) — Microservices + Frontend + Monitoring")
 safe_print("━" * 70)
 
 try:
@@ -380,21 +367,21 @@ safe_print(f"  Passed:        {total_pass}")
 safe_print(f"  Failed:        {total_fail}")
 pct = (total_pass / (total_pass + total_fail) * 100) if (total_pass + total_fail) > 0 else 0
 safe_print(f"  Score:         {pct:.0f}%")
-safe_print(f"\n  VM-DB:    PostgreSQL 16 + PgBouncer     10.202.101.185")
-safe_print(f"  VM-KAFKA: Kafka KRaft x3 + Schema Reg   10.202.101.184")
-safe_print(f"  VM-CACHE: Redis 7 + OpenSearch 2.17      10.202.101.186")
-safe_print(f"  VM-APP:   38 containers (29 services)    10.202.101.183")
+safe_print(f"\n  VM-DB:    PostgreSQL 16 + PgBouncer     {VM_DB}")
+safe_print(f"  VM-KAFKA: Kafka KRaft x3 + Schema Reg   {VM_KAFKA}")
+safe_print(f"  VM-CACHE: Redis 7 + OpenSearch 2.17      {VM_CACHE}")
+safe_print(f"  VM-APP:   38 containers (29 services)    {VM_APP}")
 safe_print(f"\n  Access Points:")
-safe_print(f"    Frontend:     http://10.202.101.183")
-safe_print(f"    API Gateway:  http://10.202.101.183/api/v1/")
-safe_print(f"    Traefik:      http://10.202.101.183:8090")
-safe_print(f"    Grafana:      http://10.202.101.183:3200")
-safe_print(f"    Prometheus:   http://10.202.101.183:9090")
-safe_print(f"    Superset:     http://10.202.101.183:8088")
-safe_print(f"    Metabase:     http://10.202.101.183:3035")
-safe_print(f"    Jaeger:       http://10.202.101.183:16686")
-safe_print(f"    Kafka UI:     http://10.202.101.184:8080")
-safe_print(f"    MinIO:        http://10.202.101.183:9001")
-safe_print(f"    OpenSearch:   http://10.202.101.186:5601")
+safe_print(f"    Frontend:     http://{VM_APP}")
+safe_print(f"    API Gateway:  http://{VM_APP}/api/v1/")
+safe_print(f"    Traefik:      http://{VM_APP}:8090")
+safe_print(f"    Grafana:      http://{VM_APP}:3200")
+safe_print(f"    Prometheus:   http://{VM_APP}:9090")
+safe_print(f"    Superset:     http://{VM_APP}:8088")
+safe_print(f"    Metabase:     http://{VM_APP}:3035")
+safe_print(f"    Jaeger:       http://{VM_APP}:16686")
+safe_print(f"    Kafka UI:     http://{VM_KAFKA}:8080")
+safe_print(f"    MinIO:        http://{VM_APP}:9001")
+safe_print(f"    OpenSearch:   http://{VM_CACHE}:5601")
 safe_print(f"\n  Login:  admin@au-aris.org / Aris2024!")
 safe_print("=" * 70)

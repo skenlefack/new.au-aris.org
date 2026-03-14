@@ -2,16 +2,9 @@
 """
 Build 3 missing services (datalake, offline, web) and start all containers.
 """
-import paramiko
 import sys
 import time
-import os
-
-os.environ["PYTHONIOENCODING"] = "utf-8"
-
-SSH_USER = "arisadmin"
-SSH_PASS = "@u-1baR.0rg$U24"
-HOST = "10.202.101.183"
+from ssh_config import get_client, VM_APP, VM_PASS
 
 
 def safe_print(text):
@@ -22,17 +15,9 @@ def safe_print(text):
     sys.stdout.flush()
 
 
-def get_client():
-    c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(HOST, 22, SSH_USER, SSH_PASS, timeout=15,
-              allow_agent=False, look_for_keys=False)
-    return c
-
-
 def run_sudo(client, cmd, timeout=30):
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
+    stdin.write(VM_PASS + "\n")
     stdin.flush()
     stdin.channel.shutdown_write()
     out = stdout.read().decode("utf-8", errors="replace").strip()
@@ -44,7 +29,7 @@ def run_sudo(client, cmd, timeout=30):
 
 def run_sudo_stream(client, cmd, timeout=600):
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
+    stdin.write(VM_PASS + "\n")
     stdin.flush()
     stdin.channel.shutdown_write()
     for line in iter(stdout.readline, ""):
@@ -68,7 +53,7 @@ ok = []
 for i, svc in enumerate(missing, 1):
     svc_start = time.time()
     safe_print(f"\n  [{i}/{len(missing)}] Building {svc}...")
-    c = get_client()
+    c = get_client(VM_APP)
     cmd = f"""bash -c '
 cd /opt/aris-deploy/vm-app
 set -a
@@ -96,7 +81,7 @@ if failed:
 
 # Start all containers
 safe_print("\n=== Starting all containers ===")
-c = get_client()
+c = get_client(VM_APP)
 code, err = run_sudo_stream(c, """bash -c '
 cd /opt/aris-deploy/vm-app
 set -a
@@ -119,7 +104,7 @@ c.close()
 
 # Health checks
 safe_print("\n=== Health Checks ===")
-c = get_client()
+c = get_client(VM_APP)
 
 checks = [
     ("Traefik", "curl -sf http://localhost:80/ping 2>&1 && echo OK || echo STARTING"),
@@ -150,10 +135,10 @@ c.close()
 safe_print("\n" + "=" * 60)
 safe_print("  VM-APP deployment complete!")
 safe_print("=" * 60)
-safe_print("  Frontend:     http://10.202.101.183")
-safe_print("  API Gateway:  http://10.202.101.183/api/v1/")
-safe_print("  Traefik:      http://10.202.101.183:8090")
-safe_print("  Grafana:      http://10.202.101.183:3200")
-safe_print("  Superset:     http://10.202.101.183:8088")
-safe_print("  Metabase:     http://10.202.101.183:3035")
+safe_print(f"  Frontend:     http://{VM_APP}")
+safe_print(f"  API Gateway:  http://{VM_APP}/api/v1/")
+safe_print(f"  Traefik:      http://{VM_APP}:8090")
+safe_print(f"  Grafana:      http://{VM_APP}:3200")
+safe_print(f"  Superset:     http://{VM_APP}:8088")
+safe_print(f"  Metabase:     http://{VM_APP}:3035")
 safe_print("=" * 60)

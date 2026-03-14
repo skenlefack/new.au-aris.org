@@ -1,0 +1,133 @@
+# ARIS 4.0 — Daily Backup Verification
+# Runs daily at 06:00 UTC (after all backups complete)
+
+name: Backup Check
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # 06:00 UTC daily
+  workflow_dispatch:      # Allow manual trigger
+
+jobs:
+  check-backups:
+    name: Verify Backups
+    runs-on: ubuntu-latest
+
+    steps:
+      # ─── VM-DB: PostgreSQL ─────────────────────
+      - name: Check PostgreSQL backups
+        id: pg
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_DB_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          password: ${{ secrets.DEPLOY_SSH_PASS }}
+          timeout: 30s
+          script: |
+            echo "=== PostgreSQL Backup Check ==="
+
+            # Check daily dumps from last 24h
+            DAILY=$(find /backups/postgres/daily -name 'aris_backup_*.dump' -mtime -1 2>/dev/null | wc -l)
+            echo "Daily dumps (last 24h): ${DAILY}"
+
+            if [ "$DAILY" -eq 0 ]; then
+              echo "::error::No PostgreSQL daily backup found in last 24 hours!"
+              exit 1
+            fi
+
+            # Check size of latest dump
+            LATEST=$(find /backups/postgres/daily -name '*.dump' -mtime -1 -exec ls -s {} \; | sort -rn | head -1)
+            echo "Latest dump: ${LATEST}"
+
+            SIZE_KB=$(echo "$LATEST" | awk '{print $1}')
+            if [ "${SIZE_KB:-0}" -lt 1024 ]; then
+              echo "::error::PostgreSQL dump too small: ${SIZE_KB} KB (expected > 1 MB)"
+              exit 1
+            fi
+
+            # Inventory
+            TOTAL_DAILY=$(find /backups/postgres/daily -name '*.dump' | wc -l)
+            TOTAL_WEEKLY=$(find /backups/postgres/weekly -name '*.dump' | wc -l)
+            DISK=$(df -h /backups | tail -1)
+            echo "Inventory: ${TOTAL_DAILY} daily, ${TOTAL_WEEKLY} weekly"
+            echo "Disk: ${DISK}"
+            echo "PostgreSQL backup OK"
+
+      # ─── VM-CACHE: Redis ───────────────────────
+      - name: Check Redis backups
+        id: redis
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_CACHE_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          password: ${{ secrets.DEPLOY_SSH_PASS }}
+          timeout: 30s
+          script: |
+            echo "=== Redis Backup Check ==="
+
+            RECENT=$(find /backups/redis -name 'redis_dump_*.rdb' -mtime -1 2>/dev/null | wc -l)
+            echo "Redis dumps (last 24h): ${RECENT}"
+
+            if [ "$RECENT" -eq 0 ]; then
+              echo "::error::No Redis backup found in last 24 hours!"
+              exit 1
+            fi
+
+            TOTAL=$(find /backups/redis -name 'redis_*' | wc -l)
+            echo "Total Redis backup files: ${TOTAL}"
+            echo "Redis backup OK"
+
+      # ─── VM-CACHE: OpenSearch ──────────────────
+      - name: Check OpenSearch snapshots
+        id: opensearch
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_CACHE_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          password: ${{ secrets.DEPLOY_SSH_PASS }}
+          timeout: 30s
+          script: |
+            echo "=== OpenSearch Backup Check ==="
+
+            SNAP_COUNT=$(curl -s http://localhost:9200/_snapshot/aris_backup/_all 2>/dev/null \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('snapshots',[])))" 2>/dev/null \
+              || echo 0)
+            echo "OpenSearch snapshots: ${SNAP_COUNT}"
+
+            if [ "${SNAP_COUNT:-0}" -eq 0 ]; then
+              echo "::error::No OpenSearch snapshots found!"
+              exit 1
+            fi
+
+            # Check latest snapshot state
+            LATEST_STATE=$(curl -s http://localhost:9200/_snapshot/aris_backup/_all 2>/dev/null \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); s=d.get('snapshots',[]); print(s[-1]['state'] if s else 'NONE')" 2>/dev/null \
+              || echo "UNKNOWN")
+            echo "Latest snapshot state: ${LATEST_STATE}"
+
+            if [ "$LATEST_STATE" != "SUCCESS" ]; then
+              echo "::error::Latest OpenSearch snapshot state is ${LATEST_STATE}, expected SUCCESS"
+              exit 1
+            fi
+
+            echo "OpenSearch backup OK"
+
+      # ─── Summary ───────────────────────────────
+      - name: Summary
+        if: always()
+        run: |
+          echo "=== Backup Verification Summary ==="
+          echo "PostgreSQL: ${{ steps.pg.outcome }}"
+          echo "Redis:      ${{ steps.redis.outcome }}"
+          echo "OpenSearch: ${{ steps.opensearch.outcome }}"
+
+          if [ "${{ steps.pg.outcome }}" != "success" ] || \
+             [ "${{ steps.redis.outcome }}" != "success" ] || \
+             [ "${{ steps.opensearch.outcome }}" != "success" ]; then
+            echo ""
+            echo "::error::One or more backup checks FAILED. Investigate immediately."
+            exit 1
+          fi
+
+          echo ""
+          echo "All backup checks PASSED."

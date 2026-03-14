@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
 """Fix the GRANT USAGE ON ALL SCHEMAS error and verify schemas on VM-DB."""
-import paramiko
 import sys
-import os
+from ssh_config import get_client, VM_DB, VM_PASS
 
-os.environ["PYTHONIOENCODING"] = "utf-8"
-
-SSH_PASS = "@u-1baR.0rg$U24"
-HOST = "10.202.101.185"
 
 def safe_print(text):
     try:
@@ -20,7 +15,7 @@ def run_sudo(client, cmd, timeout=30):
     """Run command with sudo via stdin password."""
     full_cmd = f"sudo -S {cmd}"
     stdin, stdout, stderr = client.exec_command(full_cmd, timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
+    stdin.write(VM_PASS + "\n")
     stdin.flush()
     stdin.channel.shutdown_write()
     out = stdout.read().decode("utf-8", errors="replace").strip()
@@ -30,11 +25,8 @@ def run_sudo(client, cmd, timeout=30):
     err = "\n".join(l for l in err.splitlines() if "[sudo]" not in l and "password" not in l.lower())
     return code, out, err
 
-safe_print(f"Connecting to VM-DB ({HOST})...")
-c = paramiko.SSHClient()
-c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-c.connect(HOST, 22, "arisadmin", SSH_PASS, timeout=15,
-          allow_agent=False, look_for_keys=False)
+safe_print(f"Connecting to VM-DB ({VM_DB})...")
+c = get_client(VM_DB)
 
 # 1. Write fix SQL to /tmp on the VM
 safe_print("\n=== 1. Uploading fix SQL ===")

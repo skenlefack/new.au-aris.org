@@ -3,15 +3,9 @@
 ARIS 4.0 — Run Prisma migrations and seed data on VM-APP
 Uses the credential service container (which has Prisma client + direct DB access)
 """
-import paramiko
 import sys
-import os
 
-os.environ["PYTHONIOENCODING"] = "utf-8"
-
-SSH_USER = "arisadmin"
-SSH_PASS = "@u-1baR.0rg$U24"
-HOST = "10.202.101.183"
+from ssh_config import get_client as _get_client, VM_APP, VM_PASS
 
 
 def safe_print(text):
@@ -23,17 +17,14 @@ def safe_print(text):
 
 
 def get_client():
-    c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(HOST, 22, SSH_USER, SSH_PASS, timeout=15,
-              allow_agent=False, look_for_keys=False)
-    return c
+    return _get_client(VM_APP)
 
 
 def run_sudo(client, cmd, timeout=120):
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
-    stdin.flush()
+    if VM_PASS:
+        stdin.write(VM_PASS + "\n")
+        stdin.flush()
     stdin.channel.shutdown_write()
     out = stdout.read().decode("utf-8", errors="replace").strip()
     err = stderr.read().decode("utf-8", errors="replace").strip()
@@ -44,8 +35,9 @@ def run_sudo(client, cmd, timeout=120):
 
 def run_sudo_stream(client, cmd, timeout=300):
     stdin, stdout, stderr = client.exec_command(f"sudo -S {cmd}", timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
-    stdin.flush()
+    if VM_PASS:
+        stdin.write(VM_PASS + "\n")
+        stdin.flush()
     stdin.channel.shutdown_write()
     for line in iter(stdout.readline, ""):
         line = line.rstrip()

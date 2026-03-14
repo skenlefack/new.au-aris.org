@@ -1,36 +1,45 @@
 #!/usr/bin/env python3
 """Quick SSH test for all 4 VMs — sudo + Docker check."""
-import paramiko
+from ssh_config import get_client, VM_APP, VM_KAFKA, VM_DB, VM_CACHE, VM_PASS
 
-SSH_PASS = "@u-1baR.0rg$U24"
 vms = [
-    ("VM-DB",    "10.202.101.185"),
-    ("VM-KAFKA", "10.202.101.184"),
-    ("VM-APP",   "10.202.101.183"),
-    ("VM-CACHE", "10.202.101.186"),
+    ("VM-DB",    VM_DB),
+    ("VM-KAFKA", VM_KAFKA),
+    ("VM-APP",   VM_APP),
+    ("VM-CACHE", VM_CACHE),
 ]
 
 for name, host in vms:
     try:
-        c = paramiko.SSHClient()
-        c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        c.connect(host, 22, "arisadmin", SSH_PASS, timeout=10,
-                  allow_agent=False, look_for_keys=False)
+        c = get_client(host)
 
         # Test sudo
-        cmd = f"echo '{SSH_PASS}' | sudo -S whoami 2>/dev/null"
-        _, out, err = c.exec_command(cmd, timeout=10)
-        sudo_result = out.read().decode().strip()
+        cmd = "sudo -S whoami"
+        stdin, stdout, stderr = c.exec_command(cmd, timeout=10)
+        stdin.write(VM_PASS + "\n")
+        stdin.flush()
+        stdin.channel.shutdown_write()
+        sudo_result = stdout.read().decode().strip()
 
         # Test Docker
-        cmd2 = f"echo '{SSH_PASS}' | sudo -S docker --version 2>/dev/null"
-        _, out2, err2 = c.exec_command(cmd2, timeout=10)
-        docker_result = out2.read().decode().strip()
+        c2 = get_client(host)
+        cmd2 = "sudo -S docker --version"
+        stdin2, stdout2, stderr2 = c2.exec_command(cmd2, timeout=10)
+        stdin2.write(VM_PASS + "\n")
+        stdin2.flush()
+        stdin2.channel.shutdown_write()
+        docker_result = stdout2.read().decode().strip()
+        c2.close()
 
         # Test disk
-        cmd3 = f"echo '{SSH_PASS}' | sudo -S df -h / 2>/dev/null | tail -1"
-        _, out3, _ = c.exec_command(cmd3, timeout=10)
-        disk_result = out3.read().decode().strip()
+        c3 = get_client(host)
+        cmd3 = "sudo -S df -h / 2>/dev/null | tail -1"
+        stdin3, stdout3, stderr3 = c3.exec_command(cmd3, timeout=10)
+        stdin3.write(VM_PASS + "\n")
+        stdin3.flush()
+        stdin3.channel.shutdown_write()
+        disk_result = stdout3.read().decode().strip()
+        c3.close()
 
         print(f"{name} ({host}):")
         print(f"  sudo: {sudo_result}")
