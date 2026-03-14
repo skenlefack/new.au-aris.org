@@ -147,7 +147,7 @@ export class NotificationConsumer {
       return;
     }
     const channel = this.emailChannel;
-    await this.kafkaConsumer.subscribe({ topic: TOPIC_SYS_CREDENTIAL_PASSWORD_RESET, groupId: GROUP_ID }, async (payload) => {
+    await this.kafkaConsumer.subscribe({ topic: TOPIC_SYS_CREDENTIAL_PASSWORD_RESET, groupId: 'message-service-transactional' }, async (payload) => {
       const data = payload as any;
       const templateData = { resetUrl: data.resetUrl, expiresIn: data.expiresIn };
       const rendered = this.templateEngine.renderEmail('PASSWORD_RESET', templateData);
