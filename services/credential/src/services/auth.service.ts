@@ -7,6 +7,7 @@ import type { FastifyKafka } from '@aris/kafka-client';
 import {
   TOPIC_SYS_CREDENTIAL_USER_CREATED,
   TOPIC_SYS_CREDENTIAL_USER_AUTHENTICATED,
+  TOPIC_SYS_CREDENTIAL_PASSWORD_RESET,
 } from '@aris/shared-types';
 import type { KafkaHeaders } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
@@ -215,8 +216,24 @@ export class AuthService {
 
     const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
-    // Log the reset link (in production, integrate with the message service via Kafka)
-    console.log(`[PASSWORD_RESET] User ${user.email} — reset link: ${resetUrl}`);
+    // Publish password reset event to Kafka for the message service to send the email
+    try {
+      await this.kafka.send(TOPIC_SYS_CREDENTIAL_PASSWORD_RESET, user.id, {
+        userId: user.id,
+        email: user.email,
+        resetUrl,
+        expiresIn: '15 minutes',
+      }, {
+        correlationId: randomUUID(),
+        sourceService: SERVICE_NAME,
+        tenantId: user.tenantId,
+        userId: user.id,
+        schemaVersion: '1',
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error('[PASSWORD_RESET] Failed to publish Kafka event:', err);
+    }
 
     return successMsg;
   }

@@ -6,10 +6,12 @@ import {
   TOPIC_AU_QUALITY_RECORD_REJECTED,
   TOPIC_AU_QUALITY_CORRECTION_OVERDUE,
   TOPIC_MS_COLLECTE_FORM_SUBMITTED,
+  TOPIC_SYS_CREDENTIAL_PASSWORD_RESET,
 } from '@aris/shared-types';
 import type { NotificationService } from '../services/notification.service';
 import type { TemplateEngine } from '../services/template-engine';
 import type { PreferencesService } from '../services/preferences.service';
+import type { MessageChannel } from '../services/channel.interface';
 
 const GROUP_ID = 'message-service-notifications';
 
@@ -19,6 +21,7 @@ export class NotificationConsumer {
     private readonly notificationService: NotificationService,
     private readonly templateEngine: TemplateEngine,
     private readonly preferencesService: PreferencesService,
+    private readonly emailChannel?: MessageChannel,
   ) {}
 
   async start(): Promise<void> {
@@ -28,6 +31,7 @@ export class NotificationConsumer {
       this.subscribeQualityRejected(),
       this.subscribeCorrectionOverdue(),
       this.subscribeFormSubmitted(),
+      this.subscribePasswordReset(),
     ]);
     console.log('All notification consumers subscribed');
   }
@@ -134,6 +138,29 @@ export class NotificationConsumer {
       };
       await this.sendToPreferredChannels(data.supervisorId, data.tenantId, 'CAMPAIGN_ASSIGNED', templateData,
         `A new ${data.templateName} form (${data.formId}) has been submitted and requires your review.`);
+    });
+  }
+
+  private async subscribePasswordReset(): Promise<void> {
+    if (!this.emailChannel) {
+      console.warn('[NotificationConsumer] No email channel provided — password reset emails will not be sent');
+      return;
+    }
+    const channel = this.emailChannel;
+    await this.kafkaConsumer.subscribe({ topic: TOPIC_SYS_CREDENTIAL_PASSWORD_RESET, groupId: GROUP_ID }, async (payload) => {
+      const data = payload as any;
+      const templateData = { resetUrl: data.resetUrl, expiresIn: data.expiresIn };
+      const rendered = this.templateEngine.renderEmail('PASSWORD_RESET', templateData);
+      const result = await channel.send({
+        to: data.email,
+        subject: rendered.subject,
+        body: rendered.html,
+      });
+      if (result.success) {
+        console.log(`[PASSWORD_RESET] Email sent to ${data.email}`);
+      } else {
+        console.error(`[PASSWORD_RESET] Failed to send email to ${data.email}: ${result.error}`);
+      }
     });
   }
 }

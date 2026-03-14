@@ -159,6 +159,7 @@ services:
       kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.tenant.updated.v1 --partitions 3 --replication-factor 3
       kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.credential.user.created.v1 --partitions 3 --replication-factor 3
       kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.credential.user.authenticated.v1 --partitions 6 --replication-factor 3
+      kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.credential.password.reset.v1 --partitions 3 --replication-factor 3
       kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.message.notification.sent.v1 --partitions 6 --replication-factor 3
       kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.message.notification.failed.v1 --partitions 3 --replication-factor 3
       kafka-topics --create --if-not-exists --bootstrap-server $$BOOTSTRAP --topic sys.drive.file.uploaded.v1 --partitions 3 --replication-factor 3

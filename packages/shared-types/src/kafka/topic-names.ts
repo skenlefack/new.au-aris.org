@@ -3,6 +3,7 @@ export const TOPIC_SYS_TENANT_CREATED = 'sys.tenant.created.v1' as const;
 export const TOPIC_SYS_TENANT_UPDATED = 'sys.tenant.updated.v1' as const;
 export const TOPIC_SYS_CREDENTIAL_USER_CREATED = 'sys.credential.user.created.v1' as const;
 export const TOPIC_SYS_CREDENTIAL_USER_AUTHENTICATED = 'sys.credential.user.authenticated.v1' as const;
+export const TOPIC_SYS_CREDENTIAL_PASSWORD_RESET = 'sys.credential.password.reset.v1' as const;
 export const TOPIC_SYS_MESSAGE_NOTIFICATION_SENT = 'sys.message.notification.sent.v1' as const;
 export const TOPIC_SYS_MESSAGE_NOTIFICATION_FAILED = 'sys.message.notification.failed.v1' as const;
 export const TOPIC_SYS_DRIVE_FILE_UPLOADED = 'sys.drive.file.uploaded.v1' as const;
@@ -148,6 +149,7 @@ export const ALL_TOPICS = [
   TOPIC_SYS_TENANT_UPDATED,
   TOPIC_SYS_CREDENTIAL_USER_CREATED,
   TOPIC_SYS_CREDENTIAL_USER_AUTHENTICATED,
+  TOPIC_SYS_CREDENTIAL_PASSWORD_RESET,
   TOPIC_SYS_MESSAGE_NOTIFICATION_SENT,
   TOPIC_SYS_MESSAGE_NOTIFICATION_FAILED,
   TOPIC_SYS_DRIVE_FILE_UPLOADED,
