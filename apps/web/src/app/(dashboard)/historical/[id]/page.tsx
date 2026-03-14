@@ -12,6 +12,7 @@ import {
   type DatasetColumn,
 } from '@/lib/api/historical-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const DOMAIN_LABELS: Record<string, string> = {
   animal_health: 'Animal Health',
@@ -36,6 +37,7 @@ function formatBytes(bytes: number): string {
 type Tab = 'data' | 'columns' | 'charts' | 'analyses';
 
 export default function DatasetDetailPage() {
+  const t = useTranslations('historical');
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -63,14 +65,14 @@ export default function DatasetDetailPage() {
   const canManage = user && ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN'].includes(user.role);
 
   if (dsLoading) {
-    return <div className="flex items-center justify-center py-20 text-slate-400">Loading dataset...</div>;
+    return <div className="flex items-center justify-center py-20 text-slate-400">{t('loading')}</div>;
   }
 
   if (!dataset) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <p className="text-slate-500">Dataset not found</p>
-        <Link href="/historical" className="mt-3 text-sm text-[var(--color-accent)] hover:underline">Back to datasets</Link>
+        <p className="text-slate-500">{t('notFound')}</p>
+        <Link href="/historical" className="mt-3 text-sm text-[var(--color-accent)] hover:underline">{t('backToDatasets')}</Link>
       </div>
     );
   }
@@ -124,12 +126,12 @@ export default function DatasetDetailPage() {
 
       {/* Metadata */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
-        <MetaItem label="Domain" value={DOMAIN_LABELS[dataset.domain] ?? dataset.domain} />
-        <MetaItem label="File Type" value={dataset.fileType.toUpperCase()} />
-        <MetaItem label="Rows" value={dataset.rowCount.toLocaleString()} />
-        <MetaItem label="Columns" value={String(dataset.columnCount)} />
-        <MetaItem label="Size" value={formatBytes(dataset.fileSizeBytes)} />
-        <MetaItem label="Imported" value={new Date(dataset.created_at).toLocaleDateString()} />
+        <MetaItem label={t('domains')} value={DOMAIN_LABELS[dataset.domain] ?? dataset.domain} />
+        <MetaItem label={t('fileType')} value={dataset.fileType.toUpperCase()} />
+        <MetaItem label={t('rows')} value={dataset.rowCount.toLocaleString()} />
+        <MetaItem label={t('columns')} value={String(dataset.columnCount)} />
+        <MetaItem label={t('size')} value={formatBytes(dataset.fileSizeBytes)} />
+        <MetaItem label={t('imported')} value={new Date(dataset.created_at).toLocaleDateString()} />
       </div>
 
       {/* Tags */}
@@ -146,21 +148,21 @@ export default function DatasetDetailPage() {
       {/* Tabs */}
       <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700">
         {([
-          { key: 'data', label: 'Data' },
-          { key: 'columns', label: `Columns (${columns.length})` },
-          { key: 'charts', label: 'Quick Charts' },
-          { key: 'analyses', label: `Analyses (${analyses.length})` },
-        ] as const).map((t) => (
+          { key: 'data', label: t('tabData') },
+          { key: 'columns', label: t('tabColumns', { count: columns.length }) },
+          { key: 'charts', label: t('tabCharts') },
+          { key: 'analyses', label: t('tabAnalyses', { count: analyses.length }) },
+        ] as const).map((tabItem) => (
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
+            key={tabItem.key}
+            onClick={() => setTab(tabItem.key)}
             className={`border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
-              tab === t.key
+              tab === tabItem.key
                 ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
-            {t.label}
+            {tabItem.label}
           </button>
         ))}
       </div>
@@ -171,7 +173,7 @@ export default function DatasetDetailPage() {
           <div className="flex items-center gap-3">
             <input
               type="text"
-              placeholder="Search data..."
+              placeholder={t('searchData')}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setDataPage(1); }}
               className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
@@ -179,9 +181,9 @@ export default function DatasetDetailPage() {
           </div>
 
           {dataLoading ? (
-            <div className="flex items-center justify-center py-12 text-slate-400">Loading data...</div>
+            <div className="flex items-center justify-center py-12 text-slate-400">{t('loadingData')}</div>
           ) : rows.length === 0 ? (
-            <div className="py-12 text-center text-slate-400">No data found</div>
+            <div className="py-12 text-center text-slate-400">{t('noData')}</div>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
               <table className="w-full text-left text-xs">
@@ -234,12 +236,12 @@ export default function DatasetDetailPage() {
               <tr>
                 <th className="px-4 py-3 font-medium text-slate-500">#</th>
                 <th className="px-4 py-3 font-medium text-slate-500">Name</th>
-                <th className="px-4 py-3 font-medium text-slate-500">PG Column</th>
-                <th className="px-4 py-3 font-medium text-slate-500">Type</th>
-                <th className="px-4 py-3 font-medium text-slate-500">Nullable</th>
-                <th className="px-4 py-3 font-medium text-slate-500">Unique Values</th>
-                <th className="px-4 py-3 font-medium text-slate-500">Nulls</th>
-                <th className="px-4 py-3 font-medium text-slate-500">Range</th>
+                <th className="px-4 py-3 font-medium text-slate-500">{t('pgColumn')}</th>
+                <th className="px-4 py-3 font-medium text-slate-500">{t('columnType')}</th>
+                <th className="px-4 py-3 font-medium text-slate-500">{t('nullable')}</th>
+                <th className="px-4 py-3 font-medium text-slate-500">{t('uniqueValues')}</th>
+                <th className="px-4 py-3 font-medium text-slate-500">{t('nulls')}</th>
+                <th className="px-4 py-3 font-medium text-slate-500">{t('range')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
@@ -270,7 +272,7 @@ export default function DatasetDetailPage() {
       {tab === 'charts' && (
         <div className="space-y-4">
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Click a column to generate a quick aggregation chart.
+            {t('aggregationInstructions')}
           </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {columns.map((col) => (
@@ -291,7 +293,7 @@ export default function DatasetDetailPage() {
           {/* Aggregate results */}
           {aggregate.data && (
             <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50">
-              <h3 className="mb-3 font-medium text-slate-900 dark:text-white">Aggregation Result</h3>
+              <h3 className="mb-3 font-medium text-slate-900 dark:text-white">{t('aggregationResult')}</h3>
               <div className="space-y-1.5">
                 {(aggregate.data.data as any[]).slice(0, 20).map((item: any, i: number) => (
                   <div key={i} className="flex items-center gap-3">
@@ -320,7 +322,7 @@ export default function DatasetDetailPage() {
         <div className="space-y-4">
           {analyses.length === 0 ? (
             <div className="py-12 text-center text-slate-400">
-              No saved analyses yet. Use Quick Charts to explore data.
+              {t('noAnalyses')}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -4,11 +4,13 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import { useForgotPassword } from '@/lib/api/hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const mutation = useForgotPassword();
+  const t = useTranslations('auth');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,17 +35,16 @@ export default function ForgotPasswordPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
             <CheckCircle className="h-6 w-6 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Check your email</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('checkYourEmail')}</h2>
           <p className="mt-2 text-sm text-gray-500">
-            If an account exists for <strong>{email}</strong>, we&apos;ve sent a password reset link.
-            The link expires in 15 minutes.
+            {t('resetLinkSent', { email })}
           </p>
           <Link
             href="/"
             className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-aris-primary-600 hover:text-aris-primary-700"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to sign in
+            {t('backToSignIn')}
           </Link>
         </div>
       </>
@@ -58,9 +59,9 @@ export default function ForgotPasswordPage() {
       </div>
 
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Forgot password?</h2>
+        <h2 className="text-2xl font-bold text-gray-900">{t('forgotPasswordTitle')}</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Enter your email address and we&apos;ll send you a link to reset your password.
+          {t('forgotPasswordDesc')}
         </p>
       </div>
 
@@ -69,13 +70,13 @@ export default function ForgotPasswordPage() {
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {mutation.error instanceof Error
               ? mutation.error.message
-              : 'Something went wrong. Please try again.'}
+              : t('resetFailed')}
           </div>
         )}
 
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email address
+            {t('email')}
           </label>
           <input
             id="email"
@@ -99,7 +100,7 @@ export default function ForgotPasswordPage() {
           ) : (
             <Mail className="h-4 w-4" />
           )}
-          {mutation.isPending ? 'Sending...' : 'Send reset link'}
+          {mutation.isPending ? t('sending') : t('sendResetLink')}
         </button>
 
         <p className="text-center text-sm text-gray-500">
@@ -108,7 +109,7 @@ export default function ForgotPasswordPage() {
             className="inline-flex items-center gap-1 font-medium text-aris-primary-600 hover:text-aris-primary-700"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Back to sign in
+            {t('backToSignIn')}
           </Link>
         </p>
       </form>

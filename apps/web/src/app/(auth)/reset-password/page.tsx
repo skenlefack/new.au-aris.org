@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Lock, ArrowLeft, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useResetPassword } from '@/lib/api/hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -14,6 +15,7 @@ function ResetPasswordForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [success, setSuccess] = useState(false);
   const mutation = useResetPassword();
+  const t = useTranslations('auth');
 
   if (!token) {
     return (
@@ -27,15 +29,15 @@ function ResetPasswordForm() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
             <AlertTriangle className="h-6 w-6 text-yellow-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Invalid link</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('invalidLink')}</h2>
           <p className="mt-2 text-sm text-gray-500">
-            This password reset link is invalid or has expired. Please request a new one.
+            {t('invalidLinkDesc')}
           </p>
           <Link
             href="/forgot-password"
             className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-aris-primary-600 hover:text-aris-primary-700"
           >
-            Request new link
+            {t('requestNewLink')}
           </Link>
         </div>
       </>
@@ -54,15 +56,15 @@ function ResetPasswordForm() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
             <CheckCircle className="h-6 w-6 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Password reset</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('passwordReset')}</h2>
           <p className="mt-2 text-sm text-gray-500">
-            Your password has been reset successfully. You can now sign in with your new password.
+            {t('passwordResetSuccess')}
           </p>
           <Link
             href="/"
             className="mt-6 inline-flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-aris-primary-700"
           >
-            Sign in
+            {t('signIn')}
           </Link>
         </div>
       </>
@@ -90,9 +92,9 @@ function ResetPasswordForm() {
       </div>
 
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Reset your password</h2>
+        <h2 className="text-2xl font-bold text-gray-900">{t('resetYourPassword')}</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Enter your new password below. It must be at least 8 characters.
+          {t('resetPasswordDesc')}
         </p>
       </div>
 
@@ -101,13 +103,13 @@ function ResetPasswordForm() {
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {mutation.error instanceof Error
               ? mutation.error.message
-              : 'Failed to reset password. The link may have expired.'}
+              : t('resetFailed')}
           </div>
         )}
 
         <div>
           <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
-            New password
+            {t('newPassword')}
           </label>
           <input
             id="newPassword"
@@ -123,7 +125,7 @@ function ResetPasswordForm() {
 
         <div>
           <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-            Confirm new password
+            {t('confirmNewPassword')}
           </label>
           <input
             id="confirmPassword"
@@ -138,7 +140,7 @@ function ResetPasswordForm() {
             }`}
           />
           {passwordMismatch && (
-            <p className="mt-1 text-xs text-red-600">Passwords do not match</p>
+            <p className="mt-1 text-xs text-red-600">{t('passwordsDoNotMatch')}</p>
           )}
         </div>
 
@@ -152,7 +154,7 @@ function ResetPasswordForm() {
           ) : (
             <Lock className="h-4 w-4" />
           )}
-          {mutation.isPending ? 'Resetting...' : 'Reset password'}
+          {mutation.isPending ? t('resetting') : t('resetPasswordBtn')}
         </button>
 
         <p className="text-center text-sm text-gray-500">
@@ -161,7 +163,7 @@ function ResetPasswordForm() {
             className="inline-flex items-center gap-1 font-medium text-aris-primary-600 hover:text-aris-primary-700"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Back to sign in
+            {t('backToSignIn')}
           </Link>
         </p>
       </form>

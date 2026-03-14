@@ -6,8 +6,10 @@ import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { ConfigField } from '@/components/settings/ConfigField';
 import { SaveBar } from '@/components/settings/SaveBar';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 
 export default function GeneralSettingsPage() {
+  const t = useTranslations('settings');
   const { canManageConfig } = useSettingsAccess();
   const canEdit = canManageConfig('general');
   const canEditEmail = canManageConfig('email');
@@ -54,15 +56,15 @@ export default function GeneralSettingsPage() {
   return (
     <div className="space-y-6 pb-20">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">General Settings</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('generalSettings')}</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Platform configuration and branding
+          {t('platformConfigBranding')}
         </p>
       </div>
 
       {/* General */}
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Platform</h2>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{t('platform')}</h2>
         <div className="space-y-2">
           {generalConfigs.map((config: any) => (
             <ConfigField
@@ -82,7 +84,7 @@ export default function GeneralSettingsPage() {
       {/* Branding */}
       {brandingConfigs.length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Branding</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{t('branding')}</h2>
           <div className="space-y-2">
             {brandingConfigs.map((config: any) => (
               <ConfigField
@@ -103,9 +105,9 @@ export default function GeneralSettingsPage() {
       {/* Email */}
       {emailConfigs.length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Email Delivery</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{t('emailDelivery')}</h2>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Configure the email provider used for sending notifications
+            {t('emailDeliveryDesc')}
           </p>
           <div className="space-y-2">
             {emailConfigs.map((config: any) => (

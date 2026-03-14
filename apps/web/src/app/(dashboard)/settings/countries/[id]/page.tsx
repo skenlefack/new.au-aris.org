@@ -8,6 +8,7 @@ import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { StatsEditor } from '@/components/settings/StatsEditor';
 import { SectorPerformanceEditor } from '@/components/settings/SectorPerformanceEditor';
 import { SaveBar } from '@/components/settings/SaveBar';
+import { useTranslations } from '@/lib/i18n/translations';
 import { ArrowLeft, Loader2, Layers, Plus, Trash2, Save, MapPin } from 'lucide-react';
 import Link from 'next/link';
 
@@ -16,6 +17,7 @@ const emptyML = { en: '', fr: '', pt: '', ar: '' };
 export default function CountryDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { canManageCountries, canEditCountryStats, canEditCountrySectors, isSuperAdmin, isContinentalAdmin, isNationalAdmin } = useSettingsAccess();
+  const t = useTranslations('settings');
   const { data, isLoading } = useSettingsCountry(id);
   const { data: recsData } = useSettingsRecs();
   const updateMutation = useUpdateCountry();
@@ -200,7 +202,7 @@ export default function CountryDetailPage() {
         <span className="text-3xl">{form.flag}</span>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {form.name?.en || 'Edit Country'}
+            {form.name?.en || t('editCountry')}
           </h1>
           <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
             {form.officialName?.en}
@@ -210,29 +212,29 @@ export default function CountryDetailPage() {
 
       {/* Basic Info */}
       <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-        <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Basic Information</h2>
+        <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">{t('basicInformation')}</h2>
         <div className="grid gap-5 lg:grid-cols-2">
           <MultilingualInput
-            label="Country Name"
+            label={t('countryName')}
             value={form.name}
             onChange={(v) => updateField('name', v)}
             required
             disabled={!canManageCountries}
           />
           <MultilingualInput
-            label="Official Name"
+            label={t('officialName')}
             value={form.officialName}
             onChange={(v) => updateField('officialName', v)}
             disabled={!canManageCountries}
           />
           <MultilingualInput
-            label="Capital"
+            label={t('capital')}
             value={form.capital}
             onChange={(v) => updateField('capital', v)}
             disabled={!canManageCountries}
           />
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Flag Emoji</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{t('flagEmoji')}</label>
             <input
               type="text"
               value={form.flag}
@@ -246,10 +248,10 @@ export default function CountryDetailPage() {
 
       {/* Geography */}
       <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-        <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Geography & Demographics</h2>
+        <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">{t('geographyDemographics')}</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Population</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{t('population')}</label>
             <input
               type="number"
               value={form.population}
@@ -259,7 +261,7 @@ export default function CountryDetailPage() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Area (km²)</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{t('areaKm2')}</label>
             <input
               type="number"
               value={form.area}
@@ -269,7 +271,7 @@ export default function CountryDetailPage() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Timezone</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{t('timezone')}</label>
             <input
               type="text"
               value={form.timezone}
@@ -280,7 +282,7 @@ export default function CountryDetailPage() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Currency</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{t('currency')}</label>
             <input
               type="text"
               value={form.currency}
@@ -291,7 +293,7 @@ export default function CountryDetailPage() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Phone Code</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{t('phoneCode')}</label>
             <input
               type="text"
               value={form.phoneCode}
@@ -302,7 +304,7 @@ export default function CountryDetailPage() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Languages</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{t('languages')}</label>
             <input
               type="text"
               value={Array.isArray(form.languages) ? form.languages.join(', ') : ''}
@@ -317,18 +319,18 @@ export default function CountryDetailPage() {
 
       {/* Status toggles */}
       <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-        <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Status</h2>
+        <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">{t('status')}</h2>
         <div className="flex gap-6">
           <ToggleField
-            label="Active"
-            description="Visible on the ARIS platform"
+            label={t('active')}
+            description={t('visibleOnPlatform')}
             checked={form.isActive}
             onChange={(v) => updateField('isActive', v)}
             disabled={!canManageCountries}
           />
           <ToggleField
-            label="Operational"
-            description="Fully configured and collecting data"
+            label={t('operational')}
+            description={t('fullyConfigured')}
             checked={form.isOperational}
             onChange={(v) => updateField('isOperational', v)}
             disabled={!canManageCountries}
@@ -338,7 +340,7 @@ export default function CountryDetailPage() {
 
       {/* REC memberships */}
       <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-        <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">REC Memberships</h2>
+        <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">{t('recMemberships')}</h2>
         <div className="flex flex-wrap gap-2">
           {allRecs.map((rec: any) => {
             const isMember = data?.data?.recs?.some((cr: any) => cr.rec?.id === rec.id || cr.recId === rec.id);
@@ -368,7 +370,7 @@ export default function CountryDetailPage() {
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Layers className="h-4 w-4 text-gray-500" />
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Administrative Levels</h2>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{t('administrativeLevels')}</h2>
           </div>
           <div className="flex items-center gap-2">
             {canEditAdminLevels && adminLevels.length < 5 && (
@@ -378,7 +380,7 @@ export default function CountryDetailPage() {
                 className="flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Add Level
+                {t('addLevel')}
               </button>
             )}
             {canEditAdminLevels && adminLevelsDirty && (
@@ -393,7 +395,7 @@ export default function CountryDetailPage() {
                 ) : (
                   <Save className="h-3.5 w-3.5" />
                 )}
-                Save Levels
+                {t('saveLevels')}
               </button>
             )}
           </div>
@@ -405,20 +407,20 @@ export default function CountryDetailPage() {
           </div>
         ) : adminLevels.length === 0 ? (
           <p className="py-4 text-center text-sm text-gray-400 dark:text-gray-500">
-            No administrative levels configured for this country.
-            {canEditAdminLevels && ' Click "Add Level" to define the hierarchy.'}
+            {t('noAdminLevels')}
+            {canEditAdminLevels && ` ${t('noAdminLevelsHint')}`}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-16">Level</th>
-                  <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400">Code</th>
-                  <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400">English</th>
-                  <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400">French</th>
-                  <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400">Portuguese</th>
-                  <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400">Arabic</th>
+                  <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-16">{t('level')}</th>
+                  <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400">{t('code')}</th>
+                  <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400">{t('english')}</th>
+                  <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400">{t('french')}</th>
+                  <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400">{t('portuguese')}</th>
+                  <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400">{t('arabic')}</th>
                   {canEditAdminLevels && (
                     <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-16"></th>
                   )}
@@ -461,7 +463,7 @@ export default function CountryDetailPage() {
                           type="button"
                           onClick={() => removeAdminLevel(idx)}
                           className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
-                          title="Remove level"
+                          title={t('removeLevel')}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -482,7 +484,7 @@ export default function CountryDetailPage() {
               className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               <MapPin className="h-3.5 w-3.5" />
-              Manage Divisions
+              {t('manageDivisions')}
             </Link>
           </div>
         )}
@@ -492,7 +494,7 @@ export default function CountryDetailPage() {
       {canEditCountryStats && (
         <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
           <StatsEditor
-            label="Country Statistics"
+            label={t('countryStatistics')}
             value={form.stats ?? {}}
             onChange={(v) => updateField('stats', v)}
             suggestions={['activeOutbreaks', 'vaccinationCoverage', 'livestockCensus', 'tradeVolume', 'fishCatch', 'wildlifeSpecies']}

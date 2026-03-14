@@ -23,6 +23,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useQualityDrilldown } from '@/lib/api/hooks';
 import { KpiCardSkeleton, TableSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const DOMAIN_OPTIONS = [
   { value: '', label: 'All Domains' },
@@ -34,20 +35,20 @@ const DOMAIN_OPTIONS = [
   { value: 'Governance', label: 'Governance' },
 ];
 
-const GATE_OPTIONS = [
-  { value: '', label: 'All Gates' },
-  { value: 'Completeness', label: 'Completeness' },
-  { value: 'Temporal Consistency', label: 'Temporal Consistency' },
-  { value: 'Geographic Consistency', label: 'Geographic Consistency' },
-  { value: 'Codes & Vocabularies', label: 'Codes & Vocabularies' },
-  { value: 'Units', label: 'Units' },
-  { value: 'Deduplication', label: 'Deduplication' },
-  { value: 'Auditability', label: 'Auditability' },
-  { value: 'Confidence Score', label: 'Confidence Score' },
+const GATE_OPTIONS: { value: string; tKey: string }[] = [
+  { value: '', tKey: 'allGates' },
+  { value: 'Completeness', tKey: 'gateCompleteness' },
+  { value: 'Temporal Consistency', tKey: 'gateTemporal' },
+  { value: 'Geographic Consistency', tKey: 'gateGeographic' },
+  { value: 'Codes & Vocabularies', tKey: 'gateCodes' },
+  { value: 'Units', tKey: 'gateUnits' },
+  { value: 'Deduplication', tKey: 'gateDedup' },
+  { value: 'Auditability', tKey: 'gateAuditability' },
+  { value: 'Confidence Score', tKey: 'gateConfidence' },
 ];
 
 const TENANT_OPTIONS = [
-  { value: '', label: 'All Tenants' },
+  { value: '', label: '' },
   { value: 'au', label: 'AU-IBAR' },
   { value: 'igad', label: 'IGAD' },
   { value: 'ecowas', label: 'ECOWAS' },
@@ -59,6 +60,7 @@ export default function QualityDrilldownPage() {
   const [domain, setDomain] = useState('');
   const [gate, setGate] = useState('');
   const [tenant, setTenant] = useState('');
+  const t = useTranslations('analytics');
 
   const { data, isLoading } = useQualityDrilldown({
     domain: domain || undefined,
@@ -118,9 +120,9 @@ export default function QualityDrilldownPage() {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quality Metrics</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('qualityMetrics')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Drill-down into data quality gate results by domain
+            {t('qualityMetricsDesc')}
           </p>
         </div>
       </div>
@@ -146,7 +148,7 @@ export default function QualityDrilldownPage() {
         >
           {GATE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
-              {opt.label}
+              {t(opt.tKey)}
             </option>
           ))}
         </select>
@@ -158,7 +160,7 @@ export default function QualityDrilldownPage() {
         >
           {TENANT_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
-              {opt.label}
+              {opt.value === '' ? t('allTenants') : opt.label}
             </option>
           ))}
         </select>
@@ -186,7 +188,7 @@ export default function QualityDrilldownPage() {
           >
             <div className="flex items-start justify-between">
               <span className="text-kpi-label uppercase tracking-wider text-gray-500">
-                Overall Pass Rate
+                {t('overallPassRate')}
               </span>
               <ShieldCheck
                 className={cn(
@@ -211,7 +213,7 @@ export default function QualityDrilldownPage() {
           <div className="rounded-card border border-gray-200 bg-white p-card shadow-sm">
             <div className="flex items-start justify-between">
               <span className="text-kpi-label uppercase tracking-wider text-gray-500">
-                Domains Analyzed
+                {t('domainsAnalyzed')}
               </span>
               <Layers className="h-5 w-5 text-gray-400" />
             </div>
@@ -219,7 +221,7 @@ export default function QualityDrilldownPage() {
               {summaryStats.domainsAnalyzed}
             </div>
             <div className="mt-3 text-sm text-gray-500">
-              {rows.length} gate results
+              {t('qualityGateResults', { count: rows.length })}
             </div>
           </div>
 
@@ -227,7 +229,7 @@ export default function QualityDrilldownPage() {
           <div className="rounded-card border border-gray-200 bg-white p-card shadow-sm">
             <div className="flex items-start justify-between">
               <span className="text-kpi-label uppercase tracking-wider text-gray-500">
-                Total Records Evaluated
+                {t('totalRecordsEvaluated')}
               </span>
               <Database className="h-5 w-5 text-gray-400" />
             </div>
@@ -241,7 +243,7 @@ export default function QualityDrilldownPage() {
       {/* Stacked Bar Chart */}
       <div className="rounded-card border border-gray-200 bg-white p-5">
         <h3 className="mb-4 text-sm font-semibold text-gray-900">
-          Pass / Fail / Warning by Domain
+          {t('passFailWarningByDomain')}
         </h3>
         {isLoading ? (
           <div className="flex h-[350px] items-center justify-center">
@@ -249,7 +251,7 @@ export default function QualityDrilldownPage() {
           </div>
         ) : chartData.length === 0 ? (
           <div className="flex h-[350px] items-center justify-center">
-            <p className="text-sm text-gray-400">No data available</p>
+            <p className="text-sm text-gray-400">{t('noData')}</p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={350}>
@@ -279,9 +281,9 @@ export default function QualityDrilldownPage() {
                 }}
               />
               <Legend wrapperStyle={{ fontSize: '13px', paddingTop: '16px' }} />
-              <Bar dataKey="passed" name="Passed" stackId="a" fill="#1B5E20" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="warnings" name="Warnings" stackId="a" fill="#F59E0B" />
-              <Bar dataKey="failed" name="Failed" stackId="a" fill="#C62828" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="passed" name={t('passed')} stackId="a" fill="#1B5E20" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="warnings" name={t('warnings')} stackId="a" fill="#F59E0B" />
+              <Bar dataKey="failed" name={t('failed')} stackId="a" fill="#C62828" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -294,21 +296,21 @@ export default function QualityDrilldownPage() {
         <div className="rounded-card border border-gray-200 bg-white overflow-hidden">
           <div className="border-b border-gray-100 px-4 py-3">
             <h3 className="text-sm font-semibold text-gray-900">
-              Quality Gate Results ({rows.length})
+              {t('qualityGateResults', { count: rows.length })}
             </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                  <th className="px-4 py-3">Domain</th>
-                  <th className="px-4 py-3">Gate</th>
-                  <th className="px-4 py-3 text-right">Total</th>
-                  <th className="px-4 py-3 text-right">Passed</th>
-                  <th className="px-4 py-3 text-right">Failed</th>
-                  <th className="px-4 py-3 text-right">Warnings</th>
-                  <th className="px-4 py-3 text-right">Pass Rate</th>
-                  <th className="px-4 py-3 text-right">Trend</th>
+                  <th className="px-4 py-3">{t('domain')}</th>
+                  <th className="px-4 py-3">{t('gate')}</th>
+                  <th className="px-4 py-3 text-right">{t('totalRecords')}</th>
+                  <th className="px-4 py-3 text-right">{t('passed')}</th>
+                  <th className="px-4 py-3 text-right">{t('failed')}</th>
+                  <th className="px-4 py-3 text-right">{t('warnings')}</th>
+                  <th className="px-4 py-3 text-right">{t('passRate')}</th>
+                  <th className="px-4 py-3 text-right">{t('trend')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -369,7 +371,7 @@ export default function QualityDrilldownPage() {
                       colSpan={8}
                       className="px-4 py-8 text-center text-gray-400"
                     >
-                      No quality gate data available
+                      {t('noQualityGateData')}
                     </td>
                   </tr>
                 )}

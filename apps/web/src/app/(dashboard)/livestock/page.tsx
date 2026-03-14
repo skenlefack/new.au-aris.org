@@ -21,6 +21,7 @@ import { TableSkeleton, KpiCardSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const LIVESTOCK_ALERT_FIELDS: AlertField[] = [
   { name: 'species', label: 'Species', type: 'text', placeholder: 'e.g. Cattle', required: true },
@@ -105,6 +106,8 @@ function TrendIndicator({ value }: { value: number }) {
 }
 
 export default function LivestockPage() {
+  const t = useTranslations('livestock');
+  const ts = useTranslations('shared');
   const { data: kpiData, isLoading: kpisLoading } = useLivestockKpis();
   const {
     data: censusData,
@@ -122,10 +125,10 @@ export default function LivestockPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Livestock & Production
+            {t('title')}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Census data, production statistics, and transhumance corridors
+            {t('subtitle')}
           </p>
         </div>
       </div>
@@ -141,7 +144,7 @@ export default function LivestockPage() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="rounded-card border border-gray-200 bg-white p-card shadow-sm">
             <div className="flex items-start justify-between">
-              <p className="text-xs text-gray-400">Total Population</p>
+              <p className="text-xs text-gray-400">{t('totalPopulation')}</p>
               <Globe className="h-4 w-4 text-gray-300" />
             </div>
             <p className="mt-2 text-2xl font-bold text-gray-900">
@@ -151,7 +154,7 @@ export default function LivestockPage() {
           </div>
           <div className="rounded-card border border-gray-200 bg-white p-card shadow-sm">
             <div className="flex items-start justify-between">
-              <p className="text-xs text-gray-400">Countries Reporting</p>
+              <p className="text-xs text-gray-400">{t('countriesReporting')}</p>
               <Globe className="h-4 w-4 text-gray-300" />
             </div>
             <p className="mt-2 text-2xl font-bold text-gray-900">
@@ -163,7 +166,7 @@ export default function LivestockPage() {
           </div>
           <div className="rounded-card border border-aris-primary-200 bg-aris-primary-50 p-card shadow-sm">
             <div className="flex items-start justify-between">
-              <p className="text-xs text-aris-primary-600">Production Volume</p>
+              <p className="text-xs text-aris-primary-600">{t('productionVolume')}</p>
               <BarChart3 className="h-4 w-4 text-aris-primary-300" />
             </div>
             <p className="mt-2 text-2xl font-bold text-aris-primary-700">
@@ -173,7 +176,7 @@ export default function LivestockPage() {
           </div>
           <div className="rounded-card border border-orange-200 bg-orange-50 p-card shadow-sm">
             <div className="flex items-start justify-between">
-              <p className="text-xs text-orange-600">Active Corridors</p>
+              <p className="text-xs text-orange-600">{t('activeCorridors')}</p>
               <Route className="h-4 w-4 text-orange-300" />
             </div>
             <p className="mt-2 text-2xl font-bold text-orange-700">
@@ -192,10 +195,10 @@ export default function LivestockPage() {
         >
           <div>
             <p className="font-semibold text-gray-900 group-hover:text-aris-primary-700">
-              Census Data
+              {t('censusData')}
             </p>
             <p className="mt-1 text-xs text-gray-400">
-              Population counts by country, species, and year
+              {t('censusDataDesc')}
             </p>
           </div>
           <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-aris-primary-500" />
@@ -206,10 +209,10 @@ export default function LivestockPage() {
         >
           <div>
             <p className="font-semibold text-gray-900 group-hover:text-aris-primary-700">
-              Production
+              {t('production')}
             </p>
             <p className="mt-1 text-xs text-gray-400">
-              Milk, meat, eggs, wool, hides, and honey output
+              {t('productionDesc')}
             </p>
           </div>
           <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-aris-primary-500" />
@@ -220,10 +223,10 @@ export default function LivestockPage() {
         >
           <div>
             <p className="font-semibold text-gray-900 group-hover:text-aris-primary-700">
-              Transhumance
+              {t('transhumance')}
             </p>
             <p className="mt-1 text-xs text-gray-400">
-              Seasonal corridors and cross-border movements
+              {t('transhumanceDesc')}
             </p>
           </div>
           <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-aris-primary-500" />
@@ -234,13 +237,13 @@ export default function LivestockPage() {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900">
-            Recent Census Entries
+            {t('recentCensus')}
           </h2>
           <Link
             href="/livestock/census"
             className="text-xs font-medium text-aris-primary-600 hover:text-aris-primary-700"
           >
-            View all
+            {ts('viewAll')}
           </Link>
         </div>
 
@@ -261,12 +264,12 @@ export default function LivestockPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50">
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">Country</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">Species</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">Year</th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-500">Population</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">Source</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">{t('country')}</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">{t('species')}</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">{t('year')}</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-500">{t('population')}</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">{t('source')}</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">{t('status')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -297,7 +300,7 @@ export default function LivestockPage() {
                   {censusList.length === 0 && (
                     <tr>
                       <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
-                        No census data found
+                        {t('noDataFound')}
                       </td>
                     </tr>
                   )}
@@ -311,7 +314,7 @@ export default function LivestockPage() {
       {/* Campaigns & Alert */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <DomainCampaignsSection domain="livestock" />
-        <QuickAlertCard domain="livestock" alertFields={LIVESTOCK_ALERT_FIELDS} title="Report Livestock Issue" />
+        <QuickAlertCard domain="livestock" alertFields={LIVESTOCK_ALERT_FIELDS} title={t('title')} />
       </div>
     </div>
   );

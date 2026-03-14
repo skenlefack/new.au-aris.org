@@ -13,6 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useQualityReports } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const RESULT_STYLES: Record<string, string> = {
   pass: 'bg-green-100 text-green-700',
@@ -39,6 +40,7 @@ const DOMAINS = [
 ];
 
 export default function QualityReportsPage() {
+  const t = useTranslations('quality');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [domainFilter, setDomainFilter] = useState('');
@@ -65,13 +67,13 @@ export default function QualityReportsPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
+          {t('backToDashboard')}
         </Link>
         <h1 className="mt-2 text-2xl font-bold text-gray-900">
-          Quality Reports
+          {t('qualityReports')}
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Browse and filter data quality gate results
+          {t('qualityReportsDesc')}
         </p>
       </div>
 
@@ -81,7 +83,7 @@ export default function QualityReportsPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by entity title..."
+            placeholder={t('searchByEntity')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -100,10 +102,10 @@ export default function QualityReportsPage() {
             }}
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All results</option>
-            <option value="pass">Pass</option>
-            <option value="fail">Fail</option>
-            <option value="warning">Warning</option>
+            <option value="">{t('allResults')}</option>
+            <option value="pass">{t('pass')}</option>
+            <option value="fail">{t('fail')}</option>
+            <option value="warning">{t('warning')}</option>
           </select>
           <select
             value={domainFilter}
@@ -113,7 +115,7 @@ export default function QualityReportsPage() {
             }}
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All domains</option>
+            <option value="">{t('allDomains')}</option>
             {DOMAINS.map((d) => (
               <option key={d} value={d}>
                 {d}
@@ -128,11 +130,11 @@ export default function QualityReportsPage() {
             }}
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All statuses</option>
-            <option value="pending">Pending</option>
-            <option value="corrected">Corrected</option>
-            <option value="overridden">Overridden</option>
-            <option value="accepted">Accepted</option>
+            <option value="">{t('allStatuses')}</option>
+            <option value="pending">{t('pending')}</option>
+            <option value="corrected">{t('corrected')}</option>
+            <option value="overridden">{t('overridden')}</option>
+            <option value="accepted">{t('accepted')}</option>
           </select>
         </div>
       </div>
@@ -145,13 +147,13 @@ export default function QualityReportsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                <th className="px-4 py-3">Entity</th>
-                <th className="px-4 py-3">Domain</th>
-                <th className="px-4 py-3">Country</th>
-                <th className="px-4 py-3">Result</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Violations</th>
-                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">{t('entity')}</th>
+                <th className="px-4 py-3">{t('domain')}</th>
+                <th className="px-4 py-3">{t('country')}</th>
+                <th className="px-4 py-3">{t('result')}</th>
+                <th className="px-4 py-3">{t('status')}</th>
+                <th className="px-4 py-3">{t('violations')}</th>
+                <th className="px-4 py-3">{t('date')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -184,8 +186,7 @@ export default function QualityReportsPage() {
                       {r.overallResult === 'pass' && (
                         <CheckCircle2 className="h-3 w-3" />
                       )}
-                      {r.overallResult.charAt(0).toUpperCase() +
-                        r.overallResult.slice(1)}
+                      {t(r.overallResult)}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -195,7 +196,7 @@ export default function QualityReportsPage() {
                         STATUS_STYLES[r.status] ?? STATUS_STYLES.pending,
                       )}
                     >
-                      {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                      {t(r.status)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-600">
@@ -212,7 +213,7 @@ export default function QualityReportsPage() {
                     colSpan={7}
                     className="px-4 py-8 text-center text-gray-400"
                   >
-                    No quality reports found
+                    {t('noReportsFound')}
                   </td>
                 </tr>
               )}
@@ -225,7 +226,7 @@ export default function QualityReportsPage() {
       {meta && meta.total > meta.limit && (
         <div className="flex items-center justify-between">
           <p className="text-xs text-gray-500">
-            Showing {(meta.page - 1) * meta.limit + 1}–
+            {t('showing')} {(meta.page - 1) * meta.limit + 1}–
             {Math.min(meta.page * meta.limit, meta.total)} of {meta.total}
           </p>
           <div className="flex items-center gap-2">
@@ -234,14 +235,14 @@ export default function QualityReportsPage() {
               disabled={page <= 1}
               className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
-              Previous
+              {t('previous')}
             </button>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={page * meta.limit >= meta.total}
               className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
-              Next
+              {t('next')}
             </button>
           </div>
         </div>

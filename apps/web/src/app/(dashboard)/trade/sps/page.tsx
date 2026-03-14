@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useSpsCertificates, type SpsCertificate } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
@@ -86,6 +87,7 @@ const PLACEHOLDER_CERTIFICATES: SpsCertificate[] = [
 ];
 
 export default function SpsPage() {
+  const t = useTranslations('trade');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -130,9 +132,9 @@ export default function SpsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">SPS Certificates</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('spsCertification')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Sanitary and phytosanitary inspections and certifications
+            {t('spsDesc')}
           </p>
         </div>
       </div>
@@ -163,7 +165,7 @@ export default function SpsPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search certificates..."
+            placeholder={t('searchCertificates')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -182,7 +184,7 @@ export default function SpsPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Status</option>
+            <option value="">{t('allStatus')}</option>
             <option value="DRAFT">Draft</option>
             <option value="ISSUED">Issued</option>
             <option value="REVOKED">Revoked</option>
@@ -219,15 +221,15 @@ export default function SpsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Certificate #</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Exporter</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Importer</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Commodity</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('certificateNo')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('exporter')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('importer')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('commodity')}</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Inspection</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Inspection Date</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('status')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('issueDate')}</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Certified By</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Valid Until</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('expiryDate')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -278,7 +280,7 @@ export default function SpsPage() {
                 {certificates.length === 0 && (
                   <tr>
                     <td colSpan={9} className="px-4 py-12 text-center text-gray-400">
-                      No SPS certificates found
+                      {t('noCertificatesFound')}
                     </td>
                   </tr>
                 )}
@@ -289,7 +291,7 @@ export default function SpsPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <p className="text-xs text-gray-500">
-              Showing {certificates.length} of {meta.total} certificates
+              {t('showingOf', { count: String(certificates.length), total: String(meta.total) })}
             </p>
             <div className="flex items-center gap-1">
               <button

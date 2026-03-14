@@ -1,7 +1,11 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTranslations } from '@/lib/i18n/translations';
 
 export function Footer() {
+  const t = useTranslations('landing');
   return (
     <footer className="relative overflow-hidden border-t-4 border-[#006B3F]" style={{ background: 'linear-gradient(135deg, #D4A843, #C49B38, #E8C875, #D4A843)' }}>
       {/* SVG decorative circles & arcs */}
@@ -69,33 +73,31 @@ export function Footer() {
                   AU-IBAR
                 </p>
                 <p className="text-xs text-[#5C3A00]/70">
-                  Inter-African Bureau for Animal Resources
+                  {t('auIbarFull')}
                 </p>
               </div>
             </div>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-[#5C3A00]/80">
-              ARIS is the continental digital infrastructure for animal resources
-              management, serving 55 Member States and 8 Regional Economic Communities
-              under the African Union Agenda 2063.
+              {t('footerDescription')}
             </p>
           </div>
 
           {/* Links */}
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-[#3E2100]">
-              Resources
+              {t('resources')}
             </h4>
             <ul className="mt-3 space-y-2 text-sm text-[#5C3A00]/80">
-              <li><Link href="#" className="transition-colors hover:text-[#3E2100]">Documentation</Link></li>
-              <li><Link href="#" className="transition-colors hover:text-[#3E2100]">API Reference</Link></li>
-              <li><Link href="#" className="transition-colors hover:text-[#3E2100]">Data Standards</Link></li>
-              <li><Link href="#" className="transition-colors hover:text-[#3E2100]">Training Portal</Link></li>
+              <li><Link href="#" className="transition-colors hover:text-[#3E2100]">{t('documentation')}</Link></li>
+              <li><Link href="#" className="transition-colors hover:text-[#3E2100]">{t('apiReference')}</Link></li>
+              <li><Link href="#" className="transition-colors hover:text-[#3E2100]">{t('dataStandards')}</Link></li>
+              <li><Link href="#" className="transition-colors hover:text-[#3E2100]">{t('trainingPortal')}</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-[#3E2100]">
-              Contact
+              {t('contact')}
             </h4>
             <ul className="mt-3 space-y-2 text-sm text-[#5C3A00]/80">
               <li>Kenindia Business Park</li>
@@ -116,11 +118,11 @@ export function Footer() {
 
         {/* Bottom bar */}
         <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-[#3E2100]/20 pt-6 text-xs text-[#5C3A00]/70 sm:flex-row">
-          <p>&copy; {new Date().getFullYear()} African Union &ndash; Inter-African Bureau for Animal Resources. All rights reserved.</p>
+          <p>{t('copyright', { year: new Date().getFullYear().toString() })}</p>
           <div className="flex gap-4">
-            <Link href="#" className="transition-colors hover:text-[#3E2100]">Privacy Policy</Link>
-            <Link href="#" className="transition-colors hover:text-[#3E2100]">Terms of Service</Link>
-            <Link href="#" className="transition-colors hover:text-[#3E2100]">Accessibility</Link>
+            <Link href="#" className="transition-colors hover:text-[#3E2100]">{t('privacyPolicy')}</Link>
+            <Link href="#" className="transition-colors hover:text-[#3E2100]">{t('termsOfService')}</Link>
+            <Link href="#" className="transition-colors hover:text-[#3E2100]">{t('accessibility')}</Link>
           </div>
         </div>
       </div>

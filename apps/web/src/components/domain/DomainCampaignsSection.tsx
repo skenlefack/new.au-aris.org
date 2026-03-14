@@ -6,12 +6,14 @@ import { ClipboardList, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCampaigns } from '@/lib/api/hooks';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface DomainCampaignsSectionProps {
   domain: string;
 }
 
 export function DomainCampaignsSection({ domain }: DomainCampaignsSectionProps) {
+  const t = useTranslations('shared');
   const { data, isLoading, isError } = useCampaigns({
     domain,
     status: 'ACTIVE',
@@ -26,14 +28,14 @@ export function DomainCampaignsSection({ domain }: DomainCampaignsSectionProps) 
         <div className="flex items-center gap-2">
           <ClipboardList className="h-4 w-4 text-gray-400 dark:text-gray-500" />
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Active Campaigns
+            {t('activeCampaigns')}
           </h2>
         </div>
         <Link
           href={`/collecte?domain=${domain}`}
           className="flex items-center gap-1 text-xs font-medium text-aris-primary-600 hover:text-aris-primary-700 dark:text-aris-primary-400"
         >
-          View all
+          {t('viewAll')}
           <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
@@ -51,7 +53,7 @@ export function DomainCampaignsSection({ domain }: DomainCampaignsSectionProps) 
         <div className="mt-6 flex flex-col items-center py-4 text-center">
           <ClipboardList className="h-8 w-8 text-gray-200 dark:text-gray-600" />
           <p className="mt-2 text-sm text-gray-400 dark:text-gray-500">
-            No active campaigns for this domain
+            {t('noCampaigns')}
           </p>
         </div>
       ) : (
@@ -84,7 +86,7 @@ export function DomainCampaignsSection({ domain }: DomainCampaignsSectionProps) 
                       {campaign.targetSubmissions
                         ? ` / ${campaign.targetSubmissions}`
                         : ''}{' '}
-                      submissions
+                      {t('submissions')}
                     </p>
                   </div>
                   <span

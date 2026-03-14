@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { usePublications, type Publication } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const TYPE_BADGE: Record<string, string> = {
   brief: 'bg-blue-100 text-blue-700',
@@ -114,6 +115,7 @@ const PLACEHOLDER_PUBLICATIONS: Publication[] = [
 ];
 
 export default function PublicationsPage() {
+  const t = useTranslations('knowledge');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [domainFilter, setDomainFilter] = useState('');
@@ -147,9 +149,9 @@ export default function PublicationsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Publications Library</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('publications')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Reports, briefs, guidelines, datasets, and infographics
+            {t('subtitle')}
           </p>
         </div>
       </div>
@@ -160,7 +162,7 @@ export default function PublicationsPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search publications..."
+            placeholder={t('searchPublications')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -179,7 +181,7 @@ export default function PublicationsPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Domains</option>
+            <option value="">{t('allDomains')}</option>
             <option value="Animal Health">Animal Health</option>
             <option value="Trade & Markets">Trade & Markets</option>
             <option value="Fisheries">Fisheries</option>
@@ -197,12 +199,12 @@ export default function PublicationsPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Types</option>
-            <option value="brief">Brief</option>
-            <option value="report">Report</option>
-            <option value="guideline">Guideline</option>
-            <option value="dataset">Dataset</option>
-            <option value="infographic">Infographic</option>
+            <option value="">{t('allTypes')}</option>
+            <option value="brief">{t('brief')}</option>
+            <option value="report">{t('report')}</option>
+            <option value="guideline">{t('guideline')}</option>
+            <option value="dataset">{t('dataset')}</option>
+            <option value="infographic">{t('infographic')}</option>
           </select>
         </div>
       </div>
@@ -265,14 +267,14 @@ export default function PublicationsPage() {
                     className="flex items-center justify-center gap-2 rounded-lg border border-aris-primary-200 px-3 py-1.5 text-xs font-medium text-aris-primary-600 hover:bg-aris-primary-50"
                   >
                     <FileText className="h-3.5 w-3.5" />
-                    Download
+                    {t('download')}
                   </a>
                 </div>
               </div>
             ))}
             {publications.length === 0 && (
               <div className="col-span-full py-12 text-center text-gray-400">
-                No publications found
+                {t('noPublications')}
               </div>
             )}
           </div>
@@ -280,7 +282,7 @@ export default function PublicationsPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between rounded-card border border-gray-200 bg-white px-4 py-3">
             <p className="text-xs text-gray-500">
-              Showing {publications.length} of {meta.total} publications
+              {t('showingOf', { count: publications.length, total: meta.total })}
             </p>
             <div className="flex items-center gap-1">
               <button

@@ -8,6 +8,7 @@ import {
   useDeleteDomain,
 } from '@/lib/api/settings-hooks';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
+import { useTranslations } from '@/lib/i18n/translations';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea';
 import { ColorPicker } from '@/components/settings/ColorPicker';
@@ -56,6 +57,7 @@ const EMPTY_FORM: DomainForm = {
 };
 
 export default function DomainsPage() {
+  const t = useTranslations('settings');
   const { isSuperAdmin } = useSettingsAccess();
   const { data, isLoading } = useSettingsDomains();
   const createMutation = useCreateDomain();
@@ -157,10 +159,10 @@ export default function DomainsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Business Domains
+              {t('domainsTitle')}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {domains.length} domain{domains.length !== 1 ? 's' : ''} covering animal resources sectors
+              {t('domainsSubtitle', { count: domains.length })}
             </p>
           </div>
         </div>
@@ -171,7 +173,7 @@ export default function DomainsPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700"
           >
             <Plus className="h-4 w-4" />
-            Add Domain
+            {t('addDomain')}
           </button>
         )}
       </div>
@@ -179,7 +181,7 @@ export default function DomainsPage() {
       {/* Add Form */}
       {showAddForm && (
         <DomainFormPanel
-          title="New Domain"
+          title={t('newDomain')}
           form={form}
           setForm={setForm}
           onSave={handleCreate}
@@ -198,7 +200,7 @@ export default function DomainsPage() {
             return (
               <DomainFormPanel
                 key={domain.id}
-                title={`Edit: ${domain.name?.en ?? domain.code}`}
+                title={t('editDomainLabel', { name: domain.name?.en ?? domain.code })}
                 form={form}
                 setForm={setForm}
                 onSave={handleUpdate}
@@ -244,7 +246,7 @@ export default function DomainsPage() {
                     color: domain.isActive ? '#059669' : '#9ca3af',
                   }}
                 >
-                  {domain.isActive ? 'Active' : 'Inactive'}
+                  {domain.isActive ? t('active') : t('inactive')}
                 </span>
                 {isSuperAdmin && (
                   <>
@@ -274,7 +276,7 @@ export default function DomainsPage() {
 
       {domains.length === 0 && !showAddForm && (
         <div className="py-12 text-center text-sm text-gray-400">
-          No domains configured yet. Click &quot;Add Domain&quot; to create one.
+          {t('noDomains')}
         </div>
       )}
 
@@ -288,14 +290,10 @@ export default function DomainsPage() {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Delete Domain
+                  {t('deleteDomain')}
                 </h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Are you sure you want to delete{' '}
-                  <span className="font-semibold text-gray-900 dark:text-white">
-                    {deletingDomain.name?.en ?? deletingDomain.code}
-                  </span>
-                  ? This action cannot be undone.
+                  {t('deleteDomainConfirm', { name: deletingDomain.name?.en ?? deletingDomain.code })}
                 </p>
               </div>
             </div>
@@ -305,7 +303,7 @@ export default function DomainsPage() {
                 onClick={() => setDeletingId(null)}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 type="button"
@@ -318,7 +316,7 @@ export default function DomainsPage() {
                 ) : (
                   <Trash2 className="h-4 w-4" />
                 )}
-                Delete
+                {t('delete')}
               </button>
             </div>
           </div>
@@ -347,6 +345,7 @@ function DomainFormPanel({
   saving: boolean;
   isNew?: boolean;
 }) {
+  const t = useTranslations('settings');
   const canSave = form.code.trim().length >= 2 && (form.name.en?.trim() ?? '').length > 0;
 
   return (
@@ -382,7 +381,7 @@ function DomainFormPanel({
         {/* Icon name */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Icon (Lucide name)
+            {t('iconLucide')}
           </label>
           <input
             type="text"
@@ -395,7 +394,7 @@ function DomainFormPanel({
 
         {/* Color */}
         <ColorPicker
-          label="Color"
+          label={t('color')}
           value={form.color}
           onChange={(c) => setForm((f) => ({ ...f, color: c }))}
         />
@@ -403,7 +402,7 @@ function DomainFormPanel({
         {/* Sort Order */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Sort Order
+            {t('sortOrder')}
           </label>
           <input
             type="number"
@@ -430,7 +429,7 @@ function DomainFormPanel({
             />
           </button>
           <span className="text-sm text-gray-700 dark:text-gray-300">
-            {form.isActive ? 'Active' : 'Inactive'}
+            {form.isActive ? t('active') : t('inactive')}
           </span>
         </div>
       </div>
@@ -438,7 +437,7 @@ function DomainFormPanel({
       {/* Name (multilingual) */}
       <div className="mt-4">
         <MultilingualInput
-          label="Name"
+          label={t('name')}
           value={form.name}
           onChange={(v) => setForm((f) => ({ ...f, name: v }))}
           required
@@ -449,7 +448,7 @@ function DomainFormPanel({
       {/* Description (multilingual) */}
       <div className="mt-4">
         <MultilingualTextarea
-          label="Description"
+          label={t('description')}
           value={form.description}
           onChange={(v) => setForm((f) => ({ ...f, description: v }))}
           placeholder="Domain description..."
@@ -462,22 +461,22 @@ function DomainFormPanel({
         <div className="mb-3 flex items-center gap-2">
           <Settings2 className="h-4 w-4 text-indigo-500" />
           <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-            Landing Page Sections
+            {t('landingPageSections')}
           </h4>
         </div>
         <p className="mb-3 text-xs text-gray-400">
-          Toggle which sections appear on this domain&apos;s landing page.
+          {t('toggleSectionsDesc')}
         </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {(
             [
-              ['kpis', 'KPI Cards'],
-              ['chart', 'Chart'],
-              ['quickLinks', 'Quick Links'],
-              ['campaigns', 'Campaigns'],
-              ['alertForm', 'Alert Form'],
-              ['table', 'Data Table'],
-            ] as const
+              ['kpis', t('kpiCards')],
+              ['chart', t('chart')],
+              ['quickLinks', t('quickLinks')],
+              ['campaigns', t('campaigns')],
+              ['alertForm', t('alertForm')],
+              ['table', t('dataTable')],
+            ] as [keyof DomainSectionConfig, string][]
           ).map(([key, label]) => (
             <label
               key={key}
@@ -535,10 +534,10 @@ function DomainFormPanel({
           </div>
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">
-              {form.name.en || 'Domain Name'}
+              {form.name.en || t('domainName')}
             </p>
             <p className="text-xs text-gray-500">
-              {form.code || 'domain-code'}
+              {form.code || t('domainCode')}
             </p>
           </div>
           <span
@@ -548,7 +547,7 @@ function DomainFormPanel({
               color: form.isActive ? '#059669' : '#9ca3af',
             }}
           >
-            {form.isActive ? 'Active' : 'Inactive'}
+            {form.isActive ? t('active') : t('inactive')}
           </span>
         </div>
       </div>
@@ -560,7 +559,7 @@ function DomainFormPanel({
           onClick={onCancel}
           className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
         >
-          Cancel
+          {t('cancel')}
         </button>
         <button
           type="button"
@@ -573,7 +572,7 @@ function DomainFormPanel({
           ) : (
             <Check className="h-4 w-4" />
           )}
-          {isNew ? 'Create' : 'Save'}
+          {isNew ? t('create') : t('save')}
         </button>
       </div>
     </div>

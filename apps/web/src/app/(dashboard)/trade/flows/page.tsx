@@ -19,6 +19,7 @@ import {
   Tooltip,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useTradeFlows, type TradeFlow } from '@/lib/api/hooks';
 import { TableSkeleton, Skeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
@@ -122,6 +123,7 @@ function formatUsd(value: number): string {
 }
 
 export default function TradeFlowsPage() {
+  const t = useTranslations('trade');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [directionFilter, setDirectionFilter] = useState('');
@@ -158,9 +160,9 @@ export default function TradeFlowsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Trade Flows</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('tradeFlows')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Intra-African and international trade records
+            {t('tradeFlowsDesc')}
           </p>
         </div>
       </div>
@@ -223,7 +225,7 @@ export default function TradeFlowsPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search trade flows..."
+            placeholder={t('searchFlows')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -242,7 +244,7 @@ export default function TradeFlowsPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Directions</option>
+            <option value="">{t('allStatus')}</option>
             <option value="EXPORT">Export</option>
             <option value="IMPORT">Import</option>
             <option value="TRANSIT">Transit</option>
@@ -255,7 +257,7 @@ export default function TradeFlowsPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Commodities</option>
+            <option value="">{t('allProducts')}</option>
             {commodities.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -279,16 +281,16 @@ export default function TradeFlowsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Export Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Import Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Commodity</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('exporter')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('importer')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('commodity')}</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">HS Code</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Direction</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Quantity</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Value (FOB)</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('status')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('quantity')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('valueUsd')}</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Currency</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Period</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">SPS Status</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -332,7 +334,7 @@ export default function TradeFlowsPage() {
                 {flows.length === 0 && (
                   <tr>
                     <td colSpan={10} className="px-4 py-12 text-center text-gray-400">
-                      No trade flows found
+                      {t('noFlowsFound')}
                     </td>
                   </tr>
                 )}
@@ -343,7 +345,7 @@ export default function TradeFlowsPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <p className="text-xs text-gray-500">
-              Showing {flows.length} of {meta.total} trade flows
+              {t('showingOf', { count: String(flows.length), total: String(meta.total) })}
             </p>
             <div className="flex items-center gap-1">
               <button

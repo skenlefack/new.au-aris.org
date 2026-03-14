@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useSettingsCountries, useSettingsRecs } from '@/lib/api/settings-hooks';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
+import { useTranslations } from '@/lib/i18n/translations';
 import { Pagination } from '@/components/ui/Pagination';
 import { Plus, Search, Pencil, ExternalLink, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -19,6 +20,7 @@ export default function CountriesListPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const { canCreateCountry, canManageCountries } = useSettingsAccess();
+  const t = useTranslations('settings');
 
   const { data: recsData } = useSettingsRecs({ limit: 100 });
   const { data, isLoading } = useSettingsCountries({
@@ -40,10 +42,10 @@ export default function CountriesListPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Countries
+            {t('countriesTitle')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {meta.total} African Union Member States
+            {t('memberStatesCount', { count: meta.total })}
           </p>
         </div>
         {canCreateCountry && (
@@ -52,7 +54,7 @@ export default function CountriesListPage() {
             className="flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-aris-primary-700"
           >
             <Plus className="h-4 w-4" />
-            Add Country
+            {t('addCountry')}
           </Link>
         )}
       </div>
@@ -65,7 +67,7 @@ export default function CountriesListPage() {
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search countries..."
+            placeholder={t('searchCountries')}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
@@ -74,7 +76,7 @@ export default function CountriesListPage() {
           onChange={(e) => { setRecFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
         >
-          <option value="">All RECs</option>
+          <option value="">{t('allRecs')}</option>
           {recs.map((rec: any) => (
             <option key={rec.code} value={rec.code}>
               {rec.name?.en ?? rec.code}
@@ -86,18 +88,18 @@ export default function CountriesListPage() {
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
         >
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option value="">{t('allStatus')}</option>
+          <option value="active">{t('active')}</option>
+          <option value="inactive">{t('inactive')}</option>
         </select>
         <select
           value={operationalFilter}
           onChange={(e) => { setOperationalFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
         >
-          <option value="">All</option>
-          <option value="true">Operational</option>
-          <option value="false">Pending</option>
+          <option value="">{t('all')}</option>
+          <option value="true">{t('operational')}</option>
+          <option value="false">{t('pending')}</option>
         </select>
       </div>
 
@@ -111,16 +113,16 @@ export default function CountriesListPage() {
           <table className="w-full text-left text-sm">
             <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
               <tr>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Flag</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Code</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Capital</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Population</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">RECs</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Status</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Operational</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('flag')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('code')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('name')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('capital')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('population')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('recs')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('status')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('operational')}</th>
                 {canManageCountries && (
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Actions</th>
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('actions')}</th>
                 )}
               </tr>
             </thead>
@@ -170,7 +172,7 @@ export default function CountriesListPage() {
                           ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                           : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
                       )}>
-                        {country.isActive ? 'Active' : 'Inactive'}
+                        {country.isActive ? t('active') : t('inactive')}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -180,7 +182,7 @@ export default function CountriesListPage() {
                           ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                           : 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
                       )}>
-                        {country.isOperational ? 'Yes' : 'Pending'}
+                        {country.isOperational ? t('yes') : t('pending')}
                       </span>
                     </td>
                     {canManageCountries && (
@@ -197,7 +199,7 @@ export default function CountriesListPage() {
                             href={`/country/${country.code}`}
                             target="_blank"
                             className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-white"
-                            title="View on landing"
+                            title={t('viewOnLanding')}
                           >
                             <ExternalLink className="h-4 w-4" />
                           </Link>
@@ -210,7 +212,7 @@ export default function CountriesListPage() {
               {countries.length === 0 && (
                 <tr>
                   <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                    No countries found
+                    {t('noCountriesFound')}
                   </td>
                 </tr>
               )}

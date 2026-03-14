@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useExportHistory, useRetryExport } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: 'bg-gray-100 text-gray-600',
@@ -37,6 +38,7 @@ const CONNECTOR_COLORS: Record<string, string> = {
 };
 
 export default function ExportHistoryPage() {
+  const t = useTranslations('interop');
   const [page, setPage] = useState(1);
   const [connectorFilter, setConnectorFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -64,12 +66,12 @@ export default function ExportHistoryPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Interop Hub
+          {t('backToInteropHub')}
         </Link>
         <div className="mt-2">
-          <h1 className="text-2xl font-bold text-gray-900">Export History</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('exportHistory')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Unified view of all WAHIS, EMPRES, and FAOSTAT exports
+            {t('exportHistoryDesc')}
           </p>
         </div>
       </div>
@@ -85,7 +87,7 @@ export default function ExportHistoryPage() {
           }}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none"
         >
-          <option value="">All connectors</option>
+          <option value="">{t('allConnectors')}</option>
           <option value="WAHIS">WAHIS</option>
           <option value="EMPRES">EMPRES</option>
           <option value="FAOSTAT">FAOSTAT</option>
@@ -98,11 +100,11 @@ export default function ExportHistoryPage() {
           }}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none"
         >
-          <option value="">All statuses</option>
-          <option value="PENDING">Pending</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="FAILED">Failed</option>
+          <option value="">{t('allStatuses')}</option>
+          <option value="PENDING">{t('statusPending')}</option>
+          <option value="IN_PROGRESS">{t('statusInProgress')}</option>
+          <option value="COMPLETED">{t('statusCompleted')}</option>
+          <option value="FAILED">{t('statusFailed')}</option>
         </select>
       </div>
 
@@ -114,10 +116,10 @@ export default function ExportHistoryPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">{t('type')}</th>
                 <th className="px-4 py-3">Country</th>
-                <th className="px-4 py-3">Period</th>
-                <th className="px-4 py-3">Format</th>
+                <th className="px-4 py-3">{t('period')}</th>
+                <th className="px-4 py-3">{t('format')}</th>
                 <th className="px-4 py-3 text-right">Records</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Date</th>
@@ -179,7 +181,7 @@ export default function ExportHistoryPage() {
                           className="inline-flex items-center gap-1 text-xs font-medium text-aris-primary-600 hover:text-aris-primary-700"
                         >
                           <Download className="h-3 w-3" />
-                          Download
+                          {t('download')}
                         </a>
                       )}
                       {exp.status === 'FAILED' && (
@@ -189,7 +191,7 @@ export default function ExportHistoryPage() {
                           className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 hover:text-amber-700 disabled:opacity-50"
                         >
                           <RefreshCw className="h-3 w-3" />
-                          Retry
+                          {t('retry')}
                         </button>
                       )}
                     </div>
@@ -202,7 +204,7 @@ export default function ExportHistoryPage() {
                     colSpan={8}
                     className="px-4 py-8 text-center text-gray-400"
                   >
-                    No exports found
+                    {t('noExportsFound')}
                   </td>
                 </tr>
               )}

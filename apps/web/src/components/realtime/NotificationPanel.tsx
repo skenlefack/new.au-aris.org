@@ -4,6 +4,7 @@ import React from 'react';
 import { X, Bell, Check, CheckCheck, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '@/lib/api/hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface NotificationPanelProps {
   open: boolean;
@@ -55,6 +56,7 @@ const TYPE_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
 };
 
 export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
+  const t = useTranslations('header');
   const { data, isLoading } = useNotifications({ limit: 50 });
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
@@ -93,7 +95,7 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
           <div className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-gray-600" />
             <h2 className="text-lg font-semibold text-gray-900">
-              Notifications
+              {t('notifications')}
             </h2>
             {unreadCount > 0 && (
               <span className="rounded-full bg-aris-accent-600 px-2 py-0.5 text-[10px] font-bold text-white">
@@ -108,7 +110,7 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
                 className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-aris-primary-600 hover:bg-aris-primary-50"
               >
                 <CheckCheck className="h-3.5 w-3.5" />
-                Mark all read
+                {t('markAllRead')}
               </button>
             )}
             <button
@@ -137,7 +139,7 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
           ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-gray-400">
               <Bell className="h-10 w-10 mb-2" />
-              <p className="text-sm">No notifications</p>
+              <p className="text-sm">{t('noNotifications')}</p>
             </div>
           ) : (
             Array.from(groups.entries()).map(([date, items]) => (
@@ -187,7 +189,7 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
                           <button
                             onClick={() => markRead.mutate(n.id)}
                             className="flex-shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                            title="Mark as read"
+                            title={t('markAsRead')}
                           >
                             <Check className="h-3.5 w-3.5" />
                           </button>

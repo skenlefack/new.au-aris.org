@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useWildlifeInventory, type WildlifeInventory } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const IUCN_BADGE: Record<string, string> = {
   LC: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -94,6 +95,7 @@ const PLACEHOLDER_INVENTORY: WildlifeInventory[] = [
 ];
 
 export default function SpeciesInventoryPage() {
+  const t = useTranslations('wildlife');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('');
@@ -122,9 +124,9 @@ export default function SpeciesInventoryPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Species Inventory</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('inventory')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Continental species records, population estimates, and IUCN conservation status
+            {t('inventoryDesc')}
           </p>
         </div>
       </div>
@@ -134,7 +136,7 @@ export default function SpeciesInventoryPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search species..."
+            placeholder={t('searchInventory')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
@@ -147,7 +149,7 @@ export default function SpeciesInventoryPage() {
             onChange={(e) => { setClassFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All Classes</option>
+            <option value="">{t('allClasses')}</option>
             <option value="Mammals">Mammals</option>
             <option value="Birds">Birds</option>
             <option value="Reptiles">Reptiles</option>
@@ -159,7 +161,7 @@ export default function SpeciesInventoryPage() {
             onChange={(e) => { setIucnFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All IUCN Status</option>
+            <option value="">{t('allIucnStatus')}</option>
             <option value="CR">Critically Endangered</option>
             <option value="EN">Endangered</option>
             <option value="VU">Vulnerable</option>
@@ -182,13 +184,13 @@ export default function SpeciesInventoryPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Species</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Class</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">IUCN</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Protected Area</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Population</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Trend</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('species')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('taxonomicClass')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('iucnStatus')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('country')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('protectedAreas')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('population')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('trend')}</th>
                   <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Year</th>
                 </tr>
               </thead>
@@ -224,7 +226,7 @@ export default function SpeciesInventoryPage() {
                 {inventory.length === 0 && (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
-                      No species records found
+                      {t('noSpeciesFound')}
                     </td>
                   </tr>
                 )}
@@ -234,7 +236,7 @@ export default function SpeciesInventoryPage() {
 
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 dark:border-gray-700">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Showing {inventory.length} of {meta.total} records
+              {t('showing', { count: inventory.length, total: meta.total })}
             </p>
             <div className="flex items-center gap-1">
               <button

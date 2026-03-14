@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { collecteClient } from '@/lib/api/client';
+import { useTranslations } from '@/lib/i18n/translations';
 
 export interface AlertField {
   name: string;
@@ -30,8 +31,9 @@ interface QuickAlertCardProps {
 export function QuickAlertCard({
   domain,
   alertFields,
-  title = 'Quick Alert',
+  title,
 }: QuickAlertCardProps) {
+  const t = useTranslations('shared');
   const [expanded, setExpanded] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -71,7 +73,7 @@ export function QuickAlertCard({
         <div className="flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-amber-500" />
           <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            {title}
+            {title ?? t('quickAlert')}
           </span>
         </div>
         {expanded ? (
@@ -86,13 +88,13 @@ export function QuickAlertCard({
           {result === 'success' && (
             <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-700 dark:bg-green-900/20 dark:text-green-400">
               <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-              Alert submitted successfully
+              {t('alertSubmitted')}
             </div>
           )}
           {result === 'error' && (
             <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
               <XCircle className="h-4 w-4 flex-shrink-0" />
-              Failed to submit alert. Please try again.
+              {t('alertFailed')}
             </div>
           )}
 
@@ -152,7 +154,7 @@ export function QuickAlertCard({
               className="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-700 disabled:opacity-50"
             >
               <Send className="h-3.5 w-3.5" />
-              {submitting ? 'Submitting...' : 'Submit Alert'}
+              {submitting ? t('submitting') : t('submitAlert')}
             </button>
           </div>
         </form>

@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useColonyHealth, type ColonyHealth } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
@@ -78,6 +79,7 @@ const PLACEHOLDER_HEALTH: ColonyHealth[] = [
 ];
 
 export default function ColonyHealthPage() {
+  const t = useTranslations('apiculture');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [pestFilter, setPestFilter] = useState('');
@@ -106,9 +108,9 @@ export default function ColonyHealthPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Colony Health</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('colonyHealth')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Inspection records, pest prevalence, colony strength, and mortality rates
+            {t('colonyHealthDesc')}
           </p>
         </div>
       </div>
@@ -118,7 +120,7 @@ export default function ColonyHealthPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search inspections..."
+            placeholder={t('searchInspections')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
@@ -131,7 +133,7 @@ export default function ColonyHealthPage() {
             onChange={(e) => { setPestFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All Pests</option>
+            <option value="">{t('allPests')}</option>
             <option value="Varroa destructor">Varroa destructor</option>
             <option value="Small hive beetle">Small hive beetle</option>
             <option value="Wax moth">Wax moth</option>
@@ -143,10 +145,10 @@ export default function ColonyHealthPage() {
             onChange={(e) => { setStrengthFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All Strength</option>
-            <option value="strong">Strong</option>
-            <option value="moderate">Moderate</option>
-            <option value="weak">Weak</option>
+            <option value="">{t('allStrength')}</option>
+            <option value="strong">{t('strong')}</option>
+            <option value="moderate">{t('moderate')}</option>
+            <option value="weak">{t('weak')}</option>
           </select>
         </div>
       </div>
@@ -164,15 +166,15 @@ export default function ColonyHealthPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Apiary</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('apiaryName')}</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Date</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Inspected</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Infected</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Pest</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Queen</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Strength</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Mortality %</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('inspectionDate')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('inspected')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('infected')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('pest')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('queenStatus')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('colonyStrength')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('mortality')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
@@ -218,7 +220,7 @@ export default function ColonyHealthPage() {
                 {records.length === 0 && (
                   <tr>
                     <td colSpan={9} className="px-4 py-12 text-center text-gray-400">
-                      No colony health records found
+                      {t('noHealthRecords')}
                     </td>
                   </tr>
                 )}
@@ -228,7 +230,7 @@ export default function ColonyHealthPage() {
 
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 dark:border-gray-700">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Showing {records.length} of {meta.total} inspections
+              {t('showing', { count: records.length, total: meta.total })}
             </p>
             <div className="flex items-center gap-1">
               <button

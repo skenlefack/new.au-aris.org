@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useLivestockCensus, type LivestockCensus } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const STATUS_BADGE: Record<string, string> = {
   draft: 'bg-blue-100 text-blue-700',
@@ -66,6 +67,7 @@ const PLACEHOLDER_CENSUS: LivestockCensus[] = [
 ];
 
 export default function LivestockCensusPage() {
+  const t = useTranslations('livestock');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
@@ -100,9 +102,9 @@ export default function LivestockCensusPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Census Data</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('censusData')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Livestock population counts by country, species, and year
+            {t('censusDataDesc')}
           </p>
         </div>
       </div>
@@ -113,7 +115,7 @@ export default function LivestockCensusPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search census data..."
+            placeholder={t('searchCensus')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -132,7 +134,7 @@ export default function LivestockCensusPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Countries</option>
+            <option value="">{t('allCountries')}</option>
             <option value="ET">Ethiopia</option>
             <option value="KE">Kenya</option>
             <option value="NG">Nigeria</option>
@@ -148,7 +150,7 @@ export default function LivestockCensusPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Species</option>
+            <option value="">{t('allSpecies')}</option>
             <option value="Cattle">Cattle</option>
             <option value="Sheep">Sheep</option>
             <option value="Goat">Goat</option>
@@ -164,7 +166,7 @@ export default function LivestockCensusPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Years</option>
+            <option value="">{t('allYears')}</option>
             <option value="2025">2025</option>
             <option value="2024">2024</option>
             <option value="2023">2023</option>
@@ -186,16 +188,16 @@ export default function LivestockCensusPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Country</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('country')}</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Region</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Species</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Year</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Population</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('species')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('year')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('population')}</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-500">Female Breeding</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-500">Male Breeding</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-500">Young</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Source</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('source')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -236,7 +238,7 @@ export default function LivestockCensusPage() {
                 {censusList.length === 0 && (
                   <tr>
                     <td colSpan={10} className="px-4 py-12 text-center text-gray-400">
-                      No census data found
+                      {t('noDataFound')}
                     </td>
                   </tr>
                 )}
@@ -247,7 +249,7 @@ export default function LivestockCensusPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <p className="text-xs text-gray-500">
-              Showing {censusList.length} of {meta.total} records
+              {t('showingOf', { count: censusList.length.toString(), total: meta.total.toString() })}
             </p>
             <div className="flex items-center gap-1">
               <button

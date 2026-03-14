@@ -9,8 +9,10 @@ import {
   getTypesByDomain,
   type DomainConfig,
 } from '@/components/master-data/ref-data-config';
+import { useTranslations } from '@/lib/i18n/translations';
 
 function ScopeBadge({ scope }: { scope: string }) {
+  const t = useTranslations('masterData');
   const styles: Record<string, string> = {
     continental: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300',
     regional: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
@@ -18,7 +20,7 @@ function ScopeBadge({ scope }: { scope: string }) {
   };
   return (
     <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase', styles[scope] ?? 'bg-gray-100 text-gray-600')}>
-      {scope}
+      {t(scope)}
     </span>
   );
 }
@@ -32,9 +34,10 @@ function DomainSection({
   counts: Record<string, number>;
   isLoading: boolean;
 }) {
+  const t = useTranslations('masterData');
   const types = getTypesByDomain(domain.slug);
   const DomainIcon = domain.icon;
-  const totalCount = types.reduce((sum, t) => sum + (counts[t.slug] ?? 0), 0);
+  const totalCount = types.reduce((sum, tp) => sum + (counts[tp.slug] ?? 0), 0);
 
   return (
     <section className="space-y-3">
@@ -53,11 +56,11 @@ function DomainSection({
               {domain.label}
             </h2>
             <span className="rounded-full bg-white/60 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800/60 dark:text-gray-400">
-              {types.length} types
+              {types.length} {t('types')}
             </span>
             {!isLoading && (
               <span className="rounded-full bg-white/60 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800/60 dark:text-gray-400">
-                {totalCount} records
+                {totalCount} {t('records')}
               </span>
             )}
           </div>
@@ -117,6 +120,7 @@ function DomainSection({
 }
 
 export default function MasterDataDashboard() {
+  const t = useTranslations('masterData');
   const { data: countsData, isLoading } = useRefDataCounts();
   const counts = countsData?.data ?? {};
 
@@ -125,24 +129,24 @@ export default function MasterDataDashboard() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Master Data
+          {t('title')}
         </h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Reference data management with cascade visibility (Continental &rarr; Regional &rarr; National)
+          {t('subtitle')}
         </p>
       </div>
 
       {/* Scope legend */}
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
-        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Visibility scopes:</span>
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('scopeLegend')}</span>
         <ScopeBadge scope="continental" />
-        <span className="text-xs text-gray-400">Visible by all</span>
+        <span className="text-xs text-gray-400">{t('visibleByAll')}</span>
         <span className="text-gray-300 dark:text-gray-600">|</span>
         <ScopeBadge scope="regional" />
-        <span className="text-xs text-gray-400">REC + member states</span>
+        <span className="text-xs text-gray-400">{t('recMemberStates')}</span>
         <span className="text-gray-300 dark:text-gray-600">|</span>
         <ScopeBadge scope="national" />
-        <span className="text-xs text-gray-400">Country only</span>
+        <span className="text-xs text-gray-400">{t('countryOnly')}</span>
       </div>
 
       {/* Domain sections */}

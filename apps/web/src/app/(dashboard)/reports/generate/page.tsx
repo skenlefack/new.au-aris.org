@@ -16,6 +16,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useReportTemplates, useGenerateReport } from '@/lib/api/hooks';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const TYPE_BADGE_COLORS: Record<string, string> = {
   wahis_6monthly: 'bg-blue-100 text-blue-700',
@@ -25,16 +26,16 @@ const TYPE_BADGE_COLORS: Record<string, string> = {
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  wahis_6monthly: 'WAHIS 6-Monthly',
-  wahis_annual: 'WAHIS Annual',
-  continental_brief: 'Continental Brief',
-  custom: 'Custom',
+  wahis_6monthly: 'wahis6monthly',
+  wahis_annual: 'wahisAnnual',
+  continental_brief: 'continentalBrief',
+  custom: 'custom',
 };
 
 const OUTPUT_FORMATS = [
-  { value: 'pdf', label: 'PDF' },
-  { value: 'xlsx', label: 'Excel (XLSX)' },
-  { value: 'docx', label: 'Word (DOCX)' },
+  { value: 'pdf', tKey: 'formatPdf' },
+  { value: 'xlsx', tKey: 'formatExcel' },
+  { value: 'docx', tKey: 'formatWord' },
 ] as const;
 
 export default function GenerateReportPage() {
@@ -46,6 +47,7 @@ export default function GenerateReportPage() {
 }
 
 function GenerateReportContent() {
+  const t = useTranslations('reports');
   const searchParams = useSearchParams();
   const templateParam = searchParams.get('template');
 
@@ -101,13 +103,13 @@ function GenerateReportContent() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ChevronLeft className="h-4 w-4" />
-          Back to Reports
+          {t('backToReports')}
         </Link>
         <h1 className="mt-2 text-2xl font-bold text-gray-900">
-          Generate Report
+          {t('generateReportBtn')}
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Configure and generate a new report from a template
+          {t('generateDesc')}
         </p>
       </div>
 
@@ -129,7 +131,7 @@ function GenerateReportContent() {
                     TYPE_BADGE_COLORS[selectedTemplate.type] ?? 'bg-gray-100 text-gray-600',
                   )}
                 >
-                  {TYPE_LABELS[selectedTemplate.type] ?? selectedTemplate.type}
+                  {TYPE_LABELS[selectedTemplate.type] ? t(TYPE_LABELS[selectedTemplate.type]) : selectedTemplate.type}
                 </span>
               </div>
               <p className="mt-1 text-xs text-gray-600">
@@ -153,14 +155,14 @@ function GenerateReportContent() {
       {/* Form */}
       <div className="rounded-card border border-gray-200 bg-white p-6">
         <h2 className="mb-5 text-sm font-semibold text-gray-900">
-          Report Configuration
+          {t('reportConfiguration')}
         </h2>
 
         <div className="space-y-5">
           {/* Template selector */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">
-              Report Template
+              {t('reportTemplate')}
             </label>
             {templatesLoading ? (
               <Skeleton className="h-10 w-full" />
@@ -174,7 +176,7 @@ function GenerateReportContent() {
                 }}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500"
               >
-                <option value="">Select a template...</option>
+                <option value="">{t('selectTemplate')}</option>
                 {templates.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
@@ -188,13 +190,13 @@ function GenerateReportContent() {
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">
               Country{' '}
-              <span className="text-gray-400">(optional for continental reports)</span>
+              <span className="text-gray-400">{t('countryOptional')}</span>
             </label>
             <input
               type="text"
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              placeholder="e.g. Kenya, Ethiopia, Nigeria"
+              placeholder={t('countryPlaceholder')}
               className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500"
             />
           </div>
@@ -203,7 +205,7 @@ function GenerateReportContent() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                Period Start
+                {t('periodStart')}
               </label>
               <input
                 type="date"
@@ -214,7 +216,7 @@ function GenerateReportContent() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                Period End
+                {t('periodEnd')}
               </label>
               <input
                 type="date"
@@ -228,7 +230,7 @@ function GenerateReportContent() {
           {/* Output format radio buttons */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-2">
-              Output Format
+              {t('outputFormat')}
             </label>
             <div className="flex flex-wrap gap-3">
               {OUTPUT_FORMATS.map((f) => (
@@ -255,7 +257,7 @@ function GenerateReportContent() {
                       <span className="h-2 w-2 rounded-full bg-aris-primary-600" />
                     )}
                   </span>
-                  {f.label}
+                  {t(f.tKey)}
                 </button>
               ))}
             </div>
@@ -284,12 +286,12 @@ function GenerateReportContent() {
             {generateReport.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Generating...
+                {t('statusGenerating')}...
               </>
             ) : (
               <>
                 <FileBarChart className="h-4 w-4" />
-                Generate Report
+                {t('generateReportBtn')}
               </>
             )}
           </button>
@@ -303,17 +305,10 @@ function GenerateReportContent() {
             <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-600" />
             <div className="min-w-0 flex-1">
               <h3 className="text-sm font-semibold text-green-900">
-                Report generation started
+                {t('generationStarted')}
               </h3>
               <p className="mt-1 text-sm text-green-700">
-                Your report is being generated. You can track its progress in the{' '}
-                <Link
-                  href="/reports/history"
-                  className="font-medium underline hover:no-underline"
-                >
-                  report history
-                </Link>
-                .
+                {t('generationStartedDesc')}
               </p>
               {generateReport.data.data.downloadUrl && (
                 <a
@@ -321,7 +316,7 @@ function GenerateReportContent() {
                   className="mt-3 inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
                 >
                   <Download className="h-4 w-4" />
-                  Download Report
+                  {t('downloadReport')}
                 </a>
               )}
               {generateReport.data.data.status === 'pending' ||
@@ -345,7 +340,7 @@ function GenerateReportContent() {
             <XCircle className="mt-0.5 h-5 w-5 text-red-600" />
             <div>
               <h3 className="text-sm font-semibold text-red-900">
-                Report generation failed
+                {t('generationFailed')}
               </h3>
               <p className="mt-1 text-sm text-red-700">
                 {generateReport.error instanceof Error
@@ -363,7 +358,7 @@ function GenerateReportContent() {
           <div className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-amber-600" />
             <p className="text-sm text-amber-700">
-              Select a report template and configure the period to generate a report.
+              {t('validationMsg')}
             </p>
           </div>
         </div>

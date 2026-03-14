@@ -11,6 +11,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { Pagination } from '@/components/ui/Pagination';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import {
@@ -36,6 +37,7 @@ const LEVEL_COLORS: Record<string, string> = {
 };
 
 export default function ValidationChainsPage() {
+  const t = useTranslations('settings');
   const { user } = useAuthStore();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -68,7 +70,7 @@ export default function ValidationChainsPage() {
   const filtered = allFiltered.slice((page - 1) * limit, page * limit);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Remove this validation chain?')) return;
+    if (!confirm(t('removeChainConfirm'))) return;
     await deleteMut.mutateAsync(id);
   };
 
@@ -76,9 +78,9 @@ export default function ValidationChainsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Validation Chains</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('validationChainsTitle')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Define who validates whom at each level of the hierarchy
+            {t('validationChainsDesc')}
           </p>
         </div>
         <button
@@ -86,7 +88,7 @@ export default function ValidationChainsPage() {
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
           <Plus className="h-4 w-4" />
-          New Chain
+          {t('newChain')}
         </button>
       </div>
 
@@ -102,7 +104,7 @@ export default function ValidationChainsPage() {
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search by user or validator..."
+            placeholder={t('searchByUserOrValidator')}
             className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
           />
         </div>
@@ -146,10 +148,10 @@ export default function ValidationChainsPage() {
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-12 text-center">
           <Link2 className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
           <p className="mt-4 text-sm font-medium text-gray-900 dark:text-white">
-            No validation chains found
+            {t('noValidationChains')}
           </p>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Create chains to define the validator hierarchy.
+            {t('noValidationChainsDesc')}
           </p>
         </div>
       ) : (
@@ -204,7 +206,7 @@ export default function ValidationChainsPage() {
               {/* Backup */}
               {chain.backupValidator && (
                 <div className="hidden lg:flex items-center gap-1 text-xs text-gray-500">
-                  <span className="text-gray-400">Backup:</span>
+                  <span className="text-gray-400">{t('backup')}</span>
                   {chain.backupValidator.displayName ?? chain.backupValidator.email}
                 </div>
               )}
@@ -240,6 +242,7 @@ const userFilter = (u: ManagedUser) =>
   `${u.firstName} ${u.lastName} ${u.email} ${u.role}`;
 
 function CreateChainForm({ onClose }: { onClose: () => void }) {
+  const t = useTranslations('settings');
   const createMut = useCreateValidationChain();
   const { data: usersRes, isLoading: usersLoading } = useSettingsUsers({ limit: 100 });
   const users = usersRes?.data ?? [];
@@ -272,49 +275,49 @@ function CreateChainForm({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10 p-5 space-y-4">
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">New Validation Chain</h3>
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('newValidationChain')}</h3>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <div>
-          <label className="text-xs font-medium text-gray-600">User (submitter)</label>
+          <label className="text-xs font-medium text-gray-600">{t('userSubmitter')}</label>
           <SearchCombobox<ManagedUser>
             value={form.user}
             onChange={(u) => setForm((s) => ({ ...s, user: u }))}
             items={users}
             labelKey={userLabel}
             filterKey={userFilter}
-            placeholder="Search user..."
+            placeholder={t('searchUser')}
             loading={usersLoading}
             className="mt-1"
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-600">Validator</label>
+          <label className="text-xs font-medium text-gray-600">{t('validator')}</label>
           <SearchCombobox<ManagedUser>
             value={form.validator}
             onChange={(u) => setForm((s) => ({ ...s, validator: u }))}
             items={users}
             labelKey={userLabel}
             filterKey={userFilter}
-            placeholder="Search validator..."
+            placeholder={t('searchValidator')}
             loading={usersLoading}
             className="mt-1"
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-600">Backup Validator (optional)</label>
+          <label className="text-xs font-medium text-gray-600">{t('backupValidator')}</label>
           <SearchCombobox<ManagedUser>
             value={form.backupValidator}
             onChange={(u) => setForm((s) => ({ ...s, backupValidator: u }))}
             items={users}
             labelKey={userLabel}
             filterKey={userFilter}
-            placeholder="Search backup..."
+            placeholder={t('searchBackup')}
             loading={usersLoading}
             className="mt-1"
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-600">Level Type</label>
+          <label className="text-xs font-medium text-gray-600">{t('levelType')}</label>
           <select
             value={form.levelType}
             onChange={(e) => setForm((s) => ({ ...s, levelType: e.target.value }))}
@@ -326,7 +329,7 @@ function CreateChainForm({ onClose }: { onClose: () => void }) {
           </select>
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-600">Priority (1-3)</label>
+          <label className="text-xs font-medium text-gray-600">{t('priorityLabel')}</label>
           <input
             type="number"
             min={1}
@@ -342,14 +345,14 @@ function CreateChainForm({ onClose }: { onClose: () => void }) {
           onClick={onClose}
           className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
         >
-          Cancel
+          {t('cancel')}
         </button>
         <button
           onClick={handleCreate}
           disabled={!form.user || !form.validator || createMut.isPending}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {createMut.isPending ? 'Creating...' : 'Create Chain'}
+          {createMut.isPending ? t('creating') : t('createChain')}
         </button>
       </div>
     </div>

@@ -12,6 +12,7 @@ import {
   HeartPulse,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const ProductionChart = dynamic(() => import('./ProductionChart'), { ssr: false });
 import { useApicultureKpis } from '@/lib/api/hooks';
@@ -62,6 +63,7 @@ function TrendIndicator({ value }: { value: number }) {
 }
 
 export default function ApiculturePage() {
+  const t = useTranslations('apiculture');
   const { data: kpiData, isLoading: kpiLoading } = useApicultureKpis();
   const kpis = { ...PLACEHOLDER_KPIS, ...kpiData?.data };
   const trends = PLACEHOLDER_TRENDS;
@@ -72,10 +74,10 @@ export default function ApiculturePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Apiculture & Pollination
+            {t('title')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Apiaries, colony health, honey production, and pollination services
+            {t('subtitle')}
           </p>
         </div>
       </div>
@@ -94,7 +96,7 @@ export default function ApiculturePage() {
       ) : <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Registered Apiaries</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">{t('apiaries')}</p>
             <Hexagon className="h-5 w-5 text-amber-600" />
           </div>
           <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -105,7 +107,7 @@ export default function ApiculturePage() {
 
         <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Active Colonies</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">{t('colonies')}</p>
             <Bug className="h-5 w-5 text-yellow-600" />
           </div>
           <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -116,7 +118,7 @@ export default function ApiculturePage() {
 
         <div className="rounded-card border border-amber-200 bg-amber-50 p-4 shadow-sm dark:border-amber-800 dark:bg-amber-900/20">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-amber-600">Honey Production</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-amber-600">{t('production')}</p>
             <Droplets className="h-5 w-5 text-amber-500" />
           </div>
           <p className="mt-2 text-2xl font-bold text-amber-700 dark:text-amber-400">
@@ -127,7 +129,7 @@ export default function ApiculturePage() {
 
         <div className="rounded-card border border-red-200 bg-red-50 p-4 shadow-sm dark:border-red-800 dark:bg-red-900/20">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-red-600">Colony Loss Rate</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-red-600">{t('colonyHealth')}</p>
             <HeartPulse className="h-5 w-5 text-red-500" />
           </div>
           <p className="mt-2 text-2xl font-bold text-red-700 dark:text-red-400">
@@ -161,8 +163,8 @@ export default function ApiculturePage() {
               <Hexagon className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Apiaries</p>
-              <p className="text-xs text-gray-400">Registered apiary locations</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('apiaries')}</p>
+              <p className="text-xs text-gray-400">{t('apiariesDesc')}</p>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-amber-600" />
@@ -177,8 +179,8 @@ export default function ApiculturePage() {
               <HeartPulse className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Colony Health</p>
-              <p className="text-xs text-gray-400">Diseases, pests & losses</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('colonyHealth')}</p>
+              <p className="text-xs text-gray-400">{t('colonyHealthDesc')}</p>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-red-600" />
@@ -193,8 +195,8 @@ export default function ApiculturePage() {
               <Droplets className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Production</p>
-              <p className="text-xs text-gray-400">Honey, wax & propolis output</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('production')}</p>
+              <p className="text-xs text-gray-400">{t('productionDesc')}</p>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-yellow-600" />

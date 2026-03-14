@@ -20,6 +20,7 @@ import {
   Legend,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useMarketPrices, type MarketPrice } from '@/lib/api/hooks';
 import { TableSkeleton, Skeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
@@ -166,6 +167,7 @@ const PLACEHOLDER_TRENDS: Record<string, PriceTrendPoint[]> = {
 const ALL_COMMODITIES = Array.from(new Set(PLACEHOLDER_PRICES.map((p) => p.commodity)));
 
 export default function MarketPricesPage() {
+  const t = useTranslations('trade');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [commodityFilter, setCommodityFilter] = useState('');
@@ -206,9 +208,9 @@ export default function MarketPricesPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Market Prices</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('markets')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Commodity price intelligence across African markets
+            {t('marketsDesc')}
           </p>
         </div>
       </div>
@@ -283,7 +285,7 @@ export default function MarketPricesPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search market prices..."
+            placeholder={t('searchMarkets')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -302,7 +304,7 @@ export default function MarketPricesPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Commodities</option>
+            <option value="">{t('allProducts')}</option>
             {ALL_COMMODITIES.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -317,7 +319,7 @@ export default function MarketPricesPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Price Types</option>
+            <option value="">{t('allStatus')}</option>
             <option value="WHOLESALE">Wholesale</option>
             <option value="RETAIL">Retail</option>
             <option value="FARM_GATE">Farm Gate</option>
@@ -331,7 +333,7 @@ export default function MarketPricesPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Countries</option>
+            <option value="">{t('allCountries')}</option>
             {countries.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -355,15 +357,15 @@ export default function MarketPricesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Market</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Commodity</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('marketName')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('location')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('commodity')}</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Species</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Price Type</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Price</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('status')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('priceUsd')}</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Currency</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Unit</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Date</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('priceUnit')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('lastUpdated')}</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Source</th>
                 </tr>
               </thead>
@@ -406,7 +408,7 @@ export default function MarketPricesPage() {
                 {prices.length === 0 && (
                   <tr>
                     <td colSpan={10} className="px-4 py-12 text-center text-gray-400">
-                      No market prices found
+                      {t('noMarketsFound')}
                     </td>
                   </tr>
                 )}
@@ -417,7 +419,7 @@ export default function MarketPricesPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <p className="text-xs text-gray-500">
-              Showing {prices.length} of {meta.total} market prices
+              {t('showingOf', { count: String(prices.length), total: String(meta.total) })}
             </p>
             <div className="flex items-center gap-1">
               <button

@@ -26,31 +26,12 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useAuditLog, type AuditEntry } from '@/lib/api/hooks';
 
 /* ─── Constants ─────────────────────────────────────────────────────────────── */
 
-const ACTION_OPTIONS = [
-  { value: '', label: 'All Actions', icon: Activity },
-  { value: 'CREATE', label: 'Create', icon: FileText },
-  { value: 'UPDATE', label: 'Update', icon: Settings },
-  { value: 'DELETE', label: 'Delete', icon: Trash2 },
-  { value: 'VALIDATE', label: 'Validate', icon: CheckCircle },
-  { value: 'REJECT', label: 'Reject', icon: XCircle },
-  { value: 'EXPORT', label: 'Export', icon: Upload },
-] as const;
-
-const ENTITY_TYPE_OPTIONS = [
-  { value: '', label: 'All Entities', icon: Database },
-  { value: 'health_event', label: 'Health Events', icon: Activity },
-  { value: 'vaccination', label: 'Vaccinations', icon: Shield },
-  { value: 'lab_result', label: 'Lab Results', icon: FileText },
-  { value: 'census', label: 'Census', icon: Database },
-  { value: 'trade_flow', label: 'Trade Flows', icon: Upload },
-  { value: 'sps_certificate', label: 'SPS Certificates', icon: FileText },
-  { value: 'user', label: 'Users', icon: User },
-  { value: 'config', label: 'Configuration', icon: Settings },
-] as const;
+/* ACTION_OPTIONS and ENTITY_TYPE_OPTIONS are now created inside the component for i18n */
 
 const CLASSIFICATION_COLORS: Record<string, string> = {
   PUBLIC: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800',
@@ -79,19 +60,19 @@ const ACTION_BADGE_COLORS: Record<string, string> = {
 
 /* ─── Helpers ───────────────────────────────────────────────────────────────── */
 
-function formatTimestamp(ts: string): string {
+function formatTimestamp(ts: string, t: (key: string, params?: Record<string, string | number>) => string): string {
   try {
     const date = new Date(ts);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60_000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffMins < 1) return t('justNow');
+    if (diffMins < 60) return t('minutesAgo', { count: diffMins });
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffHours < 24) return t('hoursAgo', { count: diffHours });
     const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffDays < 7) return t('daysAgo', { count: diffDays });
 
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -121,7 +102,7 @@ function formatFullTimestamp(ts: string): string {
   }
 }
 
-function groupEntriesByDate(entries: AuditEntry[]): Record<string, AuditEntry[]> {
+function groupEntriesByDate(entries: AuditEntry[], t: (key: string, params?: Record<string, string | number>) => string): Record<string, AuditEntry[]> {
   const groups: Record<string, AuditEntry[]> = {};
   for (const entry of entries) {
     try {
@@ -132,9 +113,9 @@ function groupEntriesByDate(entries: AuditEntry[]): Record<string, AuditEntry[]>
 
       let label: string;
       if (date.toDateString() === today.toDateString()) {
-        label = 'Today';
+        label = t('today');
       } else if (date.toDateString() === yesterday.toDateString()) {
-        label = 'Yesterday';
+        label = t('yesterday');
       } else {
         label = date.toLocaleDateString('en-US', {
           weekday: 'long',
@@ -160,14 +141,14 @@ function humanizeEntityType(type: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function humanizeAction(action: string): string {
+function humanizeAction(action: string, t: (key: string, params?: Record<string, string | number>) => string): string {
   const map: Record<string, string> = {
-    CREATE: 'created',
-    UPDATE: 'updated',
-    DELETE: 'deleted',
-    VALIDATE: 'validated',
-    REJECT: 'rejected',
-    EXPORT: 'exported',
+    CREATE: t('created'),
+    UPDATE: t('updated'),
+    DELETE: t('deleted'),
+    VALIDATE: t('validated'),
+    REJECT: t('rejected'),
+    EXPORT: t('exported'),
   };
   return map[action] ?? action.toLowerCase();
 }
@@ -175,12 +156,35 @@ function humanizeAction(action: string): string {
 /* ─── Main Page ─────────────────────────────────────────────────────────────── */
 
 export default function AuditLogPage() {
+  const t = useTranslations('settings');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('');
   const [entityTypeFilter, setEntityTypeFilter] = useState('');
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
   const limit = 20;
+
+  const ACTION_OPTIONS = [
+    { value: '', label: t('allActions'), icon: Activity },
+    { value: 'CREATE', label: t('actionCreate'), icon: FileText },
+    { value: 'UPDATE', label: t('actionUpdate'), icon: Settings },
+    { value: 'DELETE', label: t('actionDelete'), icon: Trash2 },
+    { value: 'VALIDATE', label: t('actionValidate'), icon: CheckCircle },
+    { value: 'REJECT', label: t('actionReject'), icon: XCircle },
+    { value: 'EXPORT', label: t('actionExport'), icon: Upload },
+  ];
+
+  const ENTITY_TYPE_OPTIONS = [
+    { value: '', label: t('allEntities'), icon: Database },
+    { value: 'health_event', label: t('healthEvents'), icon: Activity },
+    { value: 'vaccination', label: t('vaccinations'), icon: Shield },
+    { value: 'lab_result', label: t('labResults'), icon: FileText },
+    { value: 'census', label: t('census'), icon: Database },
+    { value: 'trade_flow', label: t('tradeFlows'), icon: Upload },
+    { value: 'sps_certificate', label: t('spsCertificates'), icon: FileText },
+    { value: 'user', label: t('usersManagement'), icon: User },
+    { value: 'config', label: t('configuration'), icon: Settings },
+  ];
 
   const { data, isLoading, isError } = useAuditLog({
     page,
@@ -196,7 +200,7 @@ export default function AuditLogPage() {
   const hasEntries = entries.length > 0;
   const hasActiveFilters = !!actionFilter || !!entityTypeFilter || !!search;
 
-  const dateGroups = useMemo(() => groupEntriesByDate(entries), [entries]);
+  const dateGroups = useMemo(() => groupEntriesByDate(entries, t), [entries, t]);
 
   // Summary stats
   const stats = useMemo(() => {
@@ -224,10 +228,10 @@ export default function AuditLogPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Audit Log
+              {t('auditLogTitle')}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Track all configuration changes and administrative actions
+              {t('auditLogSubtitle')}
             </p>
           </div>
         </div>
@@ -241,14 +245,13 @@ export default function AuditLogPage() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-violet-900 dark:text-violet-200">
-              Compliance & Traceability
+              {t('complianceTraceability')}
             </p>
             <p className="mt-0.5 text-xs text-violet-700 dark:text-violet-400">
-              Every mutation is recorded with actor, timestamp, action, reason, and data classification.
-              Audit entries are immutable and cannot be modified or deleted.
+              {t('complianceDesc')}
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {['Create', 'Update', 'Delete', 'Validate', 'Reject', 'Export'].map((a) => (
+              {[t('actionCreate'), t('actionUpdate'), t('actionDelete'), t('actionValidate'), t('actionReject'), t('actionExport')].map((a) => (
                 <span
                   key={a}
                   className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-900/50 dark:text-violet-300"
@@ -267,7 +270,7 @@ export default function AuditLogPage() {
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
             <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
             <Activity className="h-3.5 w-3.5" />
-            Activity Overview
+            {t('activityOverview')}
             <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           </h2>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
@@ -313,7 +316,7 @@ export default function AuditLogPage() {
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           <Filter className="h-3.5 w-3.5" />
-          Search & Filter
+          {t('searchFilter')}
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
         </h2>
 
@@ -324,7 +327,7 @@ export default function AuditLogPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by actor, entity, or reason..."
+                placeholder={t('searchAuditPlaceholder')}
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 pl-9 pr-3 py-2 text-sm text-gray-700 dark:text-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-700 transition-colors"
@@ -360,7 +363,7 @@ export default function AuditLogPage() {
                 className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <X className="h-3.5 w-3.5" />
-                Clear
+                {t('clear')}
               </button>
             )}
           </div>
@@ -404,7 +407,7 @@ export default function AuditLogPage() {
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           <Clock className="h-3.5 w-3.5" />
-          Activity Timeline
+          {t('activityTimeline')}
           {meta.total > 0 && (
             <span className="rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-[10px] font-semibold tabular-nums">
               {meta.total.toLocaleString()}
@@ -418,7 +421,7 @@ export default function AuditLogPage() {
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
-              <p className="text-sm text-gray-400">Loading audit entries...</p>
+              <p className="text-sm text-gray-400">{t('loadingAuditEntries')}</p>
             </div>
           )}
 
@@ -428,8 +431,8 @@ export default function AuditLogPage() {
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 dark:bg-red-900/20">
                 <AlertTriangle className="h-6 w-6 text-red-500" />
               </div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Failed to load audit entries</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Please check the connection and try again.</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{t('failedToLoadAudit')}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('failedToLoadAuditDesc')}</p>
             </div>
           )}
 
@@ -441,12 +444,12 @@ export default function AuditLogPage() {
               </div>
               <div className="text-center">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  No audit entries found
+                  {t('noAuditEntries')}
                 </p>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   {hasActiveFilters
-                    ? 'Try adjusting your filters or search term.'
-                    : 'Audit entries are generated automatically when data is modified.'}
+                    ? t('noAuditEntriesFilterDesc')
+                    : t('auditAutoGenerated')}
                 </p>
                 {hasActiveFilters && (
                   <button
@@ -454,7 +457,7 @@ export default function AuditLogPage() {
                     className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-violet-50 dark:bg-violet-900/20 px-3 py-1.5 text-xs font-medium text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
                   >
                     <X className="h-3.5 w-3.5" />
-                    Clear all filters
+                    {t('clearAllFilters')}
                   </button>
                 )}
               </div>
@@ -487,6 +490,7 @@ export default function AuditLogPage() {
                         onToggle={() => setExpandedEntry(
                           expandedEntry === entry.id ? null : entry.id,
                         )}
+                        t={t}
                       />
                     ))}
                   </div>
@@ -501,15 +505,7 @@ export default function AuditLogPage() {
       {meta.total > limit && (
         <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 px-4 py-3">
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Showing{' '}
-            <span className="font-semibold text-gray-700 dark:text-gray-200">
-              {(page - 1) * limit + 1}&ndash;{Math.min(page * limit, meta.total)}
-            </span>{' '}
-            of{' '}
-            <span className="font-semibold text-gray-700 dark:text-gray-200">
-              {meta.total.toLocaleString()}
-            </span>{' '}
-            entries
+            {t('showingEntries', { from: (page - 1) * limit + 1, to: Math.min(page * limit, meta.total), total: meta.total })}
           </p>
           <div className="flex items-center gap-1">
             <button
@@ -517,7 +513,7 @@ export default function AuditLogPage() {
               disabled={page <= 1}
               className="rounded-lg px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              First
+              {t('first')}
             </button>
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -559,7 +555,7 @@ export default function AuditLogPage() {
               disabled={page >= totalPages}
               className="rounded-lg px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              Last
+              {t('last')}
             </button>
           </div>
         </div>
@@ -570,15 +566,15 @@ export default function AuditLogPage() {
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           <Shield className="h-3.5 w-3.5" />
-          Data Classification
+          {t('dataClassification')}
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
         </h2>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {([
-            { level: 'PUBLIC', desc: 'Open data, aggregated statistics', icon: Eye },
-            { level: 'PARTNER', desc: 'Shared with authorized organizations (WOAH, FAO)', icon: User },
-            { level: 'RESTRICTED', desc: 'Individual outbreak data, unconfirmed reports', icon: AlertTriangle },
-            { level: 'CONFIDENTIAL', desc: 'Credentials, security, national security', icon: Shield },
+            { level: 'PUBLIC', desc: t('classPublic'), icon: Eye },
+            { level: 'PARTNER', desc: t('classPartner'), icon: User },
+            { level: 'RESTRICTED', desc: t('classRestricted'), icon: AlertTriangle },
+            { level: 'CONFIDENTIAL', desc: t('classConfidential'), icon: Shield },
           ] as const).map(({ level, desc, icon: Icon }) => (
             <div
               key={level}
@@ -606,10 +602,12 @@ function AuditEntryRow({
   entry,
   expanded,
   onToggle,
+  t,
 }: {
   entry: AuditEntry;
   expanded: boolean;
   onToggle: () => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   const style = ACTION_STYLES[entry.action] ?? {
     color: 'text-gray-500',
@@ -636,7 +634,7 @@ function AuditEntryRow({
           <p className="text-sm text-gray-900 dark:text-white leading-snug">
             <span className="font-semibold">{entry.actor.email}</span>{' '}
             <span className="text-gray-500 dark:text-gray-400">
-              {humanizeAction(entry.action)}
+              {humanizeAction(entry.action, t)}
             </span>{' '}
             <span className="font-medium">
               {humanizeEntityType(entry.entityType)}
@@ -657,7 +655,7 @@ function AuditEntryRow({
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500">
               <Clock className="h-3 w-3" />
-              {formatTimestamp(entry.timestamp)}
+              {formatTimestamp(entry.timestamp, t)}
             </span>
             <span className={cn('inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium', classColor)}>
               <Shield className="h-2.5 w-2.5" />
@@ -685,18 +683,18 @@ function AuditEntryRow({
       {expanded && (
         <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20 px-4 py-3 ml-16">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <DetailField label="Full Timestamp" value={formatFullTimestamp(entry.timestamp)} />
-            <DetailField label="Entity ID" value={entry.entityId} mono />
-            <DetailField label="Actor ID" value={entry.actor.userId} mono />
+            <DetailField label={t('fullTimestamp')} value={formatFullTimestamp(entry.timestamp)} />
+            <DetailField label={t('entityId')} value={entry.entityId} mono />
+            <DetailField label={t('actorId')} value={entry.actor.userId} mono />
             <DetailField label="Tenant ID" value={entry.actor.tenantId} mono />
-            <DetailField label="Action" value={entry.action} />
-            <DetailField label="Entity Type" value={humanizeEntityType(entry.entityType)} />
-            <DetailField label="Actor Role" value={entry.actor.role.replace(/_/g, ' ')} />
-            <DetailField label="Classification" value={entry.dataClassification} />
+            <DetailField label={t('action')} value={entry.action} />
+            <DetailField label={t('entityType')} value={humanizeEntityType(entry.entityType)} />
+            <DetailField label={t('actorRole')} value={entry.actor.role.replace(/_/g, ' ')} />
+            <DetailField label={t('classification')} value={entry.dataClassification} />
           </div>
           {entry.reason && (
             <div className="mt-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1">Reason</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1">{t('reason')}</p>
               <p className="text-sm text-gray-700 dark:text-gray-300">{entry.reason}</p>
             </div>
           )}

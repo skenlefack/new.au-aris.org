@@ -27,42 +27,21 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
-const LEVELS = [
-  { key: 'continental', label: 'Continental', icon: Globe, color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30' },
-  { key: 'regional', label: 'Regional', icon: Building2, color: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30' },
-  { key: 'national', label: 'National', icon: Flag, color: 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30' },
+const LEVEL_DEFS = [
+  { key: 'continental', labelKey: 'continental', icon: Globe, color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30' },
+  { key: 'regional', labelKey: 'regional', icon: Building2, color: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30' },
+  { key: 'national', labelKey: 'national', icon: Flag, color: 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30' },
 ] as const;
 
-const CATEGORIES = [
-  { key: 'management', label: 'Management', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
-  { key: 'technical', label: 'Technical', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  { key: 'data', label: 'Data', color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' },
-  { key: 'admin', label: 'Admin', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
-  { key: 'field', label: 'Field', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+const CATEGORY_DEFS = [
+  { key: 'management', labelKey: 'categoryManagement', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
+  { key: 'technical', labelKey: 'categoryTechnical', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+  { key: 'data', labelKey: 'categoryData', color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' },
+  { key: 'admin', labelKey: 'categoryAdmin', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
+  { key: 'field', labelKey: 'categoryField', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
 ];
-
-function getCategoryBadge(cat: string | null | undefined) {
-  const found = CATEGORIES.find((c) => c.key === cat);
-  if (!found) return null;
-  return (
-    <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold', found.color)}>
-      {found.label}
-    </span>
-  );
-}
-
-function getLevelBadge(level: string) {
-  const found = LEVELS.find((l) => l.key === level);
-  if (!found) return <span className="text-xs text-gray-400">{level}</span>;
-  const Icon = found.icon;
-  return (
-    <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', found.color)}>
-      <Icon className="h-3 w-3" />
-      {found.label}
-    </span>
-  );
-}
 
 interface FunctionFormData {
   code: string;
@@ -87,12 +66,38 @@ const EMPTY_FORM: FunctionFormData = {
 };
 
 export default function FunctionsPage() {
+  const t = useTranslations('settings');
   const [activeTab, setActiveTab] = useState<string>('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
   const [limit] = useState(50);
   const { isSuperAdmin, isContinentalAdmin, isRecAdmin, canManageFunctions, canDeleteFunction, tenantLevel } = useSettingsAccess();
+
+  const LEVELS = LEVEL_DEFS.map((l) => ({ ...l, label: t(l.labelKey) }));
+  const CATEGORIES = CATEGORY_DEFS.map((c) => ({ ...c, label: t(c.labelKey) }));
+
+  function getCategoryBadge(cat: string | null | undefined) {
+    const found = CATEGORIES.find((c) => c.key === cat);
+    if (!found) return null;
+    return (
+      <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold', found.color)}>
+        {found.label}
+      </span>
+    );
+  }
+
+  function getLevelBadge(level: string) {
+    const found = LEVELS.find((l) => l.key === level);
+    if (!found) return <span className="text-xs text-gray-400">{level}</span>;
+    const Icon = found.icon;
+    return (
+      <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', found.color)}>
+        <Icon className="h-3 w-3" />
+        {found.label}
+      </span>
+    );
+  }
   const user = useAuthStore((s) => s.user);
   const canManage = canManageFunctions;
 
@@ -184,7 +189,7 @@ export default function FunctionsPage() {
   }, [form, editingId, createMut, updateMut]);
 
   const handleDelete = useCallback(async (id: string, code: string) => {
-    if (!confirm(`Delete function "${code}"? This cannot be undone.`)) return;
+    if (!confirm(t('deleteFunctionConfirm', { code }))) return;
     await deleteMut.mutateAsync(id);
   }, [deleteMut]);
 
@@ -203,10 +208,10 @@ export default function FunctionsPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <Briefcase className="h-6 w-6 text-aris-primary-600" />
-              {editingId ? 'Edit Function' : 'New Function'}
+              {editingId ? t('editFunction') : t('newFunction')}
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {editingId ? `Editing: ${form.name.en || form.code}` : 'Define a new function for the hierarchy'}
+              {editingId ? t('editingFunction', { name: form.name.en || form.code }) : t('defineNewFunction')}
             </p>
           </div>
           <button
@@ -214,7 +219,7 @@ export default function FunctionsPage() {
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {t('back')}
           </button>
         </div>
 
@@ -224,7 +229,7 @@ export default function FunctionsPage() {
             {/* Code */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Code <span className="text-red-500">*</span>
+                {t('code')} <span className="text-red-500">*</span>
               </label>
               <input
                 value={form.code}
@@ -238,7 +243,7 @@ export default function FunctionsPage() {
             {/* Level */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Level <span className="text-red-500">*</span>
+                {t('level')} <span className="text-red-500">*</span>
               </label>
               <select
                 value={form.level}
@@ -253,7 +258,7 @@ export default function FunctionsPage() {
             {/* Category */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Category
+                {t('category')}
               </label>
               <select
                 value={form.category}
@@ -268,7 +273,7 @@ export default function FunctionsPage() {
           {/* Names (4 languages) */}
           <div className="mt-5">
             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Name <span className="text-red-500">*</span>
+              {t('name')} <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {(['en', 'fr', 'pt', 'ar'] as const).map((lang) => (
@@ -291,7 +296,7 @@ export default function FunctionsPage() {
           {/* Description */}
           <div className="mt-4">
             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Description (EN)
+              {t('descriptionEn')}
             </label>
             <input
               value={form.description.en}
@@ -310,7 +315,7 @@ export default function FunctionsPage() {
                 onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
                 className="h-4 w-4 rounded border-gray-300 text-aris-primary-600"
               />
-              Active
+              {t('active')}
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
               <input
@@ -319,10 +324,10 @@ export default function FunctionsPage() {
                 onChange={(e) => setForm((f) => ({ ...f, isDefault: e.target.checked }))}
                 className="h-4 w-4 rounded border-gray-300 text-aris-primary-600"
               />
-              Default
+              {t('default')}
             </label>
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-500 dark:text-gray-400">Sort:</label>
+              <label className="text-sm text-gray-500 dark:text-gray-400">{t('sort')}</label>
               <input
                 type="number"
                 value={form.sortOrder}
@@ -339,7 +344,7 @@ export default function FunctionsPage() {
               onClick={handleBack}
               className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               onClick={handleSave}
@@ -351,7 +356,7 @@ export default function FunctionsPage() {
               ) : (
                 <Check className="h-4 w-4" />
               )}
-              {editingId ? 'Update' : 'Create'}
+              {editingId ? t('update') : t('create')}
             </button>
           </div>
         </div>
@@ -366,10 +371,10 @@ export default function FunctionsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Briefcase className="h-6 w-6 text-aris-primary-600" />
-            Functions
+            {t('functionsTitle')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Job titles and roles per hierarchical level (Continental, Regional, National)
+            {t('functionsSubtitle')}
           </p>
         </div>
         {canManage && (
@@ -378,7 +383,7 @@ export default function FunctionsPage() {
             className="flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-aris-primary-700"
           >
             <Plus className="h-4 w-4" />
-            Add Function
+            {t('addFunction')}
           </button>
         )}
       </div>
@@ -425,7 +430,7 @@ export default function FunctionsPage() {
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search functions..."
+            placeholder={t('searchFunctions')}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
@@ -434,9 +439,9 @@ export default function FunctionsPage() {
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
         >
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option value="">{t('allStatusFilter')}</option>
+          <option value="active">{t('active')}</option>
+          <option value="inactive">{t('inactive')}</option>
         </select>
       </div>
 
@@ -450,18 +455,18 @@ export default function FunctionsPage() {
           <table className="w-full text-left text-sm">
             <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
               <tr>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Code</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name (EN)</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name (FR)</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Level</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Category</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('code')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('nameEn')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('nameFr')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('level')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('category')}</th>
                 {(isSuperAdmin || isContinentalAdmin) && (
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Tenant</th>
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('tenant')}</th>
                 )}
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Users</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Status</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('users')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('status')}</th>
                 {canManage && (
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Actions</th>
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('actions')}</th>
                 )}
               </tr>
             </thead>
@@ -505,7 +510,7 @@ export default function FunctionsPage() {
                         ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                         : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
                     )}>
-                      {fn.isActive ? 'Active' : 'Inactive'}
+                      {fn.isActive ? t('active') : t('inactive')}
                     </span>
                   </td>
                   {canManage && (
@@ -540,7 +545,7 @@ export default function FunctionsPage() {
               {functions.length === 0 && (
                 <tr>
                   <td colSpan={10} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                    No functions found
+                    {t('noFunctionsFound')}
                   </td>
                 </tr>
               )}

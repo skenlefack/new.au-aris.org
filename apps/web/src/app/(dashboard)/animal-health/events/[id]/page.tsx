@@ -22,6 +22,7 @@ import { QueryError } from '@/components/ui/QueryError';
 import { PrintButton } from '@/components/ui/PrintButton';
 import { OfficialHeader } from '@/components/print/OfficialHeader';
 import { OfficialFooter } from '@/components/print/OfficialFooter';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const STATUS_BADGE: Record<string, string> = {
   suspected: 'bg-amber-100 text-amber-700',
@@ -166,6 +167,8 @@ const PLACEHOLDER_DETAIL: HealthEventDetail = {
 };
 
 export default function EventDetailPage() {
+  const t = useTranslations('health');
+  const ta = useTranslations('animalHealth');
   const params = useParams();
   const eventId = params.id as string;
 
@@ -231,7 +234,7 @@ export default function EventDetailPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-card border border-gray-200 bg-white p-4">
           <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-            Cases
+            {t('cases')}
           </p>
           <p className="mt-1 text-2xl font-bold text-gray-900">
             {event.cases.toLocaleString()}
@@ -239,7 +242,7 @@ export default function EventDetailPage() {
         </div>
         <div className="rounded-card border border-gray-200 bg-white p-4">
           <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-            Deaths
+            {t('deaths')}
           </p>
           <p className="mt-1 text-2xl font-bold text-red-700">
             {event.deaths.toLocaleString()}
@@ -247,7 +250,7 @@ export default function EventDetailPage() {
         </div>
         <div className="rounded-card border border-gray-200 bg-white p-4">
           <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-            Quality Score
+            {t('qualityScore')}
           </p>
           <p className="mt-1 text-2xl font-bold text-aris-primary-700">
             {event.dataQualityScore}%
@@ -255,7 +258,7 @@ export default function EventDetailPage() {
         </div>
         <div className="rounded-card border border-gray-200 bg-white p-4">
           <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-            Validation Level
+            {t('validationLevel')}
           </p>
           <p className="mt-1 text-2xl font-bold text-gray-900">
             L{event.validationLevel}
@@ -282,7 +285,7 @@ export default function EventDetailPage() {
           {/* Description */}
           <section className="rounded-card border border-gray-200 bg-white p-6">
             <h2 className="text-sm font-semibold text-gray-900">
-              Description
+              {t('description')}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-gray-600">
               {event.description}
@@ -291,7 +294,7 @@ export default function EventDetailPage() {
             {event.measures.length > 0 && (
               <>
                 <h3 className="mt-4 text-sm font-semibold text-gray-900">
-                  Control Measures
+                  {t('controlMeasures')}
                 </h3>
                 <ul className="mt-2 space-y-1">
                   {event.measures.map((m, i) => (
@@ -313,7 +316,7 @@ export default function EventDetailPage() {
             <div className="flex items-center gap-2">
               <FlaskConical className="h-4 w-4 text-aris-secondary-600" />
               <h2 className="text-sm font-semibold text-gray-900">
-                Laboratory Results
+                {t('labResults')}
               </h2>
             </div>
             <div className="mt-4 overflow-x-auto">
@@ -321,19 +324,19 @@ export default function EventDetailPage() {
                 <thead>
                   <tr className="border-b border-gray-100">
                     <th className="pb-2 text-left font-medium text-gray-500">
-                      Sample ID
+                      {t('sampleId')}
                     </th>
                     <th className="pb-2 text-left font-medium text-gray-500">
-                      Test
+                      {t('test')}
                     </th>
                     <th className="pb-2 text-left font-medium text-gray-500">
-                      Result
+                      {t('result')}
                     </th>
                     <th className="pb-2 text-left font-medium text-gray-500">
-                      Pathogen
+                      {t('pathogen')}
                     </th>
                     <th className="pb-2 text-left font-medium text-gray-500">
-                      Lab
+                      {t('lab')}
                     </th>
                   </tr>
                 </thead>
@@ -367,23 +370,23 @@ export default function EventDetailPage() {
           {event.vaccinationResponse && (
             <section className="rounded-card border border-gray-200 bg-white p-6">
               <h2 className="text-sm font-semibold text-gray-900">
-                Vaccination Response
+                {t('vaccinationResponse')}
               </h2>
               <div className="mt-4 grid grid-cols-3 gap-4">
                 <div>
-                  <p className="text-xs text-gray-400">Doses Administered</p>
+                  <p className="text-xs text-gray-400">{t('dosesAdministered')}</p>
                   <p className="text-lg font-bold text-gray-900">
                     {event.vaccinationResponse.dosesAdministered.toLocaleString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Target Population</p>
+                  <p className="text-xs text-gray-400">{t('targetPopulation')}</p>
                   <p className="text-lg font-bold text-gray-900">
                     {event.vaccinationResponse.targetPopulation.toLocaleString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Coverage</p>
+                  <p className="text-xs text-gray-400">{t('coverage')}</p>
                   <p className="text-lg font-bold text-aris-primary-700">
                     {event.vaccinationResponse.coverage}%
                   </p>
@@ -408,19 +411,19 @@ export default function EventDetailPage() {
           {/* Metadata */}
           <section className="rounded-card border border-gray-200 bg-white p-4">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-              Event Info
+              {t('eventInfo')}
             </h3>
             <dl className="mt-3 space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                <dt className="text-gray-500">Location:</dt>
+                <dt className="text-gray-500">{ta('location')}:</dt>
                 <dd className="font-medium text-gray-900">
                   {event.lat.toFixed(3)}, {event.lng.toFixed(3)}
                 </dd>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                <dt className="text-gray-500">Reported:</dt>
+                <dt className="text-gray-500">{ta('reported')}:</dt>
                 <dd className="font-medium text-gray-900">
                   {new Date(event.reportedAt).toLocaleDateString()}
                 </dd>
@@ -428,7 +431,7 @@ export default function EventDetailPage() {
               {event.confirmedAt && (
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                  <dt className="text-gray-500">Confirmed:</dt>
+                  <dt className="text-gray-500">{ta('confirmed')}:</dt>
                   <dd className="font-medium text-gray-900">
                     {new Date(event.confirmedAt).toLocaleDateString()}
                   </dd>
@@ -443,7 +446,7 @@ export default function EventDetailPage() {
               </div>
             </dl>
             <div className="mt-3 border-t border-gray-100 pt-3">
-              <p className="text-xs text-gray-400">Species Affected</p>
+              <p className="text-xs text-gray-400">{ta('speciesAffected')}</p>
               <div className="mt-1 flex flex-wrap gap-1">
                 {event.speciesAffected.map((s) => (
                   <span
@@ -460,7 +463,7 @@ export default function EventDetailPage() {
           {/* Timeline */}
           <section className="rounded-card border border-gray-200 bg-white p-4">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-              Timeline
+              {t('timeline')}
             </h3>
             <div className="mt-3 space-y-0">
               {event.timeline.map((entry: TimelineEntry, i: number) => (

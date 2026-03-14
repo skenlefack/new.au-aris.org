@@ -9,6 +9,7 @@ import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea
 import { ColorPicker } from '@/components/settings/ColorPicker';
 import { StatsEditor } from '@/components/settings/StatsEditor';
 import { SaveBar } from '@/components/settings/SaveBar';
+import { useTranslations } from '@/lib/i18n/translations';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -18,6 +19,7 @@ export default function RecDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { canManageRecs } = useSettingsAccess();
+  const t = useTranslations('settings');
   const { data, isLoading } = useSettingsRec(id);
   const updateMutation = useUpdateRec();
 
@@ -110,7 +112,7 @@ export default function RecDetailPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {form.name?.en || 'Edit REC'}
+            {form.name?.en || t('editRec')}
           </h1>
           <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
             {form.fullName?.en}
@@ -125,7 +127,7 @@ export default function RecDetailPage() {
 
       {/* Preview card */}
       <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
-        <p className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Landing Page Preview</p>
+        <p className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">{t('landingPagePreview')}</p>
         <div
           className="rounded-lg px-4 py-3 text-white"
           style={{ background: `linear-gradient(135deg, ${form.accentColor}, ${form.accentColor}cc)` }}
@@ -139,27 +141,27 @@ export default function RecDetailPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-5">
           <MultilingualInput
-            label="REC Name"
+            label={t('recName')}
             value={form.name}
             onChange={(v) => updateField('name', v)}
             required
             disabled={!canManageRecs}
           />
           <MultilingualInput
-            label="Full Name"
+            label={t('fullName')}
             value={form.fullName}
             onChange={(v) => updateField('fullName', v)}
             required
             disabled={!canManageRecs}
           />
           <MultilingualInput
-            label="Region"
+            label={t('region')}
             value={form.region}
             onChange={(v) => updateField('region', v)}
             disabled={!canManageRecs}
           />
           <MultilingualTextarea
-            label="Description"
+            label={t('description')}
             value={form.description}
             onChange={(v) => updateField('description', v)}
             disabled={!canManageRecs}
@@ -169,7 +171,7 @@ export default function RecDetailPage() {
         <div className="space-y-5">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Headquarters
+              {t('headquarters')}
             </label>
             <input
               type="text"
@@ -182,7 +184,7 @@ export default function RecDetailPage() {
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Established Year
+              {t('establishedYear')}
             </label>
             <input
               type="number"
@@ -194,7 +196,7 @@ export default function RecDetailPage() {
           </div>
 
           <ColorPicker
-            label="Accent Color"
+            label={t('accentColor')}
             value={form.accentColor}
             onChange={(v) => updateField('accentColor', v)}
             disabled={!canManageRecs}
@@ -202,7 +204,7 @@ export default function RecDetailPage() {
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Website
+              {t('website')}
             </label>
             <input
               type="url"
@@ -216,8 +218,8 @@ export default function RecDetailPage() {
 
           <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900/50">
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Active</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Show on landing page</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{t('active')}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('showOnLanding')}</p>
             </div>
             <button
               type="button"
@@ -236,7 +238,7 @@ export default function RecDetailPage() {
       {/* Stats */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
         <StatsEditor
-          label="REC Statistics"
+          label={t('recStatistics')}
           value={form.stats ?? {}}
           onChange={(v) => updateField('stats', v)}
           disabled={!canManageRecs}

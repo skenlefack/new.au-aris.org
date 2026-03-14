@@ -9,6 +9,7 @@ import {
   type HistoricalDataset,
 } from '@/lib/api/historical-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTranslations } from '@/lib/i18n/translations';
 
 /* ------------------------------------------------------------------ */
 /*  Status badge                                                        */
@@ -64,6 +65,7 @@ const DOMAIN_LABELS: Record<string, string> = {
 /* ------------------------------------------------------------------ */
 
 export default function HistoricalDataPage() {
+  const t = useTranslations('historical');
   const { user } = useAuthStore();
   const [search, setSearch] = useState('');
   const [domain, setDomain] = useState('');
@@ -94,9 +96,9 @@ export default function HistoricalDataPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Historical Data</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('title')}</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Import and analyze historical datasets from files (Excel, CSV, JSON)
+            {t('subtitle')}
           </p>
         </div>
         {canImport && (
@@ -107,7 +109,7 @@ export default function HistoricalDataPage() {
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Import Dataset
+            {t('importData')}
           </Link>
         )}
       </div>
@@ -115,13 +117,13 @@ export default function HistoricalDataPage() {
       {/* Stats cards */}
       {stats && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Total Datasets" value={formatNumber(stats.totalDatasets)} />
-          <StatCard label="Total Rows" value={formatNumber(stats.totalRows)} />
+          <StatCard label={t('totalDatasets')} value={formatNumber(stats.totalDatasets)} />
+          <StatCard label={t('totalRows')} value={formatNumber(stats.totalRows)} />
           <StatCard
-            label="Ready"
+            label={t('statusReady')}
             value={formatNumber(stats.byStatus.find((s) => s.status === 'READY')?.count ?? 0)}
           />
-          <StatCard label="Domains" value={String(stats.byDomain.length)} />
+          <StatCard label={t('domains')} value={String(stats.byDomain.length)} />
         </div>
       )}
 
@@ -129,7 +131,7 @@ export default function HistoricalDataPage() {
       <div className="flex flex-wrap items-center gap-3">
         <input
           type="text"
-          placeholder="Search datasets..."
+          placeholder={t('searchPlaceholder')}
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
@@ -139,7 +141,7 @@ export default function HistoricalDataPage() {
           onChange={(e) => { setDomain(e.target.value); setPage(1); }}
           className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
         >
-          <option value="">All domains</option>
+          <option value="">{t('allDomains')}</option>
           {Object.entries(DOMAIN_LABELS).map(([key, label]) => (
             <option key={key} value={key}>{label}</option>
           ))}
@@ -148,16 +150,16 @@ export default function HistoricalDataPage() {
 
       {/* Dataset table */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-12 text-slate-400">Loading datasets...</div>
+        <div className="flex items-center justify-center py-12 text-slate-400">{t('loading')}</div>
       ) : datasets.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12">
-          <p className="text-slate-500 dark:text-slate-400">No datasets found</p>
+          <p className="text-slate-500 dark:text-slate-400">{t('noRecords')}</p>
           {canImport && (
             <Link
               href="/historical/import"
               className="mt-3 text-sm text-[var(--color-accent)] hover:underline"
             >
-              Import your first dataset
+              {t('importFirst')}
             </Link>
           )}
         </div>
@@ -167,11 +169,11 @@ export default function HistoricalDataPage() {
             <thead className="bg-slate-50 dark:bg-slate-800/50">
               <tr>
                 <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Name</th>
-                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Domain</th>
-                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Type</th>
-                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300 text-right">Rows</th>
-                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300 text-right">Cols</th>
-                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300 text-right">Size</th>
+                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">{t('domains')}</th>
+                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">{t('type')}</th>
+                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300 text-right">{t('rows')}</th>
+                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300 text-right">{t('columnCount')}</th>
+                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300 text-right">{t('size')}</th>
                 <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Status</th>
                 <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Date</th>
                 <th className="px-4 py-3" />

@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useFisheriesAquaculture, type AquacultureFarm } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
@@ -110,6 +111,7 @@ const PLACEHOLDER_FARMS: AquacultureFarm[] = [
 ];
 
 export default function AquaculturePage() {
+  const t = useTranslations('fisheries');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
@@ -152,10 +154,10 @@ export default function AquaculturePage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Aquaculture Farms
+            {t('aquaTitle')}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Farm production, area, and management status
+            {t('aquaSubtitle')}
           </p>
         </div>
       </div>
@@ -163,7 +165,7 @@ export default function AquaculturePage() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div className="rounded-card border border-green-200 bg-green-50 p-4">
-          <p className="text-xs text-green-600">Active Farms</p>
+          <p className="text-xs text-green-600">{t('activeFarms')}</p>
           <p className="text-xl font-bold text-green-700">
             {activeFarms.length}
           </p>
@@ -194,7 +196,7 @@ export default function AquaculturePage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search farms..."
+            placeholder={t('searchFarms')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -213,7 +215,7 @@ export default function AquaculturePage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Countries</option>
+            <option value="">{t('allCountries')}</option>
             <option value="GH">Ghana</option>
             <option value="ZM">Zambia</option>
             <option value="EG">Egypt</option>
@@ -229,12 +231,12 @@ export default function AquaculturePage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Farm Types</option>
-            <option value="pond">Pond</option>
-            <option value="cage">Cage</option>
-            <option value="raceway">Raceway</option>
-            <option value="recirculating">Recirculating</option>
-            <option value="other">Other</option>
+            <option value="">{t('allFarmTypes')}</option>
+            <option value="pond">{t('pond')}</option>
+            <option value="cage">{t('cage')}</option>
+            <option value="raceway">{t('raceway')}</option>
+            <option value="recirculating">{t('recirculating')}</option>
+            <option value="other">{t('other')}</option>
           </select>
           <select
             value={statusFilter}
@@ -244,10 +246,10 @@ export default function AquaculturePage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="under_construction">Under Construction</option>
+            <option value="">{t('allStatus')}</option>
+            <option value="active">{t('active')}</option>
+            <option value="inactive">{t('inactive')}</option>
+            <option value="under_construction">{t('underConstruction')}</option>
           </select>
         </div>
       </div>
@@ -266,13 +268,13 @@ export default function AquaculturePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Name</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Species</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Farm Type</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Production (t)</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Area (ha)</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('farmName')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('farmCountry')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('farmSpecies')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('farmType')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('prodTonnes')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('areaHa')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('farmStatus')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -312,8 +314,8 @@ export default function AquaculturePage() {
                         )}
                       >
                         {farm.status === 'under_construction'
-                          ? 'Under Construction'
-                          : farm.status.charAt(0).toUpperCase() + farm.status.slice(1)}
+                          ? t('underConstruction')
+                          : farm.status === 'active' ? t('active') : t('inactive')}
                       </span>
                     </td>
                   </tr>
@@ -321,7 +323,7 @@ export default function AquaculturePage() {
                 {farms.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                      No aquaculture farms found
+                      {t('noFarmsFound')}
                     </td>
                   </tr>
                 )}
@@ -332,7 +334,7 @@ export default function AquaculturePage() {
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <p className="text-xs text-gray-500">
-              Showing {farms.length} of {meta.total} farms
+              {t('showingOf', { count: String(farms.length), total: String(meta.total) })}
             </p>
             <div className="flex items-center gap-1">
               <button

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Pagination } from '@/components/ui/Pagination';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTenantStore, deriveCountryCodeFromEmail } from '@/lib/stores/tenant-store';
 import {
@@ -57,6 +58,7 @@ function Skeleton() {
 /* ── Main Page ── */
 
 export default function WorkflowConfigPage() {
+  const t = useTranslations('settings');
   const { user } = useAuthStore();
   const isNational = user?.role === 'NATIONAL_ADMIN';
   const selectedTenant = useTenantStore((s) => s.selectedTenant);
@@ -95,9 +97,9 @@ export default function WorkflowConfigPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Workflow Configuration</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('workflowConfigTitle')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Configure validation workflows per country: steps, delays, and auto-transmit rules
+            {t('workflowConfigDesc')}
           </p>
         </div>
         {!isNational && (
@@ -106,7 +108,7 @@ export default function WorkflowConfigPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
             <Plus className="h-4 w-4" />
-            New Workflow
+            {t('newWorkflow')}
           </button>
         )}
       </div>
@@ -122,7 +124,7 @@ export default function WorkflowConfigPage() {
           type="text"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          placeholder="Search workflows..."
+          placeholder={t('searchWorkflows')}
           className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
         />
       </div>
@@ -133,10 +135,10 @@ export default function WorkflowConfigPage() {
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-12 text-center">
           <Settings className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
           <p className="mt-4 text-sm font-medium text-gray-900 dark:text-white">
-            No workflow definitions found
+            {t('noWorkflowsFound')}
           </p>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Create a workflow to define validation steps for a country.
+            {t('noWorkflowsFoundDesc')}
           </p>
         </div>
       ) : (
@@ -175,6 +177,7 @@ function WorkflowCard({
   isExpanded: boolean;
   onToggle: () => void;
 }) {
+  const t = useTranslations('settings');
   const { data: detailRes } = useWorkflowDefinition(isExpanded ? workflow.id : undefined);
   const detail = detailRes?.data ?? workflow;
   const steps = detail.steps ?? [];
@@ -212,7 +215,7 @@ function WorkflowCard({
               {i18n(workflow.name)}
             </h3>
             <p className="text-xs text-gray-500">
-              {i18n(workflow.country?.name)} &middot; {(workflow.steps ?? []).length || '?'} steps
+              {i18n(workflow.country?.name)} &middot; {(workflow.steps ?? []).length || '?'} {t('steps')}
               &middot; Level {workflow.startLevel} &rarr; {workflow.endLevel}
             </p>
           </div>
@@ -220,7 +223,7 @@ function WorkflowCard({
         <div className="flex items-center gap-2">
           {workflow.autoTransmitEnabled && (
             <span className="rounded bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:text-purple-300">
-              Auto-Transmit
+              {t('autoTransmit')}
             </span>
           )}
           {isExpanded ? (
@@ -237,13 +240,13 @@ function WorkflowCard({
           {/* Settings */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Settings</h4>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{t('settingsLabel')}</h4>
               {!editing ? (
                 <button
                   onClick={() => setEditing(true)}
                   className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
                 >
-                  <Pencil className="h-3 w-3" /> Edit
+                  <Pencil className="h-3 w-3" /> {t('edit')}
                 </button>
               ) : (
                 <div className="flex gap-2">
@@ -251,14 +254,14 @@ function WorkflowCard({
                     onClick={() => setEditing(false)}
                     className="inline-flex items-center gap-1 text-xs text-gray-500 hover:underline"
                   >
-                    <X className="h-3 w-3" /> Cancel
+                    <X className="h-3 w-3" /> {t('cancel')}
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={updateDef.isPending}
                     className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline disabled:opacity-50"
                   >
-                    <Save className="h-3 w-3" /> Save
+                    <Save className="h-3 w-3" /> {t('save')}
                   </button>
                 </div>
               )}
@@ -266,45 +269,45 @@ function WorkflowCard({
 
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
               <SettingField
-                label="Transmit Delay (hours)"
+                label={t('transmitDelay')}
                 value={formState.defaultTransmitDelay}
                 editing={editing}
                 type="number"
                 onChange={(v) => setFormState((s) => ({ ...s, defaultTransmitDelay: Number(v) }))}
               />
               <SettingField
-                label="Validation Delay (hours)"
+                label={t('validationDelay')}
                 value={formState.defaultValidationDelay}
                 editing={editing}
                 type="number"
                 onChange={(v) => setFormState((s) => ({ ...s, defaultValidationDelay: Number(v) }))}
               />
               <ToggleField
-                label="Auto-Transmit"
+                label={t('autoTransmit')}
                 value={formState.autoTransmitEnabled}
                 editing={editing}
                 onChange={(v) => setFormState((s) => ({ ...s, autoTransmitEnabled: v }))}
               />
               <ToggleField
-                label="Auto-Validate"
+                label={t('autoValidate')}
                 value={formState.autoValidateEnabled}
                 editing={editing}
                 onChange={(v) => setFormState((s) => ({ ...s, autoValidateEnabled: v }))}
               />
               <ToggleField
-                label="Require Comment"
+                label={t('requireComment')}
                 value={formState.requireComment}
                 editing={editing}
                 onChange={(v) => setFormState((s) => ({ ...s, requireComment: v }))}
               />
               <ToggleField
-                label="Allow Reject"
+                label={t('allowReject')}
                 value={formState.allowReject}
                 editing={editing}
                 onChange={(v) => setFormState((s) => ({ ...s, allowReject: v }))}
               />
               <ToggleField
-                label="Allow Return"
+                label={t('allowReturn')}
                 value={formState.allowReturn}
                 editing={editing}
                 onChange={(v) => setFormState((s) => ({ ...s, allowReturn: v }))}
@@ -315,7 +318,7 @@ function WorkflowCard({
           {/* Steps */}
           <div>
             <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              Validation Steps
+              {t('validationSteps')}
             </h4>
             <StepsList workflowId={workflow.id} steps={steps} />
           </div>
@@ -368,6 +371,7 @@ function ToggleField({
   editing: boolean;
   onChange: (v: boolean) => void;
 }) {
+  const t = useTranslations('settings');
   return (
     <div className="flex items-center justify-between">
       <label className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</label>
@@ -392,7 +396,7 @@ function ToggleField({
           'text-xs font-medium',
           value ? 'text-green-600' : 'text-gray-400',
         )}>
-          {value ? 'Enabled' : 'Disabled'}
+          {value ? t('enabled') : t('disabled')}
         </span>
       )}
     </div>
@@ -402,6 +406,7 @@ function ToggleField({
 /* ── Steps List ── */
 
 function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) {
+  const t = useTranslations('settings');
   const createStep = useCreateWorkflowStep();
   const updateStep = useUpdateWorkflowStep();
   const deleteStep = useDeleteWorkflowStep();
@@ -446,7 +451,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
   };
 
   const handleDeleteStep = async (stepId: string) => {
-    if (!confirm('Delete this step?')) return;
+    if (!confirm(t('deleteStep'))) return;
     await deleteStep.mutateAsync({ workflowId, stepId });
   };
 
@@ -464,9 +469,9 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
               </p>
               <p className="text-xs text-gray-500">
                 {step.levelType} {step.adminLevel != null ? `(level ${step.adminLevel})` : ''}
-                {step.canEdit && ' · Can Edit'}
-                {step.canValidate && ' · Can Validate'}
-                {step.transmitDelayHours && ` · ${step.transmitDelayHours}h delay`}
+                {step.canEdit && ` · ${t('canEdit')}`}
+                {step.canValidate && ` · ${t('canValidate')}`}
+                {step.transmitDelayHours && ` · ${t('delay', { hours: step.transmitDelayHours })}`}
               </p>
             </div>
             <button
@@ -489,7 +494,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
         <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10 p-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-gray-600">Name (EN)</label>
+              <label className="text-xs font-medium text-gray-600">{t('nameEn')}</label>
               <input
                 value={newStep.nameEn}
                 onChange={(e) => setNewStep((s) => ({ ...s, nameEn: e.target.value }))}
@@ -498,7 +503,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600">Name (FR)</label>
+              <label className="text-xs font-medium text-gray-600">{t('nameFr')}</label>
               <input
                 value={newStep.nameFr}
                 onChange={(e) => setNewStep((s) => ({ ...s, nameFr: e.target.value }))}
@@ -507,7 +512,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600">Level Type</label>
+              <label className="text-xs font-medium text-gray-600">{t('levelType')}</label>
               <select
                 value={newStep.levelType}
                 onChange={(e) => setNewStep((s) => ({ ...s, levelType: e.target.value }))}
@@ -519,7 +524,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600">Admin Level</label>
+              <label className="text-xs font-medium text-gray-600">{t('adminLevel')}</label>
               <input
                 type="number"
                 value={newStep.adminLevel}
@@ -529,7 +534,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600">Step Order</label>
+              <label className="text-xs font-medium text-gray-600">{t('stepOrder')}</label>
               <input
                 type="number"
                 value={newStep.stepOrder}
@@ -538,7 +543,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600">Transmit Delay (hours)</label>
+              <label className="text-xs font-medium text-gray-600">{t('transmitDelayHours')}</label>
               <input
                 type="number"
                 value={newStep.transmitDelayHours}
@@ -556,7 +561,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
                 onChange={(e) => setNewStep((s) => ({ ...s, canEdit: e.target.checked }))}
                 className="rounded"
               />
-              Can Edit
+              {t('canEdit')}
             </label>
             <label className="flex items-center gap-2 text-xs">
               <input
@@ -565,7 +570,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
                 onChange={(e) => setNewStep((s) => ({ ...s, canValidate: e.target.checked }))}
                 className="rounded"
               />
-              Can Validate
+              {t('canValidate')}
             </label>
           </div>
           <div className="flex justify-end gap-2">
@@ -573,14 +578,14 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
               onClick={() => setShowAdd(false)}
               className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               onClick={handleAddStep}
               disabled={!newStep.nameEn || createStep.isPending}
               className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {createStep.isPending ? 'Adding...' : 'Add Step'}
+              {createStep.isPending ? t('adding') : t('addStep')}
             </button>
           </div>
         </div>
@@ -589,7 +594,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
           onClick={() => setShowAdd(true)}
           className="w-full rounded-lg border border-dashed border-gray-300 dark:border-gray-600 py-2 text-xs text-gray-500 hover:border-blue-400 hover:text-blue-600"
         >
-          <Plus className="mr-1 inline h-3 w-3" /> Add Step
+          <Plus className="mr-1 inline h-3 w-3" /> {t('addStep')}
         </button>
       )}
     </div>
@@ -599,6 +604,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
 /* ── Create Workflow Form ── */
 
 function CreateWorkflowForm({ onClose }: { onClose: () => void }) {
+  const t = useTranslations('settings');
   const createDef = useCreateWorkflowDef();
   const [form, setForm] = useState({
     countryCode: '',
@@ -631,10 +637,10 @@ function CreateWorkflowForm({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10 p-5 space-y-4">
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">New Workflow Definition</h3>
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('newWorkflowDef')}</h3>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <div>
-          <label className="text-xs font-medium text-gray-600">Country Code (ISO 2)</label>
+          <label className="text-xs font-medium text-gray-600">{t('countryCodeIso')}</label>
           <input
             value={form.countryCode}
             onChange={(e) => setForm((s) => ({ ...s, countryCode: e.target.value.toUpperCase() }))}
@@ -644,7 +650,7 @@ function CreateWorkflowForm({ onClose }: { onClose: () => void }) {
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-600">Name (EN)</label>
+          <label className="text-xs font-medium text-gray-600">{t('nameEn')}</label>
           <input
             value={form.nameEn}
             onChange={(e) => setForm((s) => ({ ...s, nameEn: e.target.value }))}
@@ -653,7 +659,7 @@ function CreateWorkflowForm({ onClose }: { onClose: () => void }) {
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-600">Name (FR)</label>
+          <label className="text-xs font-medium text-gray-600">{t('nameFr')}</label>
           <input
             value={form.nameFr}
             onChange={(e) => setForm((s) => ({ ...s, nameFr: e.target.value }))}
@@ -662,7 +668,7 @@ function CreateWorkflowForm({ onClose }: { onClose: () => void }) {
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-600">Start Level</label>
+          <label className="text-xs font-medium text-gray-600">{t('startLevel')}</label>
           <input
             type="number"
             value={form.startLevel}
@@ -671,7 +677,7 @@ function CreateWorkflowForm({ onClose }: { onClose: () => void }) {
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-600">End Level</label>
+          <label className="text-xs font-medium text-gray-600">{t('endLevel')}</label>
           <input
             type="number"
             value={form.endLevel}
@@ -680,7 +686,7 @@ function CreateWorkflowForm({ onClose }: { onClose: () => void }) {
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-600">Transmit Delay (h)</label>
+          <label className="text-xs font-medium text-gray-600">{t('transmitDelay')}</label>
           <input
             type="number"
             value={form.defaultTransmitDelay}
@@ -694,14 +700,14 @@ function CreateWorkflowForm({ onClose }: { onClose: () => void }) {
           onClick={onClose}
           className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
         >
-          Cancel
+          {t('cancel')}
         </button>
         <button
           onClick={handleCreate}
           disabled={!form.countryCode || !form.nameEn || createDef.isPending}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {createDef.isPending ? 'Creating...' : 'Create Workflow'}
+          {createDef.isPending ? t('creating') : t('createWorkflow')}
         </button>
       </div>
     </div>

@@ -12,6 +12,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const PvsScoresChart = dynamic(() => import('./PvsScoresChart'), { ssr: false });
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
@@ -62,6 +63,7 @@ function TrendIndicator({ value }: { value: number }) {
 }
 
 export default function GovernancePage() {
+  const t = useTranslations('governance');
   const kpis = PLACEHOLDER_KPIS;
   const pvsScores = PLACEHOLDER_PVS_SCORES;
   const { sections } = useDomainConfig('governance');
@@ -71,10 +73,10 @@ export default function GovernancePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Governance & Capacities
+            {t('title')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Legal frameworks, PVS evaluations, stakeholders, and capacity building
+            {t('subtitle')}
           </p>
         </div>
       </div>
@@ -83,7 +85,7 @@ export default function GovernancePage() {
       {sections.kpis && <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Legal Frameworks</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">{t('legalFrameworks')}</p>
             <Scale className="h-5 w-5 text-indigo-600" />
           </div>
           <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -94,7 +96,7 @@ export default function GovernancePage() {
 
         <div className="rounded-card border border-indigo-200 bg-indigo-50 p-4 shadow-sm dark:border-indigo-800 dark:bg-indigo-900/20">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-indigo-600">PVS Evaluations</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-indigo-600">{t('pvs')}</p>
             <Landmark className="h-5 w-5 text-indigo-500" />
           </div>
           <p className="mt-2 text-2xl font-bold text-indigo-700 dark:text-indigo-400">
@@ -105,7 +107,7 @@ export default function GovernancePage() {
 
         <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Stakeholders</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">{t('stakeholders')}</p>
             <Users className="h-5 w-5 text-blue-600" />
           </div>
           <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -116,7 +118,7 @@ export default function GovernancePage() {
 
         <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Capacity Programs</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">{t('capacity')}</p>
             <GraduationCap className="h-5 w-5 text-green-600" />
           </div>
           <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -150,8 +152,8 @@ export default function GovernancePage() {
               <Scale className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Legal Frameworks</p>
-              <p className="text-xs text-gray-400">Laws & regulations</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('legalFrameworks')}</p>
+              <p className="text-xs text-gray-400">{t('legalFrameworksDesc')}</p>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-indigo-600" />
@@ -166,8 +168,8 @@ export default function GovernancePage() {
               <Landmark className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">PVS Evaluations</p>
-              <p className="text-xs text-gray-400">WOAH PVS Pathway</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('pvs')}</p>
+              <p className="text-xs text-gray-400">{t('pvsDesc')}</p>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-indigo-600" />
@@ -182,8 +184,8 @@ export default function GovernancePage() {
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Stakeholders</p>
-              <p className="text-xs text-gray-400">Partners & actors</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('stakeholders')}</p>
+              <p className="text-xs text-gray-400">{t('stakeholdersDesc')}</p>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-blue-600" />
@@ -198,8 +200,8 @@ export default function GovernancePage() {
               <GraduationCap className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Capacity</p>
-              <p className="text-xs text-gray-400">Training programs</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('capacity')}</p>
+              <p className="text-xs text-gray-400">{t('capacityDesc')}</p>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-green-600" />

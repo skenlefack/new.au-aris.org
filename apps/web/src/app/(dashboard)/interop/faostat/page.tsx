@@ -6,6 +6,7 @@ import { ArrowLeft, Filter, RefreshCw, CheckCircle2, XCircle, Clock, Loader2, Al
 import { cn } from '@/lib/utils';
 import { useFaostatSyncs, useTriggerFaostatSync } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const STATUS_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
   pending: { icon: <Clock className="h-3.5 w-3.5" />, color: 'bg-gray-100 text-gray-600' },
@@ -15,6 +16,7 @@ const STATUS_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = 
 };
 
 export default function FaostatSyncPage() {
+  const t = useTranslations('interop');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
 
@@ -37,15 +39,15 @@ export default function FaostatSyncPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Interop Hub
+          {t('backToInteropHub')}
         </Link>
         <div className="mt-2 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              FAOSTAT Synchronization
+              {t('faostatSync')}
             </h1>
             <p className="mt-1 text-sm text-gray-500">
-              Denominator and production data sync with FAO Statistics
+              {t('faostatSyncDesc')}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -54,10 +56,10 @@ export default function FaostatSyncPage() {
               onChange={(e) => setSyncDataset(e.target.value)}
               className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none"
             >
-              <option value="denominators">Denominators</option>
-              <option value="production">Production</option>
-              <option value="trade">Trade</option>
-              <option value="emissions">Emissions</option>
+              <option value="denominators">{t('datasetDenominators')}</option>
+              <option value="production">{t('datasetProduction')}</option>
+              <option value="trade">{t('datasetTrade')}</option>
+              <option value="emissions">{t('datasetEmissions')}</option>
             </select>
             <button
               onClick={() => triggerSync.mutate({ dataset: syncDataset })}
@@ -69,7 +71,7 @@ export default function FaostatSyncPage() {
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
-              Sync Now
+              {t('syncNow')}
             </button>
           </div>
         </div>
@@ -83,11 +85,11 @@ export default function FaostatSyncPage() {
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none"
         >
-          <option value="">All statuses</option>
-          <option value="pending">Pending</option>
-          <option value="running">Running</option>
-          <option value="completed">Completed</option>
-          <option value="failed">Failed</option>
+          <option value="">{t('allStatuses')}</option>
+          <option value="pending">{t('statusPending')}</option>
+          <option value="running">{t('statusRunning')}</option>
+          <option value="completed">{t('statusCompleted')}</option>
+          <option value="failed">{t('statusFailed')}</option>
         </select>
       </div>
 
@@ -99,13 +101,13 @@ export default function FaostatSyncPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                <th className="px-4 py-3">Dataset</th>
-                <th className="px-4 py-3">Direction</th>
+                <th className="px-4 py-3">{t('dataset')}</th>
+                <th className="px-4 py-3">{t('direction')}</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Records</th>
-                <th className="px-4 py-3 text-right">Discrepancies</th>
-                <th className="px-4 py-3">Triggered By</th>
-                <th className="px-4 py-3">Started</th>
+                <th className="px-4 py-3 text-right">{t('discrepancies')}</th>
+                <th className="px-4 py-3">{t('triggeredBy')}</th>
+                <th className="px-4 py-3">{t('started')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -158,7 +160,7 @@ export default function FaostatSyncPage() {
               {syncs.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                    No FAOSTAT sync history found
+                    {t('noFaostatHistory')}
                   </td>
                 </tr>
               )}

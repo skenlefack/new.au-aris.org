@@ -1,28 +1,30 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from '@/lib/i18n/translations';
 import { Server, Download, Upload, Activity, Database, Cpu } from 'lucide-react';
 
 export default function SystemInfoPage() {
+  const t = useTranslations('settings');
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">System Info</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('systemInfo')}</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Platform version, health status, and configuration management
+          {t('systemInfoDesc')}
         </p>
       </div>
 
       {/* Version info */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <InfoCard icon={<Server className="h-5 w-5" />} label="Version" value="3.0.0-rc1" color="#006B3F" />
-        <InfoCard icon={<Database className="h-5 w-5" />} label="Services" value="22 Active" color="#1565C0" />
-        <InfoCard icon={<Activity className="h-5 w-5" />} label="Status" value="Healthy" color="#2E7D32" />
+        <InfoCard icon={<Server className="h-5 w-5" />} label={t('version')} value="3.0.0-rc1" color="#006B3F" />
+        <InfoCard icon={<Database className="h-5 w-5" />} label={t('services')} value={t('servicesActive', { count: 22 })} color="#1565C0" />
+        <InfoCard icon={<Activity className="h-5 w-5" />} label={t('status')} value={t('healthy')} color="#2E7D32" />
       </div>
 
       {/* Stack */}
       <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Technology Stack</h2>
+        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{t('technologyStack')}</h2>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {STACK_ITEMS.map(({ label, value }) => (
             <div key={label} className="flex justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-900/50">
@@ -35,28 +37,28 @@ export default function SystemInfoPage() {
 
       {/* Config Export/Import */}
       <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Configuration Management</h2>
+        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{t('configManagement')}</h2>
         <div className="flex gap-3">
           <button
             type="button"
             className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <Download className="h-4 w-4" />
-            Export Config (JSON)
+            {t('exportConfig')}
           </button>
           <button
             type="button"
             className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <Upload className="h-4 w-4" />
-            Import Config
+            {t('importConfig')}
           </button>
         </div>
       </section>
 
       {/* Services health */}
       <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Service Health</h2>
+        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{t('serviceHealth')}</h2>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map((svc) => (
             <div key={svc.name} className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-900/50">

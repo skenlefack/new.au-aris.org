@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useProtectedAreas, type ProtectedArea } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const STATUS_BADGE: Record<string, string> = {
   active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -66,6 +67,7 @@ const PLACEHOLDER_AREAS: ProtectedArea[] = [
 ];
 
 export default function ProtectedAreasPage() {
+  const t = useTranslations('wildlife');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [designationFilter, setDesignationFilter] = useState('');
@@ -94,9 +96,9 @@ export default function ProtectedAreasPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Protected Areas</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('protectedAreas')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            National parks, game reserves, marine reserves, and WDPA-listed sites
+            {t('protectedAreasDesc')}
           </p>
         </div>
       </div>
@@ -106,7 +108,7 @@ export default function ProtectedAreasPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search protected areas..."
+            placeholder={t('searchAreas')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
@@ -119,7 +121,7 @@ export default function ProtectedAreasPage() {
             onChange={(e) => { setDesignationFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All Designations</option>
+            <option value="">{t('allDesignations')}</option>
             <option value="National Park">National Park</option>
             <option value="Game Reserve">Game Reserve</option>
             <option value="Marine Reserve">Marine Reserve</option>
@@ -131,7 +133,7 @@ export default function ProtectedAreasPage() {
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All Status</option>
+            <option value="">{t('allStatus')}</option>
             <option value="active">Active</option>
             <option value="proposed">Proposed</option>
             <option value="degraded">Degraded</option>
@@ -152,13 +154,13 @@ export default function ProtectedAreasPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Name</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Designation</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Area (km²)</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Species</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Established</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Status</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('name')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('country')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('designation')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('areaKm2')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('speciesCount')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('established')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
@@ -190,7 +192,7 @@ export default function ProtectedAreasPage() {
                 {areas.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                      No protected areas found
+                      {t('noAreasFound')}
                     </td>
                   </tr>
                 )}
@@ -200,7 +202,7 @@ export default function ProtectedAreasPage() {
 
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 dark:border-gray-700">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Showing {areas.length} of {meta.total} areas
+              {t('showing', { count: areas.length, total: meta.total })}
             </p>
             <div className="flex items-center gap-1">
               <button

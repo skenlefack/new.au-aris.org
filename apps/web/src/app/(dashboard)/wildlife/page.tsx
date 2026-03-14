@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const PLACEHOLDER_KPIS = {
   protectedAreas: 1_240,
@@ -62,6 +63,7 @@ function TrendIndicator({ value }: { value: number }) {
 }
 
 export default function WildlifePage() {
+  const t = useTranslations('wildlife');
   const { data: kpiData, isLoading: kpiLoading } = useWildlifeKpis();
   const kpis = { ...PLACEHOLDER_KPIS, ...kpiData?.data };
   const inventory = PLACEHOLDER_INVENTORY;
@@ -72,10 +74,10 @@ export default function WildlifePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Wildlife & Biodiversity
+            {t('title')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Species inventories, protected areas, CITES permits, and wildlife crime
+            {t('subtitle')}
           </p>
         </div>
       </div>
@@ -94,7 +96,7 @@ export default function WildlifePage() {
       ) : <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Protected Areas</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">{t('protectedAreas')}</p>
             <TreePine className="h-5 w-5 text-green-600" />
           </div>
           <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -105,7 +107,7 @@ export default function WildlifePage() {
 
         <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Species Inventoried</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">{t('inventory')}</p>
             <PawPrint className="h-5 w-5 text-amber-600" />
           </div>
           <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -116,7 +118,7 @@ export default function WildlifePage() {
 
         <div className="rounded-card border border-emerald-200 bg-emerald-50 p-4 shadow-sm dark:border-emerald-800 dark:bg-emerald-900/20">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-emerald-600">CITES Permits</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-emerald-600">{t('citesPermits')}</p>
             <FileCheck className="h-5 w-5 text-emerald-500" />
           </div>
           <p className="mt-2 text-2xl font-bold text-emerald-700 dark:text-emerald-400">
@@ -161,8 +163,8 @@ export default function WildlifePage() {
               <PawPrint className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Inventory</p>
-              <p className="text-xs text-gray-400">Species records & census</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('inventory')}</p>
+              <p className="text-xs text-gray-400">{t('inventoryDesc')}</p>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-amber-600" />
@@ -177,8 +179,8 @@ export default function WildlifePage() {
               <TreePine className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Protected Areas</p>
-              <p className="text-xs text-gray-400">Parks, reserves & WDPA</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('protectedAreas')}</p>
+              <p className="text-xs text-gray-400">{t('protectedAreasDesc')}</p>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-green-600" />
@@ -193,8 +195,8 @@ export default function WildlifePage() {
               <FileCheck className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">CITES Permits</p>
-              <p className="text-xs text-gray-400">Trade permits & compliance</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('citesPermits')}</p>
+              <p className="text-xs text-gray-400">{t('citesPermitsDesc')}</p>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-emerald-600" />

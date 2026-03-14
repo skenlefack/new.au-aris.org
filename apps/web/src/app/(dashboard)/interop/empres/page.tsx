@@ -6,6 +6,7 @@ import { ArrowLeft, Filter, Rss, AlertTriangle, CheckCircle2, Info, Clock } from
 import { cn } from '@/lib/utils';
 import { useEmpresFeed } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const CONFIDENCE_COLORS: Record<string, string> = {
   rumor: 'bg-gray-100 text-gray-600',
@@ -22,6 +23,7 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function EmpresFeedPage() {
+  const t = useTranslations('interop');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [confidenceFilter, setConfidenceFilter] = useState('');
@@ -43,13 +45,13 @@ export default function EmpresFeedPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Interop Hub
+          {t('backToInteropHub')}
         </Link>
         <h1 className="mt-2 text-2xl font-bold text-gray-900">
-          EMPRES Feeds
+          {t('empresFeeds')}
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          FAO Emergency Prevention System signal intelligence feeds
+          {t('empresFeedsDesc')}
         </p>
       </div>
 
@@ -61,22 +63,22 @@ export default function EmpresFeedPage() {
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none"
         >
-          <option value="">All statuses</option>
-          <option value="received">Received</option>
-          <option value="processed">Processed</option>
-          <option value="matched">Matched</option>
-          <option value="discarded">Discarded</option>
+          <option value="">{t('allStatuses')}</option>
+          <option value="received">{t('statusReceived')}</option>
+          <option value="processed">{t('statusProcessed')}</option>
+          <option value="matched">{t('statusMatched')}</option>
+          <option value="discarded">{t('statusDiscarded')}</option>
         </select>
         <select
           value={confidenceFilter}
           onChange={(e) => { setConfidenceFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none"
         >
-          <option value="">All confidence</option>
-          <option value="rumor">Rumor</option>
-          <option value="unverified">Unverified</option>
-          <option value="verified">Verified</option>
-          <option value="confirmed">Confirmed</option>
+          <option value="">{t('allConfidence')}</option>
+          <option value="rumor">{t('confidenceRumor')}</option>
+          <option value="unverified">{t('confidenceUnverified')}</option>
+          <option value="verified">{t('confidenceVerified')}</option>
+          <option value="confirmed">{t('confidenceConfirmed')}</option>
         </select>
       </div>
 
@@ -88,13 +90,13 @@ export default function EmpresFeedPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                <th className="px-4 py-3">Signal ID</th>
+                <th className="px-4 py-3">{t('signalId')}</th>
                 <th className="px-4 py-3">Title</th>
-                <th className="px-4 py-3">Disease</th>
+                <th className="px-4 py-3">{t('disease')}</th>
                 <th className="px-4 py-3">Country</th>
-                <th className="px-4 py-3">Confidence</th>
+                <th className="px-4 py-3">{t('confidence')}</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Received</th>
+                <th className="px-4 py-3">{t('received')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -132,7 +134,7 @@ export default function EmpresFeedPage() {
               {feeds.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                    No EMPRES feeds found
+                    {t('noEmpresFeeds')}
                   </td>
                 </tr>
               )}

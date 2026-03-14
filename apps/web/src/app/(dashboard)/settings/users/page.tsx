@@ -34,6 +34,7 @@ import {
   Copy,
   ArrowLeft,
 } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 import { cn } from '@/lib/utils';
 
 const ROLES = [
@@ -92,6 +93,7 @@ const EMPTY_USER_FORM: UserFormData = {
 };
 
 export default function UsersPage() {
+  const t = useTranslations('settings');
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -192,7 +194,7 @@ export default function UsersPage() {
   }, [form, editingId, createMut, updateMut]);
 
   const handleDelete = useCallback(async (id: string, email: string) => {
-    if (!confirm(`Delete user "${email}"? This cannot be undone.`)) return;
+    if (!confirm(t('deleteUserConfirm', { email }))) return;
     await deleteMut.mutateAsync(id);
   }, [deleteMut]);
 
@@ -227,10 +229,10 @@ export default function UsersPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <UsersIcon className="h-6 w-6 text-aris-primary-600" />
-              {editingId ? 'Edit User' : 'New User'}
+              {editingId ? t('editUser') : t('newUser')}
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {editingId ? `Editing: ${form.firstName} ${form.lastName}` : 'Create a new user account'}
+              {editingId ? t('editingUser', { name: `${form.firstName} ${form.lastName}` }) : t('createAccount')}
             </p>
           </div>
           <button
@@ -238,7 +240,7 @@ export default function UsersPage() {
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {t('back')}
           </button>
         </div>
 
@@ -248,7 +250,7 @@ export default function UsersPage() {
             {/* First Name */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                First Name <span className="text-red-500">*</span>
+                {t('firstName')} <span className="text-red-500">*</span>
               </label>
               <input
                 value={form.firstName}
@@ -261,7 +263,7 @@ export default function UsersPage() {
             {/* Last Name */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Last Name <span className="text-red-500">*</span>
+                {t('lastName')} <span className="text-red-500">*</span>
               </label>
               <input
                 value={form.lastName}
@@ -274,7 +276,7 @@ export default function UsersPage() {
             {/* Email */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Email <span className="text-red-500">*</span>
+                {t('email')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
@@ -288,7 +290,7 @@ export default function UsersPage() {
             {/* Role */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Role <span className="text-red-500">*</span>
+                {t('role')} <span className="text-red-500">*</span>
               </label>
               <select
                 value={form.role}
@@ -302,7 +304,7 @@ export default function UsersPage() {
             {/* Language */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Language
+                {t('language')}
               </label>
               <select
                 value={form.locale}
@@ -320,7 +322,7 @@ export default function UsersPage() {
             {!editingId && (
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Tenant ID <span className="text-red-500">*</span>
+                  {t('tenantId')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   value={form.tenantId}
@@ -341,7 +343,7 @@ export default function UsersPage() {
                     onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
                     className="h-4 w-4 rounded border-gray-300 text-aris-primary-600"
                   />
-                  Active account
+                  {t('activeAccount')}
                 </label>
               </div>
             )}
@@ -351,7 +353,7 @@ export default function UsersPage() {
           {!editingId && (
             <div className="mt-4">
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Password <span className="text-red-500">*</span>
+                {t('password')} <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2 max-w-lg">
                 <div className="relative flex-1">
@@ -372,7 +374,7 @@ export default function UsersPage() {
                     type="button"
                     onClick={() => navigator.clipboard.writeText(form.password)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    title="Copy"
+                    title={t('copy')}
                   >
                     <Copy className="h-4 w-4" />
                   </button>
@@ -382,7 +384,7 @@ export default function UsersPage() {
                   onClick={() => setForm((f) => ({ ...f, password: generatePassword() }))}
                   className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
-                  Generate
+                  {t('generate')}
                 </button>
               </div>
             </div>
@@ -394,7 +396,7 @@ export default function UsersPage() {
               onClick={handleBack}
               className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               onClick={handleSave}
@@ -406,7 +408,7 @@ export default function UsersPage() {
               ) : (
                 <Check className="h-4 w-4" />
               )}
-              {editingId ? 'Update' : 'Create'}
+              {editingId ? t('update') : t('create')}
             </button>
           </div>
         </div>
@@ -421,10 +423,10 @@ export default function UsersPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <UsersIcon className="h-6 w-6 text-aris-primary-600" />
-            Users Management
+            {t('usersManagement')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Manage user accounts, roles, and function assignments
+            {t('usersSubtitle')}
           </p>
         </div>
         {canCreate && (
@@ -433,7 +435,7 @@ export default function UsersPage() {
             className="flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-aris-primary-700"
           >
             <Plus className="h-4 w-4" />
-            Add User
+            {t('addUser')}
           </button>
         )}
       </div>
@@ -446,7 +448,7 @@ export default function UsersPage() {
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search by name or email..."
+            placeholder={t('searchByNameOrEmail')}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
@@ -455,7 +457,7 @@ export default function UsersPage() {
           onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
         >
-          <option value="">All Roles</option>
+          <option value="">{t('allRoles')}</option>
           {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
         </select>
         <select
@@ -463,9 +465,9 @@ export default function UsersPage() {
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
         >
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option value="">{t('allStatus')}</option>
+          <option value="active">{t('active')}</option>
+          <option value="inactive">{t('inactive')}</option>
         </select>
       </div>
 
@@ -480,16 +482,16 @@ export default function UsersPage() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
                 <tr>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">User</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Email</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Role</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Function</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Tenant</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">MFA</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Status</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Last Login</th>
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('user')}</th>
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('email')}</th>
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('role')}</th>
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('function')}</th>
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('tenant')}</th>
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('mfa')}</th>
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('status')}</th>
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('lastLogin')}</th>
                   {canManage && (
-                    <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Actions</th>
+                    <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('actions')}</th>
                   )}
                 </tr>
               </thead>
@@ -530,11 +532,11 @@ export default function UsersPage() {
                           ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                           : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
                       )}>
-                        {u.isActive ? 'Active' : 'Inactive'}
+                        {u.isActive ? t('active') : t('inactive')}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
-                      {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : 'Never'}
+                      {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : t('never')}
                     </td>
                     {canManage && (
                       <td className="px-4 py-3">
@@ -542,14 +544,14 @@ export default function UsersPage() {
                           <button
                             onClick={() => openEdit(u)}
                             className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-white"
-                            title="Edit user"
+                            title={t('editUserAction')}
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => setAssignFnUser(u)}
                             className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
-                            title="Manage functions"
+                            title={t('manageFunctions')}
                           >
                             <Briefcase className="h-4 w-4" />
                           </button>
@@ -557,7 +559,7 @@ export default function UsersPage() {
                             <button
                               onClick={() => { setResetPwdUser(u); setNewPassword(generatePassword()); setShowNewPwd(false); }}
                               className="rounded p-1 text-gray-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/20 dark:hover:text-amber-400"
-                              title="Reset password"
+                              title={t('resetPasswordAction')}
                             >
                               <KeyRound className="h-4 w-4" />
                             </button>
@@ -566,7 +568,7 @@ export default function UsersPage() {
                             <button
                               onClick={() => handleDelete(u.id, u.email)}
                               className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                              title="Delete user"
+                              title={t('deleteUserAction')}
                               disabled={deleteMut.isPending}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -580,7 +582,7 @@ export default function UsersPage() {
                 {users.length === 0 && (
                   <tr>
                     <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                      No users found
+                      {t('noUsersFound')}
                     </td>
                   </tr>
                 )}
@@ -604,7 +606,7 @@ export default function UsersPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <KeyRound className="h-5 w-5 text-amber-500" />
-                Reset Password
+                {t('resetPassword')}
               </h2>
               <button onClick={() => setResetPwdUser(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                 <X className="h-5 w-5" />
@@ -612,7 +614,7 @@ export default function UsersPage() {
             </div>
 
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Reset password for <span className="font-medium text-gray-900 dark:text-white">{resetPwdUser.email}</span>
+              {t('resetPasswordFor')} <span className="font-medium text-gray-900 dark:text-white">{resetPwdUser.email}</span>
             </p>
 
             <div className="space-y-3">
@@ -635,7 +637,7 @@ export default function UsersPage() {
                     type="button"
                     onClick={() => navigator.clipboard.writeText(newPassword)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    title="Copy"
+                    title={t('copy')}
                   >
                     <Copy className="h-4 w-4" />
                   </button>
@@ -645,7 +647,7 @@ export default function UsersPage() {
                   onClick={() => setNewPassword(generatePassword())}
                   className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
-                  Generate
+                  {t('generate')}
                 </button>
               </div>
             </div>
@@ -655,7 +657,7 @@ export default function UsersPage() {
                 onClick={() => setResetPwdUser(null)}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 onClick={handleResetPassword}
@@ -663,7 +665,7 @@ export default function UsersPage() {
                 className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
               >
                 {resetPwdMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                Reset Password
+                {t('resetPassword')}
               </button>
             </div>
           </div>
@@ -677,7 +679,7 @@ export default function UsersPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Briefcase className="h-5 w-5 text-blue-500" />
-                Functions: {assignFnUser.firstName} {assignFnUser.lastName}
+                {t('functionsFor', { name: `${assignFnUser.firstName} ${assignFnUser.lastName}` })}
               </h2>
               <button onClick={() => setAssignFnUser(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                 <X className="h-5 w-5" />
@@ -687,7 +689,7 @@ export default function UsersPage() {
             {/* Current functions */}
             {assignFnUser.functions && assignFnUser.functions.length > 0 && (
               <div className="mb-4">
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Current Assignments</p>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{t('currentAssignments')}</p>
                 <div className="space-y-1.5">
                   {assignFnUser.functions.map((uf) => (
                     <div key={uf.id} className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 dark:border-gray-800">
@@ -695,7 +697,7 @@ export default function UsersPage() {
                         <span className="text-sm text-gray-900 dark:text-white">{uf.function.name?.en ?? uf.function.code}</span>
                         {uf.isPrimary && (
                           <span className="rounded-full bg-aris-primary-100 px-1.5 py-0.5 text-[9px] font-bold text-aris-primary-700 dark:bg-aris-primary-900/30 dark:text-aris-primary-400">
-                            PRIMARY
+                            {t('primary')}
                           </span>
                         )}
                         <span className="text-[10px] text-gray-400">{uf.function.level}</span>
@@ -703,7 +705,7 @@ export default function UsersPage() {
                       <button
                         onClick={() => handleRemoveFunction(assignFnUser.id, uf.function.id)}
                         className="text-gray-300 hover:text-red-500"
-                        title="Remove"
+                        title={t('remove')}
                         disabled={removeFnMut.isPending}
                       >
                         <X className="h-3.5 w-3.5" />
@@ -716,13 +718,13 @@ export default function UsersPage() {
 
             {/* Add function */}
             <div className="space-y-3 border-t border-gray-100 pt-4 dark:border-gray-800">
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Add Function</p>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('addFunction')}</p>
               <select
                 value={selectedFnId}
                 onChange={(e) => setSelectedFnId(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
-                <option value="">Select a function...</option>
+                <option value="">{t('selectFunction')}</option>
                 {allFunctions
                   .filter((fn) => !assignFnUser.functions?.some((uf) => uf.function.id === fn.id))
                   .map((fn) => (
@@ -739,7 +741,7 @@ export default function UsersPage() {
                   onChange={(e) => setFnIsPrimary(e.target.checked)}
                   className="rounded"
                 />
-                Set as primary function
+                {t('setAsPrimary')}
               </label>
             </div>
 
@@ -748,7 +750,7 @@ export default function UsersPage() {
                 onClick={() => setAssignFnUser(null)}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
               >
-                Close
+                {t('close')}
               </button>
               <button
                 onClick={handleAssignFunction}
@@ -756,7 +758,7 @@ export default function UsersPage() {
                 className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
                 {assignFnMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Assign
+                {t('assign')}
               </button>
             </div>
           </div>

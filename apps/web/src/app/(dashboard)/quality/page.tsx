@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useQualityDashboard } from '@/lib/api/hooks';
 import { KpiCardSkeleton, TableSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const DOMAIN_COLORS: Record<string, string> = {
   'Animal Health': 'bg-red-500',
@@ -49,6 +50,7 @@ function PassRateBar({ rate }: { rate: number }) {
 }
 
 export default function QualityDashboardPage() {
+  const t = useTranslations('quality');
   const { data, isLoading } = useQualityDashboard();
 
   const dashboard = data?.data;
@@ -57,9 +59,9 @@ export default function QualityDashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Data Quality</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Quality gates, confidence scoring, and correction loop
+            {t('subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -67,13 +69,13 @@ export default function QualityDashboardPage() {
             href="/quality/reports"
             className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            View Reports
+            {t('viewReports')}
           </Link>
           <Link
             href="/quality/rules"
             className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Manage Rules
+            {t('manageRules')}
           </Link>
         </div>
       </div>
@@ -90,7 +92,7 @@ export default function QualityDashboardPage() {
           <div className="rounded-card border border-green-200 bg-green-50 p-card shadow-sm">
             <div className="flex items-start justify-between">
               <span className="text-kpi-label uppercase tracking-wider text-gray-500">
-                Overall Pass Rate
+                {t('overallPassRate')}
               </span>
               <ShieldCheck className="h-5 w-5 text-green-600" />
             </div>
@@ -115,40 +117,40 @@ export default function QualityDashboardPage() {
                 {dashboard.passRateTrend > 0 ? '+' : ''}
                 {dashboard.passRateTrend}%
               </span>
-              <span className="text-gray-500">vs last month</span>
+              <span className="text-gray-500">{t('vsLastMonth')}</span>
             </div>
           </div>
 
           <div className="rounded-card border border-gray-200 bg-white p-card shadow-sm">
             <div className="flex items-start justify-between">
               <span className="text-kpi-label uppercase tracking-wider text-gray-500">
-                Total Reports
+                {t('totalReports')}
               </span>
               <CheckCircle2 className="h-5 w-5 text-gray-400" />
             </div>
             <div className="mt-2 text-kpi text-gray-900">
               {dashboard.totalReports.toLocaleString()}
             </div>
-            <div className="mt-3 text-sm text-gray-500">all time</div>
+            <div className="mt-3 text-sm text-gray-500">{t('allTime')}</div>
           </div>
 
           <div className="rounded-card border border-amber-200 bg-amber-50 p-card shadow-sm">
             <div className="flex items-start justify-between">
               <span className="text-kpi-label uppercase tracking-wider text-gray-500">
-                Pending Corrections
+                {t('pendingCorrections')}
               </span>
               <AlertTriangle className="h-5 w-5 text-amber-600" />
             </div>
             <div className="mt-2 text-kpi text-gray-900">
               {dashboard.pendingCorrections}
             </div>
-            <div className="mt-3 text-sm text-amber-700">awaiting fix</div>
+            <div className="mt-3 text-sm text-amber-700">{t('awaitingFix')}</div>
           </div>
 
           <div className="rounded-card border border-gray-200 bg-white p-card shadow-sm">
             <div className="flex items-start justify-between">
               <span className="text-kpi-label uppercase tracking-wider text-gray-500">
-                Avg Correction Time
+                {t('avgCorrectionTime')}
               </span>
               <Clock className="h-5 w-5 text-gray-400" />
             </div>
@@ -156,7 +158,7 @@ export default function QualityDashboardPage() {
               <span className="text-kpi text-gray-900">
                 {dashboard.avgCorrectionTime.toFixed(1)}
               </span>
-              <span className="text-sm text-gray-500">hrs</span>
+              <span className="text-sm text-gray-500">{t('hrs')}</span>
             </div>
             <div
               className={cn(
@@ -171,7 +173,7 @@ export default function QualityDashboardPage() {
                 {dashboard.correctionTimeTrend}%
               </span>
               <span className="text-gray-500">
-                {dashboard.correctionTimeTrend <= 0 ? 'improving' : 'vs last month'}
+                {dashboard.correctionTimeTrend <= 0 ? t('improving') : t('vsLastMonth')}
               </span>
             </div>
           </div>
@@ -182,7 +184,7 @@ export default function QualityDashboardPage() {
         {/* Pass rates by domain */}
         <div className="rounded-card border border-gray-200 bg-white p-5">
           <h2 className="mb-4 text-sm font-semibold text-gray-900">
-            Pass Rate by Domain
+            {t('passRateByDomain')}
           </h2>
           {isLoading ? (
             <div className="space-y-3">
@@ -208,14 +210,14 @@ export default function QualityDashboardPage() {
                   <div className="flex items-center gap-4">
                     <PassRateBar rate={d.passRate} />
                     <span className="text-xs text-gray-400 w-20 text-right">
-                      {d.failedRecords} / {d.totalRecords} failed
+                      {d.failedRecords} / {d.totalRecords} {t('failed')}
                     </span>
                   </div>
                 </div>
               ))}
               {(dashboard?.byDomain ?? []).length === 0 && (
                 <p className="text-sm text-gray-400 text-center py-4">
-                  No domain data available
+                  {t('noDomainData')}
                 </p>
               )}
             </div>
@@ -225,7 +227,7 @@ export default function QualityDashboardPage() {
         {/* Pass rates by gate */}
         <div className="rounded-card border border-gray-200 bg-white p-5">
           <h2 className="mb-4 text-sm font-semibold text-gray-900">
-            Pass Rate by Quality Gate
+            {t('passRateByGate')}
           </h2>
           {isLoading ? (
             <div className="space-y-3">
@@ -251,7 +253,7 @@ export default function QualityDashboardPage() {
               ))}
               {(dashboard?.byGate ?? []).length === 0 && (
                 <p className="text-sm text-gray-400 text-center py-4">
-                  No gate data available
+                  {t('noGateData')}
                 </p>
               )}
             </div>
@@ -263,13 +265,13 @@ export default function QualityDashboardPage() {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900">
-            Recent Failures
+            {t('recentFailures')}
           </h2>
           <Link
             href="/quality/reports?result=fail"
             className="flex items-center gap-1 text-xs text-aris-primary-600 hover:underline"
           >
-            View all <ArrowRight className="h-3 w-3" />
+            {t('viewAll')} <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
         {isLoading ? (
@@ -279,12 +281,12 @@ export default function QualityDashboardPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                  <th className="px-4 py-3">Entity</th>
-                  <th className="px-4 py-3">Domain</th>
-                  <th className="px-4 py-3">Country</th>
-                  <th className="px-4 py-3">Result</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">{t('entity')}</th>
+                  <th className="px-4 py-3">{t('domain')}</th>
+                  <th className="px-4 py-3">{t('country')}</th>
+                  <th className="px-4 py-3">{t('result')}</th>
+                  <th className="px-4 py-3">{t('status')}</th>
+                  <th className="px-4 py-3">{t('date')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -317,8 +319,7 @@ export default function QualityDashboardPage() {
                         {r.overallResult === 'warning' && (
                           <AlertTriangle className="h-3 w-3" />
                         )}
-                        {r.overallResult.charAt(0).toUpperCase() +
-                          r.overallResult.slice(1)}
+                        {t(r.overallResult)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -332,7 +333,7 @@ export default function QualityDashboardPage() {
                               : 'bg-gray-100 text-gray-700',
                         )}
                       >
-                        {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                        {t(r.status)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500">
@@ -346,7 +347,7 @@ export default function QualityDashboardPage() {
                       colSpan={6}
                       className="px-4 py-8 text-center text-gray-400"
                     >
-                      No recent failures
+                      {t('noRecentFailures')}
                     </td>
                   </tr>
                 )}

@@ -17,6 +17,7 @@ import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const ANIMAL_HEALTH_ALERT_FIELDS: AlertField[] = [
   { name: 'disease', label: 'Disease', type: 'text', placeholder: 'e.g. Foot-and-Mouth Disease', required: true },
@@ -108,6 +109,7 @@ const PLACEHOLDER_EVENTS: HealthEvent[] = [
 ];
 
 export default function AnimalHealthPage() {
+  const t = useTranslations('animalHealth');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -134,9 +136,9 @@ export default function AnimalHealthPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Animal Health</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Disease events, outbreaks, and surveillance
+            {t('subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -145,21 +147,21 @@ export default function AnimalHealthPage() {
             className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <MapPin className="h-4 w-4" />
-            Map View
+            {t('mapView')}
           </Link>
           <Link
             href="/animal-health/vaccination"
             className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <Syringe className="h-4 w-4" />
-            Vaccination
+            {t('vaccination')}
           </Link>
           <Link
             href="/animal-health/events/new"
             className="flex items-center gap-2 rounded-lg bg-aris-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-aris-primary-700"
           >
             <Plus className="h-4 w-4" />
-            Report Event
+            {t('reportEvent')}
           </Link>
         </div>
       </div>
@@ -170,7 +172,7 @@ export default function AnimalHealthPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search events..."
+            placeholder={t('searchEvents')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -189,11 +191,11 @@ export default function AnimalHealthPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Status</option>
-            <option value="suspected">Suspected</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="resolved">Resolved</option>
-            <option value="closed">Closed</option>
+            <option value="">{t('allStatus')}</option>
+            <option value="suspected">{t('suspected')}</option>
+            <option value="confirmed">{t('confirmed')}</option>
+            <option value="resolved">{t('resolved')}</option>
+            <option value="closed">{t('closed')}</option>
           </select>
           <select
             value={severityFilter}
@@ -203,11 +205,11 @@ export default function AnimalHealthPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Severity</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="critical">Critical</option>
+            <option value="">{t('allSeverity')}</option>
+            <option value="low">{t('low')}</option>
+            <option value="medium">{t('medium')}</option>
+            <option value="high">{t('high')}</option>
+            <option value="critical">{t('critical')}</option>
           </select>
         </div>
       </div>
@@ -226,14 +228,14 @@ export default function AnimalHealthPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Disease</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Severity</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Cases</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Deaths</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Species</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Reported</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('disease')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('country')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('status')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('severity')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('cases')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('deaths')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('species')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('reported')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -271,7 +273,7 @@ export default function AnimalHealthPage() {
                 {events.length === 0 && (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
-                      No health events found
+                      {t('noEventsFound')}
                     </td>
                   </tr>
                 )}
@@ -282,7 +284,7 @@ export default function AnimalHealthPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <p className="text-xs text-gray-500">
-              Showing {events.length} of {meta.total} events
+              {t('showingEvents', { count: events.length.toString(), total: meta.total.toString() })}
             </p>
             <div className="flex items-center gap-1">
               <button
@@ -310,7 +312,7 @@ export default function AnimalHealthPage() {
       {/* Campaigns & Alert */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <DomainCampaignsSection domain="animal_health" />
-        <QuickAlertCard domain="animal_health" alertFields={ANIMAL_HEALTH_ALERT_FIELDS} title="Report Disease Event" />
+        <QuickAlertCard domain="animal_health" alertFields={ANIMAL_HEALTH_ALERT_FIELDS} title={t('reportHealthEvent')} />
       </div>
     </div>
   );

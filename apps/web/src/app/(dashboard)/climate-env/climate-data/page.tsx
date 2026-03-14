@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useClimateData, type ClimateData } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
@@ -67,6 +68,7 @@ const PLACEHOLDER_CLIMATE: ClimateData[] = [
 ];
 
 export default function ClimateDataPage() {
+  const t = useTranslations('climate');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
@@ -93,9 +95,9 @@ export default function ClimateDataPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Climate Data</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('climateData')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Temperature, rainfall, humidity, and wind speed observations
+            {t('climateDataDesc')}
           </p>
         </div>
       </div>
@@ -105,7 +107,7 @@ export default function ClimateDataPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search climate data..."
+            placeholder={t('searchClimateData')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
@@ -118,7 +120,7 @@ export default function ClimateDataPage() {
             onChange={(e) => { setSourceFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All Sources</option>
+            <option value="">{t('allSources')}</option>
             <option value="CHIRPS">CHIRPS</option>
             <option value="ERA5">ERA5</option>
             <option value="Station">Station</option>
@@ -139,14 +141,14 @@ export default function ClimateDataPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Region</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Date</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Temp. (&deg;C)</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Rainfall (mm)</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Humidity (%)</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Wind (km/h)</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Source</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('region')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('country')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('date')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('temperature')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('rainfall')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('humidity')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('windSpeed')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('source')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
@@ -176,7 +178,7 @@ export default function ClimateDataPage() {
                 {records.length === 0 && (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
-                      No climate data found
+                      {t('noClimateData')}
                     </td>
                   </tr>
                 )}
@@ -186,7 +188,7 @@ export default function ClimateDataPage() {
 
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 dark:border-gray-700">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Showing {records.length} of {meta.total} records
+              {t('showing', { count: records.length, total: meta.total })}
             </p>
             <div className="flex items-center gap-1">
               <button

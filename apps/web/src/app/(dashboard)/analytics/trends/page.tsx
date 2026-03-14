@@ -16,12 +16,13 @@ import {
 import { cn } from '@/lib/utils';
 import { useAnalyticsTrends, type TimeRange } from '@/lib/api/hooks';
 import { KpiCardSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
-const TIME_RANGES: { value: TimeRange; label: string }[] = [
-  { value: '7d', label: '7 days' },
-  { value: '30d', label: '30 days' },
-  { value: '90d', label: '90 days' },
-  { value: '1y', label: '1 year' },
+const TIME_RANGES: { value: TimeRange; tKey: string }[] = [
+  { value: '7d', tKey: 'timeRange7d' },
+  { value: '30d', tKey: 'timeRange30d' },
+  { value: '90d', tKey: 'timeRange90d' },
+  { value: '1y', tKey: 'timeRange1y' },
 ];
 
 const DOMAIN_OPTIONS = [
@@ -49,16 +50,16 @@ const COUNTRY_OPTIONS = [
 
 interface LineConfig {
   key: string;
-  label: string;
+  tKey: string;
   color: string;
   defaultVisible: boolean;
 }
 
 const LINE_CONFIGS: LineConfig[] = [
-  { key: 'outbreaks', label: 'Outbreaks', color: '#C62828', defaultVisible: true },
-  { key: 'vaccinations', label: 'Vaccinations', color: '#1B5E20', defaultVisible: true },
-  { key: 'labResults', label: 'Lab Results', color: '#006064', defaultVisible: true },
-  { key: 'tradeFlows', label: 'Trade Flows', color: '#E65100', defaultVisible: true },
+  { key: 'outbreaks', tKey: 'outbreaks', color: '#C62828', defaultVisible: true },
+  { key: 'vaccinations', tKey: 'vaccinations', color: '#1B5E20', defaultVisible: true },
+  { key: 'labResults', tKey: 'labResults', color: '#006064', defaultVisible: true },
+  { key: 'tradeFlows', tKey: 'tradeFlows', color: '#E65100', defaultVisible: true },
 ];
 
 export default function TrendsAnalysisPage() {
@@ -68,6 +69,7 @@ export default function TrendsAnalysisPage() {
   const [visibleLines, setVisibleLines] = useState<Set<string>>(
     new Set(LINE_CONFIGS.map((l) => l.key)),
   );
+  const t = useTranslations('analytics');
 
   const { data, isLoading } = useAnalyticsTrends({
     range: timeRange,
@@ -125,9 +127,9 @@ export default function TrendsAnalysisPage() {
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Trends Analysis</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('trendsAnalysis')}</h1>
             <p className="mt-1 text-sm text-gray-500">
-              Multi-domain time series across the continent
+              {t('trendsContinentDesc')}
             </p>
           </div>
         </div>
@@ -148,7 +150,7 @@ export default function TrendsAnalysisPage() {
                   : 'text-gray-600 hover:bg-gray-100',
               )}
             >
-              {tr.label}
+              {t(tr.tKey)}
             </button>
           ))}
         </div>
@@ -190,28 +192,28 @@ export default function TrendsAnalysisPage() {
       ) : summaryStats ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryCard
-            label="Total Outbreaks"
+            label={t('totalOutbreaks')}
             value={summaryStats.outbreaks.toLocaleString()}
             color="#C62828"
-            points={summaryStats.dataPoints}
+            subLabel={t('acrossDataPoints', { points: summaryStats.dataPoints })}
           />
           <SummaryCard
-            label="Total Vaccinations"
+            label={t('totalVaccinations')}
             value={summaryStats.vaccinations.toLocaleString()}
             color="#1B5E20"
-            points={summaryStats.dataPoints}
+            subLabel={t('acrossDataPoints', { points: summaryStats.dataPoints })}
           />
           <SummaryCard
-            label="Total Lab Results"
+            label={t('totalLabResults')}
             value={summaryStats.labResults.toLocaleString()}
             color="#006064"
-            points={summaryStats.dataPoints}
+            subLabel={t('acrossDataPoints', { points: summaryStats.dataPoints })}
           />
           <SummaryCard
-            label="Total Trade Flows"
+            label={t('totalTradeFlows')}
             value={summaryStats.tradeFlows.toLocaleString()}
             color="#E65100"
-            points={summaryStats.dataPoints}
+            subLabel={t('acrossDataPoints', { points: summaryStats.dataPoints })}
           />
         </div>
       ) : null}
@@ -219,7 +221,7 @@ export default function TrendsAnalysisPage() {
       {/* Line visibility toggles */}
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-xs font-medium uppercase tracking-wider text-gray-500">
-          Show:
+          {t('show')}
         </span>
         {LINE_CONFIGS.map((line) => (
           <label
@@ -238,7 +240,7 @@ export default function TrendsAnalysisPage() {
                 className="inline-block h-2.5 w-2.5 rounded-full"
                 style={{ backgroundColor: line.color }}
               />
-              {line.label}
+              {t(line.tKey)}
             </span>
           </label>
         ))}
@@ -250,12 +252,12 @@ export default function TrendsAnalysisPage() {
           <div className="flex h-[400px] items-center justify-center">
             <div className="text-center">
               <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-[#1B5E20]" />
-              <p className="mt-2 text-sm text-gray-400">Loading chart data...</p>
+              <p className="mt-2 text-sm text-gray-400">{t('loadingChartData')}</p>
             </div>
           </div>
         ) : chartData.length === 0 ? (
           <div className="flex h-[400px] items-center justify-center">
-            <p className="text-sm text-gray-400">No trend data available for the selected filters</p>
+            <p className="text-sm text-gray-400">{t('noTrendData')}</p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={400}>
@@ -294,7 +296,7 @@ export default function TrendsAnalysisPage() {
                       key={line.key}
                       type="monotone"
                       dataKey={line.key}
-                      name={line.label}
+                      name={t(line.tKey)}
                       stroke={line.color}
                       strokeWidth={2}
                       dot={{ r: 3, fill: line.color }}
@@ -312,7 +314,7 @@ export default function TrendsAnalysisPage() {
         <div className="rounded-card border border-gray-200 bg-white overflow-hidden">
           <div className="border-b border-gray-100 px-4 py-3">
             <h3 className="text-sm font-semibold text-gray-900">
-              Data Points ({chartData.length})
+              {t('dataPoints', { count: chartData.length })}
             </h3>
           </div>
           <div className="overflow-x-auto">
@@ -320,10 +322,10 @@ export default function TrendsAnalysisPage() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
                   <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3 text-right">Outbreaks</th>
-                  <th className="px-4 py-3 text-right">Vaccinations</th>
-                  <th className="px-4 py-3 text-right">Lab Results</th>
-                  <th className="px-4 py-3 text-right">Trade Flows</th>
+                  <th className="px-4 py-3 text-right">{t('outbreaks')}</th>
+                  <th className="px-4 py-3 text-right">{t('vaccinations')}</th>
+                  <th className="px-4 py-3 text-right">{t('labResults')}</th>
+                  <th className="px-4 py-3 text-right">{t('tradeFlows')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -359,12 +361,12 @@ function SummaryCard({
   label,
   value,
   color,
-  points,
+  subLabel,
 }: {
   label: string;
   value: string;
   color: string;
-  points: number;
+  subLabel: string;
 }) {
   return (
     <div className="rounded-card border border-gray-200 bg-white p-card shadow-sm">
@@ -379,7 +381,7 @@ function SummaryCard({
       </div>
       <div className="mt-2 text-kpi text-gray-900">{value}</div>
       <div className="mt-3 text-sm text-gray-500">
-        across {points} data points
+        {subLabel}
       </div>
     </div>
   );

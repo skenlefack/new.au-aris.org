@@ -3,12 +3,14 @@
 import { StatsCounter } from './StatsCounter';
 import { TOTAL_RECS } from '@/data/recs-config';
 import { TOTAL_COUNTRIES } from '@/data/countries-config';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface HeroSectionProps {
   domainCount?: number;
 }
 
 export function HeroSection({ domainCount }: HeroSectionProps) {
+  const t = useTranslations('landing');
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-[#006B3F] via-[#005A34] to-[#003D24]">
       {/* Decorative pattern */}
@@ -37,10 +39,10 @@ export function HeroSection({ domainCount }: HeroSectionProps) {
             </div>
 
             <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl lg:text-4xl">
-              Animal Resources <span className="text-[#E8C875]">Information System</span>
+              {t('heroTitle')} <span className="text-[#E8C875]">{t('heroTitleAccent')}</span>
             </h1>
 
-            <p className="mt-2 text-sm text-white/80">Continental digital infrastructure for animal resources management, veterinary surveillance, and food safety across 55 Member States.</p>
+            <p className="mt-2 text-sm text-white/80">{t('heroDescription')}</p>
           </div>
 
           {/* Right: Stats */}
@@ -48,7 +50,7 @@ export function HeroSection({ domainCount }: HeroSectionProps) {
             <div className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 backdrop-blur-sm">
               <StatsCounter
                 value={TOTAL_COUNTRIES}
-                label="States"
+                label={t('states')}
                 valueClassName="text-white text-lg"
                 labelClassName="text-white/70 text-[10px]"
               />
@@ -56,7 +58,7 @@ export function HeroSection({ domainCount }: HeroSectionProps) {
             <div className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 backdrop-blur-sm">
               <StatsCounter
                 value={TOTAL_RECS}
-                label="RECs"
+                label={t('recs')}
                 valueClassName="text-white text-lg"
                 labelClassName="text-white/70 text-[10px]"
               />
@@ -64,7 +66,7 @@ export function HeroSection({ domainCount }: HeroSectionProps) {
             <div className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 backdrop-blur-sm">
               <StatsCounter
                 value={domainCount ?? 9}
-                label="Domains"
+                label={t('domains')}
                 valueClassName="text-white text-lg"
                 labelClassName="text-white/70 text-[10px]"
               />
@@ -73,7 +75,7 @@ export function HeroSection({ domainCount }: HeroSectionProps) {
               <StatsCounter
                 value={24}
                 suffix="/7"
-                label="Monitoring"
+                label={t('monitoring')}
                 valueClassName="text-[#E8C875] text-lg"
                 labelClassName="text-white/70 text-[10px]"
               />

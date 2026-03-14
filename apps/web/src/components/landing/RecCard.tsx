@@ -3,12 +3,14 @@
 import Link from 'next/link';
 import { MapPin, Users, ChevronRight, Building2 } from 'lucide-react';
 import type { RecConfig } from '@/data/recs-config';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface RecCardProps {
   rec: RecConfig;
 }
 
 export function RecCard({ rec }: RecCardProps) {
+  const t = useTranslations('landing');
   return (
     <Link
       href={`/rec/${rec.code}`}
@@ -48,7 +50,7 @@ export function RecCard({ rec }: RecCardProps) {
               <Users className="h-4 w-4" style={{ color: rec.color }} />
             </div>
             <div>
-              <p className="text-xs text-gray-400">Members</p>
+              <p className="text-xs text-gray-400">{t('members')}</p>
               <p className="font-bold text-gray-900 dark:text-white">{rec.memberCount}</p>
             </div>
           </div>
@@ -60,7 +62,7 @@ export function RecCard({ rec }: RecCardProps) {
               <MapPin className="h-4 w-4" style={{ color: rec.color }} />
             </div>
             <div>
-              <p className="text-xs text-gray-400">Region</p>
+              <p className="text-xs text-gray-400">{t('region')}</p>
               <p className="font-bold text-gray-900 dark:text-white">{rec.region}</p>
             </div>
           </div>
@@ -87,7 +89,7 @@ export function RecCard({ rec }: RecCardProps) {
             className="text-xs font-semibold transition-colors duration-300 group-hover:underline"
             style={{ color: rec.color }}
           >
-            Explore &rarr;
+            {t('explore')} &rarr;
           </span>
         </div>
       </div>

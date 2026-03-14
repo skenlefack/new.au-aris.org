@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { useElearningCourse, type ElearningCourseDetail, type ElearningLesson } from '@/lib/api/hooks';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const LEVEL_BADGE: Record<string, string> = {
   beginner: 'bg-green-100 text-green-700',
@@ -72,6 +73,7 @@ const PLACEHOLDER_DETAIL: ElearningCourseDetail = {
 };
 
 export default function CourseDetailPage() {
+  const t = useTranslations('knowledge');
   const params = useParams();
   const courseId = params.id as string;
 
@@ -114,7 +116,7 @@ export default function CourseDetailPage() {
             </span>
           </div>
           <p className="mt-1 text-sm text-gray-500">
-            {course.domain} — Instructor: {course.instructor}
+            {course.domain} — {t('instructor')}: {course.instructor}
           </p>
         </div>
       </div>
@@ -125,7 +127,7 @@ export default function CourseDetailPage() {
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-gray-400" />
             <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-              Duration
+              {t('duration')}
             </p>
           </div>
           <p className="mt-1 text-2xl font-bold text-gray-900">
@@ -138,7 +140,7 @@ export default function CourseDetailPage() {
           <div className="flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-gray-400" />
             <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-              Lessons
+              {t('lessons')}
             </p>
           </div>
           <p className="mt-1 text-2xl font-bold text-gray-900">
@@ -149,7 +151,7 @@ export default function CourseDetailPage() {
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-gray-400" />
             <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-              Enrolled
+              {t('enrolled')}
             </p>
           </div>
           <p className="mt-1 text-2xl font-bold text-gray-900">
@@ -160,7 +162,7 @@ export default function CourseDetailPage() {
           <div className="flex items-center gap-2">
             <GraduationCap className="h-4 w-4 text-gray-400" />
             <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-              Completion Rate
+              {t('completion')}
             </p>
           </div>
           <p className="mt-1 text-2xl font-bold text-aris-primary-700">
@@ -284,7 +286,7 @@ export default function CourseDetailPage() {
             </h3>
             <dl className="mt-3 space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <dt className="text-gray-500">Instructor</dt>
+                <dt className="text-gray-500">{t('instructor')}</dt>
                 <dd className="font-medium text-gray-900">{course.instructor}</dd>
               </div>
               <div className="flex items-center justify-between">

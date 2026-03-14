@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useCitesPermits, type CitesPermit } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const STATUS_BADGE: Record<string, string> = {
   issued: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -80,6 +81,7 @@ const PLACEHOLDER_PERMITS: CitesPermit[] = [
 ];
 
 export default function CitesPermitsPage() {
+  const t = useTranslations('wildlife');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [appendixFilter, setAppendixFilter] = useState('');
@@ -108,9 +110,9 @@ export default function CitesPermitsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">CITES Permits</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('citesPermits')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            International trade permits for endangered species (CITES Appendix I, II, III)
+            {t('citesPermitsDesc')}
           </p>
         </div>
       </div>
@@ -120,7 +122,7 @@ export default function CitesPermitsPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search permits..."
+            placeholder={t('searchPermits')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
@@ -133,7 +135,7 @@ export default function CitesPermitsPage() {
             onChange={(e) => { setAppendixFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All Appendices</option>
+            <option value="">{t('allAppendices')}</option>
             <option value="I">Appendix I</option>
             <option value="II">Appendix II</option>
             <option value="III">Appendix III</option>
@@ -143,7 +145,7 @@ export default function CitesPermitsPage() {
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All Status</option>
+            <option value="">{t('allStatus')}</option>
             <option value="issued">Issued</option>
             <option value="pending">Pending</option>
             <option value="expired">Expired</option>
@@ -165,14 +167,14 @@ export default function CitesPermitsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Permit No.</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Species</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Appendix</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Purpose</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Export → Import</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Quantity</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Expires</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Status</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('permitNumber')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('species')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('appendix')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('purpose')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('exportImport')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('quantity')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('expires')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
@@ -209,7 +211,7 @@ export default function CitesPermitsPage() {
                 {permits.length === 0 && (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
-                      No CITES permits found
+                      {t('noPermitsFound')}
                     </td>
                   </tr>
                 )}
@@ -219,7 +221,7 @@ export default function CitesPermitsPage() {
 
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 dark:border-gray-700">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Showing {permits.length} of {meta.total} permits
+              {t('showing', { count: permits.length, total: meta.total })}
             </p>
             <div className="flex items-center gap-1">
               <button

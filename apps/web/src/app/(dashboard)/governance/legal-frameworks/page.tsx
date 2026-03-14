@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useLegalFrameworks, type LegalFramework } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
@@ -75,6 +76,7 @@ const PLACEHOLDER_FRAMEWORKS: LegalFramework[] = [
 ];
 
 export default function LegalFrameworksPage() {
+  const t = useTranslations('governance');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -103,9 +105,9 @@ export default function LegalFrameworksPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Legal Frameworks</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('legalFrameworks')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            National and regional laws, regulations, policies, and standards
+            {t('legalFrameworksDesc')}
           </p>
         </div>
       </div>
@@ -115,7 +117,7 @@ export default function LegalFrameworksPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search legal frameworks..."
+            placeholder={t('searchFrameworks')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
@@ -128,23 +130,23 @@ export default function LegalFrameworksPage() {
             onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All Types</option>
-            <option value="LAW">Law</option>
-            <option value="REGULATION">Regulation</option>
-            <option value="POLICY">Policy</option>
-            <option value="STANDARD">Standard</option>
-            <option value="GUIDELINE">Guideline</option>
+            <option value="">{t('allTypes')}</option>
+            <option value="LAW">{t('law')}</option>
+            <option value="REGULATION">{t('regulation')}</option>
+            <option value="POLICY">{t('policy')}</option>
+            <option value="STANDARD">{t('standard')}</option>
+            <option value="GUIDELINE">{t('guideline')}</option>
           </select>
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All Status</option>
-            <option value="DRAFT">Draft</option>
-            <option value="ADOPTED">Adopted</option>
-            <option value="IN_FORCE">In Force</option>
-            <option value="REPEALED">Repealed</option>
+            <option value="">{t('allStatus')}</option>
+            <option value="DRAFT">{t('draft')}</option>
+            <option value="ADOPTED">{t('adopted')}</option>
+            <option value="IN_FORCE">{t('inForce')}</option>
+            <option value="REPEALED">{t('repealed')}</option>
           </select>
         </div>
       </div>
@@ -162,12 +164,12 @@ export default function LegalFrameworksPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Title</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Type</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Domain</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Adopted</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Status</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('frameworkTitle')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('type')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('domain')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('country')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('adoptedDate')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
@@ -199,7 +201,7 @@ export default function LegalFrameworksPage() {
                 {frameworks.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
-                      No legal frameworks found
+                      {t('noFrameworksFound')}
                     </td>
                   </tr>
                 )}
@@ -209,7 +211,7 @@ export default function LegalFrameworksPage() {
 
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 dark:border-gray-700">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Showing {frameworks.length} of {meta.total} frameworks
+              {t('showing', { count: frameworks.length, total: meta.total })}
             </p>
             <div className="flex items-center gap-1">
               <button

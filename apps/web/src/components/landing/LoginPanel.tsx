@@ -79,17 +79,17 @@ export function LoginPanel({ context }: LoginPanelProps) {
 
   const contextLabel =
     context?.level === 'country'
-      ? `Sign in to ${context.name}`
+      ? `${ta('signInTo')} ${context.name}`
       : context?.level === 'rec'
-        ? `Sign in \u2014 ${context.name}`
-        : 'Sign in to ARIS';
+        ? `${ta('signIn')} \u2014 ${context.name}`
+        : `${ta('signInTo')} ARIS`;
 
   const contextSubtitle =
     context?.level === 'country'
-      ? 'Access your national dashboard'
+      ? ta('accessNational')
       : context?.level === 'rec'
-        ? 'Access the regional dashboard'
-        : 'Access the continental dashboard';
+        ? ta('accessRegional')
+        : ta('accessContinental');
 
   return (
     <div className="w-full">
@@ -136,7 +136,7 @@ export function LoginPanel({ context }: LoginPanelProps) {
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
             {loginMutation.error instanceof Error
               ? loginMutation.error.message
-              : 'Connexion \u00e9chou\u00e9e. V\u00e9rifiez vos identifiants.'}
+              : ta('loginFailed')}
           </div>
         )}
 
@@ -158,7 +158,7 @@ export function LoginPanel({ context }: LoginPanelProps) {
             placeholder="you@au-aris.org"
           />
           {errors.email && (
-            <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
+            <p className="mt-1 text-xs text-red-600">{ta('enterValidEmail')}</p>
           )}
         </div>
 
@@ -190,7 +190,7 @@ export function LoginPanel({ context }: LoginPanelProps) {
             </button>
           </div>
           {errors.password && (
-            <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
+            <p className="mt-1 text-xs text-red-600">{ta('passwordMinLength')}</p>
           )}
         </div>
 
@@ -236,15 +236,15 @@ export function LoginPanel({ context }: LoginPanelProps) {
       {/* Footer links */}
       <div className="mt-5 space-y-3">
         <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-          {"Don't have an account? "}
+          {ta('noAccount')}{' '}
           <Link href="/register" className="font-medium hover:underline" style={{ color: accentColor }}>
-            Request access
+            {ta('requestAccess')}
           </Link>
         </p>
 
         <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
           <Shield className="h-3.5 w-3.5" />
-          <span>Secured by AU-IBAR \u2022 End-to-end encrypted</span>
+          <span>{ta('securedBy')}</span>
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useFisheriesCaptures, type CaptureRecord } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
@@ -123,6 +124,7 @@ const PLACEHOLDER_CAPTURES: CaptureRecord[] = [
 ];
 
 export default function CapturesPage() {
+  const t = useTranslations('fisheries');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [speciesFilter, setSpeciesFilter] = useState('');
@@ -158,9 +160,9 @@ export default function CapturesPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Captures</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('captures')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Marine and inland capture records across Africa
+            {t('capturesDesc')}
           </p>
         </div>
       </div>
@@ -171,7 +173,7 @@ export default function CapturesPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search captures..."
+            placeholder={t('searchCaptures')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -190,7 +192,7 @@ export default function CapturesPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Species</option>
+            <option value="">{t('allSpecies')}</option>
             <option value="Sardina pilchardus">Sardina pilchardus</option>
             <option value="Ethmalosa fimbriata">Ethmalosa fimbriata</option>
             <option value="Lates niloticus">Lates niloticus</option>
@@ -206,7 +208,7 @@ export default function CapturesPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Methods</option>
+            <option value="">{t('allMethods')}</option>
             <option value="Purse seine">Purse seine</option>
             <option value="Gillnet">Gillnet</option>
             <option value="Longline">Longline</option>
@@ -222,7 +224,7 @@ export default function CapturesPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Years</option>
+            <option value="">{t('allYears')}</option>
             <option value="2026">2026</option>
             <option value="2025">2025</option>
             <option value="2024">2024</option>
@@ -245,15 +247,15 @@ export default function CapturesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Species</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">FAO Area</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Catch Method</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Quantity</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Unit</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500">Year</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500">Quarter</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Landing Site</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('country')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('species')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('faoArea')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('catchMethod')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('quantity')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('unit')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500">{t('year')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500">{t('quarter')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('landingSite')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -284,7 +286,7 @@ export default function CapturesPage() {
                 {captures.length === 0 && (
                   <tr>
                     <td colSpan={9} className="px-4 py-12 text-center text-gray-400">
-                      No capture records found
+                      {t('noCapturesFound')}
                     </td>
                   </tr>
                 )}
@@ -295,7 +297,7 @@ export default function CapturesPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <p className="text-xs text-gray-500">
-              Showing {captures.length} of {meta.total} records
+              {t('showingOf', { count: String(captures.length), total: String(meta.total) })}
             </p>
             <div className="flex items-center gap-1">
               <button

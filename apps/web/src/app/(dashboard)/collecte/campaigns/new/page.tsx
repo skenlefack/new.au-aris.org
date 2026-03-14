@@ -23,11 +23,12 @@ import {
 import { COUNTRIES, type CountryConfig } from '@/data/countries-config';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { MultiSearchCombobox } from '@/components/ui/MultiSearchCombobox';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const FREQUENCY_OPTIONS = [
-  { value: 'one_time', label: 'One-time' },
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'one_time', tKey: 'oneTime' },
+  { value: 'monthly', tKey: 'monthly' },
+  { value: 'quarterly', tKey: 'quarterly' },
 ];
 
 const countryList: CountryConfig[] = Object.values(COUNTRIES).sort((a, b) =>
@@ -65,6 +66,7 @@ const SEED_TEMPLATES: FormTemplateListItem[] = [
 
 export default function NewCampaignPage() {
   const router = useRouter();
+  const t = useTranslations('collecte');
   const createCampaign = useCreateCampaign();
 
   const [name, setName] = useState('');
@@ -163,13 +165,13 @@ export default function NewCampaignPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Campaigns
+          {t('backToCampaigns')}
         </Link>
         <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-          Create Campaign
+          {t('createCampaign')}
         </h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Set up a new data collection campaign across countries and forms
+          {t('collectionCampaignsDesc')}
         </p>
       </div>
 
@@ -180,18 +182,18 @@ export default function NewCampaignPage() {
           <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
             <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <ClipboardList className="h-4 w-4 text-gray-400" />
-              Campaign Information
+              {t('campaignInformation')}
             </h2>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Campaign Name <span className="text-red-500">*</span>
+                {t('campaignNameLabel')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. FMD Surveillance Q1 2026"
+                placeholder={t('campaignNamePlaceholder')}
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               />
               {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
@@ -199,27 +201,27 @@ export default function NewCampaignPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Description
+                {t('description')}
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                placeholder="Describe the campaign objectives..."
+                placeholder={t('descriptionPlaceholder')}
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Domain <span className="text-red-500">*</span>
+                {t('domain')} <span className="text-red-500">*</span>
               </label>
               <select
                 value={domain}
                 onChange={(e) => handleDomainChange(e.target.value)}
                 className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               >
-                <option value="">Select a domain...</option>
+                <option value="">{t('selectDomain')}</option>
                 {DOMAIN_OPTIONS.map((d) => (
                   <option key={d.value} value={d.value}>
                     {d.label}
@@ -236,13 +238,13 @@ export default function NewCampaignPage() {
             <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
               <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-gray-400" />
-                Scheduling
+                {t('scheduling')}
               </h2>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Start Date <span className="text-red-500">*</span>
+                    {t('startDate')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -254,7 +256,7 @@ export default function NewCampaignPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    End Date <span className="text-red-500">*</span>
+                    {t('endDate')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -269,7 +271,7 @@ export default function NewCampaignPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Target Submissions
+                    {t('targetSubmissionsLabel')}
                   </label>
                   <input
                     type="number"
@@ -282,7 +284,7 @@ export default function NewCampaignPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Frequency
+                    {t('frequency')}
                   </label>
                   <select
                     value={frequency}
@@ -291,7 +293,7 @@ export default function NewCampaignPage() {
                   >
                     {FREQUENCY_OPTIONS.map((f) => (
                       <option key={f.value} value={f.value}>
-                        {f.label}
+                        {t(f.tKey)}
                       </option>
                     ))}
                   </select>
@@ -303,16 +305,16 @@ export default function NewCampaignPage() {
             <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
               <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Settings className="h-4 w-4 text-gray-400" />
-                Options
+                {t('options')}
               </h2>
 
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Send Reminders
+                    {t('sendReminders')}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Notify agents before the campaign deadline
+                    {t('notifyAgents')}
                   </p>
                 </div>
                 <button
@@ -335,7 +337,7 @@ export default function NewCampaignPage() {
               {sendReminders && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Reminder Days Before Deadline
+                    {t('reminderDays')}
                   </label>
                   <input
                     type="number"
@@ -355,22 +357,22 @@ export default function NewCampaignPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <FileText className="h-4 w-4 text-gray-400" />
-            Form Templates <span className="text-red-500">*</span>
+            {t('formTemplates')} <span className="text-red-500">*</span>
           </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {domainLabel
-              ? `Showing published templates for "${domainLabel}". Change domain to see others.`
-              : 'Select a domain to filter, or browse all published templates.'}
+              ? t('showingTemplatesFor', { domain: domainLabel })
+              : t('selectDomainToFilter')}
           </p>
           <MultiSearchCombobox<FormTemplateListItem>
             value={selectedTemplates}
             onChange={setSelectedTemplates}
             items={publishedTemplates}
-            labelKey={(t) => t.name}
-            idKey={(t) => t.id}
-            filterKey={(t) => `${t.name} ${t.domain}`}
-            placeholder="Search form templates..."
-            allLabel="All Templates"
+            labelKey={(tpl) => tpl.name}
+            idKey={(tpl) => tpl.id}
+            filterKey={(tpl) => `${tpl.name} ${tpl.domain}`}
+            placeholder={t('searchFormTemplates')}
+            allLabel={t('allTemplates')}
             loading={templatesLoading}
             renderItem={(t) => (
               <span className="flex items-center gap-2">
@@ -396,7 +398,7 @@ export default function NewCampaignPage() {
           {selectedTemplates.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
               <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                {selectedTemplates.length} template{selectedTemplates.length > 1 ? 's' : ''} selected
+                {selectedTemplates.length} {selectedTemplates.length > 1 ? t('templates') : t('template')}
               </p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {selectedTemplates.map((t) => (
@@ -413,7 +415,7 @@ export default function NewCampaignPage() {
                       </p>
                     </div>
                     <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                      Published
+                      {t('published')}
                     </span>
                   </div>
                 ))}
@@ -426,10 +428,10 @@ export default function NewCampaignPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <Globe className="h-4 w-4 text-gray-400" />
-            Target Countries <span className="text-red-500">*</span>
+            {t('targetCountries')} <span className="text-red-500">*</span>
           </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Select the AU Member States targeted by this campaign.
+            {t('selectTargetCountries')}
           </p>
           <MultiSearchCombobox<CountryConfig>
             value={selectedCountries}
@@ -438,8 +440,8 @@ export default function NewCampaignPage() {
             labelKey={(c) => `${c.flag} ${c.name}`}
             idKey={(c) => c.code}
             filterKey={(c) => `${c.name} ${c.code} ${c.nameFr}`}
-            placeholder="Search countries..."
-            allLabel="All Countries"
+            placeholder={t('searchCountries')}
+            allLabel={t('allCountries')}
             renderItem={(c) => (
               <span className="flex items-center gap-2">
                 <span>{c.flag}</span>
@@ -462,7 +464,7 @@ export default function NewCampaignPage() {
             href="/collecte"
             className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
           >
-            Cancel
+            {t('cancel')}
           </Link>
           <button
             type="submit"
@@ -470,13 +472,13 @@ export default function NewCampaignPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-aris-primary-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50"
           >
             {createCampaign.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            Create Campaign
+            {t('createCampaign')}
           </button>
         </div>
 
         {createCampaign.isError && (
           <p className="text-sm text-red-600">
-            Failed to create campaign. Please try again.
+            {t('failedToCreateCampaign')}
           </p>
         )}
       </form>

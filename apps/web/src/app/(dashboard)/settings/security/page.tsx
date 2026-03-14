@@ -6,8 +6,10 @@ import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { ConfigField } from '@/components/settings/ConfigField';
 import { SaveBar } from '@/components/settings/SaveBar';
 import { Loader2, ShieldAlert } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 
 export default function SecuritySettingsPage() {
+  const t = useTranslations('settings');
   const { canManageConfig } = useSettingsAccess();
   const canEdit = canManageConfig('security');
   const { data, isLoading } = useSettingsConfig('security');
@@ -73,23 +75,23 @@ export default function SecuritySettingsPage() {
   return (
     <div className="space-y-6 pb-20">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Security Settings</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('securitySettings')}</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Password policies, MFA, sessions, and rate limiting
+          {t('securitySubtitle')}
         </p>
       </div>
 
       {!canEdit && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
           <ShieldAlert className="h-4 w-4" />
-          Only Super Admins can modify security settings.
+          {t('securityAdminOnly')}
         </div>
       )}
 
-      {renderGroup('Password Policy', passwordConfigs)}
-      {renderGroup('Multi-Factor Authentication', mfaConfigs)}
-      {renderGroup('Session Management', sessionConfigs)}
-      {renderGroup('Login Protection', loginConfigs)}
+      {renderGroup(t('passwordPolicy'), passwordConfigs)}
+      {renderGroup(t('multiFactorAuth'), mfaConfigs)}
+      {renderGroup(t('sessionManagement'), sessionConfigs)}
+      {renderGroup(t('loginProtection'), loginConfigs)}
 
       <SaveBar
         show={Object.keys(changes).length > 0}

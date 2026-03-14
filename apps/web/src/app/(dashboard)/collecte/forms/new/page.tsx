@@ -6,9 +6,11 @@ import { FileText, ArrowLeft, Upload, CheckCircle2, AlertCircle } from 'lucide-r
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { createDefaultFormSchema } from '@/components/form-builder/utils/form-schema';
 import { useCreateFormTemplate, useImportExcelTemplate } from '@/lib/api/form-builder-hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 
 export default function NewFormPage() {
   const router = useRouter();
+  const t = useTranslations('collecte');
   const createMutation = useCreateFormTemplate();
   const importMutation = useImportExcelTemplate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -101,9 +103,9 @@ export default function NewFormPage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">New Form</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('newForm')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Create a new data collection form
+            {t('newFormDesc')}
           </p>
         </div>
       </div>
@@ -117,21 +119,21 @@ export default function NewFormPage() {
               <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h2 className="font-semibold text-gray-900 dark:text-white">Create from scratch</h2>
-              <p className="text-xs text-gray-500">Start with a blank form and add fields</p>
+              <h2 className="font-semibold text-gray-900 dark:text-white">{t('createFromScratch')}</h2>
+              <p className="text-xs text-gray-500">{t('startWithBlank')}</p>
             </div>
           </div>
 
           <div className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                Form Name <span className="text-red-500">*</span>
+                {t('formName')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Outbreak Report, Vaccination Campaign..."
+                placeholder={t('formNamePlaceholder')}
                 className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
                 autoFocus
               />
@@ -139,7 +141,7 @@ export default function NewFormPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                Domain <span className="text-red-500">*</span>
+                {t('domain')} <span className="text-red-500">*</span>
               </label>
               <select
                 value={domain}
@@ -154,12 +156,12 @@ export default function NewFormPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                Description
+                {t('description')}
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Brief description of the form's purpose..."
+                placeholder={t('formDescPlaceholder')}
                 rows={3}
                 className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
               />
@@ -171,13 +173,13 @@ export default function NewFormPage() {
                 disabled={!name.trim() || isCreating}
                 className="inline-flex items-center gap-2 rounded-lg bg-aris-primary-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {isCreating ? 'Creating...' : 'Create & Open Editor'}
+                {isCreating ? t('creating') : t('createAndOpenEditor')}
               </button>
               <button
                 onClick={() => router.push('/collecte/forms')}
                 className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300"
               >
-                Cancel
+                {t('cancel')}
               </button>
             </div>
           </div>
@@ -190,12 +192,12 @@ export default function NewFormPage() {
               <Upload className="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <h2 className="font-semibold text-gray-900 dark:text-white">Import from Excel</h2>
-              <p className="text-xs text-gray-500">Upload an .xlsx file to auto-generate a form</p>
+              <h2 className="font-semibold text-gray-900 dark:text-white">{t('importFromExcel')}</h2>
+              <p className="text-xs text-gray-500">{t('uploadXlsx')}</p>
             </div>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            Each sheet becomes a section. Column headers become field labels. Data types are auto-detected.
+            {t('eachSheetBecomes')}
           </p>
 
           {/* File picker */}
@@ -213,7 +215,7 @@ export default function NewFormPage() {
                 className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 <Upload className="h-4 w-4" />
-                {importFile ? 'Change File' : 'Choose Excel File'}
+                {importFile ? t('changeFile') : t('chooseExcelFile')}
               </button>
               {importFile && (
                 <span className="ml-3 inline-flex items-center gap-1.5 text-sm text-green-600">
@@ -227,19 +229,19 @@ export default function NewFormPage() {
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                    Form Name <span className="text-red-500">*</span>
+                    {t('formName')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={importName}
                     onChange={(e) => setImportName(e.target.value)}
-                    placeholder="Name for the imported form..."
+                    placeholder={t('importedFormName')}
                     className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                    Domain
+                    {t('domain')}
                   </label>
                   <select
                     value={importDomain}
@@ -264,7 +266,7 @@ export default function NewFormPage() {
                   disabled={!importName.trim() || isImporting}
                   className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {isImporting ? 'Importing...' : 'Import & Open Editor'}
+                  {isImporting ? t('importing') : t('importAndOpenEditor')}
                 </button>
               </>
             )}

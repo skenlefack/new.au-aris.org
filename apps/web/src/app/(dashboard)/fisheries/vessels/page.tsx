@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useFisheriesVessels, type Vessel } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
@@ -109,6 +110,7 @@ const PLACEHOLDER_VESSELS: Vessel[] = [
 ];
 
 export default function VesselsPage() {
+  const t = useTranslations('fisheries');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [vesselTypeFilter, setVesselTypeFilter] = useState('');
@@ -142,9 +144,9 @@ export default function VesselsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Vessel Registry</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('vesselTitle')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Registered fishing vessels and license status
+            {t('vesselSubtitle')}
           </p>
         </div>
       </div>
@@ -155,7 +157,7 @@ export default function VesselsPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search vessels..."
+            placeholder={t('searchVessels')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -174,11 +176,11 @@ export default function VesselsPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Types</option>
-            <option value="Trawler">Trawler</option>
-            <option value="Purse seiner">Purse seiner</option>
-            <option value="Longliner">Longliner</option>
-            <option value="Gillnetter">Gillnetter</option>
+            <option value="">{t('allTypes')}</option>
+            <option value="Trawler">{t('trawler')}</option>
+            <option value="Purse seiner">{t('purseSeine')}</option>
+            <option value="Longliner">{t('longliner')}</option>
+            <option value="Gillnetter">{t('gillnetter')}</option>
           </select>
           <select
             value={licenseStatusFilter}
@@ -188,11 +190,11 @@ export default function VesselsPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All License Status</option>
-            <option value="valid">Valid</option>
-            <option value="expired">Expired</option>
-            <option value="suspended">Suspended</option>
-            <option value="pending">Pending</option>
+            <option value="">{t('allLicenseStatus')}</option>
+            <option value="valid">{t('valid')}</option>
+            <option value="expired">{t('expired')}</option>
+            <option value="suspended">{t('suspended')}</option>
+            <option value="pending">{t('pending')}</option>
           </select>
         </div>
       </div>
@@ -211,14 +213,14 @@ export default function VesselsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Name</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Registration #</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Flag</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Type</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Length (m)</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Tonnage (GT)</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">License Status</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Home Port</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('vesselName')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('registration')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('flag')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('type')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('length')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('tonnage')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('licenseStatus')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('homePort')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -259,7 +261,7 @@ export default function VesselsPage() {
                 {vessels.length === 0 && (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
-                      No vessels found
+                      {t('noVesselsFound')}
                     </td>
                   </tr>
                 )}
@@ -270,7 +272,7 @@ export default function VesselsPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <p className="text-xs text-gray-500">
-              Showing {vessels.length} of {meta.total} vessels
+              {t('showingOf', { count: String(vessels.length), total: String(meta.total) })}
             </p>
             <div className="flex items-center gap-1">
               <button

@@ -6,8 +6,10 @@ import { ArrowLeft, Save, Lock, User, Mail, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUserProfile, useUpdateProfile, useChangePassword } from '@/lib/api/hooks';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 export default function ProfileSettingsPage() {
+  const t = useTranslations('settings');
   const { data, isLoading } = useUserProfile();
   const profile = data?.data;
   const updateProfile = useUpdateProfile();
@@ -46,11 +48,11 @@ export default function ProfileSettingsPage() {
   function handleChangePassword() {
     setPasswordError('');
     if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match');
+      setPasswordError(t('passwordsDoNotMatch'));
       return;
     }
     if (newPassword.length < 8) {
-      setPasswordError('Password must be at least 8 characters');
+      setPasswordError(t('passwordMinLength'));
       return;
     }
     changePassword.mutate(
@@ -63,7 +65,7 @@ export default function ProfileSettingsPage() {
           setConfirmPassword('');
           setTimeout(() => setPasswordChanged(false), 3000);
         },
-        onError: () => setPasswordError('Current password is incorrect'),
+        onError: () => setPasswordError(t('currentPasswordIncorrect')),
       },
     );
   }
@@ -78,11 +80,11 @@ export default function ProfileSettingsPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Settings
+          {t('backToSettings')}
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-gray-900">Profile</h1>
+        <h1 className="mt-2 text-2xl font-bold text-gray-900">{t('profile')}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Edit your personal information
+          {t('editYourInfo')}
         </p>
       </div>
 
@@ -90,12 +92,12 @@ export default function ProfileSettingsPage() {
       <div className="rounded-card border border-gray-200 bg-white p-6">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
           <User className="h-4 w-4" />
-          Personal Information
+          {t('personalInfo')}
         </h3>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              First Name
+              {t('firstName')}
             </label>
             <input
               type="text"
@@ -106,7 +108,7 @@ export default function ProfileSettingsPage() {
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              Last Name
+              {t('lastName')}
             </label>
             <input
               type="text"
@@ -117,7 +119,7 @@ export default function ProfileSettingsPage() {
           </div>
           <div className="sm:col-span-2">
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              Email
+              {t('email')}
             </label>
             <input
               type="email"
@@ -130,7 +132,7 @@ export default function ProfileSettingsPage() {
             <>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Role
+                  {t('role')}
                 </label>
                 <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
                   <Shield className="h-3.5 w-3.5" />
@@ -139,10 +141,10 @@ export default function ProfileSettingsPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
-                  MFA
+                  {t('mfa')}
                 </label>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
-                  {profile.mfaEnabled ? 'Enabled' : 'Disabled'}
+                  {profile.mfaEnabled ? t('enabled') : t('disabled')}
                 </div>
               </div>
             </>
@@ -155,10 +157,10 @@ export default function ProfileSettingsPage() {
             className="flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
-            {updateProfile.isPending ? 'Saving...' : 'Save Changes'}
+            {updateProfile.isPending ? t('saving') : t('saveChanges')}
           </button>
           {profileSaved && (
-            <span className="text-xs text-green-600">Saved successfully!</span>
+            <span className="text-xs text-green-600">{t('savedSuccessfully')}</span>
           )}
         </div>
       </div>
@@ -167,12 +169,12 @@ export default function ProfileSettingsPage() {
       <div className="rounded-card border border-gray-200 bg-white p-6">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
           <Lock className="h-4 w-4" />
-          Change Password
+          {t('changePassword')}
         </h3>
         <div className="mt-4 space-y-4">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              Current Password
+              {t('currentPassword')}
             </label>
             <input
               type="password"
@@ -184,7 +186,7 @@ export default function ProfileSettingsPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                New Password
+                {t('newPassword')}
               </label>
               <input
                 type="password"
@@ -195,7 +197,7 @@ export default function ProfileSettingsPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Confirm New Password
+                {t('confirmNewPassword')}
               </label>
               <input
                 type="password"
@@ -214,11 +216,11 @@ export default function ProfileSettingsPage() {
               disabled={changePassword.isPending || !currentPassword || !newPassword}
               className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
             >
-              {changePassword.isPending ? 'Changing...' : 'Change Password'}
+              {changePassword.isPending ? t('changing') : t('changePassword')}
             </button>
             {passwordChanged && (
               <span className="text-xs text-green-600">
-                Password changed successfully!
+                {t('passwordChanged')}
               </span>
             )}
           </div>

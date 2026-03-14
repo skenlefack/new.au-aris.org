@@ -17,6 +17,7 @@ import {
 } from '@/lib/api/hooks';
 import { TableSkeleton, MapSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const TranshumanceMap = dynamic(
   () =>
@@ -102,6 +103,7 @@ const PLACEHOLDER_CORRIDORS: TranshumanceCorridor[] = [
 ];
 
 export default function TranshumancePage() {
+  const t = useTranslations('livestock');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [crossBorderFilter, setCrossBorderFilter] = useState<string>('');
@@ -154,10 +156,10 @@ export default function TranshumancePage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Transhumance Corridors
+            {t('corridorTitle')}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Seasonal livestock movement routes across Africa
+            {t('corridorSubtitle')}
           </p>
         </div>
       </div>
@@ -183,38 +185,38 @@ export default function TranshumancePage() {
             </span>
             <span className="flex items-center gap-1">
               <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#2E7D32]" />
-              Active
+              {t('active')}
             </span>
             <span className="flex items-center gap-1">
               <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#9E9E9E]" />
-              Inactive
+              {t('inactive')}
             </span>
             <span className="flex items-center gap-1">
               <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#C62828]" />
-              Disrupted
+              {t('disrupted')}
             </span>
           </div>
 
           {/* Summary Stats */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div className="rounded-card border border-green-200 bg-green-50 p-4">
-              <p className="text-xs text-green-600">Active</p>
+              <p className="text-xs text-green-600">{t('active')}</p>
               <p className="text-xl font-bold text-green-700">{activeCount}</p>
             </div>
             <div className="rounded-card border border-red-200 bg-red-50 p-4">
-              <p className="text-xs text-red-600">Disrupted</p>
+              <p className="text-xs text-red-600">{t('disrupted')}</p>
               <p className="text-xl font-bold text-red-700">
                 {disruptedCount}
               </p>
             </div>
             <div className="rounded-card border border-gray-200 bg-white p-4">
-              <p className="text-xs text-gray-400">Est. Animals</p>
+              <p className="text-xs text-gray-400">{t('estAnimals')}</p>
               <p className="text-xl font-bold text-gray-900">
                 {totalAnimals.toLocaleString()}
               </p>
             </div>
             <div className="rounded-card border border-orange-200 bg-orange-50 p-4">
-              <p className="text-xs text-orange-600">Cross-Border</p>
+              <p className="text-xs text-orange-600">{t('crossBorder')}</p>
               <p className="text-xl font-bold text-orange-700">
                 {crossBorderCount}
               </p>
@@ -235,10 +237,10 @@ export default function TranshumancePage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="disrupted">Disrupted</option>
+            <option value="">{t('status')}</option>
+            <option value="active">{t('active')}</option>
+            <option value="inactive">{t('inactive')}</option>
+            <option value="disrupted">{t('disrupted')}</option>
           </select>
           <select
             value={crossBorderFilter}
@@ -265,25 +267,25 @@ export default function TranshumancePage() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="px-4 py-3 text-left font-medium text-gray-500">
-                    Corridor
+                    {t('corridor')}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">
-                    Route
+                    {t('route')}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">
-                    Species
+                    {t('species')}
                   </th>
                   <th className="px-4 py-3 text-right font-medium text-gray-500">
-                    Est. Animals
+                    {t('estAnimals')}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">
-                    Season
+                    {t('season')}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">
-                    Status
+                    {t('status')}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">
-                    Cross-Border
+                    {t('crossBorder')}
                   </th>
                 </tr>
               </thead>
@@ -331,7 +333,7 @@ export default function TranshumancePage() {
                       colSpan={7}
                       className="px-4 py-12 text-center text-gray-400"
                     >
-                      No transhumance corridors found
+                      {t('noCorrRecords')}
                     </td>
                   </tr>
                 )}
@@ -342,7 +344,7 @@ export default function TranshumancePage() {
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <p className="text-xs text-gray-500">
-              Showing {corridors.length} of {meta.total} corridors
+              {t('showingOf', { count: corridors.length.toString(), total: meta.total.toString() })}
             </p>
             <div className="flex items-center gap-1">
               <button

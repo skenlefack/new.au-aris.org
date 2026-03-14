@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Save, Bell, Mail, Smartphone, MonitorSmartphone } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 import { cn } from '@/lib/utils';
 import {
   useNotificationPreferences,
@@ -11,17 +12,17 @@ import {
 } from '@/lib/api/hooks';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
 
-const EVENT_TYPES = [
-  { key: 'outbreak_new', label: 'New outbreak reported' },
-  { key: 'outbreak_confirmed', label: 'Outbreak confirmed' },
-  { key: 'outbreak_alert', label: 'Regional outbreak alert' },
-  { key: 'workflow_approved', label: 'Workflow approved' },
-  { key: 'workflow_rejected', label: 'Workflow rejected' },
-  { key: 'workflow_assigned', label: 'Workflow assigned to me' },
-  { key: 'quality_failed', label: 'Quality gate failure' },
-  { key: 'quality_correction', label: 'Correction required' },
-  { key: 'sync_completed', label: 'Data sync completed' },
-  { key: 'system_maintenance', label: 'System maintenance' },
+const EVENT_TYPE_KEYS = [
+  { key: 'outbreak_new', tKey: 'outbreakNew' },
+  { key: 'outbreak_confirmed', tKey: 'outbreakConfirmed' },
+  { key: 'outbreak_alert', tKey: 'outbreakAlert' },
+  { key: 'workflow_approved', tKey: 'workflowApproved' },
+  { key: 'workflow_rejected', tKey: 'workflowRejected' },
+  { key: 'workflow_assigned', tKey: 'workflowAssigned' },
+  { key: 'quality_failed', tKey: 'qualityFailed' },
+  { key: 'quality_correction', tKey: 'qualityCorrectionRequired' },
+  { key: 'sync_completed', tKey: 'syncCompleted' },
+  { key: 'system_maintenance', tKey: 'systemMaintenance' },
 ] as const;
 
 const CHANNELS = [
@@ -31,6 +32,7 @@ const CHANNELS = [
 ] as const;
 
 export default function NotificationPreferencesPage() {
+  const t = useTranslations('settings');
   const { data, isLoading } = useNotificationPreferences();
   const updatePrefs = useUpdateNotificationPreferences();
   const [saved, setSaved] = useState(false);
@@ -45,7 +47,7 @@ export default function NotificationPreferencesPage() {
     // API returns an array of { eventType, email, sms, push } rows.
     // Transform into the channel-grouped structure the UI expects.
     const defaults: NotificationPreferences = { email: {}, sms: {}, push: {} };
-    for (const event of EVENT_TYPES) {
+    for (const event of EVENT_TYPE_KEYS) {
       defaults.email[event.key] = true;
       defaults.sms[event.key] = event.key.includes('alert') || event.key.includes('outbreak');
       defaults.push[event.key] = true;
@@ -93,13 +95,13 @@ export default function NotificationPreferencesPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Settings
+          {t('backToSettings')}
         </Link>
         <h1 className="mt-2 text-2xl font-bold text-gray-900">
-          Notification Preferences
+          {t('notificationPreferences')}
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Choose how you want to be notified for each event type
+          {t('notificationPreferencesDesc')}
         </p>
       </div>
 
@@ -108,7 +110,7 @@ export default function NotificationPreferencesPage() {
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                Event Type
+                {t('eventType')}
               </th>
               {CHANNELS.map((ch) => (
                 <th
@@ -124,9 +126,9 @@ export default function NotificationPreferencesPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {EVENT_TYPES.map((event) => (
+            {EVENT_TYPE_KEYS.map((event) => (
               <tr key={event.key} className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-gray-900">{event.label}</td>
+                <td className="px-4 py-3 text-gray-900">{t(event.tKey)}</td>
                 {CHANNELS.map((ch) => (
                   <td key={ch.key} className="px-4 py-3 text-center">
                     <button
@@ -162,10 +164,10 @@ export default function NotificationPreferencesPage() {
           className="flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
-          {updatePrefs.isPending ? 'Saving...' : 'Save Preferences'}
+          {updatePrefs.isPending ? t('saving') : t('savePreferences')}
         </button>
         {saved && (
-          <span className="text-xs text-green-600">Preferences saved!</span>
+          <span className="text-xs text-green-600">{t('preferencesSaved')}</span>
         )}
       </div>
     </div>

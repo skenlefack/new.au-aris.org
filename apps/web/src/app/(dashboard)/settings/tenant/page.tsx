@@ -6,6 +6,7 @@ import { ArrowLeft, Save, Building2, Globe, Settings, Shield } from 'lucide-reac
 import { useTenantConfig, useUpdateTenantConfig } from '@/lib/api/hooks';
 import { useAuthStore, type UserRole } from '@/lib/stores/auth-store';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const ADMIN_ROLES: UserRole[] = [
   'SUPER_ADMIN',
@@ -15,6 +16,7 @@ const ADMIN_ROLES: UserRole[] = [
 ];
 
 export default function TenantSettingsPage() {
+  const t = useTranslations('settings');
   const user = useAuthStore((s) => s.user);
   const userRole = (user?.role ?? 'ANALYST') as UserRole;
   const isAdmin = ADMIN_ROLES.includes(userRole);
@@ -54,15 +56,15 @@ export default function TenantSettingsPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Settings
+          {t('backToSettings')}
         </Link>
         <div className="rounded-card border border-red-200 bg-red-50 p-8 text-center">
           <Shield className="mx-auto h-8 w-8 text-red-400" />
           <p className="mt-2 text-sm font-medium text-red-700">
-            Access Denied
+            {t('accessDenied')}
           </p>
           <p className="mt-1 text-xs text-red-500">
-            Only administrators can manage tenant configuration.
+            {t('onlyAdminsCanManage')}
           </p>
         </div>
       </div>
@@ -79,26 +81,26 @@ export default function TenantSettingsPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Settings
+          {t('backToSettings')}
         </Link>
         <h1 className="mt-2 text-2xl font-bold text-gray-900">
-          Tenant Configuration
+          {t('tenantConfig')}
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Manage your organization&apos;s settings
+          {t('tenantConfigDesc')}
         </p>
       </div>
 
       <div className="rounded-card border border-gray-200 bg-white p-6 space-y-4">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
           <Building2 className="h-4 w-4" />
-          Organization Details
+          {t('organizationDetails')}
         </h3>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              Organization Name
+              {t('organizationName')}
             </label>
             <input
               type="text"
@@ -109,7 +111,7 @@ export default function TenantSettingsPage() {
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              Domain
+              {t('domain')}
             </label>
             <input
               type="text"
@@ -124,7 +126,7 @@ export default function TenantSettingsPage() {
           <div className="grid grid-cols-2 gap-4 pt-2">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Code
+                {t('code')}
               </label>
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-mono text-gray-600">
                 {tenant.code}
@@ -132,7 +134,7 @@ export default function TenantSettingsPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Level
+                {t('level')}
               </label>
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 capitalize">
                 {tenant.level.replace(/_/g, ' ')}
@@ -140,15 +142,15 @@ export default function TenantSettingsPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Status
+                {t('status')}
               </label>
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
-                {tenant.isActive ? 'Active' : 'Inactive'}
+                {tenant.isActive ? t('active') : t('inactive')}
               </div>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Tenant ID
+                {t('tenantId')}
               </label>
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-mono text-gray-500 truncate">
                 {tenant.id}
@@ -164,11 +166,11 @@ export default function TenantSettingsPage() {
             className="flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
-            {updateConfig.isPending ? 'Saving...' : 'Save Configuration'}
+            {updateConfig.isPending ? t('saving') : t('saveConfig')}
           </button>
           {saved && (
             <span className="text-xs text-green-600">
-              Configuration saved!
+              {t('configSaved')}
             </span>
           )}
         </div>

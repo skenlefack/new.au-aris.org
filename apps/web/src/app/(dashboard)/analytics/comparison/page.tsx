@@ -21,20 +21,21 @@ import {
 import { cn } from '@/lib/utils';
 import { useCountryComparison } from '@/lib/api/hooks';
 import { KpiCardSkeleton, TableSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface MetricOption {
   value: string;
-  label: string;
+  tKey: string;
   format: (v: number) => string;
 }
 
 const METRIC_OPTIONS: MetricOption[] = [
-  { value: 'outbreaks', label: 'Outbreaks', format: (v) => v.toLocaleString() },
-  { value: 'vaccinationCoverage', label: 'Vaccination Coverage (%)', format: (v) => `${v.toFixed(1)}%` },
-  { value: 'labCapacity', label: 'Lab Capacity', format: (v) => v.toLocaleString() },
-  { value: 'qualityScore', label: 'Quality Score (%)', format: (v) => `${v.toFixed(1)}%` },
-  { value: 'tradeVolume', label: 'Trade Volume', format: (v) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v.toLocaleString() },
-  { value: 'dataCompleteness', label: 'Data Completeness (%)', format: (v) => `${v.toFixed(1)}%` },
+  { value: 'outbreaks', tKey: 'metricOutbreaks', format: (v) => v.toLocaleString() },
+  { value: 'vaccinationCoverage', tKey: 'metricVaccinationCoverage', format: (v) => `${v.toFixed(1)}%` },
+  { value: 'labCapacity', tKey: 'metricLabCapacity', format: (v) => v.toLocaleString() },
+  { value: 'qualityScore', tKey: 'metricQualityScore', format: (v) => `${v.toFixed(1)}%` },
+  { value: 'tradeVolume', tKey: 'metricTradeVolume', format: (v) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v.toLocaleString() },
+  { value: 'dataCompleteness', tKey: 'metricDataCompleteness', format: (v) => `${v.toFixed(1)}%` },
 ];
 
 const RADAR_METRICS = [
@@ -51,6 +52,7 @@ export default function CountryComparisonPage() {
   const [selectedCountries, setSelectedCountries] = useState<Set<string>>(
     new Set(['KE', 'ET', 'NG', 'TZ', 'ZA']),
   );
+  const t = useTranslations('analytics');
 
   const { data, isLoading } = useCountryComparison({
     countries: Array.from(selectedCountries),
@@ -111,9 +113,9 @@ export default function CountryComparisonPage() {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Country Comparison</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('countryComparison')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Compare metrics across AU Member States
+            {t('comparisonSubtitle')}
           </p>
         </div>
       </div>
@@ -123,7 +125,7 @@ export default function CountryComparisonPage() {
         {/* Metric selector */}
         <div>
           <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">
-            Metric
+            {t('metric')}
           </label>
           <select
             value={selectedMetric}
@@ -132,7 +134,7 @@ export default function CountryComparisonPage() {
           >
             {METRIC_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
-                {opt.label}
+                {t(opt.tKey)}
               </option>
             ))}
           </select>
@@ -141,7 +143,7 @@ export default function CountryComparisonPage() {
         {/* Country toggles */}
         <div className="flex-1">
           <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">
-            Countries
+            {t('countries')}
           </label>
           <div className="flex flex-wrap gap-2">
             {rows.map((row) => (
@@ -174,11 +176,11 @@ export default function CountryComparisonPage() {
           {/* Bar Chart */}
           <div className="rounded-card border border-gray-200 bg-white p-5">
             <h3 className="mb-4 text-sm font-semibold text-gray-900">
-              {currentMetric.label} by Country
+              {t('metricByCountry', { metric: t(currentMetric.tKey) })}
             </h3>
             {barData.length === 0 ? (
               <div className="flex h-[350px] items-center justify-center">
-                <p className="text-sm text-gray-400">Select at least one country</p>
+                <p className="text-sm text-gray-400">{t('selectAtLeastOneCountry')}</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={350}>
@@ -203,7 +205,7 @@ export default function CountryComparisonPage() {
                     axisLine={{ stroke: '#e5e7eb' }}
                   />
                   <Tooltip
-                    formatter={(value: number) => [currentMetric.format(value), currentMetric.label]}
+                    formatter={(value: number) => [currentMetric.format(value), t(currentMetric.tKey)]}
                     contentStyle={{
                       backgroundColor: '#fff',
                       border: '1px solid #e5e7eb',
@@ -226,11 +228,11 @@ export default function CountryComparisonPage() {
           {/* Radar Chart */}
           <div className="rounded-card border border-gray-200 bg-white p-5">
             <h3 className="mb-4 text-sm font-semibold text-gray-900">
-              Multi-Metric Radar
+              {t('multiMetricRadar')}
             </h3>
             {radarCountries.length === 0 ? (
               <div className="flex h-[350px] items-center justify-center">
-                <p className="text-sm text-gray-400">Select at least one country</p>
+                <p className="text-sm text-gray-400">{t('selectAtLeastOneCountry')}</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={350}>
@@ -273,20 +275,20 @@ export default function CountryComparisonPage() {
         <div className="rounded-card border border-gray-200 bg-white overflow-hidden">
           <div className="border-b border-gray-100 px-4 py-3">
             <h3 className="text-sm font-semibold text-gray-900">
-              All Countries ({rows.length})
+              {t('allCountriesCount', { count: rows.length })}
             </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                  <th className="px-4 py-3">Country</th>
-                  <th className="px-4 py-3 text-right">Outbreaks</th>
-                  <th className="px-4 py-3 text-right">Vaccination (%)</th>
-                  <th className="px-4 py-3 text-right">Lab Capacity</th>
-                  <th className="px-4 py-3 text-right">Quality Score</th>
-                  <th className="px-4 py-3 text-right">Trade Volume</th>
-                  <th className="px-4 py-3 text-right">Completeness (%)</th>
+                  <th className="px-4 py-3">{t('countries')}</th>
+                  <th className="px-4 py-3 text-right">{t('metricOutbreaks')}</th>
+                  <th className="px-4 py-3 text-right">{t('vaccinationPercent')}</th>
+                  <th className="px-4 py-3 text-right">{t('metricLabCapacity')}</th>
+                  <th className="px-4 py-3 text-right">{t('metricQualityScore')}</th>
+                  <th className="px-4 py-3 text-right">{t('metricTradeVolume')}</th>
+                  <th className="px-4 py-3 text-right">{t('completenessPercent')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -344,7 +346,7 @@ export default function CountryComparisonPage() {
                       colSpan={7}
                       className="px-4 py-8 text-center text-gray-400"
                     >
-                      No comparison data available
+                      {t('noComparisonData')}
                     </td>
                   </tr>
                 )}

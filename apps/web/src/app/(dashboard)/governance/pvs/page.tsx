@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { usePvsEvaluations, type PvsEvaluation } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
@@ -74,6 +75,7 @@ const PLACEHOLDER_PVS: PvsEvaluation[] = [
 ];
 
 export default function PvsEvaluationsPage() {
+  const t = useTranslations('governance');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [yearFilter, setYearFilter] = useState('');
@@ -100,9 +102,9 @@ export default function PvsEvaluationsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">PVS Evaluations</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('pvs')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            WOAH Performance of Veterinary Services evaluations by country
+            {t('pvsDesc')}
           </p>
         </div>
       </div>
@@ -112,7 +114,7 @@ export default function PvsEvaluationsPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search evaluations..."
+            placeholder={t('searchEvaluations')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
@@ -125,7 +127,7 @@ export default function PvsEvaluationsPage() {
             onChange={(e) => { setYearFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All Years</option>
+            <option value="">{t('allYears')}</option>
             <option value="2025">2025</option>
             <option value="2024">2024</option>
             <option value="2023">2023</option>
@@ -147,17 +149,17 @@ export default function PvsEvaluationsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Country</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Year</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Type</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Overall</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Legis.</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Labs</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Risk</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Surv.</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Control</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Food</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Educ.</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('country')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('year')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('evaluationType')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('overallScore')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('legislation')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('labs')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('riskAnalysis')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('surveillance')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('diseaseControl')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('foodSafety')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('vetEducation')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
@@ -186,7 +188,7 @@ export default function PvsEvaluationsPage() {
                 {evaluations.length === 0 && (
                   <tr>
                     <td colSpan={11} className="px-4 py-12 text-center text-gray-400">
-                      No PVS evaluations found
+                      {t('noEvaluationsFound')}
                     </td>
                   </tr>
                 )}
@@ -196,7 +198,7 @@ export default function PvsEvaluationsPage() {
 
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 dark:border-gray-700">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Showing {evaluations.length} of {meta.total} evaluations
+              {t('showing', { count: evaluations.length, total: meta.total })}
             </p>
             <div className="flex items-center gap-1">
               <button

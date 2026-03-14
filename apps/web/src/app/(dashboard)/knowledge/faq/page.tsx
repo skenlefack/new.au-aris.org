@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { useFaqItems, type FaqItem } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const DOMAIN_BADGE: Record<string, string> = {
   'General': 'bg-gray-100 text-gray-700',
@@ -103,6 +104,7 @@ const PLACEHOLDER_FAQ: FaqItem[] = [
 ];
 
 export default function FaqPage() {
+  const t = useTranslations('knowledge');
   const [domainFilter, setDomainFilter] = useState('All');
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
 
@@ -140,10 +142,10 @@ export default function FaqPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Frequently Asked Questions
+            {t('faqTitle')}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Common questions about the ARIS platform and its features
+            {t('faqDesc')}
           </p>
         </div>
       </div>

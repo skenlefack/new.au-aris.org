@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useApiaries, type Apiary } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
@@ -73,6 +74,7 @@ const PLACEHOLDER_APIARIES: Apiary[] = [
 ];
 
 export default function ApiariesPage() {
+  const t = useTranslations('apiculture');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [hiveTypeFilter, setHiveTypeFilter] = useState('');
@@ -101,9 +103,9 @@ export default function ApiariesPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Apiaries</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('apiaries')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Registered apiary locations, hive types, and colony counts
+            {t('apiariesDesc')}
           </p>
         </div>
       </div>
@@ -113,7 +115,7 @@ export default function ApiariesPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search apiaries..."
+            placeholder={t('searchApiaries')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
@@ -126,7 +128,7 @@ export default function ApiariesPage() {
             onChange={(e) => { setHiveTypeFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All Hive Types</option>
+            <option value="">{t('allHiveTypes')}</option>
             <option value="Langstroth">Langstroth</option>
             <option value="Top-bar">Top-bar</option>
             <option value="Traditional">Traditional</option>
@@ -137,10 +139,10 @@ export default function ApiariesPage() {
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="abandoned">Abandoned</option>
+            <option value="">{t('allStatus')}</option>
+            <option value="active">{t('active')}</option>
+            <option value="inactive">{t('inactive')}</option>
+            <option value="abandoned">{t('abandoned')}</option>
           </select>
         </div>
       </div>
@@ -158,12 +160,12 @@ export default function ApiariesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Name</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Owner</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('apiaryName')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('owner')}</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Hive Type</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Colonies</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Registered</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('hiveType')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('colonies')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('registered')}</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Status</th>
                 </tr>
               </thead>
@@ -195,7 +197,7 @@ export default function ApiariesPage() {
                 {apiaries.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                      No apiaries found
+                      {t('noApiariesFound')}
                     </td>
                   </tr>
                 )}
@@ -205,7 +207,7 @@ export default function ApiariesPage() {
 
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 dark:border-gray-700">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Showing {apiaries.length} of {meta.total} apiaries
+              {t('showing', { count: apiaries.length, total: meta.total })}
             </p>
             <div className="flex items-center gap-1">
               <button

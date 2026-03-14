@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { BarChart3, PieChart, BarChart2, ShieldCheck, Eye, EyeOff, Save, ChevronDown, ChevronUp } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
 /* ── Types ── */
@@ -166,6 +167,7 @@ const ROLE_CONFIGS: RoleConfig[] = [
 /* ── Page ── */
 
 export default function BiAccessPage() {
+  const t = useTranslations('settings');
   const { user } = useAuthStore();
   const [selectedTool, setSelectedTool] = useState('superset');
   const [expandedRole, setExpandedRole] = useState<string | null>('SUPER_ADMIN');
@@ -236,9 +238,9 @@ export default function BiAccessPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">BI Data Access Management</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('biDataAccessTitle')}</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Configure which data tables are accessible to each user role in the BI tools
+            {t('biDataAccessSubtitle')}
           </p>
         </div>
         {isSuperAdmin && (
@@ -247,7 +249,7 @@ export default function BiAccessPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
           >
             <Save className="h-4 w-4" />
-            {saved ? 'Saved!' : 'Save Changes'}
+            {saved ? t('saved') : t('saveChanges')}
           </button>
         )}
       </div>
@@ -300,7 +302,7 @@ export default function BiAccessPage() {
                     <span className="text-sm font-semibold text-slate-900 dark:text-white">{roleConfig.label}</span>
                     {hasNoAccess && (
                       <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-400 dark:bg-slate-800 dark:text-slate-500">
-                        No BI access
+                        {t('noBiAccess')}
                       </span>
                     )}
                   </div>
@@ -308,13 +310,13 @@ export default function BiAccessPage() {
                 <div className="flex items-center gap-3">
                   <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400">
                     {roleConfig.allowedSchemas.length > 0 && (
-                      <span>{roleConfig.allowedSchemas.length} schemas</span>
+                      <span>{roleConfig.allowedSchemas.length} {t('schemas')}</span>
                     )}
                     {roleConfig.allowedTables.length > 0 && (
-                      <span>{roleConfig.allowedTables.length} tables</span>
+                      <span>{roleConfig.allowedTables.length} {t('tables')}</span>
                     )}
                     {roleConfig.allowedTables.length === 0 && roleConfig.allowedSchemas.length > 0 && (
-                      <span>All tables</span>
+                      <span>{t('allTables')}</span>
                     )}
                   </div>
                   {isExpanded ? (
@@ -331,7 +333,7 @@ export default function BiAccessPage() {
                   {/* Schemas */}
                   <div>
                     <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                      Schemas
+                      {t('schemas')}
                     </label>
                     <div className="flex flex-wrap gap-2">
                       {SCHEMAS.map((schema) => {
@@ -359,10 +361,10 @@ export default function BiAccessPage() {
                   {roleConfig.allowedSchemas.length > 0 && (
                     <div>
                       <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                        Allowed Tables
+                        {t('allowedTables')}
                         {roleConfig.allowedTables.length === 0 && (
                           <span className="ml-2 text-[10px] normal-case font-normal text-slate-300 dark:text-slate-600">
-                            (empty = all accessible, excluding sensitive)
+                            {t('emptyAllAccessible')}
                           </span>
                         )}
                       </label>
@@ -399,7 +401,7 @@ export default function BiAccessPage() {
                   {/* Excluded tables (always shown) */}
                   <div>
                     <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                      Always Excluded (Sensitive)
+                      {t('alwaysExcluded')}
                     </label>
                     <div className="flex flex-wrap gap-1.5">
                       {roleConfig.excludedTables.map((table) => (
@@ -417,7 +419,7 @@ export default function BiAccessPage() {
                   {/* Data filter */}
                   <div>
                     <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                      Data Filter (Row-Level Security)
+                      {t('dataFilterRls')}
                     </label>
                     <p className="text-sm text-slate-600 dark:text-slate-300">{roleConfig.dataFilter}</p>
                   </div>
@@ -425,13 +427,13 @@ export default function BiAccessPage() {
                   {/* Permissions */}
                   <div>
                     <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                      Permissions
+                      {t('permissions')}
                     </label>
                     <div className="flex flex-wrap gap-4">
                       {([
-                        { key: 'canCreateDashboard' as const, label: 'Create Dashboards' },
-                        { key: 'canExportData' as const, label: 'Export Data' },
-                        { key: 'canUseSqlLab' as const, label: 'SQL Lab (Superset)' },
+                        { key: 'canCreateDashboard' as const, label: t('createDashboards') },
+                        { key: 'canExportData' as const, label: t('exportData') },
+                        { key: 'canUseSqlLab' as const, label: t('sqlLabSuperset') },
                       ]).map(({ key, label }) => (
                         <label
                           key={key}
@@ -467,19 +469,19 @@ export default function BiAccessPage() {
       {/* Available Tables Reference */}
       <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
         <div className="border-b border-slate-100 px-5 py-4 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Available Tables Reference</h2>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{t('availableTablesRef')}</h2>
           <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
-            All tables in the ARIS database that can be made available to BI tools
+            {t('availableTablesRefDesc')}
           </p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50/80 dark:bg-slate-800/50">
               <tr>
-                <th className="px-5 py-3 text-xs font-medium text-slate-400">Schema</th>
-                <th className="px-5 py-3 text-xs font-medium text-slate-400">Table</th>
-                <th className="px-5 py-3 text-xs font-medium text-slate-400">Category</th>
-                <th className="px-5 py-3 text-xs font-medium text-slate-400 text-center">Sensitive</th>
+                <th className="px-5 py-3 text-xs font-medium text-slate-400">{t('schema')}</th>
+                <th className="px-5 py-3 text-xs font-medium text-slate-400">{t('table')}</th>
+                <th className="px-5 py-3 text-xs font-medium text-slate-400">{t('category')}</th>
+                <th className="px-5 py-3 text-xs font-medium text-slate-400 text-center">{t('sensitive')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FileQuestion, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 export default function NotFound() {
   const router = useRouter();
+  const t = useTranslations('errors');
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
@@ -22,11 +24,10 @@ export default function NotFound() {
           404
         </h1>
         <p className="mt-2 text-lg font-semibold text-gray-700">
-          Page not found
+          {t('pageNotFound')}
         </p>
         <p className="mt-2 text-sm text-gray-500">
-          The page you are looking for does not exist or has been moved.
-          Please check the URL or navigate back to the dashboard.
+          {t('pageNotFoundLong')}
         </p>
 
         {/* Actions */}
@@ -41,7 +42,7 @@ export default function NotFound() {
             )}
           >
             <LayoutDashboard className="h-4 w-4" />
-            Go to Dashboard
+            {t('goToDashboard')}
           </Link>
 
           <button
@@ -54,13 +55,13 @@ export default function NotFound() {
             )}
           >
             <ArrowLeft className="h-4 w-4" />
-            Go Back
+            {t('goBack')}
           </button>
         </div>
 
         {/* Branding */}
         <p className="mt-12 text-xs text-gray-400">
-          ARIS — Animal Resources Information System
+          ARIS — {t('arisTagline')}
         </p>
       </div>
     </div>

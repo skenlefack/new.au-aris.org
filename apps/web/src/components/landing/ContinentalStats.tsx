@@ -2,6 +2,7 @@
 
 import { resolveIcon } from '@/lib/lucide-icon-map';
 import { Layers } from 'lucide-react';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 
 export interface PublicDomain {
   code: string;
@@ -29,6 +30,7 @@ interface ContinentalStatsProps {
 }
 
 export function ContinentalStats({ domains }: ContinentalStatsProps) {
+  const locale = useLocaleStore((s) => s.locale);
   const list = domains && domains.length > 0 ? domains : FALLBACK_DOMAINS;
 
   // Responsive: max 9 cols on large screens, adapt to actual count
@@ -47,8 +49,8 @@ export function ContinentalStats({ domains }: ContinentalStatsProps) {
         <div className={`grid gap-3 ${colClass}`}>
           {list.map((d) => {
             const Icon = resolveIcon(d.icon);
-            const label = d.name?.en ?? d.code;
-            const desc = d.description?.en ?? '';
+            const label = d.name?.[locale] ?? d.name?.en ?? d.code;
+            const desc = d.description?.[locale] ?? d.description?.en ?? '';
             return (
               <div
                 key={d.code}

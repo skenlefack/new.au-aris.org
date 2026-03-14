@@ -17,6 +17,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   useCollectionCampaigns,
   useActivateCampaign,
@@ -34,12 +35,12 @@ function i18n(val: unknown): string {
   return String(val);
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  PLANNED: { label: 'Planned', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', icon: <Clock className="h-3.5 w-3.5" /> },
-  ACTIVE: { label: 'Active', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300', icon: <Play className="h-3.5 w-3.5" /> },
-  PAUSED: { label: 'Paused', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300', icon: <Pause className="h-3.5 w-3.5" /> },
-  COMPLETED: { label: 'Completed', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-  CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', icon: <XCircle className="h-3.5 w-3.5" /> },
+const STATUS_CONFIG: Record<string, { tKey: string; color: string; icon: React.ReactNode }> = {
+  PLANNED: { tKey: 'tabPlanned', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', icon: <Clock className="h-3.5 w-3.5" /> },
+  ACTIVE: { tKey: 'tabActive', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300', icon: <Play className="h-3.5 w-3.5" /> },
+  PAUSED: { tKey: 'paused', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300', icon: <Pause className="h-3.5 w-3.5" /> },
+  COMPLETED: { tKey: 'tabCompleted', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+  CANCELLED: { tKey: 'cancelled', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', icon: <XCircle className="h-3.5 w-3.5" /> },
 };
 
 const DOMAIN_LABELS: Record<string, string> = {
@@ -54,6 +55,7 @@ const DOMAIN_LABELS: Record<string, string> = {
 };
 
 export default function CampaignsPage() {
+  const t = useTranslations('collecte');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [domainFilter, setDomainFilter] = useState('');
@@ -76,9 +78,9 @@ export default function CampaignsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Collection Campaigns</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('collectionCampaigns')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Plan, execute, and monitor data collection campaigns across countries
+            {t('collectionCampaignsDesc')}
           </p>
         </div>
         <Link
@@ -86,7 +88,7 @@ export default function CampaignsPage() {
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
           <Plus className="h-4 w-4" />
-          New Campaign
+          {t('newCampaign')}
         </Link>
       </div>
 
@@ -97,19 +99,19 @@ export default function CampaignsPage() {
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
         >
-          <option value="">All statuses</option>
-          <option value="PLANNED">Planned</option>
-          <option value="ACTIVE">Active</option>
-          <option value="PAUSED">Paused</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="CANCELLED">Cancelled</option>
+          <option value="">{t('allStatuses')}</option>
+          <option value="PLANNED">{t('tabPlanned')}</option>
+          <option value="ACTIVE">{t('tabActive')}</option>
+          <option value="PAUSED">{t('paused')}</option>
+          <option value="COMPLETED">{t('tabCompleted')}</option>
+          <option value="CANCELLED">{t('cancelled')}</option>
         </select>
         <select
           value={domainFilter}
           onChange={(e) => { setDomainFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
         >
-          <option value="">All domains</option>
+          <option value="">{t('allDomains')}</option>
           {Object.entries(DOMAIN_LABELS).map(([key, label]) => (
             <option key={key} value={key}>{label}</option>
           ))}
@@ -127,10 +129,10 @@ export default function CampaignsPage() {
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-12 text-center">
           <Target className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
           <p className="mt-4 text-sm font-medium text-gray-900 dark:text-white">
-            No campaigns found
+            {t('noCampaignsFound')}
           </p>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Create a campaign to start collecting data.
+            {t('createCampaignToStart')}
           </p>
         </div>
       ) : (
@@ -162,7 +164,7 @@ export default function CampaignsPage() {
                         statusCfg.color,
                       )}>
                         {statusCfg.icon}
-                        {statusCfg.label}
+                        {t(statusCfg.tKey)}
                       </span>
                       <span className="rounded bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:text-gray-400">
                         {campaign.code}
@@ -179,7 +181,7 @@ export default function CampaignsPage() {
                       </span>
                       <span className="flex items-center gap-1">
                         <Target className="h-3.5 w-3.5" />
-                        {target} target submissions
+                        {target} {t('targetSubmissions')}
                       </span>
                       {campaign.domain && (
                         <span className="rounded bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 text-blue-700 dark:text-blue-300">
@@ -188,7 +190,7 @@ export default function CampaignsPage() {
                       )}
                       <span className="flex items-center gap-1">
                         <Users className="h-3.5 w-3.5" />
-                        {campaign._count?.assignments ?? 0} agents
+                        {campaign._count?.assignments ?? 0} {t('agents').toLowerCase()}
                       </span>
                       {targetCountries.length > 0 && (
                         <span className="flex items-center gap-1">
@@ -206,7 +208,7 @@ export default function CampaignsPage() {
                         disabled={activateMut.isPending}
                         className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
                       >
-                        <Play className="h-3 w-3" /> Activate
+                        <Play className="h-3 w-3" /> {t('activate')}
                       </button>
                     )}
                     {campaign.status === 'ACTIVE' && (
@@ -216,14 +218,14 @@ export default function CampaignsPage() {
                           disabled={pauseMut.isPending}
                           className="inline-flex items-center gap-1 rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-50"
                         >
-                          <Pause className="h-3 w-3" /> Pause
+                          <Pause className="h-3 w-3" /> {t('pause')}
                         </button>
                         <button
                           onClick={() => completeMut.mutate(campaign.id)}
                           disabled={completeMut.isPending}
                           className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                         >
-                          <CheckCircle2 className="h-3 w-3" /> Complete
+                          <CheckCircle2 className="h-3 w-3" /> {t('complete')}
                         </button>
                       </>
                     )}
@@ -233,14 +235,14 @@ export default function CampaignsPage() {
                         disabled={activateMut.isPending}
                         className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
                       >
-                        <Play className="h-3 w-3" /> Resume
+                        <Play className="h-3 w-3" /> {t('resume')}
                       </button>
                     )}
                     <Link
                       href={`/collecte/campaigns/${campaign.id}`}
                       className="inline-flex items-center gap-1 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                     >
-                      <BarChart3 className="h-3 w-3" /> Details
+                      <BarChart3 className="h-3 w-3" /> {t('details')}
                     </Link>
                   </div>
                 </div>
@@ -248,9 +250,9 @@ export default function CampaignsPage() {
                 {/* Progress bar */}
                 <div className="mt-4">
                   <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                    <span>Progress: {submitted} / {target} ({pct}%)</span>
+                    <span>{t('progressLabel')} {submitted} / {target} ({pct}%)</span>
                     {progress.validated != null && (
-                      <span>Validated: {progress.validated}</span>
+                      <span>{t('validatedLabel')} {progress.validated}</span>
                     )}
                   </div>
                   <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
@@ -276,8 +278,8 @@ export default function CampaignsPage() {
           {meta && meta.total > meta.limit && (
             <div className="flex items-center justify-between pt-2">
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Showing {(meta.page - 1) * meta.limit + 1}–
-                {Math.min(meta.page * meta.limit, meta.total)} of {meta.total}
+                {t('showing')} {(meta.page - 1) * meta.limit + 1}–
+                {Math.min(meta.page * meta.limit, meta.total)} / {meta.total}
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -285,14 +287,14 @@ export default function CampaignsPage() {
                   disabled={page <= 1}
                   className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                 >
-                  Previous
+                  {t('previous')}
                 </button>
                 <button
                   onClick={() => setPage((p) => p + 1)}
                   disabled={page * (meta.limit ?? 20) >= meta.total}
                   className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                 >
-                  Next
+                  {t('next')}
                 </button>
               </div>
             </div>

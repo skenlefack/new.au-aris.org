@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useClimateHotspots, type ClimateHotspot } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
@@ -74,6 +75,7 @@ const PLACEHOLDER_HOTSPOTS: ClimateHotspot[] = [
 ];
 
 export default function HotspotsPage() {
+  const t = useTranslations('climate');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [riskLevelFilter, setRiskLevelFilter] = useState('');
@@ -102,9 +104,9 @@ export default function HotspotsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Climate Hotspots</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('hotspots')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Climate vulnerability hotspots, affected populations, and livestock at risk
+            {t('hotspotsDesc')}
           </p>
         </div>
       </div>
@@ -114,7 +116,7 @@ export default function HotspotsPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search hotspots..."
+            placeholder={t('searchHotspots')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
@@ -127,18 +129,18 @@ export default function HotspotsPage() {
             onChange={(e) => { setRiskLevelFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All Risk Levels</option>
-            <option value="low">Low</option>
-            <option value="moderate">Moderate</option>
-            <option value="high">High</option>
-            <option value="critical">Critical</option>
+            <option value="">{t('allRiskLevels')}</option>
+            <option value="low">{t('low')}</option>
+            <option value="moderate">{t('moderate')}</option>
+            <option value="high">{t('high')}</option>
+            <option value="critical">{t('critical')}</option>
           </select>
           <select
             value={riskTypeFilter}
             onChange={(e) => { setRiskTypeFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="">All Risk Types</option>
+            <option value="">{t('allRiskTypes')}</option>
             <option value="Drought">Drought</option>
             <option value="Flood">Flood</option>
             <option value="Desertification">Desertification</option>
@@ -163,13 +165,13 @@ export default function HotspotsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Hotspot</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Risk Type</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Affected Pop.</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Livestock at Risk</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Last Assessed</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Risk Level</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('hotspotName')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('country')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('riskType')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('affectedPopulation')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">{t('livestockAtRisk')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('lastAssessed')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('riskLevel')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
@@ -205,7 +207,7 @@ export default function HotspotsPage() {
                 {hotspots.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                      No climate hotspots found
+                      {t('noHotspots')}
                     </td>
                   </tr>
                 )}
@@ -215,7 +217,7 @@ export default function HotspotsPage() {
 
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 dark:border-gray-700">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Showing {hotspots.length} of {meta.total} hotspots
+              {t('showing', { count: hotspots.length, total: meta.total })}
             </p>
             <div className="flex items-center gap-1">
               <button

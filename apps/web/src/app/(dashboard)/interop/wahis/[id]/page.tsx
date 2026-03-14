@@ -7,6 +7,7 @@ import { ArrowLeft, Download, FileText, Copy, CheckCircle2, XCircle, Clock } fro
 import { cn } from '@/lib/utils';
 import { useWahisExport } from '@/lib/api/hooks';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const STATUS_CONFIG: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
   draft: { icon: <FileText className="h-4 w-4" />, color: 'text-gray-600', bg: 'bg-gray-100' },
@@ -17,6 +18,7 @@ const STATUS_CONFIG: Record<string, { icon: React.ReactNode; color: string; bg: 
 };
 
 export default function WahisExportDetailPage() {
+  const t = useTranslations('interop');
   const params = useParams();
   const id = params.id as string;
   const { data, isLoading } = useWahisExport(id);
@@ -25,7 +27,7 @@ export default function WahisExportDetailPage() {
   if (isLoading) return <DetailSkeleton />;
   if (!exp) {
     return (
-      <div className="text-center py-12 text-gray-400">Export not found</div>
+      <div className="text-center py-12 text-gray-400">{t('exportNotFound')}</div>
     );
   }
 
@@ -39,7 +41,7 @@ export default function WahisExportDetailPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to WAHIS Exports
+          {t('backToWahisExports')}
         </Link>
         <div className="mt-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -64,7 +66,7 @@ export default function WahisExportDetailPage() {
               download
             >
               <Download className="h-4 w-4" />
-              Download {exp.format}
+              {t('download')} {exp.format}
             </a>
           )}
         </div>
@@ -79,7 +81,7 @@ export default function WahisExportDetailPage() {
           </p>
         </div>
         <div className="rounded-card border border-gray-200 bg-white p-4">
-          <p className="text-xs font-medium uppercase text-gray-500">Period</p>
+          <p className="text-xs font-medium uppercase text-gray-500">{t('period')}</p>
           <p className="mt-1 text-sm font-semibold text-gray-900">{exp.period}</p>
         </div>
         <div className="rounded-card border border-gray-200 bg-white p-4">
@@ -89,7 +91,7 @@ export default function WahisExportDetailPage() {
           </p>
         </div>
         <div className="rounded-card border border-gray-200 bg-white p-4">
-          <p className="text-xs font-medium uppercase text-gray-500">WAHIS Ref</p>
+          <p className="text-xs font-medium uppercase text-gray-500">{t('wahisRef')}</p>
           <p className="mt-1 text-sm font-mono text-gray-900">
             {exp.wahisRef ?? '—'}
           </p>
@@ -101,17 +103,17 @@ export default function WahisExportDetailPage() {
         <div className="rounded-card border border-gray-200 bg-white overflow-hidden">
           <div className="border-b border-gray-100 px-4 py-3">
             <h3 className="text-sm font-semibold text-gray-900">
-              Included Records ({exp.records.length})
+              {t('includedRecords', { count: exp.records.length })}
             </h3>
           </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                <th className="px-4 py-3">Disease</th>
-                <th className="px-4 py-3">Species</th>
-                <th className="px-4 py-3">Region</th>
-                <th className="px-4 py-3 text-right">Cases</th>
-                <th className="px-4 py-3 text-right">Deaths</th>
+                <th className="px-4 py-3">{t('disease')}</th>
+                <th className="px-4 py-3">{t('species')}</th>
+                <th className="px-4 py-3">{t('region')}</th>
+                <th className="px-4 py-3 text-right">{t('cases')}</th>
+                <th className="px-4 py-3 text-right">{t('deaths')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -140,7 +142,7 @@ export default function WahisExportDetailPage() {
         <div className="rounded-card border border-gray-200 bg-white overflow-hidden">
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
             <h3 className="text-sm font-semibold text-gray-900">
-              Format Preview ({exp.format})
+              {t('formatPreview', { format: exp.format })}
             </h3>
             <button
               onClick={() =>
@@ -149,7 +151,7 @@ export default function WahisExportDetailPage() {
               className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
             >
               <Copy className="h-3.5 w-3.5" />
-              Copy
+              {t('copy')}
             </button>
           </div>
           <pre className="max-h-80 overflow-auto bg-gray-900 p-4 text-xs text-green-400">

@@ -3,6 +3,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface PaginationProps {
   page: number;
@@ -43,6 +44,7 @@ export function Pagination({
   pageSizeOptions = [10, 20, 50],
   className,
 }: PaginationProps) {
+  const t = useTranslations('shared');
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const start = Math.min((page - 1) * limit + 1, total);
   const end = Math.min(page * limit, total);
@@ -58,11 +60,11 @@ export function Pagination({
       {/* Left: info + per-page */}
       <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
         <span>
-          Showing {start}–{end} of {total} items
+          {t('showingRange', { start: String(start), end: String(end), total: String(total) })}
         </span>
         {onLimitChange && (
           <label className="flex items-center gap-1.5">
-            Per page:
+            {t('perPage')}:
             <select
               value={limit}
               onChange={(e) => onLimitChange(Number(e.target.value))}

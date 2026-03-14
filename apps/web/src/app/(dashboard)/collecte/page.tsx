@@ -24,6 +24,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   useCampaigns,
   useUpdateCampaign,
@@ -38,31 +39,31 @@ import { TableSkeleton } from '@/components/ui/Skeleton';
 
 const STATUS_CONFIG: Record<
   string,
-  { label: string; color: string; bg: string; dot: string; icon: React.ReactNode }
+  { tKey: string; color: string; bg: string; dot: string; icon: React.ReactNode }
 > = {
   PLANNED: {
-    label: 'Planned',
+    tKey: 'tabPlanned',
     color: 'text-amber-700 dark:text-amber-400',
     bg: 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800',
     dot: 'bg-amber-500',
     icon: <Clock className="h-3.5 w-3.5" />,
   },
   ACTIVE: {
-    label: 'Active',
+    tKey: 'tabActive',
     color: 'text-green-700 dark:text-green-400',
     bg: 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800',
     dot: 'bg-green-500',
     icon: <CheckCircle2 className="h-3.5 w-3.5" />,
   },
   COMPLETED: {
-    label: 'Completed',
+    tKey: 'tabCompleted',
     color: 'text-blue-700 dark:text-blue-400',
     bg: 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800',
     dot: 'bg-blue-500',
     icon: <CheckCircle2 className="h-3.5 w-3.5" />,
   },
   CANCELLED: {
-    label: 'Archived',
+    tKey: 'tabArchived',
     color: 'text-gray-600 dark:text-gray-400',
     bg: 'bg-gray-50 border-gray-200 dark:bg-gray-800/50 dark:border-gray-700',
     dot: 'bg-gray-400',
@@ -74,21 +75,21 @@ const STATUS_CONFIG: Record<
 
 interface TabDef {
   key: string;
-  label: string;
+  tKey: string;
   statuses: string[];
 }
 
 const TABS: TabDef[] = [
-  { key: 'active', label: 'Active', statuses: ['ACTIVE'] },
-  { key: 'planned', label: 'Planned', statuses: ['PLANNED'] },
-  { key: 'completed', label: 'Completed', statuses: ['COMPLETED'] },
-  { key: 'archived', label: 'Archived', statuses: ['CANCELLED'] },
+  { key: 'active', tKey: 'tabActive', statuses: ['ACTIVE'] },
+  { key: 'planned', tKey: 'tabPlanned', statuses: ['PLANNED'] },
+  { key: 'completed', tKey: 'tabCompleted', statuses: ['COMPLETED'] },
+  { key: 'archived', tKey: 'tabArchived', statuses: ['CANCELLED'] },
 ];
 
 const SORT_OPTIONS = [
-  { value: 'recent', label: 'Most Recent' },
-  { value: 'oldest', label: 'Oldest First' },
-  { value: 'ending_soon', label: 'Ending Soon' },
+  { value: 'recent', tKey: 'sortRecent' },
+  { value: 'oldest', tKey: 'sortOldest' },
+  { value: 'ending_soon', tKey: 'sortEndingSoon' },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -127,6 +128,7 @@ function ArchiveModal({
   isPending: boolean;
 }) {
   const [reason, setReason] = useState('');
+  const t = useTranslations('collecte');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -136,19 +138,19 @@ function ArchiveModal({
             <Archive className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white">Archive Campaign</h3>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t('archiveCampaign')}</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">{campaign.name}</p>
           </div>
         </div>
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            Reason for archiving <span className="text-red-500">*</span>
+            {t('reasonForArchiving')} <span className="text-red-500">*</span>
           </label>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={3}
-            placeholder="e.g. Campaign objectives met, budget constraints..."
+            placeholder={t('archivePlaceholder')}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             autoFocus
           />
@@ -159,7 +161,7 @@ function ArchiveModal({
             onClick={onCancel}
             className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button
             type="button"
@@ -167,7 +169,7 @@ function ArchiveModal({
             disabled={!reason.trim() || isPending}
             className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
           >
-            {isPending ? 'Archiving...' : 'Archive'}
+            {isPending ? t('archiving') : t('archive')}
           </button>
         </div>
       </div>
@@ -188,6 +190,8 @@ function DeleteModal({
   onCancel: () => void;
   isPending: boolean;
 }) {
+  const t = useTranslations('collecte');
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
@@ -196,12 +200,12 @@ function DeleteModal({
             <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white">Delete Campaign</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">This action cannot be undone.</p>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t('deleteCampaign')}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('cannotBeUndone')}</p>
           </div>
         </div>
         <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-          Are you sure you want to delete <strong className="text-gray-900 dark:text-white">{campaign.name}</strong>?
+          {t('confirmDeleteCampaign', { name: campaign.name })}
         </p>
         <div className="flex items-center justify-end gap-2">
           <button
@@ -209,7 +213,7 @@ function DeleteModal({
             onClick={onCancel}
             className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button
             type="button"
@@ -217,7 +221,7 @@ function DeleteModal({
             disabled={isPending}
             className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
           >
-            {isPending ? 'Deleting...' : 'Delete'}
+            {isPending ? t('deleting') : t('delete')}
           </button>
         </div>
       </div>
@@ -239,6 +243,7 @@ function CampaignActions({
   onArchive: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations('collecte');
   const canDelete = campaign.status === 'PLANNED';
   const canArchive = campaign.status === 'ACTIVE';
   const canEdit = campaign.status === 'PLANNED';
@@ -264,7 +269,7 @@ function CampaignActions({
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
               >
                 <Pencil className="h-3.5 w-3.5" />
-                Edit
+                {t('edit')}
               </button>
             )}
             {canArchive && (
@@ -273,7 +278,7 @@ function CampaignActions({
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20"
               >
                 <Archive className="h-3.5 w-3.5" />
-                Archive
+                {t('archive')}
               </button>
             )}
             {canDelete && (
@@ -282,7 +287,7 @@ function CampaignActions({
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                Delete
+                {t('delete')}
               </button>
             )}
           </div>
@@ -305,6 +310,7 @@ function CampaignCard({
   onDelete: () => void;
   onArchive: () => void;
 }) {
+  const t = useTranslations('collecte');
   const statusCfg = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG.PLANNED;
   const total = campaign.totalSubmissions ?? 0;
   const validated = campaign.validatedSubmissions ?? 0;
@@ -337,7 +343,7 @@ function CampaignCard({
               )}
             >
               {statusCfg.icon}
-              {statusCfg.label}
+              {t(statusCfg.tKey)}
             </span>
             <CampaignActions campaign={campaign} onEdit={onEdit} onDelete={onDelete} onArchive={onArchive} />
           </div>
@@ -355,15 +361,15 @@ function CampaignCard({
 
         {/* Metrics row */}
         <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-          <span className="flex items-center gap-1" title="Forms">
+          <span className="flex items-center gap-1" title={t('forms')}>
             <FileText className="h-3.5 w-3.5" />
-            {formCount} form{formCount !== 1 ? 's' : ''}
+            {formCount} {formCount !== 1 ? t('forms').toLowerCase() : t('forms').toLowerCase().replace(/s$/, '')}
           </span>
-          <span className="flex items-center gap-1" title="Countries">
+          <span className="flex items-center gap-1" title={t('countries')}>
             <Globe className="h-3.5 w-3.5" />
-            {countryCount} countr{countryCount !== 1 ? 'ies' : 'y'}
+            {countryCount} {t('countries').toLowerCase()}
           </span>
-          <span className="flex items-center gap-1" title="Agents">
+          <span className="flex items-center gap-1" title={t('agents')}>
             <Users className="h-3.5 w-3.5" />
             {agentCount}
           </span>
@@ -393,7 +399,7 @@ function CampaignCard({
       {/* Footer — progress */}
       <div className="mt-auto border-t border-gray-100 p-5 pt-4 dark:border-gray-800">
         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
-          <span>{total} / {target || '—'} submissions</span>
+          <span>{total} / {target || '—'} {t('submissions').toLowerCase()}</span>
           <span className="font-semibold text-gray-700 dark:text-gray-300">{progress}%</span>
         </div>
         <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
@@ -408,16 +414,16 @@ function CampaignCard({
         <div className="mt-1.5 flex items-center gap-3 text-[10px] text-gray-400 dark:text-gray-500">
           <span className="flex items-center gap-1">
             <span className="inline-block h-2 w-2 rounded-full bg-aris-primary-500" />
-            Validated ({validated})
+            {t('validated')} ({validated})
           </span>
           <span className="flex items-center gap-1">
             <span className="inline-block h-2 w-2 rounded-full bg-aris-primary-200 dark:bg-aris-primary-800" />
-            Pending ({total - validated - rejected})
+            {t('pending')} ({total - validated - rejected})
           </span>
           {rejected > 0 && (
             <span className="flex items-center gap-1">
               <span className="inline-block h-2 w-2 rounded-full bg-red-400" />
-              Rejected ({rejected})
+              {t('rejected')} ({rejected})
             </span>
           )}
         </div>
@@ -439,6 +445,7 @@ function CampaignListRow({
   onDelete: () => void;
   onArchive: () => void;
 }) {
+  const t = useTranslations('collecte');
   const statusCfg = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG.PLANNED;
   const total = campaign.totalSubmissions ?? 0;
   const target = campaign.targetSubmissions ?? 0;
@@ -513,7 +520,7 @@ function CampaignListRow({
           statusCfg.bg, statusCfg.color,
         )}
       >
-        {statusCfg.label}
+        {t(statusCfg.tKey)}
       </span>
 
       {/* Actions */}
@@ -526,6 +533,7 @@ function CampaignListRow({
 
 export default function CollectePage() {
   const router = useRouter();
+  const t = useTranslations('collecte');
   const [activeTab, setActiveTab] = useState('planned');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -617,9 +625,9 @@ export default function CollectePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Collecte</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Campaign orchestration and data collection
+            {t('subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -628,14 +636,14 @@ export default function CollectePage() {
             className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             <ClipboardList className="h-4 w-4" />
-            Form Builder
+            {t('formBuilder')}
           </Link>
           <Link
             href="/collecte/campaigns/new"
             className="inline-flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-aris-primary-700"
           >
             <Plus className="h-4 w-4" />
-            New Campaign
+            {t('newCampaign')}
           </Link>
         </div>
       </div>
@@ -654,7 +662,7 @@ export default function CollectePage() {
                   : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
               )}
             >
-              {tab.label}
+              {t(tab.tKey)}
               <span
                 className={cn(
                   'rounded-full px-2 py-0.5 text-xs font-semibold',
@@ -676,7 +684,7 @@ export default function CollectePage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search campaigns..."
+            placeholder={t('searchCampaigns')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500"
@@ -687,7 +695,7 @@ export default function CollectePage() {
           onChange={(e) => { setDomainFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         >
-          <option value="">All Domains</option>
+          <option value="">{t('allDomains')}</option>
           {DOMAIN_OPTIONS.map((d) => (
             <option key={d.value} value={d.value}>{d.label}</option>
           ))}
@@ -700,7 +708,7 @@ export default function CollectePage() {
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           >
             {SORT_OPTIONS.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
+              <option key={s.value} value={s.value}>{t(s.tKey)}</option>
             ))}
           </select>
         </div>
@@ -716,7 +724,7 @@ export default function CollectePage() {
                 ? 'bg-aris-primary-50 text-aris-primary-600 dark:bg-aris-primary-900/30 dark:text-aris-primary-400'
                 : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
             )}
-            title="Grid view"
+            title={t('gridView')}
           >
             <LayoutGrid className="h-4 w-4" />
           </button>
@@ -729,7 +737,7 @@ export default function CollectePage() {
                 ? 'bg-aris-primary-50 text-aris-primary-600 dark:bg-aris-primary-900/30 dark:text-aris-primary-400'
                 : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
             )}
-            title="List view"
+            title={t('listView')}
           >
             <List className="h-4 w-4" />
           </button>
@@ -753,12 +761,12 @@ export default function CollectePage() {
         <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-16 text-center dark:border-gray-700 dark:bg-gray-900">
           <ClipboardList className="mx-auto h-14 w-14 text-gray-200 dark:text-gray-700" />
           <p className="mt-4 text-sm font-medium text-gray-900 dark:text-white">
-            {search ? 'No campaigns match your search' : 'No campaigns in this tab'}
+            {search ? t('noMatchSearch') : t('noTabCampaigns')}
           </p>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {activeTab === 'planned'
-              ? 'Create your first data collection campaign to get started.'
-              : 'Campaigns will appear here when their status changes.'}
+              ? t('createFirstCampaign')
+              : t('campaignsAppearHere')}
           </p>
           {(activeTab === 'planned' || activeTab === 'active') && (
             <Link
@@ -766,7 +774,7 @@ export default function CollectePage() {
               className="mt-4 inline-flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-aris-primary-700"
             >
               <Plus className="h-4 w-4" />
-              Create Campaign
+              {t('createCampaign')}
             </Link>
           )}
         </div>

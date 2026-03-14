@@ -27,6 +27,7 @@ import {
 } from '@/lib/api/hooks';
 import { TableSkeleton, Skeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const PLACEHOLDER_CHART_DATA: ProductionChartPoint[] = [
   { productType: 'Milk', value: 4_800_000, unit: 'tonnes' },
@@ -86,6 +87,7 @@ const PRODUCT_TYPE_LABEL: Record<string, string> = {
 };
 
 export default function LivestockProductionPage() {
+  const t = useTranslations('livestock');
   const [page, setPage] = useState(1);
   const [productTypeFilter, setProductTypeFilter] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
@@ -134,10 +136,10 @@ export default function LivestockProductionPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Livestock Production
+            {t('productionTitle')}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Production volumes by product type across the continent
+            {t('productionSubtitle')}
           </p>
         </div>
       </div>
@@ -145,10 +147,10 @@ export default function LivestockProductionPage() {
       {/* Bar Chart */}
       <div className="rounded-card border border-gray-200 bg-white p-6">
         <h2 className="text-sm font-semibold text-gray-900">
-          Production by Product Type
+          {t('productionByProduct')}
         </h2>
         <p className="mt-1 text-xs text-gray-400">
-          Continental aggregate production volumes (tonnes)
+          {t('productionAggregateDesc')}
         </p>
         {chartLoading ? (
           <Skeleton className="mt-4 h-72 w-full" />
@@ -210,13 +212,13 @@ export default function LivestockProductionPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Products</option>
-            <option value="milk">Milk</option>
-            <option value="meat">Meat</option>
-            <option value="eggs">Eggs</option>
-            <option value="wool">Wool</option>
-            <option value="hides">Hides</option>
-            <option value="honey">Honey</option>
+            <option value="">{t('productType')}</option>
+            <option value="milk">{t('milk')}</option>
+            <option value="meat">{t('meat')}</option>
+            <option value="eggs">{t('eggs')}</option>
+            <option value="wool">{t('wool')}</option>
+            <option value="hides">{t('hides')}</option>
+            <option value="honey">{t('honey')}</option>
           </select>
           <select
             value={countryFilter}
@@ -226,7 +228,7 @@ export default function LivestockProductionPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Countries</option>
+            <option value="">{t('allCountries')}</option>
             <option value="ET">Ethiopia</option>
             <option value="KE">Kenya</option>
             <option value="NG">Nigeria</option>
@@ -241,7 +243,7 @@ export default function LivestockProductionPage() {
             }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
           >
-            <option value="">All Years</option>
+            <option value="">{t('allYears')}</option>
             <option value="2025">2025</option>
             <option value="2024">2024</option>
             <option value="2023">2023</option>
@@ -267,14 +269,14 @@ export default function LivestockProductionPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Species</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Product Type</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Quantity</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Unit</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Year</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Quarter</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Updated</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('country')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('species')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('productType')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('quantity')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('unit')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('year')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('quarter')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('updated')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -306,7 +308,7 @@ export default function LivestockProductionPage() {
                 {records.length === 0 && (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
-                      No production records found
+                      {t('noProdRecords')}
                     </td>
                   </tr>
                 )}
@@ -317,7 +319,7 @@ export default function LivestockProductionPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <p className="text-xs text-gray-500">
-              Showing {records.length} of {meta.total} records
+              {t('showingOf', { count: records.length.toString(), total: meta.total.toString() })}
             </p>
             <div className="flex items-center gap-1">
               <button

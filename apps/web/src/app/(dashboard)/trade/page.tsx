@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const TradeBalanceChart = dynamic(() => import('./TradeBalanceChart'), { ssr: false });
 import {
@@ -63,6 +64,7 @@ function formatUsd(value: number): string {
 }
 
 export default function TradePage() {
+  const t = useTranslations('trade');
   const {
     data: kpiData,
     isLoading: kpiLoading,
@@ -84,9 +86,9 @@ export default function TradePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Trade & SPS</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Intra-African trade flows, SPS certification, and market intelligence
+            {t('subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -95,21 +97,21 @@ export default function TradePage() {
             className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <ArrowRightLeft className="h-4 w-4" />
-            Trade Flows
+            {t('tradeFlows')}
           </Link>
           <Link
             href="/trade/sps"
             className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <ShieldCheck className="h-4 w-4" />
-            SPS Certificates
+            {t('spsCertification')}
           </Link>
           <Link
             href="/trade/markets"
             className="flex items-center gap-2 rounded-lg bg-aris-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-aris-primary-700"
           >
             <Store className="h-4 w-4" />
-            Market Prices
+            {t('markets')}
           </Link>
         </div>
       </div>
@@ -214,14 +216,14 @@ export default function TradePage() {
 
               <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-gray-400">Active Certificates</p>
+                  <p className="text-xs font-medium text-gray-400">{t('activeCertificates')}</p>
                   <FileCheck className="h-4 w-4 text-blue-500" />
                 </div>
                 <p className="mt-2 text-xl font-bold text-gray-900">
                   {kpis.activeCertificates.toLocaleString()}
                 </p>
                 <p className="mt-1 text-xs text-gray-400">
-                  {kpis.marketsTracked} markets tracked
+                  {kpis.marketsTracked} {t('monitoredMarkets').toLowerCase()}
                 </p>
               </div>
             </>
@@ -258,10 +260,10 @@ export default function TradePage() {
             </div>
             <div>
               <p className="font-semibold text-gray-900 group-hover:text-aris-primary-600">
-                Trade Flows
+                {t('tradeFlows')}
               </p>
               <p className="text-xs text-gray-400">
-                Export/import records, HS codes, directions
+                {t('tradeFlowsDesc')}
               </p>
             </div>
           </div>
@@ -276,10 +278,10 @@ export default function TradePage() {
             </div>
             <div>
               <p className="font-semibold text-gray-900 group-hover:text-aris-primary-600">
-                SPS Certificates
+                {t('spsCertification')}
               </p>
               <p className="text-xs text-gray-400">
-                Inspections, certifications, compliance
+                {t('spsDesc')}
               </p>
             </div>
           </div>
@@ -294,10 +296,10 @@ export default function TradePage() {
             </div>
             <div>
               <p className="font-semibold text-gray-900 group-hover:text-aris-primary-600">
-                Market Prices
+                {t('markets')}
               </p>
               <p className="text-xs text-gray-400">
-                Price intelligence, commodities, trends
+                {t('marketsDesc')}
               </p>
             </div>
           </div>

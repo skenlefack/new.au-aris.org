@@ -6,6 +6,7 @@ import {
   Loader2, CheckCircle, XCircle, ChevronLeft, ChevronRight, Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import {
   useRefDataList,
@@ -40,6 +41,7 @@ function getCategoryLabel(value: string): string {
 const ITEMS_PER_PAGE = 50;
 
 export default function InfrastructureTypesConfigPage() {
+  const t = useTranslations('settings');
   const { isSuperAdmin, isContinentalAdmin } = useSettingsAccess();
   const canEdit = isSuperAdmin || isContinentalAdmin;
 
@@ -108,7 +110,7 @@ export default function InfrastructureTypesConfigPage() {
   };
 
   const handleDelete = async (item: RefDataItem) => {
-    if (!confirm(`Delete type definition "${item.name?.en ?? item.code}"? This will remove it from the type catalogue.`)) return;
+    if (!confirm(t('deleteInfraConfirm', { name: item.name?.en ?? item.code }))) return;
     await deleteMutation.mutateAsync(item.id);
   };
 
@@ -166,10 +168,10 @@ export default function InfrastructureTypesConfigPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <Building2 className="h-6 w-6 text-aris-primary-600" />
-              {editingItem ? 'Edit Infrastructure Type' : 'New Infrastructure Type'}
+              {editingItem ? t('editInfraType') : t('newInfraType')}
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {editingItem ? `Editing: ${editingItem.name?.en ?? editingItem.code}` : 'Define a new infrastructure category and sub-type'}
+              {editingItem ? t('editingInfra', { name: editingItem.name?.en ?? editingItem.code }) : t('defineNewInfra')}
             </p>
           </div>
           <button
@@ -177,7 +179,7 @@ export default function InfrastructureTypesConfigPage() {
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {t('back')}
           </button>
         </div>
 
@@ -187,7 +189,7 @@ export default function InfrastructureTypesConfigPage() {
             {/* Category */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Category <span className="text-red-500">*</span>
+                {t('category')} <span className="text-red-500">*</span>
               </label>
               <select
                 value={category}
@@ -205,7 +207,7 @@ export default function InfrastructureTypesConfigPage() {
             {/* Sub-Type Key */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Sub-Type Key <span className="text-red-500">*</span>
+                {t('subTypeKey')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -220,7 +222,7 @@ export default function InfrastructureTypesConfigPage() {
             {/* Code */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Code <span className="text-red-500">*</span>
+                {t('code')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -236,7 +238,7 @@ export default function InfrastructureTypesConfigPage() {
             {/* Name EN */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Name (EN) <span className="text-red-500">*</span>
+                {t('nameEn')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -251,7 +253,7 @@ export default function InfrastructureTypesConfigPage() {
             {/* Name FR */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Name (FR)
+                {t('nameFr')}
               </label>
               <input
                 type="text"
@@ -265,7 +267,7 @@ export default function InfrastructureTypesConfigPage() {
             {/* Sort Order */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Sort Order
+                {t('sortOrder')}
               </label>
               <input
                 type="number"
@@ -287,7 +289,7 @@ export default function InfrastructureTypesConfigPage() {
                 className="h-4 w-4 rounded border-gray-300 text-aris-primary-600 focus:ring-aris-primary-500"
               />
               <span className="text-sm text-gray-700 dark:text-gray-300">
-                {isActive ? 'Active — visible to all users' : 'Inactive — hidden from users'}
+                {isActive ? t('activeVisibleToAll') : t('inactiveHidden')}
               </span>
             </label>
           </div>
@@ -299,7 +301,7 @@ export default function InfrastructureTypesConfigPage() {
               onClick={handleBack}
               className="rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               type="submit"
@@ -307,7 +309,7 @@ export default function InfrastructureTypesConfigPage() {
               className="flex items-center gap-2 rounded-lg bg-aris-primary-600 px-5 py-2 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50 transition-colors"
             >
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              {editingItem ? 'Save Changes' : 'Create Type'}
+              {editingItem ? t('saveChanges') : t('createType')}
             </button>
           </div>
         </form>
@@ -322,10 +324,10 @@ export default function InfrastructureTypesConfigPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Building2 className="h-6 w-6 text-aris-primary-600" />
-            Infrastructure Type Configuration
+            {t('infraTitle')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Configure infrastructure categories and sub-types available across the platform
+            {t('infraSubtitle')}
           </p>
         </div>
         {canEdit && (
@@ -334,7 +336,7 @@ export default function InfrastructureTypesConfigPage() {
             className="flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-aris-primary-700 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            Add Type
+            {t('addType')}
           </button>
         )}
       </div>
@@ -343,15 +345,15 @@ export default function InfrastructureTypesConfigPage() {
       <div className="flex items-center gap-4">
         <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5">
           <span className="text-2xl font-bold text-gray-900 dark:text-white">{total}</span>
-          <span className="ml-1.5 text-xs text-gray-500 dark:text-gray-400">Types</span>
+          <span className="ml-1.5 text-xs text-gray-500 dark:text-gray-400">{t('types')}</span>
         </div>
         <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5">
           <span className="text-2xl font-bold text-gray-900 dark:text-white">{categoryCount}</span>
-          <span className="ml-1.5 text-xs text-gray-500 dark:text-gray-400">Categories</span>
+          <span className="ml-1.5 text-xs text-gray-500 dark:text-gray-400">{t('categories')}</span>
         </div>
         <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5">
           <span className="text-2xl font-bold text-emerald-600">{items.filter(i => i.isActive).length}</span>
-          <span className="ml-1.5 text-xs text-gray-500 dark:text-gray-400">Active</span>
+          <span className="ml-1.5 text-xs text-gray-500 dark:text-gray-400">{t('active')}</span>
         </div>
       </div>
 
@@ -361,7 +363,7 @@ export default function InfrastructureTypesConfigPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search types..."
+            placeholder={t('searchTypes')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-aris-primary-500"
@@ -379,7 +381,7 @@ export default function InfrastructureTypesConfigPage() {
             onChange={(e) => { setFilterCategory(e.target.value); setPage(1); }}
             className="appearance-none rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 pr-8 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-aris-primary-500"
           >
-            <option value="">All Categories</option>
+            <option value="">{t('allCategories')}</option>
             {CATEGORY_OPTIONS.map((c) => (
               <option key={c.value} value={c.value}>{c.en}</option>
             ))}
@@ -393,15 +395,15 @@ export default function InfrastructureTypesConfigPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Code</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Name (EN)</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Name (FR)</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Category</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Sub-Type</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Order</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Active</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('code')}</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('nameEn')}</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('nameFr')}</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('category')}</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('subTypeKey')}</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('sortOrder')}</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('active')}</th>
               {canEdit && (
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Actions</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('actions')}</th>
               )}
             </tr>
           </thead>
@@ -415,7 +417,7 @@ export default function InfrastructureTypesConfigPage() {
             ) : items.length === 0 ? (
               <tr>
                 <td colSpan={canEdit ? 8 : 7} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500">
-                  No infrastructure types found. Click &quot;Add Type&quot; to create one.
+                  {t('noInfraFound')}
                 </td>
               </tr>
             ) : (
@@ -486,7 +488,7 @@ export default function InfrastructureTypesConfigPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-xs text-gray-400 dark:text-gray-500">
-            Page {page} of {totalPages}
+            {t('pageOf', { page: String(page), total: String(totalPages) })}
           </p>
           <div className="flex items-center gap-1">
             <button

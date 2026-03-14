@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const CaptureTrendsChart = dynamic(() => import('./CaptureTrendsChart'), { ssr: false });
 import {
@@ -54,6 +55,7 @@ const PLACEHOLDER_TRENDS: CaptureTrend[] = [
 ];
 
 export default function FisheriesPage() {
+  const t = useTranslations('fisheries');
   const { data: kpiData, isLoading: kpiLoading } = useFisheriesKpis();
   const { data: trendData, isLoading: trendLoading } = useCaptureTrends();
   const { sections } = useDomainConfig('fisheries');
@@ -67,10 +69,10 @@ export default function FisheriesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Fisheries & Aquaculture
+            {t('title')}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Captures, vessel registry, aquaculture farms, and production trends
+            {t('subtitle')}
           </p>
         </div>
       </div>
@@ -91,7 +93,7 @@ export default function FisheriesPage() {
           <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                Total Captures
+                {t('totalCaptures')}
               </p>
               <Fish className="h-5 w-5 text-teal-600" />
             </div>
@@ -120,7 +122,7 @@ export default function FisheriesPage() {
           <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                Registered Vessels
+                {t('registeredVessels')}
               </p>
               <Ship className="h-5 w-5 text-blue-600" />
             </div>
@@ -135,7 +137,7 @@ export default function FisheriesPage() {
           <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                Active Farms
+                {t('activeFarms')}
               </p>
               <Warehouse className="h-5 w-5 text-green-600" />
             </div>
@@ -150,7 +152,7 @@ export default function FisheriesPage() {
           <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                Aquaculture Production
+                {t('aquaProduction')}
               </p>
               <Anchor className="h-5 w-5 text-orange-600" />
             </div>
@@ -181,10 +183,10 @@ export default function FisheriesPage() {
       {/* Capture trends chart */}
       {sections.chart && <div className="rounded-card border border-gray-200 bg-white p-6">
         <h2 className="text-sm font-semibold text-gray-900">
-          Capture & Aquaculture Production Trends
+          {t('capturesTrend')}
         </h2>
         <p className="mt-1 text-xs text-gray-400">
-          Continental totals in tonnes by source (2021-2026)
+          {t('trendSubtitle')}
         </p>
         {trendLoading ? (
           <Skeleton className="mt-4 h-64 w-full" />
@@ -206,9 +208,9 @@ export default function FisheriesPage() {
               <Fish className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Captures</p>
+              <p className="text-sm font-semibold text-gray-900">{t('captures')}</p>
               <p className="text-xs text-gray-400">
-                Marine & inland capture records
+                {t('capturesDesc')}
               </p>
             </div>
           </div>
@@ -225,10 +227,10 @@ export default function FisheriesPage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                Vessel Registry
+                {t('vesselRegistry')}
               </p>
               <p className="text-xs text-gray-400">
-                Fishing fleet & license management
+                {t('vesselDesc')}
               </p>
             </div>
           </div>
@@ -245,10 +247,10 @@ export default function FisheriesPage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                Aquaculture Farms
+                {t('aquaFarms')}
               </p>
               <p className="text-xs text-gray-400">
-                Farm production & management
+                {t('aquaDesc')}
               </p>
             </div>
           </div>
@@ -260,7 +262,7 @@ export default function FisheriesPage() {
       {(sections.campaigns || sections.alertForm) && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {sections.campaigns && <DomainCampaignsSection domain="fisheries" />}
-          {sections.alertForm && <QuickAlertCard domain="fisheries" alertFields={FISHERIES_ALERT_FIELDS} title="Report Fisheries Issue" />}
+          {sections.alertForm && <QuickAlertCard domain="fisheries" alertFields={FISHERIES_ALERT_FIELDS} title={t('reportIssue')} />}
         </div>
       )}
     </div>

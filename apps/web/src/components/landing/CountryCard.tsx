@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import type { CountryConfig } from '@/data/countries-config';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface CountryCardProps {
   country: CountryConfig;
@@ -10,6 +11,7 @@ interface CountryCardProps {
 }
 
 export function CountryCard({ country, accentColor = '#006B3F' }: CountryCardProps) {
+  const t = useTranslations('landing');
   const isConfigured = !!country.tenantId;
 
   return (
@@ -31,12 +33,12 @@ export function CountryCard({ country, accentColor = '#006B3F' }: CountryCardPro
               className="inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
               style={{ backgroundColor: accentColor }}
             >
-              Active
+              {t('active')}
             </span>
           )}
         </div>
         <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-          {country.capital} \u2022 {country.population >= 1 ? `${country.population}M` : `${Math.round(country.population * 1000)}K`} pop.
+          {country.capital} \u2022 {country.population >= 1 ? `${country.population}M` : `${Math.round(country.population * 1000)}K`} {t('pop')}
         </p>
       </div>
 

@@ -15,11 +15,12 @@ import {
 import { cn } from '@/lib/utils';
 import { useExportBuilder, useExportableMetrics } from '@/lib/api/hooks';
 import { KpiCardSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
-const FORMAT_OPTIONS = [
-  { value: 'csv' as const, label: 'CSV', icon: <FileText className="h-4 w-4" />, description: 'Comma-separated values' },
-  { value: 'xlsx' as const, label: 'XLSX', icon: <FileSpreadsheet className="h-4 w-4" />, description: 'Excel spreadsheet' },
-  { value: 'pdf' as const, label: 'PDF', icon: <FileDown className="h-4 w-4" />, description: 'PDF document' },
+const FORMAT_OPTIONS: { value: 'csv' | 'xlsx' | 'pdf'; label: string; icon: React.ReactNode; descKey: string }[] = [
+  { value: 'csv', label: 'CSV', icon: <FileText className="h-4 w-4" />, descKey: 'formatCsvDesc' },
+  { value: 'xlsx', label: 'XLSX', icon: <FileSpreadsheet className="h-4 w-4" />, descKey: 'formatXlsxDesc' },
+  { value: 'pdf', label: 'PDF', icon: <FileDown className="h-4 w-4" />, descKey: 'formatPdfDesc' },
 ];
 
 const COUNTRY_OPTIONS = [
@@ -51,6 +52,7 @@ export default function ExportBuilderPage() {
   const [periodStart, setPeriodStart] = useState('');
   const [periodEnd, setPeriodEnd] = useState('');
   const [format, setFormat] = useState<'csv' | 'pdf' | 'xlsx'>('csv');
+  const t = useTranslations('analytics');
 
   const { data: metricsData, isLoading: metricsLoading } = useExportableMetrics();
   const exportMutation = useExportBuilder();
@@ -136,9 +138,9 @@ export default function ExportBuilderPage() {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Export Builder</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('exportBuilder')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Select metrics, countries, and date range to generate a data export
+            {t('exportBuilderDesc')}
           </p>
         </div>
       </div>
@@ -150,13 +152,13 @@ export default function ExportBuilderPage() {
           <div className="rounded-card border border-gray-200 bg-white p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-gray-900">
-                Select Metrics ({selectedMetrics.size} / {metrics.length})
+                {t('selectMetrics', { count: selectedMetrics.size, total: metrics.length })}
               </h2>
               <button
                 onClick={toggleAllMetrics}
                 className="text-xs font-medium text-[#1B5E20] hover:underline"
               >
-                {selectedMetrics.size === metrics.length ? 'Deselect All' : 'Select All'}
+                {selectedMetrics.size === metrics.length ? t('deselectAll') : t('selectAll')}
               </button>
             </div>
 
@@ -205,13 +207,13 @@ export default function ExportBuilderPage() {
           <div className="rounded-card border border-gray-200 bg-white p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-gray-900">
-                Select Countries ({selectedCountries.size} / {COUNTRY_OPTIONS.length})
+                {t('selectCountries', { count: selectedCountries.size, total: COUNTRY_OPTIONS.length })}
               </h2>
               <button
                 onClick={toggleAllCountries}
                 className="text-xs font-medium text-[#1B5E20] hover:underline"
               >
-                {selectedCountries.size === COUNTRY_OPTIONS.length ? 'Deselect All' : 'Select All'}
+                {selectedCountries.size === COUNTRY_OPTIONS.length ? t('deselectAll') : t('selectAll')}
               </button>
             </div>
 
@@ -242,12 +244,12 @@ export default function ExportBuilderPage() {
           {/* Date Range */}
           <div className="rounded-card border border-gray-200 bg-white p-5">
             <h2 className="mb-4 text-sm font-semibold text-gray-900">
-              Date Range
+              {t('dateRange')}
             </h2>
             <div className="space-y-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-500">
-                  Period Start
+                  {t('periodStart')}
                 </label>
                 <input
                   type="date"
@@ -258,7 +260,7 @@ export default function ExportBuilderPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-500">
-                  Period End
+                  {t('periodEnd')}
                 </label>
                 <input
                   type="date"
@@ -273,7 +275,7 @@ export default function ExportBuilderPage() {
           {/* Format Selector */}
           <div className="rounded-card border border-gray-200 bg-white p-5">
             <h2 className="mb-4 text-sm font-semibold text-gray-900">
-              Output Format
+              {t('outputFormat')}
             </h2>
             <div className="space-y-2">
               {FORMAT_OPTIONS.map((opt) => (
@@ -300,7 +302,7 @@ export default function ExportBuilderPage() {
                     <span className="text-sm font-medium text-gray-700">
                       {opt.label}
                     </span>
-                    <p className="text-xs text-gray-400">{opt.description}</p>
+                    <p className="text-xs text-gray-400">{t(opt.descKey)}</p>
                   </div>
                 </label>
               ))}
@@ -310,23 +312,23 @@ export default function ExportBuilderPage() {
           {/* Summary + Generate */}
           <div className="rounded-card border border-gray-200 bg-white p-5">
             <h2 className="mb-4 text-sm font-semibold text-gray-900">
-              Export Summary
+              {t('exportSummary')}
             </h2>
             <ul className="space-y-2 text-sm text-gray-600">
               <li className="flex justify-between">
-                <span>Metrics</span>
+                <span>{t('metrics')}</span>
                 <span className="font-medium text-gray-900">
                   {selectedMetrics.size}
                 </span>
               </li>
               <li className="flex justify-between">
-                <span>Countries</span>
+                <span>{t('countries')}</span>
                 <span className="font-medium text-gray-900">
                   {selectedCountries.size}
                 </span>
               </li>
               <li className="flex justify-between">
-                <span>Period</span>
+                <span>{t('period')}</span>
                 <span className="font-medium text-gray-900">
                   {periodStart && periodEnd
                     ? `${periodStart} to ${periodEnd}`
@@ -334,7 +336,7 @@ export default function ExportBuilderPage() {
                 </span>
               </li>
               <li className="flex justify-between">
-                <span>Format</span>
+                <span>{t('format')}</span>
                 <span className="font-medium text-gray-900 uppercase">
                   {format}
                 </span>
@@ -359,14 +361,14 @@ export default function ExportBuilderPage() {
               ) : (
                 <>
                   <FileDown className="h-4 w-4" />
-                  Generate Export
+                  {t('generateExport')}
                 </>
               )}
             </button>
 
             {!canExport && !exportMutation.isPending && (
               <p className="mt-2 text-xs text-gray-400 text-center">
-                Select at least 1 metric, 1 country, and set date range
+                {t('exportValidation')}
               </p>
             )}
           </div>
@@ -378,7 +380,7 @@ export default function ExportBuilderPage() {
                 <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-600" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-green-800">
-                    Export Ready
+                    {t('exportReady')}
                   </p>
                   <p className="mt-1 text-xs text-green-700">
                     {exportMutation.data.data.fileName}
@@ -389,7 +391,7 @@ export default function ExportBuilderPage() {
                     className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700 transition-colors"
                   >
                     <Download className="h-3.5 w-3.5" />
-                    Download File
+                    {t('downloadFile')}
                   </a>
                 </div>
               </div>
@@ -402,10 +404,10 @@ export default function ExportBuilderPage() {
                 <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
                 <div>
                   <p className="text-sm font-semibold text-red-800">
-                    Export Failed
+                    {t('exportFailed')}
                   </p>
                   <p className="mt-1 text-xs text-red-700">
-                    An error occurred while generating the export. Please try again.
+                    {t('exportErrorMsg')}
                   </p>
                 </div>
               </div>

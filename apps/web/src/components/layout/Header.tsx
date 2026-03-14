@@ -36,15 +36,15 @@ import { useTranslations } from '@/lib/i18n/translations';
 /*  Role labels & colors                                               */
 /* ------------------------------------------------------------------ */
 
-const ROLE_LABELS: Record<UserRole, string> = {
-  SUPER_ADMIN: 'Super Admin',
-  CONTINENTAL_ADMIN: 'Continental Admin',
-  REC_ADMIN: 'REC Admin',
-  NATIONAL_ADMIN: 'National Admin',
-  DATA_STEWARD: 'Data Steward',
-  WAHIS_FOCAL_POINT: 'WAHIS Focal Point',
-  ANALYST: 'Analyst',
-  FIELD_AGENT: 'Field Agent',
+const ROLE_TRANSLATION_KEYS: Record<UserRole, string> = {
+  SUPER_ADMIN: 'roleSuperAdmin',
+  CONTINENTAL_ADMIN: 'roleContinentalAdmin',
+  REC_ADMIN: 'roleRecAdmin',
+  NATIONAL_ADMIN: 'roleNationalAdmin',
+  DATA_STEWARD: 'roleDataSteward',
+  WAHIS_FOCAL_POINT: 'roleWahisFocalPoint',
+  ANALYST: 'roleAnalyst',
+  FIELD_AGENT: 'roleFieldAgent',
 };
 
 const ROLE_COLORS: Record<UserRole, string> = {
@@ -522,7 +522,7 @@ export function Header({ sidebarCollapsed, onSidebarToggle }: HeaderProps) {
                       ROLE_COLORS[user.role],
                     )}
                   >
-                    {ROLE_LABELS[user.role]}
+                    {th(ROLE_TRANSLATION_KEYS[user.role])}
                   </span>
                 </div>
                 <div className="py-1">

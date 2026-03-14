@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const WaterStressChart = dynamic(() => import('./WaterStressChart'), { ssr: false });
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
@@ -64,6 +65,7 @@ function TrendIndicator({ value, invertColor }: { value: number; invertColor?: b
 }
 
 export default function ClimateEnvPage() {
+  const t = useTranslations('climate');
   const kpis = PLACEHOLDER_KPIS;
   const waterTrends = PLACEHOLDER_WATER_TRENDS;
   const { sections } = useDomainConfig('climate-env');
@@ -73,10 +75,10 @@ export default function ClimateEnvPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Climate & Environment
+            {t('title')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Water stress, rangeland degradation, climate hotspots, and environmental monitoring
+            {t('subtitle')}
           </p>
         </div>
       </div>
@@ -85,7 +87,7 @@ export default function ClimateEnvPage() {
       {sections.kpis && <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Monitoring Stations</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">{t('climateData')}</p>
             <CloudSun className="h-5 w-5 text-sky-600" />
           </div>
           <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -96,7 +98,7 @@ export default function ClimateEnvPage() {
 
         <div className="rounded-card border border-blue-200 bg-blue-50 p-4 shadow-sm dark:border-blue-800 dark:bg-blue-900/20">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-blue-600">Water Stress Index</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-blue-600">{t('waterStress')}</p>
             <Droplets className="h-5 w-5 text-blue-500" />
           </div>
           <p className="mt-2 text-2xl font-bold text-blue-700 dark:text-blue-400">
@@ -107,7 +109,7 @@ export default function ClimateEnvPage() {
 
         <div className="rounded-card border border-orange-200 bg-orange-50 p-4 shadow-sm dark:border-orange-800 dark:bg-orange-900/20">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-orange-600">Rangeland Degradation</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-orange-600">{t('rangelands')}</p>
             <Sprout className="h-5 w-5 text-orange-500" />
           </div>
           <p className="mt-2 text-2xl font-bold text-orange-700 dark:text-orange-400">
@@ -118,7 +120,7 @@ export default function ClimateEnvPage() {
 
         <div className="rounded-card border border-red-200 bg-red-50 p-4 shadow-sm dark:border-red-800 dark:bg-red-900/20">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-red-600">Climate Hotspots</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-red-600">{t('hotspots')}</p>
             <AlertTriangle className="h-5 w-5 text-red-500" />
           </div>
           <p className="mt-2 text-2xl font-bold text-red-700 dark:text-red-400">
@@ -152,8 +154,8 @@ export default function ClimateEnvPage() {
               <Thermometer className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Climate Data</p>
-              <p className="text-xs text-gray-400">Temperature & rainfall</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('climateData')}</p>
+              <p className="text-xs text-gray-400">{t('climateDataDesc')}</p>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-sky-600" />
@@ -168,8 +170,8 @@ export default function ClimateEnvPage() {
               <Droplets className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Water Stress</p>
-              <p className="text-xs text-gray-400">Availability & demand</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('waterStress')}</p>
+              <p className="text-xs text-gray-400">{t('waterStressDesc')}</p>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-blue-600" />
@@ -184,8 +186,8 @@ export default function ClimateEnvPage() {
               <Sprout className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Rangelands</p>
-              <p className="text-xs text-gray-400">Degradation & NDVI</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('rangelands')}</p>
+              <p className="text-xs text-gray-400">{t('rangelandsDesc')}</p>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-orange-600" />
@@ -200,8 +202,8 @@ export default function ClimateEnvPage() {
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Hotspots</p>
-              <p className="text-xs text-gray-400">Vulnerability zones</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('hotspots')}</p>
+              <p className="text-xs text-gray-400">{t('hotspotsDesc')}</p>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-red-600" />

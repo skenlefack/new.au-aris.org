@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Filter, FileText, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useDataContracts } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 
@@ -33,6 +34,7 @@ function ComplianceBadge({ rate }: { rate: number }) {
 }
 
 export default function DataContractsSettingsPage() {
+  const t = useTranslations('settings');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
 
@@ -52,13 +54,13 @@ export default function DataContractsSettingsPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Settings
+          {t('backToSettings')}
         </Link>
         <h1 className="mt-2 text-2xl font-bold text-gray-900">
-          Data Contracts
+          {t('dataContractsTitle')}
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          View data contract compliance and SLA status
+          {t('dataContractsSubtitle')}
         </p>
       </div>
 
@@ -70,10 +72,10 @@ export default function DataContractsSettingsPage() {
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none"
         >
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="draft">Draft</option>
-          <option value="suspended">Suspended</option>
+          <option value="">{t('allStatuses')}</option>
+          <option value="active">{t('active')}</option>
+          <option value="draft">{t('draft')}</option>
+          <option value="suspended">{t('suspended')}</option>
         </select>
       </div>
 
@@ -85,14 +87,14 @@ export default function DataContractsSettingsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                <th className="px-4 py-3">Contract</th>
-                <th className="px-4 py-3">Provider</th>
-                <th className="px-4 py-3">Consumer</th>
-                <th className="px-4 py-3">Frequency</th>
-                <th className="px-4 py-3">SLA</th>
-                <th className="px-4 py-3">Compliance</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Last Delivery</th>
+                <th className="px-4 py-3">{t('contract')}</th>
+                <th className="px-4 py-3">{t('provider')}</th>
+                <th className="px-4 py-3">{t('consumer')}</th>
+                <th className="px-4 py-3">{t('frequency')}</th>
+                <th className="px-4 py-3">{t('sla')}</th>
+                <th className="px-4 py-3">{t('compliance')}</th>
+                <th className="px-4 py-3">{t('status')}</th>
+                <th className="px-4 py-3">{t('lastDelivery')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -149,7 +151,7 @@ export default function DataContractsSettingsPage() {
               {contracts.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
-                    No data contracts found
+                    {t('noContractsFound')}
                   </td>
                 </tr>
               )}
@@ -161,12 +163,11 @@ export default function DataContractsSettingsPage() {
       {meta && meta.total > meta.limit && (
         <div className="flex items-center justify-between">
           <p className="text-xs text-gray-500">
-            Showing {(meta.page - 1) * meta.limit + 1}–
-            {Math.min(meta.page * meta.limit, meta.total)} of {meta.total}
+            {t('showingPagination', { from: String((meta.page - 1) * meta.limit + 1), to: String(Math.min(meta.page * meta.limit, meta.total)), total: String(meta.total) })}
           </p>
           <div className="flex items-center gap-2">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Previous</button>
-            <button onClick={() => setPage((p) => p + 1)} disabled={page * meta.limit >= meta.total} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">Next</button>
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">{t('previous')}</button>
+            <button onClick={() => setPage((p) => p + 1)} disabled={page * meta.limit >= meta.total} className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">{t('next')}</button>
           </div>
         </div>
       )}

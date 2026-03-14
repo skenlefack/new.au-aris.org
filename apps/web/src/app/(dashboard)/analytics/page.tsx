@@ -17,37 +17,38 @@ import {
 import { cn } from '@/lib/utils';
 import { useAnalyticsSummary, type TimeRange } from '@/lib/api/hooks';
 import { KpiCardSkeleton, TableSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
-const TIME_RANGES: { value: TimeRange; label: string }[] = [
-  { value: '7d', label: '7 days' },
-  { value: '30d', label: '30 days' },
-  { value: '90d', label: '90 days' },
-  { value: '1y', label: '1 year' },
+const TIME_RANGES: { value: TimeRange; tKey: string }[] = [
+  { value: '7d', tKey: 'timeRange7d' },
+  { value: '30d', tKey: 'timeRange30d' },
+  { value: '90d', tKey: 'timeRange90d' },
+  { value: '1y', tKey: 'timeRange1y' },
 ];
 
 const QUICK_LINKS = [
   {
     href: '/analytics/trends',
-    title: 'Trends Analysis',
-    description: 'Multi-line time series across all domains',
+    tKey: 'trendsAnalysis',
+    descKey: 'trendsDesc',
     icon: <TrendingUp className="h-5 w-5 text-[#1B5E20]" />,
   },
   {
     href: '/analytics/comparison',
-    title: 'Country Comparison',
-    description: 'Compare metrics across Member States',
+    tKey: 'countryComparison',
+    descKey: 'comparisonDesc',
     icon: <GitCompare className="h-5 w-5 text-[#006064]" />,
   },
   {
     href: '/analytics/quality',
-    title: 'Quality Drill-down',
-    description: 'Quality gates pass rates by domain',
+    tKey: 'qualityDrilldown',
+    descKey: 'qualityDesc',
     icon: <ShieldCheck className="h-5 w-5 text-[#E65100]" />,
   },
   {
     href: '/analytics/export',
-    title: 'Export Builder',
-    description: 'Build and download custom data exports',
+    tKey: 'exportBuilder',
+    descKey: 'exportDesc',
     icon: <FileDown className="h-5 w-5 text-[#1B5E20]" />,
   },
 ];
@@ -61,6 +62,7 @@ function formatTrend(val: number): { direction: 'up' | 'down' | 'neutral'; value
 export default function AnalyticsDashboardPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const { data, isLoading } = useAnalyticsSummary(timeRange);
+  const t = useTranslations('analytics');
 
   const summary = data?.data;
 
@@ -69,9 +71,9 @@ export default function AnalyticsDashboardPage() {
       {/* Header + Time Range Selector */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Continental data overview, trends, and quality metrics
+            {t('subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1">
@@ -86,7 +88,7 @@ export default function AnalyticsDashboardPage() {
                   : 'text-gray-600 hover:bg-gray-100',
               )}
             >
-              {tr.label}
+              {t(tr.tKey)}
             </button>
           ))}
         </div>
@@ -105,7 +107,7 @@ export default function AnalyticsDashboardPage() {
           <div className="rounded-card border border-[#1B5E20]/20 bg-[#1B5E20]/5 p-card shadow-sm">
             <div className="flex items-start justify-between">
               <span className="text-kpi-label uppercase tracking-wider text-gray-500">
-                Total Records
+                {t('totalRecords')}
               </span>
               <Database className="h-5 w-5 text-[#1B5E20]" />
             </div>
@@ -114,7 +116,7 @@ export default function AnalyticsDashboardPage() {
             </div>
             <TrendIndicator
               trend={formatTrend(summary.recordsTrend)}
-              label="vs prev. period"
+              label={t('vsPrevPeriod')}
             />
           </div>
 
@@ -122,7 +124,7 @@ export default function AnalyticsDashboardPage() {
           <div className="rounded-card border border-[#006064]/20 bg-[#006064]/5 p-card shadow-sm">
             <div className="flex items-start justify-between">
               <span className="text-kpi-label uppercase tracking-wider text-gray-500">
-                Countries Reporting
+                {t('countriesReporting')}
               </span>
               <Globe className="h-5 w-5 text-[#006064]" />
             </div>
@@ -134,7 +136,7 @@ export default function AnalyticsDashboardPage() {
             </div>
             <TrendIndicator
               trend={formatTrend(summary.countriesTrend)}
-              label="new this period"
+              label={t('newThisPeriod')}
             />
           </div>
 
@@ -142,7 +144,7 @@ export default function AnalyticsDashboardPage() {
           <div className="rounded-card border border-gray-200 bg-white p-card shadow-sm">
             <div className="flex items-start justify-between">
               <span className="text-kpi-label uppercase tracking-wider text-gray-500">
-                Avg Quality Score
+                {t('avgQualityScore')}
               </span>
               <ShieldCheck className="h-5 w-5 text-gray-400" />
             </div>
@@ -154,7 +156,7 @@ export default function AnalyticsDashboardPage() {
             </div>
             <TrendIndicator
               trend={formatTrend(summary.qualityTrend)}
-              label="vs prev. period"
+              label={t('vsPrevPeriod')}
             />
           </div>
 
@@ -162,14 +164,14 @@ export default function AnalyticsDashboardPage() {
           <div className="rounded-card border border-[#E65100]/20 bg-[#E65100]/5 p-card shadow-sm">
             <div className="flex items-start justify-between">
               <span className="text-kpi-label uppercase tracking-wider text-gray-500">
-                Pending Exports
+                {t('pendingExports')}
               </span>
               <ArrowUpRight className="h-5 w-5 text-[#E65100]" />
             </div>
             <div className="mt-2 text-kpi text-gray-900">
               {summary.pendingExports}
             </div>
-            <div className="mt-3 text-sm text-gray-500">awaiting generation</div>
+            <div className="mt-3 text-sm text-gray-500">{t('awaitingGeneration')}</div>
           </div>
         </div>
       ) : null}
@@ -178,13 +180,13 @@ export default function AnalyticsDashboardPage() {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">
-            Domain Breakdown
+            {t('domainBreakdown')}
           </h2>
           <Link
             href="/analytics/quality"
             className="flex items-center gap-1 text-xs text-[#1B5E20] hover:underline"
           >
-            Quality details <ChevronRight className="h-3 w-3" />
+            {t('qualityDetails')} <ChevronRight className="h-3 w-3" />
           </Link>
         </div>
         {isLoading ? (
@@ -194,10 +196,10 @@ export default function AnalyticsDashboardPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                  <th className="px-4 py-3">Domain</th>
-                  <th className="px-4 py-3 text-right">Records</th>
-                  <th className="px-4 py-3">Quality</th>
-                  <th className="px-4 py-3 text-right">Score</th>
+                  <th className="px-4 py-3">{t('domain')}</th>
+                  <th className="px-4 py-3 text-right">{t('records')}</th>
+                  <th className="px-4 py-3">{t('qualityCol')}</th>
+                  <th className="px-4 py-3 text-right">{t('score')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -253,7 +255,7 @@ export default function AnalyticsDashboardPage() {
                       colSpan={4}
                       className="px-4 py-8 text-center text-gray-400"
                     >
-                      No domain data available
+                      {t('noDomainData')}
                     </td>
                   </tr>
                 )}
@@ -266,7 +268,7 @@ export default function AnalyticsDashboardPage() {
       {/* Quick Links */}
       <div>
         <h2 className="mb-3 text-lg font-semibold text-gray-900">
-          Explore Analytics
+          {t('exploreAnalytics')}
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {QUICK_LINKS.map((link) => (
@@ -278,10 +280,10 @@ export default function AnalyticsDashboardPage() {
               <div className="mt-0.5 flex-shrink-0">{link.icon}</div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-gray-900 group-hover:text-[#1B5E20]">
-                  {link.title}
+                  {t(link.tKey)}
                 </p>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  {link.description}
+                  {t(link.descKey)}
                 </p>
               </div>
               <ChevronRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5" />

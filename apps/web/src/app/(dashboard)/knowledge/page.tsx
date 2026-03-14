@@ -26,6 +26,7 @@ import { QueryError } from '@/components/ui/QueryError';
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const KNOWLEDGE_ALERT_FIELDS: AlertField[] = [
   { name: 'topic', label: 'Topic', type: 'text', placeholder: 'e.g. Outbreak Response Guidelines', required: true },
@@ -149,6 +150,7 @@ const PLACEHOLDER_COURSES: ElearningCourse[] = [
 ];
 
 export default function KnowledgePortalPage() {
+  const t = useTranslations('knowledge');
   const { data: kpiData, isLoading: kpiLoading, isError: kpiError, error: kpiErr, refetch: refetchKpis } = useKnowledgeKpis();
   const { data: pubData, isLoading: pubLoading } = usePublications({ limit: 3 });
   const { data: courseData, isLoading: courseLoading } = useElearningCourses({ limit: 3 });
@@ -163,9 +165,9 @@ export default function KnowledgePortalPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Knowledge Hub</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Publications, e-learning, and resources for animal resources management
+            {t('subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -174,21 +176,21 @@ export default function KnowledgePortalPage() {
             className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <BookOpen className="h-4 w-4" />
-            Publications
+            {t('publications')}
           </Link>
           <Link
             href="/knowledge/elearning"
             className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <GraduationCap className="h-4 w-4" />
-            E-Learning
+            {t('eLearning')}
           </Link>
           <Link
             href="/knowledge/faq"
             className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <HelpCircle className="h-4 w-4" />
-            FAQ
+            {t('faq')}
           </Link>
         </div>
       </div>
@@ -214,7 +216,7 @@ export default function KnowledgePortalPage() {
           <div className="rounded-card border border-gray-200 bg-white p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                Total Publications
+                {t('totalPublications')}
               </p>
               <BookOpen className="h-4 w-4 text-gray-300" />
             </div>
@@ -236,7 +238,7 @@ export default function KnowledgePortalPage() {
           <div className="rounded-card border border-gray-200 bg-white p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                Active Courses
+                {t('activeCourses')}
               </p>
               <GraduationCap className="h-4 w-4 text-gray-300" />
             </div>
@@ -250,7 +252,7 @@ export default function KnowledgePortalPage() {
           <div className="rounded-card border border-gray-200 bg-white p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                Total Enrolled
+                {t('totalEnrolled')}
               </p>
               <Users className="h-4 w-4 text-gray-300" />
             </div>
@@ -264,7 +266,7 @@ export default function KnowledgePortalPage() {
           <div className="rounded-card border border-gray-200 bg-white p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                Avg Completion Rate
+                {t('avgCompletion')}
               </p>
               <Download className="h-4 w-4 text-gray-300" />
             </div>
@@ -292,13 +294,13 @@ export default function KnowledgePortalPage() {
         <div className="rounded-card border border-gray-200 bg-white p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-900">
-              Recent Publications
+              {t('recentPublications')}
             </h2>
             <Link
               href="/knowledge/publications"
               className="flex items-center gap-1 text-xs font-medium text-aris-primary-600 hover:text-aris-primary-700"
             >
-              View all
+              {t('viewAll')}
               <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
@@ -350,13 +352,13 @@ export default function KnowledgePortalPage() {
         <div className="rounded-card border border-gray-200 bg-white p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-900">
-              Featured Courses
+              {t('featuredCourses')}
             </h2>
             <Link
               href="/knowledge/elearning"
               className="flex items-center gap-1 text-xs font-medium text-aris-primary-600 hover:text-aris-primary-700"
             >
-              View all
+              {t('viewAll')}
               <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
@@ -396,7 +398,7 @@ export default function KnowledgePortalPage() {
                   </p>
                   <div className="mt-2">
                     <div className="flex items-center justify-between text-xs text-gray-400">
-                      <span>Completion rate</span>
+                      <span>{t('completion')}</span>
                       <span className="font-medium text-gray-600">{course.completionRate}%</span>
                     </div>
                     <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
@@ -424,7 +426,7 @@ export default function KnowledgePortalPage() {
       {(sections.campaigns || sections.alertForm) && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {sections.campaigns && <DomainCampaignsSection domain="knowledge" />}
-          {sections.alertForm && <QuickAlertCard domain="knowledge" alertFields={KNOWLEDGE_ALERT_FIELDS} title="Request Content" />}
+          {sections.alertForm && <QuickAlertCard domain="knowledge" alertFields={KNOWLEDGE_ALERT_FIELDS} title={t('requestContent')} />}
         </div>
       )}
     </div>

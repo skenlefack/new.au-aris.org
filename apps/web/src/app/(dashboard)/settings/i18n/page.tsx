@@ -5,6 +5,7 @@ import { useSettingsConfig, useBulkUpdateConfig } from '@/lib/api/settings-hooks
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { ConfigField } from '@/components/settings/ConfigField';
 import { SaveBar } from '@/components/settings/SaveBar';
+import { useTranslations } from '@/lib/i18n/translations';
 import { Loader2, Globe, ArrowRightLeft, Calendar, Check } from 'lucide-react';
 
 const LANGUAGES = [
@@ -16,6 +17,7 @@ const LANGUAGES = [
 ] as const;
 
 export default function I18nSettingsPage() {
+  const t = useTranslations('settings');
   const { canManageConfig } = useSettingsAccess();
   const canEdit = canManageConfig('i18n');
   const { data, isLoading } = useSettingsConfig('i18n');
@@ -99,10 +101,10 @@ export default function I18nSettingsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Languages & Internationalization
+              {t('languagesI18n')}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Manage supported languages, text direction, and regional formats
+              {t('languagesI18nDesc')}
             </p>
           </div>
         </div>
@@ -112,12 +114,12 @@ export default function I18nSettingsPage() {
       <section>
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
-          Supported Languages
+          {t('supportedLanguages')}
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
         </h2>
         {canEdit && (
           <p className="mb-3 text-xs text-gray-400 dark:text-gray-500">
-            Click a card to set as default language. Use the toggle to enable or disable a language.
+            {t('clickToSetDefault')}
           </p>
         )}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -165,7 +167,7 @@ export default function I18nSettingsPage() {
                   <div className={canEdit ? 'mt-1' : 'absolute right-2 top-2'}>
                     <span className="inline-flex items-center gap-1 rounded-full bg-aris-primary-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-aris-primary-700 dark:bg-aris-primary-900/50 dark:text-aris-primary-300">
                       <Check className="h-3 w-3" />
-                      Default
+                      {t('default')}
                     </span>
                   </div>
                 )}
@@ -198,7 +200,7 @@ export default function I18nSettingsPage() {
         <section>
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
             <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
-            Locale Configuration
+            {t('localeConfig')}
             <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           </h2>
           <div className="space-y-2">
@@ -224,7 +226,7 @@ export default function I18nSettingsPage() {
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
             <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
             <Calendar className="h-3.5 w-3.5" />
-            Regional Formats
+            {t('regionalFormats')}
             <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           </h2>
           <div className="space-y-2">
@@ -244,17 +246,17 @@ export default function I18nSettingsPage() {
           {/* Format preview */}
           <div className="mt-3 rounded-lg border border-dashed border-gray-200 bg-gray-50/50 p-3 dark:border-gray-700 dark:bg-gray-800/30">
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-              Preview
+              {t('preview')}
             </p>
             <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-300">
               <span>
-                <span className="text-xs text-gray-400">Today: </span>
+                <span className="text-xs text-gray-400">{t('today')} </span>
                 {formatPreview(
                   (formatConfigs[0] ? getValue(formatConfigs[0]) : 'DD/MM/YYYY') as string,
                 )}
               </span>
               <span>
-                <span className="text-xs text-gray-400">Number: </span>
+                <span className="text-xs text-gray-400">{t('number')} </span>
                 1,450,300,000
               </span>
             </div>
@@ -267,7 +269,7 @@ export default function I18nSettingsPage() {
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           <ArrowRightLeft className="h-3.5 w-3.5" />
-          Text Direction
+          {t('textDirection')}
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
         </h2>
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900/50">
@@ -277,11 +279,10 @@ export default function I18nSettingsPage() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900 dark:text-white">
-                Right-to-Left (RTL) Support
+                {t('rtlSupport')}
               </p>
               <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                Arabic (\u0627\u0644\u0639\u0631\u0628\u064a\u0629) uses right-to-left text direction. The UI automatically
-                mirrors layout, navigation, and content alignment when users select Arabic.
+                {t('rtlDescription')}
               </p>
               <div className="mt-3 flex gap-6">
                 <div className="text-center">
@@ -315,7 +316,7 @@ export default function I18nSettingsPage() {
         <section>
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
             <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
-            Advanced
+            {t('advanced')}
             <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           </h2>
           <div className="space-y-2">

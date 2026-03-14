@@ -11,6 +11,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useReportTemplates } from '@/lib/api/hooks';
 import { KpiCardSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const TYPE_BADGE_COLORS: Record<string, string> = {
   wahis_6monthly: 'bg-blue-100 text-blue-700',
@@ -20,19 +21,20 @@ const TYPE_BADGE_COLORS: Record<string, string> = {
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  wahis_6monthly: 'WAHIS 6-Monthly',
-  wahis_annual: 'WAHIS Annual',
-  continental_brief: 'Continental Brief',
-  custom: 'Custom',
+  wahis_6monthly: 'wahis6monthly',
+  wahis_annual: 'wahisAnnual',
+  continental_brief: 'continentalBrief',
+  custom: 'custom',
 };
 
 const FORMAT_LABELS: Record<string, string> = {
-  pdf: 'PDF',
-  xlsx: 'Excel',
-  docx: 'Word',
+  pdf: 'formatPdf',
+  xlsx: 'formatExcel',
+  docx: 'formatWord',
 };
 
 export default function ReportTemplatesPage() {
+  const t = useTranslations('reports');
   const { data, isLoading } = useReportTemplates();
 
   const templates = data?.data ?? [];
@@ -41,9 +43,9 @@ export default function ReportTemplatesPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Generate and manage reports across ARIS domains
+            {t('subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -52,14 +54,14 @@ export default function ReportTemplatesPage() {
             className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <Clock className="h-4 w-4" />
-            View History
+            {t('viewHistory')}
           </Link>
           <Link
             href="/reports/generate"
             className="inline-flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-aris-primary-700"
           >
             <Plus className="h-4 w-4" />
-            New Report
+            {t('newReport')}
           </Link>
         </div>
       </div>
@@ -75,10 +77,10 @@ export default function ReportTemplatesPage() {
         <div className="rounded-card border border-gray-200 bg-white p-12 text-center">
           <FileBarChart className="mx-auto h-12 w-12 text-gray-300" />
           <p className="mt-4 text-sm font-medium text-gray-900">
-            No report templates available
+            {t('noTemplates')}
           </p>
           <p className="mt-1 text-sm text-gray-500">
-            Report templates will appear here once configured by an administrator.
+            {t('noTemplatesDesc')}
           </p>
         </div>
       ) : (
@@ -103,12 +105,12 @@ export default function ReportTemplatesPage() {
                         TYPE_BADGE_COLORS[template.type] ?? 'bg-gray-100 text-gray-600',
                       )}
                     >
-                      {TYPE_LABELS[template.type] ?? template.type}
+                      {TYPE_LABELS[template.type] ? t(TYPE_LABELS[template.type]) : template.type}
                     </span>
                   </div>
                 </div>
                 <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                  {FORMAT_LABELS[template.outputFormat] ?? template.outputFormat.toUpperCase()}
+                  {FORMAT_LABELS[template.outputFormat] ? t(FORMAT_LABELS[template.outputFormat]) : template.outputFormat.toUpperCase()}
                 </span>
               </div>
 
@@ -134,11 +136,10 @@ export default function ReportTemplatesPage() {
                   {template.lastGeneratedAt ? (
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      Last generated{' '}
-                      {new Date(template.lastGeneratedAt).toLocaleDateString()}
+                      {t('lastGenerated', { date: new Date(template.lastGeneratedAt).toLocaleDateString() })}
                     </span>
                   ) : (
-                    <span>Never generated</span>
+                    <span>{t('neverGenerated')}</span>
                   )}
                 </div>
                 <Link
@@ -146,7 +147,7 @@ export default function ReportTemplatesPage() {
                   className="inline-flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-aris-primary-700"
                 >
                   <FileBarChart className="h-3.5 w-3.5" />
-                  Generate
+                  {t('generate')}
                 </Link>
               </div>
             </div>

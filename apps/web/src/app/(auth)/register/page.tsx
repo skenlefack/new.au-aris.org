@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { UserPlus } from 'lucide-react';
 import { useRegister } from '@/lib/api/hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const registerSchema = z
   .object({
@@ -27,6 +28,7 @@ type RegisterForm = z.infer<typeof registerSchema>;
 export default function RegisterPage() {
   const router = useRouter();
   const registerMutation = useRegister();
+  const t = useTranslations('auth');
 
   const {
     register,
@@ -60,10 +62,9 @@ export default function RegisterPage() {
       </div>
 
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Request access</h2>
+        <h2 className="text-2xl font-bold text-gray-900">{t('requestAccessTitle')}</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Register for an ARIS account. An administrator will approve your
-          request.
+          {t('registerDesc')}
         </p>
       </div>
 
@@ -72,7 +73,7 @@ export default function RegisterPage() {
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {registerMutation.error instanceof Error
               ? registerMutation.error.message
-              : 'Registration failed. Please try again.'}
+              : t('registrationFailed')}
           </div>
         )}
 
@@ -82,7 +83,7 @@ export default function RegisterPage() {
               htmlFor="firstName"
               className="block text-sm font-medium text-gray-700"
             >
-              First name
+              {t('firstName')}
             </label>
             <input
               id="firstName"
@@ -92,7 +93,7 @@ export default function RegisterPage() {
             />
             {errors.firstName && (
               <p className="mt-1 text-xs text-red-600">
-                {errors.firstName.message}
+                {t('firstNameRequired')}
               </p>
             )}
           </div>
@@ -102,7 +103,7 @@ export default function RegisterPage() {
               htmlFor="lastName"
               className="block text-sm font-medium text-gray-700"
             >
-              Last name
+              {t('lastName')}
             </label>
             <input
               id="lastName"
@@ -112,7 +113,7 @@ export default function RegisterPage() {
             />
             {errors.lastName && (
               <p className="mt-1 text-xs text-red-600">
-                {errors.lastName.message}
+                {t('lastNameRequired')}
               </p>
             )}
           </div>
@@ -123,7 +124,7 @@ export default function RegisterPage() {
             htmlFor="email"
             className="block text-sm font-medium text-gray-700"
           >
-            Email address
+            {t('email')}
           </label>
           <input
             id="email"
@@ -135,7 +136,7 @@ export default function RegisterPage() {
           />
           {errors.email && (
             <p className="mt-1 text-xs text-red-600">
-              {errors.email.message}
+              {t('enterValidEmail')}
             </p>
           )}
         </div>
@@ -145,18 +146,18 @@ export default function RegisterPage() {
             htmlFor="password"
             className="block text-sm font-medium text-gray-700"
           >
-            Password
+            {t('password')}
           </label>
           <input
             id="password"
             type="password"
             {...register('password')}
             className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm shadow-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200"
-            placeholder="At least 8 characters"
+            placeholder={t('passwordMinLength')}
           />
           {errors.password && (
             <p className="mt-1 text-xs text-red-600">
-              {errors.password.message}
+              {t('passwordMinLength')}
             </p>
           )}
         </div>
@@ -166,7 +167,7 @@ export default function RegisterPage() {
             htmlFor="confirmPassword"
             className="block text-sm font-medium text-gray-700"
           >
-            Confirm password
+            {t('confirmPassword')}
           </label>
           <input
             id="confirmPassword"
@@ -176,7 +177,7 @@ export default function RegisterPage() {
           />
           {errors.confirmPassword && (
             <p className="mt-1 text-xs text-red-600">
-              {errors.confirmPassword.message}
+              {t('passwordsDoNotMatch')}
             </p>
           )}
         </div>
@@ -191,16 +192,16 @@ export default function RegisterPage() {
           ) : (
             <UserPlus className="h-4 w-4" />
           )}
-          {registerMutation.isPending ? 'Submitting...' : 'Request access'}
+          {registerMutation.isPending ? t('sending') : t('requestAccessTitle')}
         </button>
 
         <p className="text-center text-sm text-gray-500">
-          Already have an account?{' '}
+          {t('alreadyHaveAccount')}{' '}
           <Link
             href="/login"
             className="font-medium text-aris-primary-600 hover:text-aris-primary-700"
           >
-            Sign in
+            {t('signIn')}
           </Link>
         </p>
       </form>

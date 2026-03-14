@@ -31,6 +31,7 @@ import {
 import { COUNTRIES } from '@/data/countries-config';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 // Fallback templates — same deterministic UUIDs as new/edit pages
 const SEED_TEMPLATES: FormTemplateListItem[] = [
@@ -47,27 +48,27 @@ const SEED_TEMPLATES: FormTemplateListItem[] = [
   { id: 'c0000003-0002-4000-8000-00000000000f', tenantId: '', name: 'Import and Export', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
+const STATUS_CONFIG: Record<string, { tKey: string; color: string; bg: string; icon: React.ReactNode }> = {
   PLANNED: {
-    label: 'Planned',
+    tKey: 'tabPlanned',
     color: 'text-amber-700 dark:text-amber-400',
     bg: 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800',
     icon: <Clock className="h-3.5 w-3.5" />,
   },
   ACTIVE: {
-    label: 'Active',
+    tKey: 'tabActive',
     color: 'text-green-700 dark:text-green-400',
     bg: 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800',
     icon: <CheckCircle2 className="h-3.5 w-3.5" />,
   },
   COMPLETED: {
-    label: 'Completed',
+    tKey: 'tabCompleted',
     color: 'text-blue-700 dark:text-blue-400',
     bg: 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800',
     icon: <CheckCircle2 className="h-3.5 w-3.5" />,
   },
   CANCELLED: {
-    label: 'Archived',
+    tKey: 'tabArchived',
     color: 'text-gray-600 dark:text-gray-400',
     bg: 'bg-gray-50 border-gray-200 dark:bg-gray-800/50 dark:border-gray-700',
     icon: <XCircle className="h-3.5 w-3.5" />,
@@ -82,6 +83,7 @@ function getDomainLabel(domain?: string): string {
 export default function CampaignDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('collecte');
   const campaignId = params.id as string;
 
   const { data: campaignRes, isLoading } = useCampaign(campaignId);
@@ -148,7 +150,7 @@ export default function CampaignDetailPage() {
             className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Campaigns
+            {t('backToCampaigns')}
           </Link>
           <div className="mt-2 h-8 w-64 rounded bg-gray-200 dark:bg-gray-800 animate-pulse" />
         </div>
@@ -165,11 +167,11 @@ export default function CampaignDetailPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Campaigns
+          {t('backToCampaigns')}
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Campaign not found</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('campaignNotFound')}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          The campaign you&apos;re looking for doesn&apos;t exist or has been deleted.
+          {t('campaignNotFoundDesc')}
         </p>
       </div>
     );
@@ -202,7 +204,7 @@ export default function CampaignDetailPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Campaigns
+          {t('backToCampaigns')}
         </Link>
         <div className="mt-2 flex items-center justify-between">
           <div className="min-w-0 flex-1">
@@ -222,7 +224,7 @@ export default function CampaignDetailPage() {
               )}
             >
               {statusCfg.icon}
-              {statusCfg.label}
+              {t(statusCfg.tKey)}
             </span>
 
             {/* Status action buttons */}
@@ -233,13 +235,13 @@ export default function CampaignDetailPage() {
                   disabled={updateCampaign.isPending}
                   className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
                 >
-                  <Play className="h-3 w-3" /> Activate
+                  <Play className="h-3 w-3" /> {t('activate')}
                 </button>
                 <Link
                   href={`/collecte/campaigns/${campaignId}/edit`}
                   className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
-                  <Pencil className="h-3 w-3" /> Edit
+                  <Pencil className="h-3 w-3" /> {t('edit')}
                 </Link>
               </>
             )}
@@ -249,7 +251,7 @@ export default function CampaignDetailPage() {
                 disabled={updateCampaign.isPending}
                 className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
-                <CheckCircle2 className="h-3 w-3" /> Complete
+                <CheckCircle2 className="h-3 w-3" /> {t('complete')}
               </button>
             )}
           </div>
@@ -264,25 +266,25 @@ export default function CampaignDetailPage() {
           <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
               <BarChart3 className="h-4 w-4 text-gray-400" />
-              Progress
+              {t('progress')}
             </h3>
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3 text-center">
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalSubmissions}</p>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Submitted</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider">{t('submitted')}</p>
               </div>
               <div className="rounded-lg bg-green-50 dark:bg-green-900/20 p-3 text-center">
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">{validated}</p>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Validated</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider">{t('validated')}</p>
               </div>
               <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-3 text-center">
                 <p className="text-2xl font-bold text-red-600 dark:text-red-400">{rejected}</p>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Rejected</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider">{t('rejected')}</p>
               </div>
             </div>
             <div>
               <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
-                <span>{totalSubmissions} / {target || '—'} submissions</span>
+                <span>{totalSubmissions} / {target || '—'} {t('submissions').toLowerCase()}</span>
                 <span className="font-semibold text-gray-700 dark:text-gray-300">{pct}%</span>
               </div>
               <div className="h-2.5 w-full rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
@@ -297,16 +299,16 @@ export default function CampaignDetailPage() {
               <div className="mt-2 flex items-center gap-4 text-[10px] text-gray-400 dark:text-gray-500">
                 <span className="flex items-center gap-1">
                   <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
-                  Validated ({validated})
+                  {t('validated')} ({validated})
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="inline-block h-2 w-2 rounded-full bg-blue-300 dark:bg-blue-700" />
-                  Pending ({pending})
+                  {t('pending')} ({pending})
                 </span>
                 {rejected > 0 && (
                   <span className="flex items-center gap-1">
                     <span className="inline-block h-2 w-2 rounded-full bg-red-400" />
-                    Rejected ({rejected})
+                    {t('rejected')} ({rejected})
                   </span>
                 )}
               </div>
@@ -317,10 +319,10 @@ export default function CampaignDetailPage() {
           <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
               <FileText className="h-4 w-4 text-gray-400" />
-              Form Templates ({templateNames.length})
+              {t('formTemplates')} ({templateNames.length})
             </h3>
             {resolvedTemplates.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No templates assigned.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('noTemplatesAssigned')}</p>
             ) : (
               <div className="space-y-2">
                 {resolvedTemplates.map((rt, i) => {
@@ -346,7 +348,7 @@ export default function CampaignDetailPage() {
                           className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 shrink-0"
                         >
                           <ClipboardEdit className="h-3.5 w-3.5" />
-                          Fill Form
+                          {t('fillForm')}
                         </Link>
                       )}
                     </div>
@@ -360,10 +362,10 @@ export default function CampaignDetailPage() {
           <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
               <Globe className="h-4 w-4 text-gray-400" />
-              Target Countries ({countryInfos.length})
+              {t('targetCountries')} ({countryInfos.length})
             </h3>
             {countryInfos.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No countries specified.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('noCountriesSpecified')}</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {countryInfos.map((c) => (
@@ -384,24 +386,24 @@ export default function CampaignDetailPage() {
         <div className="space-y-4">
           {/* Campaign Info */}
           <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Campaign Info</h3>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{t('campaignInfo')}</h3>
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between items-center">
                 <dt className="text-gray-500 dark:text-gray-400">Status</dt>
                 <dd>
                   <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium', statusCfg.bg, statusCfg.color)}>
                     {statusCfg.icon}
-                    {statusCfg.label}
+                    {t(statusCfg.tKey)}
                   </span>
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-500 dark:text-gray-400">Domain</dt>
+                <dt className="text-gray-500 dark:text-gray-400">{t('domain')}</dt>
                 <dd className="text-xs font-medium text-gray-900 dark:text-white">{getDomainLabel(campaign.domain)}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5" /> Start
+                  <Calendar className="h-3.5 w-3.5" /> {t('start')}
                 </dt>
                 <dd className="text-xs text-gray-900 dark:text-white">
                   {campaign.startDate ? new Date(campaign.startDate).toLocaleDateString() : '—'}
@@ -409,7 +411,7 @@ export default function CampaignDetailPage() {
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5" /> End
+                  <Calendar className="h-3.5 w-3.5" /> {t('end')}
                 </dt>
                 <dd className="text-xs text-gray-900 dark:text-white">
                   {campaign.endDate ? new Date(campaign.endDate).toLocaleDateString() : '—'}
@@ -417,25 +419,25 @@ export default function CampaignDetailPage() {
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                  <Target className="h-3.5 w-3.5" /> Target
+                  <Target className="h-3.5 w-3.5" /> {t('target')}
                 </dt>
-                <dd className="text-xs font-medium text-gray-900 dark:text-white">{target || '—'} submissions</dd>
+                <dd className="text-xs font-medium text-gray-900 dark:text-white">{target || '—'} {t('submissions').toLowerCase()}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                  <FileText className="h-3.5 w-3.5" /> Forms
+                  <FileText className="h-3.5 w-3.5" /> {t('forms')}
                 </dt>
                 <dd className="text-xs font-medium text-gray-900 dark:text-white">{templateNames.length}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                  <Globe className="h-3.5 w-3.5" /> Countries
+                  <Globe className="h-3.5 w-3.5" /> {t('countries')}
                 </dt>
                 <dd className="text-xs font-medium text-gray-900 dark:text-white">{countryInfos.length}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                  <Users className="h-3.5 w-3.5" /> Agents
+                  <Users className="h-3.5 w-3.5" /> {t('agents')}
                 </dt>
                 <dd className="text-xs font-medium text-gray-900 dark:text-white">{agentCount}</dd>
               </div>
@@ -453,7 +455,7 @@ export default function CampaignDetailPage() {
                     className="flex w-full items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                   >
                     <Pencil className="h-4 w-4 text-gray-400" />
-                    Edit Campaign
+                    {t('editCampaign')}
                   </Link>
                   <button
                     onClick={() => handleStatusChange('ACTIVE')}
@@ -461,7 +463,7 @@ export default function CampaignDetailPage() {
                     className="flex w-full items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 disabled:opacity-50"
                   >
                     <Play className="h-4 w-4" />
-                    {updateCampaign.isPending ? 'Activating...' : 'Activate Campaign'}
+                    {updateCampaign.isPending ? t('activating') : t('activateCampaign')}
                   </button>
                 </>
               )}
@@ -473,7 +475,7 @@ export default function CampaignDetailPage() {
                     className="flex w-full items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 disabled:opacity-50"
                   >
                     <CheckCircle2 className="h-4 w-4" />
-                    {updateCampaign.isPending ? 'Completing...' : 'Mark as Complete'}
+                    {updateCampaign.isPending ? t('completing') : t('markAsComplete')}
                   </button>
                   <button
                     onClick={() => handleStatusChange('CANCELLED')}
@@ -481,13 +483,13 @@ export default function CampaignDetailPage() {
                     className="flex w-full items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 disabled:opacity-50"
                   >
                     <XCircle className="h-4 w-4" />
-                    Archive
+                    {t('archive')}
                   </button>
                 </>
               )}
               {(campaign.status === 'COMPLETED' || campaign.status === 'CANCELLED') && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">
-                  No actions available for {statusCfg.label.toLowerCase()} campaigns.
+                  {t('noActionsAvailable', { status: t(statusCfg.tKey).toLowerCase() })}
                 </p>
               )}
             </div>
@@ -496,7 +498,7 @@ export default function CampaignDetailPage() {
           {/* Country flags visual */}
           {countryInfos.length > 0 && (
             <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Coverage</h3>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">{t('coverage')}</h3>
               <div className="flex flex-wrap gap-1">
                 {countryInfos.map((c) => (
                   <span key={c.code} className="text-lg" title={c.name}>
@@ -505,7 +507,7 @@ export default function CampaignDetailPage() {
                 ))}
               </div>
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                {countryInfos.length} countr{countryInfos.length !== 1 ? 'ies' : 'y'} targeted
+                {countryInfos.length} {t('countries').toLowerCase()} {t('targeted')}
               </p>
             </div>
           )}

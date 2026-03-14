@@ -17,28 +17,29 @@ import {
 import { cn } from '@/lib/utils';
 import { useReportHistory } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const STATUS_CONFIG: Record<
   string,
-  { label: string; color: string; icon: React.ReactNode }
+  { tKey: string; color: string; icon: React.ReactNode }
 > = {
   pending: {
-    label: 'Pending',
+    tKey: 'statusPending',
     color: 'bg-amber-100 text-amber-700',
     icon: <Clock className="h-3.5 w-3.5" />,
   },
   generating: {
-    label: 'Generating',
+    tKey: 'statusGenerating',
     color: 'bg-blue-100 text-blue-700',
     icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
   },
   completed: {
-    label: 'Completed',
+    tKey: 'statusCompleted',
     color: 'bg-green-100 text-green-700',
     icon: <CheckCircle2 className="h-3.5 w-3.5" />,
   },
   failed: {
-    label: 'Failed',
+    tKey: 'statusFailed',
     color: 'bg-red-100 text-red-700',
     icon: <XCircle className="h-3.5 w-3.5" />,
   },
@@ -68,6 +69,7 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 export default function ReportHistoryPage() {
+  const t = useTranslations('reports');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const limit = 20;
@@ -91,15 +93,15 @@ export default function ReportHistoryPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ChevronLeft className="h-4 w-4" />
-          Back to Reports
+          {t('backToReports')}
         </Link>
         <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              Report History
+              {t('history')}
             </h1>
             <p className="mt-1 text-sm text-gray-500">
-              View and download previously generated reports
+              {t('historyDesc')}
             </p>
           </div>
           <Link
@@ -107,7 +109,7 @@ export default function ReportHistoryPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-aris-primary-700"
           >
             <FileBarChart className="h-4 w-4" />
-            Generate Report
+            {t('generateReportBtn')}
           </Link>
         </div>
       </div>
@@ -123,11 +125,11 @@ export default function ReportHistoryPage() {
           }}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500"
         >
-          <option value="">All statuses</option>
-          <option value="pending">Pending</option>
-          <option value="generating">Generating</option>
-          <option value="completed">Completed</option>
-          <option value="failed">Failed</option>
+          <option value="">{t('allStatuses')}</option>
+          <option value="pending">{t('statusPending')}</option>
+          <option value="generating">{t('statusGenerating')}</option>
+          <option value="completed">{t('statusCompleted')}</option>
+          <option value="failed">{t('statusFailed')}</option>
         </select>
       </div>
 
@@ -138,17 +140,17 @@ export default function ReportHistoryPage() {
         <div className="rounded-card border border-gray-200 bg-white p-12 text-center">
           <FileText className="mx-auto h-12 w-12 text-gray-300" />
           <p className="mt-4 text-sm font-medium text-gray-900">
-            No reports generated yet
+            {t('noReportsYet')}
           </p>
           <p className="mt-1 text-sm text-gray-500">
-            Generate a report from the templates page to see it here.
+            {t('noReportsDesc')}
           </p>
           <Link
             href="/reports"
             className="mt-4 inline-flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-aris-primary-700"
           >
             <FileBarChart className="h-4 w-4" />
-            View Templates
+            {t('viewTemplates')}
           </Link>
         </div>
       ) : (
@@ -157,12 +159,12 @@ export default function ReportHistoryPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                  <th className="px-4 py-3">Report Name</th>
+                  <th className="px-4 py-3">{t('reportName')}</th>
                   <th className="px-4 py-3">Country</th>
-                  <th className="px-4 py-3">Period</th>
-                  <th className="px-4 py-3">Format</th>
+                  <th className="px-4 py-3">{t('period')}</th>
+                  <th className="px-4 py-3">{t('format')}</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Generated By</th>
+                  <th className="px-4 py-3">{t('generatedBy')}</th>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
@@ -223,7 +225,7 @@ export default function ReportHistoryPage() {
                           )}
                         >
                           {statusCfg.icon}
-                          {statusCfg.label}
+                          {t(statusCfg.tKey)}
                         </span>
                       </td>
 
@@ -275,10 +277,11 @@ export default function ReportHistoryPage() {
       {meta && meta.total > meta.limit && (
         <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
           <p className="text-xs text-gray-500">
-            Showing {(meta.page - 1) * meta.limit + 1}
-            {' - '}
-            {Math.min(meta.page * meta.limit, meta.total)} of {meta.total}{' '}
-            reports
+            {t('showingReports', {
+              from: (meta.page - 1) * meta.limit + 1,
+              to: Math.min(meta.page * meta.limit, meta.total),
+              total: meta.total,
+            })}
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -290,7 +293,7 @@ export default function ReportHistoryPage() {
               Previous
             </button>
             <span className="px-2 text-xs text-gray-500">
-              Page {page} of {totalPages}
+              {t('pageOf', { page, total: totalPages })}
             </span>
             <button
               onClick={() => setPage((p) => p + 1)}

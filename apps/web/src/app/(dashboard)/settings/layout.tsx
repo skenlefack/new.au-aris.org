@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   Globe,
   Flag,
@@ -32,26 +33,6 @@ interface SettingsNavItem {
   section: string;
 }
 
-const NAV_ITEMS: SettingsNavItem[] = [
-  { href: '/settings', label: 'Overview', icon: <Cog className="h-4 w-4" />, section: 'overview' },
-  { href: '/settings/recs', label: 'RECs', icon: <Globe className="h-4 w-4" />, section: 'recs' },
-  { href: '/settings/countries', label: 'Countries', icon: <Flag className="h-4 w-4" />, section: 'countries' },
-  { href: '/settings/functions', label: 'Functions', icon: <Briefcase className="h-4 w-4" />, section: 'functions' },
-  { href: '/settings/users', label: 'Users', icon: <Users className="h-4 w-4" />, section: 'users' },
-  { href: '/settings/general', label: 'General', icon: <Cog className="h-4 w-4" />, section: 'general' },
-  { href: '/settings/security', label: 'Security', icon: <Shield className="h-4 w-4" />, section: 'security' },
-  { href: '/settings/notifications', label: 'Notifications', icon: <Bell className="h-4 w-4" />, section: 'notifications' },
-  { href: '/settings/i18n', label: 'Languages', icon: <Languages className="h-4 w-4" />, section: 'i18n' },
-  { href: '/settings/data-quality', label: 'Data Quality', icon: <ShieldCheck className="h-4 w-4" />, section: 'data-quality' },
-  { href: '/settings/domains', label: 'Domains', icon: <Layers className="h-4 w-4" />, section: 'domains' },
-  { href: '/settings/workflow', label: 'Workflow', icon: <GitPullRequestArrow className="h-4 w-4" />, section: 'workflow' },
-  { href: '/settings/validation-chains', label: 'Validation Chains', icon: <Link2 className="h-4 w-4" />, section: 'validation-chains' },
-  { href: '/settings/infrastructures', label: 'Infra. Types', icon: <Building2 className="h-4 w-4" />, section: 'infrastructures' },
-  { href: '/settings/bi-access', label: 'BI Data Access', icon: <BarChart3 className="h-4 w-4" />, section: 'bi-access' },
-  { href: '/settings/audit', label: 'Audit Log', icon: <ClipboardList className="h-4 w-4" />, section: 'audit' },
-  { href: '/settings/system', label: 'System', icon: <Server className="h-4 w-4" />, section: 'system' },
-];
-
 export default function SettingsLayout({
   children,
 }: {
@@ -59,6 +40,27 @@ export default function SettingsLayout({
 }) {
   const pathname = usePathname();
   const { canViewSection, isSuperAdmin, isContinentalAdmin } = useSettingsAccess();
+  const t = useTranslations('settings');
+
+  const NAV_ITEMS: SettingsNavItem[] = [
+    { href: '/settings', label: t('overview'), icon: <Cog className="h-4 w-4" />, section: 'overview' },
+    { href: '/settings/recs', label: t('recsManagement'), icon: <Globe className="h-4 w-4" />, section: 'recs' },
+    { href: '/settings/countries', label: t('countriesManagement'), icon: <Flag className="h-4 w-4" />, section: 'countries' },
+    { href: '/settings/functions', label: t('functions'), icon: <Briefcase className="h-4 w-4" />, section: 'functions' },
+    { href: '/settings/users', label: t('users'), icon: <Users className="h-4 w-4" />, section: 'users' },
+    { href: '/settings/general', label: t('generalSettings'), icon: <Cog className="h-4 w-4" />, section: 'general' },
+    { href: '/settings/security', label: t('security'), icon: <Shield className="h-4 w-4" />, section: 'security' },
+    { href: '/settings/notifications', label: t('notificationsSettings'), icon: <Bell className="h-4 w-4" />, section: 'notifications' },
+    { href: '/settings/i18n', label: t('languages'), icon: <Languages className="h-4 w-4" />, section: 'i18n' },
+    { href: '/settings/data-quality', label: t('dataQuality'), icon: <ShieldCheck className="h-4 w-4" />, section: 'data-quality' },
+    { href: '/settings/domains', label: t('domains'), icon: <Layers className="h-4 w-4" />, section: 'domains' },
+    { href: '/settings/workflow', label: t('workflowConfig'), icon: <GitPullRequestArrow className="h-4 w-4" />, section: 'workflow' },
+    { href: '/settings/validation-chains', label: t('validationChains'), icon: <Link2 className="h-4 w-4" />, section: 'validation-chains' },
+    { href: '/settings/infrastructures', label: t('infraTypes'), icon: <Building2 className="h-4 w-4" />, section: 'infrastructures' },
+    { href: '/settings/bi-access', label: t('biDataAccess'), icon: <BarChart3 className="h-4 w-4" />, section: 'bi-access' },
+    { href: '/settings/audit', label: t('auditLog'), icon: <ClipboardList className="h-4 w-4" />, section: 'audit' },
+    { href: '/settings/system', label: t('systemInfo'), icon: <Server className="h-4 w-4" />, section: 'system' },
+  ];
 
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (item.section === 'overview') return true;
@@ -76,7 +78,7 @@ export default function SettingsLayout({
             className="mb-4 flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <ChevronLeft className="h-3 w-3" />
-            Back to Dashboard
+            {t('backToDashboard')}
           </Link>
 
           {visibleItems.map((item) => {

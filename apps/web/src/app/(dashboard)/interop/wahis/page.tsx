@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useWahisExports, useCreateWahisExport, useCountries } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-600',
@@ -25,6 +26,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function WahisExportsPage() {
+  const t = useTranslations('interop');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [showNewForm, setShowNewForm] = useState(false);
@@ -70,15 +72,15 @@ export default function WahisExportsPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Interop Hub
+          {t('backToInteropHub')}
         </Link>
         <div className="mt-2 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              WAHIS Exports
+              WAHIS {t('exports')}
             </h1>
             <p className="mt-1 text-sm text-gray-500">
-              Manage disease event exports to WOAH WAHIS system
+              {t('wahisDesc')}
             </p>
           </div>
           <button
@@ -86,7 +88,7 @@ export default function WahisExportsPage() {
             className="flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-aris-primary-700"
           >
             <Plus className="h-4 w-4" />
-            New Export
+            {t('newExport')}
           </button>
         </div>
       </div>
@@ -95,7 +97,7 @@ export default function WahisExportsPage() {
       {showNewForm && (
         <div className="rounded-card border border-aris-primary-200 bg-aris-primary-50 p-5">
           <h3 className="text-sm font-semibold text-gray-900 mb-4">
-            Create New WAHIS Export
+            {t('createNewWahisExport')}
           </h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <div>
@@ -117,22 +119,22 @@ export default function WahisExportsPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Report Type
+                {t('reportType')}
               </label>
               <select
                 value={formType}
                 onChange={(e) => setFormType(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none"
               >
-                <option value="immediate">Immediate</option>
-                <option value="followup">Follow-up</option>
-                <option value="sixmonthly">Six-monthly</option>
-                <option value="annual">Annual</option>
+                <option value="immediate">{t('reportTypeImmediate')}</option>
+                <option value="followup">{t('reportTypeFollowUp')}</option>
+                <option value="sixmonthly">{t('reportTypeSixMonthly')}</option>
+                <option value="annual">{t('reportTypeAnnual')}</option>
               </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Period Start
+                {t('periodStart')}
               </label>
               <input
                 type="date"
@@ -143,7 +145,7 @@ export default function WahisExportsPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Period End
+                {t('periodEnd')}
               </label>
               <input
                 type="date"
@@ -154,7 +156,7 @@ export default function WahisExportsPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Format
+                {t('format')}
               </label>
               <div className="flex gap-2 mt-1">
                 {(['JSON', 'XML'] as const).map((f) => (
@@ -180,7 +182,7 @@ export default function WahisExportsPage() {
               disabled={createExport.isPending || !formCountry || !formStart || !formEnd}
               className="rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50"
             >
-              {createExport.isPending ? 'Creating...' : 'Create Export'}
+              {createExport.isPending ? 'Creating...' : t('createExport')}
             </button>
             <button
               onClick={() => setShowNewForm(false)}
@@ -203,12 +205,12 @@ export default function WahisExportsPage() {
           }}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none"
         >
-          <option value="">All statuses</option>
-          <option value="draft">Draft</option>
-          <option value="pending">Pending</option>
-          <option value="exported">Exported</option>
-          <option value="accepted">Accepted</option>
-          <option value="rejected">Rejected</option>
+          <option value="">{t('allStatuses')}</option>
+          <option value="draft">{t('statusDraft')}</option>
+          <option value="pending">{t('statusPending')}</option>
+          <option value="exported">{t('statusExported')}</option>
+          <option value="accepted">{t('statusAccepted')}</option>
+          <option value="rejected">{t('statusRejected')}</option>
         </select>
       </div>
 
@@ -221,12 +223,12 @@ export default function WahisExportsPage() {
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
                 <th className="px-4 py-3">Country</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Period</th>
-                <th className="px-4 py-3">Format</th>
+                <th className="px-4 py-3">{t('type')}</th>
+                <th className="px-4 py-3">{t('period')}</th>
+                <th className="px-4 py-3">{t('format')}</th>
                 <th className="px-4 py-3 text-right">Records</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Exported At</th>
+                <th className="px-4 py-3">{t('exportedAt')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -277,7 +279,7 @@ export default function WahisExportsPage() {
               {exports.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                    No WAHIS exports found
+                    {t('noWahisExportsFound')}
                   </td>
                 </tr>
               )}

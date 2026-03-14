@@ -7,6 +7,7 @@ import {
   useImportDataset,
   type AnalysisResult,
 } from '@/lib/api/historical-hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const DOMAIN_OPTIONS = [
   { value: 'animal_health', label: 'Animal Health' },
@@ -25,6 +26,7 @@ const ACCEPTED_TYPES = '.xlsx,.xls,.csv,.tsv,.json';
 type Step = 'upload' | 'preview' | 'configure' | 'importing';
 
 export default function ImportDatasetPage() {
+  const t = useTranslations('historical');
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -90,25 +92,29 @@ export default function ImportDatasetPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Import Dataset</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('importData')}</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Upload a file to analyze its structure and import it into the data lake
+          {t('importDesc')}
         </p>
       </div>
 
       {/* Step indicator */}
       <div className="flex items-center gap-2 text-sm">
-        {(['upload', 'preview', 'configure'] as const).map((s, i) => (
-          <React.Fragment key={s}>
+        {([
+          { key: 'upload' as const, tKey: 'stepUpload' },
+          { key: 'preview' as const, tKey: 'stepPreview' },
+          { key: 'configure' as const, tKey: 'stepConfigure' },
+        ]).map((s, i) => (
+          <React.Fragment key={s.key}>
             {i > 0 && <span className="text-slate-300 dark:text-slate-600">→</span>}
             <span className={`rounded-full px-3 py-1 ${
-              step === s || (step === 'importing' && s === 'configure')
+              step === s.key || (step === 'importing' && s.key === 'configure')
                 ? 'bg-[var(--color-accent)] text-white'
-                : step > s || (step === 'importing' && i < 2)
+                : step > s.key || (step === 'importing' && i < 2)
                   ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                   : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
             }`}>
-              {i + 1}. {s.charAt(0).toUpperCase() + s.slice(1)}
+              {i + 1}. {t(s.tKey)}
             </span>
           </React.Fragment>
         ))}
@@ -133,10 +139,10 @@ export default function ImportDatasetPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
           <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-            Drop a file here or click to browse
+            {t('dropzone')}
           </p>
           <p className="mt-1 text-xs text-slate-400">
-            Excel (.xlsx, .xls), CSV (.csv), TSV (.tsv), or JSON (.json) — max 50 MB
+            {t('acceptedFormats')}
           </p>
           <input
             ref={fileInputRef}
@@ -148,7 +154,7 @@ export default function ImportDatasetPage() {
           {analyzeFile.isPending && (
             <div className="mt-4 flex items-center gap-2 text-sm text-[var(--color-accent)]">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              Analyzing file...
+              {t('analyzingFile')}
             </div>
           )}
         </div>
@@ -158,22 +164,22 @@ export default function ImportDatasetPage() {
       {step === 'preview' && analysis && (
         <div className="space-y-6">
           <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">File Analysis</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('fileAnalysis')}</h2>
             <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
               <div>
-                <p className="text-xs text-slate-400">File</p>
+                <p className="text-xs text-slate-400">{t('file')}</p>
                 <p className="font-medium text-slate-900 dark:text-white">{file?.name}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-400">Type</p>
+                <p className="text-xs text-slate-400">{t('type')}</p>
                 <p className="font-medium uppercase text-slate-900 dark:text-white">{analysis.fileType}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-400">Rows</p>
+                <p className="text-xs text-slate-400">{t('rows')}</p>
                 <p className="font-medium text-slate-900 dark:text-white">{analysis.rowCount.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-400">Columns</p>
+                <p className="text-xs text-slate-400">{t('columns')}</p>
                 <p className="font-medium text-slate-900 dark:text-white">{analysis.columns.length}</p>
               </div>
             </div>
@@ -182,17 +188,17 @@ export default function ImportDatasetPage() {
           {/* Detected columns */}
           <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800/50">
             <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-              <h3 className="font-medium text-slate-900 dark:text-white">Detected Columns</h3>
+              <h3 className="font-medium text-slate-900 dark:text-white">{t('detectedColumns')}</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 dark:bg-slate-800">
                   <tr>
                     <th className="px-4 py-2 font-medium text-slate-500">#</th>
-                    <th className="px-4 py-2 font-medium text-slate-500">Column</th>
-                    <th className="px-4 py-2 font-medium text-slate-500">Type</th>
-                    <th className="px-4 py-2 font-medium text-slate-500">Nullable</th>
-                    <th className="px-4 py-2 font-medium text-slate-500">Samples</th>
+                    <th className="px-4 py-2 font-medium text-slate-500">{t('column')}</th>
+                    <th className="px-4 py-2 font-medium text-slate-500">{t('columnType')}</th>
+                    <th className="px-4 py-2 font-medium text-slate-500">{t('nullable')}</th>
+                    <th className="px-4 py-2 font-medium text-slate-500">{t('samples')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
@@ -218,7 +224,7 @@ export default function ImportDatasetPage() {
           {analysis.preview.length > 0 && (
             <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800/50">
               <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-                <h3 className="font-medium text-slate-900 dark:text-white">Data Preview (first {Math.min(analysis.preview.length, 10)} rows)</h3>
+                <h3 className="font-medium text-slate-900 dark:text-white">{t('dataPreview', { n: Math.min(analysis.preview.length, 10) })}</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
@@ -258,7 +264,7 @@ export default function ImportDatasetPage() {
               onClick={() => setStep('configure')}
               className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
             >
-              Continue to Import
+              {t('continueImport')}
             </button>
           </div>
         </div>
@@ -268,7 +274,7 @@ export default function ImportDatasetPage() {
       {(step === 'configure' || step === 'importing') && (
         <div className="space-y-6">
           <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800/50">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Dataset Information</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('datasetInfo')}</h2>
             <div className="mt-4 space-y-4">
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Name *</label>
@@ -287,7 +293,7 @@ export default function ImportDatasetPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
-                  placeholder="Optional description of the dataset..."
+                  placeholder={t('descriptionPlaceholder')}
                 />
               </div>
               <div>
@@ -303,7 +309,7 @@ export default function ImportDatasetPage() {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Tags (comma-separated)</label>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{t('tags')}</label>
                 <input
                   type="text"
                   value={tags}
@@ -318,7 +324,7 @@ export default function ImportDatasetPage() {
           {/* Summary */}
           {analysis && (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-700 dark:bg-slate-800/30">
-              <p className="font-medium text-slate-700 dark:text-slate-300">Import Summary</p>
+              <p className="font-medium text-slate-700 dark:text-slate-300">{t('importSummary')}</p>
               <p className="mt-1 text-slate-500">
                 {file?.name} — {analysis.rowCount.toLocaleString()} rows, {analysis.columns.length} columns ({analysis.fileType.toUpperCase()})
               </p>
@@ -344,7 +350,7 @@ export default function ImportDatasetPage() {
                   Importing...
                 </>
               ) : (
-                'Import Dataset'
+                t('importDatasetBtn')
               )}
             </button>
           </div>

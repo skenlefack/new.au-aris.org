@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useSettingsConfig, useBulkUpdateConfig } from '@/lib/api/settings-hooks';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
+import { useTranslations } from '@/lib/i18n/translations';
 import { ConfigField } from '@/components/settings/ConfigField';
 import { SaveBar } from '@/components/settings/SaveBar';
 import {
@@ -18,67 +19,68 @@ import {
   TrendingUp,
 } from 'lucide-react';
 
-const QUALITY_GATES = [
-  'Completeness',
-  'Temporal consistency',
-  'Geographic consistency',
-  'Codes & vocabularies',
-  'Units validation',
-  'Deduplication',
-  'Auditability',
-  'Confidence score',
-] as const;
-
 interface SectionDef {
   title: string;
   icon: React.ReactNode;
   prefixes: string[];
 }
 
-const SECTIONS: SectionDef[] = [
-  {
-    title: 'General Validation',
-    icon: <ShieldCheck className="h-3.5 w-3.5" />,
-    prefixes: ['dataQuality.validation.'],
-  },
-  {
-    title: 'Completeness',
-    icon: <BarChart3 className="h-3.5 w-3.5" />,
-    prefixes: ['dataQuality.completeness.'],
-  },
-  {
-    title: 'Temporal Consistency',
-    icon: <Clock className="h-3.5 w-3.5" />,
-    prefixes: ['dataQuality.temporal.'],
-  },
-  {
-    title: 'Geographic Consistency',
-    icon: <MapPin className="h-3.5 w-3.5" />,
-    prefixes: ['dataQuality.geographic.'],
-  },
-  {
-    title: 'Codes & Vocabularies',
-    icon: <BookOpen className="h-3.5 w-3.5" />,
-    prefixes: ['dataQuality.codes.'],
-  },
-  {
-    title: 'Duplicate Detection',
-    icon: <Copy className="h-3.5 w-3.5" />,
-    prefixes: ['dataQuality.duplicateDetection.'],
-  },
-  {
-    title: 'Timeliness & SLA',
-    icon: <Timer className="h-3.5 w-3.5" />,
-    prefixes: ['dataQuality.timeliness.', 'dataQuality.correction.'],
-  },
-  {
-    title: 'Confidence Score',
-    icon: <TrendingUp className="h-3.5 w-3.5" />,
-    prefixes: ['dataQuality.confidence.'],
-  },
-];
-
 export default function DataQualitySettingsPage() {
+  const t = useTranslations('settings');
+
+  const QUALITY_GATES = [
+    t('gateCompleteness'),
+    t('gateTemporal'),
+    t('gateGeographic'),
+    t('gateCodes'),
+    t('gateUnits'),
+    t('gateDedup'),
+    t('gateAuditability'),
+    t('gateConfidence'),
+  ];
+
+  const SECTIONS: SectionDef[] = [
+    {
+      title: t('generalValidation'),
+      icon: <ShieldCheck className="h-3.5 w-3.5" />,
+      prefixes: ['dataQuality.validation.'],
+    },
+    {
+      title: t('completeness'),
+      icon: <BarChart3 className="h-3.5 w-3.5" />,
+      prefixes: ['dataQuality.completeness.'],
+    },
+    {
+      title: t('temporalConsistency'),
+      icon: <Clock className="h-3.5 w-3.5" />,
+      prefixes: ['dataQuality.temporal.'],
+    },
+    {
+      title: t('geographicConsistency'),
+      icon: <MapPin className="h-3.5 w-3.5" />,
+      prefixes: ['dataQuality.geographic.'],
+    },
+    {
+      title: t('codesVocabularies'),
+      icon: <BookOpen className="h-3.5 w-3.5" />,
+      prefixes: ['dataQuality.codes.'],
+    },
+    {
+      title: t('duplicateDetection'),
+      icon: <Copy className="h-3.5 w-3.5" />,
+      prefixes: ['dataQuality.duplicateDetection.'],
+    },
+    {
+      title: t('timelinessSla'),
+      icon: <Timer className="h-3.5 w-3.5" />,
+      prefixes: ['dataQuality.timeliness.', 'dataQuality.correction.'],
+    },
+    {
+      title: t('confidenceScore'),
+      icon: <TrendingUp className="h-3.5 w-3.5" />,
+      prefixes: ['dataQuality.confidence.'],
+    },
+  ];
   const { canManageConfig } = useSettingsAccess();
   const canEdit = canManageConfig('data-quality');
   const { data, isLoading } = useSettingsConfig('data-quality');
@@ -126,10 +128,10 @@ export default function DataQualitySettingsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Data Quality
+              {t('dataQualityTitle')}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Validation rules, completeness thresholds, and quality gates configuration
+              {t('dataQualitySubtitle')}
             </p>
           </div>
         </div>
@@ -143,10 +145,10 @@ export default function DataQualitySettingsPage() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-emerald-900 dark:text-emerald-200">
-              8 Mandatory Quality Gates
+              {t('mandatoryQualityGates')}
             </p>
             <p className="mt-0.5 text-xs text-emerald-700 dark:text-emerald-400">
-              Every record must pass these gates before publication. Configure thresholds and behavior below.
+              {t('mandatoryQualityGatesDesc')}
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {QUALITY_GATES.map((gate) => (

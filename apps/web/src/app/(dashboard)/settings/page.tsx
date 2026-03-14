@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   Globe,
   Flag,
@@ -30,120 +31,121 @@ interface SettingsCard {
   color: string;
 }
 
-const SETTINGS_CARDS: SettingsCard[] = [
-  {
-    href: '/settings/recs',
-    label: 'RECs Management',
-    description: '8 Regional Economic Communities with member states',
-    icon: <Globe className="h-5 w-5" />,
-    section: 'recs',
-    badge: '8 RECs',
-    color: '#006B3F',
-  },
-  {
-    href: '/settings/countries',
-    label: 'Countries Management',
-    description: '55 AU Member States with stats and sector performance',
-    icon: <Flag className="h-5 w-5" />,
-    section: 'countries',
-    badge: '55 Countries',
-    color: '#1565C0',
-  },
-  {
-    href: '/settings/general',
-    label: 'General Settings',
-    description: 'Platform name, branding, contact information',
-    icon: <Cog className="h-5 w-5" />,
-    section: 'general',
-    color: '#37474F',
-  },
-  {
-    href: '/settings/security',
-    label: 'Security',
-    description: 'MFA, passwords, session management, rate limits',
-    icon: <Shield className="h-5 w-5" />,
-    section: 'security',
-    color: '#C62828',
-  },
-  {
-    href: '/settings/notifications',
-    label: 'Notifications',
-    description: 'Email, SMS, push notification configuration',
-    icon: <Bell className="h-5 w-5" />,
-    section: 'notifications',
-    color: '#F57F17',
-  },
-  {
-    href: '/settings/i18n',
-    label: 'Languages & i18n',
-    description: '5 languages: EN, FR, PT, AR, ES with RTL support',
-    icon: <Languages className="h-5 w-5" />,
-    section: 'i18n',
-    badge: '5 Langs',
-    color: '#4527A0',
-  },
-  {
-    href: '/settings/data-quality',
-    label: 'Data Quality',
-    description: 'Validation thresholds, completeness, timeliness',
-    icon: <ShieldCheck className="h-5 w-5" />,
-    section: 'data-quality',
-    color: '#E65100',
-  },
-  {
-    href: '/settings/domains',
-    label: 'Business Domains',
-    description: '9 domains: Animal Health, Fisheries, Trade, etc.',
-    icon: <Layers className="h-5 w-5" />,
-    section: 'domains',
-    badge: '9 Domains',
-    color: '#00838F',
-  },
-  {
-    href: '/settings/workflow',
-    label: 'Workflow Configuration',
-    description: 'Validation workflows per country: steps, delays, auto-transmit',
-    icon: <GitPullRequestArrow className="h-5 w-5" />,
-    section: 'workflow',
-    color: '#7B1FA2',
-  },
-  {
-    href: '/settings/validation-chains',
-    label: 'Validation Chains',
-    description: 'Define who validates whom at each hierarchy level',
-    icon: <Link2 className="h-5 w-5" />,
-    section: 'validation-chains',
-    color: '#0277BD',
-  },
-  {
-    href: '/settings/infrastructures',
-    label: 'Infrastructure Types',
-    description: 'Configure infrastructure categories and sub-types (labs, markets, checkpoints, etc.)',
-    icon: <Building2 className="h-5 w-5" />,
-    section: 'infrastructures',
-    badge: '15 Categories',
-    color: '#2E7D32',
-  },
-  {
-    href: '/settings/audit',
-    label: 'Audit Log',
-    description: 'Track all configuration changes and modifications',
-    icon: <ClipboardList className="h-5 w-5" />,
-    section: 'audit',
-    color: '#795548',
-  },
-  {
-    href: '/settings/system',
-    label: 'System Info',
-    description: 'Version, health status, config export/import',
-    icon: <Server className="h-5 w-5" />,
-    section: 'system',
-    color: '#455A64',
-  },
-];
-
 export default function SettingsOverviewPage() {
   const { canViewSection, isSuperAdmin, isContinentalAdmin } = useSettingsAccess();
+  const t = useTranslations('settings');
+
+  const SETTINGS_CARDS: SettingsCard[] = [
+    {
+      href: '/settings/recs',
+      label: t('recsManagement'),
+      description: t('recsDesc'),
+      icon: <Globe className="h-5 w-5" />,
+      section: 'recs',
+      badge: t('recsCount'),
+      color: '#006B3F',
+    },
+    {
+      href: '/settings/countries',
+      label: t('countriesManagement'),
+      description: t('countriesDesc'),
+      icon: <Flag className="h-5 w-5" />,
+      section: 'countries',
+      badge: t('countriesCount'),
+      color: '#1565C0',
+    },
+    {
+      href: '/settings/general',
+      label: t('generalSettings'),
+      description: t('generalDesc'),
+      icon: <Cog className="h-5 w-5" />,
+      section: 'general',
+      color: '#37474F',
+    },
+    {
+      href: '/settings/security',
+      label: t('security'),
+      description: t('securityDesc'),
+      icon: <Shield className="h-5 w-5" />,
+      section: 'security',
+      color: '#C62828',
+    },
+    {
+      href: '/settings/notifications',
+      label: t('notificationsSettings'),
+      description: t('notificationsDesc'),
+      icon: <Bell className="h-5 w-5" />,
+      section: 'notifications',
+      color: '#F57F17',
+    },
+    {
+      href: '/settings/i18n',
+      label: t('languages'),
+      description: t('languagesDesc'),
+      icon: <Languages className="h-5 w-5" />,
+      section: 'i18n',
+      badge: t('langsCount'),
+      color: '#4527A0',
+    },
+    {
+      href: '/settings/data-quality',
+      label: t('dataQuality'),
+      description: t('dataQualityDesc'),
+      icon: <ShieldCheck className="h-5 w-5" />,
+      section: 'data-quality',
+      color: '#E65100',
+    },
+    {
+      href: '/settings/domains',
+      label: t('businessDomains'),
+      description: t('businessDomainsDesc'),
+      icon: <Layers className="h-5 w-5" />,
+      section: 'domains',
+      badge: t('domainsCount'),
+      color: '#00838F',
+    },
+    {
+      href: '/settings/workflow',
+      label: t('workflowConfig'),
+      description: t('workflowDesc'),
+      icon: <GitPullRequestArrow className="h-5 w-5" />,
+      section: 'workflow',
+      color: '#7B1FA2',
+    },
+    {
+      href: '/settings/validation-chains',
+      label: t('validationChains'),
+      description: t('validationChainsDesc'),
+      icon: <Link2 className="h-5 w-5" />,
+      section: 'validation-chains',
+      color: '#0277BD',
+    },
+    {
+      href: '/settings/infrastructures',
+      label: t('infrastructureTypes'),
+      description: t('infrastructureDesc'),
+      icon: <Building2 className="h-5 w-5" />,
+      section: 'infrastructures',
+      badge: t('categoriesCount'),
+      color: '#2E7D32',
+    },
+    {
+      href: '/settings/audit',
+      label: t('auditLog'),
+      description: t('auditLogDesc'),
+      icon: <ClipboardList className="h-5 w-5" />,
+      section: 'audit',
+      color: '#795548',
+    },
+    {
+      href: '/settings/system',
+      label: t('systemInfo'),
+      description: t('systemInfoDesc'),
+      icon: <Server className="h-5 w-5" />,
+      section: 'system',
+      color: '#455A64',
+    },
+  ];
 
   const visibleCards = SETTINGS_CARDS.filter((card) => {
     if (isSuperAdmin || isContinentalAdmin) return true;
@@ -153,9 +155,9 @@ export default function SettingsOverviewPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Platform configuration, RECs, countries, and system management
+          {t('subtitle')}
         </p>
       </div>
 

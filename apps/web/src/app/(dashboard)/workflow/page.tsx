@@ -16,6 +16,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   useMyWorkflowTasks,
   useMyWorkflowSubmissions,
@@ -24,13 +25,13 @@ import {
 
 /* ── Status & Priority styling ── */
 
-const STATUS_STYLE: Record<string, { bg: string; text: string; label: string }> = {
-  IN_PROGRESS: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300', label: 'In Progress' },
-  COMPLETED: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300', label: 'Completed' },
-  REJECTED: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300', label: 'Rejected' },
-  RETURNED: { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-300', label: 'Returned' },
-  EXPIRED: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', label: 'Expired' },
-  CANCELLED: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-500 dark:text-gray-500', label: 'Cancelled' },
+const STATUS_STYLE: Record<string, { bg: string; text: string; tKey: string }> = {
+  IN_PROGRESS: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300', tKey: 'inProgress' },
+  COMPLETED: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300', tKey: 'completed' },
+  REJECTED: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300', tKey: 'rejected' },
+  RETURNED: { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-300', tKey: 'returned' },
+  EXPIRED: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', tKey: 'expired' },
+  CANCELLED: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-500 dark:text-gray-500', tKey: 'cancelled' },
 };
 
 const PRIORITY_STYLE: Record<string, { bg: string; text: string; dot: string }> = {
@@ -42,20 +43,30 @@ const PRIORITY_STYLE: Record<string, { bg: string; text: string; dot: string }> 
 };
 
 function StatusBadge({ status }: { status: string }) {
+  const t = useTranslations('workflow');
   const s = STATUS_STYLE[status] ?? STATUS_STYLE['IN_PROGRESS'];
   return (
     <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium', s.bg, s.text)}>
-      {s.label}
+      {t(s.tKey)}
     </span>
   );
 }
 
+const PRIORITY_TKEY: Record<string, string> = {
+  CRITICAL: 'priorityCritical',
+  URGENT: 'priorityUrgent',
+  HIGH: 'priorityHigh',
+  NORMAL: 'priorityNormal',
+  LOW: 'priorityLow',
+};
+
 function PriorityBadge({ priority }: { priority: string }) {
+  const t = useTranslations('workflow');
   const p = PRIORITY_STYLE[priority] ?? PRIORITY_STYLE['NORMAL'];
   return (
     <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium', p.bg, p.text)}>
       <span className={cn('h-1.5 w-1.5 rounded-full', p.dot)} />
-      {priority}
+      {t(PRIORITY_TKEY[priority] ?? 'priorityNormal')}
     </span>
   );
 }
@@ -119,6 +130,7 @@ function TableSkeleton() {
 
 /* ── Main Page ── */
 export default function WorkflowDashboardPage() {
+  const t = useTranslations('workflow');
   const [activeTab, setActiveTab] = useState<'tasks' | 'submissions'>('tasks');
   const [taskPage, setTaskPage] = useState(1);
   const [subPage, setSubPage] = useState(1);
@@ -137,9 +149,9 @@ export default function WorkflowDashboardPage() {
     <div className="mx-auto max-w-7xl space-y-6 p-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Workflow Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('dashboard')}</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Manage validations, track submissions, and monitor workflow progress
+          {t('dashboardSubtitle')}
         </p>
       </div>
 
@@ -150,21 +162,21 @@ export default function WorkflowDashboardPage() {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <KpiCard
             icon={<Inbox className="h-5 w-5 text-blue-600" />}
-            label="Pending Validation"
+            label={t('pendingValidation')}
             value={stats?.pendingValidation ?? 0}
             bg="bg-blue-50 dark:bg-blue-900/20"
             accent="text-blue-600 dark:text-blue-400"
           />
           <KpiCard
             icon={<CheckCircle className="h-5 w-5 text-green-600" />}
-            label="Validated Today"
+            label={t('validatedToday')}
             value={stats?.validatedToday ?? 0}
             bg="bg-green-50 dark:bg-green-900/20"
             accent="text-green-600 dark:text-green-400"
           />
           <KpiCard
             icon={<AlertTriangle className="h-5 w-5 text-red-600" />}
-            label="Overdue"
+            label={t('overdue')}
             value={stats?.overdue ?? 0}
             bg="bg-red-50 dark:bg-red-900/20"
             accent={cn(
@@ -174,7 +186,7 @@ export default function WorkflowDashboardPage() {
           />
           <KpiCard
             icon={<TrendingUp className="h-5 w-5 text-purple-600" />}
-            label="Completion Rate"
+            label={t('completionRate')}
             value={`${stats?.completionRate ?? 0}%`}
             bg="bg-purple-50 dark:bg-purple-900/20"
             accent="text-purple-600 dark:text-purple-400"
@@ -194,7 +206,7 @@ export default function WorkflowDashboardPage() {
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
             )}
           >
-            Awaiting My Validation
+            {t('awaitingValidation')}
             {(stats?.pendingValidation ?? 0) > 0 && (
               <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-600 px-1.5 text-xs text-white">
                 {stats?.pendingValidation}
@@ -210,7 +222,7 @@ export default function WorkflowDashboardPage() {
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
             )}
           >
-            My Submissions
+            {t('mySubmissions')}
           </button>
         </div>
 
@@ -221,8 +233,8 @@ export default function WorkflowDashboardPage() {
             ) : tasks.length === 0 ? (
               <EmptyState
                 icon={<Inbox className="h-12 w-12 text-gray-300 dark:text-gray-600" />}
-                title="No pending tasks"
-                description="You have no submissions awaiting your validation."
+                title={t('noPendingTasks')}
+                description={t('noPendingTasksDesc')}
               />
             ) : (
               <>
@@ -230,13 +242,13 @@ export default function WorkflowDashboardPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        <th className="px-3 py-2">Submission</th>
-                        <th className="px-3 py-2">Country</th>
-                        <th className="px-3 py-2">Step</th>
-                        <th className="px-3 py-2">Priority</th>
-                        <th className="px-3 py-2">Deadline</th>
-                        <th className="px-3 py-2">Status</th>
-                        <th className="px-3 py-2 text-right">Actions</th>
+                        <th className="px-3 py-2">{t('submission')}</th>
+                        <th className="px-3 py-2">{t('country')}</th>
+                        <th className="px-3 py-2">{t('step')}</th>
+                        <th className="px-3 py-2">{t('priority')}</th>
+                        <th className="px-3 py-2">{t('deadline')}</th>
+                        <th className="px-3 py-2">{t('status')}</th>
+                        <th className="px-3 py-2 text-right">{t('actions')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -255,7 +267,7 @@ export default function WorkflowDashboardPage() {
                               {i18nText(task.workflow?.country?.name)}
                             </td>
                             <td className="px-3 py-3 text-xs">
-                              {i18nText(step?.name) ?? `Step ${task.currentStepOrder}`}
+                              {i18nText(step?.name) ?? `${t('step')} ${task.currentStepOrder}`}
                             </td>
                             <td className="px-3 py-3">
                               <PriorityBadge priority={task.priority} />
@@ -272,7 +284,7 @@ export default function WorkflowDashboardPage() {
                                 className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
                               >
                                 <Eye className="h-3.5 w-3.5" />
-                                View
+                                {t('view')}
                               </Link>
                             </td>
                           </tr>
@@ -294,8 +306,8 @@ export default function WorkflowDashboardPage() {
           ) : subs.length === 0 ? (
             <EmptyState
               icon={<Inbox className="h-12 w-12 text-gray-300 dark:text-gray-600" />}
-              title="No submissions yet"
-              description="You haven't submitted any forms through the workflow."
+              title={t('noSubmissions')}
+              description={t('noSubmissionsDesc')}
             />
           ) : (
             <>
@@ -303,11 +315,11 @@ export default function WorkflowDashboardPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                      <th className="px-3 py-2">Submission</th>
-                      <th className="px-3 py-2">Date</th>
-                      <th className="px-3 py-2">Current Step</th>
-                      <th className="px-3 py-2">Status</th>
-                      <th className="px-3 py-2">Progress</th>
+                      <th className="px-3 py-2">{t('submission')}</th>
+                      <th className="px-3 py-2">{t('date')}</th>
+                      <th className="px-3 py-2">{t('currentStep')}</th>
+                      <th className="px-3 py-2">{t('status')}</th>
+                      <th className="px-3 py-2">{t('progressLabel')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -336,7 +348,7 @@ export default function WorkflowDashboardPage() {
                             {formatDate(sub.submittedAt)}
                           </td>
                           <td className="px-3 py-3 text-xs">
-                            {i18nText(currentStep?.name) ?? `Step ${sub.currentStepOrder}`}
+                            {i18nText(currentStep?.name) ?? `${t('step')} ${sub.currentStepOrder}`}
                           </td>
                           <td className="px-3 py-3">
                             <StatusBadge status={sub.status} />
@@ -430,13 +442,14 @@ function Pagination({
   limit: number;
   onPageChange: (p: number) => void;
 }) {
+  const t = useTranslations('workflow');
   const totalPages = Math.ceil(total / limit);
   if (totalPages <= 1) return null;
 
   return (
     <div className="mt-4 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-3">
       <p className="text-xs text-gray-500 dark:text-gray-400">
-        Showing {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total}
+        {t('showing')} {(page - 1) * limit + 1}–{Math.min(page * limit, total)} {t('of')} {total}
       </p>
       <div className="flex items-center gap-1">
         <button

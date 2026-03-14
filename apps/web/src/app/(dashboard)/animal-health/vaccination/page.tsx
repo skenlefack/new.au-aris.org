@@ -28,6 +28,7 @@ import {
 } from '@/lib/api/hooks';
 import { TableSkeleton, Skeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const STATUS_BADGE: Record<string, string> = {
   planned: 'bg-blue-100 text-blue-700',
@@ -85,6 +86,7 @@ const PLACEHOLDER_COVERAGE: VaccinationCoveragePoint[] = [
 ];
 
 export default function VaccinationPage() {
+  const t = useTranslations('animalHealth');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const limit = 10;
@@ -126,10 +128,10 @@ export default function VaccinationPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Vaccination Campaigns
+            {t('vaccinationCampaigns')}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Campaign management and coverage tracking
+            {t('vaccinationSubtitle')}
           </p>
         </div>
       </div>
@@ -137,10 +139,10 @@ export default function VaccinationPage() {
       {/* Coverage chart */}
       <div className="rounded-card border border-gray-200 bg-white p-6">
         <h2 className="text-sm font-semibold text-gray-900">
-          Continental Vaccination Coverage Trend
+          {t('coverageTrend')}
         </h2>
         <p className="mt-1 text-xs text-gray-400">
-          Average coverage across all active campaigns
+          {t('coverageTrendDesc')}
         </p>
         {coverageLoading ? (
           <Skeleton className="mt-4 h-64 w-full" />
@@ -203,13 +205,13 @@ export default function VaccinationPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-card border border-green-200 bg-green-50 p-4">
-          <p className="text-xs text-green-600">Active Campaigns</p>
+          <p className="text-xs text-green-600">{t('activeCampaignsCount')}</p>
           <p className="text-xl font-bold text-green-700">
             {campaigns.filter((c) => c.status === 'active').length}
           </p>
         </div>
         <div className="rounded-card border border-gray-200 bg-white p-4">
-          <p className="text-xs text-gray-400">Total Doses</p>
+          <p className="text-xs text-gray-400">{t('totalDoses')}</p>
           <p className="text-xl font-bold text-gray-900">
             {campaigns
               .reduce((sum, c) => sum + c.dosesAdministered, 0)
@@ -217,7 +219,7 @@ export default function VaccinationPage() {
           </p>
         </div>
         <div className="rounded-card border border-aris-primary-200 bg-aris-primary-50 p-4">
-          <p className="text-xs text-aris-primary-600">Avg Coverage</p>
+          <p className="text-xs text-aris-primary-600">{t('avgCoverage')}</p>
           <p className="text-xl font-bold text-aris-primary-700">
             {campaigns.length > 0
               ? (
@@ -229,7 +231,7 @@ export default function VaccinationPage() {
           </p>
         </div>
         <div className="rounded-card border border-blue-200 bg-blue-50 p-4">
-          <p className="text-xs text-blue-600">Planned</p>
+          <p className="text-xs text-blue-600">{t('planned')}</p>
           <p className="text-xl font-bold text-blue-700">
             {campaigns.filter((c) => c.status === 'planned').length}
           </p>
@@ -246,11 +248,11 @@ export default function VaccinationPage() {
           }}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
         >
-          <option value="">All Status</option>
-          <option value="planned">Planned</option>
-          <option value="active">Active</option>
-          <option value="completed">Completed</option>
-          <option value="suspended">Suspended</option>
+          <option value="">{t('allStatus')}</option>
+          <option value="planned">{t('planned')}</option>
+          <option value="active">{t('active')}</option>
+          <option value="completed">{t('completed')}</option>
+          <option value="suspended">{t('suspended')}</option>
         </select>
       </div>
 
@@ -271,13 +273,13 @@ export default function VaccinationPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Campaign</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Disease</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Country</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Period</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Doses</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Coverage</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('campaign')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('disease')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('country')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('status')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('period')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('doses')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('coverage')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -337,7 +339,7 @@ export default function VaccinationPage() {
                 {campaigns.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                      No vaccination campaigns found
+                      {t('noEventsFound')}
                     </td>
                   </tr>
                 )}
@@ -347,7 +349,7 @@ export default function VaccinationPage() {
 
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <p className="text-xs text-gray-500">
-              Showing {campaigns.length} of {meta.total} campaigns
+              {t('showingEvents', { count: campaigns.length.toString(), total: meta.total.toString() })}
             </p>
             <div className="flex items-center gap-1">
               <button

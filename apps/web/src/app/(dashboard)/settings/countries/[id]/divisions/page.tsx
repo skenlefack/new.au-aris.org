@@ -16,6 +16,7 @@ import {
   Globe,
   Hash,
 } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useSettingsCountry, useAdminLevels, type AdminLevel } from '@/lib/api/settings-hooks';
 import {
   useGeoEntities,
@@ -33,6 +34,7 @@ const emptyML: Record<string, string> = { en: '', fr: '', pt: '', ar: '' };
 export default function DivisionsPage() {
   const { id: countryId } = useParams<{ id: string }>();
   const { isSuperAdmin, isContinentalAdmin } = useSettingsAccess();
+  const t = useTranslations('settings');
   const canEdit = isSuperAdmin || isContinentalAdmin;
 
   // Country info
@@ -156,7 +158,7 @@ export default function DivisionsPage() {
           latitude: dialogForm.latitude ? parseFloat(dialogForm.latitude) : undefined,
           longitude: dialogForm.longitude ? parseFloat(dialogForm.longitude) : undefined,
         });
-        setToast({ type: 'success', message: 'Division created successfully' });
+        setToast({ type: 'success', message: t('divisionCreated') });
       } else {
         await updateMutation.mutateAsync({
           id: dialogForm.id,
@@ -165,11 +167,11 @@ export default function DivisionsPage() {
           latitude: dialogForm.latitude ? parseFloat(dialogForm.latitude) : undefined,
           longitude: dialogForm.longitude ? parseFloat(dialogForm.longitude) : undefined,
         });
-        setToast({ type: 'success', message: 'Division updated successfully' });
+        setToast({ type: 'success', message: t('divisionUpdated') });
       }
       setView('list');
     } catch (err: any) {
-      setToast({ type: 'error', message: err?.message ?? 'Operation failed' });
+      setToast({ type: 'error', message: err?.message ?? t('operationFailed') });
     }
   };
 
@@ -206,12 +208,12 @@ export default function DivisionsPage() {
             </Link>
             <div>
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                {country?.flag} {formMode === 'add' ? 'Add Division' : 'Edit Division'}
+                {country?.flag} {formMode === 'add' ? t('addDivision') : t('editDivision')}
               </h1>
               <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                 {formMode === 'add'
-                  ? `Create a new geographic division for ${country?.name?.en ?? 'this country'}`
-                  : `Editing: ${dialogForm.name.en || dialogForm.code}`}
+                  ? t('createDivisionFor', { country: country?.name?.en ?? 'this country' })
+                  : t('editingDivision', { name: dialogForm.name.en || dialogForm.code })}
               </p>
             </div>
           </div>
@@ -220,7 +222,7 @@ export default function DivisionsPage() {
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {t('back')}
           </button>
         </div>
 
@@ -230,7 +232,7 @@ export default function DivisionsPage() {
             {/* Level */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Level <span className="text-red-500">*</span>
+                {t('level')} <span className="text-red-500">*</span>
               </label>
               <select
                 value={dialogForm.level}
@@ -257,7 +259,7 @@ export default function DivisionsPage() {
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 <span className="flex items-center gap-1">
                   <Hash className="h-3.5 w-3.5" />
-                  Code <span className="text-red-500">*</span>
+                  {t('code')} <span className="text-red-500">*</span>
                 </span>
               </label>
               <input
@@ -276,7 +278,7 @@ export default function DivisionsPage() {
           {formMode === 'add' && dialogParentMaxLevel > 0 && countryCode && (
             <div className="mt-4">
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Parent Division <span className="text-red-500">*</span>
+                {t('parentDivision')} <span className="text-red-500">*</span>
               </label>
               <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/50">
                 <GeoLocationPicker
@@ -298,7 +300,7 @@ export default function DivisionsPage() {
           <div className="mt-4">
             <div className="mb-1 flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
               <Globe className="h-3.5 w-3.5" />
-              Division Name <span className="text-red-500">*</span>
+              {t('divisionName')} <span className="text-red-500">*</span>
             </div>
             <MultilingualInput
               label=""
@@ -314,12 +316,12 @@ export default function DivisionsPage() {
           {/* Coordinates */}
           <div className="mt-4">
             <p className="mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
-              Coordinates <span className="text-xs font-normal text-gray-400">(optional)</span>
+              {t('coordinates')} <span className="text-xs font-normal text-gray-400">({t('coordinatesOptional')})</span>
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
-                  Latitude
+                  {t('latitude')}
                 </label>
                 <input
                   type="number"
@@ -334,7 +336,7 @@ export default function DivisionsPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
-                  Longitude
+                  {t('longitude')}
                 </label>
                 <input
                   type="number"
@@ -353,7 +355,7 @@ export default function DivisionsPage() {
           {/* Actions */}
           <div className="mt-6 flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-4">
             <p className="text-xs text-gray-400">
-              <span className="text-red-500">*</span> Required fields
+              <span className="text-red-500">*</span> {t('requiredFields')}
             </p>
             <div className="flex items-center gap-3">
               <button
@@ -362,7 +364,7 @@ export default function DivisionsPage() {
                 disabled={isSaving}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 type="button"
@@ -375,7 +377,7 @@ export default function DivisionsPage() {
                 ) : (
                   <Save className="h-4 w-4" />
                 )}
-                {formMode === 'add' ? 'Create' : 'Save Changes'}
+                {formMode === 'add' ? t('create') : t('saveChanges')}
               </button>
             </div>
           </div>
@@ -417,7 +419,7 @@ export default function DivisionsPage() {
           </Link>
           <div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              {country?.flag} {country?.name?.en ?? 'Country'} — Divisions
+              {country?.flag} {country?.name?.en ?? 'Country'} — {t('divisions')}
             </h1>
             {levelBreadcrumb.length > 0 && (
               <div className="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
@@ -439,7 +441,7 @@ export default function DivisionsPage() {
             className="flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-aris-primary-700"
           >
             <Plus className="h-4 w-4" />
-            Add Division
+            {t('addDivision')}
           </button>
         )}
       </div>
@@ -447,7 +449,7 @@ export default function DivisionsPage() {
       {/* Stats bar */}
       <div className="flex items-center gap-4 rounded-lg border border-gray-100 bg-gray-50 px-4 py-2.5 dark:border-gray-800 dark:bg-gray-900/50">
         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-          Total: <span className="font-semibold text-gray-900 dark:text-white">{total}</span> divisions
+          {t('totalDivisions', { count: total })}
         </span>
         {adminLevels.map((al) => (
           <span key={al.level} className="text-xs text-gray-400 dark:text-gray-500">
@@ -464,7 +466,7 @@ export default function DivisionsPage() {
             type="text"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search by name or code..."
+            placeholder={t('searchByNameOrCode')}
             className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
@@ -479,7 +481,7 @@ export default function DivisionsPage() {
         >
           {levelOptions.map((opt) => (
             <option key={opt} value={opt}>
-              {opt === 'ALL' ? 'All Levels' : levelLabel(opt)}
+              {opt === 'ALL' ? t('allLevels') : levelLabel(opt)}
             </option>
           ))}
         </select>
@@ -491,7 +493,7 @@ export default function DivisionsPage() {
         countryCode && (
           <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/50">
             <p className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
-              Filter by parent:
+              {t('filterByParent')}
             </p>
             <GeoLocationPicker
               countryCode={countryCode}
@@ -511,15 +513,15 @@ export default function DivisionsPage() {
           <table className="w-full text-left text-sm">
             <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
               <tr>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Code</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name (EN)</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name (FR)</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name (PT)</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('code')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('nameEn')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('nameFr')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('portuguese')}</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">
-                  <span dir="rtl">Name (AR)</span>
+                  <span dir="rtl">{t('arabic')}</span>
                 </th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Level</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Parent</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('level')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('parentDivision')}</th>
                 {canEdit && (
                   <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-16">Edit</th>
                 )}
@@ -539,8 +541,8 @@ export default function DivisionsPage() {
                     className="py-10 text-center text-sm text-gray-400"
                   >
                     <MapPin className="mx-auto mb-2 h-8 w-8 text-gray-300 dark:text-gray-600" />
-                    No divisions found.
-                    {canEdit && ' Click "Add Division" to create one.'}
+                    {t('noDivisions')}
+                    {canEdit && ` ${t('noDivisionsHint')}`}
                   </td>
                 </tr>
               ) : (

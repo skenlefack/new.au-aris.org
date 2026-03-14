@@ -3,10 +3,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { WifiOff, Wifi } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 type NetworkState = 'online' | 'offline' | 'back-online';
 
 export function NetworkBanner() {
+  const t = useTranslations('shared');
   const [state, setState] = useState<NetworkState>('online');
   const [visible, setVisible] = useState(false);
 
@@ -76,13 +78,13 @@ export function NetworkBanner() {
       {isOffline && (
         <>
           <WifiOff className="h-4 w-4 flex-shrink-0" />
-          <span>You are offline. Some features may be unavailable.</span>
+          <span>{t('youAreOffline')}</span>
         </>
       )}
       {isBackOnline && (
         <>
           <Wifi className="h-4 w-4 flex-shrink-0" />
-          <span>Back online</span>
+          <span>{t('backOnline')}</span>
         </>
       )}
     </div>

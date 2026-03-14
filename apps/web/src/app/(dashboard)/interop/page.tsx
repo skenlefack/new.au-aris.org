@@ -15,32 +15,33 @@ import {
 import { cn } from '@/lib/utils';
 import { useInteropConnectors } from '@/lib/api/hooks';
 import { KpiCardSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const STATUS_CONFIG: Record<
   string,
-  { icon: React.ReactNode; label: string; color: string; bg: string }
+  { icon: React.ReactNode; tKey: string; color: string; bg: string }
 > = {
   healthy: {
     icon: <CheckCircle2 className="h-5 w-5" />,
-    label: 'Healthy',
+    tKey: 'statusHealthy',
     color: 'text-green-600',
     bg: 'bg-green-50 border-green-200',
   },
   degraded: {
     icon: <AlertTriangle className="h-5 w-5" />,
-    label: 'Degraded',
+    tKey: 'statusDegraded',
     color: 'text-amber-600',
     bg: 'bg-amber-50 border-amber-200',
   },
   down: {
     icon: <XCircle className="h-5 w-5" />,
-    label: 'Down',
+    tKey: 'statusDown',
     color: 'text-red-600',
     bg: 'bg-red-50 border-red-200',
   },
   unknown: {
     icon: <HelpCircle className="h-5 w-5" />,
-    label: 'Unknown',
+    tKey: 'statusUnknown',
     color: 'text-gray-500',
     bg: 'bg-gray-50 border-gray-200',
   },
@@ -54,15 +55,16 @@ const CONNECTOR_LINKS: Record<string, string> = {
 
 const EXPORT_HISTORY_LINK = '/interop/exports';
 
-const CONNECTOR_DESCRIPTIONS: Record<string, string> = {
-  WAHIS: 'World Animal Health Information System — disease event reporting to WOAH',
-  EMPRES: 'Emergency Prevention System — FAO real-time signal intelligence',
-  FAOSTAT: 'FAO Statistics — denominator and production data synchronization',
-  FISHSTATJ: 'FAO Fisheries — capture and aquaculture statistics alignment',
-  CITES: 'CITES/WDPA/GBIF — wildlife trade and conservation data',
+const CONNECTOR_DESC_KEYS: Record<string, string> = {
+  WAHIS: 'wahisDesc',
+  EMPRES: 'empresDesc',
+  FAOSTAT: 'faostatDesc',
+  FISHSTATJ: 'fishstatjDesc',
+  CITES: 'citesDesc',
 };
 
 export default function InteropDashboardPage() {
+  const t = useTranslations('interop');
   const { data, isLoading } = useInteropConnectors();
   const connectors = data?.data ?? [];
 
@@ -84,9 +86,9 @@ export default function InteropDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Interop Hub</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          WAHIS, EMPRES, FAOSTAT connectors and export status
+          {t('subtitle')}
         </p>
       </div>
 
@@ -98,7 +100,7 @@ export default function InteropDashboardPage() {
           <>
             <div className="rounded-card border border-gray-200 bg-white p-4">
               <p className="text-xs font-medium uppercase text-gray-500">
-                Total Connectors
+                {t('totalConnectors')}
               </p>
               <p className="mt-1 text-2xl font-bold text-gray-900">
                 {displayConnectors.length}
@@ -106,7 +108,7 @@ export default function InteropDashboardPage() {
             </div>
             <div className="rounded-card border border-green-200 bg-green-50 p-4">
               <p className="text-xs font-medium uppercase text-gray-500">
-                Healthy
+                {t('healthy')}
               </p>
               <p className="mt-1 text-2xl font-bold text-green-600">
                 {healthyCount} / {displayConnectors.length}
@@ -121,7 +123,7 @@ export default function InteropDashboardPage() {
               )}
             >
               <p className="text-xs font-medium uppercase text-gray-500">
-                Recent Errors
+                {t('recentErrors')}
               </p>
               <p
                 className={cn(
@@ -147,10 +149,10 @@ export default function InteropDashboardPage() {
           </div>
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
-              Export History
+              {t('exportHistory')}
             </h3>
             <p className="text-xs text-gray-500">
-              View all exports across WAHIS, EMPRES, and FAOSTAT with download and retry
+              {t('exportHistoryDesc')}
             </p>
           </div>
         </div>
@@ -162,7 +164,8 @@ export default function InteropDashboardPage() {
         {displayConnectors.map((c) => {
           const config = STATUS_CONFIG[c.status] ?? STATUS_CONFIG['unknown'];
           const link = CONNECTOR_LINKS[c.code];
-          const desc = CONNECTOR_DESCRIPTIONS[c.code] ?? '';
+          const descKey = CONNECTOR_DESC_KEYS[c.code];
+          const desc = descKey ? t(descKey) : '';
 
           return (
             <div
@@ -189,13 +192,13 @@ export default function InteropDashboardPage() {
                   )}
                 >
                   {config.icon}
-                  {config.label}
+                  {t(config.tKey)}
                 </div>
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <p className="text-gray-500">Last sync</p>
+                  <p className="text-gray-500">{t('lastSync')}</p>
                   <p className="font-medium text-gray-900">
                     {c.lastSync
                       ? new Date(c.lastSync).toLocaleString()
@@ -203,7 +206,7 @@ export default function InteropDashboardPage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Next scheduled</p>
+                  <p className="text-gray-500">{t('nextScheduled')}</p>
                   <p className="font-medium text-gray-900">
                     {c.nextScheduledSync
                       ? new Date(c.nextScheduledSync).toLocaleString()
@@ -211,13 +214,13 @@ export default function InteropDashboardPage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Exports</p>
+                  <p className="text-gray-500">{t('exports')}</p>
                   <p className="font-medium text-gray-900">
                     {c.totalExports.toLocaleString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Imports</p>
+                  <p className="text-gray-500">{t('imports')}</p>
                   <p className="font-medium text-gray-900">
                     {c.totalImports.toLocaleString()}
                   </p>
@@ -227,7 +230,7 @@ export default function InteropDashboardPage() {
               {c.errorCount > 0 && (
                 <div className="mt-3 flex items-center gap-1 text-xs text-red-600">
                   <AlertTriangle className="h-3 w-3" />
-                  {c.errorCount} error{c.errorCount > 1 ? 's' : ''} in last 24h
+                  {t('errorsInLast24h', { count: c.errorCount })}
                 </div>
               )}
 
@@ -236,7 +239,7 @@ export default function InteropDashboardPage() {
                   href={link}
                   className="mt-4 flex items-center gap-1 text-xs font-medium text-aris-primary-600 hover:text-aris-primary-700"
                 >
-                  Manage
+                  {t('manage')}
                   <ExternalLink className="h-3 w-3" />
                 </Link>
               )}

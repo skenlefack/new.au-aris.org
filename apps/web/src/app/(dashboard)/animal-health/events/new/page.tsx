@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useCreateHealthEvent } from '@/lib/api/hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const eventSchema = z.object({
   disease: z.string().min(1, 'Disease name is required'),
@@ -41,6 +42,9 @@ const DISEASES = [
 ];
 
 export default function CreateEventPage() {
+  const t = useTranslations('animalHealth');
+  const th = useTranslations('health');
+  const tc = useTranslations('common');
   const router = useRouter();
   const createMutation = useCreateHealthEvent();
 
@@ -94,10 +98,10 @@ export default function CreateEventPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Report Health Event
+            {t('reportHealthEvent')}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Submit a new disease event for validation
+            {t('submitNewEvent')}
           </p>
         </div>
       </div>
@@ -117,18 +121,18 @@ export default function CreateEventPage() {
         {/* Disease info */}
         <fieldset className="space-y-4">
           <legend className="text-sm font-semibold text-gray-900">
-            Disease Information
+            {t('diseaseInfo')}
           </legend>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Disease (WOAH list)
+                {t('diseaseLabel')}
               </label>
               <select
                 onChange={(e) => handleDiseaseSelect(e.target.value)}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200"
               >
-                <option value="">Select a disease...</option>
+                <option value="">{t('selectDisease')}</option>
                 {DISEASES.map((d) => (
                   <option key={d.code} value={d.code}>
                     {d.name} ({d.code})
@@ -145,16 +149,16 @@ export default function CreateEventPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Severity
+                {t('severity')}
               </label>
               <select
                 {...register('severity')}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200"
               >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
+                <option value="low">{t('low')}</option>
+                <option value="medium">{t('medium')}</option>
+                <option value="high">{t('high')}</option>
+                <option value="critical">{t('critical')}</option>
               </select>
             </div>
           </div>
@@ -163,12 +167,12 @@ export default function CreateEventPage() {
         {/* Location */}
         <fieldset className="space-y-4">
           <legend className="text-sm font-semibold text-gray-900">
-            Location
+            {t('location')}
           </legend>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Country
+                {t('countryLabel')}
               </label>
               <input
                 {...register('country')}
@@ -183,7 +187,7 @@ export default function CreateEventPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Country Code (ISO)
+                {t('countryCode')}
               </label>
               <input
                 {...register('countryCode')}
@@ -199,7 +203,7 @@ export default function CreateEventPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Region / Admin Level 1
+                {t('regionAdmin')}
               </label>
               <input
                 {...register('region')}
@@ -215,7 +219,7 @@ export default function CreateEventPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Latitude
+                  {t('latitude')}
                 </label>
                 <input
                   type="number"
@@ -232,7 +236,7 @@ export default function CreateEventPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Longitude
+                  {t('longitude')}
                 </label>
                 <input
                   type="number"
@@ -254,12 +258,12 @@ export default function CreateEventPage() {
         {/* Impact */}
         <fieldset className="space-y-4">
           <legend className="text-sm font-semibold text-gray-900">
-            Impact
+            {t('impact')}
           </legend>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Cases
+                {t('cases')}
               </label>
               <input
                 type="number"
@@ -274,7 +278,7 @@ export default function CreateEventPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Deaths
+                {t('deaths')}
               </label>
               <input
                 type="number"
@@ -289,7 +293,7 @@ export default function CreateEventPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Species Affected
+                {t('speciesAffected')}
               </label>
               <input
                 {...register('speciesAffected')}
@@ -297,7 +301,7 @@ export default function CreateEventPage() {
                 placeholder="Cattle, Goat"
               />
               <p className="mt-1 text-xs text-gray-400">
-                Comma-separated list
+                {t('commaSeparated')}
               </p>
               {errors.speciesAffected && (
                 <p className="mt-1 text-xs text-red-600">
@@ -311,11 +315,11 @@ export default function CreateEventPage() {
         {/* Description & Measures */}
         <fieldset className="space-y-4">
           <legend className="text-sm font-semibold text-gray-900">
-            Details
+            {t('details')}
           </legend>
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Description
+              {th('description')}
             </label>
             <textarea
               {...register('description')}
@@ -331,7 +335,7 @@ export default function CreateEventPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Control Measures
+              {th('controlMeasures')}
             </label>
             <textarea
               {...register('measures')}
@@ -351,7 +355,7 @@ export default function CreateEventPage() {
             href="/animal-health"
             className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Cancel
+            {tc('cancel')}
           </Link>
           <button
             type="submit"
@@ -363,7 +367,7 @@ export default function CreateEventPage() {
             ) : (
               <Save className="h-4 w-4" />
             )}
-            {createMutation.isPending ? 'Submitting...' : 'Submit Event'}
+            {createMutation.isPending ? `${tc('loading')}` : t('submitEvent')}
           </button>
         </div>
       </form>

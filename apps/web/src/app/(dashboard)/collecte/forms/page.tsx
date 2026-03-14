@@ -35,6 +35,7 @@ import {
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTranslations } from '@/lib/i18n/translations';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
@@ -453,13 +454,14 @@ async function exportFormToExcel(template: FormTemplateListItem) {
   saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fileName);
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  DRAFT: { label: 'Draft', color: 'bg-amber-100 text-amber-700', icon: <Clock className="h-3 w-3" /> },
-  PUBLISHED: { label: 'Published', color: 'bg-green-100 text-green-700', icon: <CheckCircle2 className="h-3 w-3" /> },
-  ARCHIVED: { label: 'Archived', color: 'bg-gray-100 text-gray-500', icon: <Archive className="h-3 w-3" /> },
+const STATUS_CONFIG: Record<string, { tKey: string; color: string; icon: React.ReactNode }> = {
+  DRAFT: { tKey: 'draft', color: 'bg-amber-100 text-amber-700', icon: <Clock className="h-3 w-3" /> },
+  PUBLISHED: { tKey: 'published', color: 'bg-green-100 text-green-700', icon: <CheckCircle2 className="h-3 w-3" /> },
+  ARCHIVED: { tKey: 'archived', color: 'bg-gray-100 text-gray-500', icon: <Archive className="h-3 w-3" /> },
 };
 
 export default function FormListPage() {
+  const t = useTranslations('collecte');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [domainFilter, setDomainFilter] = useState('');
@@ -504,9 +506,9 @@ export default function FormListPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Form Builder</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('formBuilderTitle')}</h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Create and manage no-code data collection forms
+              {t('formBuilderSubtitle')}
             </p>
           </div>
         </div>
@@ -515,7 +517,7 @@ export default function FormListPage() {
           className="inline-flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-aris-primary-700 transition-colors"
         >
           <Plus className="h-4 w-4" />
-          Create Form
+          {t('createForm')}
         </Link>
       </div>
 
@@ -525,7 +527,7 @@ export default function FormListPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search forms..."
+            placeholder={t('searchForms')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -538,7 +540,7 @@ export default function FormListPage() {
             onChange={(e) => { setDomainFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           >
-            <option value="">All domains</option>
+            <option value="">{t('allDomains')}</option>
             {DOMAIN_OPTIONS.map((d) => (
               <option key={d.value} value={d.value}>{d.label}</option>
             ))}
@@ -548,10 +550,10 @@ export default function FormListPage() {
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           >
-            <option value="">All statuses</option>
-            <option value="DRAFT">Draft</option>
-            <option value="PUBLISHED">Published</option>
-            <option value="ARCHIVED">Archived</option>
+            <option value="">{t('allStatusesFilter')}</option>
+            <option value="DRAFT">{t('draft')}</option>
+            <option value="PUBLISHED">{t('published')}</option>
+            <option value="ARCHIVED">{t('archived')}</option>
           </select>
         </div>
       </div>
@@ -569,7 +571,7 @@ export default function FormListPage() {
               template={template}
               onDuplicate={() => duplicateMutation.mutate(template.id)}
               onDelete={() => {
-                if (confirm('Delete this draft form?')) deleteMutation.mutate(template.id);
+                if (confirm(t('deleteFormConfirm'))) deleteMutation.mutate(template.id);
               }}
               onPublish={() => publishMutation.mutate(template.id)}
               onArchive={() => archiveMutation.mutate(template.id)}
@@ -607,6 +609,7 @@ function FormCard({
   onArchive: () => void;
   canCustomize?: boolean;
 }) {
+  const t = useTranslations('collecte');
   const statusCfg = STATUS_CONFIG[template.status] || STATUS_CONFIG.DRAFT;
   const domainLabel = DOMAIN_OPTIONS.find((d) => d.value === template.domain)?.label || template.domain;
 
@@ -637,7 +640,7 @@ function FormCard({
             </h3>
             <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium', statusCfg.color)}>
               {statusCfg.icon}
-              {statusCfg.label}
+              {t(statusCfg.tKey)}
             </span>
           </div>
           <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
@@ -645,26 +648,26 @@ function FormCard({
               {domainLabel}
             </span>
             <span>v{template.version}</span>
-            <span>{sectionCount} sections</span>
-            <span>{fieldCount} fields</span>
+            <span>{sectionCount} {t('sections')}</span>
+            <span>{fieldCount} {t('fields')}</span>
             <span>{new Date(template.updatedAt).toLocaleDateString()}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-0.5 ml-4">
-          <Link href={`/collecte/forms/${template.id}/preview`} className={actionBtn} title="Preview">
+          <Link href={`/collecte/forms/${template.id}/preview`} className={actionBtn} title={t('preview')}>
             <Eye className="h-4 w-4" />
           </Link>
           {template.status === 'DRAFT' && (
-            <Link href={`/collecte/forms/${template.id}/edit`} className={actionBtn} title="Edit">
+            <Link href={`/collecte/forms/${template.id}/edit`} className={actionBtn} title={t('edit')}>
               <Edit3 className="h-4 w-4" />
             </Link>
           )}
-          <button onClick={onDuplicate} className={actionBtn} title="Duplicate">
+          <button onClick={onDuplicate} className={actionBtn} title={t('duplicate')}>
             <Copy className="h-4 w-4" />
           </button>
           {template.status === 'DRAFT' && (
-            <button onClick={onPublish} className={actionBtn} title="Publish">
+            <button onClick={onPublish} className={actionBtn} title={t('publish')}>
               <SendHorizonal className="h-4 w-4" />
             </button>
           )}
@@ -672,28 +675,28 @@ function FormCard({
             <Link
               href={`/collecte/forms/${template.id}/customize`}
               className="rounded-lg p-2 text-indigo-500 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/30 transition-colors"
-              title="Customize for your tenant"
+              title={t('customizeForTenant')}
             >
               <Sliders className="h-4 w-4" />
             </Link>
           )}
           {template.status === 'PUBLISHED' && (
-            <button onClick={onArchive} className={actionBtn} title="Archive">
+            <button onClick={onArchive} className={actionBtn} title={t('archive')}>
               <Archive className="h-4 w-4" />
             </button>
           )}
           <button
             onClick={handleExportExcel}
             className="rounded-lg p-2 text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950/30 transition-colors"
-            title="Export Excel template"
+            title={t('exportExcelTemplate')}
           >
             <Download className="h-4 w-4" />
           </button>
           {template.status === 'DRAFT' && (
             <button
-              onClick={() => { if (confirm('Delete this draft form?')) onDelete(); }}
+              onClick={() => { if (confirm(t('deleteFormConfirm'))) onDelete(); }}
               className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 transition-colors"
-              title="Delete"
+              title={t('delete')}
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -717,6 +720,7 @@ function Pagination({
   limit: number;
   onPageChange: (p: number) => void;
 }) {
+  const t = useTranslations('collecte');
   const totalPages = Math.ceil(total / limit);
   const from = (page - 1) * limit + 1;
   const to = Math.min(page * limit, total);
@@ -746,8 +750,8 @@ function Pagination({
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4">
       <p className="text-xs text-gray-500 dark:text-gray-400">
-        Showing <span className="font-semibold text-gray-700 dark:text-gray-300">{from}–{to}</span> of{' '}
-        <span className="font-semibold text-gray-700 dark:text-gray-300">{total}</span> forms
+        {t('showing')} <span className="font-semibold text-gray-700 dark:text-gray-300">{from}–{to}</span> /{' '}
+        <span className="font-semibold text-gray-700 dark:text-gray-300">{total}</span> {t('forms').toLowerCase()}
       </p>
 
       <div className="flex items-center gap-1">
@@ -756,7 +760,7 @@ function Pagination({
           onClick={() => onPageChange(1)}
           disabled={page <= 1}
           className={btnNav}
-          title="First page"
+          title={t('firstPage')}
         >
           <ChevronsLeft className="h-4 w-4" />
         </button>
@@ -766,7 +770,7 @@ function Pagination({
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
           className={btnNav}
-          title="Previous page"
+          title={t('previousPage')}
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -791,7 +795,7 @@ function Pagination({
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
           className={btnNav}
-          title="Next page"
+          title={t('nextPage')}
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -801,7 +805,7 @@ function Pagination({
           onClick={() => onPageChange(totalPages)}
           disabled={page >= totalPages}
           className={btnNav}
-          title="Last page"
+          title={t('lastPage')}
         >
           <ChevronsRight className="h-4 w-4" />
         </button>
@@ -811,19 +815,20 @@ function Pagination({
 }
 
 function EmptyState() {
+  const t = useTranslations('collecte');
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-12 text-center dark:border-gray-700 dark:bg-gray-800">
       <FileText className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
-      <p className="mt-4 text-sm font-medium text-gray-900 dark:text-white">No forms yet</p>
+      <p className="mt-4 text-sm font-medium text-gray-900 dark:text-white">{t('noFormsYet')}</p>
       <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-        Create your first data collection form using the no-code builder.
+        {t('noFormsYetDesc')}
       </p>
       <Link
         href="/collecte/forms/new"
         className="mt-4 inline-flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-aris-primary-700"
       >
         <Plus className="h-4 w-4" />
-        Create Form
+        {t('createForm')}
       </Link>
     </div>
   );

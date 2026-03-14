@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '@/lib/stores/ui-store';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface RouteItem {
   label: string;
@@ -55,6 +56,7 @@ const ROUTES: RouteItem[] = [
 ];
 
 export function CommandPalette() {
+  const t = useTranslations('shared');
   const open = useUiStore((s) => s.searchOpen);
   const setOpen = useUiStore((s) => s.setSearchOpen);
   const router = useRouter();
@@ -156,7 +158,7 @@ export function CommandPalette() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search pages..."
+            placeholder={t('searchPagesActions')}
             className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none dark:text-gray-100"
             aria-label="Search pages"
           />
@@ -169,7 +171,7 @@ export function CommandPalette() {
         <div ref={listRef} className="max-h-80 overflow-auto px-2 py-2" role="listbox">
           {filtered.length === 0 ? (
             <p className="px-3 py-6 text-center text-sm text-gray-400">
-              No results found
+              {t('noResults')}
             </p>
           ) : (
             Object.entries(sections).map(([section, items]) => (
@@ -210,11 +212,11 @@ export function CommandPalette() {
           <span>
             <kbd className="rounded border border-gray-200 px-1 dark:border-gray-600">&uarr;</kbd>{' '}
             <kbd className="rounded border border-gray-200 px-1 dark:border-gray-600">&darr;</kbd>{' '}
-            navigate
+            {t('navigate')}
           </span>
           <span>
             <kbd className="rounded border border-gray-200 px-1 dark:border-gray-600">Enter</kbd>{' '}
-            select
+            {t('selectItem')}
           </span>
           <span>
             <kbd className="rounded border border-gray-200 px-1 dark:border-gray-600">Esc</kbd>{' '}

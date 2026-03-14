@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { Search, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { FIELD_CATEGORIES, FIELD_TYPES, type FieldCategory } from '../utils/field-types';
 
 function DraggableElement({ type, label, icon: Icon, description }: {
@@ -37,6 +38,7 @@ function DraggableElement({ type, label, icon: Icon, description }: {
 }
 
 export function ElementsPanel() {
+  const t = useTranslations('collecte');
   const [search, setSearch] = useState('');
   const [collapsed, setCollapsed] = useState<Set<FieldCategory>>(new Set());
 
@@ -68,7 +70,7 @@ export function ElementsPanel() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search fields..."
+            placeholder={t('searchFields')}
             className="w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-8 pr-3 text-xs placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           />
         </div>
