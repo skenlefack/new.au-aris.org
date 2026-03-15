@@ -4,6 +4,7 @@ import { authHook } from '@aris/auth-middleware/fastify';
 import type { AuthHookOptions } from '@aris/auth-middleware/fastify';
 import { PrismaClient } from '@prisma/client';
 import { StandaloneKafkaProducer } from '@aris/kafka-client';
+import { StandaloneCacheService, DEFAULT_TTLS } from '@aris/cache';
 import { AuditService } from './services/audit.service';
 import { GeoService } from './services/geo.service';
 import { SpeciesService } from './services/species.service';
@@ -32,6 +33,7 @@ import { registerRefDataRoutes } from './routes/ref-data.routes';
 declare module 'fastify' {
   interface FastifyInstance {
     prisma: PrismaClient;
+    cache: StandaloneCacheService;
     // kafka is declared by @aris/kafka-client — use 'as any' when decorating with StandaloneKafkaProducer
     audit: AuditService;
     geoService: GeoService;
@@ -75,6 +77,20 @@ export async function buildApp(): Promise<FastifyInstance> {
   }
   app.decorate('kafka', kafka as any);
 
+  // Redis cache (for master data — high read volume, 1h TTL)
+  const cache = new StandaloneCacheService({
+    url: process.env['REDIS_URL'] ?? 'redis://localhost:6379',
+    keyPrefix: 'aris:',
+    defaultTtlSeconds: DEFAULT_TTLS.MASTER_DATA,
+  });
+  try {
+    await cache.connect();
+    app.log.info('Redis cache connected');
+  } catch (err) {
+    app.log.warn(`Redis cache connect failed (caching disabled): ${err}`);
+  }
+  app.decorate('cache', cache);
+
   // Auth hook
   let publicKey = (process.env['JWT_PUBLIC_KEY'] ?? '').replace(/\\n/g, '\n');
   if (!publicKey && process.env['JWT_PUBLIC_KEY_PATH']) {
@@ -85,10 +101,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Services
   const audit = new AuditService(prisma);
   app.decorate('audit', audit);
-  app.decorate('geoService', new GeoService(prisma, kafka, audit));
-  app.decorate('speciesService', new SpeciesService(prisma, kafka, audit));
-  app.decorate('diseaseService', new DiseaseService(prisma, kafka, audit));
-  app.decorate('unitService', new UnitService(prisma, audit));
+  app.decorate('geoService', new GeoService(prisma, kafka, audit, cache));
+  app.decorate('speciesService', new SpeciesService(prisma, kafka, audit, cache));
+  app.decorate('diseaseService', new DiseaseService(prisma, kafka, audit, cache));
+  app.decorate('unitService', new UnitService(prisma, audit, cache));
   app.decorate('temporalityService', new TemporalityService(prisma, audit));
   app.decorate('identifierService', new IdentifierService(prisma, audit));
   app.decorate('denominatorService', new DenominatorService(prisma, kafka, audit));
@@ -122,6 +138,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.addHook('onClose', async () => {
     await prisma.$disconnect();
     await kafka.disconnect();
+    await cache.disconnect();
   });
 
   return app;

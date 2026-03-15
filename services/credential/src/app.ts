@@ -85,7 +85,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Services
   const lockout = new AccountLockoutService(app.redis);
   const authService = new AuthService(app.prisma, app.redis, app.kafka, lockout);
-  const userService = new UserService(app.prisma);
+  const userService = new UserService(app.prisma, app.redis);
   const mfaService = new MfaService(app.prisma);
   const i18n = new I18nService();
 

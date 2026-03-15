@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import type Redis from 'ioredis';
 import { TenantLevel, UserRole, DEFAULT_PAGE, DEFAULT_LIMIT, MAX_LIMIT } from '@aris/shared-types';
 import type { PaginationQuery, PaginatedResponse, ApiResponse } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
@@ -9,12 +10,17 @@ const USER_SELECT = {
   isActive: true, createdAt: true, updatedAt: true,
 } as const;
 
+const CACHE_TTL_USER_PROFILE = 1800; // 30 minutes — aligned with JWT refresh cycle
+
 class HttpError extends Error {
   constructor(public statusCode: number, message: string) { super(message); }
 }
 
 export class UserService {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly redis?: Redis,
+  ) {}
 
   async findAll(caller: AuthenticatedUser, query: PaginationQuery): Promise<PaginatedResponse<any>> {
     const page = query.page ?? DEFAULT_PAGE;
@@ -32,6 +38,24 @@ export class UserService {
   }
 
   async findMe(caller: AuthenticatedUser): Promise<ApiResponse<any>> {
+    // Cache user profile — hot path called on every page load
+    if (this.redis) {
+      const cacheKey = `aris:credential:user:${caller.userId}`;
+      try {
+        const cached = await this.redis.get(cacheKey);
+        if (cached) return JSON.parse(cached);
+      } catch { /* cache miss — fall through to DB */ }
+
+      const user = await (this.prisma as any).user.findUnique({ where: { id: caller.userId }, select: USER_SELECT });
+      if (!user) throw new HttpError(404, 'User not found');
+      const result = { data: user };
+
+      try {
+        await this.redis.set(cacheKey, JSON.stringify(result), 'EX', CACHE_TTL_USER_PROFILE);
+      } catch { /* cache write failure is non-blocking */ }
+      return result;
+    }
+
     const user = await (this.prisma as any).user.findUnique({ where: { id: caller.userId }, select: USER_SELECT });
     if (!user) throw new HttpError(404, 'User not found');
     return { data: user };
@@ -55,6 +79,10 @@ export class UserService {
     if (dto.locale !== undefined) updateData.locale = dto.locale;
 
     const user = await (this.prisma as any).user.update({ where: { id }, data: updateData, select: USER_SELECT });
+    // Invalidate cached profile
+    if (this.redis) {
+      try { await this.redis.del(`aris:credential:user:${id}`); } catch { /* non-blocking */ }
+    }
     return { data: user };
   }
 
@@ -62,6 +90,9 @@ export class UserService {
     const user = await (this.prisma as any).user.findUnique({ where: { id: userId } });
     if (!user) throw new HttpError(404, `User ${userId} not found`);
     const updated = await (this.prisma as any).user.update({ where: { id: userId }, data: { locale }, select: USER_SELECT });
+    if (this.redis) {
+      try { await this.redis.del(`aris:credential:user:${userId}`); } catch { /* non-blocking */ }
+    }
     return { data: updated };
   }
 

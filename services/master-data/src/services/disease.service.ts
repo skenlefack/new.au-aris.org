@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto';
 import type { PrismaClient } from '@prisma/client';
 import type { StandaloneKafkaProducer } from '@aris/kafka-client';
+import type { StandaloneCacheService } from '@aris/cache';
+import { DEFAULT_TTLS } from '@aris/cache';
 import {
   TOPIC_SYS_MASTER_DISEASE_UPDATED,
   DEFAULT_PAGE,
@@ -28,6 +30,7 @@ export class DiseaseService {
     private readonly prisma: PrismaClient,
     private readonly kafka: StandaloneKafkaProducer,
     private readonly audit: AuditService,
+    private readonly cache: StandaloneCacheService,
   ) {}
 
   async create(dto: any, user: AuthUser): Promise<ApiResponse<any>> {
@@ -61,6 +64,7 @@ export class DiseaseService {
     });
 
     await this.publishEvent(entity, user);
+    await this.cache.invalidateByPattern('master-data', 'disease');
     return { data: entity };
   }
 
@@ -86,20 +90,23 @@ export class DiseaseService {
       ];
     }
 
-    const [data, total] = await Promise.all([
-      (this.prisma as any).disease.findMany({ where, skip, take: limit, orderBy }),
-      (this.prisma as any).disease.count({ where }),
-    ]);
-
-    return { data, meta: { total, page, limit } };
+    const cacheKey = `aris:master-data:disease:list:${JSON.stringify({ where, skip, limit, orderBy })}`;
+    return this.cache.getOrSet(cacheKey, async () => {
+      const [data, total] = await Promise.all([
+        (this.prisma as any).disease.findMany({ where, skip, take: limit, orderBy }),
+        (this.prisma as any).disease.count({ where }),
+      ]);
+      return { data, meta: { total, page, limit } };
+    }, DEFAULT_TTLS.QUERY_RESULT);
   }
 
   async findOne(id: string): Promise<ApiResponse<any>> {
-    const entity = await (this.prisma as any).disease.findUnique({ where: { id } });
-    if (!entity) {
-      throw new HttpError(404, `Disease ${id} not found`);
-    }
-    return { data: entity };
+    const cacheKey = `aris:master-data:disease:${id}`;
+    return this.cache.getOrSet(cacheKey, async () => {
+      const entity = await (this.prisma as any).disease.findUnique({ where: { id } });
+      if (!entity) throw new HttpError(404, `Disease ${id} not found`);
+      return { data: entity };
+    }, DEFAULT_TTLS.MASTER_DATA);
   }
 
   async update(id: string, dto: any, user: AuthUser): Promise<ApiResponse<any>> {
@@ -134,6 +141,7 @@ export class DiseaseService {
     });
 
     await this.publishEvent(entity, user);
+    await this.cache.invalidateByPattern('master-data', 'disease');
     return { data: entity };
   }
 

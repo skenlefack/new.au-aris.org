@@ -1,4 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
+import type { StandaloneCacheService } from '@aris/cache';
+import { DEFAULT_TTLS } from '@aris/cache';
 import {
   DEFAULT_PAGE,
   DEFAULT_LIMIT,
@@ -21,6 +23,7 @@ export class UnitService {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly audit: AuditService,
+    private readonly cache: StandaloneCacheService,
   ) {}
 
   async create(dto: any, user: AuthUser): Promise<ApiResponse<any>> {
@@ -52,6 +55,7 @@ export class UnitService {
       dataClassification: 'PUBLIC',
     });
 
+    await this.cache.invalidateByPattern('master-data', 'unit');
     return { data: entity };
   }
 
@@ -76,20 +80,23 @@ export class UnitService {
       ];
     }
 
-    const [data, total] = await Promise.all([
-      (this.prisma as any).unit.findMany({ where, skip, take: limit, orderBy }),
-      (this.prisma as any).unit.count({ where }),
-    ]);
-
-    return { data, meta: { total, page, limit } };
+    const cacheKey = `aris:master-data:unit:list:${JSON.stringify({ where, skip, limit, orderBy })}`;
+    return this.cache.getOrSet(cacheKey, async () => {
+      const [data, total] = await Promise.all([
+        (this.prisma as any).unit.findMany({ where, skip, take: limit, orderBy }),
+        (this.prisma as any).unit.count({ where }),
+      ]);
+      return { data, meta: { total, page, limit } };
+    }, DEFAULT_TTLS.QUERY_RESULT);
   }
 
   async findOne(id: string): Promise<ApiResponse<any>> {
-    const entity = await (this.prisma as any).unit.findUnique({ where: { id } });
-    if (!entity) {
-      throw new HttpError(404, `Unit ${id} not found`);
-    }
-    return { data: entity };
+    const cacheKey = `aris:master-data:unit:${id}`;
+    return this.cache.getOrSet(cacheKey, async () => {
+      const entity = await (this.prisma as any).unit.findUnique({ where: { id } });
+      if (!entity) throw new HttpError(404, `Unit ${id} not found`);
+      return { data: entity };
+    }, DEFAULT_TTLS.MASTER_DATA);
   }
 
   async update(id: string, dto: any, user: AuthUser): Promise<ApiResponse<any>> {
@@ -121,6 +128,7 @@ export class UnitService {
       dataClassification: 'PUBLIC',
     });
 
+    await this.cache.invalidateByPattern('master-data', 'unit');
     return { data: entity };
   }
 }
