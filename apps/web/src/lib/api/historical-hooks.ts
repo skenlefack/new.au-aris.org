@@ -306,6 +306,25 @@ export function useDeleteDataset() {
   });
 }
 
+export function useUpdateDatasetRow() {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ message: string }, Error, {
+    datasetId: string;
+    rowId: number;
+    data: Record<string, unknown>;
+  }>({
+    mutationFn: ({ datasetId, rowId, data }) =>
+      histFetch(`${HIST_API_BASE}/${datasetId}/data/${rowId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['dataset-data', vars.datasetId] });
+    },
+  });
+}
+
 export function useAggregateData() {
   return useMutation<{ data: unknown[] }, Error, {
     datasetId: string;

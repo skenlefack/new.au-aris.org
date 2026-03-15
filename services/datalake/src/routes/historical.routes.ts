@@ -20,6 +20,7 @@ import {
   createAnalysisSchema,
   listAnalysesSchema,
   deleteAnalysisSchema,
+  updateRowSchema,
   statsSchema,
 } from '../schemas/historical.schema';
 
@@ -200,6 +201,32 @@ export async function registerHistoricalRoutes(app: FastifyInstance): Promise<vo
       user.tenantLevel,
     );
     return reply.code(200).send(result);
+  });
+
+  // PATCH /api/v1/historical/:id/data/:rowId — Update a specific row
+  app.patch(`${PREFIX}/:id/data/:rowId`, {
+    schema: updateRowSchema,
+    preHandler: [
+      app.authHookFn,
+      rolesHook(
+        UserRole.SUPER_ADMIN,
+        UserRole.CONTINENTAL_ADMIN,
+        UserRole.REC_ADMIN,
+        UserRole.NATIONAL_ADMIN,
+      ),
+    ],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as AuthenticatedUser;
+    const { id, rowId } = request.params as { id: string; rowId: number };
+    await app.historicalDataService.updateRow(
+      id,
+      Number(rowId),
+      request.body as Record<string, unknown>,
+      user.tenantId,
+      user.tenantLevel,
+      user.userId,
+    );
+    return reply.code(200).send({ message: 'Row updated' });
   });
 
   // POST /api/v1/historical/:id/aggregate — Aggregate data

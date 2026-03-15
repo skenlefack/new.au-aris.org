@@ -9,6 +9,7 @@ import {
   useDatasetAnalyses,
   useDeleteDataset,
   useAggregateData,
+  useUpdateDatasetRow,
   type DatasetColumn,
 } from '@/lib/api/historical-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -56,6 +57,10 @@ export default function DatasetDetailPage() {
   const { data: analysesResponse } = useDatasetAnalyses(id);
   const deleteDataset = useDeleteDataset();
   const aggregate = useAggregateData();
+  const updateRow = useUpdateDatasetRow();
+
+  const [editingRowId, setEditingRowId] = useState<number | null>(null);
+  const [editValues, setEditValues] = useState<Record<string, string>>({});
 
   const dataset = dsResponse?.data;
   const rows = dataResponse?.data ?? [];
@@ -194,20 +199,75 @@ export default function DatasetDetailPage() {
                       <th key={col.id} className="px-3 py-2 font-medium text-slate-500 whitespace-nowrap">{col.name}</th>
                     ))}
                     {columns.length > 10 && <th className="px-3 py-2 text-slate-400">+{columns.length - 10} more</th>}
+                    {canManage && <th className="px-3 py-2 font-medium text-slate-500">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                  {rows.map((row: any, ri: number) => (
-                    <tr key={ri} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                      <td className="px-3 py-1.5 text-slate-400">{row._row_id ?? (dataPage - 1) * 50 + ri + 1}</td>
-                      {columns.slice(0, 10).map((col) => (
-                        <td key={col.id} className="px-3 py-1.5 text-slate-600 dark:text-slate-300 whitespace-nowrap max-w-[200px] truncate">
-                          {String(row[col.pgColumnName] ?? '')}
-                        </td>
-                      ))}
-                      {columns.length > 10 && <td className="px-3 py-1.5 text-slate-400">...</td>}
-                    </tr>
-                  ))}
+                  {rows.map((row: any, ri: number) => {
+                    const rowId = row._row_id ?? (dataPage - 1) * 50 + ri + 1;
+                    const isEditing = editingRowId === rowId;
+                    return (
+                      <tr key={ri} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                        <td className="px-3 py-1.5 text-slate-400">{rowId}</td>
+                        {columns.slice(0, 10).map((col) => (
+                          <td key={col.id} className="px-3 py-1.5">
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                value={editValues[col.pgColumnName] ?? ''}
+                                onChange={(e) => setEditValues((prev) => ({ ...prev, [col.pgColumnName]: e.target.value }))}
+                                className="w-full min-w-[80px] rounded border border-slate-300 bg-white px-1.5 py-0.5 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                              />
+                            ) : (
+                              <span className="text-slate-600 dark:text-slate-300 whitespace-nowrap max-w-[200px] truncate block">
+                                {String(row[col.pgColumnName] ?? '')}
+                              </span>
+                            )}
+                          </td>
+                        ))}
+                        {columns.length > 10 && <td className="px-3 py-1.5 text-slate-400">...</td>}
+                        {canManage && (
+                          <td className="px-3 py-1.5 whitespace-nowrap">
+                            {isEditing ? (
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={async () => {
+                                    await updateRow.mutateAsync({ datasetId: id, rowId, data: editValues });
+                                    setEditingRowId(null);
+                                    setEditValues({});
+                                  }}
+                                  disabled={updateRow.isPending}
+                                  className="rounded bg-emerald-600 px-2 py-0.5 text-xs text-white hover:bg-emerald-700 disabled:opacity-50"
+                                >
+                                  {updateRow.isPending ? '...' : 'Save'}
+                                </button>
+                                <button
+                                  onClick={() => { setEditingRowId(null); setEditValues({}); }}
+                                  className="rounded bg-slate-200 px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setEditingRowId(rowId);
+                                  const vals: Record<string, string> = {};
+                                  for (const col of columns.slice(0, 10)) {
+                                    vals[col.pgColumnName] = String(row[col.pgColumnName] ?? '');
+                                  }
+                                  setEditValues(vals);
+                                }}
+                                className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

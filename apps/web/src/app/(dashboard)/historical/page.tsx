@@ -1,574 +1,373 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   Database,
-  Calendar,
   Layers,
-  Clock,
+  CheckCircle2,
+  BarChart3,
   Search,
   Filter,
-  Download,
+  Upload,
   ChevronLeft,
   ChevronRight,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  useHistoricalStats,
+  useHistoricalDatasets,
+  type HistoricalDataset,
+} from '@/lib/api/historical-hooks';
 
 /* ------------------------------------------------------------------ */
-/*  Types                                                               */
+/*  Domain config                                                       */
 /* ------------------------------------------------------------------ */
 
-type Domain =
-  | 'Animal Health'
-  | 'Livestock'
-  | 'Fisheries'
-  | 'Wildlife'
-  | 'Apiculture'
-  | 'Trade'
-  | 'Governance'
-  | 'Climate';
-
-type Source = 'FAOSTAT' | 'National Census' | 'ARIS' | 'WAHIS';
-
-interface HistoricalRecord {
-  id: string;
-  entity: string;
-  domain: Domain;
-  country: string;
-  countryCode: string;
-  year: number;
-  value: number;
-  unit: string;
-  source: Source;
-  version: number;
-  updatedAt: string;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Badge colour maps                                                   */
-/* ------------------------------------------------------------------ */
-
-const DOMAIN_BADGE: Record<Domain, string> = {
-  'Animal Health': 'bg-red-100 text-red-700',
-  Livestock: 'bg-amber-100 text-amber-700',
-  Fisheries: 'bg-blue-100 text-blue-700',
-  Wildlife: 'bg-green-100 text-green-700',
-  Apiculture: 'bg-yellow-100 text-yellow-700',
-  Trade: 'bg-purple-100 text-purple-700',
-  Governance: 'bg-orange-100 text-orange-700',
-  Climate: 'bg-teal-100 text-teal-700',
+const DOMAIN_META: Record<string, { label: string; icon: string; accent: string; badge: string }> = {
+  animal_health: { label: 'Animal Health', icon: '🏥', accent: 'border-red-300 bg-red-50', badge: 'bg-red-100 text-red-700' },
+  livestock:     { label: 'Livestock',     icon: '🐄', accent: 'border-amber-300 bg-amber-50', badge: 'bg-amber-100 text-amber-700' },
+  fisheries:     { label: 'Fisheries',     icon: '🐟', accent: 'border-blue-300 bg-blue-50', badge: 'bg-blue-100 text-blue-700' },
+  trade:         { label: 'Trade & SPS',   icon: '📦', accent: 'border-purple-300 bg-purple-50', badge: 'bg-purple-100 text-purple-700' },
+  wildlife:      { label: 'Wildlife',      icon: '🦁', accent: 'border-green-300 bg-green-50', badge: 'bg-green-100 text-green-700' },
+  apiculture:    { label: 'Apiculture',    icon: '🐝', accent: 'border-yellow-300 bg-yellow-50', badge: 'bg-yellow-100 text-yellow-700' },
+  governance:    { label: 'Governance',    icon: '⚖️', accent: 'border-orange-300 bg-orange-50', badge: 'bg-orange-100 text-orange-700' },
+  climate:       { label: 'Climate & Env', icon: '🌍', accent: 'border-teal-300 bg-teal-50', badge: 'bg-teal-100 text-teal-700' },
+  general:       { label: 'General',       icon: '📊', accent: 'border-slate-300 bg-slate-50', badge: 'bg-slate-100 text-slate-700' },
 };
 
-const SOURCE_BADGE: Record<Source, string> = {
-  FAOSTAT: 'bg-blue-100 text-blue-700',
-  'National Census': 'bg-green-100 text-green-700',
-  ARIS: 'bg-gray-100 text-gray-600',
-  WAHIS: 'bg-red-100 text-red-700',
+const STATUS_BADGE: Record<string, string> = {
+  READY:     'bg-emerald-100 text-emerald-700',
+  IMPORTING: 'bg-amber-100 text-amber-700',
+  ANALYZING: 'bg-sky-100 text-sky-700',
+  PENDING:   'bg-slate-100 text-slate-600',
+  FAILED:    'bg-red-100 text-red-700',
+  ARCHIVED:  'bg-gray-100 text-gray-500',
 };
 
 /* ------------------------------------------------------------------ */
-/*  Filter options                                                      */
-/* ------------------------------------------------------------------ */
-
-const DOMAINS: Domain[] = [
-  'Animal Health',
-  'Livestock',
-  'Fisheries',
-  'Wildlife',
-  'Apiculture',
-  'Trade',
-  'Governance',
-  'Climate',
-];
-
-const ENTITY_TYPES = [
-  'All Types',
-  'Population',
-  'Outbreaks',
-  'Captures',
-  'Production',
-  'Exports',
-  'Vaccinations',
-  'Facilities',
-  'Index',
-];
-
-/* ------------------------------------------------------------------ */
-/*  Placeholder data — 10 rows with realistic AU data                   */
-/* ------------------------------------------------------------------ */
-
-const PLACEHOLDER_DATA: HistoricalRecord[] = [
-  {
-    id: 'hr-1',
-    entity: 'Cattle Population',
-    domain: 'Livestock',
-    country: 'Kenya',
-    countryCode: 'KE',
-    year: 2025,
-    value: 18_400_000,
-    unit: 'heads',
-    source: 'FAOSTAT',
-    version: 3,
-    updatedAt: '2026-02-28T14:00:00Z',
-  },
-  {
-    id: 'hr-2',
-    entity: 'FMD Outbreaks',
-    domain: 'Animal Health',
-    country: 'Ethiopia',
-    countryCode: 'ET',
-    year: 2024,
-    value: 47,
-    unit: 'events',
-    source: 'WAHIS',
-    version: 2,
-    updatedAt: '2026-01-15T10:30:00Z',
-  },
-  {
-    id: 'hr-3',
-    entity: 'Fish Captures',
-    domain: 'Fisheries',
-    country: 'Nigeria',
-    countryCode: 'NG',
-    year: 2025,
-    value: 1_024_500,
-    unit: 'tonnes',
-    source: 'National Census',
-    version: 1,
-    updatedAt: '2026-03-01T09:00:00Z',
-  },
-  {
-    id: 'hr-4',
-    entity: 'Honey Production',
-    domain: 'Apiculture',
-    country: 'Senegal',
-    countryCode: 'SN',
-    year: 2024,
-    value: 12_300,
-    unit: 'tonnes',
-    source: 'ARIS',
-    version: 1,
-    updatedAt: '2025-12-20T16:00:00Z',
-  },
-  {
-    id: 'hr-5',
-    entity: 'Elephant Population',
-    domain: 'Wildlife',
-    country: 'Tanzania',
-    countryCode: 'TZ',
-    year: 2025,
-    value: 60_200,
-    unit: 'individuals',
-    source: 'National Census',
-    version: 4,
-    updatedAt: '2026-02-10T11:00:00Z',
-  },
-  {
-    id: 'hr-6',
-    entity: 'Live Animal Exports',
-    domain: 'Trade',
-    country: 'Djibouti',
-    countryCode: 'DJ',
-    year: 2024,
-    value: 3_250_000,
-    unit: 'heads',
-    source: 'ARIS',
-    version: 2,
-    updatedAt: '2026-01-28T08:00:00Z',
-  },
-  {
-    id: 'hr-7',
-    entity: 'Veterinary Labs',
-    domain: 'Governance',
-    country: 'South Africa',
-    countryCode: 'ZA',
-    year: 2025,
-    value: 42,
-    unit: 'facilities',
-    source: 'ARIS',
-    version: 1,
-    updatedAt: '2026-03-05T12:00:00Z',
-  },
-  {
-    id: 'hr-8',
-    entity: 'Water Stress Index',
-    domain: 'Climate',
-    country: 'Egypt',
-    countryCode: 'EG',
-    year: 2024,
-    value: 78.4,
-    unit: '%',
-    source: 'FAOSTAT',
-    version: 2,
-    updatedAt: '2025-11-30T14:30:00Z',
-  },
-  {
-    id: 'hr-9',
-    entity: 'PPR Vaccinations',
-    domain: 'Animal Health',
-    country: 'Uganda',
-    countryCode: 'UG',
-    year: 2025,
-    value: 2_150_000,
-    unit: 'doses',
-    source: 'WAHIS',
-    version: 1,
-    updatedAt: '2026-02-18T07:45:00Z',
-  },
-  {
-    id: 'hr-10',
-    entity: 'Aquaculture Production',
-    domain: 'Fisheries',
-    country: 'Ghana',
-    countryCode: 'GH',
-    year: 2024,
-    value: 84_700,
-    unit: 'tonnes',
-    source: 'National Census',
-    version: 3,
-    updatedAt: '2026-01-05T10:00:00Z',
-  },
-];
-
-/* ------------------------------------------------------------------ */
-/*  Page component                                                      */
+/*  Page                                                                */
 /* ------------------------------------------------------------------ */
 
 export default function HistoricalDataPage() {
-  /* --- filter state --- */
-  const [domainFilter, setDomainFilter] = useState<string>('');
-  const [countrySearch, setCountrySearch] = useState('');
-  const [yearFrom, setYearFrom] = useState<string>('');
-  const [yearTo, setYearTo] = useState<string>('');
-  const [entityType, setEntityType] = useState('');
+  const [domainFilter, setDomainFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [searchText, setSearchText] = useState('');
   const [page, setPage] = useState(1);
-  const limit = 5;
+  const limit = 20;
 
-  /* --- filtering logic --- */
-  const filtered = useMemo(() => {
-    let rows = PLACEHOLDER_DATA;
+  const { data: statsRes, isLoading: statsLoading } = useHistoricalStats();
+  const { data: dsRes, isLoading: dsLoading } = useHistoricalDatasets({
+    page,
+    limit,
+    domain: domainFilter || undefined,
+    status: statusFilter || undefined,
+    search: searchText || undefined,
+  });
 
-    if (domainFilter) {
-      rows = rows.filter((r) => r.domain === domainFilter);
-    }
-    if (countrySearch.trim()) {
-      const q = countrySearch.toLowerCase();
-      rows = rows.filter(
-        (r) =>
-          r.country.toLowerCase().includes(q) ||
-          r.countryCode.toLowerCase().includes(q),
-      );
-    }
-    if (yearFrom) {
-      rows = rows.filter((r) => r.year >= Number(yearFrom));
-    }
-    if (yearTo) {
-      rows = rows.filter((r) => r.year <= Number(yearTo));
-    }
-    if (entityType && entityType !== 'All Types') {
-      const q = entityType.toLowerCase();
-      rows = rows.filter((r) => r.entity.toLowerCase().includes(q));
-    }
+  const stats = statsRes?.data;
+  const datasets = dsRes?.data ?? [];
+  const meta = dsRes?.meta;
+  const totalPages = meta ? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
 
-    return rows;
-  }, [domainFilter, countrySearch, yearFrom, yearTo, entityType]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / limit));
-  const paged = filtered.slice((page - 1) * limit, page * limit);
-
-  /* --- KPI computations --- */
-  const totalRecords = PLACEHOLDER_DATA.length;
-  const years = PLACEHOLDER_DATA.map((r) => r.year);
-  const minYear = Math.min(...years);
-  const maxYear = Math.max(...years);
-  const timeSpan = maxYear - minYear + 1;
-  const domainsCovered = new Set(PLACEHOLDER_DATA.map((r) => r.domain)).size;
-  const lastUpdated = PLACEHOLDER_DATA.reduce((latest, r) =>
-    r.updatedAt > latest.updatedAt ? r : latest,
-  ).updatedAt;
+  const readyCount = stats?.byStatus?.find((s) => s.status === 'READY')?.count ?? 0;
 
   return (
     <div className="space-y-6">
-      {/* ---- Header ---- */}
+      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Historical Data</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Browse time series, trends and versioned records across all domains
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Historical Data</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Imported datasets, time series and versioned records across all domains
           </p>
         </div>
-        <button
-          onClick={() => {
-            /* placeholder CSV export */
-          }}
-          className="flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-aris-primary-700"
+        <Link
+          href="/historical/import"
+          className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
         >
-          <Download className="h-4 w-4" />
-          Export CSV
-        </button>
+          <Upload className="h-4 w-4" />
+          Import Dataset
+        </Link>
       </div>
 
-      {/* ---- KPI Cards ---- */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Total Records */}
-        <div className="rounded-card border border-gray-200 bg-white p-card shadow-sm">
-          <div className="flex items-start justify-between">
-            <span className="text-xs uppercase tracking-wider text-gray-500">
-              Total Records
-            </span>
-            <Database className="h-5 w-5 text-gray-300" />
-          </div>
-          <p className="mt-2 text-2xl font-bold text-gray-900">
-            {totalRecords.toLocaleString()}
-          </p>
-          <p className="mt-1 text-xs text-gray-400">Across all domains</p>
-        </div>
-
-        {/* Time Span */}
-        <div className="rounded-card border border-blue-200 bg-blue-50 p-card shadow-sm">
-          <div className="flex items-start justify-between">
-            <span className="text-xs uppercase tracking-wider text-blue-600">
-              Time Span
-            </span>
-            <Calendar className="h-5 w-5 text-blue-300" />
-          </div>
-          <p className="mt-2 text-2xl font-bold text-blue-700">
-            {timeSpan} {timeSpan === 1 ? 'year' : 'years'}
-          </p>
-          <p className="mt-1 text-xs text-blue-500">
-            {minYear} &ndash; {maxYear}
-          </p>
-        </div>
-
-        {/* Domains Covered */}
-        <div className="rounded-card border border-aris-primary-200 bg-aris-primary-50 p-card shadow-sm">
-          <div className="flex items-start justify-between">
-            <span className="text-xs uppercase tracking-wider text-aris-primary-600">
-              Domains Covered
-            </span>
-            <Layers className="h-5 w-5 text-aris-primary-300" />
-          </div>
-          <p className="mt-2 text-2xl font-bold text-aris-primary-700">
-            {domainsCovered}
-          </p>
-          <p className="mt-1 text-xs text-aris-primary-500">
-            Out of 8 total domains
-          </p>
-        </div>
-
-        {/* Last Updated */}
-        <div className="rounded-card border border-orange-200 bg-orange-50 p-card shadow-sm">
-          <div className="flex items-start justify-between">
-            <span className="text-xs uppercase tracking-wider text-orange-600">
-              Last Updated
-            </span>
-            <Clock className="h-5 w-5 text-orange-300" />
-          </div>
-          <p className="mt-2 text-2xl font-bold text-orange-700">
-            {new Date(lastUpdated).toLocaleDateString('en-GB', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            })}
-          </p>
-          <p className="mt-1 text-xs text-orange-500">
-            {new Date(lastUpdated).toLocaleTimeString('en-GB', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </p>
-        </div>
+        <KpiCard
+          label="Total Datasets"
+          value={stats?.totalDatasets ?? 0}
+          sub="Across all domains"
+          icon={<Database className="h-5 w-5 text-gray-300" />}
+          className="border-gray-200 bg-white"
+          loading={statsLoading}
+        />
+        <KpiCard
+          label="Total Rows"
+          value={stats?.totalRows ?? 0}
+          sub="In ready datasets"
+          icon={<BarChart3 className="h-5 w-5 text-blue-300" />}
+          className="border-blue-200 bg-blue-50"
+          labelColor="text-blue-600"
+          valueColor="text-blue-700"
+          loading={statsLoading}
+        />
+        <KpiCard
+          label="Domains Covered"
+          value={stats?.byDomain?.length ?? 0}
+          sub="Out of 9 total"
+          icon={<Layers className="h-5 w-5 text-[var(--color-accent)]" />}
+          className="border-[color:var(--color-accent)]/20 bg-[var(--color-accent)]/5"
+          labelColor="text-[var(--color-accent)]"
+          valueColor="text-[var(--color-accent)]"
+          loading={statsLoading}
+        />
+        <KpiCard
+          label="Ready Datasets"
+          value={readyCount}
+          sub="Successfully imported"
+          icon={<CheckCircle2 className="h-5 w-5 text-emerald-300" />}
+          className="border-emerald-200 bg-emerald-50"
+          labelColor="text-emerald-600"
+          valueColor="text-emerald-700"
+          loading={statsLoading}
+        />
       </div>
 
-      {/* ---- Filters Row ---- */}
+      {/* Domain Breakdown */}
+      {stats && stats.byDomain.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            By Domain
+          </h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {stats.byDomain.map((d) => {
+              const dm = DOMAIN_META[d.domain] ?? DOMAIN_META.general!;
+              const isActive = domainFilter === d.domain;
+              return (
+                <button
+                  key={d.domain}
+                  onClick={() => {
+                    setDomainFilter(isActive ? '' : d.domain);
+                    setPage(1);
+                  }}
+                  className={cn(
+                    'flex items-center gap-3 rounded-xl border p-3 text-left transition-all',
+                    isActive
+                      ? 'ring-2 ring-[var(--color-accent)] border-[var(--color-accent)]'
+                      : dm.accent,
+                    'hover:shadow-sm',
+                  )}
+                >
+                  <span className="text-2xl">{dm.icon}</span>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{dm.label}</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{d.count}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        {/* Domain selector */}
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-gray-400" />
           <select
             value={domainFilter}
-            onChange={(e) => {
-              setDomainFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
+            onChange={(e) => { setDomainFilter(e.target.value); setPage(1); }}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-[var(--color-accent)] focus:outline-none"
           >
             <option value="">All Domains</option>
-            {DOMAINS.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
+            {Object.entries(DOMAIN_META).map(([key, dm]) => (
+              <option key={key} value={key}>{dm.label}</option>
             ))}
           </select>
         </div>
 
-        {/* Country search */}
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-[var(--color-accent)] focus:outline-none"
+        >
+          <option value="">All Statuses</option>
+          <option value="READY">Ready</option>
+          <option value="IMPORTING">Importing</option>
+          <option value="FAILED">Failed</option>
+          <option value="ARCHIVED">Archived</option>
+        </select>
+
         <div className="relative flex-1 sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search country..."
-            value={countrySearch}
-            onChange={(e) => {
-              setCountrySearch(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200"
+            placeholder="Search datasets..."
+            value={searchText}
+            onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
+            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
           />
         </div>
-
-        {/* Year from */}
-        <input
-          type="number"
-          placeholder="From year"
-          min={2000}
-          max={2030}
-          value={yearFrom}
-          onChange={(e) => {
-            setYearFrom(e.target.value);
-            setPage(1);
-          }}
-          className="w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none"
-        />
-
-        {/* Year to */}
-        <input
-          type="number"
-          placeholder="To year"
-          min={2000}
-          max={2030}
-          value={yearTo}
-          onChange={(e) => {
-            setYearTo(e.target.value);
-            setPage(1);
-          }}
-          className="w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none"
-        />
-
-        {/* Entity type */}
-        <select
-          value={entityType}
-          onChange={(e) => {
-            setEntityType(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
-        >
-          <option value="">Entity Type</option>
-          {ENTITY_TYPES.map((et) => (
-            <option key={et} value={et}>
-              {et}
-            </option>
-          ))}
-        </select>
       </div>
 
-      {/* ---- Data Table ---- */}
-      <div className="overflow-hidden rounded-card border border-gray-200 bg-white">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="px-4 py-3 text-left font-medium text-gray-500">Entity</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500">Domain</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500">Country</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500">Year</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-500">Value</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500">Unit</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500">Source</th>
-                <th className="px-4 py-3 text-center font-medium text-gray-500">Version</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500">Updated</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {paged.map((row) => (
-                <tr key={row.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <span className="font-medium text-gray-900">{row.entity}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={cn(
-                        'inline-block rounded-full px-2 py-0.5 text-xs font-medium',
-                        DOMAIN_BADGE[row.domain],
-                      )}
-                    >
-                      {row.domain}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">
-                    {row.country}
-                    <span className="ml-1 text-xs text-gray-400">
-                      ({row.countryCode})
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">{row.year}</td>
-                  <td className="px-4 py-3 text-right font-medium text-gray-900">
-                    {row.value.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">{row.unit}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={cn(
-                        'inline-block rounded-full px-2 py-0.5 text-xs font-medium',
-                        SOURCE_BADGE[row.source],
-                      )}
-                    >
-                      {row.source}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center text-gray-500">
-                    v{row.version}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">
-                    {new Date(row.updatedAt).toLocaleDateString('en-GB', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </td>
-                </tr>
-              ))}
-              {paged.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={9}
-                    className="px-4 py-12 text-center text-gray-400"
-                  >
-                    No records found matching the current filters.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      {/* Datasets Table */}
+      {dsLoading ? (
+        <div className="flex items-center justify-center py-16 text-gray-400">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent mr-3" />
+          Loading datasets...
         </div>
-
-        {/* Pagination */}
-        <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
-          <p className="text-xs text-gray-500">
-            Showing {paged.length} of {filtered.length} records
+      ) : datasets.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 py-16 dark:border-slate-700">
+          <FileSpreadsheet className="mb-3 h-12 w-12 text-gray-300" />
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No datasets found</p>
+          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+            {searchText || domainFilter || statusFilter
+              ? 'Try adjusting your filters'
+              : 'Import your first dataset to get started'}
           </p>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50"
+          {!searchText && !domainFilter && !statusFilter && (
+            <Link
+              href="/historical/import"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
             >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="px-2 text-xs text-gray-600">
-              Page {page} of {totalPages}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
+              <Upload className="h-4 w-4" />
+              Import Dataset
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-800/50">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50 dark:border-slate-700 dark:bg-slate-800">
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Name</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Domain</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">Rows</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">Columns</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">File Type</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Created</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-slate-700/50">
+                {datasets.map((ds: HistoricalDataset) => {
+                  const dm = DOMAIN_META[ds.domain] ?? DOMAIN_META.general!;
+                  return (
+                    <tr key={ds.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30">
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/historical/${ds.id}`}
+                          className="font-medium text-gray-900 hover:text-[var(--color-accent)] dark:text-white"
+                        >
+                          {ds.name}
+                        </Link>
+                        {ds.description && (
+                          <p className="mt-0.5 text-xs text-gray-400 truncate max-w-[250px]">{ds.description}</p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium', dm.badge)}>
+                          <span>{dm.icon}</span> {dm.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={cn('inline-block rounded-full px-2 py-0.5 text-xs font-medium', STATUS_BADGE[ds.status] ?? 'bg-gray-100 text-gray-600')}>
+                          {ds.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
+                        {ds.rowCount.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-300">
+                        {ds.columnCount}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 uppercase text-xs">
+                        {ds.fileType}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
+                        {new Date(ds.created_at).toLocaleDateString('en-GB', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 dark:border-slate-700">
+            <p className="text-xs text-gray-500">
+              Showing {datasets.length} of {meta?.total ?? 0} datasets
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-slate-700"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="px-2 text-xs text-gray-600 dark:text-gray-400">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-slate-700"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  KPI card component                                                  */
+/* ------------------------------------------------------------------ */
+
+function KpiCard({
+  label,
+  value,
+  sub,
+  icon,
+  className,
+  labelColor = 'text-gray-500',
+  valueColor = 'text-gray-900',
+  loading,
+}: {
+  label: string;
+  value: number;
+  sub: string;
+  icon: React.ReactNode;
+  className?: string;
+  labelColor?: string;
+  valueColor?: string;
+  loading?: boolean;
+}) {
+  return (
+    <div className={cn('rounded-xl border p-4 shadow-sm', className)}>
+      <div className="flex items-start justify-between">
+        <span className={cn('text-xs uppercase tracking-wider', labelColor)}>{label}</span>
+        {icon}
       </div>
+      {loading ? (
+        <div className="mt-2 h-8 w-24 animate-pulse rounded bg-gray-200 dark:bg-slate-700" />
+      ) : (
+        <p className={cn('mt-2 text-2xl font-bold', valueColor)}>
+          {value.toLocaleString()}
+        </p>
+      )}
+      <p className="mt-1 text-xs text-gray-400">{sub}</p>
     </div>
   );
 }

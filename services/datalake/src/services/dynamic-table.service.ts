@@ -263,6 +263,34 @@ export class DynamicTableService {
   }
 
   /**
+   * Updates a single row in a dynamic table by _row_id.
+   * Only allows updating columns in the provided whitelist.
+   */
+  async updateRow(
+    tableName: string,
+    rowId: number,
+    data: Record<string, unknown>,
+    allowedColumns: Array<{ pgColumnName: string; dataType: string }>,
+  ): Promise<void> {
+    const safeTable = this.sanitizeTableName(tableName);
+    const colMap = new Map(allowedColumns.map((c) => [c.pgColumnName, c.dataType]));
+
+    const setClauses: string[] = [];
+    for (const [key, value] of Object.entries(data)) {
+      const pgCol = this.toPgName(key);
+      const pgType = colMap.get(pgCol);
+      if (!pgType) continue; // skip columns not in whitelist
+      const pgValue = this.escapeValue(value, this.mapToPgType(pgType));
+      setClauses.push(`"${pgCol}" = ${pgValue}`);
+    }
+
+    if (setClauses.length === 0) return;
+
+    const sql = `UPDATE "${HISTORICAL_SCHEMA}"."${safeTable}" SET ${setClauses.join(', ')} WHERE "_row_id" = ${Number(rowId)}`;
+    await this.prisma.$executeRawUnsafe(sql);
+  }
+
+  /**
    * Drops a dynamic table.
    */
   async dropTable(tableName: string): Promise<void> {

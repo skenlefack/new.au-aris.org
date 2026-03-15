@@ -22,6 +22,7 @@ const DOMAIN_OPTIONS = [
 ];
 
 const ACCEPTED_TYPES = '.xlsx,.xls,.csv,.tsv,.json';
+const COLUMN_TYPES = ['TEXT', 'INTEGER', 'FLOAT', 'DATE', 'BOOLEAN'];
 
 type Step = 'upload' | 'preview' | 'configure' | 'importing';
 
@@ -38,6 +39,7 @@ export default function ImportDatasetPage() {
   const [domain, setDomain] = useState('general');
   const [tags, setTags] = useState('');
   const [error, setError] = useState('');
+  const [columnTypeOverrides, setColumnTypeOverrides] = useState<Record<number, string>>({});
 
   const analyzeFile = useAnalyzeFile();
   const importDataset = useImportDataset();
@@ -207,7 +209,15 @@ export default function ImportDatasetPage() {
                       <td className="px-4 py-2 text-slate-400">{i + 1}</td>
                       <td className="px-4 py-2 font-mono text-xs text-slate-900 dark:text-white">{col.name}</td>
                       <td className="px-4 py-2">
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-mono dark:bg-slate-700">{col.dataType}</span>
+                        <select
+                          value={columnTypeOverrides[i] ?? col.dataType}
+                          onChange={(e) => setColumnTypeOverrides((prev) => ({ ...prev, [i]: e.target.value }))}
+                          className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-xs font-mono dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                        >
+                          {COLUMN_TYPES.map((ct) => (
+                            <option key={ct} value={ct}>{ct}</option>
+                          ))}
+                        </select>
                       </td>
                       <td className="px-4 py-2 text-slate-500">{col.nullable ? 'Yes' : 'No'}</td>
                       <td className="px-4 py-2 text-xs text-slate-400 truncate max-w-[200px]">
@@ -327,6 +337,19 @@ export default function ImportDatasetPage() {
               <p className="font-medium text-slate-700 dark:text-slate-300">{t('importSummary')}</p>
               <p className="mt-1 text-slate-500">
                 {file?.name} — {analysis.rowCount.toLocaleString()} rows, {analysis.columns.length} columns ({analysis.fileType.toUpperCase()})
+              </p>
+            </div>
+          )}
+
+          {/* Table name preview */}
+          {name && domain && (
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm dark:border-slate-700 dark:bg-slate-800/50">
+              <p className="text-xs font-medium uppercase tracking-wider text-slate-400">PostgreSQL Table Name</p>
+              <p className="mt-1 font-mono text-sm text-slate-700 dark:text-slate-300">
+                historical.hdata_{domain.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 15)}_{name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40)}_[timestamp]
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                This table will be created automatically in the &quot;historical&quot; schema
               </p>
             </div>
           )}

@@ -177,4 +177,19 @@ export const deleteAnalysisSchema = {
   },
 };
 
+export const updateRowSchema = {
+  params: {
+    type: 'object' as const,
+    required: ['id', 'rowId'],
+    properties: {
+      id: { type: 'string' as const, format: 'uuid' },
+      rowId: { type: 'integer' as const, minimum: 1 },
+    },
+  },
+  body: {
+    type: 'object' as const,
+    minProperties: 1,
+  },
+};
+
 export const statsSchema = {};

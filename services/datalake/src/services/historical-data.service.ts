@@ -444,6 +444,46 @@ export class HistoricalDataService {
   }
 
   /* ------------------------------------------------------------------ */
+  /*  Row-level editing                                                   */
+  /* ------------------------------------------------------------------ */
+
+  async updateRow(
+    datasetId: string,
+    rowId: number,
+    data: Record<string, unknown>,
+    tenantId: string,
+    tenantLevel: string,
+    userId: string,
+  ): Promise<void> {
+    const dataset = await this.prisma.historicalDataset.findUnique({
+      where: { id: datasetId },
+      include: { columns: true },
+    });
+    if (!dataset) throw new HttpError(404, 'Dataset not found');
+    if (tenantLevel !== 'CONTINENTAL' && dataset.tenantId !== tenantId) {
+      throw new HttpError(403, 'Access denied');
+    }
+    if (dataset.status !== 'READY') {
+      throw new HttpError(400, `Dataset is not ready (status: ${dataset.status})`);
+    }
+
+    const allowedColumns = dataset.columns.map((c: any) => ({
+      pgColumnName: c.pgColumnName,
+      dataType: c.dataType,
+    }));
+
+    await this.dynamicTable.updateRow(dataset.tableName, rowId, data, allowedColumns);
+
+    await this.publishEvent(
+      'sys.datalake.row.updated.v1',
+      datasetId,
+      { datasetId, rowId, updatedFields: Object.keys(data) },
+      tenantId,
+      userId,
+    );
+  }
+
+  /* ------------------------------------------------------------------ */
   /*  Stats                                                               */
   /* ------------------------------------------------------------------ */
 
@@ -525,7 +565,7 @@ export class HistoricalDataService {
       .replace(/[^a-z0-9]+/g, '_')
       .slice(0, 15);
     const ts = Date.now().toString(36);
-    return `hist_${domainSlug}_${slug}_${ts}`;
+    return `hdata_${domainSlug}_${slug}_${ts}`;
   }
 
   private toPgColumnName(name: string): string {
