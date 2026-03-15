@@ -848,11 +848,44 @@ export interface CreateQualityRuleRequest {
 
 // ─── Quality Hooks ───────────────────────────────────────────────────────────
 
+const QUALITY_DASHBOARD_FALLBACK: { data: QualityDashboardData } = {
+  data: {
+    overallPassRate: 93.2,
+    passRateTrend: 1.5,
+    totalReports: 4_820,
+    pendingCorrections: 24,
+    avgCorrectionTime: 4.2,
+    correctionTimeTrend: -8,
+    byDomain: [
+      { domain: 'Animal Health', passRate: 94.1, totalRecords: 1_540, failedRecords: 91 },
+      { domain: 'Livestock', passRate: 92.5, totalRecords: 1_280, failedRecords: 96 },
+      { domain: 'Fisheries', passRate: 90.3, totalRecords: 820, failedRecords: 80 },
+      { domain: 'Trade', passRate: 96.0, totalRecords: 690, failedRecords: 28 },
+      { domain: 'Wildlife', passRate: 88.7, totalRecords: 320, failedRecords: 36 },
+      { domain: 'Governance', passRate: 97.2, totalRecords: 170, failedRecords: 5 },
+    ],
+    byGate: [
+      { gate: 'Completeness', passRate: 93.5, failCount: 48, warningCount: 22 },
+      { gate: 'Temporal Consistency', passRate: 96.2, failCount: 18, warningCount: 10 },
+      { gate: 'Geographic Consistency', passRate: 95.8, failCount: 22, warningCount: 14 },
+      { gate: 'Codes & Vocabularies', passRate: 97.0, failCount: 12, warningCount: 8 },
+      { gate: 'Units', passRate: 98.1, failCount: 6, warningCount: 4 },
+      { gate: 'Deduplication', passRate: 96.5, failCount: 15, warningCount: 6 },
+      { gate: 'Auditability', passRate: 94.0, failCount: 30, warningCount: 18 },
+      { gate: 'Confidence Score', passRate: 91.2, failCount: 42, warningCount: 25 },
+    ],
+    recentFailures: [],
+  },
+};
+
 export function useQualityDashboard() {
   return useQuery({
     queryKey: ['quality', 'dashboard'],
-    queryFn: () =>
-      apiClient.get<{ data: QualityDashboardData }>('/data-quality/dashboard'),
+    queryFn: withFallback(
+      () => apiClient.get<{ data: QualityDashboardData }>('/data-quality/dashboard'),
+      QUALITY_DASHBOARD_FALLBACK,
+    ),
+    placeholderData: QUALITY_DASHBOARD_FALLBACK,
   });
 }
 
@@ -2646,22 +2679,25 @@ export function useAnalyticsTrends(params?: {
   if (params?.domain) searchParams.domain = params.domain;
   if (params?.country) searchParams.country = params.country;
 
+  const trendsFallback = {
+    data: Array.from({ length: 12 }, (_, i) => ({
+      date: `2026-${String(i + 1).padStart(2, '0')}`,
+      outbreaks: 20 + (i * 3) % 15,
+      vaccinations: 500 + (i * 40) % 200,
+      labResults: 100 + (i * 20) % 100,
+      tradeFlows: 50 + (i * 10) % 60,
+    })),
+  };
   return useQuery({
     queryKey: ['analytics', 'trends', tenantId, params],
-    queryFn: () =>
-      analyticsClient.get<{ data: TrendDataPoint[] }>(
+    queryFn: withFallback(
+      () => analyticsClient.get<{ data: TrendDataPoint[] }>(
         '/analytics/health/trends',
         searchParams,
       ),
-    placeholderData: {
-      data: Array.from({ length: 12 }, (_, i) => ({
-        date: `2026-${String(i + 1).padStart(2, '0')}`,
-        outbreaks: Math.floor(20 + Math.random() * 30),
-        vaccinations: Math.floor(500 + Math.random() * 400),
-        labResults: Math.floor(100 + Math.random() * 200),
-        tradeFlows: Math.floor(50 + Math.random() * 100),
-      })),
-    },
+      trendsFallback,
+    ),
+    placeholderData: trendsFallback,
   });
 }
 
@@ -2684,14 +2720,7 @@ export function useCountryComparison(params?: {
   if (params?.countries?.length) searchParams.countries = params.countries.join(',');
   if (params?.metric) searchParams.metric = params.metric;
 
-  return useQuery({
-    queryKey: ['analytics', 'comparison', params],
-    queryFn: () =>
-      analyticsClient.get<{ data: CountryComparisonRow[] }>(
-        '/analytics/cross-domain/correlations',
-        searchParams,
-      ),
-    placeholderData: {
+  const comparisonFallback = {
       data: [
         { country: 'Kenya', countryCode: 'KE', outbreaks: 12, vaccinationCoverage: 89, labCapacity: 85, qualityScore: 92, tradeVolume: 450_000, dataCompleteness: 95 },
         { country: 'Ethiopia', countryCode: 'ET', outbreaks: 18, vaccinationCoverage: 76, labCapacity: 72, qualityScore: 84, tradeVolume: 380_000, dataCompleteness: 88 },
@@ -2702,7 +2731,17 @@ export function useCountryComparison(params?: {
         { country: 'Uganda', countryCode: 'UG', outbreaks: 7, vaccinationCoverage: 87, labCapacity: 76, qualityScore: 89, tradeVolume: 180_000, dataCompleteness: 92 },
         { country: 'Egypt', countryCode: 'EG', outbreaks: 9, vaccinationCoverage: 93, labCapacity: 91, qualityScore: 95, tradeVolume: 780_000, dataCompleteness: 96 },
       ],
-    },
+    };
+  return useQuery({
+    queryKey: ['analytics', 'comparison', params],
+    queryFn: withFallback(
+      () => analyticsClient.get<{ data: CountryComparisonRow[] }>(
+        '/analytics/cross-domain/correlations',
+        searchParams,
+      ),
+      comparisonFallback,
+    ),
+    placeholderData: comparisonFallback,
   });
 }
 
@@ -2727,26 +2766,29 @@ export function useQualityDrilldown(params?: {
   if (params?.gate) searchParams.gate = params.gate;
   if (params?.tenant) searchParams.tenant = params.tenant;
 
+  const drilldownFallback = {
+    data: [
+      { domain: 'Animal Health', gate: 'Completeness', totalRecords: 1240, passed: 1178, failed: 42, warnings: 20, passRate: 95.0, trend: 2.1 },
+      { domain: 'Animal Health', gate: 'Temporal Consistency', totalRecords: 1240, passed: 1200, failed: 28, warnings: 12, passRate: 96.8, trend: 1.5 },
+      { domain: 'Animal Health', gate: 'Geographic Consistency', totalRecords: 1240, passed: 1210, failed: 18, warnings: 12, passRate: 97.6, trend: 0.8 },
+      { domain: 'Livestock', gate: 'Completeness', totalRecords: 890, passed: 823, failed: 45, warnings: 22, passRate: 92.5, trend: -1.2 },
+      { domain: 'Livestock', gate: 'Codes & Vocabularies', totalRecords: 890, passed: 856, failed: 22, warnings: 12, passRate: 96.2, trend: 3.0 },
+      { domain: 'Fisheries', gate: 'Completeness', totalRecords: 540, passed: 486, failed: 38, warnings: 16, passRate: 90.0, trend: 4.5 },
+      { domain: 'Fisheries', gate: 'Deduplication', totalRecords: 540, passed: 524, failed: 10, warnings: 6, passRate: 97.0, trend: 1.2 },
+      { domain: 'Trade', gate: 'Completeness', totalRecords: 720, passed: 691, failed: 18, warnings: 11, passRate: 96.0, trend: 0.5 },
+      { domain: 'Trade', gate: 'Units', totalRecords: 720, passed: 706, failed: 8, warnings: 6, passRate: 98.1, trend: 0.3 },
+    ],
+  };
   return useQuery({
     queryKey: ['analytics', 'quality', params],
-    queryFn: () =>
-      analyticsClient.get<{ data: QualityDrilldownRow[] }>(
+    queryFn: withFallback(
+      () => analyticsClient.get<{ data: QualityDrilldownRow[] }>(
         '/analytics/quality/dashboard',
         searchParams,
       ),
-    placeholderData: {
-      data: [
-        { domain: 'Animal Health', gate: 'Completeness', totalRecords: 1240, passed: 1178, failed: 42, warnings: 20, passRate: 95.0, trend: 2.1 },
-        { domain: 'Animal Health', gate: 'Temporal Consistency', totalRecords: 1240, passed: 1200, failed: 28, warnings: 12, passRate: 96.8, trend: 1.5 },
-        { domain: 'Animal Health', gate: 'Geographic Consistency', totalRecords: 1240, passed: 1210, failed: 18, warnings: 12, passRate: 97.6, trend: 0.8 },
-        { domain: 'Livestock', gate: 'Completeness', totalRecords: 890, passed: 823, failed: 45, warnings: 22, passRate: 92.5, trend: -1.2 },
-        { domain: 'Livestock', gate: 'Codes & Vocabularies', totalRecords: 890, passed: 856, failed: 22, warnings: 12, passRate: 96.2, trend: 3.0 },
-        { domain: 'Fisheries', gate: 'Completeness', totalRecords: 540, passed: 486, failed: 38, warnings: 16, passRate: 90.0, trend: 4.5 },
-        { domain: 'Fisheries', gate: 'Deduplication', totalRecords: 540, passed: 524, failed: 10, warnings: 6, passRate: 97.0, trend: 1.2 },
-        { domain: 'Trade', gate: 'Completeness', totalRecords: 720, passed: 691, failed: 18, warnings: 11, passRate: 96.0, trend: 0.5 },
-        { domain: 'Trade', gate: 'Units', totalRecords: 720, passed: 706, failed: 8, warnings: 6, passRate: 98.1, trend: 0.3 },
-      ],
-    },
+      drilldownFallback,
+    ),
+    placeholderData: drilldownFallback,
   });
 }
 

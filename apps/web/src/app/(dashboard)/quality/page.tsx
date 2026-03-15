@@ -53,7 +53,9 @@ export default function QualityDashboardPage() {
   const t = useTranslations('quality');
   const { data, isLoading } = useQualityDashboard();
 
-  const dashboard = data?.data;
+  const raw = data?.data;
+  // Guard: only treat dashboard as available if key fields exist
+  const dashboard = raw && typeof raw.overallPassRate === 'number' ? raw : null;
 
   return (
     <div className="space-y-6">
