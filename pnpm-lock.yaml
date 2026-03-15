@@ -1679,6 +1679,9 @@ importers:
       '@aris/auth-middleware':
         specifier: workspace:*
         version: link:../../packages/auth-middleware
+      '@aris/cache':
+        specifier: workspace:*
+        version: link:../../packages/cache
       '@aris/kafka-client':
         specifier: workspace:*
         version: link:../../packages/kafka-client
