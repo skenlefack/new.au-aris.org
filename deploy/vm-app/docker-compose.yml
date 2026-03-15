@@ -883,6 +883,9 @@ services:
       - "traefik.http.routers.datalake.rule=PathPrefix(`/api/v1/datalake`)"
       - "traefik.http.routers.datalake.entrypoints=web,websecure"
       - "traefik.http.services.datalake.loadbalancer.server.port=3044"
+      - "traefik.http.routers.historical.rule=PathPrefix(`/api/v1/historical`)"
+      - "traefik.http.routers.historical.entrypoints=web,websecure"
+      - "traefik.http.routers.historical.service=datalake"
 
   offline:
     container_name: aris-offline
