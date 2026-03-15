@@ -31,6 +31,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import org.auibar.aris.mobile.R
+import org.auibar.aris.mobile.ui.conflict.ConflictResolutionScreen
 import org.auibar.aris.mobile.ui.campaign.CampaignDetailScreen
 import org.auibar.aris.mobile.ui.campaign.CampaignListScreen
 import org.auibar.aris.mobile.ui.dashboard.DashboardScreen
@@ -46,7 +47,10 @@ import org.auibar.aris.mobile.ui.notification.NotificationListViewModel
 import org.auibar.aris.mobile.ui.photo.PhotoGalleryScreen
 import org.auibar.aris.mobile.ui.reports.MiniReportsScreen
 import org.auibar.aris.mobile.ui.settings.SettingsScreen
+import org.auibar.aris.mobile.ui.message.MessageListScreen
+import org.auibar.aris.mobile.ui.message.MessageThreadScreen
 import org.auibar.aris.mobile.ui.submission.SubmissionListScreen
+import org.auibar.aris.mobile.ui.tenant.TenantHierarchyScreen
 
 object ArisRoutes {
     const val SPLASH = "splash"
@@ -64,6 +68,10 @@ object ArisRoutes {
     const val GPS_TRACK = "gps-track"
     const val OFFLINE_MAP = "offline-map"
     const val REPORTS = "reports"
+    const val CONFLICT_RESOLUTION = "conflict/{submissionId}"
+    const val TENANT_HIERARCHY = "tenant-hierarchy"
+    const val MESSAGES = "messages"
+    const val MESSAGE_THREAD = "messages/{threadId}/{recipientId}/{recipientName}"
 
     fun campaignDetail(campaignId: String) = "campaign/$campaignId"
     fun formFill(campaignId: String) = "form/$campaignId"
@@ -71,6 +79,9 @@ object ArisRoutes {
     fun productionRecord(campaignId: String) = "production-record/$campaignId"
     fun photoGallery(submissionId: String) = "photo-gallery/$submissionId"
     fun submissionDetail(submissionId: String) = "submission/$submissionId"
+    fun conflictResolution(submissionId: String) = "conflict/$submissionId"
+    fun messageThread(threadId: String, recipientId: String, recipientName: String) =
+        "messages/$threadId/$recipientId/$recipientName"
 }
 
 data class BottomNavItem(
@@ -190,6 +201,20 @@ fun ArisNavGraph(
             composable(ArisRoutes.SUBMISSIONS) {
                 SubmissionListScreen(
                     onBack = { navController.popBackStack() },
+                    onConflictClick = { submissionId ->
+                        navController.navigate(ArisRoutes.conflictResolution(submissionId))
+                    },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.CONFLICT_RESOLUTION,
+                arguments = listOf(navArgument("submissionId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val submissionId = backStackEntry.arguments?.getString("submissionId") ?: ""
+                ConflictResolutionScreen(
+                    submissionId = submissionId,
+                    onBack = { navController.popBackStack() },
                 )
             }
 
@@ -206,6 +231,12 @@ fun ArisNavGraph(
                         navController.navigate(ArisRoutes.LOGIN) {
                             popUpTo(0) { inclusive = true }
                         }
+                    },
+                    onTenantHierarchy = {
+                        navController.navigate(ArisRoutes.TENANT_HIERARCHY)
+                    },
+                    onMessages = {
+                        navController.navigate(ArisRoutes.MESSAGES)
                     },
                 )
             }
@@ -255,6 +286,36 @@ fun ArisNavGraph(
 
             composable(ArisRoutes.REPORTS) {
                 MiniReportsScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(ArisRoutes.TENANT_HIERARCHY) {
+                TenantHierarchyScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(ArisRoutes.MESSAGES) {
+                MessageListScreen(
+                    onBack = { navController.popBackStack() },
+                    onThreadClick = { threadId, recipientId, recipientName ->
+                        navController.navigate(
+                            ArisRoutes.messageThread(threadId, recipientId, recipientName),
+                        )
+                    },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.MESSAGE_THREAD,
+                arguments = listOf(
+                    navArgument("threadId") { type = NavType.StringType },
+                    navArgument("recipientId") { type = NavType.StringType },
+                    navArgument("recipientName") { type = NavType.StringType },
+                ),
+            ) {
+                MessageThreadScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

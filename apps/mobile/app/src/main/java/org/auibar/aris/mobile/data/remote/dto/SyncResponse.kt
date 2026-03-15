@@ -10,6 +10,8 @@ data class SyncResponse(
     val updatedCampaigns: List<CampaignDto>,
     val updatedTemplates: List<FormTemplateDto>,
     val updatedReferentials: ReferentialUpdates,
+    val workflowUpdates: List<WorkflowUpdateDto> = emptyList(),
+    val qualityResults: List<QualityResultDto> = emptyList(),
 )
 
 @Serializable
@@ -77,4 +79,17 @@ data class GeoDto(
     val level: String,
     val parentId: String? = null,
     val isoCode: String? = null,
+)
+
+@Serializable
+data class WorkflowUpdateDto(
+    val submissionId: String,
+    val level: Int,
+    val status: String,
+)
+
+@Serializable
+data class QualityResultDto(
+    val submissionId: String,
+    val results: String,
 )

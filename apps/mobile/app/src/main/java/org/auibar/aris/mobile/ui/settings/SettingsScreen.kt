@@ -16,8 +16,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
@@ -61,6 +64,8 @@ import java.util.Locale
 @Composable
 fun SettingsScreen(
     onLogout: () -> Unit,
+    onTenantHierarchy: () -> Unit = {},
+    onMessages: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -144,6 +149,39 @@ fun SettingsScreen(
                     .find { it.minutes == uiState.syncFrequencyMinutes }?.labelKey ?: "15 min",
                 onClick = { showSyncFreqDialog = true },
             )
+
+            // Messages
+            SettingsItem(
+                icon = Icons.Default.MailOutline,
+                title = stringResource(R.string.messages),
+                subtitle = stringResource(R.string.new_message),
+                onClick = onMessages,
+            )
+
+            // Tenant hierarchy
+            SettingsItem(
+                icon = Icons.Default.AccountTree,
+                title = stringResource(R.string.tenant_hierarchy),
+                subtitle = stringResource(R.string.switch_context),
+                onClick = onTenantHierarchy,
+            )
+
+            // Crash reports
+            if (uiState.crashLogCount > 0) {
+                SettingsItem(
+                    icon = Icons.Default.BugReport,
+                    title = stringResource(R.string.crash_reports),
+                    subtitle = stringResource(R.string.crash_count, uiState.crashLogCount),
+                    onClick = {
+                        viewModel.uploadCrashLogs()
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                context.getString(R.string.crash_uploading),
+                            )
+                        }
+                    },
+                )
+            }
 
             // Clear cache
             SettingsItem(

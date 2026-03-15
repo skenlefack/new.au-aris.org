@@ -66,6 +66,85 @@
     <string name="form_submitted">Submission queued for sync</string>
     <string name="pick_date">Pick date</string>
 
+    <!-- Workflow Validation -->
+    <string name="workflow_status">Validation Pipeline</string>
+    <string name="workflow_level_1">National Steward</string>
+    <string name="workflow_level_2">Data Owner / CVO</string>
+    <string name="workflow_level_3">REC Steward</string>
+    <string name="workflow_level_4">AU-IBAR</string>
+    <string name="workflow_pending">Pending</string>
+    <string name="workflow_approved">Approved</string>
+    <string name="workflow_rejected">Rejected</string>
+    <string name="workflow_not_started">Not started</string>
+    <string name="workflow_level_label">Level %1$d of 4</string>
+
+    <!-- Data Quality Gates -->
+    <string name="quality_gates">Quality Gates</string>
+    <string name="quality_completeness">Completeness</string>
+    <string name="quality_temporal">Temporal Consistency</string>
+    <string name="quality_geographic">Geographic Consistency</string>
+    <string name="quality_codes">Codes &amp; Vocabularies</string>
+    <string name="quality_units">Units</string>
+    <string name="quality_dedup">Deduplication</string>
+    <string name="quality_audit">Auditability</string>
+    <string name="quality_confidence">Confidence Score</string>
+    <string name="quality_passed">Passed</string>
+    <string name="quality_failed">Failed</string>
+    <string name="quality_skipped">Skipped</string>
+    <string name="quality_score">Score: %1$d%%</string>
+    <string name="quality_no_results">Quality check not yet run</string>
+    <string name="quality_gates_passed">%1$d/%2$d gates passed</string>
+
+    <!-- Filtering -->
+    <string name="filter">Filter</string>
+    <string name="search_submissions">Search submissions\u2026</string>
+    <string name="filter_all">All</string>
+    <string name="filter_by_status">By Status</string>
+    <string name="filter_by_domain">By Domain</string>
+    <string name="filter_by_date">By Date</string>
+    <string name="clear_filters">Clear Filters</string>
+    <string name="date_from">From</string>
+    <string name="date_to">To</string>
+    <string name="domain_health">Animal Health</string>
+    <string name="domain_livestock">Livestock</string>
+    <string name="domain_fisheries">Fisheries</string>
+    <string name="domain_wildlife">Wildlife</string>
+    <string name="domain_apiculture">Apiculture</string>
+    <string name="domain_trade">Trade &amp; SPS</string>
+    <string name="domain_governance">Governance</string>
+    <string name="domain_climate">Climate</string>
+
+    <!-- PDF Export -->
+    <string name="export_pdf">Export PDF</string>
+    <string name="export_generating">Generating PDF\u2026</string>
+    <string name="export_success">PDF exported successfully</string>
+    <string name="export_error">PDF export failed</string>
+    <string name="export_share">Share PDF</string>
+
+    <!-- Multi-Tenant -->
+    <string name="tenant_hierarchy">Organization</string>
+    <string name="continental">Continental</string>
+    <string name="rec_level">REC</string>
+    <string name="member_state">Member State</string>
+    <string name="switch_context">Switch Context</string>
+    <string name="current_tenant">Current: %s</string>
+
+    <!-- Crash Reporting -->
+    <string name="crash_reports">Crash Reports</string>
+    <string name="crash_uploading">Uploading crash reports\u2026</string>
+    <string name="crash_uploaded">Crash reports uploaded</string>
+    <string name="crash_count">%d pending crash report(s)</string>
+
+    <!-- In-App Messaging -->
+    <string name="messages">Messages</string>
+    <string name="new_message">New Message</string>
+    <string name="type_message">Type a message\u2026</string>
+    <string name="send">Send</string>
+    <string name="no_messages">No messages yet</string>
+    <string name="message_sent">Message sent</string>
+    <string name="select_recipient">Select recipient</string>
+    <string name="message_from">From: %s</string>
+
     <!-- Dashboard -->
     <string name="health_overview">Health Overview</string>
     <string name="no_kpi_data">No KPI data available</string>
@@ -149,6 +228,30 @@
     <string name="biometric_prompt_negative">Use PIN</string>
     <string name="unlock_required">Authentication required</string>
     <string name="wrong_pin">Wrong PIN. Try again.</string>
+
+    <!-- Conflict Resolution -->
+    <string name="conflict_resolution">Conflict Resolution</string>
+    <string name="conflict_explanation">This submission was modified on the server while you were offline. Compare the differences and choose which version to keep.</string>
+    <string name="local_version">Your Version</string>
+    <string name="server_version">Server Version</string>
+    <string name="keep_local">Keep Mine</string>
+    <string name="accept_server">Accept Server</string>
+    <string name="merge_manual">Merge Manually</string>
+    <string name="discard_submission">Discard</string>
+    <string name="field_differs">Modified</string>
+    <string name="field_same">Unchanged</string>
+    <string name="no_conflicts">No conflicts to resolve</string>
+    <string name="conflict_resolved">Conflict resolved — submission queued for sync</string>
+    <string name="conflict_discarded">Submission discarded</string>
+    <string name="conflicts_count">%d conflict(s)</string>
+    <string name="confirm_keep_local">Keep your local version and overwrite the server data?</string>
+    <string name="confirm_accept_server">Accept the server version and discard your local changes?</string>
+    <string name="confirm_discard">Permanently discard this submission? This cannot be undone.</string>
+    <string name="resolve_conflict">Resolve Conflict</string>
+    <string name="differences_found">%d difference(s) found</string>
+    <string name="all_fields_match">All fields match — no differences</string>
+    <string name="tap_to_resolve">Tap to resolve</string>
+    <string name="cd_conflict_field">Field %1$s: your value is %2$s, server value is %3$s</string>
 
     <!-- Additional error strings -->
     <string name="error_network">Network error. Please check your connection.</string>

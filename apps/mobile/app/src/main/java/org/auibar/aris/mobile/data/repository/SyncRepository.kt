@@ -68,9 +68,9 @@ class SyncRepository @Inject constructor(
                 )
             }
 
-            // Mark conflicts
+            // Mark conflicts with server version data
             syncData.conflicts.forEach { conflict ->
-                submissionDao.updateSyncError(conflict.id, "CONFLICT", null)
+                submissionDao.markConflict(conflict.id, conflict.serverVersion)
             }
 
             // Update campaigns
@@ -143,6 +143,16 @@ class SyncRepository @Inject constructor(
                         syncedAt = now,
                     )
                 })
+            }
+
+            // Update workflow statuses
+            syncData.workflowUpdates.forEach { wf ->
+                submissionDao.updateWorkflow(wf.submissionId, wf.level, wf.status)
+            }
+
+            // Update quality gate results
+            syncData.qualityResults.forEach { qr ->
+                submissionDao.updateQualityResults(qr.submissionId, qr.results)
             }
 
             tokenManager.lastSyncAt = now

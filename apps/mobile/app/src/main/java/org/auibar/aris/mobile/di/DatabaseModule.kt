@@ -13,6 +13,7 @@ import org.auibar.aris.mobile.data.local.dao.DiseaseDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
 import org.auibar.aris.mobile.data.local.dao.GpsTrackDao
+import org.auibar.aris.mobile.data.local.dao.MessageDao
 import org.auibar.aris.mobile.data.local.dao.NotificationDao
 import org.auibar.aris.mobile.data.local.dao.PhotoDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
@@ -61,4 +62,7 @@ object DatabaseModule {
 
     @Provides
     fun provideGpsTrackDao(db: ArisDatabase): GpsTrackDao = db.gpsTrackDao()
+
+    @Provides
+    fun provideMessageDao(db: ArisDatabase): MessageDao = db.messageDao()
 }

@@ -25,5 +25,10 @@ data class SubmissionEntity(
     val offlineCreatedAt: Long,
     val syncedAt: Long?,
     val syncStatus: String,
-    val serverErrors: String?
+    val serverErrors: String?,
+    val serverData: String? = null,
+    val workflowLevel: Int = 0,
+    val workflowStatus: String? = null,
+    val qualityGateResults: String? = null,
+    val domain: String? = null,
 )

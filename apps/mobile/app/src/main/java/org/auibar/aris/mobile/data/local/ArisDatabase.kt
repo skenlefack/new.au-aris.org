@@ -7,6 +7,7 @@ import org.auibar.aris.mobile.data.local.dao.DiseaseDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
 import org.auibar.aris.mobile.data.local.dao.GpsTrackDao
+import org.auibar.aris.mobile.data.local.dao.MessageDao
 import org.auibar.aris.mobile.data.local.dao.NotificationDao
 import org.auibar.aris.mobile.data.local.dao.PhotoDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
@@ -16,6 +17,7 @@ import org.auibar.aris.mobile.data.local.entity.DiseaseEntity
 import org.auibar.aris.mobile.data.local.entity.FormTemplateEntity
 import org.auibar.aris.mobile.data.local.entity.GeoEntity
 import org.auibar.aris.mobile.data.local.entity.GpsTrackEntity
+import org.auibar.aris.mobile.data.local.entity.MessageEntity
 import org.auibar.aris.mobile.data.local.entity.NotificationEntity
 import org.auibar.aris.mobile.data.local.entity.PhotoEntity
 import org.auibar.aris.mobile.data.local.entity.SpeciesEntity
@@ -32,8 +34,9 @@ import org.auibar.aris.mobile.data.local.entity.SubmissionEntity
         NotificationEntity::class,
         PhotoEntity::class,
         GpsTrackEntity::class,
+        MessageEntity::class,
     ],
-    version = 4,
+    version = 7,
     exportSchema = false
 )
 abstract class ArisDatabase : RoomDatabase() {
@@ -46,4 +49,5 @@ abstract class ArisDatabase : RoomDatabase() {
     abstract fun notificationDao(): NotificationDao
     abstract fun photoDao(): PhotoDao
     abstract fun gpsTrackDao(): GpsTrackDao
+    abstract fun messageDao(): MessageDao
 }

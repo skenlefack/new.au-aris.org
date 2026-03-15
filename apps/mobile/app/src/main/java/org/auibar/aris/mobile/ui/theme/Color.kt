@@ -21,3 +21,14 @@ val SyncPending = Color(0xFFFFA726)
 val SyncSuccess = Color(0xFF66BB6A)
 val SyncFailed = Color(0xFFEF5350)
 val SyncConflict = Color(0xFFAB47BC)
+
+// Workflow level colors
+val WorkflowLevel1 = Color(0xFF42A5F5)   // National Data Steward — blue
+val WorkflowLevel2 = Color(0xFF26A69A)   // Data Owner / CVO — teal
+val WorkflowLevel3 = Color(0xFFFF8F00)   // REC Data Steward — amber
+val WorkflowLevel4 = Color(0xFF1B5E20)   // AU-IBAR — AU green
+
+// Quality gate colors
+val QualityPass = Color(0xFF4CAF50)
+val QualityFail = Color(0xFFE53935)
+val QualityWarn = Color(0xFFFFC107)

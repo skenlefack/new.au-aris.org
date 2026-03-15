@@ -2,13 +2,17 @@ package org.auibar.aris.mobile.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.data.local.ArisDatabase
 import org.auibar.aris.mobile.data.repository.AuthRepository
+import org.auibar.aris.mobile.sync.CrashUploadWorker
+import org.auibar.aris.mobile.util.CrashLogger
 import org.auibar.aris.mobile.util.LanguageOption
 import org.auibar.aris.mobile.util.LocaleManager
 import org.auibar.aris.mobile.util.TokenManager
@@ -24,6 +28,7 @@ data class SettingsUiState(
     val lastSyncAt: Long? = null,
     val appVersion: String = "1.0.0",
     val cacheCleared: Boolean = false,
+    val crashLogCount: Int = 0,
 )
 
 data class SyncFrequencyOption(
@@ -33,6 +38,7 @@ data class SyncFrequencyOption(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val tokenManager: TokenManager,
     private val localeManager: LocaleManager,
     private val authRepository: AuthRepository,
@@ -48,6 +54,7 @@ class SettingsViewModel @Inject constructor(
             supportedLanguages = localeManager.supportedLanguages,
             syncFrequencyMinutes = tokenManager.syncFrequencyMinutes,
             lastSyncAt = tokenManager.lastSyncAt,
+            crashLogCount = CrashLogger.getLogFiles(appContext).size,
         )
     )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -79,6 +86,10 @@ class SettingsViewModel @Inject constructor(
             database.clearAllTables()
             _uiState.value = _uiState.value.copy(cacheCleared = true)
         }
+    }
+
+    fun uploadCrashLogs() {
+        CrashUploadWorker.enqueue(appContext)
     }
 
     fun logout() {

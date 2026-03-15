@@ -66,6 +66,85 @@
     <string name="form_submitted">Soumission en file d\'attente de synchronisation</string>
     <string name="pick_date">Choisir une date</string>
 
+    <!-- Workflow Validation -->
+    <string name="workflow_status">Pipeline de validation</string>
+    <string name="workflow_level_1">Administrateur national</string>
+    <string name="workflow_level_2">Propri\u00e9taire / CVO</string>
+    <string name="workflow_level_3">Administrateur CER</string>
+    <string name="workflow_level_4">UA-BIRA</string>
+    <string name="workflow_pending">En attente</string>
+    <string name="workflow_approved">Approuv\u00e9</string>
+    <string name="workflow_rejected">Rejet\u00e9</string>
+    <string name="workflow_not_started">Non commenc\u00e9</string>
+    <string name="workflow_level_label">Niveau %1$d sur 4</string>
+
+    <!-- Data Quality Gates -->
+    <string name="quality_gates">Portes de qualit\u00e9</string>
+    <string name="quality_completeness">Compl\u00e9tude</string>
+    <string name="quality_temporal">Coh\u00e9rence temporelle</string>
+    <string name="quality_geographic">Coh\u00e9rence g\u00e9ographique</string>
+    <string name="quality_codes">Codes et vocabulaires</string>
+    <string name="quality_units">Unit\u00e9s</string>
+    <string name="quality_dedup">D\u00e9doublonnage</string>
+    <string name="quality_audit">Auditabilit\u00e9</string>
+    <string name="quality_confidence">Score de confiance</string>
+    <string name="quality_passed">R\u00e9ussi</string>
+    <string name="quality_failed">\u00c9chou\u00e9</string>
+    <string name="quality_skipped">Ignor\u00e9</string>
+    <string name="quality_score">Score : %1$d%%</string>
+    <string name="quality_no_results">Contr\u00f4le qualit\u00e9 pas encore effectu\u00e9</string>
+    <string name="quality_gates_passed">%1$d/%2$d portes r\u00e9ussies</string>
+
+    <!-- Filtering -->
+    <string name="filter">Filtrer</string>
+    <string name="search_submissions">Rechercher des soumissions\u2026</string>
+    <string name="filter_all">Tous</string>
+    <string name="filter_by_status">Par statut</string>
+    <string name="filter_by_domain">Par domaine</string>
+    <string name="filter_by_date">Par date</string>
+    <string name="clear_filters">Effacer les filtres</string>
+    <string name="date_from">Du</string>
+    <string name="date_to">Au</string>
+    <string name="domain_health">Sant\u00e9 animale</string>
+    <string name="domain_livestock">\u00c9levage</string>
+    <string name="domain_fisheries">P\u00eaches</string>
+    <string name="domain_wildlife">Faune sauvage</string>
+    <string name="domain_apiculture">Apiculture</string>
+    <string name="domain_trade">Commerce et SPS</string>
+    <string name="domain_governance">Gouvernance</string>
+    <string name="domain_climate">Climat</string>
+
+    <!-- PDF Export -->
+    <string name="export_pdf">Exporter en PDF</string>
+    <string name="export_generating">G\u00e9n\u00e9ration du PDF\u2026</string>
+    <string name="export_success">PDF export\u00e9 avec succ\u00e8s</string>
+    <string name="export_error">\u00c9chec de l\'export PDF</string>
+    <string name="export_share">Partager le PDF</string>
+
+    <!-- Multi-Tenant -->
+    <string name="tenant_hierarchy">Organisation</string>
+    <string name="continental">Continental</string>
+    <string name="rec_level">CER</string>
+    <string name="member_state">\u00c9tat membre</string>
+    <string name="switch_context">Changer de contexte</string>
+    <string name="current_tenant">Actuel : %s</string>
+
+    <!-- Crash Reporting -->
+    <string name="crash_reports">Rapports d\'erreurs</string>
+    <string name="crash_uploading">Envoi des rapports d\'erreurs\u2026</string>
+    <string name="crash_uploaded">Rapports d\'erreurs envoy\u00e9s</string>
+    <string name="crash_count">%d rapport(s) d\'erreurs en attente</string>
+
+    <!-- In-App Messaging -->
+    <string name="messages">Messages</string>
+    <string name="new_message">Nouveau message</string>
+    <string name="type_message">Saisissez un message\u2026</string>
+    <string name="send">Envoyer</string>
+    <string name="no_messages">Aucun message</string>
+    <string name="message_sent">Message envoy\u00e9</string>
+    <string name="select_recipient">Choisir un destinataire</string>
+    <string name="message_from">De : %s</string>
+
     <!-- Dashboard -->
     <string name="health_overview">Aper\u00e7u sant\u00e9</string>
     <string name="no_kpi_data">Aucune donn\u00e9e KPI disponible</string>
@@ -190,6 +269,30 @@
     <string name="cd_notification_read">Notification lue</string>
     <string name="cd_close_dialog">Fermer la bo\u00eete de dialogue</string>
     <string name="cd_open_menu">Ouvrir le menu</string>
+
+    <!-- Conflict Resolution -->
+    <string name="conflict_resolution">R\u00e9solution de conflit</string>
+    <string name="conflict_explanation">Cette soumission a \u00e9t\u00e9 modifi\u00e9e sur le serveur pendant que vous \u00e9tiez hors ligne. Comparez les diff\u00e9rences et choisissez la version \u00e0 conserver.</string>
+    <string name="local_version">Votre version</string>
+    <string name="server_version">Version serveur</string>
+    <string name="keep_local">Garder la mienne</string>
+    <string name="accept_server">Accepter le serveur</string>
+    <string name="merge_manual">Fusionner manuellement</string>
+    <string name="discard_submission">Supprimer</string>
+    <string name="field_differs">Modifi\u00e9</string>
+    <string name="field_same">Inchang\u00e9</string>
+    <string name="no_conflicts">Aucun conflit \u00e0 r\u00e9soudre</string>
+    <string name="conflict_resolved">Conflit r\u00e9solu \u2014 soumission en attente de synchronisation</string>
+    <string name="conflict_discarded">Soumission supprim\u00e9e</string>
+    <string name="conflicts_count">%d conflit(s)</string>
+    <string name="confirm_keep_local">Garder votre version locale et \u00e9craser les donn\u00e9es du serveur ?</string>
+    <string name="confirm_accept_server">Accepter la version du serveur et supprimer vos modifications locales ?</string>
+    <string name="confirm_discard">Supprimer d\u00e9finitivement cette soumission ? Cette action est irr\u00e9versible.</string>
+    <string name="resolve_conflict">R\u00e9soudre le conflit</string>
+    <string name="differences_found">%d diff\u00e9rence(s) trouv\u00e9e(s)</string>
+    <string name="all_fields_match">Tous les champs correspondent \u2014 aucune diff\u00e9rence</string>
+    <string name="tap_to_resolve">Appuyez pour r\u00e9soudre</string>
+    <string name="cd_conflict_field">Champ %1$s : votre valeur est %2$s, valeur serveur %3$s</string>
 
     <!-- Deep Linking -->
     <string name="deep_link_error">Impossible d\'ouvrir l\'\u00e9l\u00e9ment demand\u00e9</string>

@@ -16,6 +16,11 @@ data class Submission(
     val offlineCreatedAt: Long,
     val syncStatus: String,
     val serverErrors: String?,
+    val serverData: String? = null,
+    val workflowLevel: Int = 0,
+    val workflowStatus: String? = null,
+    val qualityGateResults: String? = null,
+    val domain: String? = null,
 )
 
 class SubmissionRepository @Inject constructor(
@@ -50,6 +55,7 @@ class SubmissionRepository @Inject constructor(
         gpsLat: Double?,
         gpsLng: Double?,
         gpsAccuracy: Float?,
+        domain: String? = null,
     ) {
         val existing = submissionDao.getById(id)
         val entity = SubmissionEntity(
@@ -65,6 +71,7 @@ class SubmissionRepository @Inject constructor(
             syncedAt = null,
             syncStatus = "DRAFT",
             serverErrors = null,
+            domain = domain ?: existing?.domain,
         )
         submissionDao.insert(entity)
     }
@@ -78,6 +85,7 @@ class SubmissionRepository @Inject constructor(
         gpsLat: Double?,
         gpsLng: Double?,
         gpsAccuracy: Float?,
+        domain: String? = null,
     ) {
         val existing = submissionDao.getById(id)
         val entity = SubmissionEntity(
@@ -93,6 +101,7 @@ class SubmissionRepository @Inject constructor(
             syncedAt = null,
             syncStatus = "PENDING",
             serverErrors = null,
+            domain = domain ?: existing?.domain,
         )
         submissionDao.insert(entity)
     }
@@ -110,6 +119,22 @@ class SubmissionRepository @Inject constructor(
         submitForm(id, tenantId, campaignId, templateId, data, gpsLat, gpsLng, gpsAccuracy)
     }
 
+    fun getConflicts(): Flow<List<Submission>> {
+        return submissionDao.getConflicts().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    fun getConflictCount(): Flow<Int> = submissionDao.getConflictCount()
+
+    suspend fun resolveConflict(submissionId: String, resolvedData: String) {
+        submissionDao.resolveConflict(submissionId, resolvedData)
+    }
+
+    suspend fun discardConflict(submissionId: String) {
+        submissionDao.delete(submissionId)
+    }
+
     private fun SubmissionEntity.toDomain() = Submission(
         id = id,
         campaignId = campaignId,
@@ -120,5 +145,10 @@ class SubmissionRepository @Inject constructor(
         offlineCreatedAt = offlineCreatedAt,
         syncStatus = syncStatus,
         serverErrors = serverErrors,
+        serverData = serverData,
+        workflowLevel = workflowLevel,
+        workflowStatus = workflowStatus,
+        qualityGateResults = qualityGateResults,
+        domain = domain,
     )
 }
