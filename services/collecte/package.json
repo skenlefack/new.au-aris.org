@@ -22,7 +22,7 @@
     "@aris/shared-types": "workspace:*",
     "@fastify/cors": "^10.0.0",
     "@fastify/helmet": "^12.0.0",
-    "@prisma/client": "^6.2.0",
+    "@prisma/client": "^6.19.2",
     "@sinclair/typebox": "^0.34.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@types/uuid": "^9.0.0",
-    "prisma": "^6.2.0",
+    "prisma": "^6.19.2",
     "tsx": "^4.11.0",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"

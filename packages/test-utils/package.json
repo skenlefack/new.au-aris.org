@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "typescript": "^5.4.0",
-    "@prisma/client": "^6.2.0",
+    "@prisma/client": "^6.19.2",
     "ioredis": "^5.4.0",
     "vitest": "^1.6.1"
   }

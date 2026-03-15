@@ -10,7 +10,7 @@
   "devDependencies": {
     "@aris/test-utils": "workspace:*",
     "@aris/shared-types": "workspace:*",
-    "@prisma/client": "^6.2.0",
+    "@prisma/client": "^6.19.2",
     "ioredis": "^5.4.0",
     "testcontainers": "^10.9.0",
     "vitest": "^1.6.1",

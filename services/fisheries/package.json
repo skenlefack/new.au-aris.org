@@ -20,7 +20,7 @@
     "@aris/shared-types": "workspace:*",
     "@aris/kafka-client": "workspace:*",
     "@aris/auth-middleware": "workspace:*",
-    "@prisma/client": "^6.2.0",
+    "@prisma/client": "^6.19.2",
     "@sinclair/typebox": "^0.32.0",
     "fastify": "^5.2.0",
     "@fastify/cors": "^10.0.0",
@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "@types/uuid": "^9.0.0",
-    "prisma": "^6.2.0",
+    "prisma": "^6.19.2",
     "tsx": "^4.11.0",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"
