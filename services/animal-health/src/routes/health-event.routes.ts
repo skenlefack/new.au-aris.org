@@ -61,6 +61,16 @@ export async function registerHealthEventRoutes(app: FastifyInstance): Promise<v
     },
   );
 
+  // GET /api/v1/animal-health/events/markers (MUST be before /:id)
+  app.get(
+    '/api/v1/animal-health/events/markers',
+    { preHandler: authAndTenant },
+    async (request) => {
+      const user = request.user as AuthenticatedUser;
+      return app.healthEventService.findMarkers(user);
+    },
+  );
+
   // GET /api/v1/animal-health/events/:id
   app.get<{ Params: UuidParamInput }>(
     '/api/v1/animal-health/events/:id',

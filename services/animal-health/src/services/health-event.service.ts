@@ -98,6 +98,52 @@ export class HealthEventService {
     };
   }
 
+  async findMarkers(user: AuthenticatedUser) {
+    const where = this.buildWhere(user, {});
+
+    const events = await this.prisma.healthEvent.findMany({
+      where,
+      select: {
+        id: true,
+        latitude: true,
+        longitude: true,
+        diseaseId: true,
+        cases: true,
+        eventType: true,
+        confidenceLevel: true,
+        geoEntityId: true,
+        tenantId: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+    });
+
+    // Only return events that have coordinates
+    const markers = events
+      .filter((e) => e.latitude !== null && e.longitude !== null)
+      .map((e) => ({
+        id: e.id,
+        lat: Number(e.latitude),
+        lng: Number(e.longitude),
+        disease: e.diseaseId,
+        country: e.tenantId,
+        severity: this.mapConfidenceToSeverity(e.confidenceLevel),
+        cases: e.cases ?? 0,
+        status: (e.eventType ?? 'SUSPECTED').toLowerCase(),
+      }));
+
+    return { data: markers };
+  }
+
+  private mapConfidenceToSeverity(level: string | null): string {
+    switch (level) {
+      case 'CONFIRMED': return 'critical';
+      case 'VERIFIED': return 'high';
+      case 'SUSPECTED': return 'medium';
+      default: return 'low';
+    }
+  }
+
   async findOne(id: string, user: AuthenticatedUser) {
     const event = await this.prisma.healthEvent.findUnique({
       where: { id },

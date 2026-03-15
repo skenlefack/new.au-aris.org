@@ -38,8 +38,8 @@ function withFallback<T>(queryFn: () => Promise<T>, fallback: T): () => Promise<
       return await queryFn();
     } catch (err) {
       // Service offline or unavailable — silently return fallback data.
-      // 401 = service auth issue; 404 = route not found; 500/502/503 = upstream errors
-      if (err instanceof ApiClientError && [401, 403, 404, 500, 502, 503].includes(err.statusCode)) {
+      // 400 = bad request; 401 = auth; 404 = not found; 500/502/503 = upstream errors
+      if (err instanceof ApiClientError && [400, 401, 403, 404, 500, 502, 503].includes(err.statusCode)) {
         return fallback;
       }
       // Network errors (service not running at all → fetch throws TypeError)
