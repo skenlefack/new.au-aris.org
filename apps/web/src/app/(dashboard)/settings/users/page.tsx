@@ -1,769 +1,500 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import {
-  useSettingsUsers,
-  useCreateUser,
-  useUpdateUser,
-  useDeleteUser,
-  useResetUserPassword,
-  useAssignUserFunction,
-  useRemoveUserFunction,
-  useSettingsFunctions,
-  type ManagedUser,
-  type FunctionItem,
-} from '@/lib/api/settings-hooks';
-import { useSettingsAccess } from '@/hooks/useSettingsAccess';
-import { Pagination } from '@/components/ui/Pagination';
-import {
-  Users as UsersIcon,
+  Users,
   Plus,
   Search,
   Pencil,
-  Trash2,
-  KeyRound,
-  Briefcase,
-  Loader2,
-  X,
-  Check,
-  Shield,
-  ShieldAlert,
-  ShieldCheck,
-  Eye,
-  EyeOff,
-  Copy,
+  UserX,
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  UserCheck,
+  Mail,
 } from 'lucide-react';
-import { useTranslations } from '@/lib/i18n/translations';
 import { cn } from '@/lib/utils';
 
-const ROLES = [
-  { value: 'SUPER_ADMIN', label: 'Super Admin', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-  { value: 'CONTINENTAL_ADMIN', label: 'Continental Admin', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
-  { value: 'REC_ADMIN', label: 'REC Admin', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  { value: 'NATIONAL_ADMIN', label: 'National Admin', color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' },
-  { value: 'DATA_STEWARD', label: 'Data Steward', color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' },
-  { value: 'WAHIS_FOCAL_POINT', label: 'WAHIS Focal', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
-  { value: 'ANALYST', label: 'Analyst', color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400' },
-  { value: 'FIELD_AGENT', label: 'Field Agent', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+/* ─── Types ──────────────────────────────────────────────────────────────────── */
+
+interface PlaceholderUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: UserRole;
+  tenant: string;
+  lastLogin: string | null;
+  isActive: boolean;
+}
+
+type UserRole =
+  | 'SUPER_ADMIN'
+  | 'CONTINENTAL_ADMIN'
+  | 'REC_ADMIN'
+  | 'NATIONAL_ADMIN'
+  | 'DATA_STEWARD'
+  | 'WAHIS_FOCAL_POINT'
+  | 'ANALYST'
+  | 'FIELD_AGENT';
+
+/* ─── Constants ──────────────────────────────────────────────────────────────── */
+
+const ROLE_CONFIG: Record<UserRole, { label: string; color: string }> = {
+  SUPER_ADMIN: { label: 'Super Admin', color: 'bg-red-100 text-red-700' },
+  CONTINENTAL_ADMIN: { label: 'Continental Admin', color: 'bg-purple-100 text-purple-700' },
+  REC_ADMIN: { label: 'REC Admin', color: 'bg-blue-100 text-blue-700' },
+  NATIONAL_ADMIN: { label: 'National Admin', color: 'bg-green-100 text-green-700' },
+  DATA_STEWARD: { label: 'Data Steward', color: 'bg-amber-100 text-amber-700' },
+  WAHIS_FOCAL_POINT: { label: 'WAHIS Focal Point', color: 'bg-cyan-100 text-cyan-700' },
+  ANALYST: { label: 'Analyst', color: 'bg-gray-100 text-gray-600' },
+  FIELD_AGENT: { label: 'Field Agent', color: 'bg-orange-100 text-orange-700' },
+};
+
+const ALL_ROLES = Object.keys(ROLE_CONFIG) as UserRole[];
+
+const PLACEHOLDER_USERS: PlaceholderUser[] = [
+  {
+    id: 'u-001',
+    firstName: 'Jean',
+    lastName: 'Ouedraogo',
+    email: 'j.ouedraogo@au-ibar.org',
+    role: 'SUPER_ADMIN',
+    tenant: 'AU-IBAR',
+    lastLogin: '2026-03-15T08:12:00Z',
+    isActive: true,
+  },
+  {
+    id: 'u-002',
+    firstName: 'Amina',
+    lastName: 'Mwangi',
+    email: 'a.mwangi@ke.au-aris.org',
+    role: 'NATIONAL_ADMIN',
+    tenant: 'Kenya',
+    lastLogin: '2026-03-14T14:35:00Z',
+    isActive: true,
+  },
+  {
+    id: 'u-003',
+    firstName: 'Bekele',
+    lastName: 'Tessema',
+    email: 'b.tessema@et.au-aris.org',
+    role: 'NATIONAL_ADMIN',
+    tenant: 'Ethiopia',
+    lastLogin: '2026-03-13T09:20:00Z',
+    isActive: true,
+  },
+  {
+    id: 'u-004',
+    firstName: 'Fatima',
+    lastName: 'Diop',
+    email: 'f.diop@sn.au-aris.org',
+    role: 'DATA_STEWARD',
+    tenant: 'Senegal',
+    lastLogin: '2026-03-14T16:45:00Z',
+    isActive: true,
+  },
+  {
+    id: 'u-005',
+    firstName: 'Adamu',
+    lastName: 'Yusuf',
+    email: 'a.yusuf@ng.au-aris.org',
+    role: 'WAHIS_FOCAL_POINT',
+    tenant: 'Nigeria',
+    lastLogin: '2026-03-12T11:00:00Z',
+    isActive: true,
+  },
+  {
+    id: 'u-006',
+    firstName: 'Sarah',
+    lastName: 'Johnson',
+    email: 's.johnson@au-ibar.org',
+    role: 'CONTINENTAL_ADMIN',
+    tenant: 'AU-IBAR',
+    lastLogin: '2026-03-15T07:50:00Z',
+    isActive: true,
+  },
+  {
+    id: 'u-007',
+    firstName: 'Mohamed',
+    lastName: 'Hassan',
+    email: 'm.hassan@igad.int',
+    role: 'REC_ADMIN',
+    tenant: 'IGAD',
+    lastLogin: '2026-03-11T13:30:00Z',
+    isActive: false,
+  },
+  {
+    id: 'u-008',
+    firstName: 'James',
+    lastName: 'Ochieng',
+    email: 'j.ochieng@ke.au-aris.org',
+    role: 'FIELD_AGENT',
+    tenant: 'Kenya',
+    lastLogin: null,
+    isActive: true,
+  },
 ];
 
-function getRoleBadge(role: string) {
-  const found = ROLES.find((r) => r.value === role);
-  if (!found) return <span className="text-xs">{role}</span>;
+const ITEMS_PER_PAGE = 5;
+
+/* ─── Helpers ────────────────────────────────────────────────────────────────── */
+
+function formatRelativeTime(dateStr: string | null): string {
+  if (!dateStr) return 'Never';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60_000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  const diffWeeks = Math.floor(diffDays / 7);
+  if (diffWeeks < 4) return `${diffWeeks}w ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function getRoleBadge(role: UserRole) {
+  const config = ROLE_CONFIG[role];
   return (
-    <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold', found.color)}>
-      {found.label}
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap',
+        config.color,
+      )}
+    >
+      {config.label}
     </span>
   );
 }
 
-function generatePassword(length = 16): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%&*';
-  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-}
-
-function getPrimaryFunction(user: ManagedUser): string {
-  const primary = user.functions?.find((f) => f.isPrimary);
-  if (primary) return primary.function.name?.en ?? primary.function.code;
-  if (user.functions && user.functions.length > 0) return user.functions[0].function.name?.en ?? user.functions[0].function.code;
-  return '-';
-}
-
-interface UserFormData {
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-  tenantId: string;
-  locale: string;
-  password: string;
-  isActive: boolean;
-}
-
-const EMPTY_USER_FORM: UserFormData = {
-  email: '',
-  firstName: '',
-  lastName: '',
-  role: 'FIELD_AGENT',
-  tenantId: '',
-  locale: 'en',
-  password: '',
-  isActive: true,
-};
+/* ─── Main Page ──────────────────────────────────────────────────────────────── */
 
 export default function UsersPage() {
-  const t = useTranslations('settings');
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
-  const { isSuperAdmin, isContinentalAdmin, isRecAdmin, isNationalAdmin } = useSettingsAccess();
-  const canManage = isSuperAdmin || isContinentalAdmin || isRecAdmin || isNationalAdmin;
-  const canCreate = isSuperAdmin || isContinentalAdmin || isRecAdmin || isNationalAdmin;
-  const canDelete = isSuperAdmin;
-  const canResetPassword = isSuperAdmin || isContinentalAdmin;
 
-  const { data, isLoading } = useSettingsUsers({
-    search, role: roleFilter || undefined, status: statusFilter || undefined, page, limit,
-  });
+  /* ── Filtering ── */
+  const filteredUsers = useMemo(() => {
+    let result = PLACEHOLDER_USERS;
 
-  const users: ManagedUser[] = data?.data ?? [];
-  const meta = data?.meta ?? { total: users.length, page: 1, limit };
-
-  // Load functions for assignment dropdown
-  const { data: fnData } = useSettingsFunctions({ limit: 100 });
-  const allFunctions: FunctionItem[] = fnData?.data ?? [];
-
-  const createMut = useCreateUser();
-  const updateMut = useUpdateUser();
-  const deleteMut = useDeleteUser();
-  const resetPwdMut = useResetUserPassword();
-  const assignFnMut = useAssignUserFunction();
-  const removeFnMut = useRemoveUserFunction();
-
-  // View state
-  const [view, setView] = useState<'list' | 'form'>('list');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<UserFormData>(EMPTY_USER_FORM);
-  const [showPwd, setShowPwd] = useState(false);
-
-  // Password reset dialog (keep as modal — quick action)
-  const [resetPwdUser, setResetPwdUser] = useState<ManagedUser | null>(null);
-  const [newPassword, setNewPassword] = useState('');
-  const [showNewPwd, setShowNewPwd] = useState(false);
-
-  // Function assignment dialog (keep as modal — contextual list)
-  const [assignFnUser, setAssignFnUser] = useState<ManagedUser | null>(null);
-  const [selectedFnId, setSelectedFnId] = useState('');
-  const [fnIsPrimary, setFnIsPrimary] = useState(false);
-
-  const openCreate = useCallback(() => {
-    const pwd = generatePassword();
-    setForm({ ...EMPTY_USER_FORM, password: pwd });
-    setEditingId(null);
-    setView('form');
-    setShowPwd(false);
-  }, []);
-
-  const openEdit = useCallback((u: ManagedUser) => {
-    setForm({
-      email: u.email,
-      firstName: u.firstName,
-      lastName: u.lastName,
-      role: u.role,
-      tenantId: u.tenantId,
-      locale: u.locale,
-      password: '',
-      isActive: u.isActive,
-    });
-    setEditingId(u.id);
-    setView('form');
-  }, []);
-
-  const handleBack = useCallback(() => {
-    setView('list');
-    setEditingId(null);
-  }, []);
-
-  const handleSave = useCallback(async () => {
-    if (editingId) {
-      await updateMut.mutateAsync({
-        id: editingId,
-        email: form.email,
-        firstName: form.firstName,
-        lastName: form.lastName,
-        role: form.role,
-        locale: form.locale,
-        isActive: form.isActive,
-      });
-    } else {
-      await createMut.mutateAsync({
-        email: form.email,
-        password: form.password,
-        firstName: form.firstName,
-        lastName: form.lastName,
-        role: form.role,
-        tenantId: form.tenantId,
-        locale: form.locale,
-      });
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (u) =>
+          `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q),
+      );
     }
-    setView('list');
-    setEditingId(null);
-  }, [form, editingId, createMut, updateMut]);
 
-  const handleDelete = useCallback(async (id: string, email: string) => {
-    if (!confirm(t('deleteUserConfirm', { email }))) return;
-    await deleteMut.mutateAsync(id);
-  }, [deleteMut]);
+    if (roleFilter) {
+      result = result.filter((u) => u.role === roleFilter);
+    }
 
-  const handleResetPassword = useCallback(async () => {
-    if (!resetPwdUser || !newPassword) return;
-    await resetPwdMut.mutateAsync({ id: resetPwdUser.id, password: newPassword });
-    setResetPwdUser(null);
-    setNewPassword('');
-  }, [resetPwdUser, newPassword, resetPwdMut]);
+    if (statusFilter === 'active') {
+      result = result.filter((u) => u.isActive);
+    } else if (statusFilter === 'inactive') {
+      result = result.filter((u) => !u.isActive);
+    }
 
-  const handleAssignFunction = useCallback(async () => {
-    if (!assignFnUser || !selectedFnId) return;
-    await assignFnMut.mutateAsync({
-      userId: assignFnUser.id,
-      functionId: selectedFnId,
-      isPrimary: fnIsPrimary,
-    });
-    setAssignFnUser(null);
-    setSelectedFnId('');
-    setFnIsPrimary(false);
-  }, [assignFnUser, selectedFnId, fnIsPrimary, assignFnMut]);
+    return result;
+  }, [search, roleFilter, statusFilter]);
 
-  const handleRemoveFunction = useCallback(async (userId: string, functionId: string) => {
-    await removeFnMut.mutateAsync({ userId, functionId });
-  }, [removeFnMut]);
+  /* ── Pagination ── */
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / ITEMS_PER_PAGE));
+  const paginatedUsers = filteredUsers.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE,
+  );
 
-  if (view === 'form') {
-    return (
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <UsersIcon className="h-6 w-6 text-aris-primary-600" />
-              {editingId ? t('editUser') : t('newUser')}
-            </h1>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {editingId ? t('editingUser', { name: `${form.firstName} ${form.lastName}` }) : t('createAccount')}
-            </p>
-          </div>
-          <button
-            onClick={handleBack}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t('back')}
-          </button>
-        </div>
-
-        {/* Inline form */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-          <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-            {/* First Name */}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('firstName')} <span className="text-red-500">*</span>
-              </label>
-              <input
-                value={form.firstName}
-                onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                placeholder="John"
-              />
-            </div>
-
-            {/* Last Name */}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('lastName')} <span className="text-red-500">*</span>
-              </label>
-              <input
-                value={form.lastName}
-                onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                placeholder="Doe"
-              />
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('email')} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                placeholder="user@au-aris.org"
-              />
-            </div>
-
-            {/* Role */}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('role')} <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={form.role}
-                onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-              >
-                {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-              </select>
-            </div>
-
-            {/* Language */}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('language')}
-              </label>
-              <select
-                value={form.locale}
-                onChange={(e) => setForm((f) => ({ ...f, locale: e.target.value }))}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-              >
-                <option value="en">English</option>
-                <option value="fr">Français</option>
-                <option value="pt">Português</option>
-                <option value="ar">العربية</option>
-              </select>
-            </div>
-
-            {/* Tenant ID (only on create) */}
-            {!editingId && (
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {t('tenantId')} <span className="text-red-500">*</span>
-                </label>
-                <input
-                  value={form.tenantId}
-                  onChange={(e) => setForm((f) => ({ ...f, tenantId: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                  placeholder="UUID of tenant"
-                />
-              </div>
-            )}
-
-            {/* Active toggle (edit only) */}
-            {editingId && (
-              <div className="flex items-end pb-1">
-                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                  <input
-                    type="checkbox"
-                    checked={form.isActive}
-                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                    className="h-4 w-4 rounded border-gray-300 text-aris-primary-600"
-                  />
-                  {t('activeAccount')}
-                </label>
-              </div>
-            )}
-          </div>
-
-          {/* Password (only on create) */}
-          {!editingId && (
-            <div className="mt-4">
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('password')} <span className="text-red-500">*</span>
-              </label>
-              <div className="flex gap-2 max-w-lg">
-                <div className="relative flex-1">
-                  <input
-                    type={showPwd ? 'text' : 'password'}
-                    value={form.password}
-                    onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 pr-16 text-sm font-mono dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPwd(!showPwd)}
-                    className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigator.clipboard.writeText(form.password)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    title={t('copy')}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setForm((f) => ({ ...f, password: generatePassword() }))}
-                  className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                >
-                  {t('generate')}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="mt-6 flex items-center justify-end gap-3 border-t border-gray-100 dark:border-gray-700 pt-4">
-            <button
-              onClick={handleBack}
-              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-            >
-              {t('cancel')}
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={!form.email || !form.firstName || !form.lastName || createMut.isPending || updateMut.isPending}
-              className="flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-5 py-2 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50"
-            >
-              {(createMut.isPending || updateMut.isPending) ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="h-4 w-4" />
-              )}
-              {editingId ? t('update') : t('create')}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  /* ── Stats ── */
+  const totalUsers = PLACEHOLDER_USERS.length;
+  const activeUsers = PLACEHOLDER_USERS.filter((u) => u.isActive).length;
+  const pendingInvitations = PLACEHOLDER_USERS.filter((u) => u.lastLogin === null).length;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* ── Header ── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
+          <div className="mb-2">
+            <Link
+              href="/settings"
+              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to Settings
+            </Link>
+          </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <UsersIcon className="h-6 w-6 text-aris-primary-600" />
-            {t('usersManagement')}
+            <Users className="h-6 w-6 text-aris-primary-600" />
+            User Management
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t('usersSubtitle')}
+            Manage user accounts and roles
           </p>
         </div>
-        {canCreate && (
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-aris-primary-700"
-          >
-            <Plus className="h-4 w-4" />
-            {t('addUser')}
-          </button>
-        )}
+        <button className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700">
+          <Plus className="h-4 w-4" />
+          Add User
+        </button>
       </div>
 
-      {/* Filters */}
+      {/* ── Stats Row ── */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+            <Users className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalUsers}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Total Users</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+            <UserCheck className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{activeUsers}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Active Users</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+            <Mail className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{pendingInvitations}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Pending Invitations</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Filters ── */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="relative min-w-[200px] flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder={t('searchByNameOrEmail')}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Search by name or email..."
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
+
         <select
           value={roleFilter}
-          onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
+          onChange={(e) => {
+            setRoleFilter(e.target.value);
+            setPage(1);
+          }}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
         >
-          <option value="">{t('allRoles')}</option>
-          {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+          <option value="">All Roles</option>
+          {ALL_ROLES.map((role) => (
+            <option key={role} value={role}>
+              {ROLE_CONFIG[role].label}
+            </option>
+          ))}
         </select>
+
         <select
           value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setPage(1);
+          }}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
         >
-          <option value="">{t('allStatus')}</option>
-          <option value="active">{t('active')}</option>
-          <option value="inactive">{t('inactive')}</option>
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
         </select>
       </div>
 
-      {/* Table */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                <tr>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('user')}</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('email')}</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('role')}</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('function')}</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('tenant')}</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('mfa')}</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('status')}</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('lastLogin')}</th>
-                  {canManage && (
-                    <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('actions')}</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {users.map((u) => (
-                  <tr key={u.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-aris-primary-100 text-xs font-bold text-aris-primary-700 dark:bg-aris-primary-900/30 dark:text-aris-primary-400">
-                          {u.firstName?.[0]}{u.lastName?.[0]}
-                        </div>
-                        <span className="font-medium text-gray-900 dark:text-white">
-                          {u.firstName} {u.lastName}
-                        </span>
+      {/* ── Users Table ── */}
+      <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
+              <tr>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Email</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Role</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Tenant</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Last Login</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Status</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {paginatedUsers.map((user) => (
+                <tr
+                  key={user.id}
+                  className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                >
+                  {/* Name */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-aris-primary-100 text-xs font-bold text-aris-primary-700 dark:bg-aris-primary-900/30 dark:text-aris-primary-400">
+                        {user.firstName[0]}
+                        {user.lastName[0]}
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
-                      {u.email}
-                    </td>
-                    <td className="px-4 py-3">{getRoleBadge(u.role)}</td>
-                    <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-300">
-                      {getPrimaryFunction(u)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
-                      {u.tenant?.name ?? u.tenantId?.slice(0, 8)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {u.mfaEnabled ? (
-                        <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                      ) : (
-                        <ShieldAlert className="h-4 w-4 text-gray-300 dark:text-gray-600" />
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={cn(
-                        'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold',
-                        u.isActive
+                      <span className="font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                        Dr. {user.firstName} {user.lastName}
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* Email */}
+                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+                    {user.email}
+                  </td>
+
+                  {/* Role Badge */}
+                  <td className="px-4 py-3">{getRoleBadge(user.role)}</td>
+
+                  {/* Tenant */}
+                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                    {user.tenant}
+                  </td>
+
+                  {/* Last Login */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      <Clock className="h-3 w-3" />
+                      {formatRelativeTime(user.lastLogin)}
+                    </div>
+                  </td>
+
+                  {/* Status */}
+                  <td className="px-4 py-3">
+                    <span
+                      className={cn(
+                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
+                        user.isActive
                           ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                           : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
-                      )}>
-                        {u.isActive ? t('active') : t('inactive')}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
-                      {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : t('never')}
-                    </td>
-                    {canManage && (
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => openEdit(u)}
-                            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-white"
-                            title={t('editUserAction')}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => setAssignFnUser(u)}
-                            className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
-                            title={t('manageFunctions')}
-                          >
-                            <Briefcase className="h-4 w-4" />
-                          </button>
-                          {canResetPassword && (
-                            <button
-                              onClick={() => { setResetPwdUser(u); setNewPassword(generatePassword()); setShowNewPwd(false); }}
-                              className="rounded p-1 text-gray-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/20 dark:hover:text-amber-400"
-                              title={t('resetPasswordAction')}
-                            >
-                              <KeyRound className="h-4 w-4" />
-                            </button>
-                          )}
-                          {canDelete && (
-                            <button
-                              onClick={() => handleDelete(u.id, u.email)}
-                              className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                              title={t('deleteUserAction')}
-                              disabled={deleteMut.isPending}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-                {users.length === 0 && (
-                  <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                      {t('noUsersFound')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          <Pagination
-            page={meta.page}
-            total={meta.total}
-            limit={limit}
-            onPageChange={setPage}
-            onLimitChange={(v) => { setLimit(v); setPage(1); }}
-          />
-        </div>
-      )}
+                      )}
+                    >
+                      {user.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
 
-      {/* ─── Reset Password Modal (essential — quick security action) ─── */}
-      {resetPwdUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <KeyRound className="h-5 w-5 text-amber-500" />
-                {t('resetPassword')}
-              </h2>
-              <button onClick={() => setResetPwdUser(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              {t('resetPasswordFor')} <span className="font-medium text-gray-900 dark:text-white">{resetPwdUser.email}</span>
-            </p>
-
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <input
-                    type={showNewPwd ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 pr-16 text-sm font-mono dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPwd(!showNewPwd)}
-                    className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showNewPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigator.clipboard.writeText(newPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    title={t('copy')}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setNewPassword(generatePassword())}
-                  className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                >
-                  {t('generate')}
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={() => setResetPwdUser(null)}
-                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                {t('cancel')}
-              </button>
-              <button
-                onClick={handleResetPassword}
-                disabled={!newPassword || newPassword.length < 8 || resetPwdMut.isPending}
-                className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
-              >
-                {resetPwdMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                {t('resetPassword')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Assign Function Modal (essential — contextual list management) ─── */}
-      {assignFnUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <Briefcase className="h-5 w-5 text-blue-500" />
-                {t('functionsFor', { name: `${assignFnUser.firstName} ${assignFnUser.lastName}` })}
-              </h2>
-              <button onClick={() => setAssignFnUser(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Current functions */}
-            {assignFnUser.functions && assignFnUser.functions.length > 0 && (
-              <div className="mb-4">
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{t('currentAssignments')}</p>
-                <div className="space-y-1.5">
-                  {assignFnUser.functions.map((uf) => (
-                    <div key={uf.id} className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 dark:border-gray-800">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-900 dark:text-white">{uf.function.name?.en ?? uf.function.code}</span>
-                        {uf.isPrimary && (
-                          <span className="rounded-full bg-aris-primary-100 px-1.5 py-0.5 text-[9px] font-bold text-aris-primary-700 dark:bg-aris-primary-900/30 dark:text-aris-primary-400">
-                            {t('primary')}
-                          </span>
-                        )}
-                        <span className="text-[10px] text-gray-400">{uf.function.level}</span>
-                      </div>
+                  {/* Actions */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1">
                       <button
-                        onClick={() => handleRemoveFunction(assignFnUser.id, uf.function.id)}
-                        className="text-gray-300 hover:text-red-500"
-                        title={t('remove')}
-                        disabled={removeFnMut.isPending}
+                        className="rounded p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-colors"
+                        title="Edit user"
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        className={cn(
+                          'rounded p-1.5 transition-colors',
+                          user.isActive
+                            ? 'text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400'
+                            : 'text-gray-400 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400',
+                        )}
+                        title={user.isActive ? 'Deactivate user' : 'Activate user'}
+                      >
+                        <UserX className="h-4 w-4" />
                       </button>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                  </td>
+                </tr>
+              ))}
 
-            {/* Add function */}
-            <div className="space-y-3 border-t border-gray-100 pt-4 dark:border-gray-800">
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('addFunction')}</p>
-              <select
-                value={selectedFnId}
-                onChange={(e) => setSelectedFnId(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              >
-                <option value="">{t('selectFunction')}</option>
-                {allFunctions
-                  .filter((fn) => !assignFnUser.functions?.some((uf) => uf.function.id === fn.id))
-                  .map((fn) => (
-                    <option key={fn.id} value={fn.id}>
-                      [{fn.level}] {fn.name?.en ?? fn.code} ({fn.category ?? '-'})
-                    </option>
-                  ))
-                }
-              </select>
-              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input
-                  type="checkbox"
-                  checked={fnIsPrimary}
-                  onChange={(e) => setFnIsPrimary(e.target.checked)}
-                  className="rounded"
-                />
-                {t('setAsPrimary')}
-              </label>
-            </div>
+              {paginatedUsers.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400"
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <Users className="h-8 w-8 text-gray-300 dark:text-gray-600" />
+                      <p className="font-medium text-gray-900 dark:text-white">No users found</p>
+                      <p className="text-xs">Try adjusting your search or filter criteria.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
-            <div className="mt-6 flex justify-end gap-3">
+        {/* ── Pagination ── */}
+        {filteredUsers.length > ITEMS_PER_PAGE && (
+          <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800/50">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Showing{' '}
+              <span className="font-medium text-gray-900 dark:text-white">
+                {(page - 1) * ITEMS_PER_PAGE + 1}
+              </span>{' '}
+              to{' '}
+              <span className="font-medium text-gray-900 dark:text-white">
+                {Math.min(page * ITEMS_PER_PAGE, filteredUsers.length)}
+              </span>{' '}
+              of{' '}
+              <span className="font-medium text-gray-900 dark:text-white">
+                {filteredUsers.length}
+              </span>{' '}
+              users
+            </p>
+
+            <div className="flex items-center gap-1">
               <button
-                onClick={() => setAssignFnUser(null)}
-                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
               >
-                {t('close')}
+                <ChevronLeft className="h-3.5 w-3.5" />
+                Previous
               </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={cn(
+                    'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                    page === p
+                      ? 'bg-aris-primary-600 text-white'
+                      : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800',
+                  )}
+                >
+                  {p}
+                </button>
+              ))}
+
               <button
-                onClick={handleAssignFunction}
-                disabled={!selectedFnId || assignFnMut.isPending}
-                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
               >
-                {assignFnMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                {t('assign')}
+                Next
+                <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -234,7 +234,7 @@ export default function QualityDrilldownPage() {
               <Database className="h-5 w-5 text-gray-400" />
             </div>
             <div className="mt-2 text-kpi text-gray-900">
-              {summaryStats.totalRecords.toLocaleString()}
+              {(summaryStats.totalRecords ?? 0).toLocaleString()}
             </div>
           </div>
         </div>
@@ -321,7 +321,7 @@ export default function QualityDrilldownPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-600">{row.gate}</td>
                     <td className="px-4 py-3 text-right text-gray-600">
-                      {row.totalRecords.toLocaleString()}
+                      {(row.totalRecords ?? 0).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-right text-green-700">
                       {row.passed.toLocaleString()}

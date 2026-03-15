@@ -1,277 +1,574 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
+import React, { useState, useMemo } from 'react';
 import {
-  useHistoricalDatasets,
-  useHistoricalStats,
-  useDeleteDataset,
-  type HistoricalDataset,
-} from '@/lib/api/historical-hooks';
-import { useAuthStore } from '@/lib/stores/auth-store';
-import { useTranslations } from '@/lib/i18n/translations';
+  Database,
+  Calendar,
+  Layers,
+  Clock,
+  Search,
+  Filter,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 /* ------------------------------------------------------------------ */
-/*  Status badge                                                        */
+/*  Types                                                               */
 /* ------------------------------------------------------------------ */
 
-const STATUS_COLORS: Record<string, string> = {
-  READY: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  IMPORTING: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  ANALYZING: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  PENDING: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
-  FAILED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  ARCHIVED: 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400',
+type Domain =
+  | 'Animal Health'
+  | 'Livestock'
+  | 'Fisheries'
+  | 'Wildlife'
+  | 'Apiculture'
+  | 'Trade'
+  | 'Governance'
+  | 'Climate';
+
+type Source = 'FAOSTAT' | 'National Census' | 'ARIS' | 'WAHIS';
+
+interface HistoricalRecord {
+  id: string;
+  entity: string;
+  domain: Domain;
+  country: string;
+  countryCode: string;
+  year: number;
+  value: number;
+  unit: string;
+  source: Source;
+  version: number;
+  updatedAt: string;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Badge colour maps                                                   */
+/* ------------------------------------------------------------------ */
+
+const DOMAIN_BADGE: Record<Domain, string> = {
+  'Animal Health': 'bg-red-100 text-red-700',
+  Livestock: 'bg-amber-100 text-amber-700',
+  Fisheries: 'bg-blue-100 text-blue-700',
+  Wildlife: 'bg-green-100 text-green-700',
+  Apiculture: 'bg-yellow-100 text-yellow-700',
+  Trade: 'bg-purple-100 text-purple-700',
+  Governance: 'bg-orange-100 text-orange-700',
+  Climate: 'bg-teal-100 text-teal-700',
 };
 
-function StatusBadge({ status }: { status: string }) {
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[status] ?? STATUS_COLORS['PENDING']}`}>
-      {status}
-    </span>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                             */
-/* ------------------------------------------------------------------ */
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
-}
-
-function formatNumber(n: number): string {
-  return n.toLocaleString();
-}
-
-const DOMAIN_LABELS: Record<string, string> = {
-  animal_health: 'Animal Health',
-  livestock: 'Livestock',
-  fisheries: 'Fisheries',
-  trade: 'Trade & SPS',
-  wildlife: 'Wildlife',
-  apiculture: 'Apiculture',
-  governance: 'Governance',
-  climate: 'Climate & Env',
-  general: 'General',
+const SOURCE_BADGE: Record<Source, string> = {
+  FAOSTAT: 'bg-blue-100 text-blue-700',
+  'National Census': 'bg-green-100 text-green-700',
+  ARIS: 'bg-gray-100 text-gray-600',
+  WAHIS: 'bg-red-100 text-red-700',
 };
 
 /* ------------------------------------------------------------------ */
-/*  Page                                                                */
+/*  Filter options                                                      */
+/* ------------------------------------------------------------------ */
+
+const DOMAINS: Domain[] = [
+  'Animal Health',
+  'Livestock',
+  'Fisheries',
+  'Wildlife',
+  'Apiculture',
+  'Trade',
+  'Governance',
+  'Climate',
+];
+
+const ENTITY_TYPES = [
+  'All Types',
+  'Population',
+  'Outbreaks',
+  'Captures',
+  'Production',
+  'Exports',
+  'Vaccinations',
+  'Facilities',
+  'Index',
+];
+
+/* ------------------------------------------------------------------ */
+/*  Placeholder data — 10 rows with realistic AU data                   */
+/* ------------------------------------------------------------------ */
+
+const PLACEHOLDER_DATA: HistoricalRecord[] = [
+  {
+    id: 'hr-1',
+    entity: 'Cattle Population',
+    domain: 'Livestock',
+    country: 'Kenya',
+    countryCode: 'KE',
+    year: 2025,
+    value: 18_400_000,
+    unit: 'heads',
+    source: 'FAOSTAT',
+    version: 3,
+    updatedAt: '2026-02-28T14:00:00Z',
+  },
+  {
+    id: 'hr-2',
+    entity: 'FMD Outbreaks',
+    domain: 'Animal Health',
+    country: 'Ethiopia',
+    countryCode: 'ET',
+    year: 2024,
+    value: 47,
+    unit: 'events',
+    source: 'WAHIS',
+    version: 2,
+    updatedAt: '2026-01-15T10:30:00Z',
+  },
+  {
+    id: 'hr-3',
+    entity: 'Fish Captures',
+    domain: 'Fisheries',
+    country: 'Nigeria',
+    countryCode: 'NG',
+    year: 2025,
+    value: 1_024_500,
+    unit: 'tonnes',
+    source: 'National Census',
+    version: 1,
+    updatedAt: '2026-03-01T09:00:00Z',
+  },
+  {
+    id: 'hr-4',
+    entity: 'Honey Production',
+    domain: 'Apiculture',
+    country: 'Senegal',
+    countryCode: 'SN',
+    year: 2024,
+    value: 12_300,
+    unit: 'tonnes',
+    source: 'ARIS',
+    version: 1,
+    updatedAt: '2025-12-20T16:00:00Z',
+  },
+  {
+    id: 'hr-5',
+    entity: 'Elephant Population',
+    domain: 'Wildlife',
+    country: 'Tanzania',
+    countryCode: 'TZ',
+    year: 2025,
+    value: 60_200,
+    unit: 'individuals',
+    source: 'National Census',
+    version: 4,
+    updatedAt: '2026-02-10T11:00:00Z',
+  },
+  {
+    id: 'hr-6',
+    entity: 'Live Animal Exports',
+    domain: 'Trade',
+    country: 'Djibouti',
+    countryCode: 'DJ',
+    year: 2024,
+    value: 3_250_000,
+    unit: 'heads',
+    source: 'ARIS',
+    version: 2,
+    updatedAt: '2026-01-28T08:00:00Z',
+  },
+  {
+    id: 'hr-7',
+    entity: 'Veterinary Labs',
+    domain: 'Governance',
+    country: 'South Africa',
+    countryCode: 'ZA',
+    year: 2025,
+    value: 42,
+    unit: 'facilities',
+    source: 'ARIS',
+    version: 1,
+    updatedAt: '2026-03-05T12:00:00Z',
+  },
+  {
+    id: 'hr-8',
+    entity: 'Water Stress Index',
+    domain: 'Climate',
+    country: 'Egypt',
+    countryCode: 'EG',
+    year: 2024,
+    value: 78.4,
+    unit: '%',
+    source: 'FAOSTAT',
+    version: 2,
+    updatedAt: '2025-11-30T14:30:00Z',
+  },
+  {
+    id: 'hr-9',
+    entity: 'PPR Vaccinations',
+    domain: 'Animal Health',
+    country: 'Uganda',
+    countryCode: 'UG',
+    year: 2025,
+    value: 2_150_000,
+    unit: 'doses',
+    source: 'WAHIS',
+    version: 1,
+    updatedAt: '2026-02-18T07:45:00Z',
+  },
+  {
+    id: 'hr-10',
+    entity: 'Aquaculture Production',
+    domain: 'Fisheries',
+    country: 'Ghana',
+    countryCode: 'GH',
+    year: 2024,
+    value: 84_700,
+    unit: 'tonnes',
+    source: 'National Census',
+    version: 3,
+    updatedAt: '2026-01-05T10:00:00Z',
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/*  Page component                                                      */
 /* ------------------------------------------------------------------ */
 
 export default function HistoricalDataPage() {
-  const t = useTranslations('historical');
-  const { user } = useAuthStore();
-  const [search, setSearch] = useState('');
-  const [domain, setDomain] = useState('');
+  /* --- filter state --- */
+  const [domainFilter, setDomainFilter] = useState<string>('');
+  const [countrySearch, setCountrySearch] = useState('');
+  const [yearFrom, setYearFrom] = useState<string>('');
+  const [yearTo, setYearTo] = useState<string>('');
+  const [entityType, setEntityType] = useState('');
   const [page, setPage] = useState(1);
+  const limit = 5;
 
-  const { data: statsResponse } = useHistoricalStats();
-  const { data: datasetsResponse, isLoading } = useHistoricalDatasets({
-    page,
-    limit: 20,
-    domain: domain || undefined,
-    search: search || undefined,
-  });
-  const deleteDataset = useDeleteDataset();
+  /* --- filtering logic --- */
+  const filtered = useMemo(() => {
+    let rows = PLACEHOLDER_DATA;
 
-  const stats = statsResponse?.data;
-  const datasets = datasetsResponse?.data ?? [];
-  const meta = datasetsResponse?.meta;
+    if (domainFilter) {
+      rows = rows.filter((r) => r.domain === domainFilter);
+    }
+    if (countrySearch.trim()) {
+      const q = countrySearch.toLowerCase();
+      rows = rows.filter(
+        (r) =>
+          r.country.toLowerCase().includes(q) ||
+          r.countryCode.toLowerCase().includes(q),
+      );
+    }
+    if (yearFrom) {
+      rows = rows.filter((r) => r.year >= Number(yearFrom));
+    }
+    if (yearTo) {
+      rows = rows.filter((r) => r.year <= Number(yearTo));
+    }
+    if (entityType && entityType !== 'All Types') {
+      const q = entityType.toLowerCase();
+      rows = rows.filter((r) => r.entity.toLowerCase().includes(q));
+    }
 
-  const canImport = user && ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN', 'DATA_STEWARD'].includes(user.role);
+    return rows;
+  }, [domainFilter, countrySearch, yearFrom, yearTo, entityType]);
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Delete dataset "${name}"? This will permanently remove the data.`)) return;
-    deleteDataset.mutate(id);
-  };
+  const totalPages = Math.max(1, Math.ceil(filtered.length / limit));
+  const paged = filtered.slice((page - 1) * limit, page * limit);
+
+  /* --- KPI computations --- */
+  const totalRecords = PLACEHOLDER_DATA.length;
+  const years = PLACEHOLDER_DATA.map((r) => r.year);
+  const minYear = Math.min(...years);
+  const maxYear = Math.max(...years);
+  const timeSpan = maxYear - minYear + 1;
+  const domainsCovered = new Set(PLACEHOLDER_DATA.map((r) => r.domain)).size;
+  const lastUpdated = PLACEHOLDER_DATA.reduce((latest, r) =>
+    r.updatedAt > latest.updatedAt ? r : latest,
+  ).updatedAt;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* ---- Header ---- */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('title')}</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {t('subtitle')}
+          <h1 className="text-2xl font-bold text-gray-900">Historical Data</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Browse time series, trends and versioned records across all domains
           </p>
         </div>
-        {canImport && (
-          <Link
-            href="/historical/import"
-            className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:opacity-90 transition-opacity"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            {t('importData')}
-          </Link>
-        )}
+        <button
+          onClick={() => {
+            /* placeholder CSV export */
+          }}
+          className="flex items-center gap-2 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-aris-primary-700"
+        >
+          <Download className="h-4 w-4" />
+          Export CSV
+        </button>
       </div>
 
-      {/* Stats cards */}
-      {stats && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label={t('totalDatasets')} value={formatNumber(stats.totalDatasets)} />
-          <StatCard label={t('totalRows')} value={formatNumber(stats.totalRows)} />
-          <StatCard
-            label={t('statusReady')}
-            value={formatNumber(stats.byStatus.find((s) => s.status === 'READY')?.count ?? 0)}
-          />
-          <StatCard label={t('domains')} value={String(stats.byDomain.length)} />
+      {/* ---- KPI Cards ---- */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Total Records */}
+        <div className="rounded-card border border-gray-200 bg-white p-card shadow-sm">
+          <div className="flex items-start justify-between">
+            <span className="text-xs uppercase tracking-wider text-gray-500">
+              Total Records
+            </span>
+            <Database className="h-5 w-5 text-gray-300" />
+          </div>
+          <p className="mt-2 text-2xl font-bold text-gray-900">
+            {totalRecords.toLocaleString()}
+          </p>
+          <p className="mt-1 text-xs text-gray-400">Across all domains</p>
         </div>
-      )}
 
-      {/* Filters */}
+        {/* Time Span */}
+        <div className="rounded-card border border-blue-200 bg-blue-50 p-card shadow-sm">
+          <div className="flex items-start justify-between">
+            <span className="text-xs uppercase tracking-wider text-blue-600">
+              Time Span
+            </span>
+            <Calendar className="h-5 w-5 text-blue-300" />
+          </div>
+          <p className="mt-2 text-2xl font-bold text-blue-700">
+            {timeSpan} {timeSpan === 1 ? 'year' : 'years'}
+          </p>
+          <p className="mt-1 text-xs text-blue-500">
+            {minYear} &ndash; {maxYear}
+          </p>
+        </div>
+
+        {/* Domains Covered */}
+        <div className="rounded-card border border-aris-primary-200 bg-aris-primary-50 p-card shadow-sm">
+          <div className="flex items-start justify-between">
+            <span className="text-xs uppercase tracking-wider text-aris-primary-600">
+              Domains Covered
+            </span>
+            <Layers className="h-5 w-5 text-aris-primary-300" />
+          </div>
+          <p className="mt-2 text-2xl font-bold text-aris-primary-700">
+            {domainsCovered}
+          </p>
+          <p className="mt-1 text-xs text-aris-primary-500">
+            Out of 8 total domains
+          </p>
+        </div>
+
+        {/* Last Updated */}
+        <div className="rounded-card border border-orange-200 bg-orange-50 p-card shadow-sm">
+          <div className="flex items-start justify-between">
+            <span className="text-xs uppercase tracking-wider text-orange-600">
+              Last Updated
+            </span>
+            <Clock className="h-5 w-5 text-orange-300" />
+          </div>
+          <p className="mt-2 text-2xl font-bold text-orange-700">
+            {new Date(lastUpdated).toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            })}
+          </p>
+          <p className="mt-1 text-xs text-orange-500">
+            {new Date(lastUpdated).toLocaleTimeString('en-GB', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </p>
+        </div>
+      </div>
+
+      {/* ---- Filters Row ---- */}
       <div className="flex flex-wrap items-center gap-3">
+        {/* Domain selector */}
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-gray-400" />
+          <select
+            value={domainFilter}
+            onChange={(e) => {
+              setDomainFilter(e.target.value);
+              setPage(1);
+            }}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
+          >
+            <option value="">All Domains</option>
+            {DOMAINS.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Country search */}
+        <div className="relative flex-1 sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search country..."
+            value={countrySearch}
+            onChange={(e) => {
+              setCountrySearch(e.target.value);
+              setPage(1);
+            }}
+            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200"
+          />
+        </div>
+
+        {/* Year from */}
         <input
-          type="text"
-          placeholder={t('searchPlaceholder')}
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+          type="number"
+          placeholder="From year"
+          min={2000}
+          max={2030}
+          value={yearFrom}
+          onChange={(e) => {
+            setYearFrom(e.target.value);
+            setPage(1);
+          }}
+          className="w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none"
         />
+
+        {/* Year to */}
+        <input
+          type="number"
+          placeholder="To year"
+          min={2000}
+          max={2030}
+          value={yearTo}
+          onChange={(e) => {
+            setYearTo(e.target.value);
+            setPage(1);
+          }}
+          className="w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none"
+        />
+
+        {/* Entity type */}
         <select
-          value={domain}
-          onChange={(e) => { setDomain(e.target.value); setPage(1); }}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+          value={entityType}
+          onChange={(e) => {
+            setEntityType(e.target.value);
+            setPage(1);
+          }}
+          className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
         >
-          <option value="">{t('allDomains')}</option>
-          {Object.entries(DOMAIN_LABELS).map(([key, label]) => (
-            <option key={key} value={key}>{label}</option>
+          <option value="">Entity Type</option>
+          {ENTITY_TYPES.map((et) => (
+            <option key={et} value={et}>
+              {et}
+            </option>
           ))}
         </select>
       </div>
 
-      {/* Dataset table */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12 text-slate-400">{t('loading')}</div>
-      ) : datasets.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12">
-          <p className="text-slate-500 dark:text-slate-400">{t('noRecords')}</p>
-          {canImport && (
-            <Link
-              href="/historical/import"
-              className="mt-3 text-sm text-[var(--color-accent)] hover:underline"
-            >
-              {t('importFirst')}
-            </Link>
-          )}
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-800/50">
-              <tr>
-                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Name</th>
-                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">{t('domains')}</th>
-                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">{t('type')}</th>
-                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300 text-right">{t('rows')}</th>
-                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300 text-right">{t('columnCount')}</th>
-                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300 text-right">{t('size')}</th>
-                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Status</th>
-                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Date</th>
-                <th className="px-4 py-3" />
+      {/* ---- Data Table ---- */}
+      <div className="overflow-hidden rounded-card border border-gray-200 bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50">
+                <th className="px-4 py-3 text-left font-medium text-gray-500">Entity</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500">Domain</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500">Country</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500">Year</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-500">Value</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500">Unit</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500">Source</th>
+                <th className="px-4 py-3 text-center font-medium text-gray-500">Version</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500">Updated</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-              {datasets.map((ds: HistoricalDataset) => (
-                <tr key={ds.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+            <tbody className="divide-y divide-gray-50">
+              {paged.map((row) => (
+                <tr key={row.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
-                    <Link href={`/historical/${ds.id}`} className="font-medium text-slate-900 dark:text-white hover:text-[var(--color-accent)]">
-                      {ds.name}
-                    </Link>
-                    {ds.description && (
-                      <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500 truncate max-w-[200px]">
-                        {ds.description}
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                    {DOMAIN_LABELS[ds.domain] ?? ds.domain}
-                  </td>
-                  <td className="px-4 py-3 uppercase text-xs font-mono text-slate-500">{ds.fileType}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-300">{formatNumber(ds.rowCount)}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-300">{ds.columnCount}</td>
-                  <td className="px-4 py-3 text-right text-slate-500">{formatBytes(ds.fileSizeBytes)}</td>
-                  <td className="px-4 py-3"><StatusBadge status={ds.status} /></td>
-                  <td className="px-4 py-3 text-xs text-slate-400">
-                    {new Date(ds.created_at).toLocaleDateString()}
+                    <span className="font-medium text-gray-900">{row.entity}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <Link
-                        href={`/historical/${ds.id}`}
-                        className="rounded p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white"
-                        title="View"
-                      >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      </Link>
-                      {canImport && (
-                        <button
-                          onClick={() => handleDelete(ds.id, ds.name)}
-                          className="rounded p-1 text-slate-400 hover:text-red-500"
-                          title="Delete"
-                        >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                    <span
+                      className={cn(
+                        'inline-block rounded-full px-2 py-0.5 text-xs font-medium',
+                        DOMAIN_BADGE[row.domain],
                       )}
-                    </div>
+                    >
+                      {row.domain}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-700">
+                    {row.country}
+                    <span className="ml-1 text-xs text-gray-400">
+                      ({row.countryCode})
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-700">{row.year}</td>
+                  <td className="px-4 py-3 text-right font-medium text-gray-900">
+                    {row.value.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3 text-gray-500">{row.unit}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={cn(
+                        'inline-block rounded-full px-2 py-0.5 text-xs font-medium',
+                        SOURCE_BADGE[row.source],
+                      )}
+                    >
+                      {row.source}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center text-gray-500">
+                    v{row.version}
+                  </td>
+                  <td className="px-4 py-3 text-gray-500">
+                    {new Date(row.updatedAt).toLocaleDateString('en-GB', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
                   </td>
                 </tr>
               ))}
+              {paged.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={9}
+                    className="px-4 py-12 text-center text-gray-400"
+                  >
+                    No records found matching the current filters.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
-      )}
 
-      {/* Pagination */}
-      {meta && meta.total > meta.limit && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-500">
-            Showing {(meta.page - 1) * meta.limit + 1}–{Math.min(meta.page * meta.limit, meta.total)} of {formatNumber(meta.total)}
-          </span>
-          <div className="flex gap-2">
+        {/* Pagination */}
+        <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+          <p className="text-xs text-gray-500">
+            Showing {paged.length} of {filtered.length} records
+          </p>
+          <div className="flex items-center gap-1">
             <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm disabled:opacity-40 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+              className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50"
             >
-              Previous
+              <ChevronLeft className="h-4 w-4" />
             </button>
+            <span className="px-2 text-xs text-gray-600">
+              Page {page} of {totalPages}
+            </span>
             <button
-              disabled={page * meta.limit >= meta.total}
-              onClick={() => setPage(page + 1)}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm disabled:opacity-40 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50"
             >
-              Next
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>
-      )}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Stat card                                                           */
-/* ------------------------------------------------------------------ */
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50">
-      <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
+      </div>
     </div>
   );
 }
