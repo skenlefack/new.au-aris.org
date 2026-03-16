@@ -40,6 +40,15 @@ for svc, port in [("credential", 3002), ("message", 3006)]:
     icon = "OK" if status in ("200", "204") else "WARN"
     print(f"  {svc} (:{port}) => {status} [{icon}]")
 
+# Step 5: Cleanup old images and build cache
+step("Step 5: Docker cleanup")
+code, out, _ = ssh(VM_APP, "docker image prune -f && docker builder prune -f --keep-storage=2GB 2>&1", timeout=120)
+reclaimed = [l for l in out.splitlines() if "reclaimed" in l.lower()]
+for line in reclaimed:
+    print(f"  {line.strip()}")
+code, out, _ = ssh(VM_APP, "df -h / | tail -1")
+print(f"  Disk: {out.strip()}")
+
 print("\n" + "=" * 60)
 print("  SERVICES DEPLOYED!")
 print("=" * 60)

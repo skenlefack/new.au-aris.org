@@ -24,6 +24,15 @@ time.sleep(5)
 code, out, _ = ssh(VM_APP, "curl -s -o /dev/null -w '%{http_code}' http://localhost/ 2>&1")
 print(f"  http://localhost/ => {out.strip()}")
 
+# Step 4: Cleanup old images and build cache
+step("Step 4: Docker cleanup")
+code, out, _ = ssh(VM_APP, "docker image prune -f && docker builder prune -f --keep-storage=2GB 2>&1", timeout=120)
+reclaimed = [l for l in out.splitlines() if "reclaimed" in l.lower()]
+for line in reclaimed:
+    print(f"  {line.strip()}")
+code, out, _ = ssh(VM_APP, "df -h / | tail -1")
+print(f"  Disk: {out.strip()}")
+
 print("\n" + "=" * 60)
 print("  WEB DEPLOYED!")
 print("=" * 60)
