@@ -21,7 +21,6 @@ export default fp(async (app: FastifyInstance) => {
       credentials: true,
     },
     transports: ['websocket', 'polling'],
-    path: '/ws',
     pingInterval: HEARTBEAT_INTERVAL_MS,
     pingTimeout: HEARTBEAT_TIMEOUT_MS,
   });

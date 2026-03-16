@@ -10,7 +10,7 @@ let socket: Socket | null = null;
 export function getSocket(token: string): Socket {
   if (socket?.connected) return socket;
 
-  socket = io(`${WS_URL}/ws`, {
+  socket = io(WS_URL || undefined, {
     auth: { token },
     transports: ['websocket', 'polling'],
     reconnection: true,
