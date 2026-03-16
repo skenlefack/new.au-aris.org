@@ -78,8 +78,9 @@ export const COUNTRIES: Record<string, CountryConfig> = {
   ZM: { code: 'ZM', name: 'Zambia', nameFr: 'Zambie', capital: 'Lusaka', flag: '\ud83c\uddff\ud83c\uddf2', population: 20.6, languages: ['English'], timezone: 'Africa/Lusaka', recs: ['sadc', 'comesa'] },
   ZW: { code: 'ZW', name: 'Zimbabwe', nameFr: 'Zimbabwe', capital: 'Harare', flag: '\ud83c\uddff\ud83c\uddfc', population: 16.7, languages: ['English', 'Shona', 'Ndebele'], timezone: 'Africa/Harare', recs: ['sadc', 'comesa'] },
 
-  // ── Other (Egypt is AU member, belongs to multiple RECs) ──
+  // ── Other ──
   EG: { code: 'EG', name: 'Egypt', nameFr: '\u00c9gypte', capital: 'Cairo', flag: '\ud83c\uddea\ud83c\uddec', population: 112.7, languages: ['Arabic'], timezone: 'Africa/Cairo', recs: ['comesa', 'censad'] },
+  EH: { code: 'EH', name: 'Sahrawi Republic', nameFr: 'R\u00e9publique sahraouie', capital: 'Laayoune', flag: '\ud83c\uddea\ud83c\udded', population: 0.6, languages: ['Arabic', 'Spanish'], timezone: 'Africa/El_Aaiun', recs: [] },
 };
 
 /** Get countries for a given REC code */
