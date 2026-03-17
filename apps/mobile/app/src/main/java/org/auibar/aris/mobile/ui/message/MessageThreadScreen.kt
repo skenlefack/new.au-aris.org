@@ -23,6 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.remember
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -106,7 +107,7 @@ fun MessageThreadScreen(
 
 @Composable
 private fun MessageBubble(message: MessageEntity) {
-    val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val dateFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
 
     Row(

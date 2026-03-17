@@ -28,6 +28,7 @@ fun OfflineBanner(
     isOffline: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val offlineDesc = stringResource(R.string.cd_offline_banner)
     AnimatedVisibility(
         visible = isOffline,
         enter = expandVertically(),
@@ -41,13 +42,13 @@ fun OfflineBanner(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .semantics(mergeDescendants = true) {
                     liveRegion = LiveRegionMode.Polite
-                    contentDescription = "You are offline. Data will be saved locally and synced when connection is restored."
+                    contentDescription = offlineDesc
                 },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 Icons.Default.CloudOff,
-                contentDescription = "No internet connection",
+                contentDescription = stringResource(R.string.cd_no_internet),
                 tint = MaterialTheme.colorScheme.onErrorContainer,
             )
             Text(

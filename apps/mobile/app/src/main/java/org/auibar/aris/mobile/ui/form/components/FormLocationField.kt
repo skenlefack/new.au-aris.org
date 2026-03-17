@@ -38,7 +38,7 @@ fun FormLocationField(
             modifier = Modifier.padding(top = 4.dp),
         ) {
             Button(onClick = onCaptureLocation) {
-                Icon(Icons.Default.MyLocation, contentDescription = null)
+                Icon(Icons.Default.MyLocation, contentDescription = stringResource(R.string.cd_capture_location))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.capture_location))
             }

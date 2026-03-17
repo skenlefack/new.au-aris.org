@@ -62,7 +62,7 @@ class PhotoUploadWorker @AssistedInject constructor(
                     },
                 ).body()
 
-                val serverUrl = response.data?.url
+                val serverUrl = response.data.url
                 if (serverUrl != null) {
                     photoDao.updateUploadStatus(photo.id, "UPLOADED", serverUrl)
                     successCount++

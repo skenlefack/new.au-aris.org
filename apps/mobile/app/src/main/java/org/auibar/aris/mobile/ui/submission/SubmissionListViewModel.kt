@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import org.auibar.aris.mobile.data.local.dao.CampaignDao
 import org.auibar.aris.mobile.data.repository.Submission
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
 import javax.inject.Inject
@@ -30,24 +31,28 @@ data class SubmissionListUiState(
     val filter: SubmissionFilter = SubmissionFilter(),
     val availableStatuses: List<String> = emptyList(),
     val availableDomains: List<String> = emptyList(),
+    val campaignNames: Map<String, String> = emptyMap(),
 )
 
 @HiltViewModel
 class SubmissionListViewModel @Inject constructor(
     submissionRepository: SubmissionRepository,
+    campaignDao: CampaignDao,
 ) : ViewModel() {
 
     private val _filter = MutableStateFlow(SubmissionFilter())
 
     val uiState: StateFlow<SubmissionListUiState> = combine(
         submissionRepository.getAll(),
+        campaignDao.getAll(),
         _filter,
-    ) { submissions, filter ->
+    ) { submissions, campaigns, filter ->
         val statuses = submissions.map { it.syncStatus }.distinct().sorted()
         val domains = submissions.mapNotNull { it.domain }.distinct().sorted()
+        val nameMap = campaigns.associate { it.id to it.name }
 
         val filtered = submissions.filter { sub ->
-            matchesQuery(sub, filter.query) &&
+            matchesQuery(sub, filter.query, nameMap) &&
                     matchesStatus(sub, filter.statusFilter) &&
                     matchesDomain(sub, filter.domainFilter) &&
                     matchesDateRange(sub, filter.dateFromMs, filter.dateToMs)
@@ -59,6 +64,7 @@ class SubmissionListViewModel @Inject constructor(
             filter = filter,
             availableStatuses = statuses,
             availableDomains = domains,
+            campaignNames = nameMap,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SubmissionListUiState())
 
@@ -82,13 +88,14 @@ class SubmissionListViewModel @Inject constructor(
         _filter.value = SubmissionFilter()
     }
 
-    private fun matchesQuery(sub: Submission, query: String): Boolean {
+    private fun matchesQuery(sub: Submission, query: String, campaignNames: Map<String, String>): Boolean {
         if (query.isBlank()) return true
         val q = query.lowercase()
         return sub.campaignId.lowercase().contains(q) ||
                 sub.id.lowercase().contains(q) ||
                 sub.data.lowercase().contains(q) ||
-                (sub.domain?.lowercase()?.contains(q) == true)
+                (sub.domain?.lowercase()?.contains(q) == true) ||
+                (campaignNames[sub.campaignId]?.lowercase()?.contains(q) == true)
     }
 
     private fun matchesStatus(sub: Submission, status: String?): Boolean {

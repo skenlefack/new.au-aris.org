@@ -17,9 +17,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import org.auibar.aris.mobile.R
 
 data class PieChartSlice(
     val label: String,
@@ -38,12 +40,13 @@ fun PieChart(
     if (slices.isEmpty()) return
 
     val total = slices.sumOf { it.value.toDouble() }.toFloat().coerceAtLeast(1f)
-    val description = slices.joinToString(", ") { "${it.label}: ${it.value.toInt()}" }
+    val sliceDesc = slices.joinToString(", ") { "${it.label}: ${it.value.toInt()}" }
+    val pieChartDesc = stringResource(R.string.cd_pie_chart, sliceDesc)
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .semantics { contentDescription = "Pie chart: $description" },
+            .semantics { contentDescription = pieChartDesc },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Pie

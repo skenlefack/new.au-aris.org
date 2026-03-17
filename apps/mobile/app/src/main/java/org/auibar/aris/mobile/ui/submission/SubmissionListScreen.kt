@@ -1,6 +1,5 @@
 package org.auibar.aris.mobile.ui.submission
 
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -33,16 +32,20 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.runtime.remember
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -61,6 +64,7 @@ import org.auibar.aris.mobile.ui.theme.SyncFailed
 import org.auibar.aris.mobile.ui.theme.SyncPending
 import org.auibar.aris.mobile.ui.theme.SyncSuccess
 import org.auibar.aris.mobile.util.PdfExporter
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -69,12 +73,16 @@ import java.util.Locale
 @Composable
 fun SubmissionListScreen(
     onBack: () -> Unit,
+    onSubmissionClick: (submissionId: String) -> Unit = {},
     onConflictClick: (submissionId: String) -> Unit = {},
     viewModel: SubmissionListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.submissions)) },
@@ -82,7 +90,7 @@ fun SubmissionListScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Navigate back",
+                            contentDescription = stringResource(R.string.cd_back_button),
                         )
                     }
                 },
@@ -107,11 +115,11 @@ fun SubmissionListScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 placeholder = { Text(stringResource(R.string.search_submissions)) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.cd_search)) },
                 trailingIcon = {
                     if (state.filter.query.isNotBlank()) {
                         IconButton(onClick = { viewModel.setQuery("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = null)
+                            Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.cd_clear_search))
                         }
                     }
                 },
@@ -169,7 +177,7 @@ fun SubmissionListScreen(
                     onClick = { viewModel.clearFilters() },
                     modifier = Modifier.padding(horizontal = 16.dp),
                 ) {
-                    Icon(Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.cd_clear_filters), modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(
                         text = "${stringResource(R.string.clear_filters)} (${state.filteredSubmissions.size}/${state.allSubmissions.size})",
@@ -199,12 +207,17 @@ fun SubmissionListScreen(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                 ) {
                     items(state.filteredSubmissions, key = { it.id }) { submission ->
+                        val exportErrorMsg = stringResource(R.string.export_error)
                         SubmissionCard(
                             submission = submission,
+                            campaignName = state.campaignNames[submission.campaignId],
                             onClick = if (submission.syncStatus == "CONFLICT") {
                                 { onConflictClick(submission.id) }
                             } else {
-                                null
+                                { onSubmissionClick(submission.id) }
+                            },
+                            onExportError = {
+                                scope.launch { snackbarHostState.showSnackbar(exportErrorMsg) }
                             },
                         )
                     }
@@ -217,20 +230,26 @@ fun SubmissionListScreen(
 @Composable
 private fun SubmissionCard(
     submission: Submission,
+    campaignName: String? = null,
     onClick: (() -> Unit)? = null,
+    onExportError: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val dateFormat = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()) }
 
     val (icon, tint, label) = when (submission.syncStatus) {
-        "SYNCED" -> Triple(Icons.Default.CheckCircle, SyncSuccess, "Synced")
-        "FAILED" -> Triple(Icons.Default.Error, SyncFailed, "Failed")
-        "CONFLICT" -> Triple(Icons.Default.Warning, SyncConflict, "Conflict")
-        else -> Triple(Icons.Default.Schedule, SyncPending, "Pending")
+        "SYNCED" -> Triple(Icons.Default.CheckCircle, SyncSuccess, stringResource(R.string.synced))
+        "FAILED" -> Triple(Icons.Default.Error, SyncFailed, stringResource(R.string.failed))
+        "CONFLICT" -> Triple(Icons.Default.Warning, SyncConflict, stringResource(R.string.conflict))
+        else -> Triple(Icons.Default.Schedule, SyncPending, stringResource(R.string.pending))
     }
     val submissionDate = dateFormat.format(Date(submission.offlineCreatedAt))
-    val exportSuccessMsg = stringResource(R.string.export_success)
-    val exportErrorMsg = stringResource(R.string.export_error)
+    val campaignLabel = campaignName ?: submission.campaignId.take(8)
+    val cardDesc = if (submission.serverErrors != null) {
+        stringResource(R.string.cd_submission_detail_error, campaignLabel, submissionDate, label, submission.serverErrors)
+    } else {
+        stringResource(R.string.cd_submission_detail, campaignLabel, submissionDate, label)
+    }
 
     Card(
         modifier = Modifier
@@ -239,10 +258,7 @@ private fun SubmissionCard(
                 if (onClick != null) Modifier.clickable { onClick() } else Modifier,
             )
             .semantics(mergeDescendants = true) {
-                contentDescription =
-                    "Submission for campaign ${submission.campaignId.take(8)}, " +
-                            "Date: $submissionDate, Status: $label" +
-                            if (submission.serverErrors != null) ", Error: ${submission.serverErrors}" else ""
+                contentDescription = cardDesc
             },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
@@ -255,7 +271,7 @@ private fun SubmissionCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Campaign: ${submission.campaignId.take(8)}...",
+                    text = campaignName ?: submission.campaignId.take(8) + "...",
                     style = MaterialTheme.typography.titleSmall,
                 )
                 if (submission.domain != null) {
@@ -288,10 +304,11 @@ private fun SubmissionCard(
                 }
             }
 
+            val statusDesc = stringResource(R.string.cd_status, label)
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(
                     imageVector = icon,
-                    contentDescription = "$label status",
+                    contentDescription = statusDesc,
                     tint = tint,
                     modifier = Modifier.size(28.dp),
                 )
@@ -307,7 +324,7 @@ private fun SubmissionCard(
                         if (file != null) {
                             PdfExporter.shareFile(context, file)
                         } else {
-                            Toast.makeText(context, exportErrorMsg, Toast.LENGTH_SHORT).show()
+                            onExportError()
                         }
                     },
                     modifier = Modifier.size(32.dp),

@@ -14,13 +14,13 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
+import org.auibar.aris.mobile.ui.components.LoadingSpinner
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -46,8 +46,12 @@ import coil.request.ImageRequest
 import coil.size.Size
 import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.data.repository.Photo
+import org.auibar.aris.mobile.ui.theme.SyncFailed
+import org.auibar.aris.mobile.ui.theme.SyncPending
+import org.auibar.aris.mobile.ui.theme.SyncSuccess
 import java.io.File
 
+@Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotoGalleryScreen(
@@ -64,7 +68,7 @@ fun PhotoGalleryScreen(
                 title = { Text(stringResource(R.string.photo_gallery)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back_button))
                     }
                 },
             )
@@ -124,7 +128,7 @@ private fun PhotoThumbnail(photo: Photo) {
                         .size(Size(200, 200))
                         .crossfade(true)
                         .build(),
-                    contentDescription = "Photo",
+                    contentDescription = stringResource(R.string.cd_photo),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )
@@ -134,10 +138,10 @@ private fun PhotoThumbnail(photo: Photo) {
 
             // Upload status indicator
             val statusIcon = when (photo.uploadStatus) {
-                "UPLOADED" -> Icons.Default.CheckCircle to Color(0xFF4CAF50)
+                "UPLOADED" -> Icons.Default.CheckCircle to SyncSuccess
                 "UPLOADING" -> null // show progress
-                "FAILED" -> Icons.Default.Error to Color(0xFFF44336)
-                else -> Icons.Default.CloudUpload to Color(0xFF2196F3)
+                "FAILED" -> Icons.Default.Error to SyncFailed
+                else -> Icons.Default.CloudUpload to SyncPending
             }
 
             Box(
@@ -146,8 +150,8 @@ private fun PhotoThumbnail(photo: Photo) {
                     .padding(4.dp),
             ) {
                 if (photo.uploadStatus == "UPLOADING") {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
+                    LoadingSpinner(
+                        size = 16.dp,
                         strokeWidth = 2.dp,
                     )
                 } else if (statusIcon != null) {

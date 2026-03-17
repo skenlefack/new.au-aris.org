@@ -2,6 +2,19 @@ package org.auibar.aris.mobile.ui.reports
 
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import org.auibar.aris.mobile.ui.theme.SyncConflict
+import org.auibar.aris.mobile.ui.theme.SyncFailed
+import org.auibar.aris.mobile.ui.theme.SyncPending
+import org.auibar.aris.mobile.ui.theme.SyncSuccess
+import org.auibar.aris.mobile.ui.theme.DomainAnimalHealth
+import org.auibar.aris.mobile.ui.theme.DomainLivestock
+import org.auibar.aris.mobile.ui.theme.DomainFisheries
+import org.auibar.aris.mobile.ui.theme.DomainTrade
+import org.auibar.aris.mobile.ui.theme.DomainWildlife
+import org.auibar.aris.mobile.ui.theme.DomainApiculture
+import org.auibar.aris.mobile.ui.theme.DomainGovernance
+import org.auibar.aris.mobile.ui.theme.DomainClimate
+import org.auibar.aris.mobile.ui.theme.DomainKnowledge
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -82,9 +95,9 @@ class MiniReportsViewModel @Inject constructor(
 
         // Chart data: Horizontal bar items for domain
         val domainColors = listOf(
-            Color(0xFF1976D2), Color(0xFF388E3C), Color(0xFFF57C00),
-            Color(0xFF7B1FA2), Color(0xFF0097A7), Color(0xFFD32F2F),
-            Color(0xFF455A64), Color(0xFF689F38), Color(0xFFE64A19),
+            DomainAnimalHealth, DomainLivestock, DomainFisheries,
+            DomainTrade, DomainWildlife, DomainApiculture,
+            DomainGovernance, DomainClimate, DomainKnowledge,
         )
         val domainBarData = domainCounts.mapIndexed { index, dc ->
             BarChartItem(
@@ -101,6 +114,7 @@ class MiniReportsViewModel @Inject constructor(
             .sortedBy { it.offlineCreatedAt }
             .groupBy { dayFormat.format(Date(it.offlineCreatedAt)) }
             .entries
+            .toList()
             .takeLast(7)
             .map { (dayKey, subs) ->
                 val displayDate = dateFormat.format(
@@ -114,7 +128,7 @@ class MiniReportsViewModel @Inject constructor(
             BarChartItem(
                 label = cp.campaignName,
                 value = cp.submissionCount.toFloat(),
-                color = Color(0xFF1976D2),
+                color = DomainTrade,
             )
         }
 
@@ -140,10 +154,10 @@ class MiniReportsViewModel @Inject constructor(
 }
 
 private fun statusChartColor(status: String): Color = when (status) {
-    "SYNCED" -> Color(0xFF4CAF50)
-    "PENDING" -> Color(0xFF2196F3)
-    "FAILED" -> Color(0xFFF44336)
+    "SYNCED" -> SyncSuccess
+    "PENDING" -> SyncPending
+    "FAILED" -> SyncFailed
     "DRAFT" -> Color(0xFF9E9E9E)
-    "CONFLICT" -> Color(0xFFFF9800)
+    "CONFLICT" -> SyncConflict
     else -> Color(0xFF9E9E9E)
 }

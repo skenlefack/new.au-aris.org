@@ -13,13 +13,19 @@ import org.auibar.aris.mobile.data.cache.CampaignRefresher
 import org.auibar.aris.mobile.data.cache.MasterDataRefresher
 import org.auibar.aris.mobile.data.remote.dto.KpiCard
 import org.auibar.aris.mobile.data.repository.Campaign
+import org.auibar.aris.mobile.data.repository.AuthRepository
 import org.auibar.aris.mobile.data.repository.DashboardRepository
+import org.auibar.aris.mobile.util.TokenManager
 import javax.inject.Inject
 
 data class DashboardUiState(
     val kpis: List<KpiCard> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
+    val userName: String = "",
+    val userEmail: String = "",
+    val userRole: String? = null,
+    val tenantLevel: String? = null,
 )
 
 @HiltViewModel
@@ -27,9 +33,18 @@ class DashboardViewModel @Inject constructor(
     private val dashboardRepository: DashboardRepository,
     private val masterDataRefresher: MasterDataRefresher,
     private val campaignRefresher: CampaignRefresher,
+    private val tokenManager: TokenManager,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(DashboardUiState())
+    private val _uiState = MutableStateFlow(
+        DashboardUiState(
+            userName = tokenManager.userFullName ?: "",
+            userEmail = tokenManager.userEmail ?: "",
+            userRole = tokenManager.userRole,
+            tenantLevel = tokenManager.tenantLevel,
+        )
+    )
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     val recentCampaigns: StateFlow<List<Campaign>> = dashboardRepository
@@ -46,6 +61,10 @@ class DashboardViewModel @Inject constructor(
             campaignRefresher.refreshIfNeeded()
         }
         loadKpis()
+    }
+
+    fun logout() {
+        authRepository.logout()
     }
 
     fun loadKpis() {

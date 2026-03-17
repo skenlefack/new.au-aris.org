@@ -36,6 +36,12 @@ class CampaignRepository @Inject constructor(
         }
     }
 
+    fun getActiveCampaignsByDomain(domain: String): Flow<List<Campaign>> {
+        return campaignDao.getActiveCampaignsByDomain(domain).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
     suspend fun refreshCampaigns(): Result<Unit> {
         return try {
             val response = campaignApi.getActiveCampaigns()

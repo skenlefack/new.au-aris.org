@@ -44,6 +44,11 @@ class NotificationRepository @Inject constructor(
 
     suspend fun markAllAsRead() {
         notificationDao.markAllAsRead()
+        try {
+            messageApi.markAllAsRead()
+        } catch (_: Exception) {
+            // Best-effort server sync; local state is already updated
+        }
     }
 
     /**

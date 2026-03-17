@@ -1,13 +1,16 @@
 package org.auibar.aris.mobile.ui.navigation
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -19,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -37,6 +41,7 @@ import org.auibar.aris.mobile.ui.campaign.CampaignListScreen
 import org.auibar.aris.mobile.ui.dashboard.DashboardScreen
 import org.auibar.aris.mobile.ui.form.FormFillScreen
 import org.auibar.aris.mobile.ui.gpstrack.GpsTrackScreen
+import org.auibar.aris.mobile.ui.home.HomeDashboardScreen
 import org.auibar.aris.mobile.ui.map.OfflineMapScreen
 import org.auibar.aris.mobile.ui.livestock.LivestockCensusScreen
 import org.auibar.aris.mobile.ui.livestock.ProductionRecordScreen
@@ -49,12 +54,19 @@ import org.auibar.aris.mobile.ui.reports.MiniReportsScreen
 import org.auibar.aris.mobile.ui.settings.SettingsScreen
 import org.auibar.aris.mobile.ui.message.MessageListScreen
 import org.auibar.aris.mobile.ui.message.MessageThreadScreen
+import org.auibar.aris.mobile.ui.components.UserTopBanner
+import org.auibar.aris.mobile.ui.domain.DomainDashboardScreen
+import org.auibar.aris.mobile.ui.lock.AppLockScreen
+import org.auibar.aris.mobile.ui.lock.SetPinScreen
+import org.auibar.aris.mobile.ui.navigation.AppLockViewModel
 import org.auibar.aris.mobile.ui.submission.SubmissionListScreen
 import org.auibar.aris.mobile.ui.tenant.TenantHierarchyScreen
+import org.auibar.aris.mobile.util.AppLockManager
 
 object ArisRoutes {
     const val SPLASH = "splash"
     const val LOGIN = "login"
+    const val HOME = "home"
     const val DASHBOARD = "dashboard"
     const val CAMPAIGNS = "campaigns"
     const val CAMPAIGN_DETAIL = "campaign/{campaignId}"
@@ -66,13 +78,19 @@ object ArisRoutes {
     const val PRODUCTION_RECORD = "production-record/{campaignId}"
     const val PHOTO_GALLERY = "photo-gallery/{submissionId}"
     const val GPS_TRACK = "gps-track"
-    const val OFFLINE_MAP = "offline-map"
+    const val OFFLINE_MAP = "offline-map?domainKey={domainKey}"
+    const val OFFLINE_MAP_BASE = "offline-map"
     const val REPORTS = "reports"
+    const val SUBMISSION_DETAIL = "submission/{submissionId}"
     const val CONFLICT_RESOLUTION = "conflict/{submissionId}"
     const val TENANT_HIERARCHY = "tenant-hierarchy"
+    const val DOMAIN_DASHBOARD = "domain/{domainKey}"
+    const val APP_LOCK = "app-lock"
+    const val SET_PIN = "set-pin"
     const val MESSAGES = "messages"
     const val MESSAGE_THREAD = "messages/{threadId}/{recipientId}/{recipientName}"
 
+    fun domainDashboard(domainKey: String) = "domain/$domainKey"
     fun campaignDetail(campaignId: String) = "campaign/$campaignId"
     fun formFill(campaignId: String) = "form/$campaignId"
     fun livestockCensus(campaignId: String) = "livestock-census/$campaignId"
@@ -80,6 +98,8 @@ object ArisRoutes {
     fun photoGallery(submissionId: String) = "photo-gallery/$submissionId"
     fun submissionDetail(submissionId: String) = "submission/$submissionId"
     fun conflictResolution(submissionId: String) = "conflict/$submissionId"
+    fun offlineMap(domainKey: String? = null) =
+        if (domainKey != null) "offline-map?domainKey=$domainKey" else "offline-map"
     fun messageThread(threadId: String, recipientId: String, recipientName: String) =
         "messages/$threadId/$recipientId/$recipientName"
 }
@@ -91,13 +111,15 @@ data class BottomNavItem(
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem(ArisRoutes.DASHBOARD, Icons.Default.Dashboard, R.string.dashboard),
-    BottomNavItem(ArisRoutes.CAMPAIGNS, Icons.Default.List, R.string.campaigns),
+    BottomNavItem(ArisRoutes.HOME, Icons.Default.Dashboard, R.string.dashboard),
+    BottomNavItem(ArisRoutes.DASHBOARD, Icons.Default.Apps, R.string.domains),
+    BottomNavItem(ArisRoutes.CAMPAIGNS, Icons.AutoMirrored.Filled.List, R.string.campaigns),
     BottomNavItem(ArisRoutes.NOTIFICATIONS, Icons.Default.Notifications, R.string.notifications),
-    BottomNavItem(ArisRoutes.SETTINGS, Icons.Default.Settings, R.string.settings),
 )
 
 private val bottomNavRoutes = bottomNavItems.map { it.route }.toSet()
+
+private val hideBannerRoutes = setOf(ArisRoutes.SPLASH, ArisRoutes.LOGIN, ArisRoutes.APP_LOCK, ArisRoutes.SET_PIN)
 
 @Composable
 fun ArisNavGraph(
@@ -107,6 +129,9 @@ fun ArisNavGraph(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val showBottomNav = currentRoute in bottomNavRoutes
+    val showBanner = currentRoute != null && currentRoute !in hideBannerRoutes
+
+    val bannerViewModel: AppBannerViewModel = hiltViewModel()
 
     Scaffold(
         bottomBar = {
@@ -115,20 +140,50 @@ fun ArisNavGraph(
             }
         },
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = Modifier.padding(innerPadding),
-        ) {
+        Column(modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding)) {
+            if (showBanner && bannerViewModel.isLoggedIn) {
+                UserTopBanner(
+                    userName = bannerViewModel.userName,
+                    userEmail = bannerViewModel.userEmail,
+                    userRole = bannerViewModel.userRole,
+                    tenantLevel = bannerViewModel.tenantLevel,
+                    modifier = Modifier.zIndex(1f),
+                    onProfileClick = {
+                        navController.navigate(ArisRoutes.SETTINGS) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onSettingsClick = {
+                        navController.navigate(ArisRoutes.SETTINGS) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onLogoutClick = {
+                        bannerViewModel.logout()
+                        navController.navigate(ArisRoutes.LOGIN) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                )
+            }
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+            ) {
             composable(ArisRoutes.SPLASH) {
                 SplashScreen(
                     onNavigateToDashboard = {
-                        navController.navigate(ArisRoutes.DASHBOARD) {
+                        navController.navigate(ArisRoutes.HOME) {
                             popUpTo(ArisRoutes.SPLASH) { inclusive = true }
                         }
                     },
                     onNavigateToLogin = {
                         navController.navigate(ArisRoutes.LOGIN) {
+                            popUpTo(ArisRoutes.SPLASH) { inclusive = true }
+                        }
+                    },
+                    onNavigateToLock = {
+                        navController.navigate(ArisRoutes.APP_LOCK) {
                             popUpTo(ArisRoutes.SPLASH) { inclusive = true }
                         }
                     },
@@ -138,9 +193,17 @@ fun ArisNavGraph(
             composable(ArisRoutes.LOGIN) {
                 LoginScreen(
                     onLoginSuccess = {
-                        navController.navigate(ArisRoutes.DASHBOARD) {
+                        navController.navigate(ArisRoutes.HOME) {
                             popUpTo(ArisRoutes.LOGIN) { inclusive = true }
                         }
+                    },
+                )
+            }
+
+            composable(ArisRoutes.HOME) {
+                HomeDashboardScreen(
+                    onReports = {
+                        navController.navigate(ArisRoutes.REPORTS)
                     },
                 )
             }
@@ -152,6 +215,20 @@ fun ArisNavGraph(
                     },
                     onNewSubmission = {
                         navController.navigate(ArisRoutes.CAMPAIGNS)
+                    },
+                    onReports = {
+                        navController.navigate(ArisRoutes.REPORTS)
+                    },
+                    onSettings = {
+                        navController.navigate(ArisRoutes.SETTINGS)
+                    },
+                    onLogout = {
+                        navController.navigate(ArisRoutes.LOGIN) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onDomainClick = { domainKey ->
+                        navController.navigate(ArisRoutes.domainDashboard(domainKey))
                     },
                 )
             }
@@ -201,9 +278,23 @@ fun ArisNavGraph(
             composable(ArisRoutes.SUBMISSIONS) {
                 SubmissionListScreen(
                     onBack = { navController.popBackStack() },
+                    onSubmissionClick = { submissionId ->
+                        navController.navigate(ArisRoutes.submissionDetail(submissionId))
+                    },
                     onConflictClick = { submissionId ->
                         navController.navigate(ArisRoutes.conflictResolution(submissionId))
                     },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.SUBMISSION_DETAIL,
+                arguments = listOf(navArgument("submissionId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val submissionId = backStackEntry.arguments?.getString("submissionId") ?: ""
+                PhotoGalleryScreen(
+                    submissionId = submissionId,
+                    onBack = { navController.popBackStack() },
                 )
             }
 
@@ -237,6 +328,9 @@ fun ArisNavGraph(
                     },
                     onMessages = {
                         navController.navigate(ArisRoutes.MESSAGES)
+                    },
+                    onSetPin = {
+                        navController.navigate(ArisRoutes.SET_PIN)
                     },
                 )
             }
@@ -275,10 +369,21 @@ fun ArisNavGraph(
             }
 
             composable(ArisRoutes.GPS_TRACK) {
-                GpsTrackScreen()
+                GpsTrackScreen(
+                    onBack = { navController.popBackStack() },
+                )
             }
 
-            composable(ArisRoutes.OFFLINE_MAP) {
+            composable(
+                route = ArisRoutes.OFFLINE_MAP,
+                arguments = listOf(
+                    navArgument("domainKey") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) {
                 OfflineMapScreen(
                     onBack = { navController.popBackStack() },
                 )
@@ -287,6 +392,29 @@ fun ArisNavGraph(
             composable(ArisRoutes.REPORTS) {
                 MiniReportsScreen(
                     onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.DOMAIN_DASHBOARD,
+                arguments = listOf(navArgument("domainKey") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val domainKey = backStackEntry.arguments?.getString("domainKey") ?: ""
+                DomainDashboardScreen(
+                    domainKey = domainKey,
+                    onBack = { navController.popBackStack() },
+                    onCampaignClick = { campaignId ->
+                        navController.navigate(ArisRoutes.campaignDetail(campaignId))
+                    },
+                    onNewSubmission = {
+                        navController.navigate(ArisRoutes.CAMPAIGNS)
+                    },
+                    onReports = {
+                        navController.navigate(ArisRoutes.REPORTS)
+                    },
+                    onMap = {
+                        navController.navigate(ArisRoutes.offlineMap(domainKey))
+                    },
                 )
             }
 
@@ -319,10 +447,38 @@ fun ArisNavGraph(
                     onBack = { navController.popBackStack() },
                 )
             }
+
+            composable(ArisRoutes.APP_LOCK) {
+                val appLockManager: AppLockManager = hiltViewModel<AppLockViewModel>().appLockManager
+                AppLockScreen(
+                    onBiometricRequest = { /* biometric prompt handled by Activity */ },
+                    onPinVerified = {
+                        appLockManager.recordActivity()
+                        navController.navigate(ArisRoutes.HOME) {
+                            popUpTo(ArisRoutes.APP_LOCK) { inclusive = true }
+                        }
+                    },
+                    verifyPin = { pin -> appLockManager.verifyPin(pin) },
+                    isBiometricAvailable = appLockManager.isBiometricEnabled,
+                )
+            }
+
+            composable(ArisRoutes.SET_PIN) {
+                val appLockManager: AppLockManager = hiltViewModel<AppLockViewModel>().appLockManager
+                SetPinScreen(
+                    onPinSet = { pin ->
+                        appLockManager.setPin(pin)
+                        navController.popBackStack()
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+        }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArisBottomBar(navController: NavHostController) {
     val notificationViewModel: NotificationListViewModel = hiltViewModel()

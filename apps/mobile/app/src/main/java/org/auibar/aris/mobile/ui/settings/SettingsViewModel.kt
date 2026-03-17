@@ -15,6 +15,7 @@ import org.auibar.aris.mobile.sync.CrashUploadWorker
 import org.auibar.aris.mobile.util.CrashLogger
 import org.auibar.aris.mobile.util.LanguageOption
 import org.auibar.aris.mobile.util.LocaleManager
+import org.auibar.aris.mobile.util.AppLockManager
 import org.auibar.aris.mobile.util.TokenManager
 import javax.inject.Inject
 
@@ -22,6 +23,7 @@ data class SettingsUiState(
     val userFullName: String = "",
     val userEmail: String = "",
     val userRole: String = "",
+    val tenantLevel: String = "",
     val currentLanguage: String = "en",
     val supportedLanguages: List<LanguageOption> = emptyList(),
     val syncFrequencyMinutes: Int = 15,
@@ -29,6 +31,7 @@ data class SettingsUiState(
     val appVersion: String = "1.0.0",
     val cacheCleared: Boolean = false,
     val crashLogCount: Int = 0,
+    val isPinEnabled: Boolean = false,
 )
 
 data class SyncFrequencyOption(
@@ -43,6 +46,7 @@ class SettingsViewModel @Inject constructor(
     private val localeManager: LocaleManager,
     private val authRepository: AuthRepository,
     private val database: ArisDatabase,
+    private val appLockManager: AppLockManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -50,11 +54,13 @@ class SettingsViewModel @Inject constructor(
             userFullName = tokenManager.userFullName ?: "",
             userEmail = tokenManager.userEmail ?: "",
             userRole = tokenManager.userRole ?: "",
+            tenantLevel = tokenManager.tenantLevel ?: "",
             currentLanguage = localeManager.currentLanguage,
             supportedLanguages = localeManager.supportedLanguages,
             syncFrequencyMinutes = tokenManager.syncFrequencyMinutes,
             lastSyncAt = tokenManager.lastSyncAt,
             crashLogCount = CrashLogger.getLogFiles(appContext).size,
+            isPinEnabled = appLockManager.isPinEnabled,
         )
     )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -83,13 +89,28 @@ class SettingsViewModel @Inject constructor(
 
     fun clearCache() {
         viewModelScope.launch {
-            database.clearAllTables()
+            // Clear only reference/cache tables — keep pending/draft submissions & their photos
+            database.campaignDao().deleteAll()
+            database.formTemplateDao().deleteAll()
+            database.speciesDao().deleteAll()
+            database.diseaseDao().deleteAll()
+            database.geoDao().deleteAll()
+            database.notificationDao().deleteAll()
+            database.messageDao().deleteAll()
+            // Only remove already-synced submissions and uploaded photos
+            database.submissionDao().deleteSynced()
+            database.photoDao().deleteUploaded()
             _uiState.value = _uiState.value.copy(cacheCleared = true)
         }
     }
 
     fun uploadCrashLogs() {
         CrashUploadWorker.enqueue(appContext)
+    }
+
+    fun disablePin() {
+        appLockManager.removePin()
+        _uiState.value = _uiState.value.copy(isPinEnabled = false)
     }
 
     fun logout() {

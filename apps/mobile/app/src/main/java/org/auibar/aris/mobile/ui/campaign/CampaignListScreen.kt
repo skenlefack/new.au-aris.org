@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Assignment
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,14 +24,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -57,20 +54,6 @@ fun CampaignListScreen(
     val campaigns by viewModel.campaigns.collectAsStateWithLifecycle()
     val pendingCount by viewModel.pendingCount.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val pullToRefreshState = rememberPullToRefreshState()
-
-    LaunchedEffect(uiState.isRefreshing) {
-        if (!uiState.isRefreshing) {
-            pullToRefreshState.endRefresh()
-        }
-    }
-
-    LaunchedEffect(pullToRefreshState.isRefreshing) {
-        if (pullToRefreshState.isRefreshing) {
-            viewModel.refresh()
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -86,13 +69,13 @@ fun CampaignListScreen(
                         lastSyncAt = viewModel.lastSyncAt,
                     )
                     IconButton(onClick = viewModel::sync) {
-                        Icon(Icons.Default.Sync, contentDescription = "Synchronize data")
+                        Icon(Icons.Default.Sync, contentDescription = stringResource(R.string.cd_sync_data))
                     }
                     IconButton(onClick = onSubmissionsClick) {
-                        Icon(Icons.Default.Assignment, contentDescription = "View all submissions")
+                        Icon(Icons.AutoMirrored.Filled.Assignment, contentDescription = stringResource(R.string.cd_view_submissions))
                     }
                     IconButton(onClick = onLogout) {
-                        Icon(Icons.Default.Logout, contentDescription = "Sign out")
+                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = stringResource(R.string.cd_sign_out))
                     }
                 },
             )
@@ -101,8 +84,7 @@ fun CampaignListScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .nestedScroll(pullToRefreshState.nestedScrollConnection),
+                .padding(padding),
         ) {
             if (campaigns.isEmpty() && !uiState.isRefreshing) {
                 Column(
@@ -130,11 +112,6 @@ fun CampaignListScreen(
                     }
                 }
             }
-
-            PullToRefreshContainer(
-                state = pullToRefreshState,
-                modifier = Modifier.align(Alignment.TopCenter),
-            )
         }
     }
 }
@@ -144,7 +121,7 @@ private fun CampaignCard(
     campaign: Campaign,
     onClick: () -> Unit,
 ) {
-    val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
 
     val startDateStr = dateFormat.format(Date(campaign.startDate))
     val endDateStr = dateFormat.format(Date(campaign.endDate))

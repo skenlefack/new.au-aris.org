@@ -2,6 +2,8 @@ package org.auibar.aris.mobile.ui.components
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.util.UpdateInfo
 
 @Composable
@@ -17,30 +19,30 @@ fun UpdatePromptDialog(
         title = {
             Text(
                 text = if (updateInfo.isForceUpdate) {
-                    "Update Required"
+                    stringResource(R.string.update_required)
                 } else {
-                    "Update Available"
+                    stringResource(R.string.update_available)
                 },
             )
         },
         text = {
             Text(
                 text = if (updateInfo.isForceUpdate) {
-                    "A critical update is required to continue using ARIS. Please update now."
+                    stringResource(R.string.update_required_message)
                 } else {
-                    "A new version (${updateInfo.latestVersion}) is available."
+                    stringResource(R.string.update_message, updateInfo.latestVersion)
                 },
             )
         },
         confirmButton = {
             Button(onClick = onUpdate) {
-                Text("Update Now")
+                Text(stringResource(R.string.update_now))
             }
         },
         dismissButton = {
             if (!updateInfo.isForceUpdate) {
                 TextButton(onClick = onDismiss) {
-                    Text("Later")
+                    Text(stringResource(R.string.update_later))
                 }
             }
         },

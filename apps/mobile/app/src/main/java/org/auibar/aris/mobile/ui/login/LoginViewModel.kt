@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.data.remote.websocket.WebSocketManager
 import org.auibar.aris.mobile.data.repository.AuthRepository
+import org.auibar.aris.mobile.data.repository.LoginResult
 import javax.inject.Inject
 
 data class LoginUiState(
@@ -17,6 +18,8 @@ data class LoginUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isLoggedIn: Boolean = false,
+    val mfaRequired: Boolean = false,
+    val totpCode: String = "",
 )
 
 @HiltViewModel
@@ -42,6 +45,12 @@ class LoginViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(password = password, error = null)
     }
 
+    fun onTotpCodeChange(code: String) {
+        if (code.length <= 6 && code.all { it.isDigit() }) {
+            _uiState.value = _uiState.value.copy(totpCode = code, error = null)
+        }
+    }
+
     fun login() {
         val state = _uiState.value
         if (state.email.isBlank() || state.password.isBlank()) {
@@ -51,17 +60,50 @@ class LoginViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            val result = authRepository.login(state.email, state.password)
-            _uiState.value = if (result.isSuccess) {
-                // Connect WebSocket after successful login
-                webSocketManager.connect()
-                _uiState.value.copy(isLoading = false, isLoggedIn = true)
-            } else {
-                _uiState.value.copy(
-                    isLoading = false,
-                    error = result.exceptionOrNull()?.message ?: "Login failed",
-                )
+            when (val result = authRepository.login(state.email, state.password)) {
+                is LoginResult.Success -> {
+                    webSocketManager.connect()
+                    _uiState.value = _uiState.value.copy(isLoading = false, isLoggedIn = true)
+                }
+                is LoginResult.MfaRequired -> {
+                    _uiState.value = _uiState.value.copy(isLoading = false, mfaRequired = true)
+                }
+                is LoginResult.Error -> {
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = result.message)
+                }
             }
         }
+    }
+
+    fun verifyMfa() {
+        val state = _uiState.value
+        if (state.totpCode.length != 6) {
+            _uiState.value = state.copy(error = "Please enter the 6-digit code")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            when (val result = authRepository.verifyMfa(state.email, state.password, state.totpCode)) {
+                is LoginResult.Success -> {
+                    webSocketManager.connect()
+                    _uiState.value = _uiState.value.copy(isLoading = false, isLoggedIn = true)
+                }
+                is LoginResult.MfaRequired -> {
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = "Invalid verification code")
+                }
+                is LoginResult.Error -> {
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun cancelMfa() {
+        _uiState.value = _uiState.value.copy(
+            mfaRequired = false,
+            totpCode = "",
+            error = null,
+        )
     }
 }

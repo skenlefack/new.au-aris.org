@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ARIS</string>
+    <string name="app_name">ARIS 4.0</string>
     <string name="app_subtitle">Animal Resources Information System</string>
 
     <!-- Splash / Branding -->
@@ -113,6 +113,7 @@
     <string name="domain_trade">Trade &amp; SPS</string>
     <string name="domain_governance">Governance</string>
     <string name="domain_climate">Climate</string>
+    <string name="domain_knowledge">Knowledge</string>
 
     <!-- PDF Export -->
     <string name="export_pdf">Export PDF</string>
@@ -144,6 +145,24 @@
     <string name="message_sent">Message sent</string>
     <string name="select_recipient">Select recipient</string>
     <string name="message_from">From: %s</string>
+
+    <!-- MFA -->
+    <string name="mfa_title">Two-Step Verification</string>
+    <string name="mfa_subtitle">Enter the 6-digit code from your authenticator app</string>
+    <string name="mfa_code_label">Verification Code</string>
+    <string name="mfa_verify">Verify</string>
+    <string name="mfa_cancel">Back to Sign In</string>
+    <string name="mfa_invalid_code">Invalid verification code</string>
+    <string name="mfa_code_required">Please enter the 6-digit code</string>
+
+    <!-- Login redesign -->
+    <string name="welcome_back">Welcome back</string>
+    <string name="sign_in_title">Sign in to ARIS</string>
+    <string name="sign_in_subtitle">Continental Animal Resources Platform</string>
+    <string name="domains">Domains</string>
+    <string name="aris_version">ARIS 4.0</string>
+    <string name="powered_by_au_ibar">Powered by AU-IBAR</string>
+    <string name="settings_profile">Profile</string>
 
     <!-- Dashboard -->
     <string name="health_overview">Health Overview</string>
@@ -183,6 +202,27 @@
     <string name="product_type">Product Type</string>
     <string name="quantity">Quantity</string>
     <string name="unit">Unit</string>
+    <string name="census_saved">Census data saved</string>
+    <string name="production_saved">Production record saved</string>
+    <string name="methodology_household_survey">Household Survey</string>
+    <string name="methodology_aerial_survey">Aerial Survey</string>
+    <string name="methodology_ground_count">Ground Count</string>
+    <string name="methodology_admin_records">Administrative Records</string>
+    <string name="methodology_sample_frame">Sample Frame Census</string>
+    <string name="methodology_complete_enum">Complete Enumeration</string>
+    <string name="product_milk">Milk</string>
+    <string name="product_meat">Meat</string>
+    <string name="product_eggs">Eggs</string>
+    <string name="product_wool">Wool</string>
+    <string name="product_hides">Hides &amp; Skins</string>
+    <string name="product_honey">Honey</string>
+    <string name="product_other">Other</string>
+    <string name="unit_litres">Litres</string>
+    <string name="unit_kilograms">Kilograms</string>
+    <string name="unit_tonnes">Tonnes</string>
+    <string name="unit_units">Units</string>
+    <string name="unit_heads">Heads</string>
+    <string name="unit_dozens">Dozens</string>
 
     <!-- Photo Evidence -->
     <string name="photo_gallery">Photo Gallery</string>
@@ -228,6 +268,9 @@
     <string name="biometric_prompt_negative">Use PIN</string>
     <string name="unlock_required">Authentication required</string>
     <string name="wrong_pin">Wrong PIN. Try again.</string>
+    <string name="pin_lock">PIN Lock</string>
+    <string name="pin_lock_enabled">Enabled — tap to disable</string>
+    <string name="pin_lock_disabled">Protect the app with a 4-digit PIN</string>
 
     <!-- Conflict Resolution -->
     <string name="conflict_resolution">Conflict Resolution</string>
@@ -261,6 +304,7 @@
     <!-- Offline Maps -->
     <string name="offline_maps">Offline Maps</string>
     <string name="cd_back_button">Go back</string>
+    <string name="created_at_label">Created: %s</string>
     <string name="map_layers">Map Layers</string>
     <string name="download_tiles">Download Map Tiles</string>
     <string name="downloading_tiles">Downloading tiles\u2026</string>
@@ -279,11 +323,20 @@
     <string name="no_offline_tiles">No offline tiles available</string>
 
     <!-- Charts -->
+    <string name="cd_sparkline">Sparkline showing %1$s trend over %2$d points</string>
+    <string name="cd_line_chart">Line chart showing %d data points</string>
+    <string name="cd_pie_chart">Pie chart: %s</string>
+    <string name="cd_bar_chart">Bar chart with %d items</string>
     <string name="chart_campaign_progress">Campaign Progress</string>
     <string name="chart_submissions_status">Submissions by Status</string>
     <string name="chart_sync_history">Sync History</string>
     <string name="chart_kpi_trend">KPI Trend</string>
     <string name="chart_no_data">No chart data available</string>
+
+    <!-- Relative time -->
+    <string name="just_now">Just now</string>
+    <string name="minutes_ago">%dm ago</string>
+    <string name="hours_ago">%dh ago</string>
 
     <!-- Accessibility -->
     <string name="cd_app_logo">ARIS application logo</string>
@@ -291,10 +344,62 @@
     <string name="cd_kpi_value">%1$s: %2$s</string>
     <string name="cd_campaign_card">Campaign: %1$s, Status: %2$s</string>
     <string name="cd_submission_card">Submission for %1$s, Status: %2$s</string>
+    <string name="cd_new_submission">Create new submission</string>
+    <string name="cd_sync_data">Synchronize data</string>
+    <string name="cd_view_submissions">View all submissions</string>
+    <string name="cd_sign_out">Sign out</string>
+    <string name="cd_au_logo">AU-IBAR Logo</string>
+    <string name="cd_email_field">Email address</string>
+    <string name="cd_password_field">Password</string>
+    <string name="hide_password">Hide password</string>
+    <string name="show_password">Show password</string>
+    <string name="submission_count">%d submissions</string>
+    <string name="ok">OK</string>
+    <string name="cd_pick_date">Pick date</string>
     <string name="cd_notification_unread">Unread notification</string>
     <string name="cd_notification_read">Read notification</string>
     <string name="cd_close_dialog">Close dialog</string>
     <string name="cd_open_menu">Open menu</string>
+    <string name="cd_search">Search</string>
+    <string name="cd_clear_search">Clear search</string>
+    <string name="cd_clear_filters">Clear filters</string>
+    <string name="cd_capture_location">Capture GPS location</string>
+    <string name="cd_take_photo">Take photo</string>
+    <string name="cd_stop_tracking">Stop GPS tracking</string>
+    <string name="cd_start_tracking">Start GPS tracking</string>
+    <string name="cd_keep_local">Keep local version</string>
+    <string name="cd_accept_server">Accept server version</string>
+    <string name="cd_merge_versions">Merge versions</string>
+    <string name="cd_discard">Discard submission</string>
+    <string name="cd_profile">Profile</string>
+    <string name="cd_settings">Settings</string>
+    <string name="cd_refresh">Refresh</string>
+    <string name="cd_delete_digit">Delete digit</string>
+    <string name="cd_signing_in">Signing in, please wait</string>
+    <string name="cd_verifying_code">Verifying code, please wait</string>
+    <string name="cd_login_error">Login error: %s</string>
+    <string name="cd_verification_error">Verification error: %s</string>
+
+    <!-- Outbreak / Map -->
+    <string name="outbreak">Outbreak</string>
+    <string name="outbreaks">Outbreaks</string>
+    <string name="cd_map_view">Map showing submission locations and GPS tracks</string>
+    <string name="cd_splash_loading">ARIS, Animal Resources Information System. Loading application.</string>
+    <string name="cd_photo">Photo</string>
+    <string name="cd_status">%s status</string>
+    <string name="cd_submission_detail">Submission for campaign %1$s, Date: %2$s, Status: %3$s</string>
+    <string name="cd_submission_detail_error">Submission for campaign %1$s, Date: %2$s, Status: %3$s, Error: %4$s</string>
+    <string name="cd_submission_row">Submission from %1$s, Status: %2$s</string>
+    <string name="cd_submission_row_error">Submission from %1$s, Status: %2$s, Error: %3$s</string>
+
+    <!-- Domain Dashboard -->
+    <string name="key_indicators">Key Indicators</string>
+    <string name="quick_access">Quick Access</string>
+    <string name="quick_report">Quick Report</string>
+    <string name="active_campaigns">Active Campaigns</string>
+    <string name="no_domain_campaigns">No active campaigns for this domain</string>
+    <string name="cd_offline_banner">You are offline. Data will be saved locally and synced when connection is restored.</string>
+    <string name="cd_no_internet">No internet connection</string>
 
     <!-- Deep Linking -->
     <string name="deep_link_error">Could not open the requested item</string>

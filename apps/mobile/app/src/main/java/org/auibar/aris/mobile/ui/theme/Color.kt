@@ -32,3 +32,36 @@ val WorkflowLevel4 = Color(0xFF1B5E20)   // AU-IBAR — AU green
 val QualityPass = Color(0xFF4CAF50)
 val QualityFail = Color(0xFFE53935)
 val QualityWarn = Color(0xFFFFC107)
+
+// ── 9 Domain Colors (matching web app) ──────────────────────────────
+val DomainAnimalHealth = Color(0xFFC62828)  // Red 800
+val DomainLivestock    = Color(0xFFE65100)  // Orange 900
+val DomainFisheries    = Color(0xFF00838F)  // Cyan 800
+val DomainTrade        = Color(0xFF1565C0)  // Blue 800
+val DomainWildlife     = Color(0xFF2E7D32)  // Green 800
+val DomainApiculture   = Color(0xFFF9A825)  // Yellow 800
+val DomainGovernance   = Color(0xFF37474F)  // Blue Grey 800
+val DomainClimate      = Color(0xFF00695C)  // Teal 800
+val DomainKnowledge    = Color(0xFF4527A0)  // Deep Purple 800
+
+// ── Gradient colors ─────────────────────────────────────────────────
+val GradientDarkGreen  = Color(0xFF0A2E14)
+val GradientMidGreen   = Color(0xFF1B5E20)
+val GradientTeal       = Color(0xFF004D40)
+val GradientDeepGreen  = Color(0xFF062B0E)
+
+// ── Glass / morphism colors ─────────────────────────────────────────
+val GlassWhite         = Color(0x1AFFFFFF)  // 10% white
+val GlassBorder        = Color(0x33FFFFFF)  // 20% white
+val GlassOverlay       = Color(0x0DFFFFFF)  // 5% white
+
+// ── Error on dark surface (used on glassmorphic cards) ────────────────
+val ErrorLight = Color(0xFFFF8A80)           // Red A100 — readable on dark BG
+
+// ── GPS track color ───────────────────────────────────────────────────
+val TrackGreen = Color(0xFF1B5E20)           // Matches ArisPrimary
+
+// ── Gold accent ─────────────────────────────────────────────────────
+val GoldAccent         = Color(0xFFD4A843)
+val GoldAccentLight    = Color(0xFFE8C96A)
+val GoldAccentDark     = Color(0xFFB08930)

@@ -1,5 +1,6 @@
 package org.auibar.aris.mobile.ui.livestock
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -7,9 +8,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.auibar.aris.mobile.data.local.entity.SpeciesEntity
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
+import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
 import org.auibar.aris.mobile.util.TokenManager
 import java.util.UUID
@@ -26,15 +29,29 @@ data class CensusUiState(
 
 @HiltViewModel
 class LivestockCensusViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val speciesDao: SpeciesDao,
+    private val campaignRepository: CampaignRepository,
     private val submissionRepository: SubmissionRepository,
     private val tokenManager: TokenManager,
 ) : ViewModel() {
 
+    private val campaignId: String = savedStateHandle["campaignId"] ?: ""
+    private var resolvedTemplateId: String = ""
+
     private val _uiState = MutableStateFlow(CensusUiState())
     val uiState: StateFlow<CensusUiState> = _uiState.asStateFlow()
 
-    val speciesList = speciesDao.getAll()
+    private val _speciesList = MutableStateFlow<List<SpeciesEntity>>(emptyList())
+    val speciesList: StateFlow<List<SpeciesEntity>> = _speciesList.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _speciesList.value = speciesDao.getAll()
+            val campaign = campaignRepository.getById(campaignId)
+            resolvedTemplateId = campaign?.templateId ?: "livestock_census"
+        }
+    }
 
     fun selectSpecies(id: String, name: String) {
         _uiState.value = _uiState.value.copy(
@@ -66,7 +83,7 @@ class LivestockCensusViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(methodologyExpanded = !_uiState.value.methodologyExpanded)
     }
 
-    fun save(campaignId: String) {
+    fun save() {
         val state = _uiState.value
         val data = buildJsonObject {
             put("type", "livestock_census")
@@ -81,7 +98,7 @@ class LivestockCensusViewModel @Inject constructor(
                 id = UUID.randomUUID().toString(),
                 tenantId = tokenManager.tenantId ?: "",
                 campaignId = campaignId,
-                templateId = "livestock_census",
+                templateId = resolvedTemplateId,
                 data = data,
                 gpsLat = null,
                 gpsLng = null,

@@ -30,6 +30,7 @@ import javax.inject.Inject
 data class FormFillUiState(
     val isLoading: Boolean = true,
     val campaignName: String = "",
+    val templateId: String = "",
     val templateName: String = "",
     val fields: List<FormField> = emptyList(),
     val values: Map<String, String> = emptyMap(),
@@ -101,6 +102,7 @@ class FormFillViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     campaignName = campaign.name,
+                    templateId = template.id,
                     templateName = template.name,
                     fields = fields,
                     speciesOptions = species,
@@ -177,7 +179,7 @@ class FormFillViewModel @Inject constructor(
                 id = state.submissionId,
                 tenantId = tokenManager.tenantId ?: "",
                 campaignId = campaignId,
-                templateId = "",
+                templateId = state.templateId,
                 data = dataJson,
                 gpsLat = state.gpsLat,
                 gpsLng = state.gpsLng,
@@ -203,7 +205,7 @@ class FormFillViewModel @Inject constructor(
                 id = state.submissionId,
                 tenantId = tokenManager.tenantId ?: "",
                 campaignId = campaignId,
-                templateId = "",
+                templateId = state.templateId,
                 data = dataJson,
                 gpsLat = state.gpsLat,
                 gpsLng = state.gpsLng,

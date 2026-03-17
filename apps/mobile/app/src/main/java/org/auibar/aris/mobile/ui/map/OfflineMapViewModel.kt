@@ -1,5 +1,6 @@
 package org.auibar.aris.mobile.ui.map
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,10 +40,13 @@ data class OfflineMapUiState(
 
 @HiltViewModel
 class OfflineMapViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val submissionRepository: SubmissionRepository,
     private val gpsTrackRepository: GpsTrackRepository,
     private val mapTileManager: MapTileManager,
 ) : ViewModel() {
+
+    private val domainKey: String? = savedStateHandle["domainKey"]
 
     private val _uiState = MutableStateFlow(OfflineMapUiState())
     val uiState: StateFlow<OfflineMapUiState> = _uiState.asStateFlow()
@@ -56,24 +60,41 @@ class OfflineMapViewModel @Inject constructor(
         // Collect submissions reactively
         viewModelScope.launch {
             submissionRepository.getAll().collect { submissions ->
-                val locations = submissions
-                    .filter { it.gpsLat != null && it.gpsLng != null }
+                val domainFiltered = if (domainKey != null) {
+                    submissions.filter { sub ->
+                        sub.templateId.contains(domainKey, ignoreCase = true) ||
+                            sub.data.contains(domainKey, ignoreCase = true)
+                    }
+                } else {
+                    submissions
+                }
+                val geoSubs = domainFiltered.filter { it.gpsLat != null && it.gpsLng != null }
+
+                val locations = geoSubs.map { sub ->
+                    MapLocation(
+                        lat = sub.gpsLat!!,
+                        lng = sub.gpsLng!!,
+                        label = sub.campaignId,
+                        status = sub.syncStatus,
+                    )
+                }
+
+                // Outbreak markers: filter by data content or templateId containing outbreak/health keywords
+                val outbreaks = geoSubs
+                    .filter { sub ->
+                        sub.data.contains("outbreak", ignoreCase = true) ||
+                            sub.templateId.contains("outbreak", ignoreCase = true) ||
+                            sub.templateId.contains("health", ignoreCase = true)
+                    }
+                    .take(MAX_OUTBREAK_MARKERS)
                     .map { sub ->
                         MapLocation(
                             lat = sub.gpsLat!!,
                             lng = sub.gpsLng!!,
                             label = sub.campaignId,
-                            status = sub.syncStatus,
+                            status = "outbreak",
                         )
                     }
-
-                // Outbreak markers: submissions with "outbreak" in data or SYNCED status
-                val outbreaks = locations
-                    .filter {
-                        it.status.contains("outbreak", ignoreCase = true) ||
-                            it.status == "SYNCED"
-                    }
-                    .take(MAX_OUTBREAK_MARKERS)
 
                 _uiState.update {
                     it.copy(

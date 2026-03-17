@@ -35,4 +35,7 @@ interface PhotoDao {
 
     @Query("DELETE FROM photos WHERE submissionId = :submissionId")
     suspend fun deleteBySubmission(submissionId: String)
+
+    @Query("DELETE FROM photos WHERE uploadStatus = 'UPLOADED'")
+    suspend fun deleteUploaded(): Int
 }

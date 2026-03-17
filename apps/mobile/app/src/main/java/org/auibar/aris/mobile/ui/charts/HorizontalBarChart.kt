@@ -18,10 +18,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import org.auibar.aris.mobile.R
 
 data class BarChartItem(
     val label: String,
@@ -42,11 +44,12 @@ fun HorizontalBarChart(
 
     val maxValue = items.maxOf { it.value }.coerceAtLeast(1f)
 
+    val barChartDesc = stringResource(R.string.cd_bar_chart, items.size)
     Column(
         modifier = modifier
             .fillMaxWidth()
             .semantics {
-                contentDescription = "Bar chart with ${items.size} items"
+                contentDescription = barChartDesc
             },
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {

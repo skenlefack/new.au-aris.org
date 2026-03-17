@@ -12,11 +12,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
+import org.auibar.aris.mobile.ui.components.LoadingSpinner
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,6 +49,7 @@ import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import org.auibar.aris.mobile.ui.theme.TrackGreen
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 
@@ -76,7 +78,7 @@ fun OfflineMapScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            Icons.Default.ArrowBack,
+                            Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.cd_back_button),
                         )
                     }
@@ -106,11 +108,14 @@ fun OfflineMapScreen(
                 .padding(padding),
         ) {
             // OSMDroid MapView wrapped in AndroidView
+            val mapDesc = stringResource(R.string.cd_map_view)
+            val outbreakLabel = stringResource(R.string.outbreak)
+            val trackColorArgb = remember { TrackGreen.toArgb() }
             AndroidView(
                 modifier = Modifier
                     .fillMaxSize()
                     .semantics {
-                        contentDescription = "Map showing submission locations and GPS tracks"
+                        contentDescription = mapDesc
                     },
                 factory = { ctx ->
                     MapView(ctx).apply {
@@ -147,7 +152,7 @@ fun OfflineMapScreen(
                             val marker = Marker(view)
                             marker.position = GeoPoint(loc.lat, loc.lng)
                             marker.title = loc.label
-                            marker.snippet = "Outbreak"
+                            marker.snippet = outbreakLabel
                             marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                             view.overlays.add(marker)
                         }
@@ -160,8 +165,7 @@ fun OfflineMapScreen(
                             polyline.setPoints(
                                 track.points.map { GeoPoint(it.lat, it.lng) },
                             )
-                            polyline.outlinePaint.color =
-                                android.graphics.Color.parseColor(TRACK_COLOR)
+                            polyline.outlinePaint.color = trackColorArgb
                             polyline.outlinePaint.strokeWidth = TRACK_STROKE_WIDTH
                             view.overlays.add(polyline)
                         }
@@ -184,7 +188,7 @@ fun OfflineMapScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        LoadingSpinner(modifier = Modifier, size = 24.dp)
                         Text(
                             text = stringResource(R.string.downloading_tiles),
                             style = MaterialTheme.typography.bodyMedium,
@@ -271,5 +275,4 @@ private fun LayerToggle(
 private const val DEFAULT_ZOOM = 6.0
 private const val AFRICA_CENTER_LAT = 1.0
 private const val AFRICA_CENTER_LNG = 20.0
-private const val TRACK_COLOR = "#1B5E20"
 private const val TRACK_STROKE_WIDTH = 4f

@@ -16,6 +16,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.auibar.aris.mobile.BuildConfig
+import org.auibar.aris.mobile.data.local.dao.NotificationDao
+import org.auibar.aris.mobile.data.local.entity.NotificationEntity
+import org.auibar.aris.mobile.data.remote.api.AuthApi
 import org.auibar.aris.mobile.util.TokenManager
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -43,6 +46,8 @@ data class RealtimeEvent(
 @Singleton
 class WebSocketManager @Inject constructor(
     private val tokenManager: TokenManager,
+    private val notificationDao: NotificationDao,
+    private val authApi: AuthApi,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -169,7 +174,20 @@ class WebSocketManager @Inject constructor(
                     }
                 },
             )
-            scope.launch { _events.emit(event) }
+            scope.launch {
+                _events.emit(event)
+                // Persist to Room for notification history
+                notificationDao.insert(
+                    NotificationEntity(
+                        id = json.optString("id", java.util.UUID.randomUUID().toString()),
+                        tenantId = tokenManager.tenantId ?: "",
+                        title = event.title,
+                        body = event.body,
+                        type = event.type,
+                        createdAt = System.currentTimeMillis(),
+                    ),
+                )
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse event: $type", e)
         }
@@ -183,10 +201,37 @@ class WebSocketManager @Inject constructor(
             _connectionState.value = ConnectionState.RECONNECTING
             delay(delayMs)
             if (shouldReconnect) {
+                // Proactively refresh the access token before reconnecting
+                val refreshed = refreshTokenIfNeeded()
+                if (!refreshed) {
+                    Log.w(TAG, "No valid token, stopping reconnect")
+                    shouldReconnect = false
+                    _connectionState.value = ConnectionState.DISCONNECTED
+                    return@launch
+                }
                 socket?.off()
                 socket = null
                 connect()
             }
+        }
+    }
+
+    /**
+     * Attempt to refresh the access token using the refresh token.
+     * Returns true if a valid access token is available after the attempt.
+     */
+    private suspend fun refreshTokenIfNeeded(): Boolean {
+        if (tokenManager.accessToken != null) return true
+        val refresh = tokenManager.refreshToken ?: return false
+        return try {
+            val response = authApi.refreshToken(refresh)
+            tokenManager.accessToken = response.data.accessToken
+            tokenManager.refreshToken = response.data.refreshToken
+            Log.d(TAG, "Token refreshed for WebSocket reconnect")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Token refresh failed for WebSocket", e)
+            false
         }
     }
 

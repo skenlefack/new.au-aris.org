@@ -2,6 +2,7 @@ package org.auibar.aris.mobile.util
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.provider.Settings
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -13,6 +14,7 @@ class TokenManager @Inject constructor(
     @ApplicationContext context: Context,
 ) {
     private val prefs: SharedPreferences
+    val deviceId: String
 
     init {
         val masterKey = MasterKey.Builder(context)
@@ -25,6 +27,8 @@ class TokenManager @Inject constructor(
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
         )
+        deviceId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+            ?: java.util.UUID.randomUUID().toString()
     }
 
     var accessToken: String?
@@ -62,6 +66,10 @@ class TokenManager @Inject constructor(
         get() = prefs.getString(KEY_USER_EMAIL, null)
         set(value) = prefs.edit().putString(KEY_USER_EMAIL, value).apply()
 
+    var tenantLevel: String?
+        get() = prefs.getString(KEY_TENANT_LEVEL, null)
+        set(value) = prefs.edit().putString(KEY_TENANT_LEVEL, value).apply()
+
     var language: String
         get() = prefs.getString(KEY_LANGUAGE, "en") ?: "en"
         set(value) = prefs.edit().putString(KEY_LANGUAGE, value).apply()
@@ -89,6 +97,7 @@ class TokenManager @Inject constructor(
         private const val KEY_LAST_SYNC = "last_sync_at"
         private const val KEY_USER_FULL_NAME = "user_full_name"
         private const val KEY_USER_EMAIL = "user_email"
+        private const val KEY_TENANT_LEVEL = "tenant_level"
         private const val KEY_LANGUAGE = "language"
         private const val KEY_SYNC_FREQUENCY = "sync_frequency_minutes"
     }

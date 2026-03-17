@@ -21,7 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CallMerge
+import androidx.compose.material.icons.automirrored.filled.CallMerge
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -31,7 +31,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import org.auibar.aris.mobile.ui.components.LoadingSpinner
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -67,6 +67,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConflictResolutionScreen(
@@ -157,7 +158,7 @@ fun ConflictResolutionScreen(
                     .padding(padding),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator()
+                LoadingSpinner()
             }
         } else {
             Column(
@@ -197,7 +198,7 @@ fun ConflictResolutionScreen(
 
 @Composable
 private fun ConflictHeader(state: ConflictUiState) {
-    val dateFormat = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()) }
 
     Card(
         modifier = Modifier
@@ -224,12 +225,12 @@ private fun ConflictHeader(state: ConflictUiState) {
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Campaign: ${state.campaignId.take(8)}...",
+                text = state.campaignName.ifEmpty { state.campaignId.take(8) + "..." },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = "Created: ${dateFormat.format(Date(state.offlineCreatedAt))}",
+                text = stringResource(R.string.created_at_label, dateFormat.format(Date(state.offlineCreatedAt))),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -435,7 +436,7 @@ private fun ActionBar(
                     containerColor = MaterialTheme.colorScheme.primary,
                 ),
             ) {
-                Icon(Icons.Default.PhoneAndroid, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.PhoneAndroid, contentDescription = stringResource(R.string.cd_keep_local), modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
                 Text(stringResource(R.string.keep_local), maxLines = 1)
             }
@@ -443,7 +444,7 @@ private fun ActionBar(
                 onClick = onAcceptServer,
                 modifier = Modifier.weight(1f),
             ) {
-                Icon(Icons.Default.Cloud, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Cloud, contentDescription = stringResource(R.string.cd_accept_server), modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
                 Text(stringResource(R.string.accept_server), maxLines = 1)
             }
@@ -462,7 +463,7 @@ private fun ActionBar(
                         containerColor = SyncConflict,
                     ),
                 ) {
-                    Icon(Icons.Default.CallMerge, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.AutoMirrored.Filled.CallMerge, contentDescription = stringResource(R.string.cd_merge_versions), modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(stringResource(R.string.merge_manual), maxLines = 1)
                 }
@@ -474,7 +475,7 @@ private fun ActionBar(
                     contentColor = MaterialTheme.colorScheme.error,
                 ),
             ) {
-                Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.cd_discard), modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
                 Text(stringResource(R.string.discard_submission), maxLines = 1)
             }

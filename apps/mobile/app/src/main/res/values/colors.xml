@@ -9,4 +9,26 @@
     <color name="aris_error">#D32F2F</color>
     <color name="aris_on_primary">#FFFFFF</color>
     <color name="aris_background">#F5F5F5</color>
+
+    <!-- Gradient colors -->
+    <color name="gradient_dark_green">#0A2E14</color>
+    <color name="gradient_mid_green">#1B5E20</color>
+    <color name="gradient_teal">#004D40</color>
+    <color name="gradient_deep_green">#062B0E</color>
+
+    <!-- Gold accent -->
+    <color name="gold_accent">#D4A843</color>
+    <color name="gold_accent_light">#E8C96A</color>
+    <color name="gold_accent_dark">#B08930</color>
+
+    <!-- Domain colors -->
+    <color name="domain_animal_health">#C62828</color>
+    <color name="domain_livestock">#E65100</color>
+    <color name="domain_fisheries">#00838F</color>
+    <color name="domain_trade">#1565C0</color>
+    <color name="domain_wildlife">#2E7D32</color>
+    <color name="domain_apiculture">#F9A825</color>
+    <color name="domain_governance">#37474F</color>
+    <color name="domain_climate">#00695C</color>
+    <color name="domain_knowledge">#4527A0</color>
 </resources>

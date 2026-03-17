@@ -21,7 +21,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import org.auibar.aris.mobile.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -47,7 +49,7 @@ fun FormDateField(
             label = { Text(if (required) "$label *" else label) },
             readOnly = true,
             isError = error != null,
-            trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Pick date") },
+            trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = stringResource(R.string.cd_pick_date)) },
             modifier = Modifier.fillMaxWidth().clickable { showDialog = true },
             enabled = true,
         )
@@ -70,10 +72,10 @@ fun FormDateField(
                         onValueChange(dateFormat.format(Date(millis)))
                     }
                     showDialog = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showDialog = false }) { Text(stringResource(R.string.cancel)) }
             },
         ) {
             DatePicker(state = datePickerState)

@@ -23,10 +23,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.remember
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -72,9 +73,7 @@ fun MessageListScreen(
             )
         },
     ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = state.isRefreshing,
-            onRefresh = { viewModel.refresh() },
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
@@ -127,7 +126,7 @@ private fun ThreadPreviewCard(
     message: MessageEntity,
     onClick: () -> Unit,
 ) {
-    val dateFormat = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
+    val dateFormat = remember { SimpleDateFormat("dd MMM HH:mm", Locale.getDefault()) }
     val contactName = if (message.isOutgoing) message.recipientName else message.senderName
 
     Card(

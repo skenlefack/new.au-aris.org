@@ -10,12 +10,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.R
 
+@Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductionRecordScreen(
@@ -47,7 +49,7 @@ fun ProductionRecordScreen(
     onBack: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val species by viewModel.speciesList.collectAsStateWithLifecycle(initialValue = emptyList())
+    val species by viewModel.speciesList.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -57,18 +59,19 @@ fun ProductionRecordScreen(
                 title = { Text(stringResource(R.string.production_record)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back_button))
                     }
                 },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
+            val productionSavedMsg = stringResource(R.string.production_saved)
             FloatingActionButton(
                 onClick = {
-                    viewModel.save(campaignId)
+                    viewModel.save()
                     scope.launch {
-                        snackbarHostState.showSnackbar("Production record saved")
+                        snackbarHostState.showSnackbar(productionSavedMsg)
                     }
                 },
             ) {
@@ -101,7 +104,7 @@ fun ProductionRecordScreen(
                     readOnly = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(),
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = state.speciesExpanded) },
                     placeholder = { Text(stringResource(R.string.select_species)) },
                 )
@@ -111,8 +114,8 @@ fun ProductionRecordScreen(
                 ) {
                     species.forEach { sp ->
                         DropdownMenuItem(
-                            text = { Text(sp.nameEn) },
-                            onClick = { viewModel.selectSpecies(sp.id, sp.nameEn) },
+                            text = { Text(sp.commonName) },
+                            onClick = { viewModel.selectSpecies(sp.id, sp.commonName) },
                         )
                     }
                 }
@@ -136,7 +139,7 @@ fun ProductionRecordScreen(
                     readOnly = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(),
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = state.productExpanded) },
                     placeholder = { Text(stringResource(R.string.product_type)) },
                 )
@@ -144,7 +147,7 @@ fun ProductionRecordScreen(
                     expanded = state.productExpanded,
                     onDismissRequest = { viewModel.toggleProductDropdown() },
                 ) {
-                    PRODUCT_TYPES.forEach { product ->
+                    productTypes().forEach { product ->
                         DropdownMenuItem(
                             text = { Text(product) },
                             onClick = { viewModel.selectProduct(product) },
@@ -187,7 +190,7 @@ fun ProductionRecordScreen(
                     readOnly = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(),
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = state.unitExpanded) },
                     placeholder = { Text(stringResource(R.string.unit)) },
                 )
@@ -195,7 +198,7 @@ fun ProductionRecordScreen(
                     expanded = state.unitExpanded,
                     onDismissRequest = { viewModel.toggleUnitDropdown() },
                 ) {
-                    UNITS.forEach { unit ->
+                    unitOptions().forEach { unit ->
                         DropdownMenuItem(
                             text = { Text(unit) },
                             onClick = { viewModel.selectUnit(unit) },
@@ -209,21 +212,23 @@ fun ProductionRecordScreen(
     }
 }
 
-private val PRODUCT_TYPES = listOf(
-    "Milk",
-    "Meat",
-    "Eggs",
-    "Wool",
-    "Hides & Skins",
-    "Honey",
-    "Other",
+@Composable
+private fun productTypes() = listOf(
+    stringResource(R.string.product_milk),
+    stringResource(R.string.product_meat),
+    stringResource(R.string.product_eggs),
+    stringResource(R.string.product_wool),
+    stringResource(R.string.product_hides),
+    stringResource(R.string.product_honey),
+    stringResource(R.string.product_other),
 )
 
-private val UNITS = listOf(
-    "Litres",
-    "Kilograms",
-    "Tonnes",
-    "Units",
-    "Heads",
-    "Dozens",
+@Composable
+private fun unitOptions() = listOf(
+    stringResource(R.string.unit_litres),
+    stringResource(R.string.unit_kilograms),
+    stringResource(R.string.unit_tonnes),
+    stringResource(R.string.unit_units),
+    stringResource(R.string.unit_heads),
+    stringResource(R.string.unit_dozens),
 )

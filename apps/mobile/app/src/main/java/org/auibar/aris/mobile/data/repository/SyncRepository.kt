@@ -11,6 +11,7 @@ import org.auibar.aris.mobile.data.local.entity.DiseaseEntity
 import org.auibar.aris.mobile.data.local.entity.FormTemplateEntity
 import org.auibar.aris.mobile.data.local.entity.GeoEntity
 import org.auibar.aris.mobile.data.local.entity.SpeciesEntity
+import org.auibar.aris.mobile.BuildConfig
 import org.auibar.aris.mobile.data.remote.api.SyncApi
 import org.auibar.aris.mobile.data.remote.dto.SubmissionDto
 import org.auibar.aris.mobile.data.remote.dto.SyncRequest
@@ -37,6 +38,7 @@ class SyncRepository @Inject constructor(
                     campaignId = entity.campaignId,
                     templateId = entity.templateId,
                     data = entity.data,
+                    domain = entity.domain,
                     gpsLat = entity.gpsLat,
                     gpsLng = entity.gpsLng,
                     gpsAccuracy = entity.gpsAccuracy,
@@ -48,6 +50,8 @@ class SyncRepository @Inject constructor(
                 SyncRequest(
                     submissions = submissionDtos,
                     lastSyncAt = tokenManager.lastSyncAt,
+                    deviceId = tokenManager.deviceId,
+                    clientVersion = BuildConfig.VERSION_NAME,
                 )
             )
 

@@ -40,14 +40,14 @@ fun PhotoCaptureField(
             modifier = Modifier.padding(top = 4.dp),
         ) {
             Button(onClick = onTakePhoto) {
-                Icon(Icons.Default.CameraAlt, contentDescription = null)
+                Icon(Icons.Default.CameraAlt, contentDescription = stringResource(R.string.cd_take_photo))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.take_photo))
             }
             if (value.isNotBlank()) {
                 Icon(
                     Icons.Default.CheckCircle,
-                    contentDescription = "Photo taken",
+                    contentDescription = stringResource(R.string.photo_captured),
                     tint = SyncSuccess,
                     modifier = Modifier.padding(start = 12.dp),
                 )

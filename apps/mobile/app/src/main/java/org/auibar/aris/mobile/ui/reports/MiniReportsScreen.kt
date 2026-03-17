@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,6 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.auibar.aris.mobile.R
+import org.auibar.aris.mobile.ui.theme.SyncFailed
+import org.auibar.aris.mobile.ui.theme.SyncPending
+import org.auibar.aris.mobile.ui.theme.SyncSuccess
 import org.auibar.aris.mobile.ui.charts.HorizontalBarChart
 import org.auibar.aris.mobile.ui.charts.LineChart
 import org.auibar.aris.mobile.ui.charts.PieChart
@@ -53,7 +57,7 @@ fun MiniReportsScreen(
                 title = { Text(stringResource(R.string.reports)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back_button))
                     }
                 },
             )
@@ -82,9 +86,9 @@ fun MiniReportsScreen(
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
-                    StatItem(label = stringResource(R.string.total_synced), value = state.totalSynced, color = Color(0xFF4CAF50))
-                    StatItem(label = stringResource(R.string.total_pending), value = state.totalPending, color = Color(0xFF2196F3))
-                    StatItem(label = stringResource(R.string.total_failed), value = state.totalFailed, color = Color(0xFFF44336))
+                    StatItem(label = stringResource(R.string.total_synced), value = state.totalSynced, color = SyncSuccess)
+                    StatItem(label = stringResource(R.string.total_pending), value = state.totalPending, color = SyncPending)
+                    StatItem(label = stringResource(R.string.total_failed), value = state.totalFailed, color = SyncFailed)
                 }
             }
 
@@ -157,7 +161,7 @@ fun MiniReportsScreen(
             SectionTitle(stringResource(R.string.sync_statistics))
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    val dateFormat = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
+                    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()) }
                     val lastSync = state.lastSyncAt?.let { dateFormat.format(Date(it)) }
                         ?: stringResource(R.string.never)
                     Text(

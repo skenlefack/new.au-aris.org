@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Backspace
+import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.auibar.aris.mobile.R
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun SetPinScreen(
     onPinSet: (String) -> Unit,
@@ -100,7 +101,7 @@ fun SetPinScreen(
                                 },
                                 modifier = Modifier.size(72.dp),
                             ) {
-                                Icon(Icons.Default.Backspace, contentDescription = "Delete")
+                                Icon(Icons.AutoMirrored.Filled.Backspace, contentDescription = stringResource(R.string.cd_delete_digit))
                             }
                         }
                         else -> {

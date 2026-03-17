@@ -13,4 +13,12 @@ class AnalyticsApi @Inject constructor(
     suspend fun getHealthKpis(): ApiResponse<KpiResponse> {
         return client.get("/api/v1/analytics/health/kpis").body()
     }
+
+    suspend fun getContinentalKpis(): ApiResponse<KpiResponse> {
+        return client.get("/api/v1/analytics/continental/kpis").body()
+    }
+
+    suspend fun getDomainKpis(domainKey: String): ApiResponse<KpiResponse> {
+        return client.get("/api/v1/analytics/$domainKey/kpis").body()
+    }
 }

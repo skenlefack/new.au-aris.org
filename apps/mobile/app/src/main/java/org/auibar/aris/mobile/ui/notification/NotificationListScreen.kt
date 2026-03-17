@@ -15,19 +15,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -59,6 +61,15 @@ fun NotificationListScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.notifications)) },
                 actions = {
+                    IconButton(
+                        onClick = { viewModel.refresh() },
+                        enabled = !uiState.isRefreshing,
+                    ) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = stringResource(R.string.retry),
+                        )
+                    }
                     if (unreadCount > 0) {
                         IconButton(onClick = { viewModel.markAllAsRead() }) {
                             Icon(
@@ -71,13 +82,14 @@ fun NotificationListScreen(
             )
         },
     ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = uiState.isRefreshing,
-            onRefresh = { viewModel.refresh() },
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
         ) {
+            if (uiState.isRefreshing) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
             if (notifications.isEmpty() && !uiState.isRefreshing) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -86,7 +98,7 @@ fun NotificationListScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
                             Icons.Default.Notifications,
-                            contentDescription = "No notifications",
+                            contentDescription = stringResource(R.string.no_notifications),
                             modifier = Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -126,11 +138,15 @@ private fun NotificationCard(
     }
 
     val notificationTypeLabel = if (notification.type == "outbreak_alert") {
-        "Outbreak alert"
+        stringResource(R.string.channel_alerts)
     } else {
-        "Notification"
+        stringResource(R.string.notifications)
     }
-    val readState = if (notification.isRead) "Read" else "Unread"
+    val readState = if (notification.isRead) {
+        stringResource(R.string.cd_notification_read)
+    } else {
+        stringResource(R.string.cd_notification_unread)
+    }
 
     Card(
         modifier = Modifier
@@ -182,7 +198,7 @@ private fun NotificationCard(
                     modifier = Modifier.padding(top = 2.dp),
                 )
                 Text(
-                    text = formatTime(notification.createdAt),
+                    text = formatTimeLocalized(notification.createdAt),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp),
@@ -192,7 +208,7 @@ private fun NotificationCard(
             if (!notification.isRead) {
                 Icon(
                     Icons.Default.Circle,
-                    contentDescription = "Unread notification indicator",
+                    contentDescription = stringResource(R.string.cd_notification_unread),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .size(10.dp)
@@ -203,13 +219,15 @@ private fun NotificationCard(
     }
 }
 
-private fun formatTime(epochMs: Long): String {
+@Composable
+private fun formatTimeLocalized(epochMs: Long): String {
     val now = System.currentTimeMillis()
     val diff = now - epochMs
+    val dateFormat = remember { SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()) }
     return when {
-        diff < 60_000 -> "Just now"
-        diff < 3_600_000 -> "${diff / 60_000}m ago"
-        diff < 86_400_000 -> "${diff / 3_600_000}h ago"
-        else -> SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()).format(Date(epochMs))
+        diff < 60_000 -> stringResource(R.string.just_now)
+        diff < 3_600_000 -> stringResource(R.string.minutes_ago, (diff / 60_000).toInt())
+        diff < 86_400_000 -> stringResource(R.string.hours_ago, (diff / 3_600_000).toInt())
+        else -> dateFormat.format(Date(epochMs))
     }
 }

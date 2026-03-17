@@ -30,6 +30,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -48,6 +49,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CampaignDetailScreen(
@@ -59,7 +61,7 @@ fun CampaignDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val submissions by viewModel.submissions.collectAsStateWithLifecycle()
     val submissionCount by viewModel.submissionCount.collectAsStateWithLifecycle()
-    val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
 
     Scaffold(
         topBar = {
@@ -67,7 +69,7 @@ fun CampaignDetailScreen(
                 title = { Text(uiState.campaignName.ifBlank { stringResource(R.string.campaign_detail) }) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Navigate back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back_button))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -79,7 +81,7 @@ fun CampaignDetailScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(onClick = onNewSubmission) {
-                Icon(Icons.Default.Add, contentDescription = "Create new submission")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.cd_new_submission))
                 Text(
                     stringResource(R.string.new_submission),
                     modifier = Modifier.padding(start = 8.dp),
@@ -121,10 +123,7 @@ fun CampaignDetailScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .semantics(mergeDescendants = true) {
-                            contentDescription =
-                                "Progress: $submissionCount submissions completed"
-                        },
+                        .semantics(mergeDescendants = true) { },
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -133,7 +132,7 @@ fun CampaignDetailScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(stringResource(R.string.progress), style = MaterialTheme.typography.titleMedium)
-                            Text("$submissionCount submissions", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.submission_count, submissionCount), style = MaterialTheme.typography.bodyMedium)
                         }
                         LinearProgressIndicator(
                             progress = { if (submissionCount > 0) 1f else 0f },
@@ -170,24 +169,27 @@ fun CampaignDetailScreen(
 
 @Composable
 private fun SubmissionRow(submission: Submission) {
-    val dateFormat = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault())
+    val dateFormat = remember { SimpleDateFormat("dd MMM HH:mm", Locale.getDefault()) }
     val (icon, tint, label) = when (submission.syncStatus) {
-        "SYNCED" -> Triple(Icons.Default.CheckCircle, SyncSuccess, "Synced")
-        "FAILED" -> Triple(Icons.Default.Error, SyncFailed, "Failed")
-        "CONFLICT" -> Triple(Icons.Default.Warning, SyncConflict, "Conflict")
-        "DRAFT" -> Triple(Icons.Default.Edit, MaterialTheme.colorScheme.outline, "Draft")
-        else -> Triple(Icons.Default.Schedule, SyncPending, "Pending")
+        "SYNCED" -> Triple(Icons.Default.CheckCircle, SyncSuccess, stringResource(R.string.synced))
+        "FAILED" -> Triple(Icons.Default.Error, SyncFailed, stringResource(R.string.failed))
+        "CONFLICT" -> Triple(Icons.Default.Warning, SyncConflict, stringResource(R.string.conflict))
+        "DRAFT" -> Triple(Icons.Default.Edit, MaterialTheme.colorScheme.outline, stringResource(R.string.draft))
+        else -> Triple(Icons.Default.Schedule, SyncPending, stringResource(R.string.pending))
     }
 
     val submissionDate = dateFormat.format(Date(submission.offlineCreatedAt))
+    val cardDesc = if (submission.serverErrors != null) {
+        stringResource(R.string.cd_submission_row_error, submissionDate, label, submission.serverErrors)
+    } else {
+        stringResource(R.string.cd_submission_row, submissionDate, label)
+    }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) {
-                contentDescription =
-                    "Submission from $submissionDate, Status: $label" +
-                            if (submission.serverErrors != null) ", Error: ${submission.serverErrors}" else ""
+                contentDescription = cardDesc
             },
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
@@ -209,8 +211,9 @@ private fun SubmissionRow(submission: Submission) {
                     )
                 }
             }
+            val statusDesc = stringResource(R.string.cd_status, label)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, contentDescription = "$label status", tint = tint)
+                Icon(icon, contentDescription = statusDesc, tint = tint)
                 Text(label, style = MaterialTheme.typography.labelSmall, color = tint, modifier = Modifier.padding(start = 4.dp))
             }
         }

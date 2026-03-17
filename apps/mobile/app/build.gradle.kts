@@ -35,7 +35,7 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:3002\"")
+            buildConfigField("String", "API_BASE_URL", "\"http://10.202.101.183:4000\"")
         }
         release {
             isMinifyEnabled = true
@@ -73,7 +73,7 @@ android {
 
 dependencies {
     // Compose BOM
-    val composeBom = platform("androidx.compose:compose-bom:2024.01.00")
+    val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
     implementation(composeBom)
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui")

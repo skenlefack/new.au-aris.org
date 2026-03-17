@@ -9,17 +9,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -33,18 +39,36 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GpsTrackScreen(
     campaignId: String? = null,
+    onBack: () -> Unit = {},
     viewModel: GpsTrackViewModel = hiltViewModel(),
 ) {
     val activeTrack by viewModel.activeTrack.collectAsStateWithLifecycle(initialValue = null)
     val allTracks by viewModel.allTracks.collectAsStateWithLifecycle(initialValue = emptyList())
     val context = LocalContext.current
 
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.start_tracking)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.cd_back_button),
+                        )
+                    }
+                },
+            )
+        },
+    ) { padding ->
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(padding)
             .padding(16.dp),
     ) {
         // Active tracking card
@@ -83,7 +107,7 @@ fun GpsTrackScreen(
                             containerColor = MaterialTheme.colorScheme.error,
                         ),
                     ) {
-                        Icon(Icons.Default.Stop, contentDescription = null)
+                        Icon(Icons.Default.Stop, contentDescription = stringResource(R.string.cd_stop_tracking))
                         Text(
                             text = stringResource(R.string.stop_tracking),
                             modifier = Modifier.padding(start = 8.dp),
@@ -98,7 +122,7 @@ fun GpsTrackScreen(
                     Button(
                         onClick = { viewModel.startTracking(context, campaignId) },
                     ) {
-                        Icon(Icons.Default.MyLocation, contentDescription = null)
+                        Icon(Icons.Default.MyLocation, contentDescription = stringResource(R.string.cd_start_tracking))
                         Text(
                             text = stringResource(R.string.start_tracking),
                             modifier = Modifier.padding(start = 8.dp),
@@ -122,11 +146,12 @@ fun GpsTrackScreen(
             Spacer(modifier = Modifier.height(4.dp))
         }
     }
+    }
 }
 
 @Composable
 private fun TrackItem(track: GpsTrack) {
-    val dateFormat = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()) }
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(

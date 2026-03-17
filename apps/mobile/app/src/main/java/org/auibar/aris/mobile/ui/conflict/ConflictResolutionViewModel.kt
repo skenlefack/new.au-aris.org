@@ -15,6 +15,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
 import javax.inject.Inject
 
@@ -30,6 +31,7 @@ data class ConflictUiState(
     val isLoading: Boolean = true,
     val submissionId: String = "",
     val campaignId: String = "",
+    val campaignName: String = "",
     val offlineCreatedAt: Long = 0L,
     val fields: List<FieldDiff> = emptyList(),
     val diffCount: Int = 0,
@@ -48,6 +50,7 @@ sealed class ConflictEvent {
 class ConflictResolutionViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val submissionRepository: SubmissionRepository,
+    private val campaignRepository: CampaignRepository,
 ) : ViewModel() {
 
     private val submissionId: String = savedStateHandle["submissionId"] ?: ""
@@ -87,10 +90,13 @@ class ConflictResolutionViewModel @Inject constructor(
                 )
             }
 
+            val campaign = campaignRepository.getById(submission.campaignId)
+
             _state.value = ConflictUiState(
                 isLoading = false,
                 submissionId = submissionId,
                 campaignId = submission.campaignId,
+                campaignName = campaign?.name ?: "",
                 offlineCreatedAt = submission.offlineCreatedAt,
                 fields = fields,
                 diffCount = fields.count { it.isDifferent },

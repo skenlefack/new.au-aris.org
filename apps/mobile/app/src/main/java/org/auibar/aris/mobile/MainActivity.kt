@@ -17,7 +17,6 @@ import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.data.remote.websocket.WebSocketManager
-import org.auibar.aris.mobile.data.repository.NotificationRepository
 import org.auibar.aris.mobile.ui.components.OfflineBanner
 import org.auibar.aris.mobile.ui.components.UpdatePromptDialog
 import org.auibar.aris.mobile.ui.navigation.ArisNavGraph
@@ -42,9 +41,6 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var notificationHelper: NotificationHelper
-
-    @Inject
-    lateinit var notificationRepository: NotificationRepository
 
     @Inject
     lateinit var tokenManager: TokenManager
@@ -76,10 +72,10 @@ class MainActivity : ComponentActivity() {
         }
 
         // Listen for real-time events and show Android notifications
+        // (Room persistence is handled by WebSocketManager.handleEvent)
         lifecycleScope.launch {
             webSocketManager.events.collect { event ->
                 notificationHelper.showNotification(event)
-                notificationRepository.insertFromEvent(event)
             }
         }
 

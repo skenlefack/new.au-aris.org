@@ -24,7 +24,7 @@ class SyncWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return try {
-            Log.d(TAG, "Starting sync...")
+            Log.d(TAG, "Starting sync (attempt $runAttemptCount)...")
             val result = syncRepository.performSync()
             if (result.isSuccess) {
                 val data = result.getOrNull()
@@ -32,16 +32,26 @@ class SyncWorker @AssistedInject constructor(
                 Result.success()
             } else {
                 Log.w(TAG, "Sync failed: ${result.exceptionOrNull()?.message}")
-                Result.retry()
+                retryOrFail()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Sync error", e)
+            retryOrFail()
+        }
+    }
+
+    private fun retryOrFail(): Result {
+        return if (runAttemptCount >= MAX_RETRIES) {
+            Log.e(TAG, "Sync giving up after $runAttemptCount attempts")
+            Result.failure()
+        } else {
             Result.retry()
         }
     }
 
     companion object {
         private const val TAG = "SyncWorker"
+        private const val MAX_RETRIES = 5
         const val WORK_NAME = "aris_periodic_sync"
 
         fun enqueue(context: Context) {

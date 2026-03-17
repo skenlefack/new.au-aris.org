@@ -7,9 +7,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import org.auibar.aris.mobile.R
 
 /**
  * Tiny sparkline chart for embedding in KPI cards.
@@ -27,10 +29,11 @@ fun SparklineChart(
     val minVal = values.min().coerceAtLeast(0f)
     val range = (maxVal - minVal).coerceAtLeast(1f)
     val trend = if (values.last() >= values.first()) "upward" else "downward"
+    val sparklineDesc = stringResource(R.string.cd_sparkline, trend, values.size)
 
     Canvas(
         modifier = modifier.semantics {
-            contentDescription = "Sparkline showing $trend trend over ${values.size} points"
+            contentDescription = sparklineDesc
         },
     ) {
         val stepX = size.width / (values.size - 1)

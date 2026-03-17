@@ -5,6 +5,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.patch
+import io.ktor.client.request.post
 import org.auibar.aris.mobile.data.remote.dto.ApiResponse
 import org.auibar.aris.mobile.data.remote.dto.NotificationDto
 import javax.inject.Inject
@@ -25,5 +26,9 @@ class MessageApi @Inject constructor(
 
     suspend fun markAsRead(id: String): ApiResponse<NotificationDto> {
         return client.patch("/api/v1/messages/$id/read").body()
+    }
+
+    suspend fun markAllAsRead() {
+        client.post("/api/v1/messages/read-all")
     }
 }

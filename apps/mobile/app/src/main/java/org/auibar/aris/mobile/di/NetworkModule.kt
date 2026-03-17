@@ -7,8 +7,12 @@ import dagger.hilt.components.SingletonComponent
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.call.body
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.contentType
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
@@ -43,6 +47,7 @@ object NetworkModule {
         tokenManager: TokenManager,
     ): HttpClient {
         return HttpClient(Android) {
+            expectSuccess = false
             install(ContentNegotiation) { json(json) }
 
             install(Logging) {
@@ -57,6 +62,25 @@ object NetworkModule {
                         if (access != null && refresh != null) {
                             BearerTokens(access, refresh)
                         } else null
+                    }
+                    refreshTokens {
+                        val refresh = oldTokens?.refreshToken ?: return@refreshTokens null
+                        try {
+                            val response = client.post("/api/v1/credential/auth/refresh") {
+                                markAsRefreshTokenRequest()
+                                contentType(io.ktor.http.ContentType.Application.Json)
+                                setBody(mapOf("refreshToken" to refresh))
+                            }
+                            val body = response.body<org.auibar.aris.mobile.data.remote.dto.ApiResponse<org.auibar.aris.mobile.data.remote.dto.LoginResponse>>()
+                            val newAccess = body.data.accessToken
+                            val newRefresh = body.data.refreshToken
+                            tokenManager.accessToken = newAccess
+                            tokenManager.refreshToken = newRefresh
+                            BearerTokens(newAccess, newRefresh)
+                        } catch (e: Exception) {
+                            android.util.Log.e("NetworkModule", "Token refresh failed", e)
+                            null
+                        }
                     }
                 }
             }

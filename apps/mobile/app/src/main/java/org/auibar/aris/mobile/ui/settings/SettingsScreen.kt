@@ -21,6 +21,8 @@ import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
@@ -66,6 +68,7 @@ fun SettingsScreen(
     onLogout: () -> Unit,
     onTenantHierarchy: () -> Unit = {},
     onMessages: () -> Unit = {},
+    onSetPin: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -92,46 +95,6 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // User profile card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics(mergeDescendants = true) {
-                        contentDescription =
-                            "User profile: ${uiState.userFullName.ifEmpty { "Unknown user" }}, " +
-                                    "${uiState.userEmail}, Role: ${uiState.userRole}"
-                    },
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = "User avatar",
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Column(modifier = Modifier.padding(start = 16.dp)) {
-                        Text(
-                            text = uiState.userFullName.ifEmpty { stringResource(R.string.unknown_user) },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = uiState.userEmail,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = uiState.userRole,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-            }
-
             // Language selector
             SettingsItem(
                 icon = Icons.Default.Language,
@@ -166,6 +129,24 @@ fun SettingsScreen(
                 onClick = onTenantHierarchy,
             )
 
+            // PIN lock
+            SettingsItem(
+                icon = if (uiState.isPinEnabled) Icons.Default.Lock else Icons.Default.LockOpen,
+                title = stringResource(R.string.pin_lock),
+                subtitle = if (uiState.isPinEnabled) {
+                    stringResource(R.string.pin_lock_enabled)
+                } else {
+                    stringResource(R.string.pin_lock_disabled)
+                },
+                onClick = {
+                    if (uiState.isPinEnabled) {
+                        viewModel.disablePin()
+                    } else {
+                        onSetPin()
+                    }
+                },
+            )
+
             // Crash reports
             if (uiState.crashLogCount > 0) {
                 SettingsItem(
@@ -194,18 +175,14 @@ fun SettingsScreen(
             HorizontalDivider()
 
             // App info
+            val settingsDateFormat = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
+            val lastSyncStr = uiState.lastSyncAt?.let { settingsDateFormat.format(Date(it)) }
+                ?: stringResource(R.string.never)
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .semantics(mergeDescendants = true) {
-                        contentDescription =
-                            "App version: ${uiState.appVersion}, Last sync: ${
-                                uiState.lastSyncAt?.let {
-                                    SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-                                        .format(Date(it))
-                                } ?: "Never"
-                            }"
-                    },
+                    .semantics(mergeDescendants = true) { },
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
                 ),
@@ -235,10 +212,7 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         Text(
-                            text = uiState.lastSyncAt?.let {
-                                SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-                                    .format(Date(it))
-                            } ?: stringResource(R.string.never),
+                            text = lastSyncStr,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                         )

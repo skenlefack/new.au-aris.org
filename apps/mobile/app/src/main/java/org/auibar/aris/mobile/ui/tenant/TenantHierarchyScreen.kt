@@ -30,7 +30,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import org.auibar.aris.mobile.ui.components.LoadingSpinner
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -91,7 +91,7 @@ fun TenantHierarchyScreen(
                     .padding(padding),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator()
+                LoadingSpinner()
             }
         } else {
             LazyColumn(
@@ -276,7 +276,7 @@ private fun TenantNodeItem(
                 if (hasChildren) {
                     Icon(
                         imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ChevronRight,
-                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                        contentDescription = null,
                         modifier = Modifier.size(24.dp),
                     )
                 }

@@ -15,9 +15,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import org.auibar.aris.mobile.R
 
 data class LineChartPoint(
     val label: String,
@@ -38,7 +40,7 @@ fun LineChart(
 
     val maxValue = points.maxOf { it.value }.coerceAtLeast(1f)
     val minValue = 0f
-    val description = "Line chart showing ${points.size} data points"
+    val description = stringResource(R.string.cd_line_chart, points.size)
 
     Column(modifier = modifier.fillMaxWidth()) {
         Canvas(

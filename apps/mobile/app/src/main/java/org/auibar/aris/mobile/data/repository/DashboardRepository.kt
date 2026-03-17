@@ -19,6 +19,24 @@ class DashboardRepository @Inject constructor(
         }
     }
 
+    suspend fun getContinentalKpis(): Result<List<KpiCard>> {
+        return try {
+            val response = analyticsApi.getContinentalKpis()
+            Result.success(response.data.kpis)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getDomainKpis(domainKey: String): Result<List<KpiCard>> {
+        return try {
+            val response = analyticsApi.getDomainKpis(domainKey)
+            Result.success(response.data.kpis)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     fun getActiveCampaigns() = campaignRepository.getActiveCampaigns()
 
     fun getPendingCount() = submissionRepository.getPendingCount()

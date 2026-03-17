@@ -2,6 +2,7 @@ package org.auibar.aris.mobile.ui.form
 
 import android.Manifest
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -17,8 +18,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.automirrored.filled.Send
+import org.auibar.aris.mobile.ui.components.LoadingSpinner
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -49,6 +50,7 @@ import com.google.android.gms.location.LocationServices
 import org.auibar.aris.mobile.R
 import java.io.File
 
+@Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FormFillScreen(
@@ -75,7 +77,7 @@ fun FormFillScreen(
                         )
                     }
                 }
-            } catch (_: SecurityException) { }
+            } catch (e: SecurityException) { Log.w("FormFill", "Location permission denied", e) }
         }
     }
 
@@ -94,14 +96,17 @@ fun FormFillScreen(
         }
     }
 
+    val draftSavedMsg = stringResource(R.string.form_saved)
+    val submittedMsg = stringResource(R.string.form_submitted)
+
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 FormEvent.DraftSaved -> {
-                    snackbarHostState.showSnackbar("Draft saved")
+                    snackbarHostState.showSnackbar(draftSavedMsg)
                 }
                 FormEvent.Submitted -> {
-                    snackbarHostState.showSnackbar("Submission queued for sync")
+                    snackbarHostState.showSnackbar(submittedMsg)
                     onBack()
                 }
                 is FormEvent.Error -> {
@@ -118,7 +123,7 @@ fun FormFillScreen(
                 title = { Text(uiState.templateName.ifBlank { "Form" }) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Navigate back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back_button))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -134,7 +139,7 @@ fun FormFillScreen(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator()
+                LoadingSpinner()
             }
         } else {
             Column(
@@ -181,7 +186,7 @@ fun FormFillScreen(
                             .weight(1f)
                             .defaultMinSize(minHeight = 48.dp),
                     ) {
-                        Icon(Icons.Default.Save, contentDescription = "Save draft")
+                        Icon(Icons.Default.Save, contentDescription = stringResource(R.string.save_draft))
                         Text(stringResource(R.string.save_draft), modifier = Modifier.padding(start = 8.dp))
                     }
                     ExtendedFloatingActionButton(
@@ -190,7 +195,7 @@ fun FormFillScreen(
                             .weight(1f)
                             .defaultMinSize(minHeight = 48.dp),
                     ) {
-                        Icon(Icons.Default.Send, contentDescription = "Submit form")
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.submit))
                         Text(stringResource(R.string.submit), modifier = Modifier.padding(start = 8.dp))
                     }
                 }

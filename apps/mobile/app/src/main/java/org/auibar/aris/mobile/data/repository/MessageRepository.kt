@@ -72,9 +72,9 @@ class MessageRepository @Inject constructor(
         )
         messageDao.upsert(entity)
 
-        // Try to send immediately
+        // Try to send via server notification API
         try {
-            client.post("/api/v1/message/direct") {
+            client.post("/api/v1/messages/send") {
                 contentType(ContentType.Application.Json)
                 setBody(SendMessageRequest(recipientId = recipientId, body = body))
             }
@@ -86,12 +86,13 @@ class MessageRepository @Inject constructor(
 
     suspend fun fetchMessages() {
         try {
-            val response: ApiResponse<List<MessageDto>> = client.get("/api/v1/message/direct") {
+            val response: ApiResponse<List<MessageDto>> = client.get("/api/v1/messages") {
                 parameter("limit", 100)
+                parameter("channel", "in_app")
             }.body()
 
             val userId = tokenManager.userId ?: return
-            val messages = response.data?.map { dto ->
+            val messages = response.data.map { dto ->
                 MessageEntity(
                     id = dto.id,
                     threadId = dto.threadId,
@@ -104,7 +105,7 @@ class MessageRepository @Inject constructor(
                     createdAt = dto.createdAt,
                     syncStatus = "SYNCED",
                 )
-            } ?: return
+            }
 
             messageDao.upsertAll(messages)
         } catch (_: Exception) {
@@ -116,7 +117,7 @@ class MessageRepository @Inject constructor(
         val pending = messageDao.getPending()
         for (msg in pending) {
             try {
-                client.post("/api/v1/message/direct") {
+                client.post("/api/v1/messages/send") {
                     contentType(ContentType.Application.Json)
                     setBody(SendMessageRequest(recipientId = msg.recipientId, body = msg.body))
                 }

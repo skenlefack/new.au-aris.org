@@ -26,6 +26,7 @@ import org.auibar.aris.mobile.data.repository.GpsTrackRepository
 import org.auibar.aris.mobile.data.repository.NotificationRepository
 import org.auibar.aris.mobile.data.repository.PhotoRepository
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
+import org.auibar.aris.mobile.data.remote.websocket.WebSocketManager
 import org.auibar.aris.mobile.data.repository.SyncRepository
 import org.auibar.aris.mobile.util.TokenManager
 import javax.inject.Singleton
@@ -39,7 +40,8 @@ object AppModule {
     fun provideAuthRepository(
         authApi: AuthApi,
         tokenManager: TokenManager,
-    ): AuthRepository = AuthRepository(authApi, tokenManager)
+        webSocketManager: WebSocketManager,
+    ): AuthRepository = AuthRepository(authApi, tokenManager, webSocketManager)
 
     @Provides
     @Singleton

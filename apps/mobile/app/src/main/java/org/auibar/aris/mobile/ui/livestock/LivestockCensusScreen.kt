@@ -10,12 +10,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.R
 
+@Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LivestockCensusScreen(
@@ -47,7 +49,7 @@ fun LivestockCensusScreen(
     onBack: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val species by viewModel.speciesList.collectAsStateWithLifecycle(initialValue = emptyList())
+    val species by viewModel.speciesList.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -57,18 +59,19 @@ fun LivestockCensusScreen(
                 title = { Text(stringResource(R.string.livestock_census)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back_button))
                     }
                 },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
+            val censusSavedMsg = stringResource(R.string.census_saved)
             FloatingActionButton(
                 onClick = {
-                    viewModel.save(campaignId)
+                    viewModel.save()
                     scope.launch {
-                        snackbarHostState.showSnackbar("Census data saved")
+                        snackbarHostState.showSnackbar(censusSavedMsg)
                     }
                 },
             ) {
@@ -101,7 +104,7 @@ fun LivestockCensusScreen(
                     readOnly = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(),
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = state.speciesExpanded) },
                     placeholder = { Text(stringResource(R.string.select_species)) },
                 )
@@ -111,8 +114,8 @@ fun LivestockCensusScreen(
                 ) {
                     species.forEach { sp ->
                         DropdownMenuItem(
-                            text = { Text(sp.nameEn) },
-                            onClick = { viewModel.selectSpecies(sp.id, sp.nameEn) },
+                            text = { Text(sp.commonName) },
+                            onClick = { viewModel.selectSpecies(sp.id, sp.commonName) },
                         )
                     }
                 }
@@ -152,7 +155,7 @@ fun LivestockCensusScreen(
                     readOnly = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(),
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = state.methodologyExpanded) },
                     placeholder = { Text(stringResource(R.string.select_methodology)) },
                 )
@@ -160,7 +163,7 @@ fun LivestockCensusScreen(
                     expanded = state.methodologyExpanded,
                     onDismissRequest = { viewModel.toggleMethodologyDropdown() },
                 ) {
-                    METHODOLOGIES.forEach { method ->
+                    methodologies().forEach { method ->
                         DropdownMenuItem(
                             text = { Text(method) },
                             onClick = { viewModel.selectMethodology(method) },
@@ -174,11 +177,12 @@ fun LivestockCensusScreen(
     }
 }
 
-private val METHODOLOGIES = listOf(
-    "Household Survey",
-    "Aerial Survey",
-    "Ground Count",
-    "Administrative Records",
-    "Sample Frame Census",
-    "Complete Enumeration",
+@Composable
+private fun methodologies() = listOf(
+    stringResource(R.string.methodology_household_survey),
+    stringResource(R.string.methodology_aerial_survey),
+    stringResource(R.string.methodology_ground_count),
+    stringResource(R.string.methodology_admin_records),
+    stringResource(R.string.methodology_sample_frame),
+    stringResource(R.string.methodology_complete_enum),
 )
