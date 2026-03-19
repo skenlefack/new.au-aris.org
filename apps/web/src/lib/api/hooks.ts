@@ -1624,6 +1624,7 @@ export function useUpdateProfile() {
       firstName?: string;
       lastName?: string;
       email?: string;
+      avatarUrl?: string | null;
     }) =>
       apiClient.patch<{ data: UserProfile }>('/credential/users/me', data),
     onSuccess: () => {

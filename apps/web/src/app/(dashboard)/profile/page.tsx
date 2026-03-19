@@ -31,6 +31,7 @@ import {
   useUploadAvatar,
 } from '@/lib/api/hooks';
 import { useAuthStore, type UserRole } from '@/lib/stores/auth-store';
+import { useTenantStore, findTenantById } from '@/lib/stores/tenant-store';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
 import { useTranslations, useFormattedDate } from '@/lib/i18n/translations';
 import { cn } from '@/lib/utils';
@@ -95,6 +96,8 @@ export default function ProfilePage() {
   const t = useTranslations('settings');
   const th = useTranslations('header');
   const user = useAuthStore((s) => s.user);
+  const tenantTree = useTenantStore((s) => s.tenantTree);
+  const selectedTenant = useTenantStore((s) => s.selectedTenant);
   const formatDate = useFormattedDate();
 
   const { data, isLoading } = useUserProfile();
@@ -327,7 +330,7 @@ export default function ProfilePage() {
   function handleRemoveAvatar() {
     setAvatarMenuOpen(false);
     updateProfile.mutate(
-      { avatarUrl: null } as any,
+      { avatarUrl: null },
       {
         onSuccess: () => {
           setProfileSaved(true);
@@ -340,14 +343,18 @@ export default function ProfilePage() {
   if (isLoading) return <DetailSkeleton />;
 
   const displayRole = (profile?.role ?? user?.role ?? 'ANALYST') as UserRole;
-  const displayTenant = profile?.tenantId ?? user?.tenantId ?? '';
+  const tenantId = profile?.tenantId ?? user?.tenantId ?? '';
+  const tenantNode = tenantId && tenantTree.length > 0
+    ? findTenantById(tenantTree, tenantId)
+    : null;
+  const displayTenant = tenantNode?.name ?? selectedTenant?.name ?? '';
 
   return (
     <div className="space-y-6">
       {/* ── Section 1: Hero Card ── */}
       <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         {/* Accent banner — sidebar-style gradient + decorative effects */}
-        <div className="relative h-32 sm:h-36 overflow-hidden">
+        <div className="relative h-24 sm:h-28 overflow-hidden">
           {/* Gradient background matching sidebar */}
           <div
             className="absolute inset-0"
@@ -396,7 +403,7 @@ export default function ProfilePage() {
 
         <div className="relative px-6 pb-6">
           {/* Avatar + Info row */}
-          <div className="-mt-14 flex flex-col items-start gap-5 sm:flex-row sm:items-end sm:gap-6">
+          <div className="-mt-16 flex flex-col items-start gap-5 sm:flex-row sm:items-end sm:gap-6">
             {/* Avatar with upload overlay */}
             <div ref={avatarMenuRef} className="relative group">
               {/* Hidden file input */}

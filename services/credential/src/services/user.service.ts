@@ -6,7 +6,7 @@ import type { AuthenticatedUser } from '@aris/auth-middleware';
 
 const USER_SELECT = {
   id: true, tenantId: true, email: true, firstName: true, lastName: true,
-  role: true, locale: true, mfaEnabled: true, lastLoginAt: true,
+  role: true, locale: true, mfaEnabled: true, avatarUrl: true, lastLoginAt: true,
   isActive: true, createdAt: true, updatedAt: true,
 } as const;
 
@@ -77,11 +77,30 @@ export class UserService {
     if (dto.role !== undefined) updateData.role = dto.role;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
     if (dto.locale !== undefined) updateData.locale = dto.locale;
+    if (dto.avatarUrl !== undefined) updateData.avatarUrl = dto.avatarUrl;
 
     const user = await (this.prisma as any).user.update({ where: { id }, data: updateData, select: USER_SELECT });
     // Invalidate cached profile
     if (this.redis) {
       try { await this.redis.del(`aris:credential:user:${id}`); } catch { /* non-blocking */ }
+    }
+    return { data: user };
+  }
+
+  async updateMe(caller: AuthenticatedUser, dto: Record<string, unknown>): Promise<ApiResponse<any>> {
+    const updateData: Record<string, unknown> = {};
+    if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
+    if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
+    if (dto.email !== undefined) updateData.email = dto.email;
+    if (dto.avatarUrl !== undefined) updateData.avatarUrl = dto.avatarUrl;
+
+    const user = await (this.prisma as any).user.update({
+      where: { id: caller.userId },
+      data: updateData,
+      select: USER_SELECT,
+    });
+    if (this.redis) {
+      try { await this.redis.del(`aris:credential:user:${caller.userId}`); } catch { /* non-blocking */ }
     }
     return { data: user };
   }

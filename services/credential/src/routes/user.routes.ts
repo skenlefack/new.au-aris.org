@@ -4,10 +4,12 @@ import { UserRole } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import {
   UpdateUserSchema,
+  UpdateProfileSchema,
   UpdateLocaleSchema,
   PaginationQuerySchema,
   UuidParamSchema,
   type UpdateUserInput,
+  type UpdateProfileInput,
   type UpdateLocaleInput,
   type PaginationQueryInput,
   type UuidParamInput,
@@ -31,6 +33,15 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.userService.findMe(user);
+  });
+
+  // PATCH /api/v1/credential/users/me — self-update profile
+  app.patch<{ Body: UpdateProfileInput }>('/api/v1/credential/users/me', {
+    schema: { body: UpdateProfileSchema },
+    preHandler: authAndTenant,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.userService.updateMe(user, request.body);
   });
 
   // PUT /api/v1/credential/users/me/locale

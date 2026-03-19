@@ -13,6 +13,14 @@ export const UpdateUserSchema = Type.Object({
     Type.Literal('es'),
     Type.Literal('ar'),
   ])),
+  avatarUrl: Type.Optional(Type.Union([Type.String({ maxLength: 500 }), Type.Null()])),
+});
+
+export const UpdateProfileSchema = Type.Object({
+  firstName: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
+  lastName: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
+  email: Type.Optional(Type.String({ format: 'email' })),
+  avatarUrl: Type.Optional(Type.Union([Type.String({ maxLength: 500 }), Type.Null()])),
 });
 
 export const UpdateLocaleSchema = Type.Object({
@@ -37,6 +45,7 @@ export const UuidParamSchema = Type.Object({
 });
 
 export type UpdateUserInput = Static<typeof UpdateUserSchema>;
+export type UpdateProfileInput = Static<typeof UpdateProfileSchema>;
 export type UpdateLocaleInput = Static<typeof UpdateLocaleSchema>;
 export type PaginationQueryInput = Static<typeof PaginationQuerySchema>;
 export type UuidParamInput = Static<typeof UuidParamSchema>;
