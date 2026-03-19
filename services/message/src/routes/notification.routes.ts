@@ -38,6 +38,14 @@ export async function registerNotificationRoutes(app: FastifyInstance): Promise<
     return app.notificationService.markAsRead(request.params.id, user.userId, user.tenantId);
   });
 
+  // POST /api/v1/messages/mark-all-read
+  app.post('/api/v1/messages/mark-all-read', {
+    preHandler: [app.authHookFn],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.notificationService.markAllAsRead(user.userId, user.tenantId);
+  });
+
   // POST /api/v1/messages/send
   app.post<{ Body: SendNotificationInput }>('/api/v1/messages/send', {
     schema: { body: SendNotificationSchema },

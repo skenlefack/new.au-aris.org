@@ -1491,7 +1491,7 @@ export function useNotifications(params?: { page?: number; limit?: number }) {
     queryKey: ['notifications', 'list', params],
     queryFn: withFallback(
       () => apiClient.get<PaginatedResponse<Notification>>(
-        '/messages/notifications',
+        '/messages',
         searchParams,
       ),
       fallback,
@@ -1506,7 +1506,7 @@ export function useMarkNotificationRead() {
   return useMutation({
     mutationFn: (id: string) =>
       apiClient.patch<{ data: Notification }>(
-        `/messages/notifications/${id}/read`,
+        `/messages/${id}/read`,
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -1520,7 +1520,7 @@ export function useMarkAllNotificationsRead() {
   return useMutation({
     mutationFn: () =>
       apiClient.post<{ data: { count: number } }>(
-        '/messages/notifications/mark-all-read',
+        '/messages/mark-all-read',
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });

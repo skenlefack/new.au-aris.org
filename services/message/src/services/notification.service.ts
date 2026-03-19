@@ -120,6 +120,14 @@ export class NotificationService {
     return { data: updated as NotificationEntity };
   }
 
+  async markAllAsRead(userId: string, tenantId: string): Promise<ApiResponse<{ count: number }>> {
+    const result = await (this.prisma as any).notification.updateMany({
+      where: { userId, tenantId, readAt: null },
+      data: { readAt: new Date() },
+    });
+    return { data: { count: result.count } };
+  }
+
   async sendManual(
     dto: { userId: string; channel: string; subject: string; body: string; metadata?: Record<string, unknown> },
     caller: AuthenticatedUser,
