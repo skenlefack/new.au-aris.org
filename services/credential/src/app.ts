@@ -25,6 +25,7 @@ export async function buildApp(): Promise<FastifyInstance> {
         ? { target: 'pino-pretty', options: { colorize: true } }
         : undefined,
     },
+    bodyLimit: 8 * 1024 * 1024, // 8MB — allows base64-encoded avatar images
   });
 
   await app.register(cors, { origin: true, credentials: true });

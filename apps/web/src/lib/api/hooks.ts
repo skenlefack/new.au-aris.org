@@ -1690,43 +1690,15 @@ export function useUploadAvatar() {
 
   return useMutation({
     mutationFn: async (file: File) => {
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/v1';
-
-      // 1. Upload file to drive service
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('classification', 'PUBLIC');
-      formData.append('metadata', JSON.stringify({ type: 'avatar' }));
-
-      const headers: Record<string, string> = {};
-      if (typeof window !== 'undefined') {
-        try {
-          const auth = JSON.parse(localStorage.getItem('aris-auth') || '{}');
-          const token = auth?.state?.accessToken;
-          if (token) headers['Authorization'] = `Bearer ${token}`;
-        } catch { /* ignore */ }
-        try {
-          const t = JSON.parse(localStorage.getItem('aris-tenant') || '{}');
-          const tid = t?.state?.selectedTenantId;
-          if (tid) headers['X-Tenant-Id'] = tid;
-        } catch { /* ignore */ }
-      }
-
-      const uploadRes = await fetch(`${API_BASE}/drive/upload`, {
-        method: 'POST',
-        headers,
-        body: formData,
+      // Convert image to base64 data URL (avoids auth issues with <img src>)
+      const avatarUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
       });
-      if (!uploadRes.ok) {
-        throw new Error('Upload failed');
-      }
-      const uploadData = await uploadRes.json();
-      const fileId = uploadData?.data?.id;
 
-      // 2. Build the avatar URL (download endpoint)
-      const avatarUrl = `${API_BASE}/drive/files/${fileId}/download`;
-
-      // 3. Update user profile with the new avatar URL
+      // Save the data URL directly in the user profile
       await apiClient.patch<{ data: UserProfile }>('/credential/users/me', { avatarUrl });
 
       return { avatarUrl };
