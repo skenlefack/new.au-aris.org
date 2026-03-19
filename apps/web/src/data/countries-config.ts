@@ -24,7 +24,7 @@ export const COUNTRIES: Record<string, CountryConfig> = {
 
   // ── West Africa (ECOWAS) ──
   BJ: { code: 'BJ', name: 'Benin', nameFr: 'B\u00e9nin', capital: 'Porto-Novo', flag: '\ud83c\udde7\ud83c\uddef', population: 13.4, languages: ['French'], timezone: 'Africa/Porto-Novo', recs: ['ecowas', 'censad'] },
-  BF: { code: 'BF', name: 'Burkina Faso', nameFr: 'Burkina Faso', capital: 'Ouagadougou', flag: '\ud83c\udde7\ud83c\uddeb', population: 22.7, languages: ['French'], timezone: 'Africa/Ouagadougou', recs: ['ecowas', 'censad'] },
+  BF: { code: 'BF', name: 'Burkina Faso', nameFr: 'Burkina Faso', capital: 'Ouagadougou', flag: '\ud83c\udde7\ud83c\uddeb', population: 22.7, languages: ['French'], timezone: 'Africa/Ouagadougou', recs: ['censad'] },
   CV: { code: 'CV', name: 'Cabo Verde', nameFr: 'Cap-Vert', capital: 'Praia', flag: '\ud83c\udde8\ud83c\uddfb', population: 0.6, languages: ['Portuguese'], timezone: 'Atlantic/Cape_Verde', recs: ['ecowas'] },
   CI: { code: 'CI', name: "C\u00f4te d'Ivoire", nameFr: "C\u00f4te d'Ivoire", capital: 'Yamoussoukro', flag: '\ud83c\udde8\ud83c\uddee', population: 28.2, languages: ['French'], timezone: 'Africa/Abidjan', recs: ['ecowas', 'censad'] },
   GM: { code: 'GM', name: 'Gambia', nameFr: 'Gambie', capital: 'Banjul', flag: '\ud83c\uddec\ud83c\uddf2', population: 2.7, languages: ['English'], timezone: 'Africa/Banjul', recs: ['ecowas', 'censad'] },
@@ -32,8 +32,8 @@ export const COUNTRIES: Record<string, CountryConfig> = {
   GN: { code: 'GN', name: 'Guinea', nameFr: 'Guin\u00e9e', capital: 'Conakry', flag: '\ud83c\uddec\ud83c\uddf3', population: 14.2, languages: ['French'], timezone: 'Africa/Conakry', recs: ['ecowas', 'censad'] },
   GW: { code: 'GW', name: 'Guinea-Bissau', nameFr: 'Guin\u00e9e-Bissau', capital: 'Bissau', flag: '\ud83c\uddec\ud83c\uddfc', population: 2.1, languages: ['Portuguese'], timezone: 'Africa/Bissau', recs: ['ecowas', 'censad'] },
   LR: { code: 'LR', name: 'Liberia', nameFr: 'Lib\u00e9ria', capital: 'Monrovia', flag: '\ud83c\uddf1\ud83c\uddf7', population: 5.4, languages: ['English'], timezone: 'Africa/Monrovia', recs: ['ecowas', 'censad'] },
-  ML: { code: 'ML', name: 'Mali', nameFr: 'Mali', capital: 'Bamako', flag: '\ud83c\uddf2\ud83c\uddf1', population: 22.4, languages: ['French'], timezone: 'Africa/Bamako', recs: ['ecowas', 'censad'] },
-  NE: { code: 'NE', name: 'Niger', nameFr: 'Niger', capital: 'Niamey', flag: '\ud83c\uddf3\ud83c\uddea', population: 26.2, languages: ['French'], timezone: 'Africa/Niamey', recs: ['ecowas', 'censad'] },
+  ML: { code: 'ML', name: 'Mali', nameFr: 'Mali', capital: 'Bamako', flag: '\ud83c\uddf2\ud83c\uddf1', population: 22.4, languages: ['French'], timezone: 'Africa/Bamako', recs: ['censad'] },
+  NE: { code: 'NE', name: 'Niger', nameFr: 'Niger', capital: 'Niamey', flag: '\ud83c\uddf3\ud83c\uddea', population: 26.2, languages: ['French'], timezone: 'Africa/Niamey', recs: ['censad'] },
   NG: { code: 'NG', name: 'Nigeria', nameFr: 'Nig\u00e9ria', capital: 'Abuja', flag: '\ud83c\uddf3\ud83c\uddec', population: 223.8, languages: ['English'], timezone: 'Africa/Lagos', recs: ['ecowas', 'censad'], tenantId: '00000000-0000-4000-a000-000000000201' },
   SN: { code: 'SN', name: 'Senegal', nameFr: 'S\u00e9n\u00e9gal', capital: 'Dakar', flag: '\ud83c\uddf8\ud83c\uddf3', population: 17.7, languages: ['French'], timezone: 'Africa/Dakar', recs: ['ecowas', 'censad'], tenantId: '00000000-0000-4000-a000-000000000202' },
   SL: { code: 'SL', name: 'Sierra Leone', nameFr: 'Sierra Leone', capital: 'Freetown', flag: '\ud83c\uddf8\ud83c\uddf1', population: 8.6, languages: ['English'], timezone: 'Africa/Freetown', recs: ['ecowas', 'censad'] },
