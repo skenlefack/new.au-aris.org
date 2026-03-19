@@ -346,14 +346,53 @@ export default function ProfilePage() {
     <div className="space-y-6">
       {/* ── Section 1: Hero Card ── */}
       <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-        {/* Accent banner */}
-        <div
-          className="h-32 sm:h-36"
-          style={{
-            background: 'linear-gradient(135deg, var(--color-accent), var(--color-accent-dark, var(--color-accent)))',
-            opacity: 0.9,
-          }}
-        />
+        {/* Accent banner — sidebar-style gradient + decorative effects */}
+        <div className="relative h-32 sm:h-36 overflow-hidden">
+          {/* Gradient background matching sidebar */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(135deg,
+                rgba(var(--color-accent-rgb), 0.07) 0%,
+                rgba(var(--color-accent-rgb), 0.15) 40%,
+                rgba(var(--color-accent-rgb), 0.22) 100%
+              )`,
+            }}
+          />
+          <div
+            className="absolute inset-0 hidden dark:block"
+            style={{
+              background: `linear-gradient(135deg,
+                rgba(var(--color-accent-rgb), 0.10) 0%,
+                rgba(var(--color-accent-rgb), 0.20) 40%,
+                rgba(var(--color-accent-rgb), 0.30) 100%
+              )`,
+            }}
+          />
+          {/* Decorative elements */}
+          <div className="pointer-events-none absolute inset-0">
+            <div
+              className="absolute -top-10 -right-10 h-40 w-40 rounded-full"
+              style={{ background: 'radial-gradient(circle, rgba(var(--color-accent-rgb), 0.12) 0%, transparent 70%)' }}
+            />
+            <div
+              className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full"
+              style={{ background: 'radial-gradient(circle, rgba(var(--color-accent-rgb), 0.10) 0%, transparent 70%)' }}
+            />
+            <div
+              className="absolute top-4 right-[30%] h-20 w-20 rounded-full"
+              style={{ border: '1.5px solid rgba(var(--color-accent-rgb), 0.08)' }}
+            />
+            <div
+              className="absolute bottom-3 right-[15%] h-6 w-6 rounded-full"
+              style={{ background: 'rgba(var(--color-accent-rgb), 0.08)' }}
+            />
+            <div
+              className="absolute top-6 left-[40%] h-4 w-4 rounded-full"
+              style={{ background: 'rgba(var(--color-accent-rgb), 0.10)' }}
+            />
+          </div>
+        </div>
 
         <div className="relative px-6 pb-6">
           {/* Avatar + Info row */}
