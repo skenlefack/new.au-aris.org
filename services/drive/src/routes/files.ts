@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authHook, tenantHook } from '@aris/auth-middleware';
 import type { AuthenticatedUser, AuthHookOptions } from '@aris/auth-middleware';
@@ -20,9 +21,11 @@ export default async function fileRoutes(app: FastifyInstance): Promise<void> {
   const thumbnailService = new ThumbnailService();
   const fileService = new FileService(app.prisma, app.kafka.producer, storage, scanner, thumbnailService);
 
-  const authOpts: AuthHookOptions = {
-    publicKey: process.env['JWT_PUBLIC_KEY'] ?? '',
-  };
+  let publicKey = (process.env['JWT_PUBLIC_KEY'] ?? '').replace(/\\n/g, '\n');
+  if (!publicKey && process.env['JWT_PUBLIC_KEY_PATH']) {
+    try { publicKey = readFileSync(process.env['JWT_PUBLIC_KEY_PATH'], 'utf8'); } catch { /* key file not found */ }
+  }
+  const authOpts: AuthHookOptions = { publicKey };
   const auth = authHook(authOpts);
   const tenant = tenantHook();
 
