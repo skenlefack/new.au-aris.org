@@ -819,6 +819,15 @@
     "mfaDisableSuccess": "L'authentification à double facteur a été désactivée.",
     "mfaSecretKey": "Clé secrète (saisie manuelle)",
 
+    "changePhoto": "Changer la photo",
+    "uploadPhoto": "Ajouter une photo de profil",
+    "removePhoto": "Supprimer la photo",
+    "photoUpdated": "Photo de profil mise à jour !",
+    "photoRemoved": "Photo de profil supprimée.",
+    "photoUploadFailed": "Échec du téléchargement de la photo. Veuillez réessayer.",
+    "photoMaxSize": "Taille maximale : 5 Mo",
+    "photoFormats": "JPG, PNG ou WebP",
+
     "tenantConfig": "Configuration du locataire",
     "tenantConfigDesc": "Gérer les paramètres de votre organisation",
     "organizationDetails": "Détails de l'organisation",

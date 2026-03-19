@@ -819,6 +819,15 @@
     "mfaDisableSuccess": "La autenticación de dos factores ha sido desactivada.",
     "mfaSecretKey": "Clave secreta (entrada manual)",
 
+    "changePhoto": "Cambiar foto",
+    "uploadPhoto": "Agregar foto de perfil",
+    "removePhoto": "Eliminar foto",
+    "photoUpdated": "Foto de perfil actualizada!",
+    "photoRemoved": "Foto de perfil eliminada.",
+    "photoUploadFailed": "Error al subir la foto. Inténtalo de nuevo.",
+    "photoMaxSize": "Tamaño máximo: 5 MB",
+    "photoFormats": "JPG, PNG o WebP",
+
     "tenantConfig": "Configuración de Inquilino",
     "tenantConfigDesc": "Gestionar la configuración de su organización",
     "organizationDetails": "Detalles de la Organización",

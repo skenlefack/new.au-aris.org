@@ -819,6 +819,15 @@
     "mfaDisableSuccess": "تم تعطيل المصادقة الثنائية.",
     "mfaSecretKey": "المفتاح السري (إدخال يدوي)",
 
+    "changePhoto": "تغيير الصورة",
+    "uploadPhoto": "إضافة صورة الملف الشخصي",
+    "removePhoto": "إزالة الصورة",
+    "photoUpdated": "تم تحديث صورة الملف الشخصي!",
+    "photoRemoved": "تم إزالة صورة الملف الشخصي.",
+    "photoUploadFailed": "فشل رفع الصورة. يرجى المحاولة مرة أخرى.",
+    "photoMaxSize": "الحجم الأقصى: 5 ميغابايت",
+    "photoFormats": "JPG أو PNG أو WebP",
+
     "tenantConfig": "تكوين الكيان",
     "tenantConfigDesc": "إدارة إعدادات مؤسستك",
     "organizationDetails": "تفاصيل المؤسسة",

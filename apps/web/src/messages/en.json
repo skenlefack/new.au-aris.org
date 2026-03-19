@@ -819,6 +819,15 @@
     "mfaDisableSuccess": "Two-factor authentication has been disabled.",
     "mfaSecretKey": "Secret key (manual entry)",
 
+    "changePhoto": "Change photo",
+    "uploadPhoto": "Upload a profile photo",
+    "removePhoto": "Remove photo",
+    "photoUpdated": "Profile photo updated!",
+    "photoRemoved": "Profile photo removed.",
+    "photoUploadFailed": "Failed to upload photo. Please try again.",
+    "photoMaxSize": "Maximum file size: 5 MB",
+    "photoFormats": "JPG, PNG or WebP",
+
     "tenantConfig": "Tenant Configuration",
     "tenantConfigDesc": "Manage your organization's settings",
     "organizationDetails": "Organization Details",

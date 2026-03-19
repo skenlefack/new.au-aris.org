@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Save,
   Lock,
@@ -17,6 +17,9 @@ import {
   Copy,
   Eye,
   EyeOff,
+  Camera,
+  Trash2,
+  ImagePlus,
 } from 'lucide-react';
 import {
   useUserProfile,
@@ -25,6 +28,7 @@ import {
   useMfaSetup,
   useMfaVerify,
   useMfaDisable,
+  useUploadAvatar,
 } from '@/lib/api/hooks';
 import { useAuthStore, type UserRole } from '@/lib/stores/auth-store';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
@@ -102,6 +106,25 @@ export default function ProfilePage() {
   const mfaSetup = useMfaSetup();
   const mfaVerify = useMfaVerify();
   const mfaDisable = useMfaDisable();
+
+  // Avatar
+  const uploadAvatar = useUploadAvatar();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarMenuRef = useRef<HTMLDivElement>(null);
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+
+  // Close avatar menu on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (avatarMenuRef.current && !avatarMenuRef.current.contains(e.target as Node)) {
+        setAvatarMenuOpen(false);
+      }
+    }
+    if (avatarMenuOpen) {
+      document.addEventListener('mousedown', handleClick);
+      return () => document.removeEventListener('mousedown', handleClick);
+    }
+  }, [avatarMenuOpen]);
 
   // Profile form state
   const [firstName, setFirstName] = useState('');
@@ -265,6 +288,55 @@ export default function ProfilePage() {
     setTimeout(() => setSecretCopied(false), 2000);
   }
 
+  function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (5 MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileError(t('photoMaxSize'));
+      setTimeout(() => setProfileError(''), 4000);
+      return;
+    }
+    // Validate file type
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setProfileError(t('photoFormats'));
+      setTimeout(() => setProfileError(''), 4000);
+      return;
+    }
+
+    uploadAvatar.mutate(file, {
+      onSuccess: () => {
+        setProfileSaved(false);
+        setProfileError('');
+        setAvatarMenuOpen(false);
+        // Show success temporarily
+        setProfileSaved(true);
+        setTimeout(() => setProfileSaved(false), 4000);
+      },
+      onError: () => {
+        setProfileError(t('photoUploadFailed'));
+        setTimeout(() => setProfileError(''), 4000);
+      },
+    });
+
+    // Reset input so the same file can be selected again
+    e.target.value = '';
+  }
+
+  function handleRemoveAvatar() {
+    setAvatarMenuOpen(false);
+    updateProfile.mutate(
+      { avatarUrl: null } as any,
+      {
+        onSuccess: () => {
+          setProfileSaved(true);
+          setTimeout(() => setProfileSaved(false), 4000);
+        },
+      },
+    );
+  }
+
   if (isLoading) return <DetailSkeleton />;
 
   const displayRole = (profile?.role ?? user?.role ?? 'ANALYST') as UserRole;
@@ -276,7 +348,7 @@ export default function ProfilePage() {
       <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         {/* Accent banner */}
         <div
-          className="h-28 sm:h-32"
+          className="h-32 sm:h-36"
           style={{
             background: 'linear-gradient(135deg, var(--color-accent), var(--color-accent-dark, var(--color-accent)))',
             opacity: 0.9,
@@ -284,30 +356,96 @@ export default function ProfilePage() {
         />
 
         <div className="relative px-6 pb-6">
-          {/* Avatar */}
-          <div className="-mt-12 flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:gap-6">
-            <div className="relative">
-              <div
-                className="flex h-24 w-24 items-center justify-center rounded-2xl border-4 border-white text-2xl font-bold shadow-lg dark:border-gray-800"
-                style={{
-                  backgroundColor: 'var(--color-accent)',
-                  color: 'var(--color-accent-text)',
-                }}
-              >
-                {initials}
-              </div>
+          {/* Avatar + Info row */}
+          <div className="-mt-14 flex flex-col items-start gap-5 sm:flex-row sm:items-end sm:gap-6">
+            {/* Avatar with upload overlay */}
+            <div ref={avatarMenuRef} className="relative group">
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleAvatarSelect}
+              />
+
+              {profile?.avatarUrl ? (
+                <img
+                  src={profile.avatarUrl}
+                  alt={`${firstName} ${lastName}`}
+                  className="h-28 w-28 rounded-2xl border-4 border-white object-cover shadow-lg dark:border-gray-800"
+                />
+              ) : (
+                <div
+                  className="flex h-28 w-28 items-center justify-center rounded-2xl border-4 border-white text-3xl font-bold shadow-lg dark:border-gray-800"
+                  style={{
+                    backgroundColor: 'var(--color-accent)',
+                    color: 'var(--color-accent-text)',
+                  }}
+                >
+                  {initials}
+                </div>
+              )}
+
+              {/* Upload overlay on hover */}
+              {uploadAvatar.isPending ? (
+                <div className="absolute inset-0 flex items-center justify-center rounded-2xl border-4 border-transparent bg-black/50">
+                  <Loader2 className="h-7 w-7 animate-spin text-white" />
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (profile?.avatarUrl) {
+                      setAvatarMenuOpen(!avatarMenuOpen);
+                    } else {
+                      fileInputRef.current?.click();
+                    }
+                  }}
+                  className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-2xl border-4 border-transparent bg-black/0 opacity-0 transition-all duration-200 group-hover:bg-black/40 group-hover:opacity-100 cursor-pointer"
+                >
+                  <Camera className="h-6 w-6 text-white drop-shadow" />
+                  <span className="text-[10px] font-medium text-white drop-shadow">
+                    {profile?.avatarUrl ? t('changePhoto') : t('uploadPhoto')}
+                  </span>
+                </button>
+              )}
+
+              {/* Avatar context menu (when photo exists) */}
+              {avatarMenuOpen && profile?.avatarUrl && (
+                <div className="absolute -bottom-2 left-0 z-50 mt-1 w-44 translate-y-full rounded-xl border border-gray-200 bg-white py-1 shadow-xl dark:border-gray-700 dark:bg-gray-900 animate-scale-in">
+                  <button
+                    onClick={() => {
+                      setAvatarMenuOpen(false);
+                      fileInputRef.current?.click();
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                    {t('changePhoto')}
+                  </button>
+                  <button
+                    onClick={handleRemoveAvatar}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {t('removePhoto')}
+                  </button>
+                </div>
+              )}
+
               {/* Online badge */}
               <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-green-500 dark:border-gray-800">
                 <span className="h-2 w-2 rounded-full bg-white" />
               </span>
             </div>
 
-            <div className="flex-1 pb-1">
+            {/* User info */}
+            <div className="flex-1 min-w-0 pb-1">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {firstName} {lastName}
               </h1>
               <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{email}</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
                 <span
                   className={cn(
                     'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium',
@@ -331,16 +469,16 @@ export default function ProfilePage() {
             </div>
 
             {/* Meta info */}
-            <div className="flex gap-4 text-xs text-gray-400 dark:text-gray-500">
+            <div className="flex flex-col gap-1.5 text-xs text-gray-400 dark:text-gray-500 pb-1">
               {profile?.createdAt && (
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5" />
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 shrink-0" />
                   {t('memberSince')} {formatDate(profile.createdAt)}
                 </span>
               )}
               {profile?.lastLoginAt && (
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5" />
+                <span className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 shrink-0" />
                   {t('lastLogin')} {formatDate(profile.lastLoginAt)}
                 </span>
               )}

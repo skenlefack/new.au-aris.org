@@ -472,16 +472,25 @@ export function Header({ sidebarCollapsed, onSidebarToggle }: HeaderProps) {
                 className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150"
               >
                 <div className="relative">
-                  <div
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold"
-                    style={{
-                      backgroundColor: 'var(--color-accent)',
-                      color: 'var(--color-accent-text)',
-                      boxShadow: '0 0 0 2px var(--color-accent-light)',
-                    }}
-                  >
-                    {initials}
-                  </div>
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={`${user.firstName} ${user.lastName}`}
+                      className="h-8 w-8 rounded-full object-cover"
+                      style={{ boxShadow: '0 0 0 2px var(--color-accent-light)' }}
+                    />
+                  ) : (
+                    <div
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold"
+                      style={{
+                        backgroundColor: 'var(--color-accent)',
+                        color: 'var(--color-accent-text)',
+                        boxShadow: '0 0 0 2px var(--color-accent-light)',
+                      }}
+                    >
+                      {initials}
+                    </div>
+                  )}
                   {/* Online indicator */}
                   <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-gray-900 bg-green-500" />
                 </div>
