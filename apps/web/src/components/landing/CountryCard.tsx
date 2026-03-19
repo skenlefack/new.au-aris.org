@@ -38,7 +38,7 @@ export function CountryCard({ country, accentColor = '#006B3F' }: CountryCardPro
           )}
         </div>
         <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-          {country.capital} \u2022 {country.population >= 1 ? `${country.population}M` : `${Math.round(country.population * 1000)}K`} {t('pop')}
+          {country.capital} - {country.population >= 1 ? `${country.population}M` : `${Math.round(country.population * 1000)}K`} {t('pop')}
         </p>
       </div>
 
