@@ -22,7 +22,8 @@
     "retry": "Reintentar",
     "noData": "No hay datos disponibles",
     "signOut": "Cerrar sesión",
-    "profileSettings": "Perfil y Configuración"
+    "profile": "Perfil",
+    "settings": "Configuración"
   },
   "nav": {
     "home": "Inicio",
@@ -799,6 +800,24 @@
     "profileUpdateFailed": "Error al actualizar el perfil. Inténtalo de nuevo.",
     "passwordStrength": "Seguridad de la contraseña",
     "updatePassword": "Actualizar contraseña",
+
+    "accountInfo": "Información de la cuenta",
+    "securitySection": "Seguridad",
+    "memberSince": "Miembro desde",
+
+    "mfaTitle": "Autenticación de dos factores (2FA)",
+    "mfaDescription": "Agregue una capa adicional de seguridad a su cuenta usando una aplicación de autenticación TOTP.",
+    "mfaEnable": "Activar 2FA",
+    "mfaDisable": "Desactivar 2FA",
+    "mfaEnabled": "Activada",
+    "mfaDisabled": "Desactivada",
+    "mfaScanQrCode": "Escanee este código QR con su aplicación de autenticación (Google Authenticator, Authy, etc.)",
+    "mfaEnterCode": "Ingrese el código de 6 dígitos de su aplicación de autenticación",
+    "mfaVerify": "Verificar y Activar",
+    "mfaSetupSuccess": "La autenticación de dos factores ha sido activada exitosamente!",
+    "mfaDisableConfirm": "Ingrese su código de 6 dígitos para desactivar la autenticación de dos factores",
+    "mfaDisableSuccess": "La autenticación de dos factores ha sido desactivada.",
+    "mfaSecretKey": "Clave secreta (entrada manual)",
 
     "tenantConfig": "Configuración de Inquilino",
     "tenantConfigDesc": "Gestionar la configuración de su organización",

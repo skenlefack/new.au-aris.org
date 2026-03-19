@@ -12,6 +12,7 @@ import {
   Bell,
   LogOut,
   User,
+  Settings,
   ChevronDown,
   ChevronRight,
   ChevronLeft,
@@ -530,12 +531,23 @@ export function Header({ sidebarCollapsed, onSidebarToggle }: HeaderProps) {
                     role="menuitem"
                     onClick={() => {
                       setUserMenuOpen(false);
-                      router.push('/settings');
+                      router.push('/profile');
                     }}
                     className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     <User className="h-4 w-4" />
-                    {tc('profileSettings')}
+                    {tc('profile')}
+                  </button>
+                  <button
+                    role="menuitem"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      router.push('/settings');
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <Settings className="h-4 w-4" />
+                    {tc('settings')}
                   </button>
                 </div>
                 <div className="border-t border-gray-100 dark:border-gray-800 py-1">

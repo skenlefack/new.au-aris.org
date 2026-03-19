@@ -1641,6 +1641,48 @@ export function useChangePassword() {
   });
 }
 
+// ─── MFA Hooks ──────────────────────────────────────────────────────────────
+
+export function useMfaSetup() {
+  return useMutation({
+    mutationFn: () =>
+      apiClient.post<{ data: { qrCodeUrl: string; secret: string } }>(
+        '/auth/mfa/setup',
+        {},
+      ),
+  });
+}
+
+export function useMfaVerify() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { code: string }) =>
+      apiClient.post<{ data: { verified: boolean } }>(
+        '/auth/mfa/verify',
+        data,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings', 'profile'] });
+    },
+  });
+}
+
+export function useMfaDisable() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { code: string }) =>
+      apiClient.post<{ data: { disabled: boolean } }>(
+        '/auth/mfa/disable',
+        data,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings', 'profile'] });
+    },
+  });
+}
+
 export function useTenantConfig() {
   return useQuery({
     queryKey: ['settings', 'tenant'],

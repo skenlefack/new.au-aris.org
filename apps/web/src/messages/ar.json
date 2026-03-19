@@ -22,7 +22,8 @@
     "retry": "إعادة المحاولة",
     "noData": "لا توجد بيانات متاحة",
     "signOut": "تسجيل الخروج",
-    "profileSettings": "الملف الشخصي والإعدادات"
+    "profile": "الملف الشخصي",
+    "settings": "الإعدادات"
   },
   "nav": {
     "home": "الرئيسية",
@@ -799,6 +800,24 @@
     "profileUpdateFailed": "فشل تحديث الملف الشخصي. يرجى المحاولة مرة أخرى.",
     "passwordStrength": "قوة كلمة المرور",
     "updatePassword": "تحديث كلمة المرور",
+
+    "accountInfo": "معلومات الحساب",
+    "securitySection": "الأمان",
+    "memberSince": "عضو منذ",
+
+    "mfaTitle": "المصادقة الثنائية (2FA)",
+    "mfaDescription": "أضف طبقة أمان إضافية لحسابك باستخدام تطبيق مصادقة TOTP.",
+    "mfaEnable": "تفعيل المصادقة الثنائية",
+    "mfaDisable": "تعطيل المصادقة الثنائية",
+    "mfaEnabled": "مفعّلة",
+    "mfaDisabled": "معطّلة",
+    "mfaScanQrCode": "امسح رمز QR هذا بتطبيق المصادقة الخاص بك (Google Authenticator، Authy، إلخ.)",
+    "mfaEnterCode": "أدخل الرمز المكون من 6 أرقام من تطبيق المصادقة الخاص بك",
+    "mfaVerify": "تحقق وتفعيل",
+    "mfaSetupSuccess": "تم تفعيل المصادقة الثنائية بنجاح!",
+    "mfaDisableConfirm": "أدخل رمزك المكون من 6 أرقام لتعطيل المصادقة الثنائية",
+    "mfaDisableSuccess": "تم تعطيل المصادقة الثنائية.",
+    "mfaSecretKey": "المفتاح السري (إدخال يدوي)",
 
     "tenantConfig": "تكوين الكيان",
     "tenantConfigDesc": "إدارة إعدادات مؤسستك",

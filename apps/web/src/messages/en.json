@@ -22,7 +22,8 @@
     "retry": "Retry",
     "noData": "No data available",
     "signOut": "Sign out",
-    "profileSettings": "Profile & Settings"
+    "profile": "Profile",
+    "settings": "Settings"
   },
   "nav": {
     "home": "Home",
@@ -799,6 +800,24 @@
     "profileUpdateFailed": "Failed to update profile. Please try again.",
     "passwordStrength": "Password strength",
     "updatePassword": "Update Password",
+
+    "accountInfo": "Account Information",
+    "securitySection": "Security",
+    "memberSince": "Member since",
+
+    "mfaTitle": "Two-Factor Authentication (2FA)",
+    "mfaDescription": "Add an extra layer of security to your account using a TOTP authenticator app.",
+    "mfaEnable": "Enable 2FA",
+    "mfaDisable": "Disable 2FA",
+    "mfaEnabled": "Enabled",
+    "mfaDisabled": "Disabled",
+    "mfaScanQrCode": "Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)",
+    "mfaEnterCode": "Enter the 6-digit code from your authenticator app",
+    "mfaVerify": "Verify & Activate",
+    "mfaSetupSuccess": "Two-factor authentication has been enabled successfully!",
+    "mfaDisableConfirm": "Enter your 6-digit code to disable two-factor authentication",
+    "mfaDisableSuccess": "Two-factor authentication has been disabled.",
+    "mfaSecretKey": "Secret key (manual entry)",
 
     "tenantConfig": "Tenant Configuration",
     "tenantConfigDesc": "Manage your organization's settings",

@@ -22,7 +22,8 @@
     "retry": "Réessayer",
     "noData": "Aucune donnée disponible",
     "signOut": "Déconnexion",
-    "profileSettings": "Profil & Paramètres"
+    "profile": "Profil",
+    "settings": "Paramètres"
   },
   "nav": {
     "home": "Accueil",
@@ -799,6 +800,24 @@
     "profileUpdateFailed": "Échec de la mise à jour du profil. Veuillez réessayer.",
     "passwordStrength": "Force du mot de passe",
     "updatePassword": "Mettre à jour le mot de passe",
+
+    "accountInfo": "Informations du compte",
+    "securitySection": "Sécurité",
+    "memberSince": "Membre depuis",
+
+    "mfaTitle": "Authentification à double facteur (2FA)",
+    "mfaDescription": "Ajoutez une couche de sécurité supplémentaire à votre compte avec une application d'authentification TOTP.",
+    "mfaEnable": "Activer la 2FA",
+    "mfaDisable": "Désactiver la 2FA",
+    "mfaEnabled": "Activée",
+    "mfaDisabled": "Désactivée",
+    "mfaScanQrCode": "Scannez ce QR code avec votre application d'authentification (Google Authenticator, Authy, etc.)",
+    "mfaEnterCode": "Entrez le code à 6 chiffres de votre application d'authentification",
+    "mfaVerify": "Vérifier & Activer",
+    "mfaSetupSuccess": "L'authentification à double facteur a été activée avec succès !",
+    "mfaDisableConfirm": "Entrez votre code à 6 chiffres pour désactiver l'authentification à double facteur",
+    "mfaDisableSuccess": "L'authentification à double facteur a été désactivée.",
+    "mfaSecretKey": "Clé secrète (saisie manuelle)",
 
     "tenantConfig": "Configuration du locataire",
     "tenantConfigDesc": "Gérer les paramètres de votre organisation",

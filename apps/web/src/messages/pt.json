@@ -22,7 +22,8 @@
     "retry": "Tentar novamente",
     "noData": "Nenhum dado disponível",
     "signOut": "Sair",
-    "profileSettings": "Perfil & Configurações"
+    "profile": "Perfil",
+    "settings": "Configurações"
   },
   "nav": {
     "home": "Início",
@@ -799,6 +800,24 @@
     "profileUpdateFailed": "Falha ao atualizar o perfil. Tente novamente.",
     "passwordStrength": "Força da senha",
     "updatePassword": "Atualizar senha",
+
+    "accountInfo": "Informações da conta",
+    "securitySection": "Segurança",
+    "memberSince": "Membro desde",
+
+    "mfaTitle": "Autenticação de dois fatores (2FA)",
+    "mfaDescription": "Adicione uma camada extra de segurança à sua conta usando um aplicativo autenticador TOTP.",
+    "mfaEnable": "Ativar 2FA",
+    "mfaDisable": "Desativar 2FA",
+    "mfaEnabled": "Ativada",
+    "mfaDisabled": "Desativada",
+    "mfaScanQrCode": "Escaneie este QR code com seu aplicativo autenticador (Google Authenticator, Authy, etc.)",
+    "mfaEnterCode": "Digite o código de 6 dígitos do seu aplicativo autenticador",
+    "mfaVerify": "Verificar & Ativar",
+    "mfaSetupSuccess": "A autenticação de dois fatores foi ativada com sucesso!",
+    "mfaDisableConfirm": "Digite seu código de 6 dígitos para desativar a autenticação de dois fatores",
+    "mfaDisableSuccess": "A autenticação de dois fatores foi desativada.",
+    "mfaSecretKey": "Chave secreta (entrada manual)",
 
     "tenantConfig": "Configuração do Locatário",
     "tenantConfigDesc": "Gerenciar as configurações da sua organização",
