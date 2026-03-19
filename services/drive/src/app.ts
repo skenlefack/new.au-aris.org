@@ -43,8 +43,11 @@ export async function buildApp() {
   }));
 
   // Error handler — maps HttpError.statusCode to HTTP response
-  app.setErrorHandler((error, _request, reply) => {
+  app.setErrorHandler((error, request, reply) => {
     const statusCode = (error as { statusCode?: number }).statusCode ?? 500;
+    if (statusCode >= 500) {
+      request.log.error(error, 'Unhandled server error');
+    }
     reply.code(statusCode).send({
       statusCode,
       message: error.message,
