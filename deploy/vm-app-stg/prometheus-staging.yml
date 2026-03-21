@@ -1,0 +1,276 @@
+# ARIS 4.0 — Prometheus Staging Scrape Configuration
+# All services run as Docker containers on VM-APP-STG
+# Uses container names for scraping within the aris-stg-network
+# NOTE: Replace <STG_*_IP> with actual staging VM IPs
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    environment: staging
+    datacenter: nairobi
+
+rule_files:
+  - "alert-rules.yml"
+
+scrape_configs:
+  # ═══════════════════════════════════════
+  # Platform Services (CC-1)
+  # ═══════════════════════════════════════
+  - job_name: "aris-stg-tenant"
+    static_configs:
+      - targets: ["aris-stg-tenant:3001"]
+        labels:
+          service: "tenant"
+          group: "platform"
+
+  - job_name: "aris-stg-credential"
+    static_configs:
+      - targets: ["aris-stg-credential:3002"]
+        labels:
+          service: "credential"
+          group: "platform"
+
+  - job_name: "aris-stg-message"
+    static_configs:
+      - targets: ["aris-stg-message:3006"]
+        labels:
+          service: "message"
+          group: "platform"
+
+  - job_name: "aris-stg-drive"
+    static_configs:
+      - targets: ["aris-stg-drive:3007"]
+        labels:
+          service: "drive"
+          group: "platform"
+
+  - job_name: "aris-stg-realtime"
+    static_configs:
+      - targets: ["aris-stg-realtime:3008"]
+        labels:
+          service: "realtime"
+          group: "platform"
+
+  # ═══════════════════════════════════════
+  # Data Hub Services (CC-2)
+  # ═══════════════════════════════════════
+  - job_name: "aris-stg-master-data"
+    static_configs:
+      - targets: ["aris-stg-master-data:3003"]
+        labels:
+          service: "master-data"
+          group: "data-hub"
+
+  - job_name: "aris-stg-data-quality"
+    static_configs:
+      - targets: ["aris-stg-data-quality:3004"]
+        labels:
+          service: "data-quality"
+          group: "data-hub"
+
+  - job_name: "aris-stg-data-contract"
+    static_configs:
+      - targets: ["aris-stg-data-contract:3005"]
+        labels:
+          service: "data-contract"
+          group: "data-hub"
+
+  - job_name: "aris-stg-interop-hub"
+    static_configs:
+      - targets: ["aris-stg-interop-hub:3032"]
+        labels:
+          service: "interop-hub"
+          group: "data-hub"
+
+  # ═══════════════════════════════════════
+  # Collecte & Workflow (CC-3)
+  # ═══════════════════════════════════════
+  - job_name: "aris-stg-form-builder"
+    static_configs:
+      - targets: ["aris-stg-form-builder:3010"]
+        labels:
+          service: "form-builder"
+          group: "collecte"
+
+  - job_name: "aris-stg-collecte"
+    static_configs:
+      - targets: ["aris-stg-collecte:3011"]
+        labels:
+          service: "collecte"
+          group: "collecte"
+
+  - job_name: "aris-stg-workflow"
+    static_configs:
+      - targets: ["aris-stg-workflow:3012"]
+        labels:
+          service: "workflow"
+          group: "collecte"
+
+  # ═══════════════════════════════════════
+  # Domain Services (CC-4)
+  # ═══════════════════════════════════════
+  - job_name: "aris-stg-animal-health"
+    static_configs:
+      - targets: ["aris-stg-animal-health:3020"]
+        labels:
+          service: "animal-health"
+          group: "domain"
+
+  - job_name: "aris-stg-livestock-prod"
+    static_configs:
+      - targets: ["aris-stg-livestock-prod:3021"]
+        labels:
+          service: "livestock-prod"
+          group: "domain"
+
+  - job_name: "aris-stg-fisheries"
+    static_configs:
+      - targets: ["aris-stg-fisheries:3022"]
+        labels:
+          service: "fisheries"
+          group: "domain"
+
+  - job_name: "aris-stg-wildlife"
+    static_configs:
+      - targets: ["aris-stg-wildlife:3023"]
+        labels:
+          service: "wildlife"
+          group: "domain"
+
+  - job_name: "aris-stg-apiculture"
+    static_configs:
+      - targets: ["aris-stg-apiculture:3024"]
+        labels:
+          service: "apiculture"
+          group: "domain"
+
+  - job_name: "aris-stg-trade-sps"
+    static_configs:
+      - targets: ["aris-stg-trade-sps:3025"]
+        labels:
+          service: "trade-sps"
+          group: "domain"
+
+  - job_name: "aris-stg-governance"
+    static_configs:
+      - targets: ["aris-stg-governance:3026"]
+        labels:
+          service: "governance"
+          group: "domain"
+
+  - job_name: "aris-stg-climate-env"
+    static_configs:
+      - targets: ["aris-stg-climate-env:3027"]
+        labels:
+          service: "climate-env"
+          group: "domain"
+
+  # ═══════════════════════════════════════
+  # Data & Integration (CC-4)
+  # ═══════════════════════════════════════
+  - job_name: "aris-stg-analytics"
+    static_configs:
+      - targets: ["aris-stg-analytics:3030"]
+        labels:
+          service: "analytics"
+          group: "integration"
+
+  - job_name: "aris-stg-geo-services"
+    static_configs:
+      - targets: ["aris-stg-geo-services:3031"]
+        labels:
+          service: "geo-services"
+          group: "integration"
+
+  - job_name: "aris-stg-knowledge-hub"
+    static_configs:
+      - targets: ["aris-stg-knowledge-hub:3033"]
+        labels:
+          service: "knowledge-hub"
+          group: "integration"
+
+  # ═══════════════════════════════════════
+  # Fastify Services
+  # ═══════════════════════════════════════
+  - job_name: "aris-stg-support"
+    static_configs:
+      - targets: ["aris-stg-support:3041"]
+        labels:
+          service: "support"
+          group: "fastify"
+
+  - job_name: "aris-stg-interop"
+    static_configs:
+      - targets: ["aris-stg-interop:3042"]
+        labels:
+          service: "interop"
+          group: "fastify"
+
+  - job_name: "aris-stg-analytics-worker"
+    static_configs:
+      - targets: ["aris-stg-analytics-worker:3043"]
+        labels:
+          service: "analytics-worker"
+          group: "fastify"
+
+  - job_name: "aris-stg-datalake"
+    static_configs:
+      - targets: ["aris-stg-datalake:3044"]
+        labels:
+          service: "datalake"
+          group: "fastify"
+
+  - job_name: "aris-stg-offline"
+    static_configs:
+      - targets: ["aris-stg-offline:3040"]
+        labels:
+          service: "offline"
+          group: "fastify"
+
+  # ═══════════════════════════════════════
+  # Infrastructure — Local (VM-APP-STG)
+  # ═══════════════════════════════════════
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "traefik"
+    static_configs:
+      - targets: ["aris-stg-traefik:8080"]
+        labels:
+          service: "traefik"
+          group: "infrastructure"
+
+  # ═══════════════════════════════════════
+  # Infrastructure — Remote Staging VMs
+  # Staging VM IPs configured
+  # ═══════════════════════════════════════
+  - job_name: "node-exporter-db-stg"
+    static_configs:
+      - targets: ["10.202.101.148:9100"]
+        labels:
+          vm: "vm-db-stg"
+          hostname: "nbo-dbms03"
+
+  - job_name: "node-exporter-kafka-stg"
+    static_configs:
+      - targets: ["10.202.101.147:9100"]
+        labels:
+          vm: "vm-kafka-stg"
+          hostname: "nbo-brk02"
+
+  - job_name: "node-exporter-cache-stg"
+    static_configs:
+      - targets: ["10.202.101.149:9100"]
+        labels:
+          vm: "vm-cache-stg"
+          hostname: "nbo-cch02"
+
+  - job_name: "node-exporter-app-stg"
+    static_configs:
+      - targets: ["10.202.101.146:9100"]
+        labels:
+          vm: "vm-app-stg"
+          hostname: "nbo-aris05"

@@ -1,0 +1,64 @@
+# ═══════════════════════════════════════════════════════════════
+# ARIS 4.0 — Traefik TLS Dynamic Configuration (Staging)
+# Certificate: GoDaddy Wildcard *.au-aris.org
+# Covers: test.au-aris.org, *-test.au-aris.org
+# ═══════════════════════════════════════════════════════════════
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/traefik/certs/fullchain.pem
+        keyFile: /etc/traefik/certs/private.key
+
+  certificates:
+    - certFile: /etc/traefik/certs/fullchain.pem
+      keyFile: /etc/traefik/certs/private.key
+
+  options:
+    default:
+      minVersion: VersionTLS12
+      sniStrict: false
+      cipherSuites:
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+
+http:
+  routers:
+    # Redirect www-test.au-aris.org → test.au-aris.org
+    www-test-redirect:
+      rule: "Host(`www-test.au-aris.org`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - www-test-to-naked
+      service: api@internal
+      tls: {}
+      priority: 1000
+
+  middlewares:
+    # Redirect www-test → naked staging domain
+    www-test-to-naked:
+      redirectRegex:
+        regex: "^https://www-test\\.au-aris\\.org/(.*)"
+        replacement: "https://test.au-aris.org/${1}"
+        permanent: true
+
+    # Security headers
+    security-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
+        contentTypeNosniff: true
+        frameDeny: false
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        customResponseHeaders:
+          X-Powered-By: ""
+          Server: ""
+          X-Environment: "staging"
