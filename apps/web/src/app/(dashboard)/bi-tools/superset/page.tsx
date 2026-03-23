@@ -20,6 +20,14 @@ export default function SupersetEmbedPage() {
   const dashboards = dashboardsData?.data ?? [];
   const requestGuestToken = useRequestSupersetGuestToken();
   const user = useAuthStore((s) => s.user);
+  const accessToken = useAuthStore((s) => s.accessToken);
+
+  // Set auth cookie so the proxy can forward auth if needed
+  useEffect(() => {
+    if (accessToken) {
+      document.cookie = `aris-bi-token=${accessToken}; path=/api/bi-proxy/; SameSite=Lax; Secure`;
+    }
+  }, [accessToken]);
 
   // Determine if we should use SDK embed (dashboards registered) or iframe fallback
   const useFallbackIframe = !dashboardsLoading && dashboards.length === 0;

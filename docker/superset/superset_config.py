@@ -27,6 +27,10 @@ CORS_OPTIONS = {
     "allow_headers": ["*"],
     "resources": ["*"],
     "origins": [
+        "https://au-aris.org",
+        "https://superset.au-aris.org",
+        "https://test.au-aris.org",
+        "https://superset-test.au-aris.org",
         "http://localhost:3100",
         "http://localhost:8088",
         "http://127.0.0.1:3100",
@@ -37,10 +41,9 @@ CORS_OPTIONS = {
 TALISMAN_ENABLED = False
 
 # ── Session ──
-# SameSite=None required for cross-origin iframe embedding (localhost:3100 → localhost:8088)
-# Secure=False for dev over HTTP; set Secure=True in production with HTTPS
+# SameSite=None + Secure=True for cross-origin iframe embedding over HTTPS
 SESSION_COOKIE_SAMESITE = "None"
-SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 
 # ── Guest Token for secure embedding ──

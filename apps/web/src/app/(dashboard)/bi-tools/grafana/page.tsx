@@ -11,11 +11,22 @@ export default function GrafanaEmbedPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
   const [selectedUid, setSelectedUid] = useState<string | undefined>(undefined);
+  const [authReady, setAuthReady] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const user = useAuthStore((s) => s.user);
+  const accessToken = useAuthStore((s) => s.accessToken);
   const { data: dashboardsData } = useBiDashboards('grafana');
   const dashboards = dashboardsData?.data ?? [];
+
+  // Set auth cookie so the proxy can read the JWT from iframe requests
+  // (iframe requests carry cookies but NOT localStorage or Authorization headers)
+  useEffect(() => {
+    if (accessToken) {
+      document.cookie = `aris-bi-token=${accessToken}; path=/; SameSite=Lax; Secure`;
+      setAuthReady(true);
+    }
+  }, [accessToken]);
 
   // Auto-select first dashboard
   useEffect(() => {
@@ -24,8 +35,11 @@ export default function GrafanaEmbedPage() {
     }
   }, [dashboards, selectedUid]);
 
+  const grafanaBaseUrl = process.env.NEXT_PUBLIC_GRAFANA_URL ?? '/api/bi-proxy/grafana';
   const { data: embedData } = useGrafanaEmbedUrl(selectedUid);
-  const embedUrl = embedData?.data?.url ?? '/api/bi-proxy/grafana/?kiosk';
+  const embedUrl = authReady
+    ? (embedData?.data?.url ?? `${grafanaBaseUrl}/?kiosk`)
+    : '';
 
   const handleLoad = useCallback(() => {
     setLoading(false);
@@ -121,7 +135,7 @@ export default function GrafanaEmbedPage() {
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>
           <a
-            href={process.env.NEXT_PUBLIC_GRAFANA_URL ?? '/api/bi-proxy/grafana'}
+            href={grafanaBaseUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -134,15 +148,17 @@ export default function GrafanaEmbedPage() {
 
       {/* iframe — via Next.js proxy with auth headers */}
       <div className="relative flex-1 min-h-0">
-        <iframe
-          ref={iframeRef}
-          key={iframeKey}
-          src={embedUrl}
-          className="h-full w-full border-0"
-          title="Grafana"
-          onLoad={handleLoad}
-          allow="fullscreen"
-        />
+        {authReady && embedUrl && (
+          <iframe
+            ref={iframeRef}
+            key={iframeKey}
+            src={embedUrl}
+            className="h-full w-full border-0"
+            title="Grafana"
+            onLoad={handleLoad}
+            allow="fullscreen"
+          />
+        )}
       </div>
     </div>
   );

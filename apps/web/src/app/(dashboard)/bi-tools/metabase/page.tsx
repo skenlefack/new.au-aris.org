@@ -29,12 +29,19 @@ export default function MetabaseEmbedPage() {
 
         const token = result.data.sessionToken;
 
-        // Set the metabase.SESSION cookie for same-origin proxy
-        document.cookie = `metabase.SESSION=${token}; path=/api/bi-proxy/metabase; SameSite=Lax`;
+        // Set cookie for subdomain (metabase.au-aris.org) or proxy (/api/bi-proxy/metabase)
+        const isSubdomain = metabaseUrl.startsWith('http');
+        if (isSubdomain) {
+          // Cross-origin cookie: set on parent domain so subdomain iframe receives it
+          const domain = new URL(metabaseUrl).hostname.replace(/^[^.]+/, '');
+          document.cookie = `metabase.SESSION=${token}; path=/; domain=${domain}; SameSite=None; Secure`;
+        } else {
+          document.cookie = `metabase.SESSION=${token}; path=${metabaseUrl}; SameSite=Lax`;
+        }
 
         setSessionReady(true);
       } catch {
-        // Auto-login failed — fall back to loading Metabase directly via proxy
+        // Auto-login failed — fall back to loading Metabase directly
         // The user will see Metabase's own login page (or be already logged in)
         if (!cancelled) {
           setSessionReady(true);
@@ -48,8 +55,9 @@ export default function MetabaseEmbedPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Proxy URL — API route strips CSP/X-Frame-Options headers
-  const embedUrl = sessionReady ? '/api/bi-proxy/metabase/' : '';
+  const metabaseUrl = process.env.NEXT_PUBLIC_METABASE_URL ?? '/api/bi-proxy/metabase';
+  // Use subdomain URL if configured, otherwise fall back to proxy
+  const embedUrl = sessionReady ? `${metabaseUrl}/` : '';
 
   const handleLoad = useCallback(() => {
     setLoading(false);
@@ -132,7 +140,7 @@ export default function MetabaseEmbedPage() {
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>
           <a
-            href={process.env.NEXT_PUBLIC_METABASE_URL ?? '/api/bi-proxy/metabase'}
+            href={metabaseUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -155,7 +163,7 @@ export default function MetabaseEmbedPage() {
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{error}</p>
               <div className="flex flex-col gap-3 items-center">
                 <a
-                  href={process.env.NEXT_PUBLIC_METABASE_URL ?? '/api/bi-proxy/metabase'}
+                  href={metabaseUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-white hover:opacity-90"

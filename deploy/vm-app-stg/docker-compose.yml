@@ -166,7 +166,8 @@ services:
       GF_AUTH_PROXY_HEADERS: "Name:X-WEBAUTH-NAME Role:X-WEBAUTH-ROLE"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_SECURITY_ALLOW_EMBEDDING: "true"
-      GF_SERVER_ROOT_URL: "https://test.au-aris.org:3200"
+      GF_SERVER_ROOT_URL: "https://test.au-aris.org/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
     volumes:
       - /opt/aris/infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - /opt/aris-deploy/vm-app-stg/grafana-datasources.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
@@ -175,6 +176,16 @@ services:
     depends_on:
       - prometheus
       - jaeger
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.priority=10"
+      - "traefik.http.routers.grafana.middlewares=grafana-auth"
+      - "traefik.http.middlewares.grafana-auth.forwardauth.address=http://web:3000/api/bi-proxy/grafana-auth"
+      - "traefik.http.middlewares.grafana-auth.forwardauth.authResponseHeaders=X-WEBAUTH-USER,X-WEBAUTH-NAME,X-WEBAUTH-ROLE"
+      - "traefik.http.middlewares.grafana-auth.forwardauth.trustForwardHeader=true"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
   jaeger:
     image: jaegertracing/all-in-one:1.57
@@ -221,6 +232,12 @@ services:
         python /app/pythonpath/bootstrap_datasource.py &&
         superset run -h 0.0.0.0 -p 8088 --with-threads
       "
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.superset.rule=Host(`superset-test.au-aris.org`)"
+      - "traefik.http.routers.superset.entrypoints=websecure"
+      - "traefik.http.routers.superset.tls=true"
+      - "traefik.http.services.superset.loadbalancer.server.port=8088"
 
   metabase:
     image: metabase/metabase:v0.49.6
@@ -238,12 +255,19 @@ services:
       MB_EMBEDDING_SECRET_KEY: ${METABASE_EMBEDDING_SECRET}
       MB_ENABLE_EMBEDDING: "true"
       MB_EMBEDDING_APP_ORIGIN: "https://test.au-aris.org"
+      MB_SITE_URL: "https://metabase-test.au-aris.org"
       MB_SITE_LOCALE: en
       MB_SITE_NAME: "ARIS BI Analytics (Staging)"
       MB_ANON_TRACKING_ENABLED: "false"
       JAVA_OPTS: "-Dmetabase.embedding.app.origin=https://test.au-aris.org"
     volumes:
       - metabase_data:/metabase-data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.metabase.rule=Host(`metabase-test.au-aris.org`)"
+      - "traefik.http.routers.metabase.entrypoints=websecure"
+      - "traefik.http.routers.metabase.tls=true"
+      - "traefik.http.services.metabase.loadbalancer.server.port=3000"
 
   # ═══════════════════════════════════════════════════
   #  VECTOR TILE SERVER
@@ -275,13 +299,19 @@ services:
         APP: web
         NEXT_PUBLIC_API_URL: https://test.au-aris.org
         NEXT_PUBLIC_WS_URL: wss://test.au-aris.org
+        NEXT_PUBLIC_GRAFANA_URL: /grafana
+        NEXT_PUBLIC_METABASE_URL: https://metabase-test.au-aris.org
+        NEXT_PUBLIC_SUPERSET_URL: https://superset-test.au-aris.org
     ports:
       - "3100:3000"
     environment:
       NODE_ENV: staging
       NEXT_PUBLIC_API_URL: https://test.au-aris.org
       NEXT_PUBLIC_WS_URL: wss://test.au-aris.org
-      # Server-side env vars for BI proxy API routes (Docker service names)
+      NEXT_PUBLIC_GRAFANA_URL: /grafana
+      NEXT_PUBLIC_METABASE_URL: https://metabase-test.au-aris.org
+      NEXT_PUBLIC_SUPERSET_URL: https://superset-test.au-aris.org
+      # Server-side env vars for BI proxy API routes (Docker service names, fallback)
       METABASE_INTERNAL_URL: http://metabase:3000
       GRAFANA_INTERNAL_URL: http://grafana:3000
       SUPERSET_INTERNAL_URL: http://superset:8088

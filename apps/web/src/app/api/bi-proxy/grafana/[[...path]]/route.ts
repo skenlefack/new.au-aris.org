@@ -34,7 +34,14 @@ function extractUser(request: NextRequest) {
     if (decoded) return decoded;
   }
 
-  // Try cookie (aris-auth stores JSON with accessToken)
+  // Try aris-bi-token cookie (set by the Grafana page before loading iframe)
+  const biToken = request.cookies.get('aris-bi-token');
+  if (biToken?.value) {
+    const decoded = decodeJwtPayload(biToken.value);
+    if (decoded) return decoded;
+  }
+
+  // Try aris-auth cookie (Zustand persist — may not exist if using localStorage)
   const cookie = request.cookies.get('aris-auth');
   if (cookie?.value) {
     try {
@@ -47,11 +54,11 @@ function extractUser(request: NextRequest) {
   return null;
 }
 
-async function proxyToGrafana(request: NextRequest, params: { path: string[] }) {
+async function proxyToGrafana(request: NextRequest, params: { path?: string[] }) {
   const user = extractUser(request);
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized — set aris-bi-token cookie before loading' }, { status: 401 });
   }
 
   const pathSegments = params.path ?? [];
@@ -91,9 +98,32 @@ async function proxyToGrafana(request: NextRequest, params: { path: string[] }) 
     // Forward relevant Grafana response headers
     for (const [key, value] of grafanaRes.headers.entries()) {
       const lower = key.toLowerCase();
-      // Skip hop-by-hop and framing headers
-      if (['transfer-encoding', 'connection', 'x-frame-options', 'content-security-policy'].includes(lower)) continue;
+      // Skip hop-by-hop, framing, and encoding headers
+      if ([
+        'transfer-encoding',
+        'content-encoding',
+        'content-length',
+        'connection',
+        'x-frame-options',
+        'content-security-policy',
+      ].includes(lower)) continue;
       responseHeaders.set(key, value);
+    }
+
+    // Handle redirects — rewrite Location header to go through proxy
+    const location = grafanaRes.headers.get('location');
+    if (location && grafanaRes.status >= 300 && grafanaRes.status < 400) {
+      try {
+        const locUrl = new URL(location, GRAFANA_URL);
+        if (locUrl.origin === new URL(GRAFANA_URL).origin) {
+          responseHeaders.set('location', `/api/bi-proxy/grafana${locUrl.pathname}${locUrl.search}`);
+        }
+      } catch {
+        // Relative redirect — prepend proxy prefix
+        if (location.startsWith('/')) {
+          responseHeaders.set('location', `/api/bi-proxy/grafana${location}`);
+        }
+      }
     }
 
     const body = await grafanaRes.arrayBuffer();
@@ -110,22 +140,22 @@ async function proxyToGrafana(request: NextRequest, params: { path: string[] }) 
   }
 }
 
-export async function GET(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ path?: string[] }> }) {
   const params = await context.params;
   return proxyToGrafana(request, params);
 }
 
-export async function POST(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ path?: string[] }> }) {
   const params = await context.params;
   return proxyToGrafana(request, params);
 }
 
-export async function PUT(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ path?: string[] }> }) {
   const params = await context.params;
   return proxyToGrafana(request, params);
 }
 
-export async function DELETE(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ path?: string[] }> }) {
   const params = await context.params;
   return proxyToGrafana(request, params);
 }
