@@ -11,8 +11,11 @@ const BASE_DOMAINS = ['au-aris.org'];
 
 /**
  * Extract subdomain from Host header.
- *   cm.au-aris.org   → "cm"
- *   igad.au-aris.org → "igad"
+ *   cm.au-aris.org       → "cm"
+ *   igad.au-aris.org     → "igad"
+ *   test.au-aris.org     → "test" (staging continental)
+ *   cm-test.au-aris.org  → "cm"  (staging country)
+ *   igad-test.au-aris.org → "igad" (staging REC)
  *   au-aris.org / www.au-aris.org / localhost → null
  */
 function extractSubdomain(host: string | null): string | null {
@@ -25,8 +28,17 @@ function extractSubdomain(host: string | null): string | null {
 
   for (const base of BASE_DOMAINS) {
     if (hostname.endsWith(`.${base}`)) {
-      const sub = hostname.slice(0, -(base.length + 1));
-      if (!sub || sub === 'www') return null;
+      let sub = hostname.slice(0, -(base.length + 1));
+      if (!sub || sub === 'www' || sub === 'www-test') return null;
+
+      // Staging subdomain: strip "-test" suffix to get the real code
+      // e.g. "cm-test" → "cm", "igad-test" → "igad"
+      // "test" alone = staging continental (no rewrite needed)
+      if (sub === 'test') return null;
+      if (sub.endsWith('-test')) {
+        sub = sub.slice(0, -5); // remove "-test"
+      }
+
       return sub;
     }
   }
