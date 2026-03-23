@@ -37,6 +37,17 @@ CORS_OPTIONS = {
     ],
 }
 
+# ── Reverse proxy fix (Traefik terminates TLS, forwards HTTP internally) ──
+# Without this, Flask thinks all requests are HTTP → Secure cookies won't set → redirect loop
+ENABLE_PROXY_FIX = True
+PROXY_FIX_CONFIG = {
+    "x_for": 1,
+    "x_proto": 1,
+    "x_host": 1,
+    "x_prefix": 1,
+    "x_port": 1,
+}
+
 # ── Disable Talisman CSP for iframe embedding ──
 TALISMAN_ENABLED = False
 
