@@ -574,6 +574,11 @@ services:
       - "traefik.http.routers.collecte.rule=PathPrefix(`/api/v1/collecte`)"
       - "traefik.http.routers.collecte.entrypoints=websecure"
       - "traefik.http.services.collecte.loadbalancer.server.port=3011"
+      # Workflow campaigns endpoint lives in collecte service (higher priority)
+      - "traefik.http.routers.collecte-wf-campaigns.rule=PathPrefix(`/api/v1/workflow/campaigns`)"
+      - "traefik.http.routers.collecte-wf-campaigns.entrypoints=websecure"
+      - "traefik.http.routers.collecte-wf-campaigns.service=collecte"
+      - "traefik.http.routers.collecte-wf-campaigns.priority=20"
 
   workflow:
     container_name: aris-stg-workflow
@@ -594,6 +599,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.workflow.rule=PathPrefix(`/api/v1/workflow`)"
       - "traefik.http.routers.workflow.entrypoints=websecure"
+      - "traefik.http.routers.workflow.priority=10"
       - "traefik.http.services.workflow.loadbalancer.server.port=3012"
 
   # ═══════════════════════════════════════════════════
