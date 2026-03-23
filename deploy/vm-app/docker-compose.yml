@@ -239,9 +239,12 @@ services:
       "
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.superset.rule=Host(`superset.au-aris.org`)"
+      - "traefik.http.routers.superset.rule=PathPrefix(`/bi-superset`)"
       - "traefik.http.routers.superset.entrypoints=websecure"
       - "traefik.http.routers.superset.tls=true"
+      - "traefik.http.routers.superset.priority=20"
+      - "traefik.http.routers.superset.middlewares=superset-strip"
+      - "traefik.http.middlewares.superset-strip.stripprefix.prefixes=/bi-superset"
       - "traefik.http.services.superset.loadbalancer.server.port=8088"
 
   metabase:
@@ -308,7 +311,7 @@ services:
         # BI tool URLs (inlined at build time)
         NEXT_PUBLIC_GRAFANA_URL: /grafana
         NEXT_PUBLIC_METABASE_URL: https://metabase.au-aris.org
-        NEXT_PUBLIC_SUPERSET_URL: https://superset.au-aris.org
+        NEXT_PUBLIC_SUPERSET_URL: /bi-superset
     ports:
       - "3100:3000"
     environment:
@@ -318,7 +321,7 @@ services:
       # BI tool public URLs
       NEXT_PUBLIC_GRAFANA_URL: /grafana
       NEXT_PUBLIC_METABASE_URL: https://metabase.au-aris.org
-      NEXT_PUBLIC_SUPERSET_URL: https://superset.au-aris.org
+      NEXT_PUBLIC_SUPERSET_URL: /bi-superset
       # Server-side env vars for BI proxy API routes (Docker service names, fallback)
       METABASE_INTERNAL_URL: http://metabase:3000
       GRAFANA_INTERNAL_URL: http://grafana:3000

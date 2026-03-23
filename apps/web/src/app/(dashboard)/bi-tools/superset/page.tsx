@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useBiDashboards, useRequestSupersetGuestToken } from '@/lib/api/bi-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
-const SUPERSET_URL = process.env.NEXT_PUBLIC_SUPERSET_URL ?? '/api/bi-proxy/superset';
+const SUPERSET_URL = process.env.NEXT_PUBLIC_SUPERSET_URL ?? '/bi-superset';
 
 export default function SupersetEmbedPage() {
   const [loading, setLoading] = useState(true);
@@ -21,13 +21,6 @@ export default function SupersetEmbedPage() {
   const requestGuestToken = useRequestSupersetGuestToken();
   const user = useAuthStore((s) => s.user);
   const accessToken = useAuthStore((s) => s.accessToken);
-
-  // Set auth cookie so the proxy can forward auth if needed
-  useEffect(() => {
-    if (accessToken) {
-      document.cookie = `aris-bi-token=${accessToken}; path=/api/bi-proxy/; SameSite=Lax; Secure`;
-    }
-  }, [accessToken]);
 
   // Determine if we should use SDK embed (dashboards registered) or iframe fallback
   const useFallbackIframe = !dashboardsLoading && dashboards.length === 0;

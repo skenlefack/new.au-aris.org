@@ -48,12 +48,18 @@ PROXY_FIX_CONFIG = {
     "x_port": 1,
 }
 
+# ── Sub-path routing ──
+# Superset is served at /bi-superset/ behind Traefik (no subdomain DNS needed).
+# FORCE_SCRIPT_NAME makes url_for() and all generated URLs include the prefix.
+# Traefik StripPrefix removes /bi-superset before forwarding to Gunicorn.
+FORCE_SCRIPT_NAME = "/bi-superset"
+
 # ── Disable Talisman CSP for iframe embedding ──
 TALISMAN_ENABLED = False
 
 # ── Session ──
-# SameSite=None + Secure=True for cross-origin iframe embedding over HTTPS
-SESSION_COOKIE_SAMESITE = "None"
+# Same-origin iframe (same au-aris.org domain) → Lax is sufficient and more secure
+SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 
