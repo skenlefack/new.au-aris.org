@@ -152,15 +152,15 @@ export async function getPublicDomains() {
   }
   return {
     data: [
-      { code: 'governance', name: { en: 'Governance & Capacities' }, color: '#6B21A8', icon: 'Building2' },
-      { code: 'animal-health', name: { en: 'Animal Health & One Health' }, color: '#C62828', icon: 'HeartPulse' },
-      { code: 'livestock-prod', name: { en: 'Production & Pastoralism' }, color: '#E65100', icon: 'Wheat' },
-      { code: 'trade-sps', name: { en: 'Trade, Markets & SPS' }, color: '#1565C0', icon: 'TrendingUp' },
-      { code: 'fisheries', name: { en: 'Fisheries & Aquaculture' }, color: '#00838F', icon: 'Fish' },
-      { code: 'wildlife', name: { en: 'Wildlife & Biodiversity' }, color: '#2E7D32', icon: 'TreePine' },
-      { code: 'apiculture', name: { en: 'Apiculture & Pollination' }, color: '#F9A825', icon: 'Bug' },
-      { code: 'climate-env', name: { en: 'Climate & Environment' }, color: '#00695C', icon: 'Cloud' },
-      { code: 'knowledge-hub', name: { en: 'Knowledge Management' }, color: '#4527A0', icon: 'BookOpen' },
+      { code: 'governance', name: { en: 'Governance & Capacities', fr: 'Gouvernance & Capacit\u00e9s' }, description: { en: 'Legal frameworks & PVS', fr: 'Cadres juridiques & PVS' }, color: '#6B21A8', icon: 'Building2' },
+      { code: 'animal-health', name: { en: 'Animal Health & One Health', fr: 'Sant\u00e9 Animale & One Health' }, description: { en: 'Surveillance, outbreaks, AMR', fr: 'Surveillance, \u00e9pid\u00e9mies, RAM' }, color: '#C62828', icon: 'HeartPulse' },
+      { code: 'livestock-prod', name: { en: 'Production & Pastoralism', fr: 'Production & Pastoralisme' }, description: { en: 'Census & production systems', fr: 'Recensement & syst\u00e8mes de production' }, color: '#E65100', icon: 'Wheat' },
+      { code: 'trade-sps', name: { en: 'Trade, Markets & SPS', fr: 'Commerce, March\u00e9s & SPS' }, description: { en: 'Markets & certification', fr: 'March\u00e9s & certification' }, color: '#1565C0', icon: 'TrendingUp' },
+      { code: 'fisheries', name: { en: 'Fisheries & Aquaculture', fr: 'P\u00eaches & Aquaculture' }, description: { en: 'Captures & aquaculture', fr: 'Captures & aquaculture' }, color: '#00838F', icon: 'Fish' },
+      { code: 'wildlife', name: { en: 'Wildlife & Biodiversity', fr: 'Faune & Biodiversit\u00e9' }, description: { en: 'Biodiversity & CITES', fr: 'Biodiversit\u00e9 & CITES' }, color: '#2E7D32', icon: 'TreePine' },
+      { code: 'apiculture', name: { en: 'Apiculture & Pollination', fr: 'Apiculture & Pollinisation' }, description: { en: 'Pollination & honey', fr: 'Pollinisation & miel' }, color: '#F9A825', icon: 'Bug' },
+      { code: 'climate-env', name: { en: 'Climate & Environment', fr: 'Climat & Environnement' }, description: { en: 'Water stress & rangelands', fr: 'Stress hydrique & parcours' }, color: '#00695C', icon: 'Cloud' },
+      { code: 'knowledge-hub', name: { en: 'Knowledge Management', fr: 'Gestion des Connaissances' }, description: { en: 'E-learning & resources', fr: 'E-learning & ressources' }, color: '#4527A0', icon: 'BookOpen' },
     ],
   };
 }

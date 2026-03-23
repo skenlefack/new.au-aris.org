@@ -8,14 +8,17 @@ const BASE_DOMAINS = ['au-aris.org'];
 
 /**
  * Extract the subdomain from a hostname.
- * Returns `null` for bare domain, www, or localhost.
+ * Returns `null` for bare domain, www, localhost, or staging continental ("test").
  *
  * Examples:
- *   cm.au-aris.org   → "cm"
- *   igad.au-aris.org → "igad"
- *   au-aris.org      → null
- *   www.au-aris.org  → null
- *   localhost:3000   → null
+ *   cm.au-aris.org        → "cm"
+ *   igad.au-aris.org      → "igad"
+ *   cm-test.au-aris.org   → "cm"   (staging country)
+ *   igad-test.au-aris.org → "igad" (staging REC)
+ *   test.au-aris.org      → null   (staging continental)
+ *   au-aris.org           → null
+ *   www.au-aris.org       → null
+ *   localhost:3000        → null
  */
 export function extractSubdomain(host: string | null): string | null {
   if (!host) return null;
@@ -30,8 +33,17 @@ export function extractSubdomain(host: string | null): string | null {
 
   for (const base of BASE_DOMAINS) {
     if (hostname.endsWith(`.${base}`)) {
-      const sub = hostname.slice(0, -(base.length + 1)); // remove ".au-aris.org"
-      if (!sub || sub === 'www') return null;
+      let sub = hostname.slice(0, -(base.length + 1)); // remove ".au-aris.org"
+      if (!sub || sub === 'www' || sub === 'www-test') return null;
+
+      // Staging subdomain: strip "-test" suffix to get the real code
+      // e.g. "cm-test" → "cm", "igad-test" → "igad"
+      // "test" alone = staging continental (no subdomain)
+      if (sub === 'test') return null;
+      if (sub.endsWith('-test')) {
+        sub = sub.slice(0, -5); // remove "-test"
+      }
+
       return sub;
     }
   }
