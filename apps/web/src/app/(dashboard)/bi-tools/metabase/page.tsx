@@ -17,6 +17,9 @@ export default function MetabaseEmbedPage() {
   const user = useAuthStore((s) => s.user);
   const requestSession = useRequestMetabaseSession();
 
+  const metabaseUrl = process.env.NEXT_PUBLIC_METABASE_URL ?? '/bi-metabase';
+  const embedUrl = sessionReady ? `${metabaseUrl}/` : '';
+
   // Auto-login: get Metabase session token and set cookie
   useEffect(() => {
     let cancelled = false;
@@ -29,15 +32,8 @@ export default function MetabaseEmbedPage() {
 
         const token = result.data.sessionToken;
 
-        // Set cookie for subdomain (metabase.au-aris.org) or proxy (/api/bi-proxy/metabase)
-        const isSubdomain = metabaseUrl.startsWith('http');
-        if (isSubdomain) {
-          // Cross-origin cookie: set on parent domain so subdomain iframe receives it
-          const domain = new URL(metabaseUrl).hostname.replace(/^[^.]+/, '');
-          document.cookie = `metabase.SESSION=${token}; path=/; domain=${domain}; SameSite=None; Secure`;
-        } else {
-          document.cookie = `metabase.SESSION=${token}; path=${metabaseUrl}; SameSite=Lax`;
-        }
+        // Same-origin cookie for sub-path routing (/bi-metabase)
+        document.cookie = `metabase.SESSION=${token}; path=${metabaseUrl}; SameSite=Lax; Secure`;
 
         setSessionReady(true);
       } catch {
@@ -54,10 +50,6 @@ export default function MetabaseEmbedPage() {
   // Only run once on mount
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const metabaseUrl = process.env.NEXT_PUBLIC_METABASE_URL ?? '/api/bi-proxy/metabase';
-  // Use subdomain URL if configured, otherwise fall back to proxy
-  const embedUrl = sessionReady ? `${metabaseUrl}/` : '';
 
   const handleLoad = useCallback(() => {
     setLoading(false);
