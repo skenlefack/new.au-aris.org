@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import { authHook, tenantHook } from '@aris/auth-middleware';
-import type { AuthenticatedUser, AuthHookOptions } from '@aris/auth-middleware';
+import { tenantHook } from '@aris/auth-middleware';
+import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { SubmissionService } from '../services/submission.service';
 import {
   CreateSubmissionSchema,
@@ -16,10 +16,7 @@ import type {
 export default async function submissionRoutes(app: FastifyInstance): Promise<void> {
   const service = new SubmissionService(app.prisma, app.kafka.producer, app.kafka);
 
-  const authOpts: AuthHookOptions = {
-    publicKey: process.env['JWT_PUBLIC_KEY'] ?? '',
-  };
-  const auth = authHook(authOpts);
+  const auth = app.authHookFn;
   const tenant = tenantHook();
 
   // Set up Kafka event consumers AFTER server is ready (non-blocking)

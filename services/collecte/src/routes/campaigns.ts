@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { UserRole } from '@aris/shared-types';
-import { authHook, rolesHook, tenantHook } from '@aris/auth-middleware';
-import type { AuthenticatedUser, AuthHookOptions } from '@aris/auth-middleware';
+import { rolesHook, tenantHook } from '@aris/auth-middleware';
+import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { CampaignService } from '../services/campaign.service';
 import {
   CreateCampaignSchema,
@@ -26,10 +26,7 @@ const WRITE_ROLES = [
 export default async function campaignRoutes(app: FastifyInstance): Promise<void> {
   const service = new CampaignService(app.prisma, app.kafka.producer);
 
-  const authOpts: AuthHookOptions = {
-    publicKey: process.env['JWT_PUBLIC_KEY'] ?? '',
-  };
-  const auth = authHook(authOpts);
+  const auth = app.authHookFn;
   const tenant = tenantHook();
 
   // POST /api/v1/collecte/campaigns

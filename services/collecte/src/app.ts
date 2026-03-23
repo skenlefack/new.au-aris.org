@@ -1,13 +1,22 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import { readFileSync } from 'fs';
 import { fastifyKafka } from '@aris/kafka-client';
+import { authHook } from '@aris/auth-middleware';
+import type { AuthHookOptions } from '@aris/auth-middleware';
 import prismaPlugin from './plugins/prisma';
 import campaignRoutes from './routes/campaigns';
 import submissionRoutes from './routes/submissions';
 import syncRoutes from './routes/sync';
 import workflowRoutes from './routes/workflow';
 import { WorkflowCronService } from './services/workflow-cron.service';
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    authHookFn: ReturnType<typeof authHook>;
+  }
+}
 
 export async function buildApp() {
   const app = Fastify({
@@ -30,6 +39,16 @@ export async function buildApp() {
     crossOriginResourcePolicy: false,      // CORP blocks cross-origin reads
     crossOriginEmbedderPolicy: false,      // COEP not needed for APIs
   });
+
+  // Auth hook — read JWT public key from env variable or file
+  let publicKey = (process.env['JWT_PUBLIC_KEY'] ?? '').replace(/\\n/g, '\n');
+  if (!publicKey && process.env['JWT_PUBLIC_KEY_PATH']) {
+    try {
+      publicKey = readFileSync(process.env['JWT_PUBLIC_KEY_PATH'], 'utf8');
+    } catch { /* key file not found, auth will fail */ }
+  }
+  const authOptions: AuthHookOptions = { publicKey };
+  app.decorate('authHookFn', authHook(authOptions));
 
   // Plugins
   await app.register(prismaPlugin);

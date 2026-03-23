@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { UserRole } from '@aris/shared-types';
-import { authHook, rolesHook, tenantHook } from '@aris/auth-middleware';
-import type { AuthenticatedUser, AuthHookOptions } from '@aris/auth-middleware';
+import { rolesHook, tenantHook } from '@aris/auth-middleware';
+import type { AuthenticatedUser } from '@aris/auth-middleware';
 import {
   WorkflowDefinitionService,
   ValidationChainService,
@@ -54,10 +54,7 @@ export default async function workflowRoutes(app: FastifyInstance): Promise<void
   const instanceService = new WorkflowInstanceService(app.prisma, app.kafka.producer);
   const campaignService = new CollectionCampaignService(app.prisma, app.kafka.producer);
 
-  const authOpts: AuthHookOptions = {
-    publicKey: process.env['JWT_PUBLIC_KEY'] ?? '',
-  };
-  const auth = authHook(authOpts);
+  const auth = app.authHookFn;
   const tenant = tenantHook();
 
   // ═══════════════════════════════════════════════════════
