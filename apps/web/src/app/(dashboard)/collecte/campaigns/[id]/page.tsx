@@ -138,7 +138,7 @@ export default function CampaignDetailPage() {
   );
 
   // Resolve country info
-  const countryInfos = useMemo(() => {
+  const countryInfos: { code: string; name: string; flag: string }[] = useMemo(() => {
     if (!campaign) return [];
     return (campaign.targetCountries ?? []).map((code: string) => {
       const c = COUNTRIES[code.toUpperCase()];
