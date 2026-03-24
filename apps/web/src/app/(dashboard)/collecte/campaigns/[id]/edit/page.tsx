@@ -165,8 +165,8 @@ export default function EditCampaignPage() {
       id: campaignId,
       name: { en: name.trim() },
       description: { en: description.trim() },
-      startDate: new Date(startDate).toISOString(),
-      endDate: new Date(endDate).toISOString(),
+      startDate,
+      endDate,
       targetSubmissions: targetSubmissions ? parseInt(targetSubmissions, 10) : undefined,
       targetCountries: selectedCountries.map((c: CountryConfig) => c.code),
     };
