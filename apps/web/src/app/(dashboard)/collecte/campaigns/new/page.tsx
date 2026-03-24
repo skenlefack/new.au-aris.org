@@ -12,10 +12,7 @@ import {
   Loader2,
   Settings,
 } from 'lucide-react';
-import {
-  useCreateCampaign,
-  type CreateCampaignRequest,
-} from '@/lib/api/hooks';
+import { useCreateCollectionCampaign } from '@/lib/api/workflow-hooks';
 import {
   useFormBuilderTemplates,
   type FormTemplateListItem,
@@ -67,7 +64,7 @@ const SEED_TEMPLATES: FormTemplateListItem[] = [
 export default function NewCampaignPage() {
   const router = useRouter();
   const t = useTranslations('collecte');
-  const createCampaign = useCreateCampaign();
+  const createCampaign = useCreateCollectionCampaign();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -126,19 +123,19 @@ export default function NewCampaignPage() {
     ev.preventDefault();
     if (!validate()) return;
 
-    const payload: CreateCampaignRequest = {
-      name: name.trim(),
+    // Generate a short campaign code from domain + date
+    const code = `${domain.replace(/[^a-zA-Z]/g, '_').toUpperCase().slice(0, 10)}_${startDate.replace(/-/g, '')}`;
+
+    const payload = {
+      code,
+      name: { en: name.trim() },
+      description: description.trim() ? { en: description.trim() } : undefined,
       domain,
-      templateId: selectedTemplates[0]?.id ?? '',
-      startDate: new Date(startDate).toISOString(),
-      endDate: new Date(endDate).toISOString(),
-      targetZones: [],
-      assignedAgents: [],
-      description: description.trim() || undefined,
+      formTemplateId: selectedTemplates[0]?.id ?? '',
+      startDate,
+      endDate,
+      targetCountries: selectedCountries.map((c: CountryConfig) => c.code),
       targetSubmissions: targetSubmissions ? parseInt(targetSubmissions, 10) : undefined,
-      // Extended fields
-      templateIds: selectedTemplates.map((tmpl) => tmpl.id),
-      targetCountries: selectedCountries.map((c) => c.code),
       frequency,
       sendReminders,
       reminderDaysBefore: sendReminders ? parseInt(reminderDays, 10) : undefined,

@@ -12,10 +12,9 @@ import {
   Loader2,
 } from 'lucide-react';
 import {
-  useCampaign,
-  useUpdateCampaign,
-  type CollecteCampaign,
-} from '@/lib/api/hooks';
+  useCollectionCampaign,
+  useUpdateCollectionCampaign,
+} from '@/lib/api/workflow-hooks';
 
 /* eslint-disable no-console */
 import {
@@ -59,6 +58,19 @@ const SEED_TEMPLATES: FormTemplateListItem[] = [
   { id: 'c0000003-0008-4000-8000-000000000015', tenantId: '', name: 'Volume and Availability of Transport', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyCampaign = any;
+
+function i18nStr(val: unknown): string {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object' && val !== null) {
+    const obj = val as Record<string, string>;
+    return obj['en'] ?? obj['fr'] ?? Object.values(obj)[0] ?? '';
+  }
+  return String(val);
+}
+
 function toDateInputValue(dateStr: string | undefined): string {
   if (!dateStr) return '';
   try {
@@ -73,8 +85,8 @@ export default function EditCampaignPage() {
   const params = useParams();
   const campaignId = params.id as string;
 
-  const { data: campaignRes, isLoading: campaignLoading } = useCampaign(campaignId);
-  const updateCampaign = useUpdateCampaign();
+  const { data: campaignRes, isLoading: campaignLoading } = useCollectionCampaign(campaignId);
+  const updateCampaign = useUpdateCollectionCampaign();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -103,28 +115,28 @@ export default function EditCampaignPage() {
   }, [allTemplates]);
 
   // Initialize form from campaign data once loaded
-  const campaign = (campaignRes as any)?.data as CollecteCampaign | undefined;
+  const campaign = (campaignRes as AnyCampaign)?.data as AnyCampaign | undefined;
 
   useEffect(() => {
     if (campaign && !initialized) {
-      setName(campaign.name ?? '');
-      setDescription(campaign.description ?? '');
+      setName(i18nStr(campaign.name));
+      setDescription(i18nStr(campaign.description));
       setDomain(campaign.domain ?? '');
       setStartDate(toDateInputValue(campaign.startDate));
       setEndDate(toDateInputValue(campaign.endDate));
       setTargetSubmissions(campaign.targetSubmissions != null ? String(campaign.targetSubmissions) : '');
 
-      // Restore selected templates
-      const tplIds = campaign.templateIds ?? (campaign.templateId ? [campaign.templateId] : []);
-      const matchedTemplates = allTemplates.filter((t) => tplIds.includes(t.id));
-      if (matchedTemplates.length > 0) {
-        setSelectedTemplates(matchedTemplates);
+      // Restore selected template (CollectionCampaign has a single formTemplateId)
+      const tplId = campaign.formTemplateId ?? campaign.templateId;
+      if (tplId) {
+        const matched = allTemplates.find((t: FormTemplateListItem) => t.id === tplId);
+        if (matched) setSelectedTemplates([matched]);
       }
 
       // Restore selected countries
-      const countryCodes = campaign.targetCountries ?? [];
+      const countryCodes: string[] = campaign.targetCountries ?? [];
       const matchedCountries = countryCodes
-        .map((code) => COUNTRIES[code.toUpperCase()])
+        .map((code: string) => COUNTRIES[code.toUpperCase()])
         .filter(Boolean) as CountryConfig[];
       if (matchedCountries.length > 0) {
         setSelectedCountries(matchedCountries);
@@ -151,13 +163,12 @@ export default function EditCampaignPage() {
     setSubmitError(null);
     const payload = {
       id: campaignId,
-      name: name.trim(),
-      description: description.trim(),
+      name: { en: name.trim() },
+      description: { en: description.trim() },
       startDate: new Date(startDate).toISOString(),
       endDate: new Date(endDate).toISOString(),
       targetSubmissions: targetSubmissions ? parseInt(targetSubmissions, 10) : undefined,
-      templateIds: selectedTemplates.map((t) => t.id),
-      targetCountries: selectedCountries.map((c) => c.code),
+      targetCountries: selectedCountries.map((c: CountryConfig) => c.code),
     };
     console.log('[EditCampaign] Submitting PATCH:', JSON.stringify(payload, null, 2));
 
@@ -243,7 +254,7 @@ export default function EditCampaignPage() {
           Edit Campaign
         </h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Editing &ldquo;{campaign.name}&rdquo;
+          Editing &ldquo;{i18nStr(campaign.name)}&rdquo;
         </p>
       </div>
 

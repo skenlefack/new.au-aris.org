@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useCampaign, useSubmitCampaignForm } from '@/lib/api/hooks';
+import { useSubmitCampaignForm } from '@/lib/api/hooks';
+import { useCollectionCampaign } from '@/lib/api/workflow-hooks';
 import {
   useFormBuilderTemplate,
   useFormBuilderTemplates,
@@ -44,7 +45,7 @@ export default function CampaignSubmitPage() {
   const campaignId = params.id as string;
   const templateId = params.templateId as string;
 
-  const { data: campaignRes, isLoading: campaignLoading } = useCampaign(campaignId);
+  const { data: campaignRes, isLoading: campaignLoading } = useCollectionCampaign(campaignId);
   const submitMutation = useSubmitCampaignForm();
 
   // Try direct lookup by ID first (works when campaign uses real DB IDs)
@@ -59,7 +60,17 @@ export default function CampaignSubmitPage() {
 
   const [banner, setBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const campaign = (campaignRes as any)?.data as { name: string; status: string } | undefined;
+  const rawCampaign = (campaignRes as any)?.data as any | undefined;
+  const campaign = rawCampaign ? {
+    name: (() => {
+      const n = rawCampaign.name;
+      if (!n) return '';
+      if (typeof n === 'string') return n;
+      if (typeof n === 'object') return n.en ?? n.fr ?? Object.values(n)[0] ?? '';
+      return String(n);
+    })(),
+    status: rawCampaign.status as string,
+  } : undefined;
 
   // Resolve the template: direct ID match → name-based fallback
   const resolvedTemplate = useMemo((): FormTemplateListItem | undefined => {

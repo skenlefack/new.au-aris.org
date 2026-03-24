@@ -20,10 +20,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  useCampaign,
-  useUpdateCampaign,
-  type CollecteCampaign,
-} from '@/lib/api/hooks';
+  useCollectionCampaign,
+  useUpdateCollectionCampaign,
+} from '@/lib/api/workflow-hooks';
 import {
   useFormBuilderTemplates,
   type FormTemplateListItem,
@@ -32,6 +31,19 @@ import { COUNTRIES } from '@/data/countries-config';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { useTranslations } from '@/lib/i18n/translations';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyCampaign = any;
+
+function i18nStr(val: unknown): string {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object' && val !== null) {
+    const obj = val as Record<string, string>;
+    return obj['en'] ?? obj['fr'] ?? Object.values(obj)[0] ?? '';
+  }
+  return String(val);
+}
 
 // Fallback templates — same deterministic UUIDs as new/edit pages
 const SEED_TEMPLATES: FormTemplateListItem[] = [
@@ -86,21 +98,13 @@ export default function CampaignDetailPage() {
   const t = useTranslations('collecte');
   const campaignId = params.id as string;
 
-  const { data: campaignRes, isLoading } = useCampaign(campaignId);
-  const updateCampaign = useUpdateCampaign();
+  const { data: campaignRes, isLoading } = useCollectionCampaign(campaignId);
+  const updateCampaign = useUpdateCollectionCampaign();
 
   const { data: templatesData } = useFormBuilderTemplates({ page: 1, limit: 100 });
   const apiTemplates = useMemo(() => templatesData?.data ?? [], [templatesData]);
 
-  const campaign = (campaignRes as any)?.data as (CollecteCampaign & {
-    progress?: {
-      totalSubmissions: number;
-      validated: number;
-      rejected: number;
-      pending: number;
-      completionRate: number;
-    };
-  }) | undefined;
+  const campaign = (campaignRes as AnyCampaign)?.data as AnyCampaign | undefined;
 
   // Resolve each campaign templateId to a { name, tpl, tplId } object.
   // Matching strategy: try ID match first (real DB IDs), then fall back to
@@ -108,8 +112,9 @@ export default function CampaignDetailPage() {
   // use hardcoded seed UUIDs that differ from the real DB UUIDs).
   const resolvedTemplates = useMemo(() => {
     if (!campaign) return [];
-    const tplIds = campaign.templateIds ?? (campaign.templateId ? [campaign.templateId] : []);
-    return tplIds.map((id) => {
+    const tplId = campaign.formTemplateId ?? campaign.templateId;
+    const tplIds: string[] = tplId ? [tplId] : [];
+    return tplIds.map((id: string) => {
       // 1. Direct ID match against API templates
       const byId = apiTemplates.find((tpl) => tpl.id === id);
       if (byId) return { name: byId.name, tpl: byId, tplId: id };
@@ -135,7 +140,7 @@ export default function CampaignDetailPage() {
   // Resolve country info
   const countryInfos = useMemo(() => {
     if (!campaign) return [];
-    return (campaign.targetCountries ?? []).map((code) => {
+    return (campaign.targetCountries ?? []).map((code: string) => {
       const c = COUNTRIES[code.toUpperCase()];
       return c ? { code: c.code, name: c.name, flag: c.flag } : { code, name: code, flag: '' };
     });
@@ -179,17 +184,17 @@ export default function CampaignDetailPage() {
 
   const statusCfg = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG.PLANNED;
   const progress = campaign.progress;
-  const totalSubmissions = progress?.totalSubmissions ?? campaign.totalSubmissions ?? 0;
-  const validated = progress?.validated ?? campaign.validatedSubmissions ?? 0;
-  const rejected = progress?.rejected ?? campaign.rejectedSubmissions ?? 0;
+  const totalSubmissions = progress?.totalSubmissions ?? 0;
+  const validated = 0; // CollectionCampaign tracks via assignments, not submission-level validation
+  const rejected = 0;
   const pending = totalSubmissions - validated - rejected;
   const target = campaign.targetSubmissions ?? 0;
-  const pct = target > 0 ? Math.round((totalSubmissions / target) * 100) : 0;
-  const agentCount = Array.isArray(campaign.assignedAgents) ? campaign.assignedAgents.length : 0;
+  const pct = progress?.completionRate ?? (target > 0 ? Math.round((totalSubmissions / target) * 100) : 0);
+  const agentCount = progress?.totalAgents ?? (Array.isArray(campaign.assignments) ? campaign.assignments.length : 0);
 
   const handleStatusChange = async (newStatus: 'ACTIVE' | 'COMPLETED' | 'CANCELLED') => {
     try {
-      await updateCampaign.mutateAsync({ id: campaignId, status: newStatus });
+      await updateCampaign.mutateAsync({ id: campaignId, status: newStatus } as AnyCampaign);
     } catch (err) {
       console.error('[CampaignDetail] Status change failed:', err);
     }
@@ -209,10 +214,10 @@ export default function CampaignDetailPage() {
         <div className="mt-2 flex items-center justify-between">
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
-              {campaign.name}
+              {i18nStr(campaign.name)}
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {campaign.description || 'No description provided'}
+              {i18nStr(campaign.description) || 'No description provided'}
             </p>
           </div>
           <div className="ml-4 flex items-center gap-2 shrink-0">
