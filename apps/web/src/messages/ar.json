@@ -1360,6 +1360,7 @@
     "markAsComplete": "تحديد كمكتمل",
     "completing": "جارٍ الإكمال...",
     "noActionsAvailable": "لا توجد إجراءات متاحة لحملات \"{status}\".",
+    "readOnlyCampaign": "تم إنشاء هذه الحملة على مستوى أعلى. يمكنك عرضها ولكن لا يمكنك تعديلها.",
     "coverage": "التغطية",
     "targeted": "مستهدف",
 

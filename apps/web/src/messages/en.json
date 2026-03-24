@@ -1366,6 +1366,7 @@
     "markAsComplete": "Mark as Complete",
     "completing": "Completing...",
     "noActionsAvailable": "No actions available for \"{status}\" campaigns.",
+    "readOnlyCampaign": "This campaign was created at a higher level. You can view it but cannot edit it.",
     "coverage": "Coverage",
     "targeted": "targeted",
 

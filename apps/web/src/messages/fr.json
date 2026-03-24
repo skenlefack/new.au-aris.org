@@ -1361,6 +1361,7 @@
     "markAsComplete": "Marquer comme terminé",
     "completing": "Finalisation en cours...",
     "noActionsAvailable": "Aucune action disponible pour les campagnes « {status} ».",
+    "readOnlyCampaign": "Cette campagne a été créée à un niveau supérieur. Vous pouvez la consulter mais pas la modifier.",
     "coverage": "Couverture",
     "targeted": "ciblé",
 

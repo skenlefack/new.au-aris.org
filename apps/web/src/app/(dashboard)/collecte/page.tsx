@@ -32,6 +32,7 @@ import {
 import { COUNTRIES } from '@/data/countries-config';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import { useAuthStore, type AuthUser } from '@/lib/stores/auth-store';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyCampaign = any;
@@ -123,6 +124,19 @@ function getFormCount(campaign: AnyCampaign): number {
 function getDomainLabel(domain?: string): string {
   if (!domain) return '';
   return DOMAIN_OPTIONS.find((d) => d.value === domain)?.label ?? domain;
+}
+
+// ── Permission helper — mirrors backend CollectionCampaignService.assertCanEdit ──
+const LEVEL_RANK: Record<string, number> = { MEMBER_STATE: 1, COUNTRY: 1, REC: 2, CONTINENTAL: 3 };
+
+function canEditCampaign(user: AuthUser | null, campaign: AnyCampaign): boolean {
+  if (!user || !campaign) return false;
+  const userRank = LEVEL_RANK[user.tenantLevel?.toUpperCase() ?? ''] ?? 0;
+  const ownerRank = LEVEL_RANK[campaign.ownerType?.toUpperCase() ?? ''] ?? 0;
+  if (userRank === 3) return true; // CONTINENTAL can edit all
+  if (userRank < ownerRank) return false; // lower cannot edit higher
+  if (userRank === ownerRank) return user.tenantId === campaign.ownerId;
+  return true; // higher can edit lower
 }
 
 // ─── Archive Modal ────────────────────────────────────────────────────────────
@@ -244,17 +258,23 @@ function DeleteModal({
 
 function CampaignActions({
   campaign,
+  editable,
   onEdit,
   onDelete,
   onArchive,
 }: {
   campaign: AnyCampaign;
+  editable: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onArchive: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const t = useTranslations('collecte');
+
+  // If user can't edit this campaign, don't show any actions
+  if (!editable) return null;
+
   const canDelete = campaign.status === 'PLANNED';
   const canArchive = campaign.status === 'ACTIVE';
   const canEdit = campaign.status === 'PLANNED';
@@ -312,11 +332,13 @@ function CampaignActions({
 
 function CampaignCard({
   campaign,
+  editable,
   onEdit,
   onDelete,
   onArchive,
 }: {
   campaign: AnyCampaign;
+  editable: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onArchive: () => void;
@@ -356,7 +378,7 @@ function CampaignCard({
               {statusCfg.icon}
               {t(statusCfg.tKey)}
             </span>
-            <CampaignActions campaign={campaign} onEdit={onEdit} onDelete={onDelete} onArchive={onArchive} />
+            <CampaignActions campaign={campaign} editable={editable} onEdit={onEdit} onDelete={onDelete} onArchive={onArchive} />
           </div>
         </div>
       </div>
@@ -447,11 +469,13 @@ function CampaignCard({
 
 function CampaignListRow({
   campaign,
+  editable,
   onEdit,
   onDelete,
   onArchive,
 }: {
   campaign: AnyCampaign;
+  editable: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onArchive: () => void;
@@ -535,7 +559,7 @@ function CampaignListRow({
       </span>
 
       {/* Actions */}
-      <CampaignActions campaign={campaign} onEdit={onEdit} onDelete={onDelete} onArchive={onArchive} />
+      <CampaignActions campaign={campaign} editable={editable} onEdit={onEdit} onDelete={onDelete} onArchive={onArchive} />
     </div>
   );
 }
@@ -545,6 +569,7 @@ function CampaignListRow({
 export default function CollectePage() {
   const router = useRouter();
   const t = useTranslations('collecte');
+  const user = useAuthStore((s) => s.user);
   const [activeTab, setActiveTab] = useState('planned');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -798,6 +823,7 @@ export default function CollectePage() {
             <CampaignCard
               key={campaign.id}
               campaign={campaign}
+              editable={canEditCampaign(user, campaign)}
               onEdit={() => handleEdit(campaign)}
               onDelete={() => setDeleteTarget(campaign)}
               onArchive={() => setArchiveTarget(campaign)}
@@ -810,6 +836,7 @@ export default function CollectePage() {
             <CampaignListRow
               key={campaign.id}
               campaign={campaign}
+              editable={canEditCampaign(user, campaign)}
               onEdit={() => handleEdit(campaign)}
               onDelete={() => setDeleteTarget(campaign)}
               onArchive={() => setArchiveTarget(campaign)}

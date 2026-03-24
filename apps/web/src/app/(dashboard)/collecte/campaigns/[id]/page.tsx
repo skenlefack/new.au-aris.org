@@ -31,6 +31,7 @@ import { COUNTRIES } from '@/data/countries-config';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useAuthStore, type AuthUser } from '@/lib/stores/auth-store';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyCampaign = any;
@@ -59,6 +60,19 @@ const SEED_TEMPLATES: FormTemplateListItem[] = [
   { id: 'c0000003-0001-4000-8000-00000000000e', tenantId: '', name: 'Cost of Production', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
   { id: 'c0000003-0002-4000-8000-00000000000f', tenantId: '', name: 'Import and Export', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
 ];
+
+// ── Permission helper — mirrors backend CollectionCampaignService.assertCanEdit ──
+const LEVEL_RANK: Record<string, number> = { MEMBER_STATE: 1, COUNTRY: 1, REC: 2, CONTINENTAL: 3 };
+
+function canEditCampaign(user: AuthUser | null, campaign: AnyCampaign): boolean {
+  if (!user || !campaign) return false;
+  const userRank = LEVEL_RANK[user.tenantLevel?.toUpperCase() ?? ''] ?? 0;
+  const ownerRank = LEVEL_RANK[campaign.ownerType?.toUpperCase() ?? ''] ?? 0;
+  if (userRank === 3) return true; // CONTINENTAL can edit all
+  if (userRank < ownerRank) return false; // lower cannot edit higher
+  if (userRank === ownerRank) return user.tenantId === campaign.ownerId;
+  return true; // higher can edit lower (REC editing MS within scope — backend double-checks)
+}
 
 const STATUS_CONFIG: Record<string, { tKey: string; color: string; bg: string; icon: React.ReactNode }> = {
   PLANNED: {
@@ -105,6 +119,9 @@ export default function CampaignDetailPage() {
   const apiTemplates = useMemo(() => templatesData?.data ?? [], [templatesData]);
 
   const campaign = (campaignRes as AnyCampaign)?.data as AnyCampaign | undefined;
+
+  const user = useAuthStore((s) => s.user);
+  const editable = canEditCampaign(user, campaign);
 
   // Resolve each campaign templateId to a { name, tpl, tplId } object.
   // Matching strategy: try ID match first (real DB IDs), then fall back to
@@ -232,8 +249,8 @@ export default function CampaignDetailPage() {
               {t(statusCfg.tKey)}
             </span>
 
-            {/* Status action buttons */}
-            {campaign.status === 'PLANNED' && (
+            {/* Status action buttons — only shown if user can edit this campaign */}
+            {editable && campaign.status === 'PLANNED' && (
               <>
                 <button
                   onClick={() => handleStatusChange('ACTIVE')}
@@ -250,7 +267,7 @@ export default function CampaignDetailPage() {
                 </Link>
               </>
             )}
-            {campaign.status === 'ACTIVE' && (
+            {editable && campaign.status === 'ACTIVE' && (
               <button
                 onClick={() => handleStatusChange('COMPLETED')}
                 disabled={updateCampaign.isPending}
@@ -453,7 +470,12 @@ export default function CampaignDetailPage() {
           <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Actions</h3>
             <div className="space-y-2">
-              {campaign.status === 'PLANNED' && (
+              {!editable && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">
+                  {t('readOnlyCampaign')}
+                </p>
+              )}
+              {editable && campaign.status === 'PLANNED' && (
                 <>
                   <Link
                     href={`/collecte/campaigns/${campaignId}/edit`}
@@ -472,7 +494,7 @@ export default function CampaignDetailPage() {
                   </button>
                 </>
               )}
-              {campaign.status === 'ACTIVE' && (
+              {editable && campaign.status === 'ACTIVE' && (
                 <>
                   <button
                     onClick={() => handleStatusChange('COMPLETED')}
@@ -492,7 +514,7 @@ export default function CampaignDetailPage() {
                   </button>
                 </>
               )}
-              {(campaign.status === 'COMPLETED' || campaign.status === 'CANCELLED') && (
+              {editable && (campaign.status === 'COMPLETED' || campaign.status === 'CANCELLED') && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">
                   {t('noActionsAvailable', { status: t(statusCfg.tKey).toLowerCase() })}
                 </p>

@@ -1360,6 +1360,7 @@
     "markAsComplete": "Marcar como Completada",
     "completing": "Completando...",
     "noActionsAvailable": "No hay acciones disponibles para campañas \"{status}\".",
+    "readOnlyCampaign": "Esta campaña fue creada a un nivel superior. Puede verla pero no puede editarla.",
     "coverage": "Cobertura",
     "targeted": "objetivo",
 
