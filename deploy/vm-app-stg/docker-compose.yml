@@ -321,6 +321,8 @@ services:
       NEXT_PUBLIC_GRAFANA_URL: /grafana
       NEXT_PUBLIC_METABASE_URL: /bi-metabase
       NEXT_PUBLIC_SUPERSET_URL: /bi-superset
+      # Internal service URLs (Docker Compose service names)
+      INTERNAL_TENANT_URL: http://tenant:3001
       # Server-side env vars for BI proxy API routes (Docker service names, fallback)
       METABASE_INTERNAL_URL: http://metabase:3000
       GRAFANA_INTERNAL_URL: http://grafana:3000
