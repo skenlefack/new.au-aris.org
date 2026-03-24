@@ -108,7 +108,7 @@ const SORT_OPTIONS = [
 function getCountryFlags(campaign: AnyCampaign): string[] {
   const countries = campaign.targetCountries ?? [];
   return countries
-    .map((c) => COUNTRIES[c.toUpperCase()]?.flag ?? null)
+    .map((c: string) => COUNTRIES[c.toUpperCase()]?.flag ?? null)
     .filter(Boolean) as string[];
 }
 
