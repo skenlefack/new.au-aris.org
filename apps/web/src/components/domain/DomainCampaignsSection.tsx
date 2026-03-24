@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { ClipboardList, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useCampaigns } from '@/lib/api/hooks';
+import { useCollectionCampaigns } from '@/lib/api/workflow-hooks';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useTranslations } from '@/lib/i18n/translations';
 
@@ -14,7 +14,7 @@ interface DomainCampaignsSectionProps {
 
 export function DomainCampaignsSection({ domain }: DomainCampaignsSectionProps) {
   const t = useTranslations('shared');
-  const { data, isLoading, isError } = useCampaigns({
+  const { data, isLoading, isError } = useCollectionCampaigns({
     domain,
     status: 'ACTIVE',
     limit: 5,
@@ -32,7 +32,7 @@ export function DomainCampaignsSection({ domain }: DomainCampaignsSectionProps) 
           </h2>
         </div>
         <Link
-          href={`/collecte?domain=${domain}`}
+          href={`/collecte/campaigns?domain=${domain}`}
           className="flex items-center gap-1 text-xs font-medium text-aris-primary-600 hover:text-aris-primary-700 dark:text-aris-primary-400"
         >
           {t('viewAll')}
@@ -79,7 +79,7 @@ export function DomainCampaignsSection({ domain }: DomainCampaignsSectionProps) 
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-900 line-clamp-1 dark:text-gray-100">
-                      {campaign.name}
+                      {typeof campaign.name === 'object' ? (campaign.name?.en ?? campaign.name?.fr ?? Object.values(campaign.name)[0]) : campaign.name}
                     </p>
                     <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
                       {campaign.totalSubmissions ?? 0}
