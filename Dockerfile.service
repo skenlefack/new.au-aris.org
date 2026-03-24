@@ -41,6 +41,12 @@ RUN pnpm turbo build --filter=@aris/${SERVICE_NAME}-service || true
 RUN test -d services/${SERVICE_NAME}/dist || \
     (echo "ERROR: No dist output for ${SERVICE_NAME}" && exit 1)
 
+# Remove frontend-only packages whose names trigger false-positive malware scans
+# (e.g., 'internmap' contains substring 'nmap', flagged by Veeam as TA0007 IoC)
+RUN find node_modules -maxdepth 5 -name 'internmap' -type d -exec rm -rf {} + 2>/dev/null; \
+    find packages -maxdepth 6 -name 'internmap' -type d -exec rm -rf {} + 2>/dev/null; \
+    true
+
 # ── Stage 3: Production runner ──
 FROM node:22-alpine AS runner
 
