@@ -26,14 +26,25 @@ import {
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import {
-  useCampaigns,
-  useUpdateCampaign,
-  useDeleteCampaign,
-  type CollecteCampaign,
-} from '@/lib/api/hooks';
+  useCollectionCampaigns,
+  useUpdateCollectionCampaign,
+} from '@/lib/api/workflow-hooks';
 import { COUNTRIES } from '@/data/countries-config';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyCampaign = any;
+
+function i18nStr(val: unknown): string {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object' && val !== null) {
+    const obj = val as Record<string, string>;
+    return obj['en'] ?? obj['fr'] ?? Object.values(obj)[0] ?? '';
+  }
+  return String(val);
+}
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
@@ -94,19 +105,19 @@ const SORT_OPTIONS = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getCountryFlags(campaign: CollecteCampaign): string[] {
+function getCountryFlags(campaign: AnyCampaign): string[] {
   const countries = campaign.targetCountries ?? [];
   return countries
     .map((c) => COUNTRIES[c.toUpperCase()]?.flag ?? null)
     .filter(Boolean) as string[];
 }
 
-function getCountryCount(campaign: CollecteCampaign): number {
+function getCountryCount(campaign: AnyCampaign): number {
   return (campaign.targetCountries ?? campaign.targetZones ?? []).length;
 }
 
-function getFormCount(campaign: CollecteCampaign): number {
-  return (campaign.templateIds ?? (campaign.templateId ? [campaign.templateId] : [])).length;
+function getFormCount(campaign: AnyCampaign): number {
+  return (campaign.templateIds ?? (campaign.formTemplateId ? [campaign.formTemplateId] : [])).length;
 }
 
 function getDomainLabel(domain?: string): string {
@@ -122,7 +133,7 @@ function ArchiveModal({
   onCancel,
   isPending,
 }: {
-  campaign: CollecteCampaign;
+  campaign: AnyCampaign;
   onConfirm: (reason: string) => void;
   onCancel: () => void;
   isPending: boolean;
@@ -139,7 +150,7 @@ function ArchiveModal({
           </div>
           <div>
             <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t('archiveCampaign')}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{campaign.name}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{i18nStr(campaign.name)}</p>
           </div>
         </div>
         <div className="mb-4">
@@ -185,7 +196,7 @@ function DeleteModal({
   onCancel,
   isPending,
 }: {
-  campaign: CollecteCampaign;
+  campaign: AnyCampaign;
   onConfirm: () => void;
   onCancel: () => void;
   isPending: boolean;
@@ -205,7 +216,7 @@ function DeleteModal({
           </div>
         </div>
         <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-          {t('confirmDeleteCampaign', { name: campaign.name })}
+          {t('confirmDeleteCampaign', { name: i18nStr(campaign.name) })}
         </p>
         <div className="flex items-center justify-end gap-2">
           <button
@@ -237,7 +248,7 @@ function CampaignActions({
   onDelete,
   onArchive,
 }: {
-  campaign: CollecteCampaign;
+  campaign: AnyCampaign;
   onEdit: () => void;
   onDelete: () => void;
   onArchive: () => void;
@@ -305,7 +316,7 @@ function CampaignCard({
   onDelete,
   onArchive,
 }: {
-  campaign: CollecteCampaign;
+  campaign: AnyCampaign;
   onEdit: () => void;
   onDelete: () => void;
   onArchive: () => void;
@@ -316,7 +327,7 @@ function CampaignCard({
   const validated = campaign.validatedSubmissions ?? 0;
   const rejected = campaign.rejectedSubmissions ?? 0;
   const target = campaign.targetSubmissions ?? 0;
-  const agentCount = Array.isArray(campaign.assignedAgents) ? campaign.assignedAgents.length : (campaign.assignedAgents ?? 0);
+  const agentCount = campaign._count?.assignments ?? (Array.isArray(campaign.assignedAgents) ? campaign.assignedAgents.length : 0);
   const progress = target > 0 ? Math.round((total / target) * 100) : 0;
   const flags = getCountryFlags(campaign);
   const countryCount = getCountryCount(campaign);
@@ -329,10 +340,10 @@ function CampaignCard({
         <div className="flex items-start justify-between">
           <Link href={`/collecte/campaigns/${campaign.id}`} className="min-w-0 flex-1">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate group-hover:text-aris-primary-600 dark:group-hover:text-aris-primary-400 transition-colors">
-              {campaign.name}
+              {i18nStr(campaign.name)}
             </h3>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-              {campaign.description || 'No description'}
+              {i18nStr(campaign.description) || 'No description'}
             </p>
           </Link>
           <div className="ml-3 flex items-center gap-1.5">
@@ -440,7 +451,7 @@ function CampaignListRow({
   onDelete,
   onArchive,
 }: {
-  campaign: CollecteCampaign;
+  campaign: AnyCampaign;
   onEdit: () => void;
   onDelete: () => void;
   onArchive: () => void;
@@ -452,7 +463,7 @@ function CampaignListRow({
   const progress = target > 0 ? Math.round((total / target) * 100) : 0;
   const countryCount = getCountryCount(campaign);
   const formCount = getFormCount(campaign);
-  const agentCount = Array.isArray(campaign.assignedAgents) ? campaign.assignedAgents.length : (campaign.assignedAgents ?? 0);
+  const agentCount = campaign._count?.assignments ?? (Array.isArray(campaign.assignedAgents) ? campaign.assignedAgents.length : 0);
   const flags = getCountryFlags(campaign);
 
   return (
@@ -463,10 +474,10 @@ function CampaignListRow({
       {/* Name + description */}
       <Link href={`/collecte/campaigns/${campaign.id}`} className="min-w-0 flex-1">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate group-hover:text-aris-primary-600 dark:group-hover:text-aris-primary-400 transition-colors">
-          {campaign.name}
+          {i18nStr(campaign.name)}
         </h3>
         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-          {getDomainLabel(campaign.domain)} {campaign.description ? `— ${campaign.description}` : ''}
+          {getDomainLabel(campaign.domain)} {i18nStr(campaign.description) ? `— ${i18nStr(campaign.description)}` : ''}
         </p>
       </Link>
 
@@ -542,33 +553,40 @@ export default function CollectePage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Modals
-  const [deleteTarget, setDeleteTarget] = useState<CollecteCampaign | null>(null);
-  const [archiveTarget, setArchiveTarget] = useState<CollecteCampaign | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AnyCampaign | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<AnyCampaign | null>(null);
 
   const currentTab = TABS.find((t) => t.key === activeTab)!;
 
-  const { data, isLoading } = useCampaigns({ page, limit: 100, search: search || undefined });
-  const updateCampaign = useUpdateCampaign();
-  const deleteCampaign = useDeleteCampaign();
+  const { data, isLoading } = useCollectionCampaigns({ page, limit: 100 });
+  const updateCampaign = useUpdateCollectionCampaign();
 
   const allCampaigns = data?.data ?? [];
 
   const tabCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const tab of TABS) {
-      counts[tab.key] = allCampaigns.filter((c) => tab.statuses.includes(c.status)).length;
+      counts[tab.key] = allCampaigns.filter((c: AnyCampaign) => tab.statuses.includes(c.status)).length;
     }
     return counts;
   }, [allCampaigns]);
 
   const filteredCampaigns = useMemo(() => {
-    let list = allCampaigns.filter((c) => currentTab.statuses.includes(c.status));
+    let list = allCampaigns.filter((c: AnyCampaign) => currentTab.statuses.includes(c.status));
 
     if (domainFilter) {
-      list = list.filter((c) => c.domain === domainFilter);
+      list = list.filter((c: AnyCampaign) => c.domain === domainFilter);
     }
 
-    list = [...list].sort((a, b) => {
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((c: AnyCampaign) =>
+        i18nStr(c.name).toLowerCase().includes(q) ||
+        (c.code && c.code.toLowerCase().includes(q)),
+      );
+    }
+
+    list = [...list].sort((a: AnyCampaign, b: AnyCampaign) => {
       switch (sort) {
         case 'oldest':
           return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
@@ -580,9 +598,9 @@ export default function CollectePage() {
     });
 
     return list;
-  }, [allCampaigns, currentTab, domainFilter, sort]);
+  }, [allCampaigns, currentTab, domainFilter, sort, search]);
 
-  const handleEdit = useCallback((c: CollecteCampaign) => {
+  const handleEdit = useCallback((c: AnyCampaign) => {
     router.push(`/collecte/campaigns/${c.id}/edit`);
   }, [router]);
 
@@ -591,17 +609,14 @@ export default function CollectePage() {
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
     setActionError(null);
-    console.log('[Collecte] Deleting campaign:', deleteTarget.id, deleteTarget.name);
     try {
-      await deleteCampaign.mutateAsync(deleteTarget.id);
-      console.log('[Collecte] Delete success');
+      await updateCampaign.mutateAsync({ id: deleteTarget.id, status: 'CANCELLED' });
       setDeleteTarget(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error('[Collecte] Delete failed:', err);
       setActionError(`Delete failed: ${msg}`);
     }
-  }, [deleteTarget, deleteCampaign]);
+  }, [deleteTarget, updateCampaign]);
 
   const handleArchive = useCallback(async (reason: string) => {
     if (!archiveTarget) return;
@@ -610,7 +625,6 @@ export default function CollectePage() {
       await updateCampaign.mutateAsync({
         id: archiveTarget.id,
         status: 'CANCELLED',
-        description: `${archiveTarget.description ?? ''}\n\n[Archived] ${reason}`.trim(),
       });
       setArchiveTarget(null);
     } catch (err: unknown) {
@@ -780,7 +794,7 @@ export default function CollectePage() {
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-          {filteredCampaigns.map((campaign) => (
+          {filteredCampaigns.map((campaign: AnyCampaign) => (
             <CampaignCard
               key={campaign.id}
               campaign={campaign}
@@ -792,7 +806,7 @@ export default function CollectePage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filteredCampaigns.map((campaign) => (
+          {filteredCampaigns.map((campaign: AnyCampaign) => (
             <CampaignListRow
               key={campaign.id}
               campaign={campaign}
@@ -810,7 +824,7 @@ export default function CollectePage() {
           campaign={deleteTarget}
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
-          isPending={deleteCampaign.isPending}
+          isPending={updateCampaign.isPending}
         />
       )}
       {archiveTarget && (
