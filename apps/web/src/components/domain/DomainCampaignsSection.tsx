@@ -58,7 +58,7 @@ export function DomainCampaignsSection({ domain }: DomainCampaignsSectionProps) 
         </div>
       ) : (
         <div className="mt-4 space-y-3">
-          {campaigns.map((campaign) => {
+          {campaigns.map((campaign: any) => {
             const progress =
               campaign.targetSubmissions && campaign.targetSubmissions > 0
                 ? Math.min(
