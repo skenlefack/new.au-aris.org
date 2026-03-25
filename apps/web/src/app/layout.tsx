@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
+import { Toaster } from 'sonner';
 import './globals.css';
 import { Providers } from './providers';
 
@@ -60,6 +61,15 @@ export default function RootLayout({
         </a>
         <Providers>
           <div id="main-content">{children}</div>
+          <Toaster
+            position="top-right"
+            richColors
+            closeButton
+            toastOptions={{
+              duration: 4000,
+              style: { fontFamily: 'var(--font-inter), system-ui, sans-serif' },
+            }}
+          />
         </Providers>
         <Script
           id="sw-register"

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import {
   Users,
   Plus,
@@ -155,7 +156,7 @@ function UserForm({
   const createMut = useCreateUser();
   const updateMut = useUpdateUser();
   const [showPassword, setShowPassword] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const [form, setForm] = useState<UserFormState>(() => {
     if (editingUser) {
@@ -175,11 +176,10 @@ function UserForm({
   });
 
   const isPending = createMut.isPending || updateMut.isPending;
-  const error = createMut.error || updateMut.error;
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    setSuccess(false);
+    const fullName = `${form.firstName} ${form.lastName}`.trim();
     try {
       if (editingUser) {
         const body: Record<string, unknown> = {
@@ -194,6 +194,9 @@ function UserForm({
         if (form.email !== editingUser.email) body.email = form.email;
         if (form.password) body.password = form.password;
         await updateMut.mutateAsync(body as any);
+        toast.success('User updated', {
+          description: `${fullName} has been updated successfully.`,
+        });
       } else {
         await createMut.mutateAsync({
           email: form.email,
@@ -205,11 +208,16 @@ function UserForm({
           tenantId: form.tenantId,
           domainIds: form.domainIds.length > 0 ? form.domainIds : undefined,
         });
+        toast.success('User created', {
+          description: `${fullName} (${form.email}) has been created successfully.`,
+        });
       }
-      setSuccess(true);
-      setTimeout(() => onBack(), 1200);
-    } catch {
-      // error handled via mutation state
+      setSaved(true);
+      setTimeout(() => onBack(), 1000);
+    } catch (err: any) {
+      toast.error(editingUser ? 'Failed to update user' : 'Failed to create user', {
+        description: err?.message ?? 'An unexpected error occurred. Please try again.',
+      });
     }
   }, [form, editingUser, createMut, updateMut, onBack]);
 
@@ -267,26 +275,6 @@ function UserForm({
           </div>
         </div>
       </div>
-
-      {/* Success banner */}
-      {success && (
-        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-          <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-            {editingUser ? 'User updated successfully!' : 'User created successfully!'} Redirecting...
-          </p>
-        </div>
-      )}
-
-      {/* Error banner */}
-      {error && (
-        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
-          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
-          <p className="text-sm font-medium text-red-700 dark:text-red-400">
-            {(error as any)?.message ?? 'An error occurred'}
-          </p>
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* ---- Section: Identity ---- */}
@@ -544,12 +532,12 @@ function UserForm({
           </button>
           <button
             type="submit"
-            disabled={isPending || success}
+            disabled={isPending || saved}
             className="flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 transition-all"
           >
             {isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
-            ) : success ? (
+            ) : saved ? (
               <CheckCircle2 className="h-4 w-4" />
             ) : (
               <Save className="h-4 w-4" />
@@ -659,16 +647,30 @@ export default function UsersPage() {
 
   const handleDelete = useCallback(async () => {
     if (!deletingUser) return;
+    const name = `${deletingUser.firstName} ${deletingUser.lastName}`;
     try {
       await deleteMut.mutateAsync(deletingUser.id);
       setDeletingUser(null);
-    } catch {
-      // error shown in mutation state
+      toast.success('User deleted', { description: `${name} has been removed.` });
+    } catch (err: any) {
+      toast.error('Failed to delete user', { description: err?.message ?? 'Please try again.' });
     }
   }, [deletingUser, deleteMut]);
 
   const handleToggleActive = useCallback((user: ManagedUser) => {
-    toggleActiveMut.mutate({ id: user.id, isActive: !user.isActive });
+    const name = `${user.firstName} ${user.lastName}`;
+    const willBeActive = !user.isActive;
+    toggleActiveMut.mutate(
+      { id: user.id, isActive: willBeActive },
+      {
+        onSuccess: () => toast.success(willBeActive ? 'User activated' : 'User deactivated', {
+          description: `${name} is now ${willBeActive ? 'active' : 'inactive'}.`,
+        }),
+        onError: (err: any) => toast.error('Failed to update status', {
+          description: err?.message ?? 'Please try again.',
+        }),
+      },
+    );
   }, [toggleActiveMut]);
 
   /* ---- Form View ---- */
