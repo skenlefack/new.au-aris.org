@@ -64,4 +64,16 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     const user = request.user as AuthenticatedUser;
     return app.userService.update(request.params.id, request.body, user);
   });
+
+  // DELETE /api/v1/credential/users/:id — hard-delete users who never logged in
+  app.delete<{ Params: UuidParamInput }>('/api/v1/credential/users/:id', {
+    schema: { params: UuidParamSchema },
+    preHandler: [
+      ...authAndTenant,
+      rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN),
+    ],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.userService.delete(request.params.id, user);
+  });
 }

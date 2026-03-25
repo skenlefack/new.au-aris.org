@@ -7,7 +7,7 @@ import type { DomainService } from './domain.service.js';
 
 const USER_SELECT = {
   id: true, tenantId: true, email: true, firstName: true, lastName: true,
-  role: true, locale: true, mfaEnabled: true, avatarUrl: true, lastLoginAt: true,
+  phone: true, role: true, locale: true, mfaEnabled: true, avatarUrl: true, lastLoginAt: true,
   isActive: true, createdAt: true, updatedAt: true,
   userDomains: {
     where: { isActive: true },
@@ -114,6 +114,7 @@ export class UserService {
     if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
     if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
     if (dto.role !== undefined) updateData.role = dto.role;
+    if (dto.phone !== undefined) updateData.phone = dto.phone;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
     if (dto.locale !== undefined) updateData.locale = dto.locale;
     if (dto.avatarUrl !== undefined) updateData.avatarUrl = dto.avatarUrl;
@@ -164,6 +165,32 @@ export class UserService {
       try { await this.redis.del(`aris:credential:user:${userId}`); } catch { /* non-blocking */ }
     }
     return { data: this.transformUser(updated) };
+  }
+
+  async delete(id: string, caller: AuthenticatedUser): Promise<ApiResponse<{ deleted: boolean }>> {
+    const existing = await (this.prisma as any).user.findUnique({
+      where: { id },
+      select: { id: true, tenantId: true, lastLoginAt: true, email: true },
+    });
+    if (!existing) throw new HttpError(404, `User ${id} not found`);
+    this.verifyTenantAccess(caller, existing.tenantId);
+
+    // Only allow hard-delete for users who never logged in
+    if (existing.lastLoginAt) {
+      throw new HttpError(400, 'Cannot delete a user who has logged in. Deactivate the account instead.');
+    }
+
+    // Delete user-domain assignments first (FK)
+    await (this.prisma as any).userDomain.deleteMany({ where: { userId: id } });
+    // Delete user-function assignments (FK)
+    await (this.prisma as any).userFunction.deleteMany({ where: { userId: id } });
+    // Delete the user
+    await (this.prisma as any).user.delete({ where: { id } });
+
+    if (this.redis) {
+      try { await this.redis.del(`aris:credential:user:${id}`); } catch { /* non-blocking */ }
+    }
+    return { data: { deleted: true } };
   }
 
   private buildTenantFilter(caller: AuthenticatedUser): Record<string, unknown> {

@@ -11,6 +11,7 @@ export const RegisterSchema = Type.Object({
   password: Type.String({ minLength: 8, maxLength: 128 }),
   firstName: Type.String({ minLength: 1, maxLength: 100 }),
   lastName: Type.String({ minLength: 1, maxLength: 100 }),
+  phone: Type.Optional(Type.String({ maxLength: 20 })),
   role: Type.String(),
   tenantId: Type.String({ format: 'uuid' }),
   domainIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),

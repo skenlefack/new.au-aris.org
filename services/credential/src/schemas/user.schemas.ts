@@ -5,6 +5,7 @@ export const UpdateUserSchema = Type.Object({
   firstName: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
   lastName: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
   role: Type.Optional(Type.String()),
+  phone: Type.Optional(Type.Union([Type.String({ maxLength: 20 }), Type.Null()])),
   isActive: Type.Optional(Type.Boolean()),
   locale: Type.Optional(Type.Union([
     Type.Literal('en'),

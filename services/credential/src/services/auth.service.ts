@@ -88,7 +88,7 @@ export class AuthService {
   }
 
   async register(
-    dto: { email: string; password: string; firstName: string; lastName: string; role: string; tenantId: string; domainIds?: string[] },
+    dto: { email: string; password: string; firstName: string; lastName: string; phone?: string; role: string; tenantId: string; domainIds?: string[] },
     caller: { userId: string; tenantId: string },
   ): Promise<{ data: SafeUser }> {
     const existing = await (this.prisma as any).user.findUnique({ where: { email: dto.email } });
@@ -105,6 +105,7 @@ export class AuthService {
         passwordHash,
         firstName: dto.firstName,
         lastName: dto.lastName,
+        phone: dto.phone || null,
         role: dto.role,
       },
     });

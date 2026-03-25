@@ -7,12 +7,14 @@ import {
   Plus,
   Search,
   Pencil,
+  Trash2,
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
   Clock,
   UserCheck,
   Mail,
+  Phone,
   Loader2,
   Eye,
   EyeOff,
@@ -22,6 +24,7 @@ import {
   UserPlus,
   CheckCircle2,
   AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DomainBadge } from '@/components/domain/DomainBadge';
@@ -29,6 +32,8 @@ import {
   useSettingsUsers,
   useCreateUser,
   useUpdateUser,
+  useDeleteUser,
+  useToggleUserActive,
   type ManagedUser,
 } from '@/lib/api/settings-hooks';
 import { useDomainStore } from '@/lib/stores/domain-store';
@@ -87,12 +92,32 @@ function getInitials(firstName: string, lastName: string): string {
   return `${(firstName || '?')[0]}${(lastName || '?')[0]}`.toUpperCase();
 }
 
+function generatePassword(length = 12): string {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghjkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const special = '!@#$%&*';
+  const all = upper + lower + digits + special;
+  // Ensure at least one of each category
+  let pwd = '';
+  pwd += upper[Math.floor(Math.random() * upper.length)];
+  pwd += lower[Math.floor(Math.random() * lower.length)];
+  pwd += digits[Math.floor(Math.random() * digits.length)];
+  pwd += special[Math.floor(Math.random() * special.length)];
+  for (let i = pwd.length; i < length; i++) {
+    pwd += all[Math.floor(Math.random() * all.length)];
+  }
+  // Shuffle
+  return pwd.split('').sort(() => Math.random() - 0.5).join('');
+}
+
 /* ================================================================ */
 /*  Form State                                                       */
 /* ================================================================ */
 
 interface UserFormState {
   email: string;
+  phone: string;
   password: string;
   firstName: string;
   lastName: string;
@@ -104,6 +129,7 @@ interface UserFormState {
 
 const EMPTY_FORM: UserFormState = {
   email: '',
+  phone: '',
   password: '',
   firstName: '',
   lastName: '',
@@ -135,6 +161,7 @@ function UserForm({
     if (editingUser) {
       return {
         email: editingUser.email,
+        phone: editingUser.phone ?? '',
         password: '',
         firstName: editingUser.firstName,
         lastName: editingUser.lastName,
@@ -159,6 +186,7 @@ function UserForm({
           id: editingUser.id,
           firstName: form.firstName,
           lastName: form.lastName,
+          phone: form.phone || null,
           role: form.role,
           isActive: form.isActive,
           domainIds: form.domainIds,
@@ -172,6 +200,7 @@ function UserForm({
           password: form.password,
           firstName: form.firstName,
           lastName: form.lastName,
+          phone: form.phone || undefined,
           role: form.role,
           tenantId: form.tenantId,
           domainIds: form.domainIds.length > 0 ? form.domainIds : undefined,
@@ -183,6 +212,12 @@ function UserForm({
       // error handled via mutation state
     }
   }, [form, editingUser, createMut, updateMut, onBack]);
+
+  const handleGeneratePassword = useCallback(() => {
+    const pwd = generatePassword(12);
+    setForm((p) => ({ ...p, password: pwd }));
+    setShowPassword(true);
+  }, []);
 
   const toggleDomain = useCallback((domainId: string) => {
     setForm((prev) => ({
@@ -261,7 +296,7 @@ function UserForm({
               <Mail className="h-4 w-4 text-gray-400" />
               <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Account Information</h2>
             </div>
-            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Name, email and password</p>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Name, email, phone and password</p>
           </div>
           <div className="px-6 py-5 space-y-5">
             {/* Name row */}
@@ -290,40 +325,68 @@ function UserForm({
               </div>
             </div>
 
-            {/* Email */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email Address</label>
-              <input
-                type="email"
-                required
-                value={form.email}
-                onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                placeholder="e.g. user@au-aris.org"
-                className="w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
-              />
+            {/* Email + Phone row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="email"
+                    required
+                    value={form.email}
+                    onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                    placeholder="e.g. user@au-aris.org"
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50/50 pl-9 pr-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">WhatsApp Number</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="tel"
+                    value={form.phone}
+                    onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+                    placeholder="e.g. +254 712 345 678"
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50/50 pl-9 pr-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
+                  />
+                </div>
+              </div>
             </div>
 
-            {/* Password */}
+            {/* Password + Generate */}
             <div>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 {editingUser ? 'New Password' : 'Password'}
               </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required={!editingUser}
-                  minLength={8}
-                  value={form.password}
-                  onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                  placeholder={editingUser ? 'Leave empty to keep current password' : 'Minimum 8 characters'}
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 pr-11 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
-                />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required={!editingUser}
+                    minLength={8}
+                    value={form.password}
+                    onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                    placeholder={editingUser ? 'Leave empty to keep current password' : 'Minimum 8 characters'}
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 pr-11 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 <button
                   type="button"
-                  onClick={() => setShowPassword((p) => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  onClick={handleGeneratePassword}
+                  className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3.5 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors whitespace-nowrap"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Generate
                 </button>
               </div>
               {!editingUser && (
@@ -500,6 +563,57 @@ function UserForm({
 }
 
 /* ================================================================ */
+/*  Delete Confirm Dialog                                            */
+/* ================================================================ */
+
+function DeleteConfirm({
+  user,
+  onCancel,
+  onConfirm,
+  isPending,
+}: {
+  user: ManagedUser;
+  onCancel: () => void;
+  onConfirm: () => void;
+  isPending: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in">
+      <div className="mx-4 w-full max-w-sm rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+            <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Delete User</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">This action cannot be undone</p>
+          </div>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-300">
+          Are you sure you want to permanently delete <strong>{user.firstName} {user.lastName}</strong> ({user.email})?
+        </p>
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={onCancel}
+            className="rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isPending}
+            className="flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+          >
+            {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================ */
 /*  Main Page                                                        */
 /* ================================================================ */
 
@@ -510,6 +624,7 @@ export default function UsersPage() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [page, setPage] = useState(1);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
+  const [deletingUser, setDeletingUser] = useState<ManagedUser | null>(null);
 
   const { data, isLoading, error } = useSettingsUsers({
     page,
@@ -518,6 +633,9 @@ export default function UsersPage() {
     role: roleFilter || undefined,
     status: statusFilter || undefined,
   });
+
+  const deleteMut = useDeleteUser();
+  const toggleActiveMut = useToggleUserActive();
 
   const users = data?.data ?? [];
   const meta = data?.meta ?? { total: 0, page: 1, limit: ITEMS_PER_PAGE };
@@ -539,6 +657,20 @@ export default function UsersPage() {
     setEditingUser(null);
   }, []);
 
+  const handleDelete = useCallback(async () => {
+    if (!deletingUser) return;
+    try {
+      await deleteMut.mutateAsync(deletingUser.id);
+      setDeletingUser(null);
+    } catch {
+      // error shown in mutation state
+    }
+  }, [deletingUser, deleteMut]);
+
+  const handleToggleActive = useCallback((user: ManagedUser) => {
+    toggleActiveMut.mutate({ id: user.id, isActive: !user.isActive });
+  }, [toggleActiveMut]);
+
   /* ---- Form View ---- */
   if (view === 'form') {
     return <UserForm editingUser={editingUser} onBack={handleBack} />;
@@ -547,6 +679,16 @@ export default function UsersPage() {
   /* ---- List View ---- */
   return (
     <div className="space-y-6">
+      {/* Delete confirm */}
+      {deletingUser && (
+        <DeleteConfirm
+          user={deletingUser}
+          onCancel={() => setDeletingUser(null)}
+          onConfirm={handleDelete}
+          isPending={deleteMut.isPending}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -662,111 +804,130 @@ export default function UsersPage() {
       {/* Users Table */}
       {!isLoading && !error && (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-gray-100 bg-gray-50/80 dark:border-gray-800 dark:bg-gray-800/50">
-                <tr>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Email</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Role</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Domains</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Tenant</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Last Login</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Status</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                {users.map((user) => {
-                  const roleKey = user.role as UserRole;
-                  const roleConfig = ROLE_CONFIG[roleKey] ?? { label: user.role, color: 'bg-gray-100 text-gray-600' };
-                  return (
-                    <tr key={user.id} className="transition-colors hover:bg-blue-50/30 dark:hover:bg-gray-800/50 group">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-blue-50 text-xs font-bold text-blue-700 dark:from-blue-900/40 dark:to-blue-800/20 dark:text-blue-400">
-                            {getInitials(user.firstName, user.lastName)}
-                          </div>
-                          <span className="font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                            {user.firstName} {user.lastName}
-                          </span>
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-gray-100 bg-gray-50/80 dark:border-gray-800 dark:bg-gray-800/50">
+              <tr>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Email</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Role</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Domains</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-[90px]">Tenant</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-[80px]">Login</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-[70px]">Active</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right w-[100px]">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+              {users.map((user) => {
+                const roleKey = user.role as UserRole;
+                const roleConfig = ROLE_CONFIG[roleKey] ?? { label: user.role, color: 'bg-gray-100 text-gray-600' };
+                const canDelete = !user.lastLoginAt;
+                const isToggling = toggleActiveMut.isPending && (toggleActiveMut.variables as any)?.id === user.id;
+                return (
+                  <tr key={user.id} className="transition-colors hover:bg-blue-50/30 dark:hover:bg-gray-800/50 group">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-blue-50 text-xs font-bold text-blue-700 dark:from-blue-900/40 dark:to-blue-800/20 dark:text-blue-400 flex-shrink-0">
+                          {getInitials(user.firstName, user.lastName)}
                         </div>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 font-mono">{user.email}</td>
-                      <td className="px-4 py-3">
-                        <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap', roleConfig.color)}>
-                          {roleConfig.label}
+                        <span className="font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                          {user.firstName} {user.lastName}
                         </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1 max-w-[200px]">
-                          {user.domains && user.domains.length > 0 ? (
-                            <>
-                              {user.domains.slice(0, 3).map((d) => (
-                                <DomainBadge key={d.code} code={d.code} name={d.name} color={d.color} size="xs" />
-                              ))}
-                              {user.domains.length > 3 && (
-                                <span className="text-[10px] text-gray-400 dark:text-gray-500 self-center">
-                                  +{user.domains.length - 3}
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <span className="text-[11px] text-gray-400 dark:text-gray-500">--</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                        {user.tenant?.name ?? '--'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                          <Clock className="h-3 w-3" />
-                          {formatRelativeTime(user.lastLoginAt)}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 font-mono truncate max-w-[180px]">{user.email}</td>
+                    <td className="px-4 py-3">
+                      <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap', roleConfig.color)}>
+                        {roleConfig.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1 max-w-[160px]">
+                        {user.domains && user.domains.length > 0 ? (
+                          <>
+                            {user.domains.slice(0, 2).map((d) => (
+                              <DomainBadge key={d.code} code={d.code} name={d.name} color={d.color} size="xs" />
+                            ))}
+                            {user.domains.length > 2 && (
+                              <span className="text-[10px] text-gray-400 dark:text-gray-500 self-center">
+                                +{user.domains.length - 2}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-[11px] text-gray-400 dark:text-gray-500">--</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs text-gray-600 dark:text-gray-300 truncate block max-w-[90px]" title={user.tenant?.name}>
+                        {user.tenant?.countryCode?.toUpperCase() || user.tenant?.name?.slice(0, 10) || '--'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        {formatRelativeTime(user.lastLoginAt)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleActive(user)}
+                        disabled={isToggling}
+                        className={cn(
+                          'relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0',
+                          user.isActive ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600',
+                          isToggling && 'opacity-50',
+                        )}
+                        title={user.isActive ? 'Click to deactivate' : 'Click to activate'}
+                      >
                         <span
                           className={cn(
-                            'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
-                            user.isActive
-                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                              : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
+                            'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform',
+                            user.isActive ? 'translate-x-[18px]' : 'translate-x-[3px]',
                           )}
-                        >
-                          <span className={cn('h-1.5 w-1.5 rounded-full', user.isActive ? 'bg-emerald-500' : 'bg-gray-400')} />
-                          {user.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
+                        />
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => handleEdit(user)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-transparent px-2.5 py-1.5 text-xs font-medium text-gray-500 opacity-0 group-hover:opacity-100 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-all"
+                          className="inline-flex items-center gap-1 rounded-lg border border-transparent px-2 py-1.5 text-xs font-medium text-gray-500 opacity-0 group-hover:opacity-100 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-all"
                         >
-                          <Pencil className="h-3.5 w-3.5" />
+                          <Pencil className="h-3 w-3" />
                           Edit
                         </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {users.length === 0 && !isLoading && (
-                  <tr>
-                    <td colSpan={8} className="px-4 py-16 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-                          <Users className="h-6 w-6 text-gray-400" />
-                        </div>
-                        <p className="font-medium text-gray-900 dark:text-white">No users found</p>
-                        <p className="text-xs text-gray-500">Try adjusting your search or filter criteria.</p>
+                        {canDelete && (
+                          <button
+                            onClick={() => setDeletingUser(user)}
+                            className="inline-flex items-center rounded-lg border border-transparent p-1.5 text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-all"
+                            title="Delete user (never logged in)"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                );
+              })}
+
+              {users.length === 0 && !isLoading && (
+                <tr>
+                  <td colSpan={8} className="px-4 py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                        <Users className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <p className="font-medium text-gray-900 dark:text-white">No users found</p>
+                      <p className="text-xs text-gray-500">Try adjusting your search or filter criteria.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
 
           {/* Pagination */}
           {meta.total > ITEMS_PER_PAGE && (

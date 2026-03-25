@@ -584,6 +584,7 @@ export interface ManagedUser {
   email: string;
   firstName: string;
   lastName: string;
+  phone: string | null;
   role: string;
   locale: string;
   mfaEnabled: boolean;
@@ -683,7 +684,16 @@ export function useDeleteUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      apiClient.patch(`/credential/users/${id}`, { isActive: false }),
+      apiClient.delete(`/credential/users/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'users'] }),
+  });
+}
+
+export function useToggleUserActive() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      apiClient.patch(`/credential/users/${id}`, { isActive }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'users'] }),
   });
 }
