@@ -52,7 +52,7 @@ export function DomainAutocomplete({
 
   // Get display name for a domain
   const getName = useCallback(
-    (d: Domain) => d.name[locale] || d.name.en || d.code,
+    (d: Domain) => d.name?.[locale] || d.name?.en || d.code,
     [locale],
   );
 

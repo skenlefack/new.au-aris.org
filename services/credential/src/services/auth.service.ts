@@ -32,7 +32,7 @@ export interface TokenResponse {
     role: string;
     tenantId: string;
     tenantLevel: string;
-    domains: string[];
+    domains: Array<{ id: string; code: string; name: Record<string, string>; icon: string; color: string }>;
   };
 }
 
@@ -153,8 +153,9 @@ export class AuthService {
 
     await this.lockout.resetAttempts(dto.email);
 
-    // Fetch user's domain codes for JWT
+    // Fetch user's domain codes for JWT + full objects for frontend
     const domainCodes = this.domainService ? await this.domainService.getUserDomainCodes(user.id) : [];
+    const userDomainsResult = this.domainService ? await this.domainService.getUserDomains(user.id) : { data: [] };
 
     const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, domainCodes);
     await this.storeRefreshToken(user.id, tokens.refreshTokenId, user.role, user.tenantId, user.tenant.level);
@@ -167,7 +168,7 @@ export class AuthService {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresIn: 900,
-        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, tenantId: user.tenantId, tenantLevel: user.tenant.level, domains: domainCodes },
+        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, tenantId: user.tenantId, tenantLevel: user.tenant.level, domains: userDomainsResult.data },
       },
     };
   }

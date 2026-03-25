@@ -12,7 +12,12 @@ import {
 export async function registerDomainRoutes(app: FastifyInstance): Promise<void> {
   const authAndTenant = [app.authHookFn, tenantHook()];
 
-  // GET /api/v1/credential/domains — list all active domains
+  // GET /api/v1/public/domains — list all active domains (no auth required, for dashboard)
+  app.get('/api/v1/public/domains', async () => {
+    return app.domainService.listDomains();
+  });
+
+  // GET /api/v1/credential/domains — list all active domains (authenticated)
   app.get('/api/v1/credential/domains', {
     preHandler: [app.authHookFn],
   }, async () => {

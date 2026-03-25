@@ -344,7 +344,13 @@ export function usePublicDomains() {
     queryKey: ['public', 'domains'],
     queryFn: async () => {
       try {
-        const res = await fetch('/api/v1/public/domains');
+        // Try authenticated endpoint first (works inside AuthGuard)
+        const token = typeof window !== 'undefined'
+          ? JSON.parse(localStorage.getItem('aris-auth') ?? '{}')?.state?.accessToken
+          : null;
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const res = await fetch('/api/v1/credential/domains', { headers });
         if (!res.ok) return { data: [] };
         return res.json();
       } catch {

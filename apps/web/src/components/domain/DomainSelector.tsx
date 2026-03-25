@@ -46,7 +46,7 @@ export function DomainSelector({
 
   const options = domains.map((d) => ({
     value: d.code,
-    label: d.name[locale] || d.name.en || d.code,
+    label: d.name?.[locale] || d.name?.en || d.code,
     color: d.color,
   }));
 

@@ -116,7 +116,7 @@ export function DashboardFilterPanel({
         { value: 'all', label: 'All Domains' },
         ...storeDomains.map((d) => ({
           value: d.code,
-          label: d.name[locale] || d.name.en || d.code,
+          label: d.name?.[locale] || d.name?.en || d.code,
         })),
       ]
     : FALLBACK_DOMAINS;
