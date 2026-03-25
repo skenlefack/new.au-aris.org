@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
+import { toast } from 'sonner';
 
 const LEVEL_DEFS = [
   { key: 'continental', labelKey: 'continental', icon: Globe, color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30' },
@@ -71,7 +72,7 @@ export default function FunctionsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
-  const [limit] = useState(50);
+  const [limit, setLimit] = useState(10);
   const { isSuperAdmin, isContinentalAdmin, isRecAdmin, canManageFunctions, canDeleteFunction, tenantLevel } = useSettingsAccess();
 
   const LEVELS = LEVEL_DEFS.map((l) => ({ ...l, label: t(l.labelKey) }));
@@ -179,19 +180,40 @@ export default function FunctionsPage() {
       sortOrder: form.sortOrder,
     };
 
-    if (editingId) {
-      await updateMut.mutateAsync({ id: editingId, ...payload });
-    } else {
-      await createMut.mutateAsync(payload);
+    try {
+      if (editingId) {
+        await updateMut.mutateAsync({ id: editingId, ...payload });
+        toast.success('Function updated', {
+          description: `${form.name.en || form.code} has been updated successfully.`,
+        });
+      } else {
+        await createMut.mutateAsync(payload);
+        toast.success('Function created', {
+          description: `${form.name.en || form.code} has been created successfully.`,
+        });
+      }
+      setView('list');
+      setEditingId(null);
+    } catch (err: any) {
+      toast.error(editingId ? 'Failed to update function' : 'Failed to create function', {
+        description: err?.message ?? 'An unexpected error occurred. Please try again.',
+      });
     }
-    setView('list');
-    setEditingId(null);
   }, [form, editingId, createMut, updateMut]);
 
   const handleDelete = useCallback(async (id: string, code: string) => {
     if (!confirm(t('deleteFunctionConfirm', { code }))) return;
-    await deleteMut.mutateAsync(id);
-  }, [deleteMut]);
+    try {
+      await deleteMut.mutateAsync(id);
+      toast.success('Function deleted', {
+        description: `${code} has been removed.`,
+      });
+    } catch (err: any) {
+      toast.error('Failed to delete function', {
+        description: err?.message ?? 'Please try again.',
+      });
+    }
+  }, [deleteMut, t]);
 
   // Group by level for the tab view
   const grouped = LEVELS.map((l) => ({
@@ -556,7 +578,8 @@ export default function FunctionsPage() {
             total={meta.total}
             limit={limit}
             onPageChange={setPage}
-            onLimitChange={() => {}}
+            onLimitChange={(v) => { setLimit(v); setPage(1); }}
+            pageSizeOptions={[10, 20, 50]}
           />
         </div>
       )}
