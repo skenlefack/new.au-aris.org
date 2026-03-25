@@ -115,10 +115,28 @@ model Domain {
   metadata    Json?
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  userDomains UserDomain[]
 
   @@index([isActive], map: "idx_domain_is_active")
   @@index([sortOrder], map: "idx_domain_sort_order")
   @@map("domains")
+  @@schema("governance")
+}
+
+model UserDomain {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  domainId   String   @map("domain_id") @db.Uuid
+  assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz
+  assignedBy String?  @map("assigned_by") @db.Uuid
+  isActive   Boolean  @default(true) @map("is_active")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domain     Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, domainId], map: "uq_user_domain")
+  @@index([userId], map: "idx_user_domain_user_id")
+  @@index([domainId], map: "idx_user_domain_domain_id")
+  @@map("user_domains")
   @@schema("governance")
 }
 

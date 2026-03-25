@@ -41,12 +41,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
+import android.util.Log
+import android.webkit.ConsoleMessage
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.webkit.WebViewAssetLoader
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
 import org.auibar.aris.mobile.R
+import org.auibar.aris.mobile.ui.components.RoleConfig
+import org.auibar.aris.mobile.ui.components.arisDomains
 import org.auibar.aris.mobile.ui.theme.GradientDarkGreen
 import org.auibar.aris.mobile.ui.theme.GradientMidGreen
 import org.auibar.aris.mobile.ui.theme.GradientTeal
@@ -96,12 +105,37 @@ fun HomeDashboardScreen(
         }
     }
 
+    val userDomains = viewModel.userDomains
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surfaceVariant),
         contentPadding = PaddingValues(bottom = 24.dp),
     ) {
+        // ── Domain scope indicator (when user has limited domains) ──
+        if (userDomains.isNotEmpty() && userDomains.size < 9) {
+            item {
+                val domainLabels = remember(userDomains) {
+                    val mappedKeys = userDomains.map { RoleConfig.backendToMobileKey(it) }.toSet()
+                    arisDomains.filter { it.key in mappedKeys }.map { it.label }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Scope: ${domainLabels.joinToString(", ")}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+        }
+
         // ── KPI Strip ──────────────────────────────────────────────
         item { KpiStrip(displayKpis) }
 
@@ -530,32 +564,55 @@ private fun AlertRow(alert: AlertEntry) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  AFRICA OUTBREAK MAP (Leaflet WebView)
+//  AFRICA OUTBREAK MAP — Leaflet + OSM (same as web version)
+//  Uses WebViewAssetLoader to serve local assets via HTTPS URL.
+//  Leaflet JS/CSS loaded locally; only OSM tiles need internet.
 // ══════════════════════════════════════════════════════════════════
 @Composable
 private fun AfricaOutbreakMap() {
     @Suppress("SetJavaScriptEnabled")
     AndroidView(
         factory = { context ->
+            val assetLoader = WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
+                .build()
+
             WebView(context).apply {
+                layoutParams = android.view.ViewGroup.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                )
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
-                settings.loadWithOverviewMode = true
-                settings.useWideViewPort = true
-                @Suppress("DEPRECATION")
-                settings.allowUniversalAccessFromFileURLs = true
-                setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                webViewClient = android.webkit.WebViewClient()
-                // Load HTML with HTTPS base so CDN resources (Leaflet) can load
-                val html = context.assets.open("africa_map.html")
-                    .bufferedReader().use { it.readText() }
-                loadDataWithBaseURL(
-                    "https://unpkg.com/",
-                    html,
-                    "text/html",
-                    "UTF-8",
-                    null,
-                )
+                // Don't use wide viewport / overview mode — they force a 980px desktop
+                // viewport that conflicts with Leaflet coordinate calculations.
+                settings.loadWithOverviewMode = false
+                settings.useWideViewPort = false
+                settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                setBackgroundColor(android.graphics.Color.parseColor("#f0f4f8"))
+                setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+
+                webChromeClient = object : WebChromeClient() {
+                    override fun onConsoleMessage(msg: ConsoleMessage): Boolean {
+                        Log.d("AfricaMap", "${msg.messageLevel()}: ${msg.message()} [${msg.lineNumber()}]")
+                        return true
+                    }
+                }
+
+                webViewClient = object : WebViewClient() {
+                    override fun shouldInterceptRequest(
+                        view: WebView,
+                        request: WebResourceRequest,
+                    ): WebResourceResponse? {
+                        return assetLoader.shouldInterceptRequest(request.url)
+                    }
+                }
+
+                // Defer loadUrl until after Compose has measured and laid out this view.
+                // Without post{}, Leaflet reads a 0x0 container and renders nothing.
+                post {
+                    loadUrl("https://appassets.androidplatform.net/assets/africa_map.html")
+                }
             }
         },
         modifier = Modifier

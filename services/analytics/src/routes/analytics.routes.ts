@@ -1,4 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { domainsHook, tenantHook } from '@aris/auth-middleware/fastify';
+import type { AuthenticatedUser } from '@aris/auth-middleware';
 
 export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<void> {
   const PREFIX = '/api/v1/analytics';
@@ -6,7 +8,7 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   // ── Health KPIs ──
 
   app.get(`${PREFIX}/health/kpis`, {
-    preHandler: [app.authHookFn],
+    preHandler: [app.authHookFn, tenantHook(), domainsHook('animal-health')],
   }, async (
     request: FastifyRequest<{ Querystring: { country?: string; disease?: string } }>,
     reply: FastifyReply,
@@ -19,7 +21,7 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   // ── Health Trends ──
 
   app.get(`${PREFIX}/health/trends`, {
-    preHandler: [app.authHookFn],
+    preHandler: [app.authHookFn, tenantHook(), domainsHook('animal-health')],
   }, async (
     request: FastifyRequest<{ Querystring: { period?: string } }>,
     reply: FastifyReply,
@@ -35,7 +37,7 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   // ── Quality Dashboard ──
 
   app.get(`${PREFIX}/quality/dashboard`, {
-    preHandler: [app.authHookFn],
+    preHandler: [app.authHookFn, tenantHook(), domainsHook('animal-health')],
   }, async (_request: FastifyRequest, reply: FastifyReply) => {
     const data = await app.healthKpiService.getQualityDashboard();
     return reply.code(200).send({ data });
@@ -44,7 +46,7 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   // ── Workflow Timeliness ──
 
   app.get(`${PREFIX}/workflow/timeliness`, {
-    preHandler: [app.authHookFn],
+    preHandler: [app.authHookFn, tenantHook(), domainsHook('animal-health')],
   }, async (_request: FastifyRequest, reply: FastifyReply) => {
     const data = await app.healthKpiService.getWorkflowTimeliness();
     return reply.code(200).send({ data });
@@ -53,7 +55,7 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   // ── Denominators ──
 
   app.get(`${PREFIX}/denominators`, {
-    preHandler: [app.authHookFn],
+    preHandler: [app.authHookFn, tenantHook(), domainsHook('animal-health')],
   }, async (
     request: FastifyRequest<{ Querystring: { country?: string } }>,
     reply: FastifyReply,
@@ -66,7 +68,7 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   // ── CSV Export ──
 
   app.get(`${PREFIX}/export/csv`, {
-    preHandler: [app.authHookFn],
+    preHandler: [app.authHookFn, tenantHook()],
   }, async (
     request: FastifyRequest<{ Querystring: { domain?: string; country?: string } }>,
     reply: FastifyReply,
@@ -121,7 +123,7 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   // ── Cross-Domain Correlations ──
 
   app.get(`${PREFIX}/cross-domain/correlations`, {
-    preHandler: [app.authHookFn],
+    preHandler: [app.authHookFn, tenantHook()],
   }, async (
     request: FastifyRequest<{ Querystring: { country?: string } }>,
     reply: FastifyReply,
@@ -134,7 +136,7 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   // ── Cross-Domain Risk Score ──
 
   app.get(`${PREFIX}/cross-domain/risk-score`, {
-    preHandler: [app.authHookFn],
+    preHandler: [app.authHookFn, tenantHook()],
   }, async (
     request: FastifyRequest<{ Querystring: { country?: string } }>,
     reply: FastifyReply,
@@ -153,7 +155,7 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   // ── Livestock Population ──
 
   app.get(`${PREFIX}/livestock/population`, {
-    preHandler: [app.authHookFn],
+    preHandler: [app.authHookFn, tenantHook(), domainsHook('livestock-prod')],
   }, async (
     request: FastifyRequest<{ Querystring: { country?: string } }>,
     reply: FastifyReply,
@@ -166,7 +168,7 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   // ── Fisheries Catches ──
 
   app.get(`${PREFIX}/fisheries/catches`, {
-    preHandler: [app.authHookFn],
+    preHandler: [app.authHookFn, tenantHook(), domainsHook('fisheries')],
   }, async (
     request: FastifyRequest<{ Querystring: { country?: string } }>,
     reply: FastifyReply,
@@ -179,7 +181,7 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   // ── Trade Balance ──
 
   app.get(`${PREFIX}/trade/balance`, {
-    preHandler: [app.authHookFn],
+    preHandler: [app.authHookFn, tenantHook(), domainsHook('trade-sps')],
   }, async (
     request: FastifyRequest<{ Querystring: { country?: string } }>,
     reply: FastifyReply,
@@ -192,7 +194,7 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   // ── Wildlife Crime Trends ──
 
   app.get(`${PREFIX}/wildlife/crime-trends`, {
-    preHandler: [app.authHookFn],
+    preHandler: [app.authHookFn, tenantHook(), domainsHook('wildlife')],
   }, async (
     request: FastifyRequest<{ Querystring: { country?: string } }>,
     reply: FastifyReply,
@@ -205,7 +207,7 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   // ── Climate Alerts ──
 
   app.get(`${PREFIX}/climate/alerts`, {
-    preHandler: [app.authHookFn],
+    preHandler: [app.authHookFn, tenantHook(), domainsHook('climate-env')],
   }, async (
     request: FastifyRequest<{ Querystring: { country?: string } }>,
     reply: FastifyReply,
@@ -218,7 +220,7 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   // ── Governance PVS Scores ──
 
   app.get(`${PREFIX}/governance/pvs-scores`, {
-    preHandler: [app.authHookFn],
+    preHandler: [app.authHookFn, tenantHook(), domainsHook('governance')],
   }, async (
     request: FastifyRequest<{ Querystring: { country?: string } }>,
     reply: FastifyReply,

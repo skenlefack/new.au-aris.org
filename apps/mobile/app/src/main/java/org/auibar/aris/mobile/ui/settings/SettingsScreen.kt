@@ -1,8 +1,10 @@
 package org.auibar.aris.mobile.ui.settings
 
 import android.app.Activity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,7 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -23,6 +27,7 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
@@ -58,6 +63,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.R
+import org.auibar.aris.mobile.ui.components.RoleConfig
+import org.auibar.aris.mobile.ui.components.arisDomains
+import org.auibar.aris.mobile.util.ServerEnvironment
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -80,6 +88,8 @@ fun SettingsScreen(
     var showSyncFreqDialog by remember { mutableStateOf(false) }
     var showClearCacheDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showEnvDialog by remember { mutableStateOf(false) }
+    var pendingEnvSwitch by remember { mutableStateOf<ServerEnvironment?>(null) }
 
     Scaffold(
         topBar = {
@@ -95,6 +105,14 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // Server environment
+            SettingsItem(
+                icon = Icons.Default.Cloud,
+                title = stringResource(R.string.server_environment),
+                subtitle = stringResource(R.string.server_env_current, uiState.serverEnvironment.label),
+                onClick = { showEnvDialog = true },
+            )
+
             // Language selector
             SettingsItem(
                 icon = Icons.Default.Language,
@@ -128,6 +146,54 @@ fun SettingsScreen(
                 subtitle = stringResource(R.string.switch_context),
                 onClick = onTenantHierarchy,
             )
+
+            // ── Assigned Domains ───────────────────
+            if (uiState.userDomains.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    Text(
+                        text = "Assigned Domains",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    val visibleDomains = remember(uiState.userDomains) {
+                        arisDomains.filter { it.key in uiState.userDomains.map { code ->
+                            RoleConfig.backendToMobileKey(code)
+                        }.toSet() }
+                    }
+                    visibleDomains.forEach { domain ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .background(domain.color, CircleShape),
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = domain.icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = domain.color,
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = domain.label,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                }
+            }
 
             // PIN lock
             SettingsItem(
@@ -354,6 +420,76 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+
+    // Server environment picker
+    if (showEnvDialog) {
+        AlertDialog(
+            onDismissRequest = { showEnvDialog = false },
+            title = { Text(stringResource(R.string.server_environment)) },
+            text = {
+                Column {
+                    ServerEnvironment.entries.forEach { env ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    showEnvDialog = false
+                                    if (env != uiState.serverEnvironment) {
+                                        pendingEnvSwitch = env
+                                    }
+                                }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(
+                                selected = env == uiState.serverEnvironment,
+                                onClick = null,
+                            )
+                            Column(modifier = Modifier.padding(start = 8.dp)) {
+                                Text(text = env.label, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    text = env.baseUrl,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showEnvDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+
+    // Confirm environment switch (triggers logout)
+    if (pendingEnvSwitch != null) {
+        val targetEnv = pendingEnvSwitch!!
+        AlertDialog(
+            onDismissRequest = { pendingEnvSwitch = null },
+            title = { Text(stringResource(R.string.server_env_switch_title)) },
+            text = { Text(stringResource(R.string.server_env_switch_confirm, targetEnv.label)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    val changed = viewModel.setServerEnvironment(targetEnv)
+                    pendingEnvSwitch = null
+                    if (changed) {
+                        onLogout()
+                    }
+                }) {
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingEnvSwitch = null }) {
                     Text(stringResource(R.string.cancel))
                 }
             },

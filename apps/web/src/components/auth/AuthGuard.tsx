@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useDomainStore } from '@/lib/stores/domain-store';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -112,6 +113,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
    */
   const handleAuthFailure = useCallback(() => {
     logout();
+    useDomainStore.getState().reset();
     router.replace('/');
   }, [logout, router]);
 

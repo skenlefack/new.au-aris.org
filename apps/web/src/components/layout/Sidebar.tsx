@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore, type UserRole } from '@/lib/stores/auth-store';
+import { useDomainStore, ROUTE_TO_DOMAIN } from '@/lib/stores/domain-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useTranslations } from '@/lib/i18n/translations';
 import { usePublicDomains } from '@/lib/api/settings-hooks';
@@ -51,6 +52,10 @@ interface NavItem {
   disabled?: boolean;
   /** Whether this item is a dynamic domain */
   isDomain?: boolean;
+  /** Domain code (e.g. 'animal-health') for domain items */
+  domainCode?: string;
+  /** Hex color from domain config */
+  domainColor?: string;
 }
 
 interface NavGroup {
@@ -163,13 +168,19 @@ function buildDomainGroup(
         icon: resolveIcon(d.icon),
         matchPrefix: href,
         isDomain: true,
+        domainCode: d.code,
+        domainColor: d.color ?? undefined,
       };
     });
     return { tKey: 'sectionDomain', items };
   }
 
-  // Fallback: use static domain items
-  return { tKey: 'sectionDomain', items: FALLBACK_DOMAIN_ITEMS };
+  // Fallback: use static domain items (add domainCode from ROUTE_TO_DOMAIN)
+  const fallbackWithCodes = FALLBACK_DOMAIN_ITEMS.map((item) => ({
+    ...item,
+    domainCode: ROUTE_TO_DOMAIN[item.href] ?? item.href.slice(1),
+  }));
+  return { tKey: 'sectionDomain', items: fallbackWithCodes };
 }
 
 /* ------------------------------------------------------------------ */
@@ -214,11 +225,18 @@ const ALL_DOMAIN_ROLES: Set<UserRole> = new Set([
 /** FIELD_AGENT only sees specific domain routes */
 const FIELD_AGENT_DOMAIN_ROUTES = new Set(['/animal-health']);
 
-/** Filter nav groups by role */
-function filterGroupsByRole(role: UserRole | undefined, groups: NavGroup[]): NavGroup[] {
+/**
+ * Filter nav groups by role AND user's assigned domains.
+ * @param hasAccess - from useDomainStore, checks if user has a specific domain code
+ */
+function filterGroupsByRole(
+  role: UserRole | undefined,
+  groups: NavGroup[],
+  hasAccess: (code: string) => boolean,
+): NavGroup[] {
   if (!role) return [];
 
-  // CONTINENTAL_ADMIN and SUPER_ADMIN see everything
+  // CONTINENTAL_ADMIN and SUPER_ADMIN see everything (hasAccess returns true for all)
   if (role === 'CONTINENTAL_ADMIN' || role === 'SUPER_ADMIN') {
     return groups.filter((g) => g.items.length > 0);
   }
@@ -231,10 +249,14 @@ function filterGroupsByRole(role: UserRole | undefined, groups: NavGroup[]): Nav
       ...group,
       items: group.items.filter((item) => {
         if (item.isDomain) {
-          // Domain items: check role-based domain access
-          if (ALL_DOMAIN_ROLES.has(role)) return true;
-          if (role === 'FIELD_AGENT') return FIELD_AGENT_DOMAIN_ROUTES.has(item.matchPrefix);
-          return false;
+          // Domain items: check role allows domain access + user is assigned
+          const roleAllowed =
+            ALL_DOMAIN_ROLES.has(role) ||
+            (role === 'FIELD_AGENT' && FIELD_AGENT_DOMAIN_ROUTES.has(item.matchPrefix));
+          if (!roleAllowed) return false;
+          // Check user's assigned domains
+          if (item.domainCode) return hasAccess(item.domainCode);
+          return true;
         }
         // Static items: check the static access set
         return staticAllowed.has(item.matchPrefix);
@@ -262,6 +284,7 @@ export function Sidebar({
   const { user } = useAuthStore();
   const locale = useLocaleStore((s) => s.locale);
   const t = useTranslations('nav');
+  const hasAccess = useDomainStore((s) => s.hasAccess);
 
   // Fetch active domains from public API (no auth needed, cached 5min)
   const { data: domainData } = usePublicDomains();
@@ -274,7 +297,7 @@ export function Sidebar({
     return [STATIC_GROUPS[0], domainGroup, ...STATIC_GROUPS.slice(1)];
   }, [apiDomains, locale]);
 
-  const visibleGroups = filterGroupsByRole(user?.role, allGroups);
+  const visibleGroups = filterGroupsByRole(user?.role, allGroups, hasAccess);
 
   const sidebarRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -392,6 +415,13 @@ export function Sidebar({
             <Icon className="h-[18px] w-[18px]" />
           </span>
           {!collapsed && <span className="truncate">{label}</span>}
+          {/* Domain color dot */}
+          {!collapsed && item.isDomain && item.domainColor && (
+            <span
+              className="ml-auto h-2 w-2 flex-shrink-0 rounded-full"
+              style={{ backgroundColor: item.domainColor }}
+            />
+          )}
         </Link>
 
         {/* Tooltip — fixed position, escapes overflow-y-auto clipping */}

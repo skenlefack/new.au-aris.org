@@ -14,6 +14,7 @@ import org.auibar.aris.mobile.data.repository.Campaign
 import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
 import org.auibar.aris.mobile.data.repository.SyncRepository
+import org.auibar.aris.mobile.ui.components.RoleConfig
 import org.auibar.aris.mobile.util.TokenManager
 import javax.inject.Inject
 
@@ -31,9 +32,15 @@ class CampaignListViewModel @Inject constructor(
     private val tokenManager: TokenManager,
 ) : ViewModel() {
 
-    val campaigns: StateFlow<List<Campaign>> = campaignRepository
-        .getActiveCampaigns()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val campaigns: StateFlow<List<Campaign>> = run {
+        val userDomains = tokenManager.getUserDomainList()
+        if (userDomains.isEmpty()) {
+            campaignRepository.getActiveCampaigns()
+        } else {
+            val mobileDomains = userDomains.map { RoleConfig.backendToMobileKey(it) }
+            campaignRepository.getActiveCampaignsByDomains(mobileDomains)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val pendingCount: StateFlow<Int> = submissionRepository
         .getPendingCount()

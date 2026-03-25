@@ -97,6 +97,38 @@ object RoleConfig {
         }
     }
 
+    /**
+     * Combine role-based access with user's assigned domains from the backend.
+     * If [userDomainCodes] is non-empty, intersect with role-based access.
+     * SUPER_ADMIN with empty domains sees everything (backwards-compatible).
+     */
+    fun visibleDomains(role: String?, userDomainCodes: List<String>): List<DomainInfo> {
+        val roleAllowed = roleDomainAccess[role]
+        // If user has no assigned domains (legacy or SUPER_ADMIN), fall back to role-only
+        if (userDomainCodes.isEmpty()) {
+            return visibleDomains(role)
+        }
+        // Map backend codes to mobile keys (e.g. "animal-health" → "health")
+        val mappedCodes = userDomainCodes.map { backendToMobileKey(it) }.toSet()
+        return if (roleAllowed == null) {
+            // Role sees all → restrict to assigned domains
+            arisDomains.filter { it.key in mappedCodes }
+        } else {
+            // Role has restrictions → intersect with assigned domains
+            arisDomains.filter { it.key in roleAllowed && it.key in mappedCodes }
+        }
+    }
+
+    /** Map backend domain codes to mobile DomainConfig keys */
+    fun backendToMobileKey(code: String): String = when (code) {
+        "animal-health" -> "health"
+        "livestock-prod" -> "livestock"
+        "trade-sps" -> "trade"
+        "climate-env" -> "climate"
+        "knowledge-hub" -> "knowledge"
+        else -> code // fisheries, wildlife, apiculture, governance — same
+    }
+
     // ── Quick actions per role ───────────────────────────────────────
     data class QuickAction(
         val key: String,

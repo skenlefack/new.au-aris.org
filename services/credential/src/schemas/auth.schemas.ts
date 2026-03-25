@@ -13,6 +13,7 @@ export const RegisterSchema = Type.Object({
   lastName: Type.String({ minLength: 1, maxLength: 100 }),
   role: Type.String(),
   tenantId: Type.String({ format: 'uuid' }),
+  domainIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
 });
 
 export const RefreshSchema = Type.Object({

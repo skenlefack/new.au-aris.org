@@ -62,6 +62,7 @@ export function authHook(options: AuthHookOptions) {
         tenantId: payload.tenantId,
         tenantLevel: payload.tenantLevel,
         locale: payload.locale,
+        domains: payload.domains ?? [],
       };
 
       request.user = user;

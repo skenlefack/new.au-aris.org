@@ -10,10 +10,12 @@ import { I18nService } from '@aris/i18n';
 import { AuthService } from './services/auth.service.js';
 import { UserService } from './services/user.service.js';
 import { MfaService } from './services/mfa.service.js';
+import { DomainService } from './services/domain.service.js';
 import { AccountLockoutService } from './services/account-lockout.service.js';
 import { registerAuthRoutes } from './routes/auth.routes.js';
 import { registerUserRoutes } from './routes/user.routes.js';
 import { registerMfaRoutes } from './routes/mfa.routes.js';
+import { registerDomainRoutes } from './routes/domain.routes.js';
 import { registerI18nRoutes } from './routes/i18n.routes.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
 
@@ -85,20 +87,23 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // Services
   const lockout = new AccountLockoutService(app.redis);
-  const authService = new AuthService(app.prisma, app.redis, app.kafka, lockout);
-  const userService = new UserService(app.prisma, app.redis);
+  const domainService = new DomainService(app.prisma, app.kafka);
+  const authService = new AuthService(app.prisma, app.redis, app.kafka, lockout, domainService);
+  const userService = new UserService(app.prisma, app.redis, domainService);
   const mfaService = new MfaService(app.prisma);
   const i18n = new I18nService();
 
   app.decorate('authService', authService);
   app.decorate('userService', userService);
   app.decorate('mfaService', mfaService);
+  app.decorate('domainService', domainService);
   app.decorate('i18n', i18n);
 
   // Routes
   await app.register(registerHealthRoutes);
   await app.register(registerAuthRoutes);
   await app.register(registerUserRoutes);
+  await app.register(registerDomainRoutes);
   await app.register(registerMfaRoutes);
   await app.register(registerI18nRoutes);
 

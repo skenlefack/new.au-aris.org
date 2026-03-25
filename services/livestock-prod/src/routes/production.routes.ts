@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { rolesHook, tenantHook } from '@aris/auth-middleware/fastify';
+import { rolesHook, tenantHook, domainsHook } from '@aris/auth-middleware/fastify';
 import { UserRole } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import {
@@ -14,7 +14,7 @@ import {
 } from '../schemas/production.schema.js';
 
 export async function registerProductionRoutes(app: FastifyInstance): Promise<void> {
-  const authAndTenant = [app.authHookFn, tenantHook()];
+  const authAndTenant = [app.authHookFn, tenantHook(), domainsHook('livestock-prod')];
 
   // POST /api/v1/livestock/production — create production record
   app.post<{ Body: CreateProductionInput }>('/api/v1/livestock/production', {

@@ -107,9 +107,22 @@ export class TemplateService {
       ? { [query.sort]: query.order ?? 'asc' }
       : { created_at: 'asc' as const };
 
+    // Domain-based filtering: non-SUPER_ADMIN users only see templates
+    // whose domain matches one of their assigned domains (from JWT).
+    const userDomains = (user as any).domains ?? [];
+    let domainFilter: Record<string, unknown> = {};
+    if (query.domain) {
+      // Explicit domain filter from query — use it if user has access
+      if (user.role === 'SUPER_ADMIN' || userDomains.length === 0 || userDomains.includes(query.domain)) {
+        domainFilter = { domain: query.domain };
+      }
+    } else if (user.role !== 'SUPER_ADMIN' && userDomains.length > 0) {
+      domainFilter = { domain: { in: userDomains } };
+    }
+
     const where: Prisma.FormTemplateWhereInput = {
       ...this.buildTenantFilter(user),
-      ...(query.domain && { domain: query.domain }),
+      ...domainFilter,
       ...(query.status && { status: query.status as Prisma.EnumFormTemplateStatusFilter }),
     };
 

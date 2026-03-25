@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useDomainStore } from '@/lib/stores/domain-store';
 
 // All API calls use relative paths by default (same origin → no CORS).
 // In dev: Next.js rewrites proxy /api/v1/* to the correct backend port.
@@ -114,6 +115,7 @@ function clearStoredAuth(): void {
   // Go through Zustand so both in-memory state and localStorage (via persist) stay in sync.
   // AuthGuard subscribes to Zustand and will handle the redirect gracefully.
   useAuthStore.getState().logout();
+  useDomainStore.getState().reset();
 }
 
 async function attemptTokenRefresh(): Promise<string | null> {

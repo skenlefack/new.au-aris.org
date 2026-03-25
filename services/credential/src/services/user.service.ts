@@ -3,11 +3,17 @@ import type Redis from 'ioredis';
 import { TenantLevel, UserRole, DEFAULT_PAGE, DEFAULT_LIMIT, MAX_LIMIT } from '@aris/shared-types';
 import type { PaginationQuery, PaginatedResponse, ApiResponse } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
+import type { DomainService } from './domain.service.js';
 
 const USER_SELECT = {
   id: true, tenantId: true, email: true, firstName: true, lastName: true,
   role: true, locale: true, mfaEnabled: true, avatarUrl: true, lastLoginAt: true,
   isActive: true, createdAt: true, updatedAt: true,
+  userDomains: {
+    where: { isActive: true },
+    include: { domain: { select: { id: true, code: true, name: true, icon: true, color: true } } },
+    orderBy: { domain: { sortOrder: 'asc' as const } },
+  },
 } as const;
 
 const CACHE_TTL_USER_PROFILE = 1800; // 30 minutes — aligned with JWT refresh cycle
@@ -20,7 +26,18 @@ export class UserService {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly redis?: Redis,
+    private readonly domainService?: DomainService,
   ) {}
+
+  /** Transform raw user record (with userDomains) into API response shape */
+  private transformUser(user: any): any {
+    if (!user) return user;
+    const { userDomains, ...rest } = user;
+    return {
+      ...rest,
+      domains: userDomains?.map((ud: any) => ud.domain) ?? [],
+    };
+  }
 
   async findAll(caller: AuthenticatedUser, query: PaginationQuery): Promise<PaginatedResponse<any>> {
     const page = query.page ?? DEFAULT_PAGE;
@@ -29,12 +46,12 @@ export class UserService {
     const orderBy = query.sort ? { [query.sort]: query.order ?? 'asc' } : { createdAt: 'asc' as const };
     const where = this.buildTenantFilter(caller);
 
-    const [data, total] = await Promise.all([
+    const [rawData, total] = await Promise.all([
       (this.prisma as any).user.findMany({ where, select: USER_SELECT, skip, take: limit, orderBy }),
       (this.prisma as any).user.count({ where }),
     ]);
 
-    return { data, meta: { total, page, limit } };
+    return { data: rawData.map((u: any) => this.transformUser(u)), meta: { total, page, limit } };
   }
 
   async findMe(caller: AuthenticatedUser): Promise<ApiResponse<any>> {
@@ -48,7 +65,7 @@ export class UserService {
 
       const user = await (this.prisma as any).user.findUnique({ where: { id: caller.userId }, select: USER_SELECT });
       if (!user) throw new HttpError(404, 'User not found');
-      const result = { data: user };
+      const result = { data: this.transformUser(user) };
 
       try {
         await this.redis.set(cacheKey, JSON.stringify(result), 'EX', CACHE_TTL_USER_PROFILE);
@@ -58,7 +75,7 @@ export class UserService {
 
     const user = await (this.prisma as any).user.findUnique({ where: { id: caller.userId }, select: USER_SELECT });
     if (!user) throw new HttpError(404, 'User not found');
-    return { data: user };
+    return { data: this.transformUser(user) };
   }
 
   async update(id: string, dto: Record<string, unknown>, caller: AuthenticatedUser): Promise<ApiResponse<any>> {
@@ -80,11 +97,23 @@ export class UserService {
     if (dto.avatarUrl !== undefined) updateData.avatarUrl = dto.avatarUrl;
 
     const user = await (this.prisma as any).user.update({ where: { id }, data: updateData, select: USER_SELECT });
+
+    // Update domain assignments if provided
+    if (dto.domainIds !== undefined && this.domainService) {
+      await this.domainService.setUserDomains(id, dto.domainIds as string[], caller.userId, caller.tenantId);
+      // Re-fetch to get updated domains
+      const refreshed = await (this.prisma as any).user.findUnique({ where: { id }, select: USER_SELECT });
+      if (this.redis) {
+        try { await this.redis.del(`aris:credential:user:${id}`); } catch { /* non-blocking */ }
+      }
+      return { data: this.transformUser(refreshed) };
+    }
+
     // Invalidate cached profile
     if (this.redis) {
       try { await this.redis.del(`aris:credential:user:${id}`); } catch { /* non-blocking */ }
     }
-    return { data: user };
+    return { data: this.transformUser(user) };
   }
 
   async updateMe(caller: AuthenticatedUser, dto: Record<string, unknown>): Promise<ApiResponse<any>> {
@@ -102,7 +131,7 @@ export class UserService {
     if (this.redis) {
       try { await this.redis.del(`aris:credential:user:${caller.userId}`); } catch { /* non-blocking */ }
     }
-    return { data: user };
+    return { data: this.transformUser(user) };
   }
 
   async updateLocale(userId: string, locale: string): Promise<ApiResponse<any>> {
@@ -112,7 +141,7 @@ export class UserService {
     if (this.redis) {
       try { await this.redis.del(`aris:credential:user:${userId}`); } catch { /* non-blocking */ }
     }
-    return { data: updated };
+    return { data: this.transformUser(updated) };
   }
 
   private buildTenantFilter(caller: AuthenticatedUser): Record<string, unknown> {

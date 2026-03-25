@@ -593,6 +593,13 @@ export interface ManagedUser {
     countryCode?: string | null;
     recCode?: string | null;
   };
+  domains?: Array<{
+    id: string;
+    code: string;
+    name: Record<string, string>;
+    icon: string;
+    color: string;
+  }>;
   functions?: Array<{
     id: string;
     isPrimary: boolean;
@@ -702,6 +709,37 @@ export function useRemoveUserFunction() {
       tenantDelete(`/api/v1/settings/users/${userId}/functions/${functionId}`),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['settings', 'user-functions', vars.userId] });
+      qc.invalidateQueries({ queryKey: ['settings', 'users'] });
+    },
+  });
+}
+
+// ── User-Domain Assignment ──
+
+export function useUserDomains(userId: string) {
+  return useQuery({
+    queryKey: ['settings', 'user-domains', userId],
+    queryFn: () => tenantFetch<{
+      data: Array<{
+        id: string;
+        code: string;
+        name: Record<string, string>;
+        icon: string;
+        color: string;
+      }>;
+    }>(`/api/v1/settings/users/${userId}/domains`),
+    enabled: !!userId,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useSetUserDomains() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, domainIds }: { userId: string; domainIds: string[] }) =>
+      tenantPut(`/api/v1/settings/users/${userId}/domains`, { domainIds }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['settings', 'user-domains', vars.userId] });
       qc.invalidateQueries({ queryKey: ['settings', 'users'] });
     },
   });

@@ -502,6 +502,22 @@ async function main(): Promise<void> {
     });
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // 7. Assign ALL 9 domains to SUPER_ADMIN + CONTINENTAL_ADMIN
+  // ═══════════════════════════════════════════════════════════════════════
+  const allDomains = await (prisma as any).domain.findMany({ where: { isActive: true } });
+  const domainAdmins = [U.SUPER_ADMIN, DS.CONTINENTAL_ADMIN];
+
+  for (const userId of domainAdmins) {
+    for (const domain of allDomains) {
+      await (prisma as any).userDomain.upsert({
+        where: { userId_domainId: { userId, domainId: domain.id } },
+        update: {},
+        create: { userId, domainId: domain.id, assignedBy: U.SUPER_ADMIN },
+      });
+    }
+  }
+
   console.log('Credential users seeded:');
   console.log('  1 SUPER_ADMIN          (admin@au-aris.org)');
   console.log('  1 CONTINENTAL_ADMIN    (continental@au-aris.org)');
@@ -510,6 +526,7 @@ async function main(): Promise<void> {
   console.log(`  ${nationalAdmins.length} NATIONAL_ADMINs     (admin@{cc}.au-aris.org)`);
   console.log(`  ${nationalStewards.length} NATIONAL DATA_STEWARDs (steward@{cc}.au-aris.org)`);
   console.log(`  Total: ${2 + recAdmins.length + recStewards.length + nationalAdmins.length + nationalStewards.length} users`);
+  console.log(`  Domain assignments: ${domainAdmins.length} users × ${allDomains.length} domains = ${domainAdmins.length * allDomains.length} assignments`);
   console.log(`  Default password: ${DEFAULT_PASSWORD}`);
 }
 

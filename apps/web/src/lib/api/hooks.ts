@@ -15,6 +15,7 @@ import {
   ApiClientError,
 } from './client';
 import { useAuthStore, type UserRole } from '../stores/auth-store';
+import { useDomainStore } from '../stores/domain-store';
 import { useTenantStore } from '../stores/tenant-store';
 
 /**
@@ -71,6 +72,13 @@ interface LoginResponse {
       tenantId: string;
       tenantLevel?: string;
       locale?: string;
+      domains?: Array<{
+        id: string;
+        code: string;
+        name: Record<string, string>;
+        icon: string;
+        color: string;
+      }>;
     };
   };
 }
@@ -276,6 +284,11 @@ export function useLogin() {
         accessToken,
         refreshToken,
       );
+
+      // Populate domain store with user's assigned domains
+      if (user.domains && user.domains.length > 0) {
+        useDomainStore.getState().setUserDomains(user.domains);
+      }
     },
   });
 }

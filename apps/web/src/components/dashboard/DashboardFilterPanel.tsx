@@ -10,6 +10,8 @@ import { useDashboardFilters } from './GlobalFilterContext';
 import { getAllRecs, getRecsForCountry, type RecConfig } from '@/data/recs-config';
 import { COUNTRIES, getCountriesByRec } from '@/data/countries-config';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useDomainStore } from '@/lib/stores/domain-store';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useTenantStore, findParentRec, deriveCountryCodeFromEmail } from '@/lib/stores/tenant-store';
 
 interface DashboardFilterPanelProps {
@@ -27,7 +29,7 @@ const PERIODS = [
   { value: '2024', label: '2024' },
 ];
 
-const DOMAINS = [
+const FALLBACK_DOMAINS = [
   { value: 'all', label: 'All Domains' },
   { value: 'animal-health', label: 'Animal Health' },
   { value: 'livestock-prod', label: 'Livestock' },
@@ -101,8 +103,23 @@ export function DashboardFilterPanel({
 }: DashboardFilterPanelProps) {
   const { filters, setFilter, resetFilters, activeFilterCount } = useDashboardFilters();
   const user = useAuthStore((s) => s.user);
+  const userDomains = useDomainStore((s) => s.userDomains);
+  const allDomains = useDomainStore((s) => s.allDomains);
+  const locale = useLocaleStore((s) => s.locale);
   const tenantTree = useTenantStore((s) => s.tenantTree);
   const selectedTenant = useTenantStore((s) => s.selectedTenant);
+
+  // Build domain options from store (user's domains or all for SUPER_ADMIN)
+  const storeDomains = userDomains.length > 0 ? userDomains : allDomains;
+  const domainOptions: Array<{ value: string; label: string }> = storeDomains.length > 0
+    ? [
+        { value: 'all', label: 'All Domains' },
+        ...storeDomains.map((d) => ({
+          value: d.code,
+          label: d.name[locale] || d.name.en || d.code,
+        })),
+      ]
+    : FALLBACK_DOMAINS;
 
   const tenantLevel = user?.tenantLevel ?? selectedTenant?.level;
   const isMemberState = tenantLevel === 'MEMBER_STATE';
@@ -236,7 +253,7 @@ export function DashboardFilterPanel({
         <FilterSelect
           label="Domain"
           value={filters.domain}
-          options={DOMAINS}
+          options={domainOptions}
           onChange={(v) => setFilter('domain', v)}
         />
 

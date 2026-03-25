@@ -53,6 +53,9 @@ class AuthRepository @Inject constructor(
         tokenManager.tenantLevel = user.tenantLevel
         tokenManager.userFullName = "${user.firstName} ${user.lastName}".trim()
         tokenManager.userEmail = user.email
+        tokenManager.userDomains = user.domains
+            .map { it.code }
+            .joinToString(",")
         return LoginResult.Success
     }
 

@@ -27,6 +27,9 @@ interface CampaignDao {
     @Query("SELECT * FROM campaigns WHERE status = 'ACTIVE' AND LOWER(domain) LIKE '%' || LOWER(:domain) || '%' ORDER BY startDate DESC")
     fun getActiveCampaignsByDomain(domain: String): Flow<List<CampaignEntity>>
 
+    @Query("SELECT * FROM campaigns WHERE status = 'ACTIVE' AND domain IN (:domains) ORDER BY startDate DESC")
+    fun getActiveCampaignsByDomains(domains: List<String>): Flow<List<CampaignEntity>>
+
     @Query("DELETE FROM campaigns")
     suspend fun deleteAll()
 }

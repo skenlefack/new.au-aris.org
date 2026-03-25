@@ -7,6 +7,7 @@ export interface JwtPayload {
   tenantId: string;
   tenantLevel: TenantLevel;
   locale?: string;
+  domains?: string[];
   iat: number;
   exp: number;
 }
@@ -18,6 +19,7 @@ export interface AuthenticatedUser {
   tenantId: string;
   tenantLevel: TenantLevel;
   locale?: string;
+  domains: string[];
 }
 
 export interface TenantContext {

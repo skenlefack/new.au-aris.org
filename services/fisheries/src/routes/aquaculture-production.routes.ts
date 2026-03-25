@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { rolesHook, tenantHook } from '@aris/auth-middleware/fastify';
+import { rolesHook, tenantHook, domainsHook } from '@aris/auth-middleware/fastify';
 import { UserRole } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import {
@@ -14,7 +14,7 @@ import {
 } from '../schemas/aquaculture-production.schema.js';
 
 export async function registerAquacultureProductionRoutes(app: FastifyInstance): Promise<void> {
-  const authAndTenant = [app.authHookFn, tenantHook()];
+  const authAndTenant = [app.authHookFn, tenantHook(), domainsHook('fisheries')];
 
   // POST /api/v1/fisheries/aquaculture/production
   app.post<{ Body: CreateAquacultureProductionInput }>('/api/v1/fisheries/aquaculture/production', {

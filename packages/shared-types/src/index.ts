@@ -9,6 +9,7 @@ export {
   QualityGateResult,
   NotificationChannel,
   NotificationStatus,
+  DomainCode,
 } from './enums';
 
 // DTOs

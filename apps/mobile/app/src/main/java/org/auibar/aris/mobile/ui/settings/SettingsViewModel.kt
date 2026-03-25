@@ -16,6 +16,7 @@ import org.auibar.aris.mobile.util.CrashLogger
 import org.auibar.aris.mobile.util.LanguageOption
 import org.auibar.aris.mobile.util.LocaleManager
 import org.auibar.aris.mobile.util.AppLockManager
+import org.auibar.aris.mobile.util.ServerEnvironment
 import org.auibar.aris.mobile.util.TokenManager
 import javax.inject.Inject
 
@@ -32,6 +33,8 @@ data class SettingsUiState(
     val cacheCleared: Boolean = false,
     val crashLogCount: Int = 0,
     val isPinEnabled: Boolean = false,
+    val serverEnvironment: ServerEnvironment = ServerEnvironment.PRODUCTION,
+    val userDomains: List<String> = emptyList(),
 )
 
 data class SyncFrequencyOption(
@@ -61,6 +64,8 @@ class SettingsViewModel @Inject constructor(
             lastSyncAt = tokenManager.lastSyncAt,
             crashLogCount = CrashLogger.getLogFiles(appContext).size,
             isPinEnabled = appLockManager.isPinEnabled,
+            serverEnvironment = ServerEnvironment.fromName(tokenManager.serverEnvironment),
+            userDomains = tokenManager.getUserDomainList(),
         )
     )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -102,6 +107,19 @@ class SettingsViewModel @Inject constructor(
             database.photoDao().deleteUploaded()
             _uiState.value = _uiState.value.copy(cacheCleared = true)
         }
+    }
+
+    /**
+     * Switch server environment. Returns true if changed (requires logout + restart).
+     */
+    fun setServerEnvironment(env: ServerEnvironment): Boolean {
+        val current = ServerEnvironment.fromName(tokenManager.serverEnvironment)
+        if (current == env) return false
+        tokenManager.serverEnvironment = env.name
+        // Clear auth tokens — different server, different sessions
+        tokenManager.clear()
+        _uiState.value = _uiState.value.copy(serverEnvironment = env)
+        return true
     }
 
     fun uploadCrashLogs() {

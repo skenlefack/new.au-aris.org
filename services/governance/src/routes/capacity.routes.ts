@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { rolesHook, tenantHook } from '@aris/auth-middleware/fastify';
+import { rolesHook, tenantHook, domainsHook } from '@aris/auth-middleware/fastify';
 import { UserRole } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import {
@@ -25,7 +25,7 @@ const WRITE_ROLES = [
 ];
 
 export async function registerCapacityRoutes(app: FastifyInstance): Promise<void> {
-  const authAndTenant = [app.authHookFn, tenantHook()];
+  const authAndTenant = [app.authHookFn, tenantHook(), domainsHook('governance')];
 
   // POST /api/v1/governance/capacities -- create capacity record
   app.post<{ Body: CreateCapacityInput }>(PREFIX, {

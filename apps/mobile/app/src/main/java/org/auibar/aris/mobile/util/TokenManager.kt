@@ -70,6 +70,15 @@ class TokenManager @Inject constructor(
         get() = prefs.getString(KEY_TENANT_LEVEL, null)
         set(value) = prefs.edit().putString(KEY_TENANT_LEVEL, value).apply()
 
+    /** Comma-separated domain codes assigned to the user (e.g. "animal-health,fisheries") */
+    var userDomains: String?
+        get() = prefs.getString(KEY_USER_DOMAINS, null)
+        set(value) = prefs.edit().putString(KEY_USER_DOMAINS, value).apply()
+
+    /** Returns domain codes as a list */
+    fun getUserDomainList(): List<String> =
+        userDomains?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
+
     var language: String
         get() = prefs.getString(KEY_LANGUAGE, "en") ?: "en"
         set(value) = prefs.edit().putString(KEY_LANGUAGE, value).apply()
@@ -79,13 +88,21 @@ class TokenManager @Inject constructor(
         get() = prefs.getInt(KEY_SYNC_FREQUENCY, 15)
         set(value) = prefs.edit().putInt(KEY_SYNC_FREQUENCY, value).apply()
 
+    /** Server environment: PRODUCTION or STAGING */
+    var serverEnvironment: String
+        get() = prefs.getString(KEY_SERVER_ENV, ServerEnvironment.PRODUCTION.name)
+            ?: ServerEnvironment.PRODUCTION.name
+        set(value) = prefs.edit().putString(KEY_SERVER_ENV, value).apply()
+
     val isLoggedIn: Boolean
         get() = accessToken != null
 
     fun clear() {
         val savedLang = language
+        val savedEnv = serverEnvironment
         prefs.edit().clear().apply()
         language = savedLang
+        serverEnvironment = savedEnv
     }
 
     companion object {
@@ -98,7 +115,23 @@ class TokenManager @Inject constructor(
         private const val KEY_USER_FULL_NAME = "user_full_name"
         private const val KEY_USER_EMAIL = "user_email"
         private const val KEY_TENANT_LEVEL = "tenant_level"
+        private const val KEY_USER_DOMAINS = "user_domains"
         private const val KEY_LANGUAGE = "language"
         private const val KEY_SYNC_FREQUENCY = "sync_frequency_minutes"
+        private const val KEY_SERVER_ENV = "server_environment"
+    }
+}
+
+enum class ServerEnvironment(val label: String, val baseUrl: String) {
+    PRODUCTION("Production", org.auibar.aris.mobile.BuildConfig.API_BASE_URL_PROD),
+    PRODUCTION_OFFICE("Bureau (LAN)", org.auibar.aris.mobile.BuildConfig.API_BASE_URL_OFFICE),
+    STAGING("Staging (test)", org.auibar.aris.mobile.BuildConfig.API_BASE_URL_STG);
+
+    /** Whether this environment points to an internal IP (needs SSL hostname bypass) */
+    val isInternalIp: Boolean get() = baseUrl.contains("10.202.101.")
+
+    companion object {
+        fun fromName(name: String): ServerEnvironment =
+            entries.find { it.name == name } ?: PRODUCTION
     }
 }

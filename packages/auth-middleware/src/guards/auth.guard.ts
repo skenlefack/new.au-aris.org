@@ -60,6 +60,7 @@ export class AuthGuard implements CanActivate {
         tenantId: payload.tenantId,
         tenantLevel: payload.tenantLevel,
         locale: payload.locale,
+        domains: payload.domains ?? [],
       };
 
       request.user = user;

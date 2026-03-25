@@ -12,6 +12,7 @@ import {
 import type { KafkaHeaders } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import type { AccountLockoutService } from './account-lockout.service.js';
+import type { DomainService } from './domain.service.js';
 
 const SERVICE_NAME = 'credential-service';
 const BCRYPT_ROUNDS = 10;
@@ -31,6 +32,7 @@ export interface TokenResponse {
     role: string;
     tenantId: string;
     tenantLevel: string;
+    domains: string[];
   };
 }
 
@@ -71,6 +73,7 @@ export class AuthService {
     private readonly redis: Redis,
     private readonly kafka: FastifyKafka,
     private readonly lockout: AccountLockoutService,
+    private readonly domainService?: DomainService,
   ) {
     let privKey = (process.env['JWT_PRIVATE_KEY'] ?? '').replace(/\\n/g, '\n');
     let pubKey = (process.env['JWT_PUBLIC_KEY'] ?? '').replace(/\\n/g, '\n');
@@ -85,7 +88,7 @@ export class AuthService {
   }
 
   async register(
-    dto: { email: string; password: string; firstName: string; lastName: string; role: string; tenantId: string },
+    dto: { email: string; password: string; firstName: string; lastName: string; role: string; tenantId: string; domainIds?: string[] },
     caller: { userId: string; tenantId: string },
   ): Promise<{ data: SafeUser }> {
     const existing = await (this.prisma as any).user.findUnique({ where: { email: dto.email } });
@@ -105,6 +108,11 @@ export class AuthService {
         role: dto.role,
       },
     });
+
+    // Assign domains if provided
+    if (dto.domainIds?.length && this.domainService) {
+      await this.domainService.setUserDomains(user.id, dto.domainIds, caller.userId, caller.tenantId);
+    }
 
     const safeUser = this.toSafeUser(user);
     await this.publishEvent(TOPIC_SYS_CREDENTIAL_USER_CREATED, user.id, safeUser, caller.tenantId, caller.userId);
@@ -145,7 +153,10 @@ export class AuthService {
 
     await this.lockout.resetAttempts(dto.email);
 
-    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale);
+    // Fetch user's domain codes for JWT
+    const domainCodes = this.domainService ? await this.domainService.getUserDomainCodes(user.id) : [];
+
+    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, domainCodes);
     await this.storeRefreshToken(user.id, tokens.refreshTokenId, user.role, user.tenantId, user.tenant.level);
 
     await (this.prisma as any).user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
@@ -156,7 +167,7 @@ export class AuthService {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresIn: 900,
-        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, tenantId: user.tenantId, tenantLevel: user.tenant.level },
+        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, tenantId: user.tenantId, tenantLevel: user.tenant.level, domains: domainCodes },
       },
     };
   }
@@ -179,7 +190,10 @@ export class AuthService {
     });
     if (!user || !user.isActive) throw new HttpError(401, 'Ce compte a \u00e9t\u00e9 d\u00e9sactiv\u00e9. Contactez votre administrateur.');
 
-    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale);
+    // Fetch fresh domain codes for the new JWT
+    const domainCodes = this.domainService ? await this.domainService.getUserDomainCodes(user.id) : [];
+
+    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, domainCodes);
     await this.storeRefreshToken(user.id, tokens.refreshTokenId, sessionData.role, sessionData.tenantId, sessionData.tenantLevel);
 
     return { data: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, expiresIn: 900 } };
@@ -262,8 +276,8 @@ export class AuthService {
     return { data: { message: 'Password has been reset successfully. You can now log in.' } };
   }
 
-  private generateTokens(userId: string, email: string, role: string, tenantId: string, tenantLevel: string, locale?: string) {
-    const accessToken = jwt.sign({ sub: userId, email, role, tenantId, tenantLevel, locale: locale ?? 'en' }, this.privateKey, { algorithm: 'RS256', expiresIn: ACCESS_TOKEN_EXPIRY });
+  private generateTokens(userId: string, email: string, role: string, tenantId: string, tenantLevel: string, locale?: string, domains?: string[]) {
+    const accessToken = jwt.sign({ sub: userId, email, role, tenantId, tenantLevel, locale: locale ?? 'en', domains: domains ?? [] }, this.privateKey, { algorithm: 'RS256', expiresIn: ACCESS_TOKEN_EXPIRY });
     const refreshTokenId = randomUUID();
     const refreshToken = Buffer.from(`${userId}:${refreshTokenId}`).toString('base64url');
     return { accessToken, refreshToken, refreshTokenId };

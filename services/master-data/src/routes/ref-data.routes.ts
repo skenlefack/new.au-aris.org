@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { rolesHook, tenantHook } from '@aris/auth-middleware/fastify';
 import { UserRole } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
+import { getAllowedRefDataTypes } from '../domain-map.js';
 
 const REF_DATA_TYPES = [
   'species-groups',
@@ -64,6 +65,19 @@ export async function registerRefDataRoutes(app: FastifyInstance): Promise<void>
     UserRole.NATIONAL_ADMIN,
   );
 
+  /** Filter ref-data type access by user domains (SUPER_ADMIN sees all) */
+  function assertTypeAccess(type: string, user: { role?: string; domains?: string[] }): void {
+    if (user.role === 'SUPER_ADMIN') return;
+    const userDomains = (user as any).domains ?? [];
+    if (userDomains.length === 0) return; // no restriction if no domains assigned
+    const allowed = getAllowedRefDataTypes(userDomains);
+    if (!allowed.has(type)) {
+      const err = new Error(`Access denied: ref-data type '${type}' is not in your domain scope`) as Error & { statusCode: number };
+      err.statusCode = 403;
+      throw err;
+    }
+  }
+
   // ── Dashboard counts ──
   app.get('/api/v1/master-data/ref/counts', {
     preHandler: authAndTenant,
@@ -83,6 +97,7 @@ export async function registerRefDataRoutes(app: FastifyInstance): Promise<void>
       preHandler: authAndTenant,
     }, async (request) => {
       const user = request.user as AuthenticatedUser;
+      assertTypeAccess(type, user);
       return app.refDataService.findAll(type, request.query as Record<string, string | undefined>, user);
     });
 
@@ -93,6 +108,7 @@ export async function registerRefDataRoutes(app: FastifyInstance): Promise<void>
       preHandler: authAndTenant,
     }, async (request) => {
       const user = request.user as AuthenticatedUser;
+      assertTypeAccess(type, user);
       return app.refDataService.findForSelect(type, request.query as Record<string, string | undefined>, user);
     });
 
@@ -100,6 +116,8 @@ export async function registerRefDataRoutes(app: FastifyInstance): Promise<void>
     app.get<{ Params: { id: string } }>(`${prefix}/:id`, {
       preHandler: authAndTenant,
     }, async (request) => {
+      const user = request.user as AuthenticatedUser;
+      assertTypeAccess(type, user);
       return app.refDataService.findOne(type, request.params.id);
     });
 

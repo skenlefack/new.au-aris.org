@@ -5,6 +5,7 @@ import type { authHook } from '@aris/auth-middleware/fastify';
 import type { AuthService } from './services/auth.service.js';
 import type { UserService } from './services/user.service.js';
 import type { MfaService } from './services/mfa.service.js';
+import type { DomainService } from './services/domain.service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -13,6 +14,7 @@ declare module 'fastify' {
     authService: AuthService;
     userService: UserService;
     mfaService: MfaService;
+    domainService: DomainService;
     i18n: I18nService;
     authHookFn: ReturnType<typeof authHook>;
   }

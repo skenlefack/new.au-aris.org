@@ -7,6 +7,8 @@ import { Header } from '@/components/layout/Header';
 import { ToastContainer } from '@/components/realtime/ToastContainer';
 import { RouteChangeLoader } from '@/components/ui/PageLoader';
 import { AuthGuard } from '@/components/auth/AuthGuard';
+import { useDomainStore } from '@/lib/stores/domain-store';
+import { usePublicDomains } from '@/lib/api/settings-hooks';
 import { useRealtime } from '@/lib/realtime/use-realtime';
 import { useEntityTheme } from '@/hooks/useEntityTheme';
 import { Menu } from 'lucide-react';
@@ -30,6 +32,16 @@ export default function DashboardLayout({
 
   // Apply dynamic entity accent color
   useEntityTheme();
+
+  // Sync all domains from public API into domain store (for DomainAutocomplete, DomainSelector, etc.)
+  const { data: publicDomainData } = usePublicDomains();
+  const setAllDomains = useDomainStore((s) => s.setAllDomains);
+  useEffect(() => {
+    const domains = (publicDomainData as any)?.data;
+    if (Array.isArray(domains) && domains.length > 0) {
+      setAllDomains(domains);
+    }
+  }, [publicDomainData, setAllDomains]);
 
   // Persist sidebar state + auto-collapse on tablet
   useEffect(() => {

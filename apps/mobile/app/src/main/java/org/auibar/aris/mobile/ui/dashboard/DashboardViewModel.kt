@@ -26,6 +26,7 @@ data class DashboardUiState(
     val userEmail: String = "",
     val userRole: String? = null,
     val tenantLevel: String? = null,
+    val userDomains: List<String> = emptyList(),
 )
 
 @HiltViewModel
@@ -43,6 +44,7 @@ class DashboardViewModel @Inject constructor(
             userEmail = tokenManager.userEmail ?: "",
             userRole = tokenManager.userRole,
             tenantLevel = tokenManager.tenantLevel,
+            userDomains = tokenManager.getUserDomainList(),
         )
     )
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()

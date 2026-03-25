@@ -16,8 +16,15 @@ import {
   Mail,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DomainBadge } from '@/components/domain/DomainBadge';
 
 /* ─── Types ──────────────────────────────────────────────────────────────────── */
+
+interface PlaceholderDomain {
+  code: string;
+  name: Record<string, string>;
+  color: string;
+}
 
 interface PlaceholderUser {
   id: string;
@@ -28,6 +35,7 @@ interface PlaceholderUser {
   tenant: string;
   lastLogin: string | null;
   isActive: boolean;
+  domains?: PlaceholderDomain[];
 }
 
 type UserRole =
@@ -65,6 +73,13 @@ const PLACEHOLDER_USERS: PlaceholderUser[] = [
     tenant: 'AU-IBAR',
     lastLogin: '2026-03-15T08:12:00Z',
     isActive: true,
+    domains: [
+      { code: 'animal-health', name: { en: 'Animal Health', fr: 'Sant\u00e9 Animale' }, color: '#ef4444' },
+      { code: 'livestock-prod', name: { en: 'Livestock', fr: '\u00c9levage' }, color: '#f59e0b' },
+      { code: 'fisheries', name: { en: 'Fisheries', fr: 'P\u00eaches' }, color: '#3b82f6' },
+      { code: 'wildlife', name: { en: 'Wildlife', fr: 'Faune' }, color: '#22c55e' },
+      { code: 'governance', name: { en: 'Governance', fr: 'Gouvernance' }, color: '#8b5cf6' },
+    ],
   },
   {
     id: 'u-002',
@@ -75,6 +90,10 @@ const PLACEHOLDER_USERS: PlaceholderUser[] = [
     tenant: 'Kenya',
     lastLogin: '2026-03-14T14:35:00Z',
     isActive: true,
+    domains: [
+      { code: 'animal-health', name: { en: 'Animal Health', fr: 'Sant\u00e9 Animale' }, color: '#ef4444' },
+      { code: 'livestock-prod', name: { en: 'Livestock', fr: '\u00c9levage' }, color: '#f59e0b' },
+    ],
   },
   {
     id: 'u-003',
@@ -336,6 +355,7 @@ export default function UsersPage() {
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Email</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Role</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Domains</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Tenant</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Last Login</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Status</th>
@@ -368,6 +388,32 @@ export default function UsersPage() {
 
                   {/* Role Badge */}
                   <td className="px-4 py-3">{getRoleBadge(user.role)}</td>
+
+                  {/* Domains */}
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1 max-w-[200px]">
+                      {user.domains && user.domains.length > 0 ? (
+                        <>
+                          {user.domains.slice(0, 3).map((d) => (
+                            <DomainBadge
+                              key={d.code}
+                              code={d.code}
+                              name={d.name}
+                              color={d.color}
+                              size="xs"
+                            />
+                          ))}
+                          {user.domains.length > 3 && (
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500 self-center">
+                              +{user.domains.length - 3}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-[11px] text-gray-400 dark:text-gray-500">—</span>
+                      )}
+                    </div>
+                  </td>
 
                   {/* Tenant */}
                   <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
@@ -424,7 +470,7 @@ export default function UsersPage() {
               {paginatedUsers.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400"
                   >
                     <div className="flex flex-col items-center gap-2">

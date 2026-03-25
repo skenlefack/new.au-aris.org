@@ -11,16 +11,21 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.data.remote.dto.KpiCard
 import org.auibar.aris.mobile.data.repository.DashboardRepository
+import org.auibar.aris.mobile.util.TokenManager
 import javax.inject.Inject
 
 @HiltViewModel
 class HomeDashboardViewModel @Inject constructor(
     private val dashboardRepository: DashboardRepository,
+    private val tokenManager: TokenManager,
 ) : ViewModel() {
 
     val pendingCount: StateFlow<Int> = dashboardRepository
         .getPendingCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    /** Domain codes assigned to the current user (empty = all domains). */
+    val userDomains: List<String> = tokenManager.getUserDomainList()
 
     private val _kpis = MutableStateFlow<List<KpiCard>>(emptyList())
     val kpis: StateFlow<List<KpiCard>> = _kpis.asStateFlow()

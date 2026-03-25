@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { rolesHook, tenantHook } from '@aris/auth-middleware/fastify';
+import { rolesHook, tenantHook, domainsHook } from '@aris/auth-middleware/fastify';
 import { UserRole } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import {
@@ -33,7 +33,7 @@ const UPDATE_ROLES = [
 ];
 
 export async function registerHotspotRoutes(app: FastifyInstance): Promise<void> {
-  const authAndTenant = [app.authHookFn, tenantHook()];
+  const authAndTenant = [app.authHookFn, tenantHook(), domainsHook('climate-env')];
 
   // POST /api/v1/climate/hotspots -- create environmental hotspot
   app.post<{ Body: CreateHotspotInput }>(PREFIX, {

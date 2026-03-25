@@ -202,13 +202,8 @@ export class CampaignService {
       throw new HttpError(404, `Campaign ${id} not found`);
     }
 
-    // Tenant isolation
-    if (
-      user.tenantLevel !== TenantLevel.CONTINENTAL &&
-      existing.tenantId !== user.tenantId
-    ) {
-      throw new HttpError(404, `Campaign ${id} not found`);
-    }
+    // Editability: enforce hierarchy (lower level cannot edit higher level's campaigns)
+    await this.assertCanEdit(user, existing);
 
     // Validate status transition
     if (dto.status && dto.status !== existing.status) {
@@ -252,12 +247,8 @@ export class CampaignService {
       throw new HttpError(404, `Campaign ${id} not found`);
     }
 
-    if (
-      user.tenantLevel !== TenantLevel.CONTINENTAL &&
-      existing.tenantId !== user.tenantId
-    ) {
-      throw new HttpError(404, `Campaign ${id} not found`);
-    }
+    // Editability: enforce hierarchy
+    await this.assertCanEdit(user, existing);
 
     // Only PLANNED campaigns can be deleted
     if (existing.status !== 'PLANNED') {
@@ -285,6 +276,13 @@ export class CampaignService {
     query: { domain?: string; status?: string; zone?: string; search?: string },
   ): Promise<Record<string, unknown>> {
     const where: Record<string, unknown> = {};
+
+    // Domain-based filtering: non-SUPER_ADMIN users only see campaigns
+    // whose domain matches one of their assigned domains (from JWT).
+    const userDomains = user.domains ?? [];
+    if (user.role !== 'SUPER_ADMIN' && userDomains.length > 0) {
+      where['domain'] = { in: userDomains };
+    }
 
     if (user.tenantLevel === TenantLevel.CONTINENTAL) {
       // AU sees everything — no tenant filter
@@ -325,7 +323,13 @@ export class CampaignService {
       }
     }
 
-    if (query.domain) where['domain'] = query.domain;
+    if (query.domain) {
+      // Explicit domain filter from query — override the IN filter if allowed
+      if (user.role === 'SUPER_ADMIN' || userDomains.length === 0 || userDomains.includes(query.domain)) {
+        where['domain'] = query.domain;
+      }
+      // If user doesn't have access to the requested domain, the IN filter above keeps them restricted
+    }
     if (query.status) where['status'] = query.status;
     if (query.zone) {
       where['targetZones'] = { has: query.zone };
@@ -367,6 +371,47 @@ export class CampaignService {
     }
 
     return false;
+  }
+
+  /**
+   * Assert the user can edit/delete a campaign; throws 403 if not.
+   *
+   * Rules:
+   *  - CONTINENTAL can edit everything
+   *  - Owner can always edit their own campaign
+   *  - REC can edit campaigns created by their member states
+   *  - MEMBER_STATE can only edit own campaigns (cannot edit REC/continental)
+   */
+  private async assertCanEdit(
+    user: AuthenticatedUser,
+    campaign: { tenantId: string },
+  ): Promise<void> {
+    if (user.tenantLevel === TenantLevel.CONTINENTAL) return;
+    if (campaign.tenantId === user.tenantId) return;
+
+    // REC may edit campaigns created by member states
+    if (user.tenantLevel === TenantLevel.REC) {
+      const ownerTenant = await (this.prisma as any).tenant.findUnique({
+        where: { id: campaign.tenantId },
+        select: { level: true, parentId: true },
+      });
+      if (ownerTenant?.level === 'MEMBER_STATE' && ownerTenant.parentId === user.tenantId) {
+        return;
+      }
+    }
+
+    // Resolve the campaign owner's level for a descriptive error
+    const ownerTenant = await (this.prisma as any).tenant.findUnique({
+      where: { id: campaign.tenantId },
+      select: { level: true },
+    });
+    const ownerLevel = ownerTenant?.level ?? 'unknown';
+
+    throw new HttpError(
+      403,
+      `Cannot modify a campaign created at ${ownerLevel} level. ` +
+      `Only users at that level or above can edit it.`,
+    );
   }
 
   private async publishEvent(

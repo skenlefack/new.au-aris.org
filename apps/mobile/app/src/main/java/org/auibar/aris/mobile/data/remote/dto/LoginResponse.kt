@@ -12,6 +12,15 @@ data class LoginResponse(
 )
 
 @Serializable
+data class DomainDto(
+    val id: String,
+    val code: String,
+    val name: Map<String, String> = emptyMap(),
+    val icon: String = "",
+    val color: String = "",
+)
+
+@Serializable
 data class UserDto(
     val id: String,
     val email: String,
@@ -20,4 +29,5 @@ data class UserDto(
     val role: String,
     val tenantId: String,
     val tenantLevel: String = "",
+    val domains: List<DomainDto> = emptyList(),
 )
