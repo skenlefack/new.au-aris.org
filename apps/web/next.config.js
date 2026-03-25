@@ -31,6 +31,8 @@ const nextConfig = {
       { source: '/api/v1/credential/:path*',     destination: `${svc('CREDENTIAL', 3002)}/api/v1/credential/:path*` },
       { source: '/api/v1/tenants/:path*',         destination: `${svc('TENANT', 3001)}/api/v1/tenants/:path*` },
       { source: '/api/v1/tenants',                destination: `${svc('TENANT', 3001)}/api/v1/tenants` },
+      { source: '/api/v1/settings/:path*',        destination: `${svc('TENANT', 3001)}/api/v1/settings/:path*` },
+      { source: '/api/v1/settings',               destination: `${svc('TENANT', 3001)}/api/v1/settings` },
       { source: '/api/v1/messages/:path*',        destination: `${svc('MESSAGE', 3006)}/api/v1/messages/:path*` },
       { source: '/api/v1/drive/:path*',           destination: `${svc('DRIVE', 3007)}/api/v1/drive/:path*` },
 

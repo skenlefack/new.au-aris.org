@@ -169,27 +169,51 @@ export default function FunctionsPage() {
   }, []);
 
   const handleSave = useCallback(async () => {
-    const payload = {
-      code: form.code,
-      name: form.name,
-      description: form.description,
-      level: form.level,
-      category: form.category || null,
-      isActive: form.isActive,
-      isDefault: form.isDefault,
-      sortOrder: form.sortOrder,
-    };
+    // Clean name: only include non-empty values
+    const cleanName: Record<string, string> = {};
+    for (const [k, v] of Object.entries(form.name)) {
+      if (v.trim()) cleanName[k] = v.trim();
+    }
+    if (!cleanName.en) {
+      toast.error('Validation error', { description: 'Name (EN) is required.' });
+      return;
+    }
+
+    // Clean description: null if all empty
+    const descEntries = Object.entries(form.description).filter(([, v]) => v.trim());
+    const cleanDesc = descEntries.length > 0
+      ? Object.fromEntries(descEntries.map(([k, v]) => [k, v.trim()]))
+      : null;
 
     try {
       if (editingId) {
-        await updateMut.mutateAsync({ id: editingId, ...payload });
+        // Update: only send fields accepted by FunctionUpdateBodySchema (no code/level)
+        await updateMut.mutateAsync({
+          id: editingId,
+          name: cleanName,
+          description: cleanDesc,
+          category: form.category || null,
+          isActive: form.isActive,
+          isDefault: form.isDefault,
+          sortOrder: form.sortOrder,
+        });
         toast.success('Function updated', {
-          description: `${form.name.en || form.code} has been updated successfully.`,
+          description: `${cleanName.en || form.code} has been updated successfully.`,
         });
       } else {
-        await createMut.mutateAsync(payload);
+        // Create: include code and level
+        await createMut.mutateAsync({
+          code: form.code,
+          name: cleanName,
+          description: cleanDesc,
+          level: form.level,
+          category: form.category || null,
+          isActive: form.isActive,
+          isDefault: form.isDefault,
+          sortOrder: form.sortOrder,
+        });
         toast.success('Function created', {
-          description: `${form.name.en || form.code} has been created successfully.`,
+          description: `${cleanName.en || form.code} has been created successfully.`,
         });
       }
       setView('list');
