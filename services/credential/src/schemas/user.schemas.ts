@@ -2,6 +2,7 @@ import { Type, type Static } from '@sinclair/typebox';
 
 export const UpdateUserSchema = Type.Object({
   email: Type.Optional(Type.String({ format: 'email' })),
+  password: Type.Optional(Type.String({ minLength: 8, maxLength: 128 })),
   firstName: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
   lastName: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
   role: Type.Optional(Type.String()),

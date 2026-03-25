@@ -1,3 +1,4 @@
+import * as bcrypt from 'bcrypt';
 import type { PrismaClient } from '@prisma/client';
 import type Redis from 'ioredis';
 import { TenantLevel, UserRole, DEFAULT_PAGE, DEFAULT_LIMIT, MAX_LIMIT } from '@aris/shared-types';
@@ -111,6 +112,9 @@ export class UserService {
 
     const updateData: Record<string, unknown> = {};
     if (dto.email !== undefined) updateData.email = dto.email;
+    if (dto.password !== undefined && typeof dto.password === 'string') {
+      updateData.passwordHash = await bcrypt.hash(dto.password, 10);
+    }
     if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
     if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
     if (dto.role !== undefined) updateData.role = dto.role;

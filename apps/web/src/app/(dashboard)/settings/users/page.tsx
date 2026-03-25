@@ -811,10 +811,9 @@ export default function UsersPage() {
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Email</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Role</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Domains</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-[90px]">Tenant</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-[80px]">Login</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-[70px]">Active</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right w-[100px]">Actions</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right w-[120px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
@@ -860,11 +859,6 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-xs text-gray-600 dark:text-gray-300 truncate block max-w-[90px]" title={user.tenant?.name}>
-                        {user.tenant?.countryCode?.toUpperCase() || user.tenant?.name?.slice(0, 10) || '--'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
                       <span className="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">
                         {formatRelativeTime(user.lastLoginAt)}
                       </span>
@@ -893,7 +887,7 @@ export default function UsersPage() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => handleEdit(user)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-transparent px-2 py-1.5 text-xs font-medium text-gray-500 opacity-0 group-hover:opacity-100 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-all"
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-all"
                         >
                           <Pencil className="h-3 w-3" />
                           Edit
@@ -901,7 +895,7 @@ export default function UsersPage() {
                         {canDelete && (
                           <button
                             onClick={() => setDeletingUser(user)}
-                            className="inline-flex items-center rounded-lg border border-transparent p-1.5 text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-all"
+                            className="inline-flex items-center rounded-lg border border-gray-200 dark:border-gray-700 p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-all"
                             title="Delete user (never logged in)"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -915,7 +909,7 @@ export default function UsersPage() {
 
               {users.length === 0 && !isLoading && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center">
+                  <td colSpan={7} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
                         <Users className="h-6 w-6 text-gray-400" />

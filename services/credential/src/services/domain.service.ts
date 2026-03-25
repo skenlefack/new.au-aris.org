@@ -94,23 +94,23 @@ export class DomainService {
       }
     });
 
-    // Publish Kafka event
-    try {
-      const headers: KafkaHeaders = {
-        correlationId: randomUUID(),
-        sourceService: SERVICE_NAME,
-        tenantId,
-        userId: assignedBy,
-        schemaVersion: '1',
-        timestamp: new Date().toISOString(),
-      };
-      await this.kafka.send(
-        TOPIC_SYS_CREDENTIAL_USER_DOMAINS_UPDATED,
-        userId,
-        { userId, domainIds, assignedBy },
-        headers,
-      );
-    } catch { /* non-blocking */ }
+    // Publish Kafka event (fire-and-forget with timeout to avoid hanging if topic missing)
+    const headers: KafkaHeaders = {
+      correlationId: randomUUID(),
+      sourceService: SERVICE_NAME,
+      tenantId,
+      userId: assignedBy,
+      schemaVersion: '1',
+      timestamp: new Date().toISOString(),
+    };
+    const kafkaSend = this.kafka.send(
+      TOPIC_SYS_CREDENTIAL_USER_DOMAINS_UPDATED,
+      userId,
+      { userId, domainIds, assignedBy },
+      headers,
+    );
+    const timeout = new Promise<void>((_, reject) => setTimeout(() => reject(new Error('Kafka send timeout')), 5000));
+    Promise.race([kafkaSend, timeout]).catch(() => { /* non-blocking */ });
 
     return this.getUserDomains(userId);
   }
