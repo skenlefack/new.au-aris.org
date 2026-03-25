@@ -13,6 +13,7 @@ import org.auibar.aris.mobile.data.local.dao.NotificationDao
 import org.auibar.aris.mobile.data.local.dao.PhotoDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
 import org.auibar.aris.mobile.data.local.dao.SubmissionDao
+import org.auibar.aris.mobile.data.cache.CachePolicy
 import org.auibar.aris.mobile.data.remote.api.AnalyticsApi
 import org.auibar.aris.mobile.data.remote.api.AuthApi
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
@@ -92,7 +93,8 @@ object AppModule {
         analyticsApi: AnalyticsApi,
         campaignRepository: CampaignRepository,
         submissionRepository: SubmissionRepository,
-    ): DashboardRepository = DashboardRepository(analyticsApi, campaignRepository, submissionRepository)
+        cachePolicy: CachePolicy,
+    ): DashboardRepository = DashboardRepository(analyticsApi, campaignRepository, submissionRepository, cachePolicy)
 
     @Provides
     @Singleton

@@ -45,7 +45,7 @@ class ConflictResolutionViewModelTest {
 
     private fun createViewModel(): ConflictResolutionViewModel {
         val savedStateHandle = SavedStateHandle(mapOf("submissionId" to submissionId))
-        return ConflictResolutionViewModel(savedStateHandle, submissionRepository)
+        return ConflictResolutionViewModel(savedStateHandle, submissionRepository, mockk(relaxed = true))
     }
 
     private fun mockConflictSubmission() {

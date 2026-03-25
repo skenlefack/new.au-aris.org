@@ -376,14 +376,28 @@ def phase_app():
     ])
     run_check(STG_APP, cmds, label="APP/copy-configs")
 
-    step("7.3: Copy SSL certificate (wildcard *.au-aris.org)")
-    cmds = " && ".join([
-        "cp /opt/aris/certificat/fullchain.pem /opt/aris-deploy/vm-app-stg/certs/fullchain.pem",
-        "cp /opt/aris/certificat/au-aris.org.key /opt/aris-deploy/vm-app-stg/certs/private.key",
-        "chmod 600 /opt/aris-deploy/vm-app-stg/certs/private.key",
-        "ls -la /opt/aris-deploy/vm-app-stg/certs/",
-    ])
-    run_check(STG_APP, cmds, label="APP/ssl-cert")
+    step("7.3: Check SSL certificate (wildcard *.au-aris.org)")
+    # Certs may already be in place (copied from production via _fix_staging.py)
+    # If not, try to copy from repo (if present) or from production VM
+    code, out, _ = ssh(STG_APP, "test -f /opt/aris-deploy/vm-app-stg/certs/private.key && echo 'exists'", timeout=10)
+    if "exists" in out:
+        print("  SSL certs already in place!")
+        run(STG_APP, "ls -la /opt/aris-deploy/vm-app-stg/certs/", label="APP/ssl-check")
+    else:
+        # Try copying from repo first
+        code, _, _ = ssh(STG_APP, "test -f /opt/aris/certificat/fullchain.pem", timeout=10)
+        if code == 0:
+            cmds = " && ".join([
+                "cp /opt/aris/certificat/fullchain.pem /opt/aris-deploy/vm-app-stg/certs/fullchain.pem",
+                "cp /opt/aris/certificat/au-aris.org.key /opt/aris-deploy/vm-app-stg/certs/private.key",
+                "chmod 600 /opt/aris-deploy/vm-app-stg/certs/private.key",
+                "ls -la /opt/aris-deploy/vm-app-stg/certs/",
+            ])
+            run_check(STG_APP, cmds, label="APP/ssl-cert")
+        else:
+            print("  WARNING: No SSL certs found! Copy them manually from production:")
+            print(f"  Run: python deploy/scripts/_fix_staging.py")
+            print("  Continuing without SSL...")
 
     step("7.4: Start all containers (this will take several minutes for initial build)")
     code, out = run(STG_APP,

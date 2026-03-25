@@ -19,9 +19,12 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import org.auibar.aris.mobile.data.local.dao.CampaignDao
 import org.auibar.aris.mobile.data.local.dao.SubmissionDao
+import org.auibar.aris.mobile.data.repository.Submission
+import org.auibar.aris.mobile.data.repository.SubmissionRepository
 import org.auibar.aris.mobile.ui.charts.BarChartItem
 import org.auibar.aris.mobile.ui.charts.LineChartPoint
 import org.auibar.aris.mobile.ui.charts.PieChartSlice
@@ -54,8 +57,11 @@ data class ReportsUiState(
 class MiniReportsViewModel @Inject constructor(
     submissionDao: SubmissionDao,
     campaignDao: CampaignDao,
+    private val submissionRepository: SubmissionRepository,
     tokenManager: TokenManager,
 ) : ViewModel() {
+
+    suspend fun getAllSubmissions(): List<Submission> = submissionRepository.getAll().first()
 
     val uiState = combine(
         submissionDao.getAll(),

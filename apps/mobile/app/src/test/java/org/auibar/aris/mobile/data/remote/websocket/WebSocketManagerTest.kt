@@ -57,7 +57,7 @@ class WebSocketManagerTest {
 
     @Test
     fun `initial state is DISCONNECTED`() {
-        val manager = WebSocketManager(tokenManager)
+        val manager = WebSocketManager(tokenManager, mockk(relaxed = true), mockk(relaxed = true))
         assertEquals(ConnectionState.DISCONNECTED, manager.connectionState.value)
     }
 
@@ -67,7 +67,7 @@ class WebSocketManagerTest {
         every { tokenManager.tenantId } returns "tenant-1"
         every { tokenManager.userId } returns "user-1"
 
-        val manager = WebSocketManager(tokenManager)
+        val manager = WebSocketManager(tokenManager, mockk(relaxed = true), mockk(relaxed = true))
         manager.connect()
 
         assertEquals(ConnectionState.DISCONNECTED, manager.connectionState.value)
@@ -79,7 +79,7 @@ class WebSocketManagerTest {
         every { tokenManager.tenantId } returns null
         every { tokenManager.userId } returns "user-1"
 
-        val manager = WebSocketManager(tokenManager)
+        val manager = WebSocketManager(tokenManager, mockk(relaxed = true), mockk(relaxed = true))
         manager.connect()
 
         assertEquals(ConnectionState.DISCONNECTED, manager.connectionState.value)
@@ -91,7 +91,7 @@ class WebSocketManagerTest {
         every { tokenManager.tenantId } returns "tenant-1"
         every { tokenManager.userId } returns null
 
-        val manager = WebSocketManager(tokenManager)
+        val manager = WebSocketManager(tokenManager, mockk(relaxed = true), mockk(relaxed = true))
         manager.connect()
 
         assertEquals(ConnectionState.DISCONNECTED, manager.connectionState.value)
@@ -99,7 +99,7 @@ class WebSocketManagerTest {
 
     @Test
     fun `disconnect resets state to DISCONNECTED`() {
-        val manager = WebSocketManager(tokenManager)
+        val manager = WebSocketManager(tokenManager, mockk(relaxed = true), mockk(relaxed = true))
         manager.disconnect()
 
         assertEquals(ConnectionState.DISCONNECTED, manager.connectionState.value)
@@ -108,7 +108,7 @@ class WebSocketManagerTest {
 
     @Test
     fun `reconnectAttempt starts at zero`() {
-        val manager = WebSocketManager(tokenManager)
+        val manager = WebSocketManager(tokenManager, mockk(relaxed = true), mockk(relaxed = true))
         assertEquals(0, manager.reconnectAttempt)
     }
 
@@ -116,7 +116,7 @@ class WebSocketManagerTest {
 
     @Test
     fun `events flow is available`() {
-        val manager = WebSocketManager(tokenManager)
+        val manager = WebSocketManager(tokenManager, mockk(relaxed = true), mockk(relaxed = true))
         assertNotNull(manager.events)
     }
 

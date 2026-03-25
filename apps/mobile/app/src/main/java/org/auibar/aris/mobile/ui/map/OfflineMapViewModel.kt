@@ -1,5 +1,6 @@
 package org.auibar.aris.mobile.ui.map
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,8 +11,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.auibar.aris.mobile.data.local.dao.GeoDao
 import org.auibar.aris.mobile.data.repository.GpsTrackRepository
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
+import org.auibar.aris.mobile.util.TokenManager
 import org.osmdroid.views.MapView
 import javax.inject.Inject
 
@@ -35,8 +38,35 @@ data class OfflineMapUiState(
     val showOutbreaks: Boolean = true,
     val showGpsTracks: Boolean = true,
     val isDownloading: Boolean = false,
+    val downloadProgress: Float = 0f,
+    val downloadStatusText: String = "",
     val tileStorageSize: String = "0 B",
+    val tileCount: Int = 0,
+    val lastDownloadTime: Long = 0L,
+    val regionPresets: List<MapTileManager.RegionPreset> = MapTileManager.RegionPreset.entries,
+    val showPresetPicker: Boolean = false,
+    // Tile source selection
+    val selectedTileSource: MapTileManager.MapTileSource = MapTileManager.MapTileSource.OSM,
+    // Dynamic initial center based on tenant
+    val initialCenter: MapLocation? = null,
+    val initialZoom: Double = DEFAULT_ZOOM,
+    // Active GPS track (live recording)
+    val activeGpsTrack: GpsTrackLine? = null,
+    val isTrackingActive: Boolean = false,
+    // Download estimation
+    val pendingEstimate: MapTileManager.TileEstimate? = null,
+    val showDownloadConfirm: Boolean = false,
+    val pendingDownloadAction: DownloadAction? = null,
 )
+
+/** Describes what to download after user confirms the estimate dialog. */
+sealed class DownloadAction {
+    data class VisibleRegion(val mapView: MapView) : DownloadAction()
+    data class Preset(val preset: MapTileManager.RegionPreset) : DownloadAction()
+}
+
+private const val DEFAULT_ZOOM = 6.0
+private const val TAG = "OfflineMapVM"
 
 @HiltViewModel
 class OfflineMapViewModel @Inject constructor(
@@ -44,20 +74,112 @@ class OfflineMapViewModel @Inject constructor(
     private val submissionRepository: SubmissionRepository,
     private val gpsTrackRepository: GpsTrackRepository,
     private val mapTileManager: MapTileManager,
+    private val tokenManager: TokenManager,
+    private val geoDao: GeoDao,
 ) : ViewModel() {
 
     private val domainKey: String? = savedStateHandle["domainKey"]
 
-    private val _uiState = MutableStateFlow(OfflineMapUiState())
+    private val _uiState = MutableStateFlow(OfflineMapUiState(
+        selectedTileSource = mapTileManager.getSavedTileSource(),
+    ))
     val uiState: StateFlow<OfflineMapUiState> = _uiState.asStateFlow()
 
     init {
         loadMapData()
-        updateTileStorageSize()
+        updateTileStorageInfo()
+        resolveInitialCenter()
+        observeActiveTrack()
     }
 
+    // ── Tile source ─────────────────────────────────────────────────────
+
+    fun selectTileSource(source: MapTileManager.MapTileSource) {
+        mapTileManager.saveTileSource(source)
+        _uiState.update { it.copy(selectedTileSource = source) }
+    }
+
+    // ── Tenant-based initial center ─────────────────────────────────────
+
+    private fun resolveInitialCenter() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val tenantId = tokenManager.tenantId ?: return@launch
+                val tenantLevel = tokenManager.tenantLevel
+
+                val geo = geoDao.getById(tenantId)
+                val isoCode = geo?.isoCode
+
+                val preset = if (isoCode != null) {
+                    MapTileManager.RegionPreset.fromIsoCode(isoCode)
+                } else {
+                    null
+                }
+
+                val zoom = when (tenantLevel?.uppercase()) {
+                    "MEMBER_STATE" -> 7.0
+                    "REC" -> 5.0
+                    "CONTINENTAL" -> 4.0
+                    else -> DEFAULT_ZOOM
+                }
+
+                if (preset != null) {
+                    _uiState.update {
+                        it.copy(
+                            initialCenter = MapLocation(
+                                lat = preset.centerLat,
+                                lng = preset.centerLng,
+                                label = preset.label,
+                            ),
+                            initialZoom = zoom,
+                        )
+                    }
+                } else if (tenantLevel?.uppercase() == "CONTINENTAL") {
+                    _uiState.update {
+                        it.copy(
+                            initialCenter = MapLocation(
+                                lat = AFRICA_CENTER_LAT,
+                                lng = AFRICA_CENTER_LNG,
+                                label = "Africa",
+                            ),
+                            initialZoom = zoom,
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to resolve initial center: ${e.message}")
+            }
+        }
+    }
+
+    // ── Active GPS track (live) ─────────────────────────────────────────
+
+    private fun observeActiveTrack() {
+        viewModelScope.launch {
+            gpsTrackRepository.observeActiveTrack().collect { track ->
+                if (track != null && track.pointCount > 0) {
+                    val points = parseGeoJsonCoordinates(track.geoJson)
+                    _uiState.update {
+                        it.copy(
+                            activeGpsTrack = GpsTrackLine(id = track.id, points = points),
+                            isTrackingActive = true,
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            activeGpsTrack = null,
+                            isTrackingActive = false,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Layer toggles ───────────────────────────────────────────────────
+
     private fun loadMapData() {
-        // Collect submissions reactively
         viewModelScope.launch {
             submissionRepository.getAll().collect { submissions ->
                 val domainFiltered = if (domainKey != null) {
@@ -79,7 +201,6 @@ class OfflineMapViewModel @Inject constructor(
                     )
                 }
 
-                // Outbreak markers: filter by data content or templateId containing outbreak/health keywords
                 val outbreaks = geoSubs
                     .filter { sub ->
                         sub.data.contains("outbreak", ignoreCase = true) ||
@@ -105,19 +226,14 @@ class OfflineMapViewModel @Inject constructor(
             }
         }
 
-        // Collect GPS tracks reactively
         viewModelScope.launch {
             gpsTrackRepository.getAll().collect { tracks ->
                 val trackLines = tracks
                     .filter { it.pointCount > 0 }
                     .map { track ->
                         val points = parseGeoJsonCoordinates(track.geoJson)
-                        GpsTrackLine(
-                            id = track.id,
-                            points = points,
-                        )
+                        GpsTrackLine(id = track.id, points = points)
                     }
-
                 _uiState.update { it.copy(gpsTracks = trackLines) }
             }
         }
@@ -135,47 +251,180 @@ class OfflineMapViewModel @Inject constructor(
         _uiState.update { it.copy(showGpsTracks = !it.showGpsTracks) }
     }
 
-    fun downloadTilesForVisibleRegion(mapView: MapView?) {
+    fun togglePresetPicker() {
+        _uiState.update { it.copy(showPresetPicker = !it.showPresetPicker) }
+    }
+
+    // ── Download with estimation dialog ─────────────────────────────────
+
+    fun requestDownloadForVisibleRegion(mapView: MapView?) {
         if (mapView == null) return
         val bounds = mapView.boundingBox
         val zoom = mapView.zoomLevelDouble.toInt()
+        val source = _uiState.value.selectedTileSource
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val estimate = mapTileManager.estimateTileCount(
+                minLat = bounds.latSouth,
+                maxLat = bounds.latNorth,
+                minLng = bounds.lonWest,
+                maxLng = bounds.lonEast,
+                minZoom = zoom.coerceAtLeast(1),
+                maxZoom = (zoom + 2).coerceAtMost(MAX_DOWNLOAD_ZOOM),
+                tileSource = source,
+            )
+            _uiState.update {
+                it.copy(
+                    pendingEstimate = estimate,
+                    showDownloadConfirm = true,
+                    pendingDownloadAction = DownloadAction.VisibleRegion(mapView),
+                )
+            }
+        }
+    }
+
+    fun requestDownloadPreset(preset: MapTileManager.RegionPreset) {
+        val source = _uiState.value.selectedTileSource
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val estimate = mapTileManager.estimatePreset(preset, tileSource = source)
+            _uiState.update {
+                it.copy(
+                    pendingEstimate = estimate,
+                    showDownloadConfirm = true,
+                    pendingDownloadAction = DownloadAction.Preset(preset),
+                    showPresetPicker = false,
+                )
+            }
+        }
+    }
+
+    fun confirmDownload() {
+        val action = _uiState.value.pendingDownloadAction ?: return
+        _uiState.update { it.copy(showDownloadConfirm = false, pendingEstimate = null, pendingDownloadAction = null) }
+
+        when (action) {
+            is DownloadAction.VisibleRegion -> doDownloadVisibleRegion(action.mapView)
+            is DownloadAction.Preset -> doDownloadPreset(action.preset)
+        }
+    }
+
+    fun cancelDownload() {
+        _uiState.update { it.copy(showDownloadConfirm = false, pendingEstimate = null, pendingDownloadAction = null) }
+    }
+
+    private fun doDownloadVisibleRegion(mapView: MapView) {
+        val bounds = mapView.boundingBox
+        val zoom = mapView.zoomLevelDouble.toInt()
+        val source = _uiState.value.selectedTileSource
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isDownloading = true) }
+            _uiState.update { it.copy(isDownloading = true, downloadProgress = 0f, downloadStatusText = "Preparing...") }
             try {
-                mapTileManager.downloadRegion(
+                val result = mapTileManager.downloadRegion(
                     minLat = bounds.latSouth,
                     maxLat = bounds.latNorth,
                     minLng = bounds.lonWest,
                     maxLng = bounds.lonEast,
                     minZoom = zoom.coerceAtLeast(1),
                     maxZoom = (zoom + 2).coerceAtMost(MAX_DOWNLOAD_ZOOM),
+                    tileSource = source,
+                    onProgress = { done, total ->
+                        _uiState.update {
+                            it.copy(
+                                downloadProgress = if (total > 0) done.toFloat() / total else 0f,
+                                downloadStatusText = "$done / $total tiles",
+                            )
+                        }
+                    },
                 )
+                _uiState.update {
+                    it.copy(
+                        downloadStatusText = "${result.downloaded} downloaded, ${result.skipped} cached, ${result.failed} failed",
+                    )
+                }
             } finally {
                 _uiState.update { it.copy(isDownloading = false) }
-                updateTileStorageSize()
+                updateTileStorageInfo()
             }
+        }
+    }
+
+    private fun doDownloadPreset(preset: MapTileManager.RegionPreset) {
+        val source = _uiState.value.selectedTileSource
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isDownloading = true,
+                    downloadProgress = 0f,
+                    downloadStatusText = "Downloading ${preset.label}...",
+                )
+            }
+            try {
+                val result = mapTileManager.downloadRegionPreset(
+                    preset = preset,
+                    tileSource = source,
+                    onProgress = { done, total ->
+                        _uiState.update {
+                            it.copy(
+                                downloadProgress = if (total > 0) done.toFloat() / total else 0f,
+                                downloadStatusText = "${preset.label}: $done / $total",
+                            )
+                        }
+                    },
+                )
+                _uiState.update {
+                    it.copy(
+                        downloadStatusText = "${preset.label}: ${result.downloaded} new, ${result.skipped} cached",
+                    )
+                }
+            } finally {
+                _uiState.update { it.copy(isDownloading = false) }
+                updateTileStorageInfo()
+            }
+        }
+    }
+
+    /** Legacy direct download (kept for backward compatibility if needed). */
+    fun downloadTilesForVisibleRegion(mapView: MapView?) {
+        requestDownloadForVisibleRegion(mapView)
+    }
+
+    fun downloadPreset(preset: MapTileManager.RegionPreset) {
+        requestDownloadPreset(preset)
+    }
+
+    fun pruneExpiredTiles() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val pruned = mapTileManager.pruneExpiredTiles()
+            _uiState.update { it.copy(downloadStatusText = "$pruned expired tiles removed") }
+            updateTileStorageInfo()
         }
     }
 
     fun deleteTiles() {
         viewModelScope.launch(Dispatchers.IO) {
             mapTileManager.clearTileCache()
-            updateTileStorageSize()
+            updateTileStorageInfo()
         }
     }
 
-    private fun updateTileStorageSize() {
+    private fun updateTileStorageInfo() {
         viewModelScope.launch(Dispatchers.IO) {
             val size = mapTileManager.getTileCacheSize()
-            _uiState.update { it.copy(tileStorageSize = formatSize(size)) }
+            val count = mapTileManager.getTileCount()
+            val lastDl = mapTileManager.getLastDownloadTime()
+            _uiState.update {
+                it.copy(
+                    tileStorageSize = MapTileManager.formatSize(size),
+                    tileCount = count,
+                    lastDownloadTime = lastDl,
+                )
+            }
         }
     }
 
-    /**
-     * Parse GeoJSON LineString coordinates into MapLocation list.
-     * GeoJSON stores coordinates as [longitude, latitude].
-     */
     private fun parseGeoJsonCoordinates(geoJson: String): List<MapLocation> {
         val coordsStart = geoJson.indexOf("\"coordinates\":")
         if (coordsStart == -1) return emptyList()
@@ -200,14 +449,7 @@ class OfflineMapViewModel @Inject constructor(
     companion object {
         private const val MAX_OUTBREAK_MARKERS = 20
         private const val MAX_DOWNLOAD_ZOOM = 16
-
-        fun formatSize(bytes: Long): String {
-            return when {
-                bytes < 1024 -> "$bytes B"
-                bytes < 1024 * 1024 -> "${bytes / 1024} KB"
-                bytes < 1024L * 1024 * 1024 -> "${bytes / (1024 * 1024)} MB"
-                else -> String.format("%.1f GB", bytes.toDouble() / (1024 * 1024 * 1024))
-            }
-        }
+        private const val AFRICA_CENTER_LAT = 1.0
+        private const val AFRICA_CENTER_LNG = 20.0
     }
 }

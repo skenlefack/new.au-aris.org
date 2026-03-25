@@ -37,6 +37,12 @@ keys/
 # OS files
 .DS_Store
 Thumbs.db
+nul
+
+# Deploy scripts (not needed in Docker images)
+deploy
+certificat
+References-data.txt
 
 # Misc
 *.log

@@ -18,6 +18,7 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import org.auibar.aris.mobile.BuildConfig
 import org.auibar.aris.mobile.data.remote.api.AnalyticsApi
@@ -25,6 +26,7 @@ import org.auibar.aris.mobile.data.remote.api.AuthApi
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
 import org.auibar.aris.mobile.data.remote.api.MessageApi
 import org.auibar.aris.mobile.data.remote.api.SyncApi
+import org.auibar.aris.mobile.util.ServerEnvironment
 import org.auibar.aris.mobile.util.TokenManager
 import javax.inject.Singleton
 
@@ -32,12 +34,14 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
+    @OptIn(ExperimentalSerializationApi::class)
     @Provides
     @Singleton
     fun provideJson(): Json = Json {
         ignoreUnknownKeys = true
         isLenient = true
         encodeDefaults = true
+        explicitNulls = false
     }
 
     @Provides
@@ -85,13 +89,23 @@ object NetworkModule {
                 }
             }
 
+            // Dynamic base URL — reads current environment on every request
             defaultRequest {
-                url(BuildConfig.API_BASE_URL)
+                val env = ServerEnvironment.fromName(tokenManager.serverEnvironment)
+                url(env.baseUrl)
             }
 
             engine {
                 connectTimeout = 30_000
                 socketTimeout = 30_000
+                // Bypass hostname verification for internal IPs (cert is issued for au-aris.org)
+                sslManager = { httpsURLConnection ->
+                    val env = ServerEnvironment.fromName(tokenManager.serverEnvironment)
+                    if (env.isInternalIp) {
+                        httpsURLConnection.hostnameVerifier =
+                            javax.net.ssl.HostnameVerifier { _, _ -> true }
+                    }
+                }
             }
         }
     }

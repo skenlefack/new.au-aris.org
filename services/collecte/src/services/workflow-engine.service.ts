@@ -1143,6 +1143,17 @@ export class WorkflowInstanceService {
 
 // ── Collection Campaign Service ──
 
+/**
+ * Hierarchy level rank — higher number = higher authority.
+ * Used to enforce: "campaigns created at a higher level cannot be modified by a lower level".
+ */
+const LEVEL_RANK: Record<string, number> = {
+  MEMBER_STATE: 1,
+  COUNTRY: 1, // alias used in some ownerType values
+  REC: 2,
+  CONTINENTAL: 3,
+};
+
 export class CollectionCampaignService {
   constructor(
     private readonly prisma: PrismaClient,
@@ -1173,7 +1184,7 @@ export class CollectionCampaignService {
         frequency: (dto.frequency as string) ?? null,
         scope: (dto.scope as string) ?? 'continental',
         ownerId: user.tenantId,
-        ownerType: user.tenantLevel ?? 'continental',
+        ownerType: user.tenantLevel ?? 'CONTINENTAL',
         sendReminders: dto.sendReminders ?? true,
         reminderDaysBefore: (dto.reminderDaysBefore as number) ?? 3,
         metadata: dto.metadata ?? null,
@@ -1193,9 +1204,7 @@ export class CollectionCampaignService {
     const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {};
-    if (query.status) where['status'] = query.status.toUpperCase();
-    if (query.domain) where['domain'] = query.domain;
+    const where = await this.buildVisibilityFilter(user, query);
 
     const [data, total] = await Promise.all([
       (this.prisma as any).collectionCampaign.findMany({
@@ -1214,7 +1223,7 @@ export class CollectionCampaignService {
     return { data, meta: { total, page, limit } };
   }
 
-  async findOne(id: string): Promise<ApiResponse<unknown>> {
+  async findOne(id: string, user: AuthenticatedUser): Promise<ApiResponse<unknown>> {
     const campaign = await (this.prisma as any).collectionCampaign.findUnique({
       where: { id },
       include: {
@@ -1226,6 +1235,10 @@ export class CollectionCampaignService {
       },
     });
     if (!campaign) throw new HttpError(404, `Campaign ${id} not found`);
+
+    // Visibility check
+    const canSee = await this.canAccessCampaign(user, campaign);
+    if (!canSee) throw new HttpError(404, `Campaign ${id} not found`);
 
     // Calculate progress
     const totalAssigned = campaign.assignments.length;
@@ -1248,9 +1261,11 @@ export class CollectionCampaignService {
     };
   }
 
-  async update(id: string, dto: Record<string, unknown>): Promise<ApiResponse<unknown>> {
+  async update(id: string, dto: Record<string, unknown>, user: AuthenticatedUser): Promise<ApiResponse<unknown>> {
     const existing = await (this.prisma as any).collectionCampaign.findUnique({ where: { id } });
     if (!existing) throw new HttpError(404, `Campaign ${id} not found`);
+
+    await this.assertCanEdit(user, existing);
 
     const data: Record<string, unknown> = {};
     for (const key of [
@@ -1271,7 +1286,12 @@ export class CollectionCampaignService {
     return { data: campaign };
   }
 
-  async updateStatus(id: string, status: string): Promise<ApiResponse<unknown>> {
+  async updateStatus(id: string, status: string, user: AuthenticatedUser): Promise<ApiResponse<unknown>> {
+    const existing = await (this.prisma as any).collectionCampaign.findUnique({ where: { id } });
+    if (!existing) throw new HttpError(404, `Campaign ${id} not found`);
+
+    await this.assertCanEdit(user, existing);
+
     const campaign = await (this.prisma as any).collectionCampaign.update({
       where: { id },
       data: { status: status.toUpperCase() },
@@ -1280,9 +1300,11 @@ export class CollectionCampaignService {
     return { data: campaign };
   }
 
-  async addAssignment(campaignId: string, dto: Record<string, unknown>): Promise<ApiResponse<unknown>> {
+  async addAssignment(campaignId: string, dto: Record<string, unknown>, user: AuthenticatedUser): Promise<ApiResponse<unknown>> {
     const campaign = await (this.prisma as any).collectionCampaign.findUnique({ where: { id: campaignId } });
     if (!campaign) throw new HttpError(404, `Campaign ${campaignId} not found`);
+
+    await this.assertCanEdit(user, campaign);
 
     const assignment = await (this.prisma as any).campaignAssignment.create({
       data: {
@@ -1305,7 +1327,12 @@ export class CollectionCampaignService {
     return { data: assignment };
   }
 
-  async removeAssignment(campaignId: string, assignId: string): Promise<void> {
+  async removeAssignment(campaignId: string, assignId: string, user: AuthenticatedUser): Promise<void> {
+    const campaign = await (this.prisma as any).collectionCampaign.findUnique({ where: { id: campaignId } });
+    if (!campaign) throw new HttpError(404, `Campaign ${campaignId} not found`);
+
+    await this.assertCanEdit(user, campaign);
+
     const assignment = await (this.prisma as any).campaignAssignment.findFirst({
       where: { id: assignId, campaignId },
     });
@@ -1313,7 +1340,163 @@ export class CollectionCampaignService {
     await (this.prisma as any).campaignAssignment.delete({ where: { id: assignId } });
   }
 
-  async getProgress(id: string): Promise<ApiResponse<unknown>> {
-    return this.findOne(id);
+  async getProgress(id: string, user: AuthenticatedUser): Promise<ApiResponse<unknown>> {
+    return this.findOne(id, user);
+  }
+
+  // ── Visibility ──────────────────────────────────────────────────────
+
+  /**
+   * Build Prisma WHERE filter for campaign listing.
+   *
+   * Visibility rules:
+   *  - CONTINENTAL → sees everything
+   *  - REC → own campaigns + campaigns targeting this REC (targetRecIds) +
+   *          campaigns targeting any of the REC's member countries (targetCountries)
+   *  - MEMBER_STATE → own campaigns + campaigns targeting this country (targetCountries)
+   */
+  private async buildVisibilityFilter(
+    user: AuthenticatedUser,
+    query: { status?: string; domain?: string },
+  ): Promise<Record<string, unknown>> {
+    const where: Record<string, unknown> = {};
+
+    if (user.tenantLevel !== TenantLevel.CONTINENTAL) {
+      const tenant = await (this.prisma as any).tenant.findUnique({
+        where: { id: user.tenantId },
+        select: { level: true, countryCode: true },
+      });
+
+      if (tenant?.level === 'MEMBER_STATE' && tenant.countryCode) {
+        // MS sees: own campaigns + campaigns targeting this country
+        where['OR'] = [
+          { ownerId: user.tenantId },
+          { targetCountries: { array_contains: [tenant.countryCode.toUpperCase()] } },
+        ];
+      } else if (tenant?.level === 'REC') {
+        // REC sees: own + targeting this REC + targeting any member country
+        const memberTenants = await (this.prisma as any).tenant.findMany({
+          where: { parentId: user.tenantId, level: 'MEMBER_STATE' },
+          select: { countryCode: true },
+        });
+        const countryCodes: string[] = memberTenants
+          .map((t: { countryCode: string | null }) => t.countryCode?.toUpperCase())
+          .filter(Boolean);
+
+        const conditions: Record<string, unknown>[] = [
+          { ownerId: user.tenantId },
+          { targetRecIds: { array_contains: [user.tenantId] } },
+        ];
+        for (const code of countryCodes) {
+          conditions.push({ targetCountries: { array_contains: [code] } });
+        }
+
+        where['OR'] = conditions;
+      } else {
+        // Fallback: strict tenant isolation
+        where['ownerId'] = user.tenantId;
+      }
+    }
+
+    if (query.status) where['status'] = query.status.toUpperCase();
+    if (query.domain) where['domain'] = query.domain;
+
+    return where;
+  }
+
+  /**
+   * Check if a user can see a campaign (used for findOne).
+   */
+  private async canAccessCampaign(
+    user: AuthenticatedUser,
+    campaign: { ownerId: string | null; targetCountries: unknown; targetRecIds: unknown },
+  ): Promise<boolean> {
+    if (user.tenantLevel === TenantLevel.CONTINENTAL) return true;
+    if (campaign.ownerId === user.tenantId) return true;
+
+    const tenant = await (this.prisma as any).tenant.findUnique({
+      where: { id: user.tenantId },
+      select: { level: true, countryCode: true },
+    });
+    if (!tenant) return false;
+
+    const targetCountries = Array.isArray(campaign.targetCountries)
+      ? (campaign.targetCountries as string[]).map((c: string) => c.toUpperCase())
+      : [];
+    const targetRecIds = Array.isArray(campaign.targetRecIds)
+      ? (campaign.targetRecIds as string[])
+      : [];
+
+    if (tenant.level === 'MEMBER_STATE' && tenant.countryCode) {
+      return targetCountries.includes(tenant.countryCode.toUpperCase());
+    }
+
+    if (tenant.level === 'REC') {
+      // REC can see if it is directly targeted
+      if (targetRecIds.includes(user.tenantId)) return true;
+
+      // Or if any of its member countries are targeted
+      const memberTenants = await (this.prisma as any).tenant.findMany({
+        where: { parentId: user.tenantId, level: 'MEMBER_STATE' },
+        select: { countryCode: true },
+      });
+      const memberCodes: string[] = memberTenants
+        .map((t: { countryCode: string | null }) => t.countryCode?.toUpperCase())
+        .filter(Boolean);
+      return targetCountries.some((c: string) => memberCodes.includes(c));
+    }
+
+    return false;
+  }
+
+  // ── Editability ─────────────────────────────────────────────────────
+
+  /**
+   * Assert the user can edit a campaign; throws 403 if not.
+   *
+   * Rules:
+   *  - CONTINENTAL can edit everything
+   *  - A lower level CANNOT modify a campaign created at a higher level
+   *  - Same level: can only edit own campaigns
+   *  - Higher level can edit lower level's campaigns within their scope
+   *    (REC can edit campaigns created by their member states)
+   */
+  private async assertCanEdit(
+    user: AuthenticatedUser,
+    campaign: { ownerId: string | null; ownerType: string },
+  ): Promise<void> {
+    if (user.tenantLevel === TenantLevel.CONTINENTAL) return;
+
+    const userRank = LEVEL_RANK[user.tenantLevel?.toUpperCase() ?? ''] ?? 0;
+    const ownerRank = LEVEL_RANK[campaign.ownerType?.toUpperCase() ?? ''] ?? 0;
+
+    // Lower level cannot modify higher-level campaigns
+    if (userRank < ownerRank) {
+      throw new HttpError(
+        403,
+        `Cannot modify a campaign created at ${campaign.ownerType} level. ` +
+        `Only users at that level or above can edit it.`,
+      );
+    }
+
+    // Same or higher level: owner can always edit
+    if (campaign.ownerId === user.tenantId) return;
+
+    // REC editing a member state's campaign: check parent-child
+    if (
+      user.tenantLevel === TenantLevel.REC &&
+      (campaign.ownerType?.toUpperCase() === 'MEMBER_STATE' || campaign.ownerType?.toUpperCase() === 'COUNTRY')
+    ) {
+      const ownerTenant = await (this.prisma as any).tenant.findUnique({
+        where: { id: campaign.ownerId },
+        select: { parentId: true },
+      });
+      if (ownerTenant?.parentId === user.tenantId) return;
+    }
+
+    throw new HttpError(
+      403,
+      'You do not have permission to modify this campaign.',
+    );
   }
 }

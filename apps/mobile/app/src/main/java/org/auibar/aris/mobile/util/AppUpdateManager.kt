@@ -18,6 +18,7 @@ import javax.inject.Singleton
 class AppUpdateManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val httpClient: HttpClient,
+    private val tokenManager: TokenManager,
 ) {
     /**
      * Check if a new version is available.
@@ -25,8 +26,9 @@ class AppUpdateManager @Inject constructor(
      */
     suspend fun checkForUpdate(): UpdateInfo? = withContext(Dispatchers.IO) {
         try {
+            val env = ServerEnvironment.fromName(tokenManager.serverEnvironment)
             val response: VersionCheckResponse = httpClient.get(
-                "${BuildConfig.API_BASE_URL}/api/v1/mobile/version-check"
+                "${env.baseUrl}/api/v1/mobile/version-check"
             ) {
                 parameter("platform", "android")
                 parameter("current", BuildConfig.VERSION_NAME)

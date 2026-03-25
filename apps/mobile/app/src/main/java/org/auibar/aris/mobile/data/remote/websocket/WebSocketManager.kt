@@ -81,8 +81,10 @@ class WebSocketManager @Inject constructor(
         reconnectAttempt = 0
 
         try {
-            val baseUrl = BuildConfig.API_BASE_URL
+            val env = org.auibar.aris.mobile.util.ServerEnvironment.fromName(tokenManager.serverEnvironment)
+            val baseUrl = env.baseUrl
                 .replace(Regex(":\\d+$"), ":3008") // realtime service port
+                .replace(Regex("https?://([^:]+)$"), "http://$1:3008") // add port if missing
             val opts = IO.Options().apply {
                 auth = mapOf("token" to token)
                 transports = arrayOf("websocket")

@@ -16,6 +16,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Circle
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,6 +51,7 @@ import java.util.Locale
 fun MessageListScreen(
     onBack: () -> Unit,
     onThreadClick: (threadId: String, recipientId: String, recipientName: String) -> Unit,
+    onCompose: () -> Unit = {},
     viewModel: MessageListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -71,6 +74,11 @@ fun MessageListScreen(
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onCompose) {
+                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.new_message))
+            }
         },
     ) { padding ->
         Box(

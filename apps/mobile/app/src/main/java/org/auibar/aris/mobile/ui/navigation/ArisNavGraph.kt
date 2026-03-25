@@ -52,6 +52,7 @@ import org.auibar.aris.mobile.ui.notification.NotificationListViewModel
 import org.auibar.aris.mobile.ui.photo.PhotoGalleryScreen
 import org.auibar.aris.mobile.ui.reports.MiniReportsScreen
 import org.auibar.aris.mobile.ui.settings.SettingsScreen
+import org.auibar.aris.mobile.ui.message.ComposeMessageScreen
 import org.auibar.aris.mobile.ui.message.MessageListScreen
 import org.auibar.aris.mobile.ui.message.MessageThreadScreen
 import org.auibar.aris.mobile.ui.components.UserTopBanner
@@ -88,6 +89,7 @@ object ArisRoutes {
     const val APP_LOCK = "app-lock"
     const val SET_PIN = "set-pin"
     const val MESSAGES = "messages"
+    const val COMPOSE_MESSAGE = "compose-message"
     const val MESSAGE_THREAD = "messages/{threadId}/{recipientId}/{recipientName}"
 
     fun domainDashboard(domainKey: String) = "domain/$domainKey"
@@ -431,6 +433,22 @@ fun ArisNavGraph(
                         navController.navigate(
                             ArisRoutes.messageThread(threadId, recipientId, recipientName),
                         )
+                    },
+                    onCompose = {
+                        navController.navigate(ArisRoutes.COMPOSE_MESSAGE)
+                    },
+                )
+            }
+
+            composable(ArisRoutes.COMPOSE_MESSAGE) {
+                ComposeMessageScreen(
+                    onBack = { navController.popBackStack() },
+                    onMessageSent = { threadId, recipientId, recipientName ->
+                        navController.navigate(
+                            ArisRoutes.messageThread(threadId, recipientId, recipientName),
+                        ) {
+                            popUpTo(ArisRoutes.MESSAGES)
+                        }
                     },
                 )
             }

@@ -185,6 +185,14 @@
     <string name="clear_cache_desc">Remove all offline data from this device</string>
     <string name="clear_cache_confirm">This will delete all locally stored campaigns, submissions, and referential data. You will need to sync again. Continue?</string>
     <string name="cache_cleared">Cache cleared successfully</string>
+
+    <!-- Server environment -->
+    <string name="server_environment">Server</string>
+    <string name="server_env_current">Connected to %1$s</string>
+    <string name="server_env_switch_title">Switch Server</string>
+    <string name="server_env_switch_confirm">Switching to %1$s will log you out and clear your session. You will need to sign in again.\n\nContinue?</string>
+    <string name="server_env_switched">Switched to %1$s — please sign in again</string>
+
     <string name="app_version">App Version</string>
     <string name="unknown_user">Unknown User</string>
     <string name="confirm">Confirm</string>
@@ -313,6 +321,7 @@
     <string name="map_gps_tracks">GPS Tracks</string>
     <string name="tile_storage_size">Tile storage: %s</string>
     <string name="delete_tiles">Delete Offline Tiles</string>
+    <string name="download_region_preset">Download Region Preset</string>
 
     <!-- Release -->
     <string name="loading">Loading\u2026</string>
@@ -379,6 +388,21 @@
     <string name="cd_verifying_code">Verifying code, please wait</string>
     <string name="cd_login_error">Login error: %s</string>
     <string name="cd_verification_error">Verification error: %s</string>
+
+    <!-- Offline Map Features -->
+    <string name="my_location">My Location</string>
+    <string name="map_style">Map Style</string>
+    <string name="download_confirm_title">Download Tiles?</string>
+    <string name="download_estimate_total">%d tiles total</string>
+    <string name="download_estimate_cached">%d already cached</string>
+    <string name="download_estimate_new">%d to download</string>
+    <string name="download_estimate_size">Estimated size: %s</string>
+    <string name="location_permission_required">Location permission required to show your position</string>
+    <string name="gps_recording_active">GPS Recording: %d points</string>
+    <string name="cd_my_location">Show my location on map</string>
+    <string name="tile_source_osm">OpenStreetMap</string>
+    <string name="tile_source_topo">OpenTopoMap</string>
+    <string name="tile_source_hot">Humanitarian (HOT)</string>
 
     <!-- Outbreak / Map -->
     <string name="outbreak">Outbreak</string>

@@ -7,7 +7,7 @@ This directory must contain the following files on the production server:
 | File | Description | Status |
 |------|-------------|--------|
 | `fullchain.pem` | Server certificate + GoDaddy CA chain (3 certs) | Available |
-| `private.key` | RSA private key matching the certificate | **PENDING from Philippe** |
+| `private.key` | RSA private key matching the certificate | Available |
 
 ## Certificate Details
 

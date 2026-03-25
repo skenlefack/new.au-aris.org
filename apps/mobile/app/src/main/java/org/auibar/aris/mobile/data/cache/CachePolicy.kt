@@ -26,6 +26,9 @@ class CachePolicy @Inject constructor(
     /** Form templates: refresh when campaign loaded, stale after 6h */
     val templatesTtlMs: Long = 6 * 60 * 60 * 1000L
 
+    /** KPI / analytics data: stale after 5 minutes */
+    val kpiTtlMs: Long = 5 * 60 * 1000L
+
     fun isStale(key: String, ttlMs: Long): Boolean {
         val lastRefresh = prefs.getLong(key, 0L)
         return System.currentTimeMillis() - lastRefresh > ttlMs
@@ -49,5 +52,8 @@ class CachePolicy @Inject constructor(
         const val KEY_MASTER_GEO = "cache_master_geo"
         const val KEY_CAMPAIGNS = "cache_campaigns"
         const val KEY_TEMPLATES = "cache_templates"
+        const val KEY_KPI_HEALTH = "cache_kpi_health"
+        const val KEY_KPI_CONTINENTAL = "cache_kpi_continental"
+        fun keyKpiDomain(domainKey: String) = "cache_kpi_domain_$domainKey"
     }
 }

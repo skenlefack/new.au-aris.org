@@ -7,23 +7,31 @@
         </trust-anchors>
     </base-config>
 
-    <!-- Debug: allow cleartext to local dev/staging server -->
+    <!-- Debug: allow user-installed certificates -->
     <debug-overrides>
         <trust-anchors>
             <certificates src="user" />
+            <certificates src="system" />
         </trust-anchors>
     </debug-overrides>
 
-    <!-- Allow cleartext only to the specific ARIS staging IP -->
+    <!-- Allow cleartext to ARIS internal IPs (prod + staging) -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">10.202.101.183</domain>
         <domain includeSubdomains="false">10.202.101.184</domain>
         <domain includeSubdomains="false">10.202.101.186</domain>
+        <domain includeSubdomains="false">10.202.101.146</domain>
+        <domain includeSubdomains="false">10.202.101.147</domain>
+        <domain includeSubdomains="false">10.202.101.148</domain>
+        <domain includeSubdomains="false">10.202.101.149</domain>
     </domain-config>
 
     <!-- Pin production certificates -->
     <domain-config>
         <domain includeSubdomains="true">au-aris.org</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
         <pin-set expiration="2027-01-01">
             <!-- Primary: Let's Encrypt ISRG Root X1 -->
             <pin digest="SHA-256">C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=</pin>

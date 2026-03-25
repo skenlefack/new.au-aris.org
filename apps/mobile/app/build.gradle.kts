@@ -20,7 +20,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
 
-        buildConfigField("String", "API_BASE_URL", "\"https://api.aris.au-ibar.org\"")
+        buildConfigField("String", "API_BASE_URL_PROD", "\"https://au-aris.org\"")
+        buildConfigField("String", "API_BASE_URL_OFFICE", "\"https://10.202.101.183\"")
+        buildConfigField("String", "API_BASE_URL_STG", "\"https://test.au-aris.org\"")
     }
 
     signingConfigs {
@@ -35,7 +37,6 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "API_BASE_URL", "\"http://10.202.101.183:4000\"")
         }
         release {
             isMinifyEnabled = true
@@ -83,6 +84,7 @@ dependencies {
 
     // Core
     implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.webkit:webkit:1.8.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
@@ -121,6 +123,7 @@ dependencies {
     // Kotlinx Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     // Location (Play Services)
     implementation("com.google.android.gms:play-services-location:21.0.1")

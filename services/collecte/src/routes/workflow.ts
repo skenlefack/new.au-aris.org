@@ -347,7 +347,8 @@ export default async function workflowRoutes(app: FastifyInstance): Promise<void
     schema: { params: IdParamSchema },
     preHandler: [auth, tenant],
   }, async (request) => {
-    return campaignService.findOne(request.params.id);
+    const user = request.user as AuthenticatedUser;
+    return campaignService.findOne(request.params.id, user);
   });
 
   // POST /api/v1/workflow/campaigns
@@ -365,7 +366,8 @@ export default async function workflowRoutes(app: FastifyInstance): Promise<void
     schema: { params: IdParamSchema, body: UpdateCollectionCampaignSchema },
     preHandler: [auth, tenant, rolesHook(...ADMIN_ROLES)],
   }, async (request) => {
-    return campaignService.update(request.params.id, request.body as Record<string, unknown>);
+    const user = request.user as AuthenticatedUser;
+    return campaignService.update(request.params.id, request.body as Record<string, unknown>, user);
   });
 
   // POST /api/v1/workflow/campaigns/:id/activate
@@ -373,7 +375,8 @@ export default async function workflowRoutes(app: FastifyInstance): Promise<void
     schema: { params: IdParamSchema },
     preHandler: [auth, tenant, rolesHook(...ADMIN_ROLES)],
   }, async (request) => {
-    return campaignService.updateStatus(request.params.id, 'ACTIVE');
+    const user = request.user as AuthenticatedUser;
+    return campaignService.updateStatus(request.params.id, 'ACTIVE', user);
   });
 
   // POST /api/v1/workflow/campaigns/:id/pause
@@ -381,7 +384,8 @@ export default async function workflowRoutes(app: FastifyInstance): Promise<void
     schema: { params: IdParamSchema },
     preHandler: [auth, tenant, rolesHook(...ADMIN_ROLES)],
   }, async (request) => {
-    return campaignService.updateStatus(request.params.id, 'PAUSED');
+    const user = request.user as AuthenticatedUser;
+    return campaignService.updateStatus(request.params.id, 'PAUSED', user);
   });
 
   // POST /api/v1/workflow/campaigns/:id/complete
@@ -389,7 +393,8 @@ export default async function workflowRoutes(app: FastifyInstance): Promise<void
     schema: { params: IdParamSchema },
     preHandler: [auth, tenant, rolesHook(...ADMIN_ROLES)],
   }, async (request) => {
-    return campaignService.updateStatus(request.params.id, 'COMPLETED');
+    const user = request.user as AuthenticatedUser;
+    return campaignService.updateStatus(request.params.id, 'COMPLETED', user);
   });
 
   // POST /api/v1/workflow/campaigns/:id/assignments
@@ -397,7 +402,8 @@ export default async function workflowRoutes(app: FastifyInstance): Promise<void
     schema: { params: IdParamSchema, body: CreateAssignmentSchema },
     preHandler: [auth, tenant, rolesHook(...ADMIN_ROLES)],
   }, async (request, reply) => {
-    const result = await campaignService.addAssignment(request.params.id, request.body as Record<string, unknown>);
+    const user = request.user as AuthenticatedUser;
+    const result = await campaignService.addAssignment(request.params.id, request.body as Record<string, unknown>, user);
     return reply.code(201).send(result);
   });
 
@@ -406,7 +412,8 @@ export default async function workflowRoutes(app: FastifyInstance): Promise<void
     schema: { params: IdParamSchema },
     preHandler: [auth, tenant],
   }, async (request) => {
-    return campaignService.getProgress(request.params.id);
+    const user = request.user as AuthenticatedUser;
+    return campaignService.getProgress(request.params.id, user);
   });
 
   // DELETE /api/v1/workflow/campaigns/:id/assignments/:assignId
@@ -414,7 +421,8 @@ export default async function workflowRoutes(app: FastifyInstance): Promise<void
     schema: { params: AssignIdParamSchema },
     preHandler: [auth, tenant, rolesHook(...ADMIN_ROLES)],
   }, async (request, reply) => {
-    await campaignService.removeAssignment(request.params.id, request.params.assignId);
+    const user = request.user as AuthenticatedUser;
+    await campaignService.removeAssignment(request.params.id, request.params.assignId, user);
     return reply.code(204).send();
   });
 }

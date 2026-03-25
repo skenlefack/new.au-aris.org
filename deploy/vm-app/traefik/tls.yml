@@ -4,6 +4,12 @@
 # Valid: 2026-02-14 to 2027-03-18
 # ═══════════════════════════════════════════════════════════════
 tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/traefik/certs/fullchain.pem
+        keyFile: /etc/traefik/certs/private.key
+
   certificates:
     - certFile: /etc/traefik/certs/fullchain.pem
       keyFile: /etc/traefik/certs/private.key
@@ -11,7 +17,7 @@ tls:
   options:
     default:
       minVersion: VersionTLS12
-      sniStrict: true
+      sniStrict: false
       cipherSuites:
         - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
         - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
@@ -21,11 +27,24 @@ tls:
         - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
 
 http:
+  routers:
+    # Redirect www.au-aris.org → au-aris.org
+    www-redirect:
+      rule: "Host(`www.au-aris.org`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - www-to-naked
+      service: api@internal
+      tls: {}
+      priority: 1000
+
   middlewares:
-    # Redirect HTTP → HTTPS
-    https-redirect:
-      redirectScheme:
-        scheme: https
+    # Redirect www → naked domain
+    www-to-naked:
+      redirectRegex:
+        regex: "^https://www\\.au-aris\\.org/(.*)"
+        replacement: "https://au-aris.org/${1}"
         permanent: true
 
     # Security headers
