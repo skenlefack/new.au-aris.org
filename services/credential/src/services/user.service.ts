@@ -39,15 +39,37 @@ export class UserService {
     };
   }
 
-  async findAll(caller: AuthenticatedUser, query: PaginationQuery): Promise<PaginatedResponse<any>> {
+  async findAll(caller: AuthenticatedUser, query: PaginationQuery & { search?: string; role?: string; status?: string }): Promise<PaginatedResponse<any>> {
     const page = query.page ?? DEFAULT_PAGE;
     const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
     const skip = (page - 1) * limit;
     const orderBy = query.sort ? { [query.sort]: query.order ?? 'asc' } : { createdAt: 'asc' as const };
-    const where = this.buildTenantFilter(caller);
+    const where: Record<string, unknown> = { ...this.buildTenantFilter(caller) };
+
+    // Search by name or email
+    if (query.search) {
+      const q = query.search;
+      (where as any).OR = [
+        { email: { contains: q, mode: 'insensitive' } },
+        { firstName: { contains: q, mode: 'insensitive' } },
+        { lastName: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
+    // Filter by role
+    if (query.role) {
+      where.role = query.role;
+    }
+
+    // Filter by status
+    if (query.status === 'active') {
+      where.isActive = true;
+    } else if (query.status === 'inactive') {
+      where.isActive = false;
+    }
 
     const [rawData, total] = await Promise.all([
-      (this.prisma as any).user.findMany({ where, select: USER_SELECT, skip, take: limit, orderBy }),
+      (this.prisma as any).user.findMany({ where, select: { ...USER_SELECT, tenant: { select: { id: true, name: true, level: true, countryCode: true } } }, skip, take: limit, orderBy }),
       (this.prisma as any).user.count({ where }),
     ]);
 

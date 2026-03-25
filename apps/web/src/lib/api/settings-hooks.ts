@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ApiClientError } from './client';
+import { ApiClientError, apiClient } from './client';
 
 const TENANT_API = process.env['NEXT_PUBLIC_TENANT_API_URL'] ?? '';
 
@@ -624,19 +624,21 @@ export function useSettingsUsers(params?: {
   tenantId?: string; functionId?: string;
   page?: number; limit?: number;
 }) {
-  const qs = new URLSearchParams();
-  qs.set('page', String(params?.page ?? 1));
-  qs.set('limit', String(params?.limit ?? 20));
-  if (params?.search) qs.set('search', params.search);
-  if (params?.role) qs.set('role', params.role);
-  if (params?.status) qs.set('status', params.status);
-  if (params?.tenantId) qs.set('tenantId', params.tenantId);
-  if (params?.functionId) qs.set('functionId', params.functionId);
-  const query = `?${qs.toString()}`;
+  const qs: Record<string, string> = {
+    page: String(params?.page ?? 1),
+    limit: String(params?.limit ?? 50),
+  };
+  if (params?.search) qs.search = params.search;
+  if (params?.role) qs.role = params.role;
+  if (params?.status) qs.status = params.status;
+  if (params?.tenantId) qs.tenantId = params.tenantId;
+  if (params?.functionId) qs.functionId = params.functionId;
 
   return useQuery({
     queryKey: ['settings', 'users', params],
-    queryFn: () => tenantFetch<{ data: ManagedUser[]; meta: { total: number; page: number; limit: number } }>(`/api/v1/settings/users${query}`),
+    queryFn: () => apiClient.get<{ data: ManagedUser[]; meta: { total: number; page: number; limit: number } }>(
+      '/credential/users', qs,
+    ),
     staleTime: 2 * 60_000,
   });
 }
@@ -644,7 +646,7 @@ export function useSettingsUsers(params?: {
 export function useSettingsUser(id: string) {
   return useQuery({
     queryKey: ['settings', 'users', id],
-    queryFn: () => tenantFetch<{ data: ManagedUser }>(`/api/v1/settings/users/${id}`),
+    queryFn: () => apiClient.get<{ data: ManagedUser }>(`/credential/users/${id}`),
     enabled: !!id,
     staleTime: 2 * 60_000,
   });
@@ -653,7 +655,8 @@ export function useSettingsUser(id: string) {
 export function useCreateUser() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: Record<string, unknown>) => tenantPost('/api/v1/settings/users', body),
+    mutationFn: (body: Record<string, unknown>) =>
+      apiClient.post('/credential/auth/register', body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'users'] }),
   });
 }
@@ -662,7 +665,7 @@ export function useUpdateUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, ...body }: { id: string } & Record<string, unknown>) =>
-      tenantPut(`/api/v1/settings/users/${id}`, body),
+      apiClient.patch(`/credential/users/${id}`, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'users'] }),
   });
 }
@@ -671,7 +674,7 @@ export function useResetUserPassword() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, password }: { id: string; password: string }) =>
-      tenantPatch(`/api/v1/settings/users/${id}/password`, { password }),
+      apiClient.patch(`/credential/users/${id}`, { password }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'users'] }),
   });
 }
@@ -679,7 +682,8 @@ export function useResetUserPassword() {
 export function useDeleteUser() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => tenantDelete(`/api/v1/settings/users/${id}`),
+    mutationFn: (id: string) =>
+      apiClient.patch(`/credential/users/${id}`, { isActive: false }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'users'] }),
   });
 }

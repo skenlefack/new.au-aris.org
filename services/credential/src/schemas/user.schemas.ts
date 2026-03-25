@@ -39,6 +39,9 @@ export const PaginationQuerySchema = Type.Object({
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
   sort: Type.Optional(Type.String()),
   order: Type.Optional(Type.Union([Type.Literal('asc'), Type.Literal('desc')])),
+  search: Type.Optional(Type.String()),
+  role: Type.Optional(Type.String()),
+  status: Type.Optional(Type.String()),
 });
 
 export const UuidParamSchema = Type.Object({
