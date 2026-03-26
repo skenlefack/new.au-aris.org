@@ -293,6 +293,24 @@ export function useRemoveCountryRec() {
   });
 }
 
+// ── Public i18n (no auth needed) ──
+
+export function usePublicLocales() {
+  return useQuery<{ data: { availableLocales: string[]; defaultLocale: string } }>({
+    queryKey: ['public', 'i18n'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/v1/public/i18n');
+        if (!res.ok) return { data: { availableLocales: ['en', 'fr', 'pt', 'ar', 'es'], defaultLocale: 'en' } };
+        return res.json();
+      } catch {
+        return { data: { availableLocales: ['en', 'fr', 'pt', 'ar', 'es'], defaultLocale: 'en' } };
+      }
+    },
+    staleTime: 10 * 60_000,
+  });
+}
+
 // ── System Config ──
 
 export function useSettingsConfig(category?: string) {
@@ -321,7 +339,12 @@ export function useBulkUpdateConfig() {
   return useMutation({
     mutationFn: (configs: { category: string; key: string; value: unknown }[]) =>
       tenantPost('/api/v1/settings/config/bulk', { configs }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'config'] }),
+    onSuccess: (_data, configs) => {
+      qc.invalidateQueries({ queryKey: ['settings', 'config'] });
+      if (configs.some((c) => c.category === 'i18n')) {
+        qc.invalidateQueries({ queryKey: ['public', 'i18n'] });
+      }
+    },
   });
 }
 

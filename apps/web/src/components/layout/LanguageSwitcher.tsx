@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Languages, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useUpdateLocale } from '@/lib/api/hooks';
+import { usePublicLocales } from '@/lib/api/settings-hooks';
 import { LOCALES, LOCALE_LABELS, type Locale } from '@/lib/i18n/config';
 
 export function LanguageSwitcher() {
@@ -15,6 +16,16 @@ export function LanguageSwitcher() {
   const setLocale = useLocaleStore((s) => s.setLocale);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const updateLocaleMutation = useUpdateLocale();
+  const { data: i18nConfig } = usePublicLocales();
+
+  // Filter LOCALES to only show active ones from settings
+  const activeLocales = useMemo(() => {
+    const available = i18nConfig?.data?.availableLocales;
+    if (!available || !Array.isArray(available) || available.length === 0) {
+      return LOCALES as readonly Locale[];
+    }
+    return LOCALES.filter((loc) => available.includes(loc));
+  }, [i18nConfig]);
 
   const currentLabel = LOCALE_LABELS[locale];
 
@@ -78,7 +89,7 @@ export function LanguageSwitcher() {
           aria-label="Select language"
           className="absolute right-0 z-50 mt-2 w-48 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-1 shadow-xl animate-scale-in"
         >
-          {LOCALES.map((loc) => {
+          {activeLocales.map((loc) => {
             const info = LOCALE_LABELS[loc];
             const isSelected = loc === locale;
 

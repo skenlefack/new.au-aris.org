@@ -36,4 +36,9 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
   app.get('/api/v1/public/domains', async () => {
     return app.settingsService.getPublicDomains();
   });
+
+  // GET /api/v1/public/i18n — get active locales (no auth)
+  app.get('/api/v1/public/i18n', async () => {
+    return app.settingsService.getPublicI18nConfig();
+  });
 }

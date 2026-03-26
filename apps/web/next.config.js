@@ -65,6 +65,9 @@ const nextConfig = {
       // ── BI Tools ──
       // Metabase proxy is handled by API route handler at /api/bi-proxy/metabase/[...path]
 
+      // ── Public (no-auth) routes ──
+      { source: '/api/v1/public/:path*',           destination: `${svc('TENANT', 3001)}/api/v1/public/:path*` },
+
       // ── Tenant / BI routes ──
       { source: '/api/v1/bi/:path*',              destination: `${svc('TENANT', 3001)}/api/v1/bi/:path*` },
     ];

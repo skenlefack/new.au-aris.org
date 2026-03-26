@@ -711,6 +711,7 @@ export class SettingsService {
 
     await this.publishEvent(TOPIC_SETTINGS_CONFIG_UPDATED, { category, key, value, action: 'updated' }, user);
     await this.cacheInvalidate('aris:settings:config:*');
+    if (category === 'i18n') await this.cacheInvalidate('aris:public:i18n');
     return { data: config };
   }
 
@@ -744,6 +745,7 @@ export class SettingsService {
       user,
     );
     await this.cacheInvalidate('aris:settings:config:*');
+    if (configs.some((c) => c.category === 'i18n')) await this.cacheInvalidate('aris:public:i18n');
     return { data: results };
   }
 
@@ -1006,6 +1008,29 @@ export class SettingsService {
     });
 
     const result = { data: domains };
+    await this.cacheSet(cacheKey, result, CACHE_TTL_PUBLIC);
+    return result;
+  }
+
+  async getPublicI18nConfig() {
+    const cacheKey = 'aris:public:i18n';
+    const cached = await this.cacheGet<{ data: any }>(cacheKey);
+    if (cached) return cached;
+
+    const configs = await (this.prisma as any).systemConfig.findMany({
+      where: { category: 'i18n' },
+      select: { key: true, value: true },
+    });
+
+    const map: Record<string, unknown> = {};
+    for (const c of configs) map[c.key] = c.value;
+
+    const result = {
+      data: {
+        availableLocales: map['i18n.availableLocales'] ?? ['en', 'fr', 'pt', 'ar', 'es'],
+        defaultLocale: map['i18n.defaultLocale'] ?? 'en',
+      },
+    };
     await this.cacheSet(cacheKey, result, CACHE_TTL_PUBLIC);
     return result;
   }
