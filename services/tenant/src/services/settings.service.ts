@@ -1512,7 +1512,10 @@ export class SettingsService {
     };
     try {
       const key = (payload.id as string) ?? randomUUID();
-      await this.kafka.send(topic, key, payload, headers);
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Kafka send timeout')), 5000),
+      );
+      await Promise.race([this.kafka.send(topic, key, payload, headers), timeout]);
     } catch {
       // Kafka publish failures are non-blocking
     }
