@@ -703,6 +703,8 @@ export class SettingsService {
         category,
         key,
         value: value as Prisma.InputJsonValue,
+        label: { en: key },
+        type: 'json',
         updatedBy: user.userId,
       },
     });
@@ -728,6 +730,8 @@ export class SettingsService {
             category: c.category,
             key: c.key,
             value: c.value as Prisma.InputJsonValue,
+            label: { en: c.key },
+            type: 'json',
             updatedBy: user.userId,
           },
         }),
