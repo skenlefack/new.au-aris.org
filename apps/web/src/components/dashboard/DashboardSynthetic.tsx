@@ -459,10 +459,10 @@ export function DashboardSynthetic() {
       {/* ── Footer disclaimer ───────────────────────────────────────────── */}
       <div className="flex-shrink-0 flex items-center justify-between px-3 py-1 bg-gray-200/80 dark:bg-gray-800/80 text-[9px] text-gray-500 dark:text-gray-500 border-t border-gray-300/50 dark:border-gray-700/50">
         <span>
-          <strong>Data source:</strong> AU-IBAR ARIS 4.0 — Member State submissions, WAHIS, EMPRES, FAOSTAT
+          <strong>Data source:</strong> AU-IBAR ARIS 4.0 — RECs and Countries notifications
         </span>
         <span>
-          <strong>Disclaimer:</strong> Boundaries and designations do not imply official AU endorsement. Demo data.
+          <strong>Disclaimer:</strong> The data is sourced from ARIS historical data and country notifications submitted through the ARIS validation process.
         </span>
         <span>AU-IBAR {new Date().getFullYear()}</span>
       </div>
