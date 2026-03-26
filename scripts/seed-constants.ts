@@ -42,6 +42,12 @@ export const SPECIES = {
   HONEY_BEE: 'API-MEL',
   AFRICAN_BEE: 'API-ADA',
   EA_BEE: 'API-SCU',
+  // Aquatic (additional)
+  SHRIMP: 'PEN-MON',
+  CARP: 'CYP-CAR',
+  TROUT: 'ONC-MYK',
+  OYSTER: 'CRA-CRA',
+  MUSSEL: 'MYT-GAL',
 } as const;
 
 // ── Disease Codes (resolved at runtime by code) ─────────────────────────
@@ -58,6 +64,11 @@ export const DISEASE = {
   ECF: 'ECF',
   VARROOSIS: 'VAR',
   NOSEMA: 'AFB', // American foulbrood (closest bee disease in seed)
+  // Aquatic diseases (codes match master-data Disease table)
+  EUS: 'EUS',
+  ISA: 'ISA',
+  KHV: 'KHV',
+  WHITE_SPOT: 'WSSV',
 } as const;
 
 // ── Kenya Admin1 Codes (resolved at runtime by code) ────────────────────

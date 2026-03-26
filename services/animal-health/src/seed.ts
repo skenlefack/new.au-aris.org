@@ -83,6 +83,55 @@ export async function seed(): Promise<void> {
   }
   console.log(`  ✓ ${healthEvents.length} health events`);
 
+  // ── Aquatic Health Events (5) ──
+  console.log('  🐟 Aquatic health events...');
+
+  const aquaticEvents = [
+    // 2 EUS events on Tilapia (Lake Victoria — Kisumu)
+    { id: domainId(P, 51), diseaseId: ds(DISEASE.EUS), eventType: 'CONFIRMED', speciesIds: [sp(SPECIES.TILAPIA)], dateSuspicion: new Date('2025-09-05'), dateConfirmation: new Date('2025-09-12'), geoEntityId: geo(GEO.KISUMU), latitude: -0.09, longitude: 34.77, holdingsAffected: 3, susceptible: 15000, cases: 800, deaths: 220, controlMeasures: ['QUARANTINE', 'DISINFECTION'], confidenceLevel: 'CONFIRMED' },
+    { id: domainId(P, 52), diseaseId: ds(DISEASE.EUS), eventType: 'SUSPECT', speciesIds: [sp(SPECIES.TILAPIA)], dateSuspicion: new Date('2025-10-18'), geoEntityId: geo(GEO.KISUMU), latitude: -0.11, longitude: 34.75, holdingsAffected: 1, susceptible: 5000, cases: 150, deaths: 30, controlMeasures: ['QUARANTINE'], confidenceLevel: 'VERIFIED' },
+    // 1 White Spot event on Shrimp (Mombasa coast)
+    { id: domainId(P, 53), diseaseId: ds(DISEASE.WHITE_SPOT), eventType: 'CONFIRMED', speciesIds: [sp(SPECIES.SHRIMP)], dateSuspicion: new Date('2025-07-20'), dateConfirmation: new Date('2025-07-28'), geoEntityId: geo(GEO.MOMBASA), latitude: -4.05, longitude: 39.67, holdingsAffected: 2, susceptible: 200000, cases: 45000, deaths: 38000, controlMeasures: ['QUARANTINE', 'SLAUGHTER', 'DISINFECTION'], confidenceLevel: 'CONFIRMED' },
+    // 1 KHV event on Carp (Nakuru aquaculture ponds)
+    { id: domainId(P, 54), diseaseId: ds(DISEASE.KHV), eventType: 'CONFIRMED', speciesIds: [sp(SPECIES.CARP)], dateSuspicion: new Date('2025-08-10'), dateConfirmation: new Date('2025-08-18'), geoEntityId: geo(GEO.NAKURU), latitude: -0.28, longitude: 36.07, holdingsAffected: 1, susceptible: 8000, cases: 2200, deaths: 1800, controlMeasures: ['QUARANTINE', 'SLAUGHTER'], confidenceLevel: 'CONFIRMED' },
+    // 1 ISA event on Rainbow Trout (Nakuru highlands aquaculture)
+    { id: domainId(P, 55), diseaseId: ds(DISEASE.ISA), eventType: 'SUSPECT', speciesIds: [sp(SPECIES.TROUT)], dateSuspicion: new Date('2025-11-02'), geoEntityId: geo(GEO.NAKURU), latitude: -0.30, longitude: 36.08, holdingsAffected: 1, susceptible: 3000, cases: 120, deaths: 45, controlMeasures: ['QUARANTINE'], confidenceLevel: 'RUMOR' },
+  ];
+
+  for (const evt of aquaticEvents) {
+    await prisma.healthEvent.upsert({
+      where: { id: evt.id },
+      update: {},
+      create: {
+        id: evt.id,
+        tenantId: TENANT_KE,
+        diseaseId: evt.diseaseId,
+        eventType: evt.eventType,
+        speciesIds: evt.speciesIds,
+        dateSuspicion: evt.dateSuspicion,
+        dateOnset: evt.dateSuspicion,
+        dateConfirmation: evt.dateConfirmation ?? null,
+        dateClosure: null,
+        geoEntityId: evt.geoEntityId,
+        latitude: evt.latitude,
+        longitude: evt.longitude,
+        holdingsAffected: evt.holdingsAffected,
+        susceptible: evt.susceptible,
+        cases: evt.cases,
+        deaths: evt.deaths,
+        killed: 0,
+        slaughtered: 0,
+        controlMeasures: evt.controlMeasures,
+        confidenceLevel: evt.confidenceLevel,
+        dataClassification: 'RESTRICTED',
+        wahisReady: evt.eventType === 'CONFIRMED',
+        createdBy: USER_KE_ADMIN,
+        updatedBy: USER_KE_ADMIN,
+      },
+    });
+  }
+  console.log(`  ✓ ${aquaticEvents.length} aquatic health events`);
+
   // ── Lab Results (10) ──
   console.log('  🔬 Lab results...');
 
@@ -124,6 +173,40 @@ export async function seed(): Promise<void> {
     });
   }
   console.log(`  ✓ ${labResults.length} lab results`);
+
+  // ── Aquatic Lab Results (3) ──
+  console.log('  🔬 Aquatic lab results...');
+
+  const aquaticLabResults = [
+    { id: domainId(P, 151), sampleId: 'KE-AQ-2025-001', sampleType: 'Tissue (gill + skin)', dateCollected: new Date('2025-09-06'), dateReceived: new Date('2025-09-09'), testType: 'PCR', result: 'POSITIVE', turnaroundDays: 5, healthEventId: domainId(P, 51) },
+    { id: domainId(P, 152), sampleId: 'KE-AQ-2025-002', sampleType: 'Whole shrimp', dateCollected: new Date('2025-07-21'), dateReceived: new Date('2025-07-24'), testType: 'PCR', result: 'POSITIVE', turnaroundDays: 4, healthEventId: domainId(P, 53) },
+    { id: domainId(P, 153), sampleId: 'KE-AQ-2025-003', sampleType: 'Kidney tissue', dateCollected: new Date('2025-08-11'), dateReceived: new Date('2025-08-15'), testType: 'PCR', result: 'POSITIVE', turnaroundDays: 6, healthEventId: domainId(P, 54) },
+  ];
+
+  for (const lr of aquaticLabResults) {
+    await prisma.labResult.upsert({
+      where: { id: lr.id },
+      update: {},
+      create: {
+        id: lr.id,
+        tenantId: TENANT_KE,
+        sampleId: lr.sampleId,
+        sampleType: lr.sampleType,
+        dateCollected: lr.dateCollected,
+        dateReceived: lr.dateReceived,
+        testType: lr.testType,
+        result: lr.result,
+        labId,
+        turnaroundDays: lr.turnaroundDays,
+        eqaFlag: false,
+        healthEventId: lr.healthEventId,
+        dataClassification: 'RESTRICTED',
+        createdBy: USER_KE_ADMIN,
+        updatedBy: USER_KE_ADMIN,
+      },
+    });
+  }
+  console.log(`  ✓ ${aquaticLabResults.length} aquatic lab results`);
 
   // ── Surveillance Activities (5) ──
   console.log('  🔎 Surveillance activities...');

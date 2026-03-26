@@ -39,7 +39,7 @@ export const DISEASE_SEEDS: DiseaseSeed[] = [
   { code: 'VAR', nameEn: 'Varroosis of honey bees', nameFr: 'Varroose des abeilles mellifères', isWoahListed: true, affectedSpecies: ['API-MEL', 'API-ADA', 'API-SCU'], isNotifiable: true, wahisCategory: 'bee' },
   { code: 'AFB', nameEn: 'American foulbrood of honey bees', nameFr: 'Loque américaine des abeilles mellifères', isWoahListed: true, affectedSpecies: ['API-MEL', 'API-ADA', 'API-SCU'], isNotifiable: true, wahisCategory: 'bee' },
   { code: 'SHB', nameEn: 'Small hive beetle infestation', nameFr: 'Infestation par le petit coléoptère', isWoahListed: true, affectedSpecies: ['API-MEL', 'API-ADA', 'API-SCU'], isNotifiable: true, wahisCategory: 'bee' },
-  { code: 'EUS', nameEn: 'Epizootic ulcerative syndrome', nameFr: 'Syndrome ulcératif épizootique', isWoahListed: true, affectedSpecies: ['ORE-NIL', 'CLA-GAR'], isNotifiable: true, wahisCategory: 'fish' },
+  { code: 'EUS', nameEn: 'Epizootic ulcerative syndrome', nameFr: 'Syndrome ulcératif épizootique', isWoahListed: true, affectedSpecies: ['ORE-NIL', 'CLA-GAR', 'LAT-NIL'], isNotifiable: true, wahisCategory: 'fish' },
   { code: 'WSSV', nameEn: 'White spot disease', nameFr: 'Maladie des points blancs', isWoahListed: true, affectedSpecies: ['PEN-MON'], isNotifiable: true, wahisCategory: 'crustacean' },
 
   // ── Additional WOAH-listed cattle diseases ──
@@ -113,10 +113,10 @@ export const DISEASE_SEEDS: DiseaseSeed[] = [
   // ── Aquatic diseases ──
   { code: 'KHV', nameEn: 'Koi herpesvirus disease', nameFr: 'Herpèsvirose de la carpe koï', isWoahListed: true, affectedSpecies: ['CYP-CAR'], isNotifiable: true, wahisCategory: 'fish' },
   { code: 'SVC', nameEn: 'Spring viraemia of carp', nameFr: 'Virémie printanière de la carpe', isWoahListed: true, affectedSpecies: ['CYP-CAR'], isNotifiable: true, wahisCategory: 'fish' },
-  { code: 'IHN', nameEn: 'Infectious haematopoietic necrosis', nameFr: 'Nécrose hématopoïétique infectieuse', isWoahListed: true, affectedSpecies: ['ORE-NIL'], isNotifiable: true, wahisCategory: 'fish' },
-  { code: 'VHS', nameEn: 'Viral haemorrhagic septicaemia', nameFr: 'Septicémie hémorragique virale', isWoahListed: true, affectedSpecies: ['ORE-NIL', 'CLA-GAR'], isNotifiable: true, wahisCategory: 'fish' },
+  { code: 'IHN', nameEn: 'Infectious haematopoietic necrosis', nameFr: 'Nécrose hématopoïétique infectieuse', isWoahListed: true, affectedSpecies: ['ORE-NIL', 'ONC-MYK'], isNotifiable: true, wahisCategory: 'fish' },
+  { code: 'VHS', nameEn: 'Viral haemorrhagic septicaemia', nameFr: 'Septicémie hémorragique virale', isWoahListed: true, affectedSpecies: ['ORE-NIL', 'CLA-GAR', 'ONC-MYK'], isNotifiable: true, wahisCategory: 'fish' },
   { code: 'TIL-VIR', nameEn: 'Tilapia lake virus disease', nameFr: 'Maladie du virus du lac du tilapia', isWoahListed: true, affectedSpecies: ['ORE-NIL', 'ORE-AUR'], isNotifiable: true, wahisCategory: 'fish' },
-  { code: 'ISA', nameEn: 'Infectious salmon anaemia', nameFr: 'Anémie infectieuse du saumon', isWoahListed: true, affectedSpecies: [], isNotifiable: true, wahisCategory: 'fish' },
+  { code: 'ISA', nameEn: 'Infectious salmon anaemia', nameFr: 'Anémie infectieuse du saumon', isWoahListed: true, affectedSpecies: ['ONC-MYK'], isNotifiable: true, wahisCategory: 'fish' },
 
   // ── Bee diseases ──
   { code: 'EFB', nameEn: 'European foulbrood of honey bees', nameFr: 'Loque européenne des abeilles mellifères', isWoahListed: true, affectedSpecies: ['API-MEL', 'API-ADA', 'API-SCU'], isNotifiable: true, wahisCategory: 'bee' },

@@ -1098,12 +1098,198 @@ function buildTransport() {
   };
 }
 
+// ── AQUATIC ANIMAL HEALTH FORM ──────────────────────────────────────
+
+// 22. Aquatic Animal Health Event Report (9 sections)
+function buildAquaticAnimalHealthReport() {
+  // Section 1: General Information
+  fieldOrder = 0;
+  const sectionGeneral = makeSection(
+    { en: 'General Information', fr: 'Informations G\u00e9n\u00e9rales', pt: 'Informa\u00e7\u00f5es Gerais', ar: '\u0645\u0639\u0644\u0648\u0645\u0627\u062a \u0639\u0627\u0645\u0629' }, 1,
+    [
+      dateField('date_of_report', { en: 'Date of Report', fr: 'Date du Rapport', pt: 'Data do Relat\u00f3rio', ar: '\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u062a\u0642\u0631\u064a\u0631' }, { required: true }),
+      textField('reporting_officer', { en: 'Reporting Officer', fr: 'Agent D\u00e9clarant', pt: 'Oficial Relator', ar: '\u0627\u0644\u0645\u0648\u0638\u0641 \u0627\u0644\u0645\u0628\u0644\u063a' }, { required: true }),
+      textField('reference_number', { en: 'Reference Number', fr: 'Num\u00e9ro de R\u00e9f\u00e9rence', pt: 'N\u00famero de Refer\u00eancia', ar: '\u0631\u0642\u0645 \u0627\u0644\u0645\u0631\u062c\u0639' }),
+      selectField('reporting_period', { en: 'Reporting Period', fr: 'P\u00e9riode de D\u00e9claration', pt: 'Per\u00edodo de Relat\u00f3rio', ar: '\u0641\u062a\u0631\u0629 \u0627\u0644\u0625\u0628\u0644\u0627\u063a' }, ['Q1', 'Q2', 'Q3', 'Q4', 'Annual']),
+      selectField('water_body_type', { en: 'Type of Water Body', fr: 'Type de Plan d\'Eau', pt: 'Tipo de Corpo d\'\u00c1gua', ar: '\u0646\u0648\u0639 \u0627\u0644\u0645\u0633\u0637\u062d \u0627\u0644\u0645\u0627\u0626\u064a' },
+        [{ en: 'Lake', fr: 'Lac' }, { en: 'River', fr: 'Rivi\u00e8re' }, { en: 'Pond', fr: '\u00c9tang' }, { en: 'Reservoir', fr: 'R\u00e9servoir' }, { en: 'Dam', fr: 'Barrage' }, { en: 'Estuary', fr: 'Estuaire' }, { en: 'Ocean', fr: 'Oc\u00e9an' }, { en: 'Lagoon', fr: 'Lagune' }]),
+      textField('water_body_name', { en: 'Name of Water Body', fr: 'Nom du Plan d\'Eau', pt: 'Nome do Corpo d\'\u00c1gua', ar: '\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u0637\u062d \u0627\u0644\u0645\u0627\u0626\u064a' }),
+      textField('farm_name', { en: 'Farm/Site Name', fr: 'Nom de la Ferme/Site', pt: 'Nome da Fazenda/Local', ar: '\u0627\u0633\u0645 \u0627\u0644\u0645\u0632\u0631\u0639\u0629/\u0627\u0644\u0645\u0648\u0642\u0639' }),
+      textField('owner_name', { en: 'Farm Owner/Operator', fr: 'Propri\u00e9taire/Exploitant', pt: 'Propriet\u00e1rio/Operador', ar: '\u0645\u0627\u0644\u0643/\u0645\u0634\u063a\u0644 \u0627\u0644\u0645\u0632\u0631\u0639\u0629' }),
+      textField('contact_phone', { en: 'Contact Phone', fr: 'T\u00e9l\u00e9phone', pt: 'Telefone de Contato', ar: '\u0647\u0627\u062a\u0641 \u0627\u0644\u0627\u062a\u0635\u0627\u0644' }),
+    ],
+    { icon: 'FileText', color: '#0EA5E9' },
+  );
+
+  // Section 2: Production System & Environment
+  fieldOrder = 0;
+  const sectionProduction = makeSection(
+    { en: 'Production System & Environment', fr: 'Syst\u00e8me de Production & Environnement', pt: 'Sistema de Produ\u00e7\u00e3o & Ambiente', ar: '\u0646\u0638\u0627\u0645 \u0627\u0644\u0625\u0646\u062a\u0627\u062c \u0648\u0627\u0644\u0628\u064a\u0626\u0629' }, 2,
+    [
+      selectField('production_system_type', { en: 'Production System Type', fr: 'Type de Syst\u00e8me de Production', pt: 'Tipo de Sistema de Produ\u00e7\u00e3o', ar: '\u0646\u0648\u0639 \u0646\u0638\u0627\u0645 \u0627\u0644\u0625\u0646\u062a\u0627\u062c' },
+        [{ en: 'Capture Fisheries', fr: 'P\u00eache de Capture' }, { en: 'Aquaculture - Pond', fr: 'Aquaculture - \u00c9tang' }, { en: 'Aquaculture - Cage', fr: 'Aquaculture - Cage' }, { en: 'Aquaculture - Raceway', fr: 'Aquaculture - Canal' }, { en: 'Aquaculture - Tank/RAS', fr: 'Aquaculture - Bassin/RAS' }, { en: 'Wild/Natural', fr: 'Sauvage/Naturel' }]),
+      selectField('water_source', { en: 'Water Source', fr: 'Source d\'Eau', pt: 'Fonte de \u00c1gua', ar: '\u0645\u0635\u062f\u0631 \u0627\u0644\u0645\u064a\u0627\u0647' },
+        [{ en: 'Freshwater', fr: 'Eau douce' }, { en: 'Marine', fr: 'Marin' }, { en: 'Brackish', fr: 'Saum\u00e2tre' }]),
+      selectField('culture_intensity', { en: 'Culture Intensity', fr: 'Intensit\u00e9 de Culture', pt: 'Intensidade de Cultura', ar: '\u0643\u062b\u0627\u0641\u0629 \u0627\u0644\u0627\u0633\u062a\u0632\u0631\u0627\u0639' },
+        [{ en: 'Extensive', fr: 'Extensif' }, { en: 'Semi-intensive', fr: 'Semi-intensif' }, { en: 'Intensive', fr: 'Intensif' }, { en: 'Super-intensive', fr: 'Super-intensif' }]),
+      numberField('stocking_density', { en: 'Stocking Density (fish/m\u00b3 or /ha)', fr: 'Densit\u00e9 de Peuplement', pt: 'Densidade de Estocagem', ar: '\u0643\u062b\u0627\u0641\u0629 \u0627\u0644\u062a\u062e\u0632\u064a\u0646' }),
+      selectField('feed_type', { en: 'Feed Type', fr: 'Type d\'Aliment', pt: 'Tipo de Alimento', ar: '\u0646\u0648\u0639 \u0627\u0644\u0639\u0644\u0641' },
+        [{ en: 'Natural', fr: 'Naturel' }, { en: 'Supplementary', fr: 'Suppl\u00e9mentaire' }, { en: 'Complete', fr: 'Complet' }, { en: 'None', fr: 'Aucun' }]),
+      decimalField('total_area_ha', { en: 'Total Production Area (ha)', fr: 'Surface Totale de Production (ha)', pt: '\u00c1rea Total de Produ\u00e7\u00e3o (ha)', ar: '\u0625\u062c\u0645\u0627\u0644\u064a \u0645\u0633\u0627\u062d\u0629 \u0627\u0644\u0625\u0646\u062a\u0627\u062c (\u0647\u0643\u062a\u0627\u0631)' }),
+      numberField('year_established', { en: 'Year Established', fr: 'Ann\u00e9e d\'\u00c9tablissement', pt: 'Ano de Estabelecimento', ar: '\u0633\u0646\u0629 \u0627\u0644\u062a\u0623\u0633\u064a\u0633' }),
+    ],
+    { icon: 'Factory', color: '#059669' },
+  );
+
+  // Section 3: Water Quality Parameters
+  fieldOrder = 0;
+  const sectionWaterQuality = makeSection(
+    { en: 'Water Quality Parameters', fr: 'Param\u00e8tres de Qualit\u00e9 de l\'Eau', pt: 'Par\u00e2metros de Qualidade da \u00c1gua', ar: '\u0645\u0639\u0627\u064a\u064a\u0631 \u062c\u0648\u062f\u0629 \u0627\u0644\u0645\u064a\u0627\u0647' }, 3,
+    [
+      decimalField('water_temperature', { en: 'Water Temperature (\u00b0C)', fr: 'Temp\u00e9rature de l\'Eau (\u00b0C)', pt: 'Temperatura da \u00c1gua (\u00b0C)', ar: '\u062f\u0631\u062c\u0629 \u062d\u0631\u0627\u0631\u0629 \u0627\u0644\u0645\u0627\u0621' }),
+      decimalField('dissolved_oxygen', { en: 'Dissolved Oxygen (mg/L)', fr: 'Oxyg\u00e8ne Dissous (mg/L)', pt: 'Oxig\u00eanio Dissolvido (mg/L)', ar: '\u0627\u0644\u0623\u0643\u0633\u062c\u064a\u0646 \u0627\u0644\u0645\u0630\u0627\u0628' }),
+      decimalField('ph_level', { en: 'pH Level', fr: 'Niveau de pH', pt: 'N\u00edvel de pH', ar: '\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u062d\u0645\u0648\u0636\u0629' }),
+      decimalField('ammonia_level', { en: 'Ammonia (mg/L)', fr: 'Ammoniac (mg/L)', pt: 'Am\u00f4nia (mg/L)', ar: '\u0627\u0644\u0623\u0645\u0648\u0646\u064a\u0627' }),
+      decimalField('nitrite_level', { en: 'Nitrite (mg/L)', fr: 'Nitrite (mg/L)', pt: 'Nitrito (mg/L)', ar: '\u0627\u0644\u0646\u062a\u0631\u064a\u062a' }),
+      textField('turbidity', { en: 'Turbidity', fr: 'Turbidit\u00e9', pt: 'Turbidez', ar: '\u0627\u0644\u0639\u0643\u0627\u0631\u0629' }),
+      decimalField('salinity', { en: 'Salinity (ppt)', fr: 'Salinit\u00e9 (ppt)', pt: 'Salinidade (ppt)', ar: '\u0627\u0644\u0645\u0644\u0648\u062d\u0629' }),
+      textareaField('water_quality_notes', { en: 'Additional Observations', fr: 'Observations Suppl\u00e9mentaires', pt: 'Observa\u00e7\u00f5es Adicionais', ar: '\u0645\u0644\u0627\u062d\u0638\u0627\u062a \u0625\u0636\u0627\u0641\u064a\u0629' }, { columnSpan: 2 }),
+    ],
+    { icon: 'Droplets', color: '#06B6D4' },
+  );
+
+  // Section 4: Affected Animals (repeater)
+  fieldOrder = 0;
+  const sectionAffected = makeSection(
+    { en: 'Affected Animals', fr: 'Animaux Affect\u00e9s', pt: 'Animais Afetados', ar: '\u0627\u0644\u062d\u064a\u0648\u0627\u0646\u0627\u062a \u0627\u0644\u0645\u062a\u0623\u062b\u0631\u0629' }, 4,
+    [
+      makeRepeater('affected_animals', { en: 'Affected Species', fr: 'Esp\u00e8ces Affect\u00e9es', pt: 'Esp\u00e9cies Afetadas', ar: '\u0627\u0644\u0623\u0646\u0648\u0627\u0639 \u0627\u0644\u0645\u062a\u0623\u062b\u0631\u0629' }, [
+        { type: 'master-data-select', code: 'species', label: { en: 'Species', fr: 'Esp\u00e8ce', pt: 'Esp\u00e9cie', ar: '\u0627\u0644\u0646\u0648\u0639' }, required: true, properties: { masterDataType: 'species', searchable: true, filterGroup: 'AQUATIC' } },
+        { type: 'select', code: 'age_class', label: { en: 'Age Class', fr: 'Classe d\'\u00c2ge', pt: 'Classe Et\u00e1ria', ar: '\u0627\u0644\u0641\u0626\u0629 \u0627\u0644\u0639\u0645\u0631\u064a\u0629' }, properties: { options: [{ label: { en: 'Fry' }, value: 'fry' }, { label: { en: 'Fingerling' }, value: 'fingerling' }, { label: { en: 'Juvenile' }, value: 'juvenile' }, { label: { en: 'Sub-adult' }, value: 'sub_adult' }, { label: { en: 'Adult' }, value: 'adult' }, { label: { en: 'Broodstock' }, value: 'broodstock' }] } },
+        { type: 'number', code: 'total_population', label: { en: 'Total Stock', fr: 'Stock Total', pt: 'Estoque Total', ar: '\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u062e\u0632\u0648\u0646' }, required: true, properties: { min: 0 } },
+        { type: 'number', code: 'num_affected', label: { en: 'Number Affected', fr: 'Nombre Affect\u00e9s', pt: 'N\u00famero Afetados', ar: '\u0639\u062f\u062f \u0627\u0644\u0645\u062a\u0623\u062b\u0631\u064a\u0646' }, required: true, properties: { min: 0 } },
+        { type: 'number', code: 'num_deaths', label: { en: 'Mortalities', fr: 'Mortalit\u00e9s', pt: 'Mortalidades', ar: '\u0627\u0644\u0648\u0641\u064a\u0627\u062a' }, properties: { min: 0 } },
+        { type: 'number', code: 'mortality_rate', label: { en: 'Mortality Rate (%)', fr: 'Taux de Mortalit\u00e9 (%)', pt: 'Taxa de Mortalidade (%)', ar: '\u0645\u0639\u062f\u0644 \u0627\u0644\u0648\u0641\u064a\u0627\u062a (%)' }, properties: { min: 0, max: 100, step: 0.01 } },
+        { type: 'date', code: 'date_first_signs', label: { en: 'Date First Signs', fr: 'Date Premiers Signes', pt: 'Data Primeiros Sinais', ar: '\u062a\u0627\u0631\u064a\u062e \u0623\u0648\u0644 \u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062a' } },
+        { type: 'select', code: 'daily_mortality_pattern', label: { en: 'Daily Mortality Pattern', fr: 'Tendance de Mortalit\u00e9', pt: 'Padr\u00e3o de Mortalidade', ar: '\u0646\u0645\u0637 \u0627\u0644\u0648\u0641\u064a\u0627\u062a' }, properties: { options: [{ label: { en: 'Increasing' }, value: 'increasing' }, { label: { en: 'Stable' }, value: 'stable' }, { label: { en: 'Decreasing' }, value: 'decreasing' }, { label: { en: 'Sporadic' }, value: 'sporadic' }] } },
+      ], { addLabel: { en: 'Add species', fr: 'Ajouter une esp\u00e8ce', pt: 'Adicionar esp\u00e9cie', ar: '\u0625\u0636\u0627\u0641\u0629 \u0646\u0648\u0639' } }),
+    ],
+    { icon: 'Fish', color: '#F97316', columns: 1 },
+  );
+
+  // Section 5: Disease Description
+  fieldOrder = 0;
+  const sectionDisease = makeSection(
+    { en: 'Disease Description', fr: 'Description de la Maladie', pt: 'Descri\u00e7\u00e3o da Doen\u00e7a', ar: '\u0648\u0635\u0641 \u0627\u0644\u0645\u0631\u0636' }, 5,
+    [
+      diseaseSelect('disease', { en: 'Disease / Suspected Disease', fr: 'Maladie / Maladie Suspect\u00e9e', pt: 'Doen\u00e7a / Doen\u00e7a Suspeita', ar: '\u0627\u0644\u0645\u0631\u0636 / \u0627\u0644\u0645\u0631\u0636 \u0627\u0644\u0645\u0634\u062a\u0628\u0647' }, { required: true }),
+      textareaField('clinical_signs_observed', { en: 'Clinical Signs Observed', fr: 'Signes Cliniques Observ\u00e9s', pt: 'Sinais Cl\u00ednicos Observados', ar: '\u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062a \u0627\u0644\u0633\u0631\u064a\u0631\u064a\u0629' }, { required: true, columnSpan: 2 }),
+      makeRepeater('external_lesions', { en: 'External Lesions', fr: 'L\u00e9sions Externes', pt: 'Les\u00f5es Externas', ar: '\u0627\u0644\u0622\u0641\u0627\u062a \u0627\u0644\u062e\u0627\u0631\u062c\u064a\u0629' }, [
+        { type: 'select', code: 'lesion_type', label: { en: 'Lesion Type', fr: 'Type de L\u00e9sion' }, required: true, properties: { options: [
+          { label: { en: 'Skin ulcers', fr: 'Ulc\u00e8res cutan\u00e9s' }, value: 'skin_ulcers' },
+          { label: { en: 'Fin rot', fr: 'Pourriture des nageoires' }, value: 'fin_rot' },
+          { label: { en: 'Hemorrhages', fr: 'H\u00e9morragies' }, value: 'hemorrhages' },
+          { label: { en: 'Exophthalmia', fr: 'Exophtalmie' }, value: 'exophthalmia' },
+          { label: { en: 'Scale loss', fr: 'Perte d\'\u00e9cailles' }, value: 'scale_loss' },
+          { label: { en: 'Discoloration', fr: 'D\u00e9coloration' }, value: 'discoloration' },
+          { label: { en: 'Gill necrosis', fr: 'N\u00e9crose branchiale' }, value: 'gill_necrosis' },
+          { label: { en: 'Abdominal distension', fr: 'Distension abdominale' }, value: 'abdominal_distension' },
+        ] } },
+      ], { required: false, minRows: 0, maxRows: 8, addLabel: { en: 'Add lesion', fr: 'Ajouter une l\u00e9sion' } }),
+      makeRepeater('behavioral_signs', { en: 'Behavioral Signs', fr: 'Signes Comportementaux', pt: 'Sinais Comportamentais', ar: '\u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062a \u0627\u0644\u0633\u0644\u0648\u0643\u064a\u0629' }, [
+        { type: 'select', code: 'sign_type', label: { en: 'Sign Type', fr: 'Type de Signe' }, required: true, properties: { options: [
+          { label: { en: 'Lethargy', fr: 'L\u00e9thargie' }, value: 'lethargy' },
+          { label: { en: 'Erratic swimming', fr: 'Nage erratique' }, value: 'erratic_swimming' },
+          { label: { en: 'Loss of appetite', fr: 'Perte d\'app\u00e9tit' }, value: 'loss_of_appetite' },
+          { label: { en: 'Surface gasping', fr: 'Respiration en surface' }, value: 'surface_gasping' },
+          { label: { en: 'Flashing/rubbing', fr: '\u00c9clairs/frottements' }, value: 'flashing_rubbing' },
+          { label: { en: 'Spiral swimming', fr: 'Nage en spirale' }, value: 'spiral_swimming' },
+        ] } },
+      ], { required: false, minRows: 0, maxRows: 6, addLabel: { en: 'Add sign', fr: 'Ajouter un signe' } }),
+      decimalField('morbidity_rate', { en: 'Morbidity Rate (%)', fr: 'Taux de Morbidit\u00e9 (%)', pt: 'Taxa de Morbidade (%)', ar: '\u0645\u0639\u062f\u0644 \u0627\u0644\u0627\u0639\u062a\u0644\u0627\u0644' }),
+      numberField('duration_of_illness_days', { en: 'Duration of Illness (days)', fr: 'Dur\u00e9e de la Maladie (jours)', pt: 'Dura\u00e7\u00e3o da Doen\u00e7a (dias)', ar: '\u0645\u062f\u0629 \u0627\u0644\u0645\u0631\u0636 (\u0623\u064a\u0627\u0645)' }),
+      selectField('seasonal_pattern', { en: 'Seasonal Pattern', fr: 'Tendance Saisonni\u00e8re', pt: 'Padr\u00e3o Sazonal', ar: '\u0627\u0644\u0646\u0645\u0637 \u0627\u0644\u0645\u0648\u0633\u0645\u064a' },
+        [{ en: 'Dry season', fr: 'Saison s\u00e8che' }, { en: 'Wet season', fr: 'Saison des pluies' }, { en: 'Cold season', fr: 'Saison froide' }, { en: 'Year-round', fr: 'Toute l\'ann\u00e9e' }, { en: 'First occurrence', fr: 'Premi\u00e8re occurrence' }]),
+    ],
+    { icon: 'Bug', color: '#EF4444', columns: 1 },
+  );
+
+  // Section 6: Diagnostic Procedure
+  fieldOrder = 0;
+  const sectionDiagnostic = makeSection(
+    { en: 'Diagnostic Procedure', fr: 'Proc\u00e9dure de Diagnostic', pt: 'Procedimento Diagn\u00f3stico', ar: '\u0625\u062c\u0631\u0627\u0621 \u0627\u0644\u062a\u0634\u062e\u064a\u0635' }, 6,
+    [
+      yesNoField('samples_collected', { en: 'Were Samples Collected?', fr: 'Des \u00c9chantillons ont-ils \u00e9t\u00e9 Pr\u00e9lev\u00e9s?', pt: 'Amostras foram Coletadas?', ar: '\u0647\u0644 \u062a\u0645 \u062c\u0645\u0639 \u0639\u064a\u0646\u0627\u062a\u061f' }),
+      sampleTypeSelect('sample_type', { en: 'Sample Type', fr: 'Type d\'\u00c9chantillon', pt: 'Tipo de Amostra', ar: '\u0646\u0648\u0639 \u0627\u0644\u0639\u064a\u0646\u0629' }),
+      labSelect('lab', { en: 'Laboratory', fr: 'Laboratoire', pt: 'Laborat\u00f3rio', ar: '\u0627\u0644\u0645\u062e\u062a\u0628\u0631' }),
+      testTypeSelect('test_type', { en: 'Test Type', fr: 'Type de Test', pt: 'Tipo de Teste', ar: '\u0646\u0648\u0639 \u0627\u0644\u0627\u062e\u062a\u0628\u0627\u0631' }),
+      selectField('test_result', { en: 'Test Result', fr: 'R\u00e9sultat du Test', pt: 'Resultado do Teste', ar: '\u0646\u062a\u064a\u062c\u0629 \u0627\u0644\u0627\u062e\u062a\u0628\u0627\u0631' },
+        [{ en: 'Positive', fr: 'Positif' }, { en: 'Negative', fr: 'N\u00e9gatif' }, { en: 'Inconclusive', fr: 'Non Concluant' }, { en: 'Pending', fr: 'En Attente' }]),
+      dateField('date_sample_collected', { en: 'Date Sample Collected', fr: 'Date de Pr\u00e9l\u00e8vement', pt: 'Data de Coleta da Amostra', ar: '\u062a\u0627\u0631\u064a\u062e \u062c\u0645\u0639 \u0627\u0644\u0639\u064a\u0646\u0629' }),
+      dateField('date_result_received', { en: 'Date Result Received', fr: 'Date de R\u00e9ception du R\u00e9sultat', pt: 'Data de Recebimento do Resultado', ar: '\u062a\u0627\u0631\u064a\u062e \u0627\u0633\u062a\u0644\u0627\u0645 \u0627\u0644\u0646\u062a\u064a\u062c\u0629' }),
+      diagnosisBasisSelect('diagnosis_basis', { en: 'Basis of Diagnosis', fr: 'Base du Diagnostic', pt: 'Base do Diagn\u00f3stico', ar: '\u0623\u0633\u0627\u0633 \u0627\u0644\u062a\u0634\u062e\u064a\u0635' }),
+      textField('confirmed_pathogen', { en: 'Confirmed Pathogen', fr: 'Pathog\u00e8ne Confirm\u00e9', pt: 'Pat\u00f3geno Confirmado', ar: '\u0627\u0644\u0639\u0627\u0645\u0644 \u0627\u0644\u0645\u0645\u0631\u0636 \u0627\u0644\u0645\u0624\u0643\u062f' }),
+    ],
+    { icon: 'Microscope', color: '#8B5CF6' },
+  );
+
+  // Section 7: Epidemiology & Control
+  fieldOrder = 0;
+  const sectionEpiControl = makeSection(
+    { en: 'Epidemiology & Control', fr: '\u00c9pid\u00e9miologie & Contr\u00f4le', pt: 'Epidemiologia & Controle', ar: '\u0639\u0644\u0645 \u0627\u0644\u0623\u0648\u0628\u0626\u0629 \u0648\u0627\u0644\u0645\u0643\u0627\u0641\u062d\u0629' }, 7,
+    [
+      sourceOfInfectionSelect('source_of_infection', { en: 'Source of Infection', fr: 'Source d\'Infection', pt: 'Fonte de Infec\u00e7\u00e3o', ar: '\u0645\u0635\u062f\u0631 \u0627\u0644\u0639\u062f\u0648\u0649' }),
+      selectField('suspected_spread_mechanism', { en: 'Suspected Spread Mechanism', fr: 'M\u00e9canisme de Propagation Suspect\u00e9', pt: 'Mecanismo de Propaga\u00e7\u00e3o Suspeito', ar: '\u0622\u0644\u064a\u0629 \u0627\u0644\u0627\u0646\u062a\u0634\u0627\u0631 \u0627\u0644\u0645\u0634\u062a\u0628\u0647\u0629' },
+        [{ en: 'Water-borne', fr: 'Hydrique' }, { en: 'Fish-to-fish', fr: 'Poisson \u00e0 poisson' }, { en: 'Fomites', fr: 'Fomites' }, { en: 'Wild fish introduction', fr: 'Introduction de poissons sauvages' }, { en: 'Imported stock', fr: 'Stock import\u00e9' }, { en: 'Unknown', fr: 'Inconnu' }]),
+      yesNoField('other_farms_affected', { en: 'Other Farms in Area Affected?', fr: 'Autres Fermes Affect\u00e9es?', pt: 'Outras Fazendas Afetadas?', ar: '\u0647\u0644 \u062a\u0623\u062b\u0631\u062a \u0645\u0632\u0627\u0631\u0639 \u0623\u062e\u0631\u0649\u061f' }),
+      numberField('num_farms_affected', { en: 'Number of Other Farms Affected', fr: 'Nombre d\'Autres Fermes Affect\u00e9es', pt: 'N\u00famero de Outras Fazendas Afetadas', ar: '\u0639\u062f\u062f \u0627\u0644\u0645\u0632\u0627\u0631\u0639 \u0627\u0644\u0623\u062e\u0631\u0649 \u0627\u0644\u0645\u062a\u0623\u062b\u0631\u0629' }),
+      makeRepeater('control_measures', { en: 'Control Measures', fr: 'Mesures de Contr\u00f4le', pt: 'Medidas de Controle', ar: '\u0625\u062c\u0631\u0627\u0621\u0627\u062a \u0627\u0644\u0645\u0643\u0627\u0641\u062d\u0629' }, [
+        { type: 'master-data-select', code: 'measure', label: { en: 'Control Measure', fr: 'Mesure de Contr\u00f4le' }, required: true, properties: { masterDataType: 'control-measures', searchable: true } },
+        { type: 'text', code: 'flag', label: { en: 'Status/Flag', fr: 'Statut/Indicateur' } },
+      ], { addLabel: { en: 'Add measure', fr: 'Ajouter une mesure' } }),
+      yesNoField('movement_restrictions', { en: 'Movement Restrictions Applied?', fr: 'Restrictions de Mouvement Appliqu\u00e9es?', pt: 'Restri\u00e7\u00f5es de Movimento Aplicadas?', ar: '\u0647\u0644 \u062a\u0645 \u062a\u0637\u0628\u064a\u0642 \u0642\u064a\u0648\u062f \u0627\u0644\u062d\u0631\u0643\u0629\u061f' }),
+      textareaField('treatment_applied', { en: 'Treatments/Chemicals Used', fr: 'Traitements/Produits Chimiques Utilis\u00e9s', pt: 'Tratamentos/Qu\u00edmicos Usados', ar: '\u0627\u0644\u0639\u0644\u0627\u062c\u0627\u062a/\u0627\u0644\u0645\u0648\u0627\u062f \u0627\u0644\u0643\u064a\u0645\u064a\u0627\u0626\u064a\u0629 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u0629' }, { columnSpan: 2 }),
+      outbreakStatusSelect('outbreak_status', { en: 'Outbreak Status', fr: 'Statut du Foyer', pt: 'Estado do Surto', ar: '\u062d\u0627\u0644\u0629 \u0627\u0644\u062a\u0641\u0634\u064a' }),
+      textareaField('economic_impact_estimate', { en: 'Estimated Economic Losses', fr: 'Pertes \u00c9conomiques Estim\u00e9es', pt: 'Perdas Econ\u00f4micas Estimadas', ar: '\u0627\u0644\u062e\u0633\u0627\u0626\u0631 \u0627\u0644\u0627\u0642\u062a\u0635\u0627\u062f\u064a\u0629 \u0627\u0644\u0645\u0642\u062f\u0631\u0629' }, { columnSpan: 2 }),
+    ],
+    { icon: 'Shield', color: '#059669', columns: 1 },
+  );
+
+  // Section 8: Remarks
+  fieldOrder = 0;
+  const sectionRemarks = makeSection(
+    { en: 'Remarks & Recommendations', fr: 'Remarques & Recommandations', pt: 'Observa\u00e7\u00f5es & Recomenda\u00e7\u00f5es', ar: '\u0645\u0644\u0627\u062d\u0638\u0627\u062a \u0648\u062a\u0648\u0635\u064a\u0627\u062a' }, 9,
+    [
+      textareaField('additional_observations', { en: 'Additional Observations', fr: 'Observations Suppl\u00e9mentaires', pt: 'Observa\u00e7\u00f5es Adicionais', ar: '\u0645\u0644\u0627\u062d\u0638\u0627\u062a \u0625\u0636\u0627\u0641\u064a\u0629' }, { columnSpan: 2 }),
+      textareaField('recommendations', { en: 'Recommendations', fr: 'Recommandations', pt: 'Recomenda\u00e7\u00f5es', ar: '\u062a\u0648\u0635\u064a\u0627\u062a' }, { columnSpan: 2 }),
+      textareaField('follow_up_actions', { en: 'Follow-up Actions Planned', fr: 'Actions de Suivi Pr\u00e9vues', pt: 'A\u00e7\u00f5es de Acompanhamento Planejadas', ar: '\u0625\u062c\u0631\u0627\u0621\u0627\u062a \u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u0645\u062e\u0637\u0637\u0629' }, { columnSpan: 2 }),
+    ],
+    { icon: 'MessageSquare', color: '#6366F1' },
+  );
+
+  return {
+    sections: [
+      makeLocalisationSection(0),
+      sectionGeneral,
+      sectionProduction,
+      sectionWaterQuality,
+      sectionAffected,
+      sectionDisease,
+      sectionDiagnostic,
+      sectionEpiControl,
+      makeGPSSection(8),
+      sectionRemarks,
+    ],
+    settings: makeSettings({ requireGeoLocation: true }),
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // Seed Function
 // ═══════════════════════════════════════════════════════════════════════
 
 async function seed(): Promise<void> {
-  console.log('Seeding form-builder with 21 official ARIS templates...\n');
+  console.log('Seeding form-builder with 22 official ARIS templates...\n');
 
   const auTenant = await prisma.tenant.findFirst({ where: { code: 'AU' } });
   if (!auTenant) {
@@ -1114,7 +1300,7 @@ async function seed(): Promise<void> {
   const adminUser = await prisma.user.findFirst({ where: { role: 'SUPER_ADMIN' } });
   const createdBy = adminUser?.id ?? '00000000-0000-0000-0000-000000000001';
 
-  // ── Purge ALL existing templates so only the 21 official ones remain ──
+  // ── Purge ALL existing templates so only the 22 official ones remain ──
   try {
     const allTemplates = await (prisma as any).formTemplate.findMany({ select: { id: true } });
     if (allTemplates.length > 0) {
@@ -1143,6 +1329,7 @@ async function seed(): Promise<void> {
     { name: 'Meat Inspection', domain: 'animal_health', schema: buildMeatInspection(), classification: 'RESTRICTED', kafkaTopic: 'collecte.health.meat_inspection.v1' },
     { name: 'Monthly Abattoir Report', domain: 'animal_health', schema: buildMonthlyAbattoirReport(), classification: 'RESTRICTED', kafkaTopic: 'collecte.health.abattoir_monthly.v1' },
     { name: 'Monthly Vaccination Report', domain: 'animal_health', schema: buildMonthlyVaccinationReport(), classification: 'RESTRICTED', kafkaTopic: 'collecte.health.vaccination_monthly.v1' },
+    { name: 'Aquatic Animal Health Event Report', domain: 'animal_health', schema: buildAquaticAnimalHealthReport(), classification: 'RESTRICTED', kafkaTopic: 'collecte.health.aquatic.v1' },
 
     // ── Livestock Production (7 forms) ──
     { name: 'Animal Breeding and Genomics', domain: 'livestock', schema: buildAnimalBreeding(), classification: 'RESTRICTED', kafkaTopic: 'collecte.livestock.breeding.v1' },

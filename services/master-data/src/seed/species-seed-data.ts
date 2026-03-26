@@ -143,6 +143,7 @@ export const SPECIES_SEEDS: SpeciesSeed[] = [
   { code: 'MOR-RUM', scientificName: 'Mormyrus rume', commonNameEn: 'Mormyrid', commonNameFr: 'Mormyre', category: 'AQUATIC', productionCategories: ['capture'], isWoahListed: false },
   { code: 'CYP-CAR', scientificName: 'Cyprinus carpio', commonNameEn: 'Common carp', commonNameFr: 'Carpe commune', category: 'AQUATIC', productionCategories: ['aquaculture'], isWoahListed: false },
   { code: 'PRO-NIL', scientificName: 'Protopterus annectens', commonNameEn: 'West African lungfish', commonNameFr: 'Protoptère', category: 'AQUATIC', productionCategories: ['capture'], isWoahListed: false },
+  { code: 'ONC-MYK', scientificName: 'Oncorhynchus mykiss', commonNameEn: 'Rainbow trout', commonNameFr: 'Truite arc-en-ciel', category: 'AQUATIC', productionCategories: ['aquaculture'], isWoahListed: true },
 
   // ── Aquatic — Marine fish ──
   { code: 'SAR-PIL', scientificName: 'Sardina pilchardus', commonNameEn: 'European pilchard', commonNameFr: 'Sardine', category: 'AQUATIC', productionCategories: ['capture'], isWoahListed: false },

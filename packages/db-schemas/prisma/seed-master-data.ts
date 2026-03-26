@@ -79,6 +79,12 @@ const SPECIES_IDS = {
   MOLLUSC: '20000000-0000-4000-b000-000000000036',
   CRUSTACEAN: '20000000-0000-4000-b000-000000000037',
   AFRICAN_BUFFALO: '20000000-0000-4000-b000-000000000038',
+  // Phase 5 — additional aquatic species for Aquatic Animal Health
+  NILE_PERCH: '20000000-0000-4000-b000-000000000091',
+  CARP: '20000000-0000-4000-b000-000000000092',
+  TROUT: '20000000-0000-4000-b000-000000000093',
+  OYSTER: '20000000-0000-4000-b000-000000000094',
+  MUSSEL: '20000000-0000-4000-b000-000000000095',
 } as const;
 
 const DISEASE_IDS = {
@@ -173,6 +179,11 @@ const DISEASE_IDS = {
   WHITE_SPOT: '30000000-0000-4000-b000-000000000086',
   TAURA: '30000000-0000-4000-b000-000000000087',
   YELLOWHEAD: '30000000-0000-4000-b000-000000000088',
+  // Phase 5 — additional aquatic diseases (OIE-listed)
+  IHN: '30000000-0000-4000-b000-000000000089',
+  SVC: '30000000-0000-4000-b000-000000000090',
+  BONAMIOSIS: '30000000-0000-4000-b000-000000000091',
+  MARTEILIOSIS: '30000000-0000-4000-b000-000000000092',
 } as const;
 
 // ══════════════════════════════════════════════════════════════
@@ -253,6 +264,12 @@ async function seedSpecies() {
     { id: SPECIES_IDS.WILD_PIG, code: 'WILD_PIG', name: ml('Wild Pig', 'Sanglier', 'Javali', '\u062e\u0646\u0632\u064a\u0631 \u0628\u0631\u064a'), scientificName: 'Sus scrofa', groupId: GROUP_IDS.WILDLIFE, sortOrder: 9 },
     { id: SPECIES_IDS.MOLLUSC, code: 'MOLLUSC', name: ml('Mollusc', 'Mollusque', 'Molusco', '\u0631\u062e\u0648\u064a\u0627\u062a'), scientificName: null, groupId: GROUP_IDS.AQUATIC, sortOrder: 4 },
     { id: SPECIES_IDS.CRUSTACEAN, code: 'CRUSTACEAN', name: ml('Crustacean', 'Crustacé', 'Crustáceo', '\u0642\u0634\u0631\u064a\u0627\u062a'), scientificName: null, groupId: GROUP_IDS.AQUATIC, sortOrder: 5 },
+    // Phase 5 — additional aquatic species for Aquatic Animal Health
+    { id: SPECIES_IDS.NILE_PERCH, code: 'NILE_PERCH', name: ml('Nile Perch', 'Perche du Nil', 'Perca do Nilo', '\u0633\u0645\u0643\u0629 \u0627\u0644\u0646\u064a\u0644'), scientificName: 'Lates niloticus', groupId: GROUP_IDS.AQUATIC, sortOrder: 6 },
+    { id: SPECIES_IDS.CARP, code: 'CARP', name: ml('Common Carp', 'Carpe commune', 'Carpa', '\u0634\u0628\u0648\u0637'), scientificName: 'Cyprinus carpio', groupId: GROUP_IDS.AQUATIC, sortOrder: 7 },
+    { id: SPECIES_IDS.TROUT, code: 'TROUT', name: ml('Rainbow Trout', 'Truite arc-en-ciel', 'Truta', '\u0633\u0644\u0645\u0648\u0646 \u0645\u0631\u0642\u0637'), scientificName: 'Oncorhynchus mykiss', groupId: GROUP_IDS.AQUATIC, sortOrder: 8 },
+    { id: SPECIES_IDS.OYSTER, code: 'OYSTER', name: ml('Pacific Oyster', 'Hu\u00eetre creuse', 'Ostra', '\u0645\u062d\u0627\u0631'), scientificName: 'Crassostrea gigas', groupId: GROUP_IDS.AQUATIC, sortOrder: 9 },
+    { id: SPECIES_IDS.MUSSEL, code: 'MUSSEL', name: ml('Green Mussel', 'Moule verte', 'Mexilh\u00e3o', '\u0628\u0644\u062d \u0627\u0644\u0628\u062d\u0631'), scientificName: 'Perna viridis', groupId: GROUP_IDS.AQUATIC, sortOrder: 10 },
     { id: SPECIES_IDS.AFRICAN_BUFFALO, code: 'AFRICAN_BUFFALO', name: ml('African Buffalo', 'Buffle d\'Afrique', 'Búfalo africano', '\u062c\u0627\u0645\u0648\u0633 \u0623\u0641\u0631\u064a\u0642\u064a'), scientificName: 'Syncerus caffer', groupId: GROUP_IDS.WILDLIFE, sortOrder: 10 },
   ];
 
@@ -428,9 +445,14 @@ async function seedDiseases() {
     { id: DISEASE_IDS.ISA, code: 'ISA', name: ml('Infectious Salmon Anaemia', 'Anémie infectieuse du saumon'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 83 },
     { id: DISEASE_IDS.KHV, code: 'KHV', name: ml('Koi Herpesvirus Disease', 'Herpèsvirose de la carpe koï'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 84 },
     { id: DISEASE_IDS.VHS, code: 'VHS', name: ml('Viral Haemorrhagic Septicaemia', 'Septicémie hémorragique virale'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 85 },
-    { id: DISEASE_IDS.WHITE_SPOT, code: 'WHITE_SPOT', name: ml('White Spot Disease', 'Maladie des points blancs'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 86 },
+    { id: DISEASE_IDS.WHITE_SPOT, code: 'WSSV', name: ml('White Spot Disease', 'Maladie des points blancs'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 86 },
     { id: DISEASE_IDS.TAURA, code: 'TAURA', name: ml('Taura Syndrome', 'Syndrome de Taura'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 87 },
     { id: DISEASE_IDS.YELLOWHEAD, code: 'YELLOWHEAD', name: ml('Yellow Head Disease', 'Maladie de la tête jaune'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 88 },
+    // Phase 5 — additional aquatic diseases (OIE-listed)
+    { id: DISEASE_IDS.IHN, code: 'IHN', name: ml('Infectious Haematopoietic Necrosis', 'N\u00e9crose h\u00e9matopo\u00ef\u00e9tique infectieuse'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 89 },
+    { id: DISEASE_IDS.SVC, code: 'SVC', name: ml('Spring Viraemia of Carp', 'Vir\u00e9mie printani\u00e8re de la carpe'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'viral', sortOrder: 90 },
+    { id: DISEASE_IDS.BONAMIOSIS, code: 'BONAMIOSIS', name: ml('Bonamiosis', 'Bonamiose'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'parasitic', sortOrder: 91 },
+    { id: DISEASE_IDS.MARTEILIOSIS, code: 'MARTEILIOSIS', name: ml('Marteiliosis', 'Marteiliose'), oieCode: null, isNotifiable: true, isZoonotic: false, category: 'parasitic', sortOrder: 92 },
   ];
 
   for (const d of diseases) {
@@ -708,6 +730,22 @@ async function seedDiseaseSpecies() {
     { diseaseId: DISEASE_IDS.WHITE_SPOT, speciesId: SPECIES_IDS.SHRIMP, susceptibility: 'high' },
     { diseaseId: DISEASE_IDS.TAURA, speciesId: SPECIES_IDS.SHRIMP, susceptibility: 'high' },
     { diseaseId: DISEASE_IDS.YELLOWHEAD, speciesId: SPECIES_IDS.SHRIMP, susceptibility: 'high' },
+    // Phase 5 — new aquatic species + disease mappings
+    { diseaseId: DISEASE_IDS.EUS, speciesId: SPECIES_IDS.NILE_PERCH, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.KHV, speciesId: SPECIES_IDS.CARP, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.VHS, speciesId: SPECIES_IDS.TROUT, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.ISA, speciesId: SPECIES_IDS.TROUT, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.IHN, speciesId: SPECIES_IDS.TROUT, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.IHN, speciesId: SPECIES_IDS.TILAPIA, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.SVC, speciesId: SPECIES_IDS.CARP, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.SVC, speciesId: SPECIES_IDS.CATFISH, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.BONAMIOSIS, speciesId: SPECIES_IDS.OYSTER, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.BONAMIOSIS, speciesId: SPECIES_IDS.MUSSEL, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.MARTEILIOSIS, speciesId: SPECIES_IDS.OYSTER, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.MARTEILIOSIS, speciesId: SPECIES_IDS.MUSSEL, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.WHITE_SPOT, speciesId: SPECIES_IDS.CRUSTACEAN, susceptibility: 'high' },
+    { diseaseId: DISEASE_IDS.TAURA, speciesId: SPECIES_IDS.CRUSTACEAN, susceptibility: 'moderate' },
+    { diseaseId: DISEASE_IDS.YELLOWHEAD, speciesId: SPECIES_IDS.CRUSTACEAN, susceptibility: 'moderate' },
   ];
 
   for (const r of relations) {
