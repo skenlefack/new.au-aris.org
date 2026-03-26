@@ -7,6 +7,7 @@ import { ConfigField } from '@/components/settings/ConfigField';
 import { SaveBar } from '@/components/settings/SaveBar';
 import { useTranslations } from '@/lib/i18n/translations';
 import { Loader2, Globe, ArrowRightLeft, Calendar, Check } from 'lucide-react';
+import { toast } from 'sonner';
 
 const LANGUAGES = [
   { code: 'en', name: 'English',    native: 'English',    flag: '\uD83C\uDDEC\uD83C\uDDE7', rtl: false },
@@ -40,8 +41,17 @@ export default function I18nSettingsPage() {
       const [category, key] = ck.split(':');
       return { category, key, value };
     });
-    await bulkMutation.mutateAsync(list);
-    setChanges({});
+    try {
+      await bulkMutation.mutateAsync(list);
+      setChanges({});
+      toast.success('Language settings saved', {
+        description: 'Your internationalization preferences have been updated successfully.',
+      });
+    } catch (err: any) {
+      toast.error('Failed to save language settings', {
+        description: err?.message ?? 'Please try again.',
+      });
+    }
   };
 
   // Find the default locale from configs
