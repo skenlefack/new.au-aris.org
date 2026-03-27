@@ -570,15 +570,30 @@ export default function FormListPage() {
             <FormCard
               key={template.id}
               template={template}
-              onDuplicate={() => duplicateMutation.mutate(template.id)}
+              onDuplicate={() => {
+                duplicateMutation.mutate(template.id, {
+                  onSuccess: () => toast.success(t('formDuplicated')),
+                  onError: (err) => toast.error(err instanceof Error ? err.message : t('duplicateFormError')),
+                });
+              }}
               onDelete={() => {
                 deleteMutation.mutate(template.id, {
                   onSuccess: () => toast.success(t('formDeleted')),
                   onError: (err) => toast.error(err instanceof Error ? err.message : t('deleteFormError')),
                 });
               }}
-              onPublish={() => publishMutation.mutate(template.id)}
-              onArchive={() => archiveMutation.mutate(template.id)}
+              onPublish={() => {
+                publishMutation.mutate(template.id, {
+                  onSuccess: () => toast.success(t('formPublished')),
+                  onError: (err) => toast.error(err instanceof Error ? err.message : t('publishFormError')),
+                });
+              }}
+              onArchive={() => {
+                archiveMutation.mutate(template.id, {
+                  onSuccess: () => toast.success(t('formArchived')),
+                  onError: (err) => toast.error(err instanceof Error ? err.message : t('archiveFormError')),
+                });
+              }}
               canCustomize={canCustomize}
             />
           ))}
