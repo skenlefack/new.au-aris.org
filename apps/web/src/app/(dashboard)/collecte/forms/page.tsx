@@ -36,6 +36,7 @@ import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTranslations } from '@/lib/i18n/translations';
+import { toast } from 'sonner';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
@@ -571,7 +572,10 @@ export default function FormListPage() {
               template={template}
               onDuplicate={() => duplicateMutation.mutate(template.id)}
               onDelete={() => {
-                if (confirm(t('deleteFormConfirm'))) deleteMutation.mutate(template.id);
+                deleteMutation.mutate(template.id, {
+                  onSuccess: () => toast.success(t('formDeleted')),
+                  onError: (err) => toast.error(err instanceof Error ? err.message : t('deleteFormError')),
+                });
               }}
               onPublish={() => publishMutation.mutate(template.id)}
               onArchive={() => archiveMutation.mutate(template.id)}

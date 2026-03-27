@@ -1451,6 +1451,8 @@
     "noFormsYet": "Aucun formulaire",
     "noFormsYetDesc": "Créez votre premier formulaire de collecte de données avec le constructeur sans code.",
     "deleteFormConfirm": "Supprimer ce brouillon de formulaire ?",
+    "formDeleted": "Formulaire supprimé avec succès",
+    "deleteFormError": "Échec de la suppression du formulaire",
     "duplicate": "Dupliquer",
     "preview": "Aperçu",
     "publish": "Publier",

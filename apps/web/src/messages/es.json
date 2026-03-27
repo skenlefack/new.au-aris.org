@@ -1450,6 +1450,8 @@
     "noFormsYet": "Aún no hay formularios",
     "noFormsYetDesc": "Cree su primer formulario de recolección de datos con el constructor sin código.",
     "deleteFormConfirm": "¿Eliminar este formulario borrador?",
+    "formDeleted": "Formulario eliminado con éxito",
+    "deleteFormError": "Error al eliminar el formulario",
     "duplicate": "Duplicar",
     "preview": "Vista previa",
     "publish": "Publicar",

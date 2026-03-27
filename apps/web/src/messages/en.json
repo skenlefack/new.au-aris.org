@@ -1456,6 +1456,8 @@
     "noFormsYet": "No forms yet",
     "noFormsYetDesc": "Create your first data collection form using the no-code builder.",
     "deleteFormConfirm": "Delete this draft form?",
+    "formDeleted": "Form deleted successfully",
+    "deleteFormError": "Failed to delete form",
     "duplicate": "Duplicate",
     "preview": "Preview",
     "publish": "Publish",

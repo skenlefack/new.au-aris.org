@@ -370,7 +370,21 @@ export class TemplateService {
       throw new HttpError(400, 'Only DRAFT templates can be deleted');
     }
 
-    await (this.prisma as any).formTemplate.delete({ where: { id } });
+    // Delete related records first (FK constraints)
+    await (this.prisma as any).formSubmission.deleteMany({ where: { template_id: id } });
+    await (this.prisma as any).formOverlay.deleteMany({ where: { template_id: id } });
+    await (this.prisma as any).formVersionHistory.deleteMany({ where: { template_id: id } });
+
+    try {
+      await (this.prisma as any).formTemplate.delete({ where: { id } });
+    } catch (err: unknown) {
+      // FK constraint from CollectionCampaign (collecte schema) or other cross-schema references
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('foreign key constraint') || msg.includes('P2003')) {
+        throw new HttpError(400, 'Cannot delete: this template is used by a collection campaign');
+      }
+      throw err;
+    }
     console.log(`[TemplateService] Template deleted: ${existing.name} v${existing.version} (${id})`);
   }
 

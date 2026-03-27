@@ -1450,6 +1450,8 @@
     "noFormsYet": "لا توجد نماذج بعد",
     "noFormsYetDesc": "أنشئ أول نموذج لجمع البيانات باستخدام المنشئ بدون برمجة.",
     "deleteFormConfirm": "حذف هذا النموذج المسودة؟",
+    "formDeleted": "تم حذف النموذج بنجاح",
+    "deleteFormError": "فشل في حذف النموذج",
     "duplicate": "تكرار",
     "preview": "معاينة",
     "publish": "نشر",
