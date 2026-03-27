@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance, type FastifyError } from 'fastify';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import { readFileSync } from 'fs';
 import { PrismaClient } from '@prisma/client';
 import { StandaloneKafkaProducer } from '@aris/kafka-client';
@@ -9,10 +10,14 @@ import { AuditService } from './services/audit.service.js';
 import { TradeFlowService } from './services/trade-flow.service.js';
 import { SpsCertificateService } from './services/sps-certificate.service.js';
 import { MarketPriceService } from './services/market-price.service.js';
+import { ExportService } from './services/export.service.js';
+import { ImportService } from './services/import.service.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
 import { registerTradeFlowRoutes } from './routes/trade-flow.routes.js';
 import { registerSpsCertificateRoutes } from './routes/sps-certificate.routes.js';
 import { registerMarketPriceRoutes } from './routes/market-price.routes.js';
+import { registerExportRoutes } from './routes/export.routes.js';
+import { registerImportRoutes } from './routes/import.routes.js';
 
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -27,6 +32,9 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // CORS
   await app.register(cors, { origin: true, credentials: true });
+
+  // Multipart file uploads (10 MB max)
+  await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } });
 
   // Error handler — maps HttpError.statusCode to HTTP response
   app.setErrorHandler((error: FastifyError, request, reply) => {
@@ -88,17 +96,23 @@ export async function buildApp(): Promise<FastifyInstance> {
   const tradeFlowService = new TradeFlowService(prisma, kafka, auditService);
   const spsCertificateService = new SpsCertificateService(prisma, kafka, auditService);
   const marketPriceService = new MarketPriceService(prisma, kafka, auditService);
+  const exportService = new ExportService(prisma);
+  const importService = new ImportService(prisma, kafka);
 
   app.decorate('auditService', auditService);
   app.decorate('tradeFlowService', tradeFlowService);
   app.decorate('spsCertificateService', spsCertificateService);
   app.decorate('marketPriceService', marketPriceService);
+  app.decorate('exportService', exportService);
+  app.decorate('importService', importService);
 
   // --- Routes ---
   await app.register(registerHealthRoutes);
   await app.register(registerTradeFlowRoutes);
   await app.register(registerSpsCertificateRoutes);
   await app.register(registerMarketPriceRoutes);
+  await app.register(registerExportRoutes);
+  await app.register(registerImportRoutes);
 
   return app;
 }

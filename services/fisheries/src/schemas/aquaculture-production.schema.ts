@@ -9,6 +9,9 @@ export const CreateAquacultureProductionSchema = Type.Object({
   feedUsedKg: Type.Optional(Type.Number({ minimum: 0 })),
   fcr: Type.Optional(Type.Number({ minimum: 0 })),
   batchId: Type.Optional(Type.String({ maxLength: 100 })),
+  stockingDate: Type.Optional(Type.String({ format: 'date-time' })),
+  survivalRate: Type.Optional(Type.Number({ minimum: 0, maximum: 100 })),
+  averageWeightGrams: Type.Optional(Type.Number({ minimum: 0 })),
   dataClassification: Type.Optional(Type.String()),
 });
 
@@ -21,6 +24,9 @@ export const UpdateAquacultureProductionSchema = Type.Object({
   feedUsedKg: Type.Optional(Type.Number({ minimum: 0 })),
   fcr: Type.Optional(Type.Number({ minimum: 0 })),
   batchId: Type.Optional(Type.String({ maxLength: 100 })),
+  stockingDate: Type.Optional(Type.String({ format: 'date-time' })),
+  survivalRate: Type.Optional(Type.Number({ minimum: 0, maximum: 100 })),
+  averageWeightGrams: Type.Optional(Type.Number({ minimum: 0 })),
   dataClassification: Type.Optional(Type.String()),
 });
 

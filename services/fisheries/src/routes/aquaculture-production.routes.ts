@@ -71,4 +71,21 @@ export async function registerAquacultureProductionRoutes(app: FastifyInstance):
     const user = request.user as AuthenticatedUser;
     return app.aquacultureProductionService.update(request.params.id, request.body, user);
   });
+
+  // DELETE /api/v1/fisheries/aquaculture/production/:id
+  app.delete<{ Params: UuidParamInput }>('/api/v1/fisheries/aquaculture/production/:id', {
+    schema: { params: UuidParamSchema },
+    preHandler: [
+      ...authAndTenant,
+      rolesHook(
+        UserRole.SUPER_ADMIN,
+        UserRole.CONTINENTAL_ADMIN,
+        UserRole.NATIONAL_ADMIN,
+        UserRole.DATA_STEWARD,
+      ),
+    ],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.aquacultureProductionService.delete(request.params.id, user);
+  });
 }

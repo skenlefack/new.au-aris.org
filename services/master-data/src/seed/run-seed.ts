@@ -9,6 +9,7 @@ import { UNIT_SEEDS } from './unit-seed-data';
 import { DENOMINATOR_SEEDS } from './denominator-seed-data';
 import { IDENTIFIER_SEEDS } from './identifier-seed-data';
 import { INFRASTRUCTURE_SEEDS } from './infrastructure-seed-data';
+import { seedFisheryReferentials } from './fishery-referentials';
 
 const prisma = new PrismaClient();
 
@@ -253,6 +254,11 @@ async function main(): Promise<void> {
   }
   console.log(`  ✓ ${infraCount} infrastructure types`);
 
+  // ── 8. Fishery Referentials ──
+  console.log('\n🐟 Seeding fishery referentials...');
+  const fisheryRefCount = await seedFisheryReferentials(prisma);
+  console.log(`  ✓ ${fisheryRefCount} fishery referentials`);
+
   // ── Summary ──
   const counts = await Promise.all([
     prisma.geoEntity.count(),
@@ -262,6 +268,7 @@ async function main(): Promise<void> {
     prisma.denominator.count(),
     prisma.identifier.count(),
     (prisma as any).refInfrastructure.count(),
+    (prisma as any).fisheryReferential.count(),
   ]);
 
   console.log('\n═══════════════════════════════════════');
@@ -274,6 +281,7 @@ async function main(): Promise<void> {
   console.log(`  Denominators:      ${counts[4]}`);
   console.log(`  Identifiers:       ${counts[5]}`);
   console.log(`  Infrastructures:   ${counts[6]}`);
+  console.log(`  Fishery Refs:      ${counts[7]}`);
   console.log('═══════════════════════════════════════');
   console.log('\n✅ Seed completed successfully!');
 }

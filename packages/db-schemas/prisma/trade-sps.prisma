@@ -18,6 +18,9 @@ model TradeFlow {
   periodEnd          DateTime @map("period_end") @db.Timestamptz
   hsCode             String?  @map("hs_code")
   spsStatus          String?  @map("sps_status")
+  productState       String?  @map("product_state") @db.VarChar(30)
+  commodityGroup     String?  @map("commodity_group") @db.VarChar(30)
+  processingLevel    String?  @map("processing_level") @db.VarChar(30)
   dataClassification String   @default("PARTNER") @map("data_classification")
   createdBy          String   @map("created_by") @db.Uuid
   updatedBy          String   @map("updated_by") @db.Uuid
@@ -29,6 +32,7 @@ model TradeFlow {
   @@index([importCountryId])
   @@index([speciesId])
   @@index([flowDirection])
+  @@index([commodityGroup])
   @@map("trade_flows")
   @@schema("trade_sps")
 }

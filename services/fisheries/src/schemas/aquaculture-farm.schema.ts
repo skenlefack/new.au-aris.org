@@ -9,6 +9,12 @@ export const CreateAquacultureFarmSchema = Type.Object({
   productionCapacityTonnes: Type.Number({ minimum: 0 }),
   geoEntityId: Type.String({ format: 'uuid' }),
   coordinates: Type.Optional(Type.Object({}, { additionalProperties: true })),
+  ownerName: Type.Optional(Type.String({ maxLength: 255 })),
+  registrationNumber: Type.Optional(Type.String({ maxLength: 100 })),
+  totalWorkers: Type.Optional(Type.Integer({ minimum: 0 })),
+  maleWorkers: Type.Optional(Type.Integer({ minimum: 0 })),
+  femaleWorkers: Type.Optional(Type.Integer({ minimum: 0 })),
+  pondCount: Type.Optional(Type.Integer({ minimum: 0 })),
   dataClassification: Type.Optional(Type.String()),
 });
 
@@ -22,6 +28,12 @@ export const UpdateAquacultureFarmSchema = Type.Object({
   geoEntityId: Type.Optional(Type.String({ format: 'uuid' })),
   coordinates: Type.Optional(Type.Object({}, { additionalProperties: true })),
   isActive: Type.Optional(Type.Boolean()),
+  ownerName: Type.Optional(Type.String({ maxLength: 255 })),
+  registrationNumber: Type.Optional(Type.String({ maxLength: 100 })),
+  totalWorkers: Type.Optional(Type.Integer({ minimum: 0 })),
+  maleWorkers: Type.Optional(Type.Integer({ minimum: 0 })),
+  femaleWorkers: Type.Optional(Type.Integer({ minimum: 0 })),
+  pondCount: Type.Optional(Type.Integer({ minimum: 0 })),
   dataClassification: Type.Optional(Type.String()),
 });
 

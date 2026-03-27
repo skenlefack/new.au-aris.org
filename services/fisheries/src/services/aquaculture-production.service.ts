@@ -5,6 +5,7 @@ import {
   TenantLevel,
   TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_CREATED,
   TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_UPDATED,
+  TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_DELETED,
   DEFAULT_PAGE,
   DEFAULT_LIMIT,
   MAX_LIMIT,
@@ -38,6 +39,9 @@ export class AquacultureProductionService {
       feedUsedKg?: number;
       fcr?: number;
       batchId?: string;
+      stockingDate?: string;
+      survivalRate?: number;
+      averageWeightGrams?: number;
       dataClassification?: string;
     },
     user: AuthenticatedUser,
@@ -64,6 +68,9 @@ export class AquacultureProductionService {
         feedUsedKg: dto.feedUsedKg ?? null,
         fcr: dto.fcr ?? null,
         batchId: dto.batchId ?? null,
+        stockingDate: dto.stockingDate ? new Date(dto.stockingDate) : null,
+        survivalRate: dto.survivalRate ?? null,
+        averageWeightGrams: dto.averageWeightGrams ?? null,
         dataClassification: dto.dataClassification ?? 'PARTNER',
         createdBy: user.userId,
         updatedBy: user.userId,
@@ -130,6 +137,9 @@ export class AquacultureProductionService {
       feedUsedKg?: number;
       fcr?: number;
       batchId?: string;
+      stockingDate?: string;
+      survivalRate?: number;
+      averageWeightGrams?: number;
       dataClassification?: string;
     },
     user: AuthenticatedUser,
@@ -168,6 +178,9 @@ export class AquacultureProductionService {
         ...(dto.feedUsedKg !== undefined && { feedUsedKg: dto.feedUsedKg }),
         ...(dto.fcr !== undefined && { fcr: dto.fcr }),
         ...(dto.batchId !== undefined && { batchId: dto.batchId }),
+        ...(dto.stockingDate !== undefined && { stockingDate: dto.stockingDate ? new Date(dto.stockingDate) : null }),
+        ...(dto.survivalRate !== undefined && { survivalRate: dto.survivalRate }),
+        ...(dto.averageWeightGrams !== undefined && { averageWeightGrams: dto.averageWeightGrams }),
         ...(dto.dataClassification !== undefined && { dataClassification: dto.dataClassification }),
         updatedBy: user.userId,
       },
@@ -180,6 +193,28 @@ export class AquacultureProductionService {
     );
 
     return { data: production };
+  }
+
+  async delete(id: string, user: AuthenticatedUser): Promise<ApiResponse<unknown>> {
+    const existing = await (this.prisma as any).aquacultureProduction.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      throw new HttpError(404, `Aquaculture production record ${id} not found`);
+    }
+
+    this.verifyTenantAccess(user, existing.tenantId);
+
+    await (this.prisma as any).aquacultureProduction.delete({ where: { id } });
+
+    await this.publishEvent(
+      TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_DELETED,
+      { id, tenantId: existing.tenantId },
+      user,
+    );
+
+    return { data: { id, deleted: true } };
   }
 
   private buildWhere(

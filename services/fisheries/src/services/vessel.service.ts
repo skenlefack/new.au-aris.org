@@ -5,6 +5,7 @@ import {
   TenantLevel,
   TOPIC_MS_FISHERIES_VESSEL_CREATED,
   TOPIC_MS_FISHERIES_VESSEL_UPDATED,
+  TOPIC_MS_FISHERIES_VESSEL_DELETED,
   DEFAULT_PAGE,
   DEFAULT_LIMIT,
   MAX_LIMIT,
@@ -39,6 +40,9 @@ export class VesselService {
       homePort: string;
       licenseNumber?: string;
       licenseExpiry?: string;
+      enginePowerKw?: number;
+      crewCapacity?: number;
+      ownerName?: string;
       dataClassification?: string;
     },
     user: AuthenticatedUser,
@@ -67,6 +71,9 @@ export class VesselService {
         homePort: dto.homePort,
         licenseNumber: dto.licenseNumber ?? null,
         licenseExpiry: dto.licenseExpiry ? new Date(dto.licenseExpiry) : null,
+        enginePowerKw: dto.enginePowerKw ?? null,
+        crewCapacity: dto.crewCapacity ?? null,
+        ownerName: dto.ownerName ?? null,
         dataClassification: dto.dataClassification ?? 'PARTNER',
         createdBy: user.userId,
         updatedBy: user.userId,
@@ -129,6 +136,9 @@ export class VesselService {
       licenseNumber?: string;
       licenseExpiry?: string;
       isActive?: boolean;
+      enginePowerKw?: number;
+      crewCapacity?: number;
+      ownerName?: string;
       dataClassification?: string;
     },
     user: AuthenticatedUser,
@@ -169,6 +179,9 @@ export class VesselService {
         ...(dto.licenseNumber !== undefined && { licenseNumber: dto.licenseNumber }),
         ...(dto.licenseExpiry !== undefined && { licenseExpiry: dto.licenseExpiry ? new Date(dto.licenseExpiry) : null }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+        ...(dto.enginePowerKw !== undefined && { enginePowerKw: dto.enginePowerKw }),
+        ...(dto.crewCapacity !== undefined && { crewCapacity: dto.crewCapacity }),
+        ...(dto.ownerName !== undefined && { ownerName: dto.ownerName }),
         ...(dto.dataClassification !== undefined && { dataClassification: dto.dataClassification }),
         updatedBy: user.userId,
       },
@@ -177,6 +190,22 @@ export class VesselService {
     await this.publishEvent(TOPIC_MS_FISHERIES_VESSEL_UPDATED, { id: vessel.id, ...vessel }, user);
 
     return { data: vessel };
+  }
+
+  async delete(id: string, user: AuthenticatedUser): Promise<ApiResponse<unknown>> {
+    const existing = await (this.prisma as any).fishingVessel.findUnique({ where: { id } });
+
+    if (!existing) {
+      throw new HttpError(404, `Vessel ${id} not found`);
+    }
+
+    this.verifyTenantAccess(user, existing.tenantId);
+
+    await (this.prisma as any).fishingVessel.delete({ where: { id } });
+
+    await this.publishEvent(TOPIC_MS_FISHERIES_VESSEL_DELETED, { id, tenantId: existing.tenantId }, user);
+
+    return { data: { id, deleted: true } };
   }
 
   private buildWhere(

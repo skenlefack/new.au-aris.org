@@ -3,7 +3,9 @@ import {
   UserRole,
   TenantLevel,
   TOPIC_MS_FISHERIES_CAPTURE_CREATED,
+  TOPIC_MS_FISHERIES_CAPTURE_DELETED,
   TOPIC_MS_FISHERIES_VESSEL_CREATED,
+  TOPIC_MS_FISHERIES_VESSEL_DELETED,
 } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { CaptureService, HttpError } from '../services/capture.service.js';
@@ -42,6 +44,7 @@ function makePrisma() {
       findUnique: vi.fn(),
       count: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
     fishingVessel: {
       create: vi.fn(),
@@ -50,6 +53,7 @@ function makePrisma() {
       findUnique: vi.fn(),
       count: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
     aquacultureFarm: {
       create: vi.fn(),
@@ -269,5 +273,72 @@ describe('VesselService', () => {
 
     // Verify the lookup was done with the correct id
     expect(prisma.fishingVessel.findUnique).toHaveBeenCalledWith({ where: { id: vessel.id } });
+  });
+
+  it('delete — deletes vessel and publishes DELETED Kafka event', async () => {
+    const vessel = {
+      id: 'vessel-uuid-del',
+      tenantId: nationalAdmin.tenantId,
+      name: 'MV Delete Me',
+      registrationNumber: 'KE-DEL-001',
+    };
+
+    prisma.fishingVessel.findUnique.mockResolvedValue(vessel);
+    prisma.fishingVessel.delete.mockResolvedValue(vessel);
+
+    const result = await service.delete(vessel.id, nationalAdmin);
+
+    expect(result.data).toEqual({ id: vessel.id, deleted: true });
+    expect(prisma.fishingVessel.delete).toHaveBeenCalledWith({ where: { id: vessel.id } });
+    expect(kafka.send).toHaveBeenCalledOnce();
+    expect(kafka.send.mock.calls[0][0]).toBe(TOPIC_MS_FISHERIES_VESSEL_DELETED);
+  });
+});
+
+// ── CaptureService DELETE ─────────────────────────────────────────────────────
+
+describe('CaptureService — delete', () => {
+  let prisma: ReturnType<typeof makePrisma>;
+  let kafka: ReturnType<typeof makeKafka>;
+  let service: CaptureService;
+
+  beforeEach(() => {
+    prisma = makePrisma();
+    kafka = makeKafka();
+    service = new CaptureService(prisma as never, kafka as never);
+  });
+
+  it('delete — deletes capture and publishes DELETED Kafka event', async () => {
+    const capture = {
+      id: 'capture-uuid-del',
+      tenantId: nationalAdmin.tenantId,
+      speciesId: 'sp-1',
+      gearType: 'TRAWL',
+    };
+
+    prisma.fishCapture.findUnique.mockResolvedValue(capture);
+    prisma.fishCapture.delete.mockResolvedValue(capture);
+
+    const result = await service.delete(capture.id, nationalAdmin);
+
+    expect(result.data).toEqual({ id: capture.id, deleted: true });
+    expect(prisma.fishCapture.delete).toHaveBeenCalledWith({ where: { id: capture.id } });
+    expect(kafka.send).toHaveBeenCalledOnce();
+    expect(kafka.send.mock.calls[0][0]).toBe(TOPIC_MS_FISHERIES_CAPTURE_DELETED);
+  });
+
+  it('delete — throws 404 when capture not found', async () => {
+    prisma.fishCapture.findUnique.mockResolvedValue(null);
+
+    await expect(service.delete('non-existent', nationalAdmin)).rejects.toThrow(HttpError);
+
+    try {
+      await service.delete('non-existent', nationalAdmin);
+    } catch (err) {
+      expect((err as HttpError).statusCode).toBe(404);
+    }
+
+    expect(prisma.fishCapture.delete).not.toHaveBeenCalled();
+    expect(kafka.send).not.toHaveBeenCalled();
   });
 });

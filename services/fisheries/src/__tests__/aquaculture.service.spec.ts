@@ -3,7 +3,9 @@ import {
   UserRole,
   TenantLevel,
   TOPIC_MS_FISHERIES_AQUACULTURE_FARM_CREATED,
+  TOPIC_MS_FISHERIES_AQUACULTURE_FARM_DELETED,
   TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_CREATED,
+  TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_DELETED,
 } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { AquacultureFarmService, HttpError } from '../services/aquaculture-farm.service.js';
@@ -61,6 +63,7 @@ function makePrisma() {
       findUnique: vi.fn(),
       count: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
     aquacultureProduction: {
       create: vi.fn(),
@@ -69,6 +72,7 @@ function makePrisma() {
       findUnique: vi.fn(),
       count: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
   };
 }
@@ -307,5 +311,57 @@ describe('AquacultureProductionService', () => {
     // Verify pagination
     expect(findManyArg.skip).toBe(0);
     expect(findManyArg.take).toBe(20);
+  });
+
+  it('delete — deletes production record and publishes DELETED Kafka event', async () => {
+    const existing = {
+      id: 'prod-uuid-del',
+      tenantId: nationalAdmin.tenantId,
+      farmId: 'farm-uuid-001',
+      speciesId: 'species-tilapia',
+    };
+
+    prisma.aquacultureProduction.findUnique.mockResolvedValue(existing);
+    prisma.aquacultureProduction.delete.mockResolvedValue(existing);
+
+    const result = await service.delete('prod-uuid-del', nationalAdmin);
+
+    expect(result.data).toEqual({ id: 'prod-uuid-del', deleted: true });
+    expect(prisma.aquacultureProduction.delete).toHaveBeenCalledWith({ where: { id: 'prod-uuid-del' } });
+    expect(kafka.send).toHaveBeenCalledOnce();
+    expect(kafka.send.mock.calls[0][0]).toBe(TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_DELETED);
+  });
+});
+
+// ── AquacultureFarmService DELETE ─────────────────────────────────────────────
+
+describe('AquacultureFarmService — delete', () => {
+  let prisma: ReturnType<typeof makePrisma>;
+  let kafka: ReturnType<typeof makeKafka>;
+  let service: AquacultureFarmService;
+
+  beforeEach(() => {
+    prisma = makePrisma();
+    kafka = makeKafka();
+    service = new AquacultureFarmService(prisma as never, kafka as never);
+  });
+
+  it('delete — deletes farm and publishes DELETED Kafka event', async () => {
+    const existing = {
+      id: 'farm-uuid-del',
+      tenantId: nationalAdmin.tenantId,
+      name: 'Farm To Delete',
+      farmType: 'POND',
+    };
+
+    prisma.aquacultureFarm.findUnique.mockResolvedValue(existing);
+    prisma.aquacultureFarm.delete.mockResolvedValue(existing);
+
+    const result = await service.delete('farm-uuid-del', nationalAdmin);
+
+    expect(result.data).toEqual({ id: 'farm-uuid-del', deleted: true });
+    expect(prisma.aquacultureFarm.delete).toHaveBeenCalledWith({ where: { id: 'farm-uuid-del' } });
+    expect(kafka.send).toHaveBeenCalledOnce();
+    expect(kafka.send.mock.calls[0][0]).toBe(TOPIC_MS_FISHERIES_AQUACULTURE_FARM_DELETED);
   });
 });

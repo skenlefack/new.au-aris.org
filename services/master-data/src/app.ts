@@ -29,6 +29,8 @@ import { registerHistoryRoutes } from './routes/history.routes';
 import { registerImportExportRoutes } from './routes/import-export.routes';
 import { RefDataService } from './services/ref-data.service';
 import { registerRefDataRoutes } from './routes/ref-data.routes';
+import { FisheryRefService } from './services/fishery-ref.service';
+import { registerFisheryRefRoutes } from './routes/fishery-ref.routes';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -47,6 +49,7 @@ declare module 'fastify' {
     historyService: HistoryService;
     importExportService: ImportExportService;
     refDataService: RefDataService;
+    fisheryRefService: FisheryRefService;
     authHookFn: ReturnType<typeof authHook>;
   }
 }
@@ -112,6 +115,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.decorate('historyService', new HistoryService(prisma, audit));
   app.decorate('importExportService', new ImportExportService(prisma, audit));
   app.decorate('refDataService', new RefDataService(prisma, kafka, audit));
+  app.decorate('fisheryRefService', new FisheryRefService(prisma, kafka, audit, cache));
 
   // Error handler
   app.setErrorHandler((error: unknown, _request, reply) => {
@@ -134,6 +138,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerHistoryRoutes);
   await app.register(registerImportExportRoutes);
   await app.register(registerRefDataRoutes);
+  await app.register(registerFisheryRefRoutes);
 
   app.addHook('onClose', async () => {
     await prisma.$disconnect();

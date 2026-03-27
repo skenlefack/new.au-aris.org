@@ -59,4 +59,13 @@ export async function registerMarketPriceRoutes(app: FastifyInstance): Promise<v
     const user = request.user as AuthenticatedUser;
     return app.marketPriceService.update(request.params.id, request.body, user);
   });
+
+  // DELETE /api/v1/trade/market-prices/:id — delete market price
+  app.delete<{ Params: UuidParamInput }>('/api/v1/trade/market-prices/:id', {
+    schema: { params: UuidParamSchema },
+    preHandler: [...authAndTenant, rolesHook(...ALLOWED_ROLES)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.marketPriceService.delete(request.params.id, user);
+  });
 }

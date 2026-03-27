@@ -10,6 +10,10 @@ import {
   TrendingDown,
   ArrowRight,
   Fish,
+  Activity,
+  Download,
+  Upload,
+  ArrowUpDown,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
@@ -80,7 +84,7 @@ export default function FisheriesPage() {
       {/* KPI cards */}
       {sections.kpis && (kpiLoading ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="rounded-card border border-gray-200 bg-white p-4">
               <Skeleton className="h-3 w-24" />
               <Skeleton className="mt-3 h-8 w-16" />
@@ -89,7 +93,7 @@ export default function FisheriesPage() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
@@ -177,6 +181,36 @@ export default function FisheriesPage() {
               <span className="text-gray-400">vs last year</span>
             </div>
           </div>
+
+          <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start justify-between">
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
+                {t('efforts')}
+              </p>
+              <Activity className="h-5 w-5 text-purple-600" />
+            </div>
+            <p className="mt-2 text-2xl font-bold text-gray-900">
+              3,420
+            </p>
+            <p className="mt-1 text-xs text-gray-400">
+              effort records logged
+            </p>
+          </div>
+
+          <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start justify-between">
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
+                {t('fishTrade')}
+              </p>
+              <ArrowUpDown className="h-5 w-5 text-cyan-600" />
+            </div>
+            <p className="mt-2 text-2xl font-bold text-gray-900">
+              $456.8M
+            </p>
+            <p className="mt-1 text-xs text-gray-400">
+              fish trade volume
+            </p>
+          </div>
         </div>
       ))}
 
@@ -198,7 +232,7 @@ export default function FisheriesPage() {
       </div>}
 
       {/* Quick links to sub-pages */}
-      {sections.quickLinks && <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {sections.quickLinks && <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         <Link
           href="/fisheries/captures"
           className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-teal-200 hover:bg-teal-50"
@@ -255,6 +289,86 @@ export default function FisheriesPage() {
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-orange-600" />
+        </Link>
+
+        <Link
+          href="/fisheries/efforts"
+          className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-purple-200 hover:bg-purple-50"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 text-purple-700">
+              <Activity className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                {t('efforts')}
+              </p>
+              <p className="text-xs text-gray-400">
+                {t('effortsDesc')}
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-purple-600" />
+        </Link>
+
+        <Link
+          href="/fisheries/trade"
+          className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-cyan-200 hover:bg-cyan-50"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700">
+              <ArrowUpDown className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                {t('fishTrade')}
+              </p>
+              <p className="text-xs text-gray-400">
+                {t('fishTradeDesc')}
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-cyan-600" />
+        </Link>
+
+        <Link
+          href="/fisheries/export"
+          className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-emerald-200 hover:bg-emerald-50"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+              <Download className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                {t('export')}
+              </p>
+              <p className="text-xs text-gray-400">
+                {t('exportDesc')}
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-emerald-600" />
+        </Link>
+
+        <Link
+          href="/fisheries/import"
+          className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-amber-200 hover:bg-amber-50"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+              <Upload className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                {t('import')}
+              </p>
+              <p className="text-xs text-gray-400">
+                {t('importDesc')}
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-amber-600" />
         </Link>
       </div>}
 

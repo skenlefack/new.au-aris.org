@@ -2168,6 +2168,246 @@ export function useFisheriesAquaculture(params?: {
   });
 }
 
+// ─── Fisheries Effort Types ─────────────────────────────────────────────────
+
+export interface FishingEffort {
+  id: string;
+  vesselId: string;
+  vesselName: string;
+  effortType: string;
+  effortValue: number;
+  effortUnit: string;
+  gearType: string;
+  crewSize: number;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Fisheries CRUD Hooks ──────────────────────────────────────────────────
+
+export function useFishingEfforts(params?: {
+  page?: number;
+  limit?: number;
+  vessel?: string;
+  effortType?: string;
+  gearType?: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.vessel) searchParams.vessel = params.vessel;
+  if (params?.effortType) searchParams.effortType = params.effortType;
+  if (params?.gearType) searchParams.gearType = params.gearType;
+  if (params?.startDate) searchParams.startDate = params.startDate;
+  if (params?.endDate) searchParams.endDate = params.endDate;
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<FishingEffort> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['fisheries', 'efforts', params],
+    queryFn: withFallback(
+      () =>
+        fisheriesClient.get<PaginatedResponse<FishingEffort>>(
+          '/fisheries/efforts',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+export function useCreateEffort() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: Omit<FishingEffort, 'id' | 'createdAt' | 'updatedAt'>) =>
+      fisheriesClient.post<{ data: FishingEffort }>('/fisheries/efforts', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fisheries', 'efforts'] });
+    },
+  });
+}
+
+export function useUpdateEffort() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string } & Partial<Omit<FishingEffort, 'id' | 'createdAt' | 'updatedAt'>>) =>
+      fisheriesClient.patch<{ data: FishingEffort }>(`/fisheries/efforts/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fisheries', 'efforts'] });
+    },
+  });
+}
+
+export function useDeleteEffort() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      fisheriesClient.delete<{ data: { id: string } }>(`/fisheries/efforts/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fisheries', 'efforts'] });
+    },
+  });
+}
+
+export function useDeleteCapture() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      fisheriesClient.delete<{ data: { id: string } }>(`/fisheries/captures/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fisheries', 'captures'] });
+    },
+  });
+}
+
+export function useDeleteVessel() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      fisheriesClient.delete<{ data: { id: string } }>(`/fisheries/vessels/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fisheries', 'vessels'] });
+    },
+  });
+}
+
+export function useDeleteFarm() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      fisheriesClient.delete<{ data: { id: string } }>(`/fisheries/aquaculture-farms/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fisheries', 'aquaculture'] });
+    },
+  });
+}
+
+export function useDeleteProduction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      fisheriesClient.delete<{ data: { id: string } }>(`/fisheries/production/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fisheries', 'production'] });
+    },
+  });
+}
+
+export function useExportData(entity: string, params?: Record<string, string>) {
+  const searchParams: Record<string, string> = { ...params };
+
+  return useQuery({
+    queryKey: ['fisheries', 'export', entity, params],
+    queryFn: () =>
+      fisheriesClient.get<Blob>(
+        `/fisheries/${entity}/export`,
+        searchParams,
+      ),
+    enabled: false,
+  });
+}
+
+export function useExportFishStatJ(year: number) {
+  return useQuery({
+    queryKey: ['fisheries', 'export', 'fishstatj', year],
+    queryFn: () =>
+      fisheriesClient.get<Blob>(
+        '/fisheries/export/fishstatj',
+        { year: String(year) },
+      ),
+    enabled: false,
+  });
+}
+
+export function useImportData(entity: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const token = typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem('aris-auth') ?? '{}')?.state?.accessToken
+        : null;
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/v1';
+      const res = await fetch(`${API_BASE}/fisheries/${entity}/import`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new ApiClientError(res.status, err?.message ?? 'Import failed', err?.errors);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fisheries'] });
+    },
+  });
+}
+
+export function useImportTemplate(entity: string) {
+  return useQuery({
+    queryKey: ['fisheries', 'import-template', entity],
+    queryFn: () =>
+      fisheriesClient.get<Blob>(
+        `/fisheries/${entity}/import/template`,
+      ),
+    enabled: false,
+  });
+}
+
+export function useFishTrade(params?: {
+  page?: number;
+  limit?: number;
+  country?: string;
+  species?: string;
+  productState?: string;
+  flowDirection?: string;
+  year?: number;
+  search?: string;
+}) {
+  const searchParams: Record<string, string> = { commodityGroup: 'FISH' };
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.country) searchParams.country = params.country;
+  if (params?.species) searchParams.species = params.species;
+  if (params?.productState) searchParams.productState = params.productState;
+  if (params?.flowDirection) searchParams.flowDirection = params.flowDirection;
+  if (params?.year) searchParams.year = String(params.year);
+  if (params?.search) searchParams.search = params.search;
+
+  const fallback: PaginatedResponse<TradeFlow> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  return useQuery({
+    queryKey: ['trade', 'flows', 'fish', params],
+    queryFn: withFallback(
+      () =>
+        tradeSpsClient.get<PaginatedResponse<TradeFlow>>(
+          '/trade/flows',
+          searchParams,
+        ),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
 // ─── Trade & SPS Types ──────────────────────────────────────────────────────
 
 export interface TradeFlow {

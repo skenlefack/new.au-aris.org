@@ -12,6 +12,7 @@ import { AuditService } from './audit.service.js';
 import {
   TOPIC_MS_TRADE_SPS_CERTIFIED,
   TOPIC_MS_TRADE_SPS_UPDATED,
+  TOPIC_MS_TRADE_SPS_DELETED,
 } from '../kafka-topics.js';
 import type {
   CreateSpsCertificateInput,
@@ -216,6 +217,33 @@ export class SpsCertificateService {
     await this.publishEvent(TOPIC_MS_TRADE_SPS_CERTIFIED, certificate, user);
 
     return { data: certificate };
+  }
+
+  async delete(
+    id: string,
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<unknown>> {
+    const existing = await (this.prisma as any).spsCertificate.findUnique({ where: { id } });
+    if (!existing) {
+      throw new HttpError(404, `SPS certificate ${id} not found`);
+    }
+
+    if (
+      user.tenantLevel !== TenantLevel.CONTINENTAL &&
+      existing.tenantId !== user.tenantId
+    ) {
+      throw new HttpError(404, `SPS certificate ${id} not found`);
+    }
+
+    await (this.prisma as any).spsCertificate.delete({ where: { id } });
+
+    this.audit.log('SpsCertificate', id, 'DELETE', user, 'RESTRICTED', {
+      previousVersion: existing,
+    });
+
+    await this.publishEvent(TOPIC_MS_TRADE_SPS_DELETED, { id, tenantId: existing.tenantId }, user);
+
+    return { data: { id, deleted: true } };
   }
 
   private buildWhere(

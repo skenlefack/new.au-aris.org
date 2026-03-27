@@ -1272,15 +1272,24 @@ importers:
       '@fastify/cors':
         specifier: ^10.0.0
         version: 10.1.0
+      '@fastify/multipart':
+        specifier: ^9.4.0
+        version: 9.4.0
       '@prisma/client':
         specifier: ^6.2.0
         version: 6.2.0(prisma@6.2.0)
       '@sinclair/typebox':
         specifier: ^0.32.0
         version: 0.32.35
+      csv-parse:
+        specifier: ^6.1.0
+        version: 6.1.0
       dotenv:
         specifier: ^17.3.1
         version: 17.3.1
+      exceljs:
+        specifier: ^4.4.0
+        version: 4.4.0
       fastify:
         specifier: ^5.2.0
         version: 5.7.4
@@ -2006,15 +2015,24 @@ importers:
       '@fastify/cors':
         specifier: ^10.0.0
         version: 10.1.0
+      '@fastify/multipart':
+        specifier: ^9.4.0
+        version: 9.4.0
       '@prisma/client':
         specifier: 6.2.0
         version: 6.2.0(prisma@6.2.0)
       '@sinclair/typebox':
         specifier: ^0.32.0
         version: 0.32.35
+      csv-parse:
+        specifier: ^6.1.0
+        version: 6.1.0
       dotenv:
         specifier: ^17.3.1
         version: 17.3.1
+      exceljs:
+        specifier: ^4.4.0
+        version: 4.4.0
       fastify:
         specifier: ^5.2.0
         version: 5.7.4

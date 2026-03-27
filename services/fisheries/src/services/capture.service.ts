@@ -5,6 +5,7 @@ import {
   TenantLevel,
   TOPIC_MS_FISHERIES_CAPTURE_CREATED,
   TOPIC_MS_FISHERIES_CAPTURE_UPDATED,
+  TOPIC_MS_FISHERIES_CAPTURE_DELETED,
   DEFAULT_PAGE,
   DEFAULT_LIMIT,
   MAX_LIMIT,
@@ -38,6 +39,9 @@ export class CaptureService {
       vesselId?: string;
       captureDate: string;
       geoEntityId: string;
+      fishingEnvironment?: string;
+      productionType?: string;
+      status?: string;
       dataClassification?: string;
     },
     user: AuthenticatedUser,
@@ -53,6 +57,9 @@ export class CaptureService {
         vesselId: dto.vesselId ?? null,
         captureDate: new Date(dto.captureDate),
         geoEntityId: dto.geoEntityId,
+        fishingEnvironment: dto.fishingEnvironment ?? null,
+        productionType: dto.productionType ?? null,
+        status: dto.status ?? null,
         dataClassification: dto.dataClassification ?? 'PARTNER',
         createdBy: user.userId,
         updatedBy: user.userId,
@@ -75,6 +82,9 @@ export class CaptureService {
       faoAreaCode?: string;
       gearType?: string;
       vesselId?: string;
+      fishingEnvironment?: string;
+      productionType?: string;
+      status?: string;
     },
   ): Promise<PaginatedResponse<unknown>> {
     const page = query.page ?? DEFAULT_PAGE;
@@ -115,6 +125,9 @@ export class CaptureService {
       vesselId?: string;
       captureDate?: string;
       geoEntityId?: string;
+      fishingEnvironment?: string;
+      productionType?: string;
+      status?: string;
       dataClassification?: string;
     },
     user: AuthenticatedUser,
@@ -138,6 +151,9 @@ export class CaptureService {
         ...(dto.vesselId !== undefined && { vesselId: dto.vesselId }),
         ...(dto.captureDate !== undefined && { captureDate: new Date(dto.captureDate) }),
         ...(dto.geoEntityId !== undefined && { geoEntityId: dto.geoEntityId }),
+        ...(dto.fishingEnvironment !== undefined && { fishingEnvironment: dto.fishingEnvironment }),
+        ...(dto.productionType !== undefined && { productionType: dto.productionType }),
+        ...(dto.status !== undefined && { status: dto.status }),
         ...(dto.dataClassification !== undefined && { dataClassification: dto.dataClassification }),
         updatedBy: user.userId,
       },
@@ -148,9 +164,33 @@ export class CaptureService {
     return { data: capture };
   }
 
+  async delete(id: string, user: AuthenticatedUser): Promise<ApiResponse<unknown>> {
+    const existing = await (this.prisma as any).fishCapture.findUnique({ where: { id } });
+
+    if (!existing) {
+      throw new HttpError(404, `Capture ${id} not found`);
+    }
+
+    this.verifyTenantAccess(user, existing.tenantId);
+
+    await (this.prisma as any).fishCapture.delete({ where: { id } });
+
+    await this.publishEvent(TOPIC_MS_FISHERIES_CAPTURE_DELETED, { id, tenantId: existing.tenantId }, user);
+
+    return { data: { id, deleted: true } };
+  }
+
   private buildWhere(
     user: AuthenticatedUser,
-    query: { speciesId?: string; faoAreaCode?: string; gearType?: string; vesselId?: string },
+    query: {
+      speciesId?: string;
+      faoAreaCode?: string;
+      gearType?: string;
+      vesselId?: string;
+      fishingEnvironment?: string;
+      productionType?: string;
+      status?: string;
+    },
   ): Record<string, unknown> {
     const where: Record<string, unknown> = {};
 
@@ -165,6 +205,9 @@ export class CaptureService {
     if (query.faoAreaCode) where['faoAreaCode'] = query.faoAreaCode;
     if (query.gearType) where['gearType'] = query.gearType;
     if (query.vesselId) where['vesselId'] = query.vesselId;
+    if (query.fishingEnvironment) where['fishingEnvironment'] = query.fishingEnvironment;
+    if (query.productionType) where['productionType'] = query.productionType;
+    if (query.status) where['status'] = query.status;
 
     return where;
   }

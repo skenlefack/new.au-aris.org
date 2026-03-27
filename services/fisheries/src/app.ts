@@ -1,5 +1,6 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import { readFileSync } from 'fs';
 import { PrismaClient } from '@prisma/client';
 import { StandaloneKafkaProducer } from '@aris/kafka-client';
@@ -9,10 +10,16 @@ import { CaptureService } from './services/capture.service.js';
 import { VesselService } from './services/vessel.service.js';
 import { AquacultureFarmService } from './services/aquaculture-farm.service.js';
 import { AquacultureProductionService } from './services/aquaculture-production.service.js';
+import { EffortService } from './services/effort.service.js';
+import { ExportService } from './services/export.service.js';
+import { ImportService } from './services/import.service.js';
 import { registerCaptureRoutes } from './routes/capture.routes.js';
 import { registerVesselRoutes } from './routes/vessel.routes.js';
 import { registerAquacultureFarmRoutes } from './routes/aquaculture-farm.routes.js';
 import { registerAquacultureProductionRoutes } from './routes/aquaculture-production.routes.js';
+import { registerEffortRoutes } from './routes/effort.routes.js';
+import { registerExportRoutes } from './routes/export.routes.js';
+import { registerImportRoutes } from './routes/import.routes.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -29,6 +36,9 @@ export async function buildApp(): Promise<FastifyInstance> {
     origin: (process.env['CORS_ORIGINS'] ?? 'http://localhost:3000,http://localhost:3100').split(','),
     credentials: true,
   });
+
+  // Multipart file uploads (10 MB max)
+  await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } });
 
   // Error handler — maps HttpError.statusCode to HTTP response
   app.setErrorHandler((error: Error & { statusCode?: number; errors?: unknown[] }, request, reply) => {
@@ -89,11 +99,17 @@ export async function buildApp(): Promise<FastifyInstance> {
   const vesselService = new VesselService(prisma, kafka);
   const aquacultureFarmService = new AquacultureFarmService(prisma, kafka);
   const aquacultureProductionService = new AquacultureProductionService(prisma, kafka);
+  const effortService = new EffortService(prisma, kafka);
+  const exportService = new ExportService(prisma);
+  const importService = new ImportService(prisma, kafka);
 
   app.decorate('captureService', captureService);
   app.decorate('vesselService', vesselService);
   app.decorate('aquacultureFarmService', aquacultureFarmService);
   app.decorate('aquacultureProductionService', aquacultureProductionService);
+  app.decorate('effortService', effortService);
+  app.decorate('exportService', exportService);
+  app.decorate('importService', importService);
 
   // --- Health check ---
   app.get('/health', async () => ({
@@ -107,6 +123,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerVesselRoutes);
   await app.register(registerAquacultureFarmRoutes);
   await app.register(registerAquacultureProductionRoutes);
+  await app.register(registerEffortRoutes);
+  await app.register(registerExportRoutes);
+  await app.register(registerImportRoutes);
 
   return app;
 }

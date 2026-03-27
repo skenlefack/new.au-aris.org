@@ -69,4 +69,13 @@ export async function registerSpsCertificateRoutes(app: FastifyInstance): Promis
     const user = request.user as AuthenticatedUser;
     return app.spsCertificateService.issue(request.params.id, user);
   });
+
+  // DELETE /api/v1/trade/sps-certificates/:id — delete SPS certificate
+  app.delete<{ Params: UuidParamInput }>('/api/v1/trade/sps-certificates/:id', {
+    schema: { params: UuidParamSchema },
+    preHandler: [...authAndTenant, rolesHook(...ALLOWED_ROLES)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.spsCertificateService.delete(request.params.id, user);
+  });
 }

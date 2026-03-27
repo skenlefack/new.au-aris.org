@@ -13,6 +13,9 @@ model FishCapture {
   quantityKg         Float    @map("quantity_kg")
   gearType           String   @map("gear_type")
   landingSite        String   @map("landing_site")
+  fishingEnvironment String?  @map("fishing_environment") @db.VarChar(30)  // MARINE, INLAND, BRACKISH
+  productionType     String?  @map("production_type") @db.VarChar(30)      // ARTISANAL, INDUSTRIAL, SUBSISTENCE
+  status             String   @default("DRAFT") @map("status") @db.VarChar(20) // DRAFT, SUBMITTED, VALIDATED
   dataClassification String   @default("PARTNER") @map("data_classification")
   createdBy          String   @map("created_by") @db.Uuid
   updatedBy          String   @map("updated_by") @db.Uuid
@@ -40,6 +43,9 @@ model FishingVessel {
   homePort            String    @map("home_port")
   licenseNumber       String?   @map("license_number")
   licenseExpiry       DateTime? @map("license_expiry") @db.Timestamptz
+  enginePowerKw       Float?    @map("engine_power_kw")
+  crewCapacity        Int?      @map("crew_capacity")
+  ownerName           String?   @map("owner_name") @db.VarChar(255)
   isActive            Boolean   @default(true) @map("is_active")
   dataClassification  String    @default("PARTNER") @map("data_classification")
   createdBy           String    @map("created_by") @db.Uuid
@@ -65,6 +71,12 @@ model AquacultureFarm {
   areaHectares            Float    @map("area_hectares")
   speciesIds              String[] @map("species_ids") @db.Uuid
   productionCapacityTonnes Float   @map("production_capacity_tonnes")
+  ownerName               String?  @map("owner_name") @db.VarChar(255)
+  registrationNumber      String?  @map("registration_number") @db.VarChar(100)
+  totalWorkers            Int?     @map("total_workers")
+  maleWorkers             Int?     @map("male_workers")
+  femaleWorkers           Int?     @map("female_workers")
+  pondCount               Int?     @map("pond_count")
   isActive                Boolean  @default(true) @map("is_active")
   dataClassification      String   @default("PARTNER") @map("data_classification")
   createdBy               String   @map("created_by") @db.Uuid
@@ -80,26 +92,56 @@ model AquacultureFarm {
 }
 
 model AquacultureProduction {
-  id                 String   @id @default(uuid()) @db.Uuid
-  tenantId           String   @map("tenant_id") @db.Uuid
-  farmId             String   @map("farm_id") @db.Uuid
-  speciesId          String   @map("species_id") @db.Uuid
-  harvestDate        DateTime @map("harvest_date") @db.Timestamptz
-  quantityKg         Float    @map("quantity_kg")
-  methodOfCulture    String   @map("method_of_culture")
-  feedUsedKg         Float?   @map("feed_used_kg")
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  farmId             String    @map("farm_id") @db.Uuid
+  speciesId          String    @map("species_id") @db.Uuid
+  harvestDate        DateTime  @map("harvest_date") @db.Timestamptz
+  quantityKg         Float     @map("quantity_kg")
+  methodOfCulture    String    @map("method_of_culture")
+  feedUsedKg         Float?    @map("feed_used_kg")
   fcr                Float?
-  batchId            String?  @map("batch_id")
-  dataClassification String   @default("PARTNER") @map("data_classification")
-  createdBy          String   @map("created_by") @db.Uuid
-  updatedBy          String   @map("updated_by") @db.Uuid
-  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  batchId            String?   @map("batch_id")
+  stockingDate       DateTime? @map("stocking_date") @db.Timestamptz
+  survivalRate       Float?    @map("survival_rate")
+  averageWeightGrams Float?    @map("average_weight_grams")
+  dataClassification String    @default("PARTNER") @map("data_classification")
+  createdBy          String    @map("created_by") @db.Uuid
+  updatedBy          String    @map("updated_by") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
   @@index([tenantId])
   @@index([farmId])
   @@index([speciesId])
   @@index([harvestDate])
   @@map("aquaculture_production")
+  @@schema("fisheries")
+}
+
+model FishingEffort {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  captureId          String?  @map("capture_id") @db.Uuid
+  vesselId           String?  @map("vessel_id") @db.Uuid
+  effortType         String   @map("effort_type") @db.VarChar(50)
+  effortValue        Float    @map("effort_value")
+  effortUnit         String   @map("effort_unit") @db.VarChar(30)
+  startDate          DateTime @map("start_date") @db.Timestamptz
+  endDate            DateTime @map("end_date") @db.Timestamptz
+  gearType           String   @map("gear_type") @db.VarChar(50)
+  crewSize           Int?     @map("crew_size")
+  faoAreaCode        String?  @map("fao_area_code") @db.VarChar(20)
+  dataClassification String   @default("PARTNER") @map("data_classification") @db.VarChar(20)
+  createdBy          String   @map("created_by") @db.Uuid
+  updatedBy          String   @map("updated_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([vesselId])
+  @@index([captureId])
+  @@index([startDate])
+  @@map("fishing_efforts")
   @@schema("fisheries")
 }

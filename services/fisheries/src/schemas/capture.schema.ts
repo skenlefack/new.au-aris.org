@@ -9,6 +9,9 @@ export const CreateCaptureSchema = Type.Object({
   vesselId: Type.Optional(Type.String({ format: 'uuid' })),
   captureDate: Type.String({ format: 'date-time' }),
   geoEntityId: Type.String({ format: 'uuid' }),
+  fishingEnvironment: Type.Optional(Type.String({ maxLength: 100 })),
+  productionType: Type.Optional(Type.String({ maxLength: 100 })),
+  status: Type.Optional(Type.String({ maxLength: 50 })),
   dataClassification: Type.Optional(Type.String()),
 });
 
@@ -21,6 +24,9 @@ export const UpdateCaptureSchema = Type.Object({
   vesselId: Type.Optional(Type.String({ format: 'uuid' })),
   captureDate: Type.Optional(Type.String({ format: 'date-time' })),
   geoEntityId: Type.Optional(Type.String({ format: 'uuid' })),
+  fishingEnvironment: Type.Optional(Type.String({ maxLength: 100 })),
+  productionType: Type.Optional(Type.String({ maxLength: 100 })),
+  status: Type.Optional(Type.String({ maxLength: 50 })),
   dataClassification: Type.Optional(Type.String()),
 });
 
@@ -33,6 +39,9 @@ export const CaptureFilterSchema = Type.Object({
   faoAreaCode: Type.Optional(Type.String()),
   gearType: Type.Optional(Type.String()),
   vesselId: Type.Optional(Type.String({ format: 'uuid' })),
+  fishingEnvironment: Type.Optional(Type.String()),
+  productionType: Type.Optional(Type.String()),
+  status: Type.Optional(Type.String()),
 });
 
 export const PaginationQuerySchema = Type.Object({

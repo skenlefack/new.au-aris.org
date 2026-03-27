@@ -71,4 +71,21 @@ export async function registerCaptureRoutes(app: FastifyInstance): Promise<void>
     const user = request.user as AuthenticatedUser;
     return app.captureService.update(request.params.id, request.body, user);
   });
+
+  // DELETE /api/v1/fisheries/captures/:id
+  app.delete<{ Params: UuidParamInput }>('/api/v1/fisheries/captures/:id', {
+    schema: { params: UuidParamSchema },
+    preHandler: [
+      ...authAndTenant,
+      rolesHook(
+        UserRole.SUPER_ADMIN,
+        UserRole.CONTINENTAL_ADMIN,
+        UserRole.NATIONAL_ADMIN,
+        UserRole.DATA_STEWARD,
+      ),
+    ],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.captureService.delete(request.params.id, user);
+  });
 }

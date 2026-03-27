@@ -18,6 +18,34 @@ export const CreateTradeFlowSchema = Type.Object({
   periodEnd: Type.Optional(Type.String({ format: 'date-time' })),
   hsCode: Type.Optional(Type.String({ minLength: 1, maxLength: 20 })),
   spsStatus: Type.Optional(Type.String({ minLength: 1, maxLength: 50 })),
+  productState: Type.Optional(
+    Type.Union([
+      Type.Literal('LIVE'),
+      Type.Literal('FRESH'),
+      Type.Literal('FROZEN'),
+      Type.Literal('DRIED'),
+      Type.Literal('SMOKED'),
+      Type.Literal('CANNED'),
+      Type.Literal('SALTED'),
+      Type.Literal('FILLETED'),
+    ]),
+  ),
+  commodityGroup: Type.Optional(
+    Type.Union([
+      Type.Literal('FISH'),
+      Type.Literal('LIVESTOCK'),
+      Type.Literal('CROP'),
+      Type.Literal('DAIRY'),
+      Type.Literal('OTHER'),
+    ]),
+  ),
+  processingLevel: Type.Optional(
+    Type.Union([
+      Type.Literal('RAW'),
+      Type.Literal('SEMI_PROCESSED'),
+      Type.Literal('PROCESSED'),
+    ]),
+  ),
   dataClassification: Type.Optional(
     Type.Union([
       Type.Literal('PUBLIC'),
@@ -49,6 +77,34 @@ export const UpdateTradeFlowSchema = Type.Object({
   periodEnd: Type.Optional(Type.String({ format: 'date-time' })),
   hsCode: Type.Optional(Type.String({ minLength: 1, maxLength: 20 })),
   spsStatus: Type.Optional(Type.String({ minLength: 1, maxLength: 50 })),
+  productState: Type.Optional(
+    Type.Union([
+      Type.Literal('LIVE'),
+      Type.Literal('FRESH'),
+      Type.Literal('FROZEN'),
+      Type.Literal('DRIED'),
+      Type.Literal('SMOKED'),
+      Type.Literal('CANNED'),
+      Type.Literal('SALTED'),
+      Type.Literal('FILLETED'),
+    ]),
+  ),
+  commodityGroup: Type.Optional(
+    Type.Union([
+      Type.Literal('FISH'),
+      Type.Literal('LIVESTOCK'),
+      Type.Literal('CROP'),
+      Type.Literal('DAIRY'),
+      Type.Literal('OTHER'),
+    ]),
+  ),
+  processingLevel: Type.Optional(
+    Type.Union([
+      Type.Literal('RAW'),
+      Type.Literal('SEMI_PROCESSED'),
+      Type.Literal('PROCESSED'),
+    ]),
+  ),
   dataClassification: Type.Optional(
     Type.Union([
       Type.Literal('PUBLIC'),
@@ -72,6 +128,34 @@ export const TradeFlowFilterSchema = Type.Object({
       Type.Literal('IMPORT'),
       Type.Literal('EXPORT'),
       Type.Literal('TRANSIT'),
+    ]),
+  ),
+  productState: Type.Optional(
+    Type.Union([
+      Type.Literal('LIVE'),
+      Type.Literal('FRESH'),
+      Type.Literal('FROZEN'),
+      Type.Literal('DRIED'),
+      Type.Literal('SMOKED'),
+      Type.Literal('CANNED'),
+      Type.Literal('SALTED'),
+      Type.Literal('FILLETED'),
+    ]),
+  ),
+  commodityGroup: Type.Optional(
+    Type.Union([
+      Type.Literal('FISH'),
+      Type.Literal('LIVESTOCK'),
+      Type.Literal('CROP'),
+      Type.Literal('DAIRY'),
+      Type.Literal('OTHER'),
+    ]),
+  ),
+  processingLevel: Type.Optional(
+    Type.Union([
+      Type.Literal('RAW'),
+      Type.Literal('SEMI_PROCESSED'),
+      Type.Literal('PROCESSED'),
     ]),
   ),
   periodStart: Type.Optional(Type.String({ format: 'date-time' })),

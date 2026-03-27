@@ -10,6 +10,9 @@ export const CreateVesselSchema = Type.Object({
   homePort: Type.String({ minLength: 1, maxLength: 255 }),
   licenseNumber: Type.Optional(Type.String({ maxLength: 100 })),
   licenseExpiry: Type.Optional(Type.String({ format: 'date-time' })),
+  enginePowerKw: Type.Optional(Type.Number({ minimum: 0 })),
+  crewCapacity: Type.Optional(Type.Integer({ minimum: 0 })),
+  ownerName: Type.Optional(Type.String({ maxLength: 255 })),
   dataClassification: Type.Optional(Type.String()),
 });
 
@@ -24,6 +27,9 @@ export const UpdateVesselSchema = Type.Object({
   licenseNumber: Type.Optional(Type.String({ maxLength: 100 })),
   licenseExpiry: Type.Optional(Type.String({ format: 'date-time' })),
   isActive: Type.Optional(Type.Boolean()),
+  enginePowerKw: Type.Optional(Type.Number({ minimum: 0 })),
+  crewCapacity: Type.Optional(Type.Integer({ minimum: 0 })),
+  ownerName: Type.Optional(Type.String({ maxLength: 255 })),
   dataClassification: Type.Optional(Type.String()),
 });
 

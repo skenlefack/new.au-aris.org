@@ -14,6 +14,7 @@ export const TOPIC_SYS_MASTER_GEO_UPDATED = 'sys.master.geo.updated.v1' as const
 export const TOPIC_SYS_MASTER_SPECIES_UPDATED = 'sys.master.species.updated.v1' as const;
 export const TOPIC_SYS_MASTER_DISEASE_UPDATED = 'sys.master.disease.updated.v1' as const;
 export const TOPIC_SYS_MASTER_DENOMINATOR_UPDATED = 'sys.master.denominator.updated.v1' as const;
+export const TOPIC_SYS_MASTER_FISHERY_REF_UPDATED = 'sys.master.fishery-ref.updated.v1' as const;
 
 // ── Quality Topics ──
 export const TOPIC_AU_QUALITY_RECORD_VALIDATED = 'au.quality.record.validated.v1' as const;
@@ -65,12 +66,19 @@ export const TOPIC_MS_LIVESTOCK_TRANSHUMANCE_UPDATED = 'ms.livestock.transhumanc
 // ── Fisheries Topics ──
 export const TOPIC_MS_FISHERIES_CAPTURE_CREATED = 'ms.fisheries.capture.created.v1' as const;
 export const TOPIC_MS_FISHERIES_CAPTURE_UPDATED = 'ms.fisheries.capture.updated.v1' as const;
+export const TOPIC_MS_FISHERIES_CAPTURE_DELETED = 'ms.fisheries.capture.deleted.v1' as const;
 export const TOPIC_MS_FISHERIES_VESSEL_CREATED = 'ms.fisheries.vessel.created.v1' as const;
 export const TOPIC_MS_FISHERIES_VESSEL_UPDATED = 'ms.fisheries.vessel.updated.v1' as const;
+export const TOPIC_MS_FISHERIES_VESSEL_DELETED = 'ms.fisheries.vessel.deleted.v1' as const;
 export const TOPIC_MS_FISHERIES_AQUACULTURE_FARM_CREATED = 'ms.fisheries.aquaculture-farm.created.v1' as const;
 export const TOPIC_MS_FISHERIES_AQUACULTURE_FARM_UPDATED = 'ms.fisheries.aquaculture-farm.updated.v1' as const;
+export const TOPIC_MS_FISHERIES_AQUACULTURE_FARM_DELETED = 'ms.fisheries.aquaculture-farm.deleted.v1' as const;
 export const TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_CREATED = 'ms.fisheries.aquaculture-production.created.v1' as const;
 export const TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_UPDATED = 'ms.fisheries.aquaculture-production.updated.v1' as const;
+export const TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_DELETED = 'ms.fisheries.aquaculture-production.deleted.v1' as const;
+export const TOPIC_MS_FISHERIES_EFFORT_CREATED = 'ms.fisheries.effort.created.v1' as const;
+export const TOPIC_MS_FISHERIES_EFFORT_UPDATED = 'ms.fisheries.effort.updated.v1' as const;
+export const TOPIC_MS_FISHERIES_EFFORT_DELETED = 'ms.fisheries.effort.deleted.v1' as const;
 
 // ── Wildlife Topics ──
 export const TOPIC_MS_WILDLIFE_INVENTORY_CREATED = 'ms.wildlife.inventory.created.v1' as const;
@@ -194,14 +202,22 @@ export const ALL_TOPICS = [
   TOPIC_MS_LIVESTOCK_SLAUGHTER_UPDATED,
   TOPIC_MS_LIVESTOCK_TRANSHUMANCE_CREATED,
   TOPIC_MS_LIVESTOCK_TRANSHUMANCE_UPDATED,
+  TOPIC_SYS_MASTER_FISHERY_REF_UPDATED,
   TOPIC_MS_FISHERIES_CAPTURE_CREATED,
   TOPIC_MS_FISHERIES_CAPTURE_UPDATED,
+  TOPIC_MS_FISHERIES_CAPTURE_DELETED,
   TOPIC_MS_FISHERIES_VESSEL_CREATED,
   TOPIC_MS_FISHERIES_VESSEL_UPDATED,
+  TOPIC_MS_FISHERIES_VESSEL_DELETED,
   TOPIC_MS_FISHERIES_AQUACULTURE_FARM_CREATED,
   TOPIC_MS_FISHERIES_AQUACULTURE_FARM_UPDATED,
+  TOPIC_MS_FISHERIES_AQUACULTURE_FARM_DELETED,
   TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_CREATED,
   TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_UPDATED,
+  TOPIC_MS_FISHERIES_AQUACULTURE_PRODUCTION_DELETED,
+  TOPIC_MS_FISHERIES_EFFORT_CREATED,
+  TOPIC_MS_FISHERIES_EFFORT_UPDATED,
+  TOPIC_MS_FISHERIES_EFFORT_DELETED,
   TOPIC_MS_WILDLIFE_INVENTORY_CREATED,
   TOPIC_MS_WILDLIFE_INVENTORY_UPDATED,
   TOPIC_MS_WILDLIFE_PROTECTED_AREA_CREATED,

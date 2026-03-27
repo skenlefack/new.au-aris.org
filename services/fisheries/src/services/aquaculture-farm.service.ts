@@ -5,6 +5,7 @@ import {
   TenantLevel,
   TOPIC_MS_FISHERIES_AQUACULTURE_FARM_CREATED,
   TOPIC_MS_FISHERIES_AQUACULTURE_FARM_UPDATED,
+  TOPIC_MS_FISHERIES_AQUACULTURE_FARM_DELETED,
   DEFAULT_PAGE,
   DEFAULT_LIMIT,
   MAX_LIMIT,
@@ -38,6 +39,12 @@ export class AquacultureFarmService {
       productionCapacityTonnes: number;
       geoEntityId: string;
       coordinates?: Record<string, unknown>;
+      ownerName?: string;
+      registrationNumber?: string;
+      totalWorkers?: number;
+      maleWorkers?: number;
+      femaleWorkers?: number;
+      pondCount?: number;
       dataClassification?: string;
     },
     user: AuthenticatedUser,
@@ -53,6 +60,12 @@ export class AquacultureFarmService {
         productionCapacityTonnes: dto.productionCapacityTonnes,
         geoEntityId: dto.geoEntityId,
         coordinates: dto.coordinates ?? {},
+        ownerName: dto.ownerName ?? null,
+        registrationNumber: dto.registrationNumber ?? null,
+        totalWorkers: dto.totalWorkers ?? null,
+        maleWorkers: dto.maleWorkers ?? null,
+        femaleWorkers: dto.femaleWorkers ?? null,
+        pondCount: dto.pondCount ?? null,
         dataClassification: dto.dataClassification ?? 'PARTNER',
         createdBy: user.userId,
         updatedBy: user.userId,
@@ -114,6 +127,12 @@ export class AquacultureFarmService {
       geoEntityId?: string;
       coordinates?: Record<string, unknown>;
       isActive?: boolean;
+      ownerName?: string;
+      registrationNumber?: string;
+      totalWorkers?: number;
+      maleWorkers?: number;
+      femaleWorkers?: number;
+      pondCount?: number;
       dataClassification?: string;
     },
     user: AuthenticatedUser,
@@ -138,6 +157,12 @@ export class AquacultureFarmService {
         ...(dto.geoEntityId !== undefined && { geoEntityId: dto.geoEntityId }),
         ...(dto.coordinates !== undefined && { coordinates: dto.coordinates }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+        ...(dto.ownerName !== undefined && { ownerName: dto.ownerName }),
+        ...(dto.registrationNumber !== undefined && { registrationNumber: dto.registrationNumber }),
+        ...(dto.totalWorkers !== undefined && { totalWorkers: dto.totalWorkers }),
+        ...(dto.maleWorkers !== undefined && { maleWorkers: dto.maleWorkers }),
+        ...(dto.femaleWorkers !== undefined && { femaleWorkers: dto.femaleWorkers }),
+        ...(dto.pondCount !== undefined && { pondCount: dto.pondCount }),
         ...(dto.dataClassification !== undefined && { dataClassification: dto.dataClassification }),
         updatedBy: user.userId,
       },
@@ -146,6 +171,22 @@ export class AquacultureFarmService {
     await this.publishEvent(TOPIC_MS_FISHERIES_AQUACULTURE_FARM_UPDATED, { id: farm.id, ...farm }, user);
 
     return { data: farm };
+  }
+
+  async delete(id: string, user: AuthenticatedUser): Promise<ApiResponse<unknown>> {
+    const existing = await (this.prisma as any).aquacultureFarm.findUnique({ where: { id } });
+
+    if (!existing) {
+      throw new HttpError(404, `Aquaculture farm ${id} not found`);
+    }
+
+    this.verifyTenantAccess(user, existing.tenantId);
+
+    await (this.prisma as any).aquacultureFarm.delete({ where: { id } });
+
+    await this.publishEvent(TOPIC_MS_FISHERIES_AQUACULTURE_FARM_DELETED, { id, tenantId: existing.tenantId }, user);
+
+    return { data: { id, deleted: true } };
   }
 
   private buildWhere(

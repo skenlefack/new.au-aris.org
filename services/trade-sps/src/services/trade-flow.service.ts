@@ -12,6 +12,7 @@ import { AuditService } from './audit.service.js';
 import {
   TOPIC_MS_TRADE_FLOW_CREATED,
   TOPIC_MS_TRADE_FLOW_UPDATED,
+  TOPIC_MS_TRADE_FLOW_DELETED,
 } from '../kafka-topics.js';
 import type { CreateTradeFlowInput, UpdateTradeFlowInput, TradeFlowFilterInput } from '../schemas/trade-flow.schema.js';
 
@@ -54,6 +55,9 @@ export class TradeFlowService {
         periodEnd: dto.periodEnd ? new Date(dto.periodEnd) : undefined,
         hsCode: dto.hsCode,
         spsStatus: dto.spsStatus,
+        productState: dto.productState,
+        commodityGroup: dto.commodityGroup,
+        processingLevel: dto.processingLevel,
         dataClassification: dto.dataClassification ?? 'PARTNER',
         createdBy: user.userId,
         updatedBy: user.userId,
@@ -147,6 +151,9 @@ export class TradeFlowService {
         ...(dto.periodEnd !== undefined && { periodEnd: new Date(dto.periodEnd) }),
         ...(dto.hsCode !== undefined && { hsCode: dto.hsCode }),
         ...(dto.spsStatus !== undefined && { spsStatus: dto.spsStatus }),
+        ...(dto.productState !== undefined && { productState: dto.productState }),
+        ...(dto.commodityGroup !== undefined && { commodityGroup: dto.commodityGroup }),
+        ...(dto.processingLevel !== undefined && { processingLevel: dto.processingLevel }),
         ...(dto.dataClassification !== undefined && { dataClassification: dto.dataClassification }),
         updatedBy: user.userId,
       },
@@ -160,6 +167,33 @@ export class TradeFlowService {
     await this.publishEvent(TOPIC_MS_TRADE_FLOW_UPDATED, tradeFlow, user);
 
     return { data: tradeFlow };
+  }
+
+  async delete(
+    id: string,
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<unknown>> {
+    const existing = await (this.prisma as any).tradeFlow.findUnique({ where: { id } });
+    if (!existing) {
+      throw new HttpError(404, `Trade flow ${id} not found`);
+    }
+
+    if (
+      user.tenantLevel !== TenantLevel.CONTINENTAL &&
+      existing.tenantId !== user.tenantId
+    ) {
+      throw new HttpError(404, `Trade flow ${id} not found`);
+    }
+
+    await (this.prisma as any).tradeFlow.delete({ where: { id } });
+
+    this.audit.log('TradeFlow', id, 'DELETE', user, 'PARTNER', {
+      previousVersion: existing,
+    });
+
+    await this.publishEvent(TOPIC_MS_TRADE_FLOW_DELETED, { id, tenantId: existing.tenantId }, user);
+
+    return { data: { id, deleted: true } };
   }
 
   private buildWhere(
@@ -180,6 +214,8 @@ export class TradeFlowService {
     if (query.speciesId) where['speciesId'] = query.speciesId;
     if (query.commodity) where['commodity'] = { contains: query.commodity, mode: 'insensitive' };
     if (query.flowDirection) where['flowDirection'] = query.flowDirection;
+    if (query.commodityGroup) where['commodityGroup'] = query.commodityGroup;
+    if (query.productState) where['productState'] = query.productState;
 
     if (query.periodStart || query.periodEnd) {
       where['periodStart'] = {};

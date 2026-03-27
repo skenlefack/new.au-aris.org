@@ -12,6 +12,7 @@ import { AuditService } from './audit.service.js';
 import {
   TOPIC_MS_TRADE_PRICE_RECORDED,
   TOPIC_MS_TRADE_PRICE_UPDATED,
+  TOPIC_MS_TRADE_PRICE_DELETED,
 } from '../kafka-topics.js';
 import type { CreateMarketPriceInput, UpdateMarketPriceInput, MarketPriceFilterInput } from '../schemas/market-price.schema.js';
 
@@ -152,6 +153,33 @@ export class MarketPriceService {
     await this.publishEvent(TOPIC_MS_TRADE_PRICE_UPDATED, marketPrice, user);
 
     return { data: marketPrice };
+  }
+
+  async delete(
+    id: string,
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<unknown>> {
+    const existing = await (this.prisma as any).marketPrice.findUnique({ where: { id } });
+    if (!existing) {
+      throw new HttpError(404, `Market price ${id} not found`);
+    }
+
+    if (
+      user.tenantLevel !== TenantLevel.CONTINENTAL &&
+      existing.tenantId !== user.tenantId
+    ) {
+      throw new HttpError(404, `Market price ${id} not found`);
+    }
+
+    await (this.prisma as any).marketPrice.delete({ where: { id } });
+
+    this.audit.log('MarketPrice', id, 'DELETE', user, 'PUBLIC', {
+      previousVersion: existing,
+    });
+
+    await this.publishEvent(TOPIC_MS_TRADE_PRICE_DELETED, { id, tenantId: existing.tenantId }, user);
+
+    return { data: { id, deleted: true } };
   }
 
   private buildWhere(

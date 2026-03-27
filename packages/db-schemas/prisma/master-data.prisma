@@ -124,6 +124,10 @@ model Species {
   createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz
   updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
+  faoAlphaCode    String?  @map("fao_alpha_code") @db.VarChar(10)
+  speciesGroup    String?  @map("species_group") @db.VarChar(30)
+  habitatType     String?  @map("habitat_type") @db.VarChar(30)
+
   denominators Denominator[]
 
   @@index([category], map: "idx_species_category")
@@ -283,5 +287,29 @@ model MasterDataAudit {
   @@index([actorUserId], map: "idx_audit_actor")
   @@index([createdAt], map: "idx_audit_created_at")
   @@map("master_data_audits")
+  @@schema("public")
+}
+
+// ── Fishery Referentials — Gear types, vessel types, farm types, FAO areas ──
+
+model FisheryReferential {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String?  @map("tenant_id") @db.Uuid
+  category    String   @db.VarChar(30)
+  code        String   @db.VarChar(30)
+  name        Json
+  description Json?
+  faoCode     String?  @map("fao_code") @db.VarChar(20)
+  parentCode  String?  @map("parent_code") @db.VarChar(30)
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  metadata    Json?    @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([category, code], map: "uq_fishery_ref_category_code")
+  @@index([category], map: "idx_fishery_ref_category")
+  @@index([isActive], map: "idx_fishery_ref_is_active")
+  @@map("fishery_referentials")
   @@schema("public")
 }

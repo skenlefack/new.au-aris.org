@@ -7,8 +7,10 @@ import { MarketPriceService } from '../services/market-price.service.js';
 import { AuditService } from '../services/audit.service.js';
 import {
   TOPIC_MS_TRADE_FLOW_CREATED,
+  TOPIC_MS_TRADE_FLOW_DELETED,
   TOPIC_MS_TRADE_SPS_CERTIFIED,
   TOPIC_MS_TRADE_PRICE_RECORDED,
+  TOPIC_MS_TRADE_PRICE_DELETED,
 } from '../kafka-topics.js';
 
 // ── Fixtures ──────────────────────────────────────────────────────────
@@ -39,6 +41,7 @@ function makePrisma() {
       findUnique: vi.fn(),
       count: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
     spsCertificate: {
       create: vi.fn(),
@@ -53,6 +56,7 @@ function makePrisma() {
       findUnique: vi.fn(),
       count: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
   };
 }
@@ -442,5 +446,92 @@ describe('SpsCertificateService — audit trail', () => {
         newVersion: updated,
       }),
     );
+  });
+});
+
+// ── TradeFlowService — DELETE + commodityGroup filter ─────────────────
+
+describe('TradeFlowService — delete & commodityGroup', () => {
+  let prisma: ReturnType<typeof makePrisma>;
+  let kafka: ReturnType<typeof makeKafka>;
+  let audit: AuditService;
+  let service: TradeFlowService;
+
+  beforeEach(() => {
+    prisma = makePrisma();
+    kafka = makeKafka();
+    audit = makeAudit();
+    service = new TradeFlowService(prisma as never, kafka as never, audit);
+  });
+
+  it('11. delete — deletes trade flow and publishes DELETED Kafka event', async () => {
+    const existing = {
+      id: 'flow-uuid-del',
+      tenantId: nationalAdmin.tenantId,
+      commodity: 'Frozen tuna',
+      commodityGroup: 'FISH',
+      flowDirection: 'EXPORT',
+    };
+
+    prisma.tradeFlow.findUnique.mockResolvedValue(existing);
+    prisma.tradeFlow.delete.mockResolvedValue(existing);
+
+    const result = await service.delete('flow-uuid-del', nationalAdmin);
+
+    expect(result.data).toEqual({ id: 'flow-uuid-del', deleted: true });
+    expect(prisma.tradeFlow.delete).toHaveBeenCalledWith({ where: { id: 'flow-uuid-del' } });
+    expect(kafka.send).toHaveBeenCalledOnce();
+    expect(kafka.send.mock.calls[0][0]).toBe(TOPIC_MS_TRADE_FLOW_DELETED);
+  });
+
+  it('12. findAll — filters by commodityGroup=FISH', async () => {
+    prisma.tradeFlow.findMany.mockResolvedValue([]);
+    prisma.tradeFlow.count.mockResolvedValue(0);
+
+    await service.findAll(nationalAdmin, { commodityGroup: 'FISH' } as any);
+
+    expect(prisma.tradeFlow.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenantId: nationalAdmin.tenantId,
+          commodityGroup: 'FISH',
+        }),
+      }),
+    );
+  });
+});
+
+// ── MarketPriceService — DELETE ───────────────────────────────────────
+
+describe('MarketPriceService — delete', () => {
+  let prisma: ReturnType<typeof makePrisma>;
+  let kafka: ReturnType<typeof makeKafka>;
+  let audit: AuditService;
+  let service: MarketPriceService;
+
+  beforeEach(() => {
+    prisma = makePrisma();
+    kafka = makeKafka();
+    audit = makeAudit();
+    service = new MarketPriceService(prisma as never, kafka as never, audit);
+  });
+
+  it('13. delete — deletes market price and publishes DELETED Kafka event', async () => {
+    const existing = {
+      id: 'price-uuid-del',
+      tenantId: nationalAdmin.tenantId,
+      commodity: 'Fresh tilapia',
+      price: 5000,
+    };
+
+    prisma.marketPrice.findUnique.mockResolvedValue(existing);
+    prisma.marketPrice.delete.mockResolvedValue(existing);
+
+    const result = await service.delete('price-uuid-del', nationalAdmin);
+
+    expect(result.data).toEqual({ id: 'price-uuid-del', deleted: true });
+    expect(prisma.marketPrice.delete).toHaveBeenCalledWith({ where: { id: 'price-uuid-del' } });
+    expect(kafka.send).toHaveBeenCalledOnce();
+    expect(kafka.send.mock.calls[0][0]).toBe(TOPIC_MS_TRADE_PRICE_DELETED);
   });
 });

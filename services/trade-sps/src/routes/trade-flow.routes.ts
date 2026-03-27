@@ -59,4 +59,13 @@ export async function registerTradeFlowRoutes(app: FastifyInstance): Promise<voi
     const user = request.user as AuthenticatedUser;
     return app.tradeFlowService.update(request.params.id, request.body, user);
   });
+
+  // DELETE /api/v1/trade/flows/:id — delete trade flow
+  app.delete<{ Params: UuidParamInput }>('/api/v1/trade/flows/:id', {
+    schema: { params: UuidParamSchema },
+    preHandler: [...authAndTenant, rolesHook(...ALLOWED_ROLES)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.tradeFlowService.delete(request.params.id, user);
+  });
 }

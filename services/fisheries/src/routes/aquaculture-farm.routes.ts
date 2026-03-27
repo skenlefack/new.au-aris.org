@@ -70,4 +70,21 @@ export async function registerAquacultureFarmRoutes(app: FastifyInstance): Promi
     const user = request.user as AuthenticatedUser;
     return app.aquacultureFarmService.update(request.params.id, request.body, user);
   });
+
+  // DELETE /api/v1/fisheries/aquaculture/farms/:id
+  app.delete<{ Params: UuidParamInput }>('/api/v1/fisheries/aquaculture/farms/:id', {
+    schema: { params: UuidParamSchema },
+    preHandler: [
+      ...authAndTenant,
+      rolesHook(
+        UserRole.SUPER_ADMIN,
+        UserRole.CONTINENTAL_ADMIN,
+        UserRole.NATIONAL_ADMIN,
+        UserRole.DATA_STEWARD,
+      ),
+    ],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.aquacultureFarmService.delete(request.params.id, user);
+  });
 }

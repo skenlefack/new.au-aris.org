@@ -4,6 +4,9 @@ import type { CaptureService } from './services/capture.service.js';
 import type { VesselService } from './services/vessel.service.js';
 import type { AquacultureFarmService } from './services/aquaculture-farm.service.js';
 import type { AquacultureProductionService } from './services/aquaculture-production.service.js';
+import type { EffortService } from './services/effort.service.js';
+import type { ExportService } from './services/export.service.js';
+import type { ImportService } from './services/import.service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -13,5 +16,8 @@ declare module 'fastify' {
     vesselService: VesselService;
     aquacultureFarmService: AquacultureFarmService;
     aquacultureProductionService: AquacultureProductionService;
+    effortService: EffortService;
+    exportService: ExportService;
+    importService: ImportService;
   }
 }
