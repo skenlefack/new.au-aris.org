@@ -1284,12 +1284,268 @@ function buildAquaticAnimalHealthReport() {
   };
 }
 
+// ── FISHERIES & AQUACULTURE FORMS ──────────────────────────────────────
+
+// 22. Capture Fisheries Report
+function buildCaptureReport() {
+  fieldOrder = 0;
+  const sectionCapture = makeSection(
+    { en: 'Capture Details', fr: 'Détails de Capture', pt: 'Detalhes da Captura', ar: 'تفاصيل الصيد' }, 1,
+    [
+      speciesSelect('species', { en: 'Species', fr: 'Espèce', pt: 'Espécie', ar: 'النوع' }, { required: true }),
+      selectField('fao_area_code', { en: 'FAO Fishing Area', fr: 'Zone de Pêche FAO', pt: 'Área de Pesca FAO', ar: 'منطقة الصيد FAO' }, [
+        '18 - Arctic Sea', '21 - Atlantic NW', '27 - Atlantic NE', '31 - Atlantic WC',
+        '34 - Atlantic EC', '37 - Mediterranean', '41 - Atlantic SW', '47 - Atlantic SE',
+        '48 - Antarctic Atlantic', '51 - Indian Ocean W', '57 - Indian Ocean E',
+        '58 - Antarctic Indian', '61 - Pacific NW', '67 - Pacific NE', '71 - Pacific WC',
+        '77 - Pacific EC', '81 - Pacific SW', '87 - Pacific SE', '88 - Antarctic Pacific',
+      ], { required: true }),
+      selectField('gear_type', { en: 'Gear Type', fr: 'Type d\'Engin', pt: 'Tipo de Arte', ar: 'نوع المعدات' }, [
+        { en: 'Trawl', fr: 'Chalut', pt: 'Arrasto', ar: 'شبكة الجر' },
+        { en: 'Gillnet', fr: 'Filet maillant', pt: 'Rede de emalhar', ar: 'شبكة خيشومية' },
+        { en: 'Longline', fr: 'Palangre', pt: 'Palangre', ar: 'الخيط الطويل' },
+        { en: 'Purse Seine', fr: 'Senne coulissante', pt: 'Cerco', ar: 'شبكة الإحاطة' },
+        { en: 'Hook and Line', fr: 'Hameçon et ligne', pt: 'Anzol e linha', ar: 'خطاف وخيط' },
+        { en: 'Cast Net', fr: 'Épervier', pt: 'Tarrafa', ar: 'شبكة الرمي' },
+        { en: 'Trap', fr: 'Nasse/Piège', pt: 'Armadilha', ar: 'مصيدة' },
+        { en: 'Other', fr: 'Autre', pt: 'Outro', ar: 'أخرى' },
+      ], { required: true }),
+      decimalField('quantity_kg', { en: 'Quantity (kg)', fr: 'Quantité (kg)', pt: 'Quantidade (kg)', ar: 'الكمية (كجم)' }, { required: true }),
+      dateField('capture_date', { en: 'Capture Date', fr: 'Date de Capture', pt: 'Data da Captura', ar: 'تاريخ الصيد' }, { required: true }),
+      textField('landing_site', { en: 'Landing Site', fr: 'Site de Débarquement', pt: 'Local de Desembarque', ar: 'موقع الإنزال' }, { required: true }),
+      selectField('fishing_environment', { en: 'Fishing Environment', fr: 'Environnement de Pêche', pt: 'Ambiente de Pesca', ar: 'بيئة الصيد' }, [
+        { en: 'Marine', fr: 'Marin', pt: 'Marinho', ar: 'بحري' },
+        { en: 'Freshwater', fr: 'Eau douce', pt: 'Água doce', ar: 'مياه عذبة' },
+        { en: 'Brackish', fr: 'Saumâtre', pt: 'Salobra', ar: 'مياه معتدلة الملوحة' },
+      ]),
+      selectField('production_type', { en: 'Production Type', fr: 'Type de Production', pt: 'Tipo de Produção', ar: 'نوع الإنتاج' }, [
+        { en: 'Industrial', fr: 'Industriel', pt: 'Industrial', ar: 'صناعي' },
+        { en: 'Semi-industrial', fr: 'Semi-industriel', pt: 'Semi-industrial', ar: 'شبه صناعي' },
+        { en: 'Artisanal', fr: 'Artisanal', pt: 'Artesanal', ar: 'حرفي' },
+        { en: 'Subsistence', fr: 'Subsistance', pt: 'Subsistência', ar: 'معيشي' },
+      ]),
+      textField('vessel_name', { en: 'Vessel Name (if applicable)', fr: 'Nom du Navire (si applicable)', pt: 'Nome da Embarcação (se aplicável)', ar: 'اسم السفينة (إن وُجد)' }),
+      textareaField('remarks', { en: 'Remarks', fr: 'Remarques', pt: 'Observações', ar: 'ملاحظات' }, { columnSpan: 2 }),
+    ],
+    { icon: 'Fish', color: '#0EA5E9' },
+  );
+
+  return {
+    sections: [makeLocalisationSection(0), sectionCapture, makeGPSSection(2)],
+    settings: makeSettings({ requireGeoLocation: true }),
+  };
+}
+
+// 23. Fishing Vessel Registration
+function buildVesselRegistration() {
+  fieldOrder = 0;
+  const sectionVessel = makeSection(
+    { en: 'Vessel Information', fr: 'Informations du Navire', pt: 'Informações da Embarcação', ar: 'معلومات السفينة' }, 1,
+    [
+      textField('vessel_name', { en: 'Vessel Name', fr: 'Nom du Navire', pt: 'Nome da Embarcação', ar: 'اسم السفينة' }, { required: true }),
+      textField('registration_number', { en: 'Registration Number', fr: 'Numéro d\'Immatriculation', pt: 'Número de Registro', ar: 'رقم التسجيل' }, { required: true }),
+      textField('flag_state', { en: 'Flag State', fr: 'État du Pavillon', pt: 'Estado de Bandeira', ar: 'دولة العلم' }, { required: true }),
+      selectField('vessel_type', { en: 'Vessel Type', fr: 'Type de Navire', pt: 'Tipo de Embarcação', ar: 'نوع السفينة' }, [
+        { en: 'Trawler', fr: 'Chalutier', pt: 'Arrasto', ar: 'سفينة جر' },
+        { en: 'Seiner', fr: 'Senneur', pt: 'Cerqueiro', ar: 'سفينة شبكية' },
+        { en: 'Longliner', fr: 'Palangrier', pt: 'Palangreiro', ar: 'سفينة الخيط الطويل' },
+        { en: 'Artisanal', fr: 'Artisanal', pt: 'Artesanal', ar: 'حرفي' },
+        { en: 'Other', fr: 'Autre', pt: 'Outro', ar: 'أخرى' },
+      ], { required: true }),
+      decimalField('length_meters', { en: 'Length (meters)', fr: 'Longueur (mètres)', pt: 'Comprimento (metros)', ar: 'الطول (أمتار)' }),
+      decimalField('tonnage_gt', { en: 'Gross Tonnage (GT)', fr: 'Tonnage Brut (GT)', pt: 'Tonelagem Bruta (GT)', ar: 'الحمولة الإجمالية' }),
+      textField('home_port', { en: 'Home Port', fr: 'Port d\'Attache', pt: 'Porto de Origem', ar: 'ميناء الأصل' }),
+      decimalField('engine_power_kw', { en: 'Engine Power (kW)', fr: 'Puissance Moteur (kW)', pt: 'Potência do Motor (kW)', ar: 'قوة المحرك (كيلوواط)' }),
+      numberField('crew_capacity', { en: 'Crew Capacity', fr: 'Capacité Équipage', pt: 'Capacidade de Tripulação', ar: 'سعة الطاقم' }),
+      textField('owner_name', { en: 'Owner Name', fr: 'Nom du Propriétaire', pt: 'Nome do Proprietário', ar: 'اسم المالك' }),
+      textField('license_number', { en: 'Fishing License Number', fr: 'Numéro de Licence de Pêche', pt: 'Número da Licença de Pesca', ar: 'رقم رخصة الصيد' }),
+      dateField('license_expiry', { en: 'License Expiry Date', fr: 'Date d\'Expiration de la Licence', pt: 'Data de Validade da Licença', ar: 'تاريخ انتهاء الرخصة' }),
+      yesNoField('is_active', { en: 'Currently Active?', fr: 'Actuellement Actif ?', pt: 'Atualmente Ativo?', ar: 'نشط حاليا؟' }),
+    ],
+    { icon: 'Ship', color: '#0284C7' },
+  );
+
+  return {
+    sections: [makeLocalisationSection(0), sectionVessel],
+    settings: makeSettings(),
+  };
+}
+
+// 24. Fishing Effort Report
+function buildFishingEffortReport() {
+  fieldOrder = 0;
+  const sectionEffort = makeSection(
+    { en: 'Fishing Effort Details', fr: 'Détails de l\'Effort de Pêche', pt: 'Detalhes do Esforço de Pesca', ar: 'تفاصيل جهد الصيد' }, 1,
+    [
+      selectField('effort_type', { en: 'Effort Type', fr: 'Type d\'Effort', pt: 'Tipo de Esforço', ar: 'نوع الجهد' }, [
+        { en: 'Days at Sea', fr: 'Jours en mer', pt: 'Dias no mar', ar: 'أيام في البحر' },
+        { en: 'Fishing Hours', fr: 'Heures de pêche', pt: 'Horas de pesca', ar: 'ساعات الصيد' },
+        { en: 'Number of Trips', fr: 'Nombre de sorties', pt: 'Número de viagens', ar: 'عدد الرحلات' },
+        { en: 'Number of Hauls', fr: 'Nombre de traits', pt: 'Número de lances', ar: 'عدد السحبات' },
+        { en: 'Number of Hooks', fr: 'Nombre d\'hameçons', pt: 'Número de anzóis', ar: 'عدد الخطافات' },
+        { en: 'Net Length (m)', fr: 'Longueur filet (m)', pt: 'Comprimento da rede (m)', ar: 'طول الشبكة (م)' },
+      ], { required: true }),
+      decimalField('effort_value', { en: 'Effort Value', fr: 'Valeur de l\'Effort', pt: 'Valor do Esforço', ar: 'قيمة الجهد' }, { required: true }),
+      textField('effort_unit', { en: 'Unit of Measure', fr: 'Unité de Mesure', pt: 'Unidade de Medida', ar: 'وحدة القياس' }, { required: true }),
+      selectField('gear_type', { en: 'Gear Type', fr: 'Type d\'Engin', pt: 'Tipo de Arte', ar: 'نوع المعدات' }, [
+        { en: 'Trawl', fr: 'Chalut', pt: 'Arrasto', ar: 'شبكة الجر' },
+        { en: 'Gillnet', fr: 'Filet maillant', pt: 'Rede de emalhar', ar: 'شبكة خيشومية' },
+        { en: 'Longline', fr: 'Palangre', pt: 'Palangre', ar: 'الخيط الطويل' },
+        { en: 'Purse Seine', fr: 'Senne coulissante', pt: 'Cerco', ar: 'شبكة الإحاطة' },
+        { en: 'Hook and Line', fr: 'Hameçon et ligne', pt: 'Anzol e linha', ar: 'خطاف وخيط' },
+        { en: 'Cast Net', fr: 'Épervier', pt: 'Tarrafa', ar: 'شبكة الرمي' },
+        { en: 'Trap', fr: 'Nasse/Piège', pt: 'Armadilha', ar: 'مصيدة' },
+      ], { required: true }),
+      numberField('crew_size', { en: 'Crew Size', fr: 'Taille de l\'Équipage', pt: 'Tamanho da Tripulação', ar: 'حجم الطاقم' }),
+      textField('vessel_name', { en: 'Vessel Name', fr: 'Nom du Navire', pt: 'Nome da Embarcação', ar: 'اسم السفينة' }),
+      textField('fao_area_code', { en: 'FAO Area Code', fr: 'Code Zone FAO', pt: 'Código Área FAO', ar: 'رمز منطقة FAO' }),
+      dateField('start_date', { en: 'Start Date', fr: 'Date de Début', pt: 'Data de Início', ar: 'تاريخ البدء' }, { required: true }),
+      dateField('end_date', { en: 'End Date', fr: 'Date de Fin', pt: 'Data de Fim', ar: 'تاريخ الانتهاء' }),
+      textareaField('remarks', { en: 'Remarks', fr: 'Remarques', pt: 'Observações', ar: 'ملاحظات' }, { columnSpan: 2 }),
+    ],
+    { icon: 'Activity', color: '#7C3AED' },
+  );
+
+  return {
+    sections: [makeLocalisationSection(0), sectionEffort, makeGPSSection(2)],
+    settings: makeSettings({ requireGeoLocation: true }),
+  };
+}
+
+// 25. Aquaculture Farm Registration
+function buildAquacultureFarmRegistration() {
+  fieldOrder = 0;
+  const sectionFarm = makeSection(
+    { en: 'Farm Information', fr: 'Informations de la Ferme', pt: 'Informações da Fazenda', ar: 'معلومات المزرعة' }, 1,
+    [
+      textField('farm_name', { en: 'Farm Name', fr: 'Nom de la Ferme', pt: 'Nome da Fazenda', ar: 'اسم المزرعة' }, { required: true }),
+      selectField('farm_type', { en: 'Farm Type', fr: 'Type de Ferme', pt: 'Tipo de Fazenda', ar: 'نوع المزرعة' }, [
+        { en: 'Pond', fr: 'Étang', pt: 'Tanque', ar: 'بركة' },
+        { en: 'Cage', fr: 'Cage', pt: 'Gaiola', ar: 'قفص' },
+        { en: 'Raceway', fr: 'Canal de course', pt: 'Canal', ar: 'مجرى' },
+        { en: 'Tank/RAS', fr: 'Bassin/RAS', pt: 'Tanque/RAS', ar: 'خزان/نظام إعادة التدوير' },
+        { en: 'Pen', fr: 'Enclos', pt: 'Cercado', ar: 'حظيرة' },
+        { en: 'Other', fr: 'Autre', pt: 'Outro', ar: 'أخرى' },
+      ], { required: true }),
+      selectField('water_source', { en: 'Water Source', fr: 'Source d\'Eau', pt: 'Fonte de Água', ar: 'مصدر المياه' }, [
+        { en: 'Freshwater', fr: 'Eau douce', pt: 'Água doce', ar: 'مياه عذبة' },
+        { en: 'Marine', fr: 'Marin', pt: 'Marinho', ar: 'بحري' },
+        { en: 'Brackish', fr: 'Saumâtre', pt: 'Salobra', ar: 'مياه معتدلة الملوحة' },
+      ], { required: true }),
+      decimalField('area_hectares', { en: 'Area (hectares)', fr: 'Superficie (hectares)', pt: 'Área (hectares)', ar: 'المساحة (هكتارات)' }),
+      decimalField('production_capacity_tonnes', { en: 'Production Capacity (tonnes/year)', fr: 'Capacité de Production (tonnes/an)', pt: 'Capacidade de Produção (toneladas/ano)', ar: 'القدرة الإنتاجية (طن/سنة)' }),
+      speciesSelect('main_species', { en: 'Main Species Cultured', fr: 'Espèces Principales', pt: 'Espécies Principais', ar: 'الأنواع الرئيسية المستزرعة' }, { required: true }),
+      textField('owner_name', { en: 'Owner / Operator', fr: 'Propriétaire / Exploitant', pt: 'Proprietário / Operador', ar: 'المالك / المشغل' }),
+      textField('registration_number', { en: 'Registration Number', fr: 'Numéro d\'Enregistrement', pt: 'Número de Registro', ar: 'رقم التسجيل' }),
+      numberField('total_workers', { en: 'Total Workers', fr: 'Total Travailleurs', pt: 'Total de Trabalhadores', ar: 'إجمالي العمال' }),
+      numberField('male_workers', { en: 'Male Workers', fr: 'Hommes', pt: 'Trabalhadores Homens', ar: 'عمال ذكور' }),
+      numberField('female_workers', { en: 'Female Workers', fr: 'Femmes', pt: 'Trabalhadoras Mulheres', ar: 'عمال إناث' }),
+      numberField('pond_count', { en: 'Number of Ponds/Cages', fr: 'Nombre d\'Étangs/Cages', pt: 'Número de Tanques/Gaiolas', ar: 'عدد البرك/الأقفاص' }),
+      yesNoField('is_active', { en: 'Currently Active?', fr: 'Actuellement Actif ?', pt: 'Atualmente Ativo?', ar: 'نشط حاليا؟' }),
+      textareaField('remarks', { en: 'Remarks', fr: 'Remarques', pt: 'Observações', ar: 'ملاحظات' }, { columnSpan: 2 }),
+    ],
+    { icon: 'Waves', color: '#059669' },
+  );
+
+  return {
+    sections: [makeLocalisationSection(0), sectionFarm, makeGPSSection(2)],
+    settings: makeSettings({ requireGeoLocation: true }),
+  };
+}
+
+// 26. Aquaculture Production Report
+function buildAquacultureProductionReport() {
+  fieldOrder = 0;
+  const sectionProd = makeSection(
+    { en: 'Production Details', fr: 'Détails de Production', pt: 'Detalhes de Produção', ar: 'تفاصيل الإنتاج' }, 1,
+    [
+      textField('farm_name', { en: 'Farm Name / ID', fr: 'Nom / ID de la Ferme', pt: 'Nome / ID da Fazenda', ar: 'اسم / رقم المزرعة' }, { required: true }),
+      speciesSelect('species', { en: 'Species', fr: 'Espèce', pt: 'Espécie', ar: 'النوع' }, { required: true }),
+      decimalField('quantity_kg', { en: 'Quantity Harvested (kg)', fr: 'Quantité Récoltée (kg)', pt: 'Quantidade Colhida (kg)', ar: 'الكمية المحصودة (كجم)' }, { required: true }),
+      dateField('harvest_date', { en: 'Harvest Date', fr: 'Date de Récolte', pt: 'Data da Colheita', ar: 'تاريخ الحصاد' }, { required: true }),
+      selectField('method_of_culture', { en: 'Method of Culture', fr: 'Méthode de Culture', pt: 'Método de Cultura', ar: 'طريقة الاستزراع' }, [
+        { en: 'Extensive', fr: 'Extensif', pt: 'Extensivo', ar: 'مفتوح' },
+        { en: 'Semi-intensive', fr: 'Semi-intensif', pt: 'Semi-intensivo', ar: 'شبه مكثف' },
+        { en: 'Intensive', fr: 'Intensif', pt: 'Intensivo', ar: 'مكثف' },
+        { en: 'Super-intensive', fr: 'Super-intensif', pt: 'Super-intensivo', ar: 'مكثف جداً' },
+      ]),
+      decimalField('feed_used_kg', { en: 'Feed Used (kg)', fr: 'Aliment Utilisé (kg)', pt: 'Ração Utilizada (kg)', ar: 'العلف المستخدم (كجم)' }),
+      decimalField('fcr', { en: 'Feed Conversion Ratio (FCR)', fr: 'Ratio de Conversion Alimentaire', pt: 'Taxa de Conversão Alimentar', ar: 'معدل التحويل الغذائي' }, {
+        helpText: { en: 'Feed (kg) / Weight gain (kg)', fr: 'Aliment (kg) / Gain de poids (kg)', pt: 'Ração (kg) / Ganho de peso (kg)', ar: 'العلف (كجم) / زيادة الوزن (كجم)' },
+      }),
+      textField('batch_id', { en: 'Batch / Cycle ID', fr: 'ID du Lot / Cycle', pt: 'ID do Lote / Ciclo', ar: 'رقم الدُفعة / الدورة' }),
+      dateField('stocking_date', { en: 'Stocking Date', fr: 'Date d\'Ensemencement', pt: 'Data de Estocagem', ar: 'تاريخ التخزين' }),
+      decimalField('survival_rate', { en: 'Survival Rate (%)', fr: 'Taux de Survie (%)', pt: 'Taxa de Sobrevivência (%)', ar: 'معدل البقاء (%)' }),
+      decimalField('avg_harvest_weight_g', { en: 'Avg. Harvest Weight (g)', fr: 'Poids Moyen de Récolte (g)', pt: 'Peso Médio de Colheita (g)', ar: 'متوسط وزن الحصاد (جم)' }),
+      textareaField('remarks', { en: 'Remarks', fr: 'Remarques', pt: 'Observações', ar: 'ملاحظات' }, { columnSpan: 2 }),
+    ],
+    { icon: 'BarChart3', color: '#10B981' },
+  );
+
+  return {
+    sections: [makeLocalisationSection(0), sectionProd],
+    settings: makeSettings(),
+  };
+}
+
+// 27. Fish Trade Report
+function buildFishTradeReport() {
+  fieldOrder = 0;
+  const sectionTrade = makeSection(
+    { en: 'Trade Flow Details', fr: 'Détails du Flux Commercial', pt: 'Detalhes do Fluxo Comercial', ar: 'تفاصيل التدفق التجاري' }, 1,
+    [
+      selectField('flow_direction', { en: 'Flow Direction', fr: 'Direction du Flux', pt: 'Direção do Fluxo', ar: 'اتجاه التدفق' }, [
+        { en: 'Export', fr: 'Export', pt: 'Exportação', ar: 'تصدير' },
+        { en: 'Import', fr: 'Import', pt: 'Importação', ar: 'استيراد' },
+        { en: 'Re-export', fr: 'Réexportation', pt: 'Reexportação', ar: 'إعادة تصدير' },
+      ], { required: true }),
+      textField('export_country', { en: 'Exporting Country', fr: 'Pays Exportateur', pt: 'País Exportador', ar: 'بلد التصدير' }, { required: true }),
+      textField('import_country', { en: 'Importing Country', fr: 'Pays Importateur', pt: 'País Importador', ar: 'بلد الاستيراد' }, { required: true }),
+      speciesSelect('species', { en: 'Species', fr: 'Espèce', pt: 'Espécie', ar: 'النوع' }),
+      textField('commodity', { en: 'Commodity Description', fr: 'Description du Produit', pt: 'Descrição do Produto', ar: 'وصف السلعة' }, { required: true }),
+      selectField('commodity_group', { en: 'Commodity Group', fr: 'Groupe de Produit', pt: 'Grupo de Produto', ar: 'مجموعة السلع' }, [
+        { en: 'Fish (fresh/chilled)', fr: 'Poisson (frais/réfrigéré)', pt: 'Peixe (fresco/refrigerado)', ar: 'سمك (طازج/مبرد)' },
+        { en: 'Fish (frozen)', fr: 'Poisson (congelé)', pt: 'Peixe (congelado)', ar: 'سمك (مجمد)' },
+        { en: 'Fish (dried/salted/smoked)', fr: 'Poisson (séché/salé/fumé)', pt: 'Peixe (seco/salgado/fumado)', ar: 'سمك (مجفف/مملح/مدخن)' },
+        { en: 'Crustaceans', fr: 'Crustacés', pt: 'Crustáceos', ar: 'قشريات' },
+        { en: 'Molluscs', fr: 'Mollusques', pt: 'Moluscos', ar: 'رخويات' },
+        { en: 'Fish Meal / Oil', fr: 'Farine / Huile de poisson', pt: 'Farinha / Óleo de peixe', ar: 'وجبة / زيت السمك' },
+        { en: 'Live Fish', fr: 'Poisson vivant', pt: 'Peixe vivo', ar: 'سمك حي' },
+      ]),
+      selectField('product_state', { en: 'Product State', fr: 'État du Produit', pt: 'Estado do Produto', ar: 'حالة المنتج' }, [
+        { en: 'Fresh', fr: 'Frais', pt: 'Fresco', ar: 'طازج' },
+        { en: 'Frozen', fr: 'Congelé', pt: 'Congelado', ar: 'مجمد' },
+        { en: 'Dried', fr: 'Séché', pt: 'Seco', ar: 'مجفف' },
+        { en: 'Salted', fr: 'Salé', pt: 'Salgado', ar: 'مملح' },
+        { en: 'Smoked', fr: 'Fumé', pt: 'Fumado', ar: 'مدخن' },
+        { en: 'Canned', fr: 'En conserve', pt: 'Enlatado', ar: 'معلب' },
+        { en: 'Live', fr: 'Vivant', pt: 'Vivo', ar: 'حي' },
+      ]),
+      decimalField('quantity', { en: 'Quantity (tonnes)', fr: 'Quantité (tonnes)', pt: 'Quantidade (toneladas)', ar: 'الكمية (أطنان)' }, { required: true }),
+      textField('unit', { en: 'Unit', fr: 'Unité', pt: 'Unidade', ar: 'الوحدة' }),
+      decimalField('value_fob_usd', { en: 'Value FOB (USD)', fr: 'Valeur FOB (USD)', pt: 'Valor FOB (USD)', ar: 'القيمة FOB (دولار)' }),
+      textField('hs_code', { en: 'HS Code', fr: 'Code SH', pt: 'Código SH', ar: 'رمز النظام المنسق' }, {
+        helpText: { en: 'Harmonized System code (6-10 digits)', fr: 'Code du Système Harmonisé (6-10 chiffres)', pt: 'Código do Sistema Harmonizado (6-10 dígitos)', ar: 'رمز النظام المنسق (6-10 أرقام)' },
+      }),
+      dateField('period_start', { en: 'Period Start', fr: 'Début de Période', pt: 'Início do Período', ar: 'بداية الفترة' }, { required: true }),
+      dateField('period_end', { en: 'Period End', fr: 'Fin de Période', pt: 'Fim do Período', ar: 'نهاية الفترة' }),
+      textareaField('remarks', { en: 'Remarks', fr: 'Remarques', pt: 'Observações', ar: 'ملاحظات' }, { columnSpan: 2 }),
+    ],
+    { icon: 'TrendingUp', color: '#F59E0B' },
+  );
+
+  return {
+    sections: [makeLocalisationSection(0), sectionTrade],
+    settings: makeSettings(),
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // Seed Function
 // ═══════════════════════════════════════════════════════════════════════
 
 async function seed(): Promise<void> {
-  console.log('Seeding form-builder with 22 official ARIS templates...\n');
+  console.log('Seeding form-builder with 28 official ARIS templates...\n');
 
   const auTenant = await prisma.tenant.findFirst({ where: { code: 'AU' } });
   if (!auTenant) {
@@ -1349,6 +1605,14 @@ async function seed(): Promise<void> {
     { name: 'Quality Standards (Inputs & Services)', domain: 'trade_sps', schema: buildQualityStandardsInputs(), classification: 'PARTNER', kafkaTopic: 'collecte.trade.quality_inputs.v1' },
     { name: 'Quality Standards (Poultry/Hatchery)', domain: 'trade_sps', schema: buildQualityStandardsPoultry(), classification: 'PARTNER', kafkaTopic: 'collecte.trade.quality_poultry.v1' },
     { name: 'Volume and Availability of Transport', domain: 'trade_sps', schema: buildTransport(), classification: 'PARTNER', kafkaTopic: 'collecte.trade.transport.v1' },
+
+    // ── Fisheries & Aquaculture (6 forms) ──
+    { name: 'Capture Fisheries Report', domain: 'fisheries', schema: buildCaptureReport(), classification: 'PARTNER', kafkaTopic: 'collecte.fisheries.capture.v1' },
+    { name: 'Fishing Vessel Registration', domain: 'fisheries', schema: buildVesselRegistration(), classification: 'PARTNER', kafkaTopic: 'collecte.fisheries.vessel.v1' },
+    { name: 'Fishing Effort Report', domain: 'fisheries', schema: buildFishingEffortReport(), classification: 'PARTNER', kafkaTopic: 'collecte.fisheries.effort.v1' },
+    { name: 'Aquaculture Farm Registration', domain: 'fisheries', schema: buildAquacultureFarmRegistration(), classification: 'PARTNER', kafkaTopic: 'collecte.fisheries.farm.v1' },
+    { name: 'Aquaculture Production Report', domain: 'fisheries', schema: buildAquacultureProductionReport(), classification: 'PARTNER', kafkaTopic: 'collecte.fisheries.production.v1' },
+    { name: 'Fish Trade Report', domain: 'fisheries', schema: buildFishTradeReport(), classification: 'PARTNER', kafkaTopic: 'collecte.fisheries.trade.v1' },
   ];
 
   let success = 0;
