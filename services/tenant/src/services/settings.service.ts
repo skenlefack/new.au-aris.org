@@ -912,6 +912,36 @@ export class SettingsService {
     if (!rec) throw new HttpError(404, `REC with code "${code}" not found`);
     if (!rec.isActive) throw new HttpError(404, `REC with code "${code}" not found`);
 
+    // Count countries actively notifying this year (submitted data in any domain)
+    let activeCount = 0;
+    try {
+      const rows: any[] = await (this.prisma as any).$queryRawUnsafe(`
+        SELECT COUNT(DISTINCT c.id)::int AS cnt
+        FROM governance.country_recs cr
+        JOIN governance.countries c ON c.id = cr.country_id
+        JOIN governance.recs r ON r.id = cr.rec_id
+        WHERE r.code = $1
+          AND c.tenant_id IS NOT NULL
+          AND (
+            EXISTS (
+              SELECT 1 FROM public.submissions s
+              WHERE s.tenant_id = c.tenant_id
+                AND s.status != 'DRAFT'
+                AND s.submitted_at >= date_trunc('year', now())
+            )
+            OR EXISTS (
+              SELECT 1 FROM form_builder.form_submissions fs
+              WHERE fs.tenant_id = c.tenant_id
+                AND fs.status != 'DRAFT'
+                AND fs.submitted_at >= date_trunc('year', now())
+            )
+          )
+      `, code);
+      activeCount = rows[0]?.cnt ?? 0;
+    } catch {
+      // Tables may not have data yet — default to 0
+    }
+
     // Count countries with active interoperability (ETL connection or WAHIS export this year)
     let interopCount = 0;
     try {
@@ -939,7 +969,7 @@ export class SettingsService {
       // Interop schemas may not have data yet — default to 0
     }
 
-    const result = { data: { ...rec, interopCount } };
+    const result = { data: { ...rec, activeCount, interopCount } };
     await this.cacheSet(cacheKey, result, CACHE_TTL_PUBLIC);
     return result;
   }

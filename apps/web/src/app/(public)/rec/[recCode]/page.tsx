@@ -25,12 +25,14 @@ export default async function RecPage({ params }: Props) {
   let rec: RecConfig = staticRec;
   let countries: CountryConfig[] = staticCountries;
   let interopCount = 0;
+  let activeCount = 0;
 
   try {
     const apiRes = await getPublicRecByCode(recCode);
     const apiRec = apiRes?.data;
     if (apiRec && !apiRec._static) {
       interopCount = apiRec.interopCount ?? 0;
+      activeCount = apiRec.activeCount ?? 0;
 
       // Merge REC data (keep UI-specific fields from static: colorLight, colorDark, etc.)
       rec = {
@@ -69,7 +71,6 @@ export default async function RecPage({ params }: Props) {
   }
 
   const totalPopulation = countries.reduce((sum, c) => sum + c.population, 0);
-  const configuredCount = countries.filter((c) => c.tenantId).length;
 
   return (
     <>
@@ -131,7 +132,7 @@ export default async function RecPage({ params }: Props) {
                 </h2>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   {countries.length} countries &bull; {totalPopulation.toFixed(0)}M total population
-                  {configuredCount > 0 && ` \u2022 ${configuredCount} active on ARIS`}
+                  {activeCount > 0 && ` \u2022 ${activeCount} active on ARIS`}
                 </p>
               </div>
             </div>
@@ -166,7 +167,7 @@ export default async function RecPage({ params }: Props) {
                   labelClassName="text-gray-500"
                 />
                 <StatsCounter
-                  value={configuredCount}
+                  value={activeCount}
                   label="Active on ARIS"
                   valueClassName="dark:text-white"
                   labelClassName="text-gray-500"
