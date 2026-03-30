@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { MapPin, Building2, Calendar, Users } from 'lucide-react';
+import { Building2, Calendar, Users } from 'lucide-react';
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { CountryCard } from '@/components/landing/CountryCard';
 import { LoginPanel } from '@/components/landing/LoginPanel';
@@ -107,9 +107,8 @@ export default async function RecPage({ params }: Props) {
             </div>
 
             {/* Right: Stats */}
-            <div className="grid grid-cols-4 gap-2 lg:gap-3">
-              <StatBox icon={Users} label="Members" value={rec.memberCount} />
-              <StatBox icon={MapPin} label="Region" value={rec.region} />
+            <div className="grid grid-cols-3 gap-2 lg:gap-3">
+              <StatBox icon={Users} label="Member States" value={rec.memberCount} />
               <StatBox icon={Building2} label="HQ" value={rec.headquarters} />
               <StatBox icon={Calendar} label="Est." value={rec.establishedYear} />
             </div>
