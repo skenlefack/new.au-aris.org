@@ -77,6 +77,7 @@ export async function getPublicRecByCode(code: string) {
           isActive: true,
         },
       })),
+      interopCount: 0,
       _static: true,
     },
   };

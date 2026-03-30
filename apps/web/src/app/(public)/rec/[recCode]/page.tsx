@@ -24,11 +24,14 @@ export default async function RecPage({ params }: Props) {
   // Attempt live API fetch
   let rec: RecConfig = staticRec;
   let countries: CountryConfig[] = staticCountries;
+  let interopCount = 0;
 
   try {
     const apiRes = await getPublicRecByCode(recCode);
     const apiRec = apiRes?.data;
     if (apiRec && !apiRec._static) {
+      interopCount = apiRec.interopCount ?? 0;
+
       // Merge REC data (keep UI-specific fields from static: colorLight, colorDark, etc.)
       rec = {
         ...staticRec,
@@ -170,8 +173,8 @@ export default async function RecPage({ params }: Props) {
                   className=""
                 />
                 <StatsCounter
-                  value={countries.length - configuredCount}
-                  label="Pending Setup"
+                  value={interopCount}
+                  label="Interoperability"
                   valueClassName="text-gray-900 dark:text-white"
                   labelClassName="text-gray-500"
                 />

@@ -912,7 +912,34 @@ export class SettingsService {
     if (!rec) throw new HttpError(404, `REC with code "${code}" not found`);
     if (!rec.isActive) throw new HttpError(404, `REC with code "${code}" not found`);
 
-    const result = { data: rec };
+    // Count countries with active interoperability (ETL connection or WAHIS export this year)
+    let interopCount = 0;
+    try {
+      const rows: any[] = await (this.prisma as any).$queryRawUnsafe(`
+        SELECT COUNT(DISTINCT c.id)::int AS cnt
+        FROM governance.country_recs cr
+        JOIN governance.countries c ON c.id = cr.country_id
+        JOIN governance.recs r ON r.id = cr.rec_id
+        WHERE r.code = $1
+          AND (
+            EXISTS (
+              SELECT 1 FROM interop_v2.interop_connections ic
+              WHERE ic.tenant_id = c.tenant_id AND ic.is_active = true
+            )
+            OR EXISTS (
+              SELECT 1 FROM interop_hub.export_records er
+              WHERE er.tenant_id = c.tenant_id
+                AND er.status = 'COMPLETED'
+                AND er.created_at >= date_trunc('year', now())
+            )
+          )
+      `, code);
+      interopCount = rows[0]?.cnt ?? 0;
+    } catch {
+      // Interop schemas may not have data yet — default to 0
+    }
+
+    const result = { data: { ...rec, interopCount } };
     await this.cacheSet(cacheKey, result, CACHE_TTL_PUBLIC);
     return result;
   }
