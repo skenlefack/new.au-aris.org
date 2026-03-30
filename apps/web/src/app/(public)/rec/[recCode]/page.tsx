@@ -109,8 +109,8 @@ export default async function RecPage({ params }: Props) {
             {/* Right: Stats */}
             <div className="grid grid-cols-3 gap-2 lg:gap-3">
               <StatBox icon={Users} label="Member States" value={rec.memberCount} />
-              <StatBox icon={Building2} label="HQ" value={rec.headquarters} />
-              <StatBox icon={Calendar} label="Est." value={rec.establishedYear} />
+              <StatBox icon={Building2} label="Headquarters" value={rec.headquarters} />
+              <StatBox icon={Calendar} label="Established" value={rec.establishedYear} />
             </div>
           </div>
         </div>
