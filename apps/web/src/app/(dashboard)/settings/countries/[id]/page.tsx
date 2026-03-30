@@ -2,21 +2,23 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { useSettingsCountry, useUpdateCountry, useSettingsRecs, useAdminLevels, useUpsertAdminLevels, type AdminLevel } from '@/lib/api/settings-hooks';
+import {
+  useSettingsCountry, useUpdateCountry, useSettingsRecs, useAdminLevels, useUpsertAdminLevels, type AdminLevel,
+  useStatisticDefinitions, useCountryStatistics, useUpsertCountryStatistics,
+  useKpiDefinitions, useCountryKpiScores, useUpsertCountryKpiScores,
+} from '@/lib/api/settings-hooks';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
-import { StatsEditor } from '@/components/settings/StatsEditor';
-import { SectorPerformanceEditor } from '@/components/settings/SectorPerformanceEditor';
 import { SaveBar } from '@/components/settings/SaveBar';
 import { useTranslations } from '@/lib/i18n/translations';
-import { ArrowLeft, Loader2, Layers, Plus, Trash2, Save, MapPin } from 'lucide-react';
+import { ArrowLeft, Loader2, Layers, Plus, Trash2, Save, MapPin, BarChart3, Activity } from 'lucide-react';
 import Link from 'next/link';
 
 const emptyML = { en: '', fr: '', pt: '', ar: '' };
 
 export default function CountryDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { canManageCountries, canEditCountryStats, canEditCountrySectors, isSuperAdmin, isContinentalAdmin, isNationalAdmin } = useSettingsAccess();
+  const { canManageCountries, isSuperAdmin, isContinentalAdmin, isNationalAdmin } = useSettingsAccess();
   const t = useTranslations('settings');
   const { data, isLoading } = useSettingsCountry(id);
   const { data: recsData } = useSettingsRecs();
@@ -490,27 +492,11 @@ export default function CountryDetailPage() {
         )}
       </section>
 
-      {/* Stats */}
-      {canEditCountryStats && (
-        <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-          <StatsEditor
-            label={t('countryStatistics')}
-            value={form.stats ?? {}}
-            onChange={(v) => updateField('stats', v)}
-            suggestions={['activeOutbreaks', 'vaccinationCoverage', 'livestockCensus', 'tradeVolume', 'fishCatch', 'wildlifeSpecies']}
-          />
-        </section>
-      )}
+      {/* Statistics Configuration */}
+      <CountryStatisticsSection countryId={id} />
 
-      {/* Sector Performance */}
-      {canEditCountrySectors && (
-        <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-          <SectorPerformanceEditor
-            value={form.sectorPerformance ?? {}}
-            onChange={(v) => updateField('sectorPerformance', v)}
-          />
-        </section>
-      )}
+      {/* KPI Scores */}
+      <CountryKpiScoresSection countryId={id} />
 
       <SaveBar
         show={dirty}
@@ -552,5 +538,283 @@ function ToggleField({
         <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
       </button>
     </div>
+  );
+}
+
+/* ─── Country Statistics Configuration ──────────────────────── */
+function CountryStatisticsSection({ countryId }: { countryId: string }) {
+  const { isSuperAdmin, isContinentalAdmin, isNationalAdmin } = useSettingsAccess();
+  const canEdit = isSuperAdmin || isContinentalAdmin || isNationalAdmin;
+  const { data: defsData } = useStatisticDefinitions({ isActive: true });
+  const { data: countryData } = useCountryStatistics(countryId);
+  const upsertMutation = useUpsertCountryStatistics();
+
+  const definitions: any[] = defsData?.data ?? [];
+  const countryStats: any[] = countryData?.data ?? [];
+
+  const [localStats, setLocalStats] = useState<Record<string, { isVisible: boolean; displayPeriod: string; overrideValue: string; sortOrder: number }>>({});
+  const [statsDirty, setStatsDirty] = useState(false);
+
+  useEffect(() => {
+    const map: typeof localStats = {};
+    for (const def of definitions) {
+      const existing = countryStats.find((cs: any) => cs.statisticId === def.id);
+      map[def.id] = {
+        isVisible: existing?.isVisible ?? false,
+        displayPeriod: existing?.displayPeriod ?? 'current_year',
+        overrideValue: existing?.overrideValue != null ? String(existing.overrideValue) : '',
+        sortOrder: existing?.sortOrder ?? 0,
+      };
+    }
+    setLocalStats(map);
+    setStatsDirty(false);
+  }, [definitions, countryStats]);
+
+  const updateStat = (defId: string, field: string, value: unknown) => {
+    setLocalStats((prev) => ({
+      ...prev,
+      [defId]: { ...prev[defId], [field]: value },
+    }));
+    setStatsDirty(true);
+  };
+
+  const handleSaveStats = async () => {
+    const items = Object.entries(localStats)
+      .filter(([, v]) => v.isVisible)
+      .map(([statisticId, v]) => ({
+        statisticId,
+        isVisible: v.isVisible,
+        displayPeriod: v.displayPeriod,
+        overrideValue: v.overrideValue ? Number(v.overrideValue) : null,
+        sortOrder: v.sortOrder,
+      }));
+    await upsertMutation.mutateAsync({ countryId, items });
+    setStatsDirty(false);
+  };
+
+  if (definitions.length === 0) return null;
+
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-4 w-4 text-gray-500" />
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Statistics Configuration</h2>
+        </div>
+        {canEdit && statsDirty && (
+          <button
+            type="button"
+            onClick={handleSaveStats}
+            disabled={upsertMutation.isPending}
+            className="flex items-center gap-1 rounded-lg bg-aris-primary-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-aris-primary-700 disabled:opacity-50"
+          >
+            {upsertMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            Save
+          </button>
+        )}
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-gray-200 dark:border-gray-700">
+            <tr>
+              <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 w-10">Show</th>
+              <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400">Statistic</th>
+              <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400">Domain</th>
+              <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400">Period</th>
+              <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400">Override Value</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            {definitions.map((def: any) => {
+              const local = localStats[def.id];
+              if (!local) return null;
+              return (
+                <tr key={def.id} className={local.isVisible ? '' : 'opacity-50'}>
+                  <td className="px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={local.isVisible}
+                      onChange={(e) => updateStat(def.id, 'isVisible', e.target.checked)}
+                      disabled={!canEdit}
+                      className="h-4 w-4 rounded border-gray-300 text-aris-primary-600"
+                    />
+                  </td>
+                  <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">
+                    {def.name?.en ?? def.code}
+                  </td>
+                  <td className="px-3 py-2 text-gray-500 dark:text-gray-400">
+                    {def.domainCode ?? '-'}
+                  </td>
+                  <td className="px-3 py-2">
+                    <select
+                      value={local.displayPeriod}
+                      onChange={(e) => updateStat(def.id, 'displayPeriod', e.target.value)}
+                      disabled={!canEdit}
+                      className="rounded border border-gray-200 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="current_year">Current Year</option>
+                      <option value="last_year">Last Year</option>
+                      <option value="last_12_months">Last 12 Months</option>
+                      <option value="all_time">All Time</option>
+                    </select>
+                  </td>
+                  <td className="px-3 py-2">
+                    <input
+                      type="number"
+                      value={local.overrideValue}
+                      onChange={(e) => updateStat(def.id, 'overrideValue', e.target.value)}
+                      disabled={!canEdit}
+                      placeholder="Auto"
+                      className="w-24 rounded border border-gray-200 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Country KPI Scores ───────────────────────────────────── */
+function CountryKpiScoresSection({ countryId }: { countryId: string }) {
+  const { isSuperAdmin, isContinentalAdmin, isNationalAdmin } = useSettingsAccess();
+  const canEdit = isSuperAdmin || isContinentalAdmin || isNationalAdmin;
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear);
+  const { data: defsData } = useKpiDefinitions({ isActive: true });
+  const { data: scoresData } = useCountryKpiScores(countryId, year);
+  const upsertMutation = useUpsertCountryKpiScores();
+
+  const definitions: any[] = defsData?.data ?? [];
+  const scores: any[] = scoresData?.data ?? [];
+
+  const [localScores, setLocalScores] = useState<Record<string, { score: string; notes: string }>>({});
+  const [scoresDirty, setScoresDirty] = useState(false);
+
+  useEffect(() => {
+    const map: typeof localScores = {};
+    for (const def of definitions) {
+      const existing = scores.find((s: any) => s.kpiId === def.id);
+      map[def.id] = {
+        score: existing?.score != null ? String(existing.score) : '',
+        notes: existing?.notes ?? '',
+      };
+    }
+    setLocalScores(map);
+    setScoresDirty(false);
+  }, [definitions, scores]);
+
+  const updateScore = (defId: string, field: string, value: string) => {
+    setLocalScores((prev) => ({
+      ...prev,
+      [defId]: { ...prev[defId], [field]: value },
+    }));
+    setScoresDirty(true);
+  };
+
+  const handleSaveScores = async () => {
+    const items = Object.entries(localScores)
+      .filter(([, v]) => v.score !== '')
+      .map(([kpiId, v]) => ({
+        kpiId,
+        score: Number(v.score),
+        year,
+        notes: v.notes || null,
+      }));
+    await upsertMutation.mutateAsync({ countryId, items });
+    setScoresDirty(false);
+  };
+
+  if (definitions.length === 0) return null;
+
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Activity className="h-4 w-4 text-gray-500" />
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">KPI Scores</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+            className="rounded border border-gray-200 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+          >
+            {Array.from({ length: 5 }, (_, i) => currentYear - i).map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          {canEdit && scoresDirty && (
+            <button
+              type="button"
+              onClick={handleSaveScores}
+              disabled={upsertMutation.isPending}
+              className="flex items-center gap-1 rounded-lg bg-aris-primary-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-aris-primary-700 disabled:opacity-50"
+            >
+              {upsertMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              Save
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="space-y-3">
+        {definitions.map((def: any) => {
+          const local = localScores[def.id];
+          if (!local) return null;
+          const score = local.score ? Number(local.score) : 0;
+          const good = def.thresholdGood ?? 75;
+          const warn = def.thresholdWarn ?? 50;
+          const barColor = score >= good ? '#22c55e' : score >= warn ? '#f59e0b' : '#ef4444';
+          return (
+            <div key={def.id} className="rounded-lg border border-gray-100 p-3 dark:border-gray-800">
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {def.name?.en ?? def.code}
+                    {def.isPreset && (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                        Preset
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-gray-400">{def.domainCode ?? 'General'}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={local.score}
+                    onChange={(e) => updateScore(def.id, 'score', e.target.value)}
+                    disabled={!canEdit}
+                    placeholder="0-100"
+                    className="w-20 rounded border border-gray-200 px-2 py-1 text-right text-xs font-mono dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <span className="text-xs text-gray-400">%</span>
+                </div>
+              </div>
+              {/* Preview bar */}
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{ width: `${Math.min(score, 100)}%`, backgroundColor: barColor }}
+                />
+              </div>
+              <input
+                type="text"
+                value={local.notes}
+                onChange={(e) => updateScore(def.id, 'notes', e.target.value)}
+                disabled={!canEdit}
+                placeholder="Notes (optional)"
+                className="mt-2 w-full rounded border border-gray-100 px-2 py-1 text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }

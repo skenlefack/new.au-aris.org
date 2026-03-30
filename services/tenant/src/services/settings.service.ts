@@ -18,6 +18,10 @@ const TOPIC_SETTINGS_CONFIG_UPDATED = 'sys.settings.config.updated.v1';
 const TOPIC_SETTINGS_DOMAIN_UPDATED = 'sys.settings.domain.updated.v1';
 const TOPIC_SETTINGS_FUNCTION_UPDATED = 'sys.settings.function.updated.v1';
 const TOPIC_SETTINGS_USER_UPDATED = 'sys.settings.user.updated.v1';
+const TOPIC_SETTINGS_STAT_DEF_UPDATED = 'sys.settings.statistic-definition.updated.v1';
+const TOPIC_SETTINGS_KPI_DEF_UPDATED = 'sys.settings.kpi-definition.updated.v1';
+const TOPIC_SETTINGS_COUNTRY_STAT_UPDATED = 'sys.settings.country-statistic.updated.v1';
+const TOPIC_SETTINGS_COUNTRY_KPI_UPDATED = 'sys.settings.country-kpi-score.updated.v1';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -994,7 +998,9 @@ export class SettingsService {
         languages: true,
         currency: true,
         phoneCode: true,
+        isActive: true,
         isOperational: true,
+        tenantId: true,
         stats: true,
         sectorPerformance: true,
         recs: {
@@ -1008,7 +1014,91 @@ export class SettingsService {
     });
     if (!country) throw new HttpError(404, `Country with code "${code}" not found`);
 
-    const result = { data: country };
+    // Fetch configured statistics (visible only, with definitions)
+    let statistics: any[] = [];
+    try {
+      const countryStats = await (this.prisma as any).countryStatistic.findMany({
+        where: { countryId: country.id, isVisible: true },
+        include: { statistic: true },
+        orderBy: { sortOrder: 'asc' },
+      });
+      statistics = countryStats.map((cs: any) => ({
+        code: cs.statistic.code,
+        name: cs.statistic.name,
+        domain: cs.statistic.domainCode,
+        icon: cs.statistic.icon,
+        color: cs.statistic.color,
+        value: cs.overrideValue ?? 0,
+        unit: cs.statistic.unit,
+        format: cs.statistic.format,
+        period: cs.displayPeriod,
+      }));
+    } catch {
+      // Tables may not exist yet
+    }
+
+    // Fetch KPI scores (current year, with definitions)
+    let kpiScores: any[] = [];
+    try {
+      const currentYear = new Date().getFullYear();
+      const scores = await (this.prisma as any).countryKpiScore.findMany({
+        where: { countryId: country.id, year: currentYear },
+        include: { kpi: true },
+        orderBy: { kpi: { sortOrder: 'asc' } },
+      });
+      kpiScores = scores.map((s: any) => {
+        const status = s.score >= s.kpi.thresholdGood ? 'good'
+          : s.score >= s.kpi.thresholdWarn ? 'warning'
+          : 'alert';
+        const statusLabel = status === 'good' ? 'Strong'
+          : status === 'warning' ? 'Moderate'
+          : 'Needs Attention';
+        return {
+          code: s.kpi.code,
+          name: s.kpi.name,
+          domain: s.kpi.domainCode,
+          icon: s.kpi.icon,
+          color: s.kpi.color,
+          score: s.score,
+          target: s.kpi.targetValue,
+          unit: s.kpi.unit,
+          status,
+          statusLabel,
+        };
+      });
+    } catch {
+      // Tables may not exist yet
+    }
+
+    // Determine interop status
+    let hasInterop = false;
+    if (country.tenantId) {
+      try {
+        const rows: any[] = await (this.prisma as any).$queryRawUnsafe(`
+          SELECT EXISTS (
+            SELECT 1 FROM interop_v2.interop_connections ic
+            WHERE ic.tenant_id = $1::uuid AND ic.is_active = true
+          ) OR EXISTS (
+            SELECT 1 FROM interop_hub.export_records er
+            WHERE er.tenant_id = $1::uuid
+              AND er.status = 'COMPLETED'
+              AND er.created_at >= date_trunc('year', now())
+          ) AS has_interop
+        `, country.tenantId);
+        hasInterop = rows[0]?.has_interop ?? false;
+      } catch {
+        // Interop schemas may not exist
+      }
+    }
+
+    const result = {
+      data: {
+        ...country,
+        statistics,
+        kpiScores,
+        hasInterop,
+      },
+    };
     await this.cacheSet(cacheKey, result, CACHE_TTL_PUBLIC);
     return result;
   }
@@ -1549,7 +1639,347 @@ export class SettingsService {
     return { data: { id, deleted: true } };
   }
 
+  // ───────────────────── Statistic Definitions ─────────────────────
+
+  async listStatisticDefinitions(query: { domainCode?: string; status?: string }) {
+    const cacheKey = `aris:settings:stat-defs:list:${JSON.stringify(query)}`;
+    const cached = await this.cacheGet<{ data: any[] }>(cacheKey);
+    if (cached) return cached;
+
+    const where: Record<string, unknown> = {};
+    if (query.domainCode) where.domainCode = query.domainCode;
+    if (query.status === 'active') where.isActive = true;
+    if (query.status === 'inactive') where.isActive = false;
+
+    const data = await (this.prisma as any).statisticDefinition.findMany({
+      where,
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    const result = { data };
+    await this.cacheSet(cacheKey, result, CACHE_TTL_LIST);
+    return result;
+  }
+
+  async createStatisticDefinition(dto: Record<string, unknown>, user: AuthenticatedUser) {
+    const existing = await (this.prisma as any).statisticDefinition.findUnique({
+      where: { code: dto.code as string },
+    });
+    if (existing) throw new HttpError(409, `Statistic definition with code "${dto.code}" already exists`);
+
+    const statDef = await (this.prisma as any).statisticDefinition.create({
+      data: {
+        code: dto.code as string,
+        name: (dto.name ?? {}) as Prisma.InputJsonValue,
+        description: (dto.description ?? null) as Prisma.InputJsonValue,
+        domainCode: dto.domainCode as string,
+        icon: (dto.icon as string) ?? null,
+        color: (dto.color as string) ?? null,
+        unit: (dto.unit as string) ?? 'count',
+        format: (dto.format as string) ?? 'number',
+        sourceType: dto.sourceType as string,
+        sourceConfig: (dto.sourceConfig ?? null) as Prisma.InputJsonValue,
+        isActive: (dto.isActive as boolean) ?? true,
+        sortOrder: (dto.sortOrder as number) ?? 0,
+      },
+    });
+
+    await this.publishEvent(TOPIC_SETTINGS_STAT_DEF_UPDATED, { ...statDef, action: 'created' }, user);
+    await this.invalidateStatDefCache();
+    return { data: statDef };
+  }
+
+  async updateStatisticDefinition(id: string, dto: Record<string, unknown>, user: AuthenticatedUser) {
+    const updateData: Record<string, unknown> = {};
+    if (dto.name !== undefined) updateData.name = dto.name as Prisma.InputJsonValue;
+    if (dto.description !== undefined) updateData.description = dto.description as Prisma.InputJsonValue;
+    if (dto.domainCode !== undefined) updateData.domainCode = dto.domainCode;
+    if (dto.icon !== undefined) updateData.icon = dto.icon;
+    if (dto.color !== undefined) updateData.color = dto.color;
+    if (dto.unit !== undefined) updateData.unit = dto.unit;
+    if (dto.format !== undefined) updateData.format = dto.format;
+    if (dto.sourceType !== undefined) updateData.sourceType = dto.sourceType;
+    if (dto.sourceConfig !== undefined) updateData.sourceConfig = dto.sourceConfig as Prisma.InputJsonValue;
+    if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
+    if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
+
+    try {
+      const statDef = await (this.prisma as any).statisticDefinition.update({
+        where: { id },
+        data: updateData,
+      });
+      await this.publishEvent(TOPIC_SETTINGS_STAT_DEF_UPDATED, { ...statDef, action: 'updated' }, user);
+      await this.invalidateStatDefCache();
+      return { data: statDef };
+    } catch (err: any) {
+      if (err.code === 'P2025') throw new HttpError(404, `Statistic definition ${id} not found`);
+      throw err;
+    }
+  }
+
+  async deleteStatisticDefinition(id: string, user: AuthenticatedUser) {
+    const existing = await (this.prisma as any).statisticDefinition.findUnique({
+      where: { id },
+      include: { _count: { select: { countryStats: true } } },
+    });
+    if (!existing) throw new HttpError(404, `Statistic definition ${id} not found`);
+
+    await (this.prisma as any).statisticDefinition.delete({ where: { id } });
+    await this.publishEvent(TOPIC_SETTINGS_STAT_DEF_UPDATED, { id, action: 'deleted' }, user);
+    await this.invalidateStatDefCache();
+    return { data: { id, deleted: true } };
+  }
+
+  // ───────────────────── Country Statistics ─────────────────────
+
+  async getCountryStatistics(countryId: string) {
+    const cacheKey = `aris:settings:country-stats:${countryId}`;
+    const cached = await this.cacheGet<{ data: any[] }>(cacheKey);
+    if (cached) return cached;
+
+    const stats = await (this.prisma as any).countryStatistic.findMany({
+      where: { countryId },
+      include: { statistic: true },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    const result = { data: stats };
+    await this.cacheSet(cacheKey, result, CACHE_TTL_DETAIL);
+    return result;
+  }
+
+  async upsertCountryStatistics(
+    countryId: string,
+    items: Array<{
+      statisticId: string;
+      isVisible?: boolean;
+      displayPeriod?: string;
+      periodStart?: string | null;
+      periodEnd?: string | null;
+      overrideValue?: number | null;
+      sortOrder?: number;
+    }>,
+    user: AuthenticatedUser,
+  ) {
+    const country = await (this.prisma as any).country.findUnique({ where: { id: countryId } });
+    if (!country) throw new HttpError(404, `Country ${countryId} not found`);
+
+    const results = await Promise.all(
+      items.map((item) =>
+        (this.prisma as any).countryStatistic.upsert({
+          where: { countryId_statisticId: { countryId, statisticId: item.statisticId } },
+          update: {
+            isVisible: item.isVisible ?? true,
+            displayPeriod: item.displayPeriod ?? 'current_year',
+            periodStart: item.periodStart ? new Date(item.periodStart) : null,
+            periodEnd: item.periodEnd ? new Date(item.periodEnd) : null,
+            overrideValue: item.overrideValue ?? null,
+            sortOrder: item.sortOrder ?? 0,
+          },
+          create: {
+            countryId,
+            statisticId: item.statisticId,
+            isVisible: item.isVisible ?? true,
+            displayPeriod: item.displayPeriod ?? 'current_year',
+            periodStart: item.periodStart ? new Date(item.periodStart) : null,
+            periodEnd: item.periodEnd ? new Date(item.periodEnd) : null,
+            overrideValue: item.overrideValue ?? null,
+            sortOrder: item.sortOrder ?? 0,
+          },
+          include: { statistic: true },
+        }),
+      ),
+    );
+
+    await this.publishEvent(TOPIC_SETTINGS_COUNTRY_STAT_UPDATED, { countryId, action: 'upserted', count: items.length }, user);
+    await this.cacheInvalidate(`aris:settings:country-stats:${countryId}`);
+    await this.invalidateCountryCache();
+    return { data: results };
+  }
+
+  // ───────────────────── KPI Definitions ─────────────────────
+
+  async listKpiDefinitions(query: { domainCode?: string; status?: string; scope?: string }) {
+    const cacheKey = `aris:settings:kpi-defs:list:${JSON.stringify(query)}`;
+    const cached = await this.cacheGet<{ data: any[] }>(cacheKey);
+    if (cached) return cached;
+
+    const where: Record<string, unknown> = {};
+    if (query.domainCode) where.domainCode = query.domainCode;
+    if (query.status === 'active') where.isActive = true;
+    if (query.status === 'inactive') where.isActive = false;
+    if (query.scope) where.scope = query.scope;
+
+    const data = await (this.prisma as any).kpiDefinition.findMany({
+      where,
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    const result = { data };
+    await this.cacheSet(cacheKey, result, CACHE_TTL_LIST);
+    return result;
+  }
+
+  async createKpiDefinition(dto: Record<string, unknown>, user: AuthenticatedUser) {
+    const existing = await (this.prisma as any).kpiDefinition.findUnique({
+      where: { code: dto.code as string },
+    });
+    if (existing) throw new HttpError(409, `KPI definition with code "${dto.code}" already exists`);
+
+    const kpi = await (this.prisma as any).kpiDefinition.create({
+      data: {
+        code: dto.code as string,
+        name: (dto.name ?? {}) as Prisma.InputJsonValue,
+        description: (dto.description ?? null) as Prisma.InputJsonValue,
+        domainCode: (dto.domainCode as string) ?? null,
+        icon: (dto.icon as string) ?? null,
+        color: (dto.color as string) ?? null,
+        unit: (dto.unit as string) ?? 'percentage',
+        targetValue: (dto.targetValue as number) ?? 100,
+        thresholdGood: (dto.thresholdGood as number) ?? 75,
+        thresholdWarn: (dto.thresholdWarn as number) ?? 50,
+        scope: (dto.scope as string) ?? 'both',
+        isPreset: (dto.isPreset as boolean) ?? false,
+        isActive: (dto.isActive as boolean) ?? true,
+        sortOrder: (dto.sortOrder as number) ?? 0,
+      },
+    });
+
+    await this.publishEvent(TOPIC_SETTINGS_KPI_DEF_UPDATED, { ...kpi, action: 'created' }, user);
+    await this.invalidateKpiDefCache();
+    return { data: kpi };
+  }
+
+  async updateKpiDefinition(id: string, dto: Record<string, unknown>, user: AuthenticatedUser) {
+    const updateData: Record<string, unknown> = {};
+    if (dto.name !== undefined) updateData.name = dto.name as Prisma.InputJsonValue;
+    if (dto.description !== undefined) updateData.description = dto.description as Prisma.InputJsonValue;
+    if (dto.domainCode !== undefined) updateData.domainCode = dto.domainCode;
+    if (dto.icon !== undefined) updateData.icon = dto.icon;
+    if (dto.color !== undefined) updateData.color = dto.color;
+    if (dto.unit !== undefined) updateData.unit = dto.unit;
+    if (dto.targetValue !== undefined) updateData.targetValue = dto.targetValue;
+    if (dto.thresholdGood !== undefined) updateData.thresholdGood = dto.thresholdGood;
+    if (dto.thresholdWarn !== undefined) updateData.thresholdWarn = dto.thresholdWarn;
+    if (dto.scope !== undefined) updateData.scope = dto.scope;
+    if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
+    if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
+
+    try {
+      const kpi = await (this.prisma as any).kpiDefinition.update({
+        where: { id },
+        data: updateData,
+      });
+      await this.publishEvent(TOPIC_SETTINGS_KPI_DEF_UPDATED, { ...kpi, action: 'updated' }, user);
+      await this.invalidateKpiDefCache();
+      return { data: kpi };
+    } catch (err: any) {
+      if (err.code === 'P2025') throw new HttpError(404, `KPI definition ${id} not found`);
+      throw err;
+    }
+  }
+
+  async deleteKpiDefinition(id: string, user: AuthenticatedUser) {
+    const existing = await (this.prisma as any).kpiDefinition.findUnique({ where: { id } });
+    if (!existing) throw new HttpError(404, `KPI definition ${id} not found`);
+    if (existing.isPreset) throw new HttpError(400, 'Cannot delete a preset KPI definition. Deactivate it instead.');
+
+    await (this.prisma as any).kpiDefinition.delete({ where: { id } });
+    await this.publishEvent(TOPIC_SETTINGS_KPI_DEF_UPDATED, { id, action: 'deleted' }, user);
+    await this.invalidateKpiDefCache();
+    return { data: { id, deleted: true } };
+  }
+
+  // ───────────────────── Country KPI Scores ─────────────────────
+
+  async getCountryKpiScores(countryId: string, year?: number) {
+    const cacheKey = `aris:settings:country-kpis:${countryId}:${year ?? 'all'}`;
+    const cached = await this.cacheGet<{ data: any[] }>(cacheKey);
+    if (cached) return cached;
+
+    const where: Record<string, unknown> = { countryId };
+    if (year) where.year = year;
+
+    const scores = await (this.prisma as any).countryKpiScore.findMany({
+      where,
+      include: { kpi: true },
+      orderBy: [{ year: 'desc' }, { kpi: { sortOrder: 'asc' } }],
+    });
+
+    const result = { data: scores };
+    await this.cacheSet(cacheKey, result, CACHE_TTL_DETAIL);
+    return result;
+  }
+
+  async upsertCountryKpiScores(
+    countryId: string,
+    items: Array<{
+      kpiId: string;
+      score: number;
+      year: number;
+      quarter?: number | null;
+      source?: string;
+      notes?: string | null;
+    }>,
+    user: AuthenticatedUser,
+  ) {
+    const country = await (this.prisma as any).country.findUnique({ where: { id: countryId } });
+    if (!country) throw new HttpError(404, `Country ${countryId} not found`);
+
+    const results = await Promise.all(
+      items.map((item) => {
+        const quarter = item.quarter ?? null;
+        // Build a unique composite key — Prisma requires all fields in @@unique
+        const uniqueWhere = quarter != null
+          ? { countryId_kpiId_year_quarter: { countryId, kpiId: item.kpiId, year: item.year, quarter } }
+          : { countryId_kpiId_year_quarter: { countryId, kpiId: item.kpiId, year: item.year, quarter: 0 } };
+
+        return (this.prisma as any).countryKpiScore.upsert({
+          where: uniqueWhere,
+          update: {
+            score: item.score,
+            source: item.source ?? 'manual',
+            notes: item.notes ?? null,
+            updatedBy: user.userId,
+          },
+          create: {
+            countryId,
+            kpiId: item.kpiId,
+            score: item.score,
+            year: item.year,
+            quarter,
+            source: item.source ?? 'manual',
+            notes: item.notes ?? null,
+            updatedBy: user.userId,
+          },
+          include: { kpi: true },
+        });
+      }),
+    );
+
+    await this.publishEvent(TOPIC_SETTINGS_COUNTRY_KPI_UPDATED, { countryId, action: 'upserted', count: items.length }, user);
+    await this.cacheInvalidate(`aris:settings:country-kpis:${countryId}:*`);
+    await this.invalidateCountryCache();
+    return { data: results };
+  }
+
   // ───────────────────── Cache invalidation helpers ─────────────────────
+
+  private async invalidateStatDefCache(): Promise<void> {
+    await Promise.all([
+      this.cacheInvalidate('aris:settings:stat-defs:*'),
+      this.cacheInvalidate('aris:settings:country-stats:*'),
+      this.cacheInvalidate('aris:public:countries:*'),
+    ]);
+  }
+
+  private async invalidateKpiDefCache(): Promise<void> {
+    await Promise.all([
+      this.cacheInvalidate('aris:settings:kpi-defs:*'),
+      this.cacheInvalidate('aris:settings:country-kpis:*'),
+      this.cacheInvalidate('aris:public:countries:*'),
+    ]);
+  }
 
   private async invalidateFunctionCache(): Promise<void> {
     await this.cacheInvalidate('aris:settings:functions:*');

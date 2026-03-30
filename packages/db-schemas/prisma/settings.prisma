@@ -56,6 +56,8 @@ model Country {
   adminLevels       AdminLevel[]
   tenant            Tenant?      @relation(fields: [tenantId], references: [id])
   collecteWorkflow  CollecteWorkflow?
+  countryStatistics CountryStatistic[]
+  kpiScores         CountryKpiScore[]
 
   @@index([isActive], map: "idx_country_is_active")
   @@index([isOperational], map: "idx_country_is_operational")
@@ -281,5 +283,102 @@ model BiDashboard {
   @@index([scope], map: "idx_bi_dashboard_scope")
   @@index([isFeatured], map: "idx_bi_dashboard_featured")
   @@map("bi_dashboards")
+  @@schema("governance")
+}
+
+// ── Statistic Definitions & Country Statistics ──────────────────────────
+
+model StatisticDefinition {
+  id            String   @id @default(uuid()) @db.Uuid
+  code          String   @unique @db.VarChar(50)
+  name          Json     // { en, fr, pt, ar }
+  description   Json?
+  domainCode    String   @map("domain_code") @db.VarChar(30)
+  icon          String?  @db.VarChar(50)
+  color         String?  @db.VarChar(20)
+  unit          String   @default("count") @db.VarChar(20)  // count, percentage, currency, tonnes
+  format        String   @default("number") @db.VarChar(20) // number, currency, compact
+  sourceType    String   @map("source_type") @db.VarChar(20) // form_builder, manual
+  sourceConfig  Json?    @map("source_config") // { templateId?, fieldCode?, aggregation: "count"|"sum"|"avg" }
+  isActive      Boolean  @default(true) @map("is_active")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  countryStats  CountryStatistic[]
+
+  @@index([domainCode], map: "idx_stat_def_domain")
+  @@index([isActive], map: "idx_stat_def_active")
+  @@map("statistic_definitions")
+  @@schema("governance")
+}
+
+model CountryStatistic {
+  id            String   @id @default(uuid()) @db.Uuid
+  countryId     String   @map("country_id") @db.Uuid
+  statisticId   String   @map("statistic_id") @db.Uuid
+  isVisible     Boolean  @default(true) @map("is_visible")
+  displayPeriod String   @default("current_year") @map("display_period") @db.VarChar(30)
+  periodStart   DateTime? @map("period_start") @db.Timestamptz
+  periodEnd     DateTime? @map("period_end") @db.Timestamptz
+  overrideValue Float?   @map("override_value")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  country       Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  statistic     StatisticDefinition @relation(fields: [statisticId], references: [id], onDelete: Cascade)
+
+  @@unique([countryId, statisticId])
+  @@index([countryId], map: "idx_country_stat_country")
+  @@map("country_statistics")
+  @@schema("governance")
+}
+
+// ── KPI Definitions & Country KPI Scores ────────────────────────────────
+
+model KpiDefinition {
+  id            String   @id @default(uuid()) @db.Uuid
+  code          String   @unique @db.VarChar(50)
+  name          Json     // { en, fr, pt, ar }
+  description   Json?
+  domainCode    String?  @map("domain_code") @db.VarChar(30)
+  icon          String?  @db.VarChar(50)
+  color         String?  @db.VarChar(20)
+  unit          String   @default("percentage") @db.VarChar(20)
+  targetValue   Float    @default(100) @map("target_value")
+  thresholdGood Int      @default(75) @map("threshold_good")
+  thresholdWarn Int      @default(50) @map("threshold_warn")
+  scope         String   @default("both") @db.VarChar(20) // country, rec, both
+  isPreset      Boolean  @default(false) @map("is_preset")
+  isActive      Boolean  @default(true) @map("is_active")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  countryScores CountryKpiScore[]
+
+  @@index([domainCode], map: "idx_kpi_def_domain")
+  @@index([isActive], map: "idx_kpi_def_active")
+  @@map("kpi_definitions")
+  @@schema("governance")
+}
+
+model CountryKpiScore {
+  id         String   @id @default(uuid()) @db.Uuid
+  countryId  String   @map("country_id") @db.Uuid
+  kpiId      String   @map("kpi_id") @db.Uuid
+  score      Float    // 0-100
+  year       Int
+  quarter    Int?
+  source     String   @default("manual") @db.VarChar(20) // manual, computed
+  notes      String?
+  updatedBy  String?  @map("updated_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  country    Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  kpi        KpiDefinition @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+
+  @@unique([countryId, kpiId, year, quarter])
+  @@index([countryId], map: "idx_kpi_score_country")
+  @@index([kpiId], map: "idx_kpi_score_kpi")
+  @@map("country_kpi_scores")
   @@schema("governance")
 }

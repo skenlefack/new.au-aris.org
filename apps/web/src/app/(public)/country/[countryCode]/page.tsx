@@ -7,6 +7,22 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Minus,
+  HeartPulse,
+  Wheat,
+  Fish,
+  TreePine,
+  Bug,
+  Cloud,
+  Building2,
+  TrendingUp,
+  BookOpen,
+  Syringe,
+  Shield,
+  Activity,
+  Info,
+  Mail,
+  BarChart3,
+  type LucideIcon,
 } from 'lucide-react';
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { LoginPanel } from '@/components/landing/LoginPanel';
@@ -14,6 +30,11 @@ import { getCountry, MINISTRIES, type CountryConfig } from '@/data/countries-con
 import { getRecsForCountry, type RecConfig } from '@/data/recs-config';
 import { getHighlights, getGauges, type TrendDir, type StatusLevel } from '@/data/country-domain-stats';
 import { getPublicCountryByCode } from '@/lib/api/public-data';
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  HeartPulse, Wheat, Fish, TreePine, Bug, Cloud, Building2, TrendingUp,
+  BookOpen, Syringe, Shield, Activity, BarChart3, MapPin, Users, CheckCircle2,
+};
 
 export const revalidate = 300;
 
@@ -31,6 +52,10 @@ export default async function CountryPage({ params }: Props) {
   // Attempt live API fetch
   let country: CountryConfig = staticCountry;
   let recs: RecConfig[] = staticRecs;
+  let apiStatistics: any[] = [];
+  let apiKpiScores: any[] = [];
+  let isActive = false;
+  let hasInterop = false;
 
   try {
     const apiRes = await getPublicCountryByCode(code);
@@ -63,6 +88,11 @@ export default async function CountryPage({ params }: Props) {
           };
         });
       }
+
+      apiStatistics = apiCountry.statistics ?? [];
+      apiKpiScores = apiCountry.kpiScores ?? [];
+      isActive = apiCountry.isActive ?? false;
+      hasInterop = apiCountry.hasInterop ?? false;
     }
   } catch {
     // Static fallback already assigned
@@ -70,6 +100,8 @@ export default async function CountryPage({ params }: Props) {
 
   const primaryRec = recs[0];
   const isConfigured = !!country.tenantId;
+  const hasRealData = apiStatistics.length > 0 || apiKpiScores.length > 0;
+  const showRealSections = isActive || hasInterop;
   const highlights = getHighlights(code, country.population);
   const gauges = getGauges(code, country.population);
 
@@ -166,74 +198,92 @@ export default async function CountryPage({ params }: Props) {
               </div>
             </div>
 
-            {/* Headline figures (3 big cards) */}
-            <div className="grid gap-3 sm:grid-cols-3">
-              {highlights.map((h) => (
-                <div
-                  key={h.domain}
-                  className="group relative overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-5 shadow-md transition-all duration-200 hover:-translate-y-1 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800"
-                >
-                  <div className="absolute inset-x-0 top-0 h-1" style={{ background: `linear-gradient(90deg, ${h.color}, ${h.color}80)` }} />
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="flex h-11 w-11 items-center justify-center rounded-xl shadow-sm"
-                      style={{ backgroundColor: `${h.color}14`, color: h.color }}
-                    >
-                      <h.icon className="h-5 w-5" strokeWidth={1.8} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-gray-400 dark:text-gray-500">{h.domain}</p>
-                      <p className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">{h.value}</p>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{h.subtitle}</p>
-                  <div className="mt-3 flex items-center gap-1">
-                    <TrendBadge dir={h.trend} value={h.trendValue} />
-                    <span className="text-[10px] text-gray-400">vs last year</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Domain gauges (6 rows with progress bars) */}
-            <div className="rounded-2xl border border-gray-200/60 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
-              <div className="border-b border-gray-100 px-5 py-3 dark:border-gray-700">
-                <h3 className="text-sm font-bold text-gray-900 dark:text-white">
-                  Sector Performance
-                </h3>
-                <p className="text-[11px] text-gray-400">National indicators across ARIS domains</p>
-              </div>
-              <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                {gauges.map((g) => (
-                  <div key={g.domain} className="group flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-700/20">
-                    <div
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                      style={{ backgroundColor: `${g.color}14`, color: g.color }}
-                    >
-                      <g.icon className="h-4 w-4" strokeWidth={2} />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{g.domain}</p>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-extrabold text-gray-900 dark:text-white">{g.score}%</span>
-                          <StatusDot status={g.status} label={g.statusLabel} />
-                        </div>
-                      </div>
-                      {/* Progress bar */}
-                      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+            {showRealSections ? (
+              <>
+                {/* Country Statistics — real data or illustrative fallback */}
+                {apiStatistics.length > 0 ? (
+                  <StatisticsSection statistics={apiStatistics} />
+                ) : (
+                  <div className="space-y-2">
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      {highlights.map((h) => (
                         <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${g.score}%`, backgroundColor: g.color }}
-                        />
-                      </div>
-                      <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">{g.detail}</p>
+                          key={h.domain}
+                          className="group relative overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-5 shadow-md transition-all duration-200 hover:-translate-y-1 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800"
+                        >
+                          <div className="absolute inset-x-0 top-0 h-1" style={{ background: `linear-gradient(90deg, ${h.color}, ${h.color}80)` }} />
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="flex h-11 w-11 items-center justify-center rounded-xl shadow-sm"
+                              style={{ backgroundColor: `${h.color}14`, color: h.color }}
+                            >
+                              <h.icon className="h-5 w-5" strokeWidth={1.8} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-medium text-gray-400 dark:text-gray-500">{h.domain}</p>
+                              <p className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">{h.value}</p>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{h.subtitle}</p>
+                          <div className="mt-3 flex items-center gap-1">
+                            <TrendBadge dir={h.trend} value={h.trendValue} />
+                            <span className="text-[10px] text-gray-400">vs last year</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
+                    <IllustrativeDisclaimer />
                   </div>
-                ))}
-              </div>
-            </div>
+                )}
+
+                {/* Performance — real KPI scores or illustrative fallback */}
+                {apiKpiScores.length > 0 ? (
+                  <PerformanceSection kpiScores={apiKpiScores} />
+                ) : (
+                  <div className="space-y-2">
+                    <div className="rounded-2xl border border-gray-200/60 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
+                      <div className="border-b border-gray-100 px-5 py-3 dark:border-gray-700">
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                          Sector Performance
+                        </h3>
+                        <p className="text-[11px] text-gray-400">National indicators across ARIS domains</p>
+                      </div>
+                      <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                        {gauges.map((g) => (
+                          <div key={g.domain} className="group flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-700/20">
+                            <div
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                              style={{ backgroundColor: `${g.color}14`, color: g.color }}
+                            >
+                              <g.icon className="h-4 w-4" strokeWidth={2} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{g.domain}</p>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-extrabold text-gray-900 dark:text-white">{g.score}%</span>
+                                  <StatusDot status={g.status} label={g.statusLabel} />
+                                </div>
+                              </div>
+                              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                                <div
+                                  className="h-full rounded-full transition-all duration-500"
+                                  style={{ width: `${g.score}%`, backgroundColor: g.color }}
+                                />
+                              </div>
+                              <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">{g.detail}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <IllustrativeDisclaimer />
+                  </div>
+                )}
+              </>
+            ) : (
+              <FallbackMessage countryName={country.name} />
+            )}
           </div>
 
           {/* Right: Login */}
@@ -305,6 +355,163 @@ function StatusDot({ status, label }: { status: StatusLevel; label: string }) {
       <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">{label}</span>
     </span>
   );
+}
+
+function StatisticsSection({ statistics }: { statistics: any[] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      {statistics.map((s: any) => {
+        const Icon = ICON_MAP[s.icon] ?? BarChart3;
+        const color = s.color ?? '#6B7280';
+        const formatted = formatStatValue(s.value, s.unit, s.format);
+        return (
+          <div
+            key={s.code}
+            className="group relative overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-5 shadow-md transition-all duration-200 hover:-translate-y-1 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800"
+          >
+            <div className="absolute inset-x-0 top-0 h-1" style={{ background: `linear-gradient(90deg, ${color}, ${color}80)` }} />
+            <div className="flex items-center gap-3">
+              <div
+                className="flex h-11 w-11 items-center justify-center rounded-xl shadow-sm"
+                style={{ backgroundColor: `${color}14`, color }}
+              >
+                <Icon className="h-5 w-5" strokeWidth={1.8} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-gray-400 dark:text-gray-500">
+                  {s.name?.en ?? s.code}
+                </p>
+                <p className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
+                  {formatted}
+                </p>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              {s.domain ? `${s.domain}` : ''}{s.period ? ` \u2022 ${s.period.replace(/_/g, ' ')}` : ''}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function PerformanceSection({ kpiScores }: { kpiScores: any[] }) {
+  return (
+    <div className="rounded-2xl border border-gray-200/60 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
+      <div className="border-b border-gray-100 px-5 py-3 dark:border-gray-700">
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+          Performance Indicators
+        </h3>
+        <p className="text-[11px] text-gray-400">National KPI scores across ARIS domains</p>
+      </div>
+      <div className="divide-y divide-gray-100 dark:divide-gray-700">
+        {kpiScores.map((k: any) => {
+          const Icon = ICON_MAP[k.icon] ?? Activity;
+          const color = k.color ?? '#6B7280';
+          const score = Math.round(k.score ?? 0);
+          const status: StatusLevel = k.status ?? (score >= 75 ? 'good' : score >= 50 ? 'warning' : 'alert');
+          const statusLabel = k.statusLabel ?? (score >= 75 ? 'Good' : score >= 50 ? 'Moderate' : 'Low');
+          return (
+            <div key={k.code} className="group flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-700/20">
+              <div
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                style={{ backgroundColor: `${color}14`, color }}
+              >
+                <Icon className="h-4 w-4" strokeWidth={2} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                    {k.name?.en ?? k.code}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-extrabold text-gray-900 dark:text-white">{score}%</span>
+                    <StatusDot status={status} label={statusLabel} />
+                  </div>
+                </div>
+                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${score}%`, backgroundColor: color }}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function FallbackMessage({ countryName }: { countryName: string }) {
+  return (
+    <div className="rounded-2xl border border-gray-200/60 bg-white p-6 shadow-md dark:border-gray-700 dark:bg-gray-800">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-aris-primary-50 dark:bg-aris-primary-900/30">
+          <Info className="h-5 w-5 text-aris-primary-600 dark:text-aris-primary-400" />
+        </div>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+          Welcome to {countryName}&apos;s ARIS Portal
+        </h3>
+      </div>
+      <div className="space-y-4 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+        <p>
+          The African Union Inter-African Bureau for Animal Resources (AU-IBAR) is currently
+          working with {countryName}&apos;s national veterinary and livestock authorities to establish
+          a comprehensive digital connection with the Animal Resources Information System (ARIS).
+          This integration will enable real-time monitoring of animal health, production systems,
+          and trade across all key domains.
+        </p>
+        <p>
+          Once operational, this page will feature live national statistics including disease
+          surveillance indicators, livestock census figures, vaccination coverage rates, fisheries
+          and aquaculture metrics, wildlife conservation indices, and trade flow data. These
+          indicators are drawn from official notifications submitted through ARIS by national
+          focal points and validated through a rigorous four-level quality assurance process.
+        </p>
+        <p>
+          ARIS supports the African Union&apos;s Agenda 2063 and the Livestock Development Strategy
+          for Africa (LiDeSA) by providing a continental digital infrastructure that connects
+          55 Member States across 8 Regional Economic Communities. The platform ensures data
+          sovereignty &mdash; each country retains full ownership and control of its data while
+          contributing to continental-level analytics for evidence-based policy making.
+        </p>
+        <p className="flex items-start gap-2">
+          <Mail className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+          <span>
+            For information on onboarding timelines or to initiate the integration process,
+            national authorities are invited to contact their Regional Economic Community
+            coordinator or the AU-IBAR ARIS technical team at{' '}
+            <a href="mailto:aris@au-ibar.org" className="font-medium text-aris-primary-600 hover:underline dark:text-aris-primary-400">
+              aris@au-ibar.org
+            </a>.
+          </span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function IllustrativeDisclaimer() {
+  return (
+    <p className="flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500">
+      <Info className="h-3 w-3" />
+      Illustrative data &mdash; actual statistics will appear once configured by national administrators.
+    </p>
+  );
+}
+
+function formatStatValue(value: number | null | undefined, unit?: string, format?: string): string {
+  if (value == null) return '\u2014';
+  if (format === 'compact') {
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+    if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  }
+  if (format === 'currency') return value.toLocaleString('en', { maximumFractionDigits: 0 });
+  if (unit === 'percentage') return `${Math.round(value)}%`;
+  return value.toLocaleString('en', { maximumFractionDigits: 1 });
 }
 
 /** Format IANA timezone to "City (GMT+X)" */

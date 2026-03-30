@@ -111,6 +111,9 @@ export async function getPublicCountryByCode(code: string) {
       tenantId: country.tenantId ?? null,
       isActive: true,
       isOperational: !!country.tenantId,
+      statistics: [],
+      kpiScores: [],
+      hasInterop: false,
       recs: recs.map((r) => ({
         rec: {
           code: r.code,

@@ -1,0 +1,514 @@
+'use client';
+
+import React, { useState } from 'react';
+import {
+  useStatisticDefinitions,
+  useCreateStatisticDefinition,
+  useUpdateStatisticDefinition,
+  useDeleteStatisticDefinition,
+  useSettingsDomains,
+} from '@/lib/api/settings-hooks';
+import { useSettingsAccess } from '@/hooks/useSettingsAccess';
+import { MultilingualInput } from '@/components/settings/MultilingualInput';
+import { ColorPicker } from '@/components/settings/ColorPicker';
+import {
+  Loader2,
+  TrendingUp,
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  Check,
+  AlertTriangle,
+} from 'lucide-react';
+
+interface StatForm {
+  code: string;
+  name: Record<string, string>;
+  description: Record<string, string>;
+  domainCode: string;
+  icon: string;
+  color: string;
+  unit: string;
+  format: string;
+  sourceType: string;
+  sourceConfig: Record<string, unknown> | null;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+const EMPTY_FORM: StatForm = {
+  code: '',
+  name: { en: '', fr: '', pt: '', ar: '' },
+  description: { en: '', fr: '', pt: '', ar: '' },
+  domainCode: '',
+  icon: '',
+  color: '#1565C0',
+  unit: 'count',
+  format: 'number',
+  sourceType: 'manual',
+  sourceConfig: null,
+  isActive: true,
+  sortOrder: 0,
+};
+
+const UNITS = ['count', 'percentage', 'currency', 'tonnes', 'heads', 'doses'];
+const FORMATS = ['number', 'currency', 'compact'];
+const SOURCE_TYPES = ['manual', 'form_builder'];
+
+export default function StatisticsPage() {
+  const { isSuperAdmin, isContinentalAdmin } = useSettingsAccess();
+  const canManage = isSuperAdmin || isContinentalAdmin;
+  const { data, isLoading } = useStatisticDefinitions();
+  const { data: domainsData } = useSettingsDomains();
+  const createMutation = useCreateStatisticDefinition();
+  const updateMutation = useUpdateStatisticDefinition();
+  const deleteMutation = useDeleteStatisticDefinition();
+
+  const statDefs: any[] = data?.data ?? [];
+  const domains: any[] = domainsData?.data ?? [];
+
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [form, setForm] = useState<StatForm>(EMPTY_FORM);
+
+  const openAdd = () => {
+    setEditingId(null);
+    setForm({ ...EMPTY_FORM, sortOrder: statDefs.length });
+    setShowAddForm(true);
+  };
+
+  const openEdit = (stat: any) => {
+    setShowAddForm(false);
+    setEditingId(stat.id);
+    setForm({
+      code: stat.code,
+      name: stat.name ?? { en: '', fr: '', pt: '', ar: '' },
+      description: stat.description ?? { en: '', fr: '', pt: '', ar: '' },
+      domainCode: stat.domainCode ?? '',
+      icon: stat.icon ?? '',
+      color: stat.color ?? '#1565C0',
+      unit: stat.unit ?? 'count',
+      format: stat.format ?? 'number',
+      sourceType: stat.sourceType ?? 'manual',
+      sourceConfig: stat.sourceConfig ?? null,
+      isActive: stat.isActive ?? true,
+      sortOrder: stat.sortOrder ?? 0,
+    });
+  };
+
+  const cancelForm = () => {
+    setShowAddForm(false);
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+  };
+
+  const handleCreate = async () => {
+    await createMutation.mutateAsync({
+      code: form.code,
+      name: form.name,
+      description: form.description,
+      domainCode: form.domainCode,
+      icon: form.icon || null,
+      color: form.color || null,
+      unit: form.unit,
+      format: form.format,
+      sourceType: form.sourceType,
+      sourceConfig: form.sourceConfig,
+      isActive: form.isActive,
+      sortOrder: form.sortOrder,
+    });
+    cancelForm();
+  };
+
+  const handleUpdate = async () => {
+    if (!editingId) return;
+    await updateMutation.mutateAsync({
+      id: editingId,
+      name: form.name,
+      description: form.description,
+      domainCode: form.domainCode,
+      icon: form.icon || null,
+      color: form.color || null,
+      unit: form.unit,
+      format: form.format,
+      sourceType: form.sourceType,
+      sourceConfig: form.sourceConfig,
+      isActive: form.isActive,
+      sortOrder: form.sortOrder,
+    });
+    cancelForm();
+  };
+
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    await deleteMutation.mutateAsync(deletingId);
+    setDeletingId(null);
+  };
+
+  const isSaving = createMutation.isPending || updateMutation.isPending;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  // Group by domain
+  const grouped = statDefs.reduce((acc: Record<string, any[]>, stat: any) => {
+    const key = stat.domainCode ?? 'uncategorized';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(stat);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  const deletingStat = statDefs.find((s: any) => s.id === deletingId);
+
+  return (
+    <div className="space-y-8 pb-20">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-sm">
+            <TrendingUp className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Statistic Definitions
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Define statistics that countries can display on their landing pages ({statDefs.length} definitions)
+            </p>
+          </div>
+        </div>
+        {canManage && !showAddForm && !editingId && (
+          <button
+            type="button"
+            onClick={openAdd}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4" />
+            Add Statistic
+          </button>
+        )}
+      </div>
+
+      {/* Add Form */}
+      {showAddForm && (
+        <StatFormPanel
+          title="New Statistic Definition"
+          form={form}
+          setForm={setForm}
+          domains={domains}
+          onSave={handleCreate}
+          onCancel={cancelForm}
+          saving={isSaving}
+          isNew
+        />
+      )}
+
+      {/* Grouped List */}
+      {Object.entries(grouped).map(([domainCode, stats]) => {
+        const domain = domains.find((d: any) => d.code === domainCode);
+        return (
+          <div key={domainCode}>
+            <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+              <div
+                className="h-3 w-3 rounded-full"
+                style={{ backgroundColor: domain?.color ?? '#6B7280' }}
+              />
+              {domain?.name?.en ?? domainCode}
+            </h3>
+            <div className="space-y-2">
+              {stats.map((stat: any) => {
+                if (editingId === stat.id) {
+                  return (
+                    <StatFormPanel
+                      key={stat.id}
+                      title={`Edit: ${stat.name?.en ?? stat.code}`}
+                      form={form}
+                      setForm={setForm}
+                      domains={domains}
+                      onSave={handleUpdate}
+                      onCancel={cancelForm}
+                      saving={isSaving}
+                    />
+                  );
+                }
+                return (
+                  <div
+                    key={stat.id}
+                    className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-800/80"
+                  >
+                    <div
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+                      style={{ backgroundColor: `${stat.color ?? '#6B7280'}14`, color: stat.color ?? '#6B7280' }}
+                    >
+                      <span className="text-xs font-bold">{stat.icon?.slice(0, 2) ?? '#'}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {stat.name?.en ?? stat.code}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {stat.unit} | {stat.sourceType} | {stat.format}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                        {stat.code}
+                      </span>
+                      <span
+                        className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        style={{
+                          backgroundColor: stat.isActive ? '#ecfdf5' : '#f3f4f6',
+                          color: stat.isActive ? '#059669' : '#9ca3af',
+                        }}
+                      >
+                        {stat.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                      {canManage && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => openEdit(stat)}
+                            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeletingId(stat.id)}
+                            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+      {statDefs.length === 0 && !showAddForm && (
+        <div className="py-12 text-center text-sm text-gray-400">
+          No statistic definitions yet. Add one to get started.
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
+      {deletingId && deletingStat && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Delete Statistic
+                </h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Are you sure you want to delete &ldquo;{deletingStat.name?.en ?? deletingStat.code}&rdquo;?
+                  This will also remove all country configurations for this statistic.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeletingId(null)}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending}
+                className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatFormPanel({
+  title,
+  form,
+  setForm,
+  domains,
+  onSave,
+  onCancel,
+  saving,
+  isNew = false,
+}: {
+  title: string;
+  form: StatForm;
+  setForm: React.Dispatch<React.SetStateAction<StatForm>>;
+  domains: any[];
+  onSave: () => void;
+  onCancel: () => void;
+  saving: boolean;
+  isNew?: boolean;
+}) {
+  const canSave = form.code.trim().length >= 1 && (form.name.en?.trim() ?? '').length > 0 && form.domainCode.length > 0;
+
+  return (
+    <div className="rounded-xl border border-blue-200 bg-blue-50/30 p-5 dark:border-blue-800 dark:bg-blue-900/10">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
+        <button type="button" onClick={onCancel} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {isNew && (
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Code <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.code}
+              onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
+              placeholder="e.g. active-outbreaks"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 font-mono text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            />
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Domain <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={form.domainCode}
+            onChange={(e) => setForm((f) => ({ ...f, domainCode: e.target.value }))}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+          >
+            <option value="">Select domain...</option>
+            {domains.map((d: any) => (
+              <option key={d.code} value={d.code}>{d.name?.en ?? d.code}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Icon (Lucide)</label>
+          <input
+            type="text"
+            value={form.icon}
+            onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}
+            placeholder="e.g. Bug, Syringe, Fish"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+          />
+        </div>
+
+        <ColorPicker
+          label="Color"
+          value={form.color}
+          onChange={(c) => setForm((f) => ({ ...f, color: c }))}
+        />
+
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Unit</label>
+          <select
+            value={form.unit}
+            onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+          >
+            {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+          </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Format</label>
+          <select
+            value={form.format}
+            onChange={(e) => setForm((f) => ({ ...f, format: e.target.value }))}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+          >
+            {FORMATS.map((f) => <option key={f} value={f}>{f}</option>)}
+          </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Source Type</label>
+          <select
+            value={form.sourceType}
+            onChange={(e) => setForm((f) => ({ ...f, sourceType: e.target.value }))}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+          >
+            {SOURCE_TYPES.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+          </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Sort Order</label>
+          <input
+            type="number"
+            min={0}
+            value={form.sortOrder}
+            onChange={(e) => setForm((f) => ({ ...f, sortOrder: parseInt(e.target.value, 10) || 0 }))}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setForm((f) => ({ ...f, isActive: !f.isActive }))}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${form.isActive ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+          >
+            <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${form.isActive ? 'translate-x-5' : 'translate-x-0'}`} />
+          </button>
+          <span className="text-sm text-gray-700 dark:text-gray-300">{form.isActive ? 'Active' : 'Inactive'}</span>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <MultilingualInput
+          label="Name"
+          value={form.name}
+          onChange={(v) => setForm((f) => ({ ...f, name: v }))}
+          required
+          placeholder="Statistic name..."
+        />
+      </div>
+
+      <div className="mt-4 flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={saving || !canSave}
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+          {isNew ? 'Create' : 'Save'}
+        </button>
+      </div>
+    </div>
+  );
+}

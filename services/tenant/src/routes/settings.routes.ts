@@ -33,6 +33,15 @@ import {
   UserCreateBodySchema,
   UserUpdateBodySchema,
   UserPasswordBodySchema,
+  StatisticDefinitionBodySchema,
+  StatisticDefinitionUpdateBodySchema,
+  StatisticDefinitionQuerySchema,
+  CountryStatisticsBulkBodySchema,
+  KpiDefinitionBodySchema,
+  KpiDefinitionUpdateBodySchema,
+  KpiDefinitionQuerySchema,
+  CountryKpiScoresBulkBodySchema,
+  CountryKpiScoresQuerySchema,
   type RecCodeParamInput,
   type RecBodyInput,
   type RecSortBodyInput,
@@ -63,6 +72,15 @@ import {
   type UserCreateBodyInput,
   type UserUpdateBodyInput,
   type UserPasswordBodyInput,
+  type StatisticDefinitionBodyInput,
+  type StatisticDefinitionUpdateBodyInput,
+  type StatisticDefinitionQueryInput,
+  type CountryStatisticsBulkBodyInput,
+  type KpiDefinitionBodyInput,
+  type KpiDefinitionUpdateBodyInput,
+  type KpiDefinitionQueryInput,
+  type CountryKpiScoresBulkBodyInput,
+  type CountryKpiScoresQueryInput,
 } from '../schemas/settings.schemas.js';
 
 export async function registerSettingsRoutes(app: FastifyInstance): Promise<void> {
@@ -486,5 +504,125 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.settingsService.deleteUser(request.params.id, user);
+  });
+
+  // ───────────────────── Statistic Definitions ─────────────────────
+
+  // GET /api/v1/settings/statistic-definitions — list all
+  app.get<{ Querystring: StatisticDefinitionQueryInput }>('/api/v1/settings/statistic-definitions', {
+    schema: { querystring: StatisticDefinitionQuerySchema },
+    preHandler: authAndTenant,
+  }, async (request) => {
+    return app.settingsService.listStatisticDefinitions(request.query);
+  });
+
+  // POST /api/v1/settings/statistic-definitions — create (SUPER_ADMIN, CONTINENTAL_ADMIN)
+  app.post<{ Body: StatisticDefinitionBodyInput }>('/api/v1/settings/statistic-definitions', {
+    schema: { body: StatisticDefinitionBodySchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+  }, async (request, reply) => {
+    const user = request.user as AuthenticatedUser;
+    const result = await app.settingsService.createStatisticDefinition(request.body as Record<string, unknown>, user);
+    return reply.code(201).send(result);
+  });
+
+  // PUT /api/v1/settings/statistic-definitions/:id — update
+  app.put<{ Params: UuidParamInput; Body: StatisticDefinitionUpdateBodyInput }>('/api/v1/settings/statistic-definitions/:id', {
+    schema: { params: UuidParamSchema, body: StatisticDefinitionUpdateBodySchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.settingsService.updateStatisticDefinition(request.params.id, request.body as Record<string, unknown>, user);
+  });
+
+  // DELETE /api/v1/settings/statistic-definitions/:id — delete
+  app.delete<{ Params: UuidParamInput }>('/api/v1/settings/statistic-definitions/:id', {
+    schema: { params: UuidParamSchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.settingsService.deleteStatisticDefinition(request.params.id, user);
+  });
+
+  // ───────────────────── Country Statistics ─────────────────────
+
+  // GET /api/v1/settings/countries/:id/statistics — list country's stat configs
+  app.get<{ Params: UuidParamInput }>('/api/v1/settings/countries/:id/statistics', {
+    schema: { params: UuidParamSchema },
+    preHandler: authAndTenant,
+  }, async (request) => {
+    return app.settingsService.getCountryStatistics(request.params.id);
+  });
+
+  // PUT /api/v1/settings/countries/:id/statistics — bulk upsert
+  app.put<{ Params: UuidParamInput; Body: CountryStatisticsBulkBodyInput }>('/api/v1/settings/countries/:id/statistics', {
+    schema: { params: UuidParamSchema, body: CountryStatisticsBulkBodySchema },
+    preHandler: [
+      ...authAndTenant,
+      rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN),
+    ],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.settingsService.upsertCountryStatistics(request.params.id, request.body.statistics, user);
+  });
+
+  // ───────────────────── KPI Definitions ─────────────────────
+
+  // GET /api/v1/settings/kpi-definitions — list all
+  app.get<{ Querystring: KpiDefinitionQueryInput }>('/api/v1/settings/kpi-definitions', {
+    schema: { querystring: KpiDefinitionQuerySchema },
+    preHandler: authAndTenant,
+  }, async (request) => {
+    return app.settingsService.listKpiDefinitions(request.query);
+  });
+
+  // POST /api/v1/settings/kpi-definitions — create (SUPER_ADMIN, CONTINENTAL_ADMIN)
+  app.post<{ Body: KpiDefinitionBodyInput }>('/api/v1/settings/kpi-definitions', {
+    schema: { body: KpiDefinitionBodySchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+  }, async (request, reply) => {
+    const user = request.user as AuthenticatedUser;
+    const result = await app.settingsService.createKpiDefinition(request.body as Record<string, unknown>, user);
+    return reply.code(201).send(result);
+  });
+
+  // PUT /api/v1/settings/kpi-definitions/:id — update
+  app.put<{ Params: UuidParamInput; Body: KpiDefinitionUpdateBodyInput }>('/api/v1/settings/kpi-definitions/:id', {
+    schema: { params: UuidParamSchema, body: KpiDefinitionUpdateBodySchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.settingsService.updateKpiDefinition(request.params.id, request.body as Record<string, unknown>, user);
+  });
+
+  // DELETE /api/v1/settings/kpi-definitions/:id — delete (not presets)
+  app.delete<{ Params: UuidParamInput }>('/api/v1/settings/kpi-definitions/:id', {
+    schema: { params: UuidParamSchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.settingsService.deleteKpiDefinition(request.params.id, user);
+  });
+
+  // ───────────────────── Country KPI Scores ─────────────────────
+
+  // GET /api/v1/settings/countries/:id/kpi-scores — list scores (year filter)
+  app.get<{ Params: UuidParamInput; Querystring: CountryKpiScoresQueryInput }>('/api/v1/settings/countries/:id/kpi-scores', {
+    schema: { params: UuidParamSchema, querystring: CountryKpiScoresQuerySchema },
+    preHandler: authAndTenant,
+  }, async (request) => {
+    return app.settingsService.getCountryKpiScores(request.params.id, request.query.year);
+  });
+
+  // PUT /api/v1/settings/countries/:id/kpi-scores — bulk upsert scores
+  app.put<{ Params: UuidParamInput; Body: CountryKpiScoresBulkBodyInput }>('/api/v1/settings/countries/:id/kpi-scores', {
+    schema: { params: UuidParamSchema, body: CountryKpiScoresBulkBodySchema },
+    preHandler: [
+      ...authAndTenant,
+      rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN),
+    ],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.settingsService.upsertCountryKpiScores(request.params.id, request.body.scores, user);
   });
 }

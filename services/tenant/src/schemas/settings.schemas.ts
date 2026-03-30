@@ -302,6 +302,128 @@ export const UserPasswordBodySchema = Type.Object({
 });
 export type UserPasswordBodyInput = Static<typeof UserPasswordBodySchema>;
 
+// ---------- Statistic Definitions ----------
+
+export const StatisticDefinitionBodySchema = Type.Object({
+  code: Type.String({ minLength: 1, maxLength: 50 }),
+  name: Type.Record(Type.String(), Type.String()),
+  description: Type.Optional(Type.Union([Type.Record(Type.String(), Type.String()), Type.Null()])),
+  domainCode: Type.String({ minLength: 1, maxLength: 30 }),
+  icon: Type.Optional(Type.Union([Type.String({ maxLength: 50 }), Type.Null()])),
+  color: Type.Optional(Type.Union([Type.String({ maxLength: 20 }), Type.Null()])),
+  unit: Type.Optional(Type.String({ maxLength: 20 })),
+  format: Type.Optional(Type.String({ maxLength: 20 })),
+  sourceType: Type.String({ maxLength: 20 }),
+  sourceConfig: Type.Optional(Type.Union([Type.Record(Type.String(), Type.Unknown()), Type.Null()])),
+  isActive: Type.Optional(Type.Boolean()),
+  sortOrder: Type.Optional(Type.Integer({ minimum: 0 })),
+});
+export type StatisticDefinitionBodyInput = Static<typeof StatisticDefinitionBodySchema>;
+
+export const StatisticDefinitionUpdateBodySchema = Type.Object({
+  name: Type.Optional(Type.Record(Type.String(), Type.String())),
+  description: Type.Optional(Type.Union([Type.Record(Type.String(), Type.String()), Type.Null()])),
+  domainCode: Type.Optional(Type.String({ minLength: 1, maxLength: 30 })),
+  icon: Type.Optional(Type.Union([Type.String({ maxLength: 50 }), Type.Null()])),
+  color: Type.Optional(Type.Union([Type.String({ maxLength: 20 }), Type.Null()])),
+  unit: Type.Optional(Type.String({ maxLength: 20 })),
+  format: Type.Optional(Type.String({ maxLength: 20 })),
+  sourceType: Type.Optional(Type.String({ maxLength: 20 })),
+  sourceConfig: Type.Optional(Type.Union([Type.Record(Type.String(), Type.Unknown()), Type.Null()])),
+  isActive: Type.Optional(Type.Boolean()),
+  sortOrder: Type.Optional(Type.Integer({ minimum: 0 })),
+});
+export type StatisticDefinitionUpdateBodyInput = Static<typeof StatisticDefinitionUpdateBodySchema>;
+
+export const StatisticDefinitionQuerySchema = Type.Object({
+  domainCode: Type.Optional(Type.String()),
+  status: Type.Optional(Type.String()),
+});
+export type StatisticDefinitionQueryInput = Static<typeof StatisticDefinitionQuerySchema>;
+
+// ---------- Country Statistics ----------
+
+export const CountryStatisticItemSchema = Type.Object({
+  statisticId: Type.String({ format: 'uuid' }),
+  isVisible: Type.Optional(Type.Boolean()),
+  displayPeriod: Type.Optional(Type.String({ maxLength: 30 })),
+  periodStart: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  periodEnd: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  overrideValue: Type.Optional(Type.Union([Type.Number(), Type.Null()])),
+  sortOrder: Type.Optional(Type.Integer({ minimum: 0 })),
+});
+export type CountryStatisticItemInput = Static<typeof CountryStatisticItemSchema>;
+
+export const CountryStatisticsBulkBodySchema = Type.Object({
+  statistics: Type.Array(CountryStatisticItemSchema),
+});
+export type CountryStatisticsBulkBodyInput = Static<typeof CountryStatisticsBulkBodySchema>;
+
+// ---------- KPI Definitions ----------
+
+export const KpiDefinitionBodySchema = Type.Object({
+  code: Type.String({ minLength: 1, maxLength: 50 }),
+  name: Type.Record(Type.String(), Type.String()),
+  description: Type.Optional(Type.Union([Type.Record(Type.String(), Type.String()), Type.Null()])),
+  domainCode: Type.Optional(Type.Union([Type.String({ maxLength: 30 }), Type.Null()])),
+  icon: Type.Optional(Type.Union([Type.String({ maxLength: 50 }), Type.Null()])),
+  color: Type.Optional(Type.Union([Type.String({ maxLength: 20 }), Type.Null()])),
+  unit: Type.Optional(Type.String({ maxLength: 20 })),
+  targetValue: Type.Optional(Type.Number()),
+  thresholdGood: Type.Optional(Type.Integer({ minimum: 0, maximum: 100 })),
+  thresholdWarn: Type.Optional(Type.Integer({ minimum: 0, maximum: 100 })),
+  scope: Type.Optional(Type.String({ maxLength: 20 })),
+  isPreset: Type.Optional(Type.Boolean()),
+  isActive: Type.Optional(Type.Boolean()),
+  sortOrder: Type.Optional(Type.Integer({ minimum: 0 })),
+});
+export type KpiDefinitionBodyInput = Static<typeof KpiDefinitionBodySchema>;
+
+export const KpiDefinitionUpdateBodySchema = Type.Object({
+  name: Type.Optional(Type.Record(Type.String(), Type.String())),
+  description: Type.Optional(Type.Union([Type.Record(Type.String(), Type.String()), Type.Null()])),
+  domainCode: Type.Optional(Type.Union([Type.String({ maxLength: 30 }), Type.Null()])),
+  icon: Type.Optional(Type.Union([Type.String({ maxLength: 50 }), Type.Null()])),
+  color: Type.Optional(Type.Union([Type.String({ maxLength: 20 }), Type.Null()])),
+  unit: Type.Optional(Type.String({ maxLength: 20 })),
+  targetValue: Type.Optional(Type.Number()),
+  thresholdGood: Type.Optional(Type.Integer({ minimum: 0, maximum: 100 })),
+  thresholdWarn: Type.Optional(Type.Integer({ minimum: 0, maximum: 100 })),
+  scope: Type.Optional(Type.String({ maxLength: 20 })),
+  isActive: Type.Optional(Type.Boolean()),
+  sortOrder: Type.Optional(Type.Integer({ minimum: 0 })),
+});
+export type KpiDefinitionUpdateBodyInput = Static<typeof KpiDefinitionUpdateBodySchema>;
+
+export const KpiDefinitionQuerySchema = Type.Object({
+  domainCode: Type.Optional(Type.String()),
+  status: Type.Optional(Type.String()),
+  scope: Type.Optional(Type.String()),
+});
+export type KpiDefinitionQueryInput = Static<typeof KpiDefinitionQuerySchema>;
+
+// ---------- Country KPI Scores ----------
+
+export const CountryKpiScoreItemSchema = Type.Object({
+  kpiId: Type.String({ format: 'uuid' }),
+  score: Type.Number({ minimum: 0, maximum: 100 }),
+  year: Type.Integer({ minimum: 2000, maximum: 2100 }),
+  quarter: Type.Optional(Type.Union([Type.Integer({ minimum: 1, maximum: 4 }), Type.Null()])),
+  source: Type.Optional(Type.String({ maxLength: 20 })),
+  notes: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+});
+export type CountryKpiScoreItemInput = Static<typeof CountryKpiScoreItemSchema>;
+
+export const CountryKpiScoresBulkBodySchema = Type.Object({
+  scores: Type.Array(CountryKpiScoreItemSchema),
+});
+export type CountryKpiScoresBulkBodyInput = Static<typeof CountryKpiScoresBulkBodySchema>;
+
+export const CountryKpiScoresQuerySchema = Type.Object({
+  year: Type.Optional(Type.Integer({ minimum: 2000, maximum: 2100 })),
+});
+export type CountryKpiScoresQueryInput = Static<typeof CountryKpiScoresQuerySchema>;
+
 // ---------- Search Query ----------
 
 export const SearchQuerySchema = Type.Object({

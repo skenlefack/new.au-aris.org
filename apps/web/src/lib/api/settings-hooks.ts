@@ -757,6 +757,138 @@ export function useRemoveUserFunction() {
   });
 }
 
+// ── Statistic Definitions ──
+
+export function useStatisticDefinitions(params?: { domainCode?: string; status?: string }) {
+  const qs = new URLSearchParams();
+  if (params?.domainCode) qs.set('domainCode', params.domainCode);
+  if (params?.status) qs.set('status', params.status);
+  const query = qs.toString() ? `?${qs.toString()}` : '';
+
+  return useQuery({
+    queryKey: ['settings', 'statistic-definitions', params],
+    queryFn: () => tenantFetch(`/api/v1/settings/statistic-definitions${query}`),
+    staleTime: 10 * 60_000,
+  });
+}
+
+export function useCreateStatisticDefinition() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      tenantPost('/api/v1/settings/statistic-definitions', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'statistic-definitions'] }),
+  });
+}
+
+export function useUpdateStatisticDefinition() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string } & Record<string, unknown>) =>
+      tenantPut(`/api/v1/settings/statistic-definitions/${id}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'statistic-definitions'] }),
+  });
+}
+
+export function useDeleteStatisticDefinition() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      tenantDelete(`/api/v1/settings/statistic-definitions/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'statistic-definitions'] }),
+  });
+}
+
+// ── Country Statistics ──
+
+export function useCountryStatistics(countryId: string) {
+  return useQuery({
+    queryKey: ['settings', 'country-statistics', countryId],
+    queryFn: () => tenantFetch(`/api/v1/settings/countries/${countryId}/statistics`),
+    enabled: !!countryId,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useUpsertCountryStatistics() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ countryId, statistics }: { countryId: string; statistics: any[] }) =>
+      tenantPut(`/api/v1/settings/countries/${countryId}/statistics`, { statistics }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['settings', 'country-statistics', vars.countryId] });
+      qc.invalidateQueries({ queryKey: ['settings', 'countries'] });
+    },
+  });
+}
+
+// ── KPI Definitions ──
+
+export function useKpiDefinitions(params?: { domainCode?: string; status?: string; scope?: string }) {
+  const qs = new URLSearchParams();
+  if (params?.domainCode) qs.set('domainCode', params.domainCode);
+  if (params?.status) qs.set('status', params.status);
+  if (params?.scope) qs.set('scope', params.scope);
+  const query = qs.toString() ? `?${qs.toString()}` : '';
+
+  return useQuery({
+    queryKey: ['settings', 'kpi-definitions', params],
+    queryFn: () => tenantFetch(`/api/v1/settings/kpi-definitions${query}`),
+    staleTime: 10 * 60_000,
+  });
+}
+
+export function useCreateKpiDefinition() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      tenantPost('/api/v1/settings/kpi-definitions', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'kpi-definitions'] }),
+  });
+}
+
+export function useUpdateKpiDefinition() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string } & Record<string, unknown>) =>
+      tenantPut(`/api/v1/settings/kpi-definitions/${id}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'kpi-definitions'] }),
+  });
+}
+
+export function useDeleteKpiDefinition() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      tenantDelete(`/api/v1/settings/kpi-definitions/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'kpi-definitions'] }),
+  });
+}
+
+// ── Country KPI Scores ──
+
+export function useCountryKpiScores(countryId: string, year?: number) {
+  const qs = year ? `?year=${year}` : '';
+  return useQuery({
+    queryKey: ['settings', 'country-kpi-scores', countryId, year],
+    queryFn: () => tenantFetch(`/api/v1/settings/countries/${countryId}/kpi-scores${qs}`),
+    enabled: !!countryId,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useUpsertCountryKpiScores() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ countryId, scores }: { countryId: string; scores: any[] }) =>
+      tenantPut(`/api/v1/settings/countries/${countryId}/kpi-scores`, { scores }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['settings', 'country-kpi-scores', vars.countryId] });
+      qc.invalidateQueries({ queryKey: ['settings', 'countries'] });
+    },
+  });
+}
+
 // ── User-Domain Assignment ──
 
 export function useUserDomains(userId: string) {
