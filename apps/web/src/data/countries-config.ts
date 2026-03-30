@@ -83,6 +83,74 @@ export const COUNTRIES: Record<string, CountryConfig> = {
   EH: { code: 'EH', name: 'Sahrawi Republic', nameFr: 'R\u00e9publique sahraouie', capital: 'Laayoune', flag: '\ud83c\uddea\ud83c\udded', population: 0.6, languages: ['Arabic', 'Spanish'], timezone: 'Africa/El_Aaiun', recs: [] },
 };
 
+/**
+ * Ministry / Department in charge of Animal Resources per country.
+ * Used on the public country page under the country name.
+ */
+export const MINISTRIES: Record<string, string> = {
+  // North Africa
+  DZ: 'Ministry of Agriculture, Rural Development and Fisheries',
+  LY: 'Ministry of Agriculture, Livestock and Marine Resources',
+  MR: 'Ministry of Livestock',
+  MA: 'Ministry of Agriculture, Maritime Fisheries, Rural Development, Waters and Forests',
+  TN: 'Ministry of Agriculture, Water Resources and Fisheries',
+  // West Africa
+  BJ: 'Ministry of Agriculture, Livestock and Fisheries',
+  BF: 'Ministry of Animal and Fisheries Resources',
+  CV: 'Ministry of Agriculture and Environment',
+  CI: 'Ministry of Animal and Fisheries Resources',
+  GM: 'Ministry of Agriculture',
+  GH: 'Ministry of Food and Agriculture',
+  GN: 'Ministry of Livestock',
+  GW: 'Ministry of Agriculture and Rural Development',
+  LR: 'Ministry of Agriculture',
+  ML: 'Ministry of Livestock and Fisheries',
+  NE: 'Ministry of Livestock',
+  NG: 'Federal Ministry of Agriculture and Food Security',
+  SN: 'Ministry of Livestock and Animal Productions',
+  SL: 'Ministry of Agriculture, Forestry and Food Security',
+  TG: 'Ministry of Agriculture, Livestock and Rural Development',
+  // Central Africa
+  AO: 'Ministry of Agriculture and Fisheries',
+  BI: 'Ministry of Environment, Agriculture and Livestock',
+  CM: 'Ministry of Livestock, Fisheries and Animal Industries',
+  CF: 'Ministry of Agriculture and Rural Development',
+  TD: 'Ministry of Livestock and Animal Production',
+  CG: 'Ministry of Agriculture, Livestock and Fisheries',
+  CD: 'Ministry of Agriculture',
+  GQ: 'Ministry of Agriculture, Livestock, Forests and Environment',
+  GA: 'Ministry of Agriculture, Livestock and Rural Development',
+  RW: 'Ministry of Agriculture and Animal Resources',
+  ST: 'Ministry of Agriculture and Rural Development',
+  // East Africa
+  DJ: 'Ministry of Agriculture, Water, Fisheries and Livestock',
+  ER: 'Ministry of Agriculture',
+  ET: 'Ministry of Agriculture',
+  KE: 'Ministry of Agriculture, Livestock, Fisheries and Cooperatives',
+  SO: 'Ministry of Livestock, Forestry and Range',
+  SS: 'Ministry of Livestock and Fisheries',
+  SD: 'Ministry of Animal Resources',
+  UG: 'Ministry of Agriculture, Animal Industry and Fisheries',
+  TZ: 'Ministry of Livestock and Fisheries',
+  // Southern Africa
+  BW: 'Ministry of Agriculture',
+  KM: 'Ministry of Agriculture, Fisheries and Environment',
+  SZ: 'Ministry of Agriculture',
+  LS: 'Ministry of Agriculture and Food Security',
+  MG: 'Ministry of Agriculture and Livestock',
+  MW: 'Ministry of Agriculture',
+  MU: 'Ministry of Agro-Industry and Food Security',
+  MZ: 'Ministry of Agriculture',
+  NA: 'Ministry of Agriculture, Water and Land Reform',
+  SC: 'Ministry of Agriculture, Climate Change and Environment',
+  ZA: 'Department of Agriculture, Land Reform and Rural Development',
+  ZM: 'Ministry of Fisheries and Livestock',
+  ZW: 'Ministry of Lands, Agriculture, Fisheries, Water and Rural Development',
+  // Other
+  EG: 'Ministry of Agriculture and Land Reclamation',
+  EH: 'Ministry of Agriculture',
+};
+
 /** Get countries for a given REC code */
 export function getCountriesByRec(recCode: string): CountryConfig[] {
   return Object.values(COUNTRIES)

@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import {
   MapPin,
   Clock,
-  Languages,
   Users,
   CheckCircle2,
   XCircle,
@@ -12,7 +11,7 @@ import {
 } from 'lucide-react';
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { LoginPanel } from '@/components/landing/LoginPanel';
-import { getCountry, type CountryConfig } from '@/data/countries-config';
+import { getCountry, MINISTRIES, type CountryConfig } from '@/data/countries-config';
 import { getRecsForCountry, type RecConfig } from '@/data/recs-config';
 import { getHighlights, getGauges, type TrendDir, type StatusLevel } from '@/data/country-domain-stats';
 import { getPublicCountryByCode } from '@/lib/api/public-data';
@@ -109,16 +108,15 @@ export default async function CountryPage({ params }: Props) {
                 <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl lg:text-4xl">
                   {country.name}
                 </h1>
-                <p className="text-sm text-white/70">{country.nameFr}</p>
+                <p className="text-sm text-white/70">{MINISTRIES[country.code] ?? country.nameFr}</p>
               </div>
             </div>
 
             {/* Right: Quick stats */}
-            <div className="grid grid-cols-4 gap-2 lg:gap-3">
+            <div className="grid grid-cols-3 gap-2 lg:gap-3">
               <InfoBox icon={MapPin} label="Capital" value={country.capital} />
               <InfoBox icon={Users} label="Population" value={`${country.population >= 1 ? `${country.population}M` : `${Math.round(country.population * 1000)}K`}`} />
-              <InfoBox icon={Clock} label="Timezone" value={country.timezone.split('/').pop()?.replace('_', ' ') ?? country.timezone} />
-              <InfoBox icon={Languages} label="Languages" value={country.languages.slice(0, 2).join(', ')} />
+              <InfoBox icon={Clock} label="Timezone" value={formatTimezone(country.timezone)} />
             </div>
           </div>
         </div>
@@ -314,4 +312,16 @@ function StatusDot({ status, label }: { status: StatusLevel; label: string }) {
       <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">{label}</span>
     </span>
   );
+}
+
+/** Format IANA timezone to "City (GMT+X)" */
+function formatTimezone(tz: string): string {
+  const city = tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;
+  try {
+    const parts = new Intl.DateTimeFormat('en', { timeZone: tz, timeZoneName: 'shortOffset' }).formatToParts(new Date());
+    const offset = parts.find((p) => p.type === 'timeZoneName')?.value ?? '';
+    return `${city} (${offset})`;
+  } catch {
+    return city;
+  }
 }
