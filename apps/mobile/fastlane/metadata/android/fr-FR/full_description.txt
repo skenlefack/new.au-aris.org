@@ -1,0 +1,24 @@
+ARIS (Systeme d'Information sur les Ressources Animales) est l'application mobile officielle du Bureau Interafricain des Ressources Animales de l'Union Africaine (UA-BIRA).
+
+ARIS permet aux agents de terrain, veterinaires et administrateurs nationaux de 55 Etats membres africains de :
+
+- Collecter et soumettre des donnees de surveillance de sante animale, meme hors ligne
+- Surveiller les foyers de maladies avec des alertes en temps reel
+- Suivre les campagnes de vaccination et activites de terrain
+- Acceder aux tableaux de bord continentaux avec des indicateurs sur 9 domaines
+- Naviguer sur des cartes hors ligne avec suivi GPS
+- Soumettre des donnees via des formulaires personnalisables
+- Synchroniser automatiquement les donnees lorsque la connectivite est retablie
+
+Couvrant 9 domaines :
+1. Sante animale et One Health
+2. Production animale et pastoralisme
+3. Peche et aquaculture
+4. Commerce, marches et SPS
+5. Faune sauvage et biodiversite
+6. Apiculture et pollinisation
+7. Climat et environnement
+8. Gouvernance et capacites
+9. Gestion des connaissances
+
+Developpe par UA-BIRA, Nairobi, Kenya.

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import org.auibar.aris.mobile.util.TokenManager
 import org.auibar.aris.mobile.ui.theme.DomainAnimalHealth
 import org.auibar.aris.mobile.ui.theme.DomainApiculture
 import org.auibar.aris.mobile.ui.theme.DomainClimate
@@ -40,3 +41,10 @@ val arisDomains = listOf(
     DomainInfo("climate",    "Climate",          Icons.Default.Thermostat,        DomainClimate),
     DomainInfo("knowledge",  "Knowledge",        Icons.Default.School,            DomainKnowledge),
 )
+
+/** Returns only server-active domains, falling back to the full list if unavailable. */
+fun getActiveDomains(tokenManager: TokenManager): List<DomainInfo> {
+    val activeCodes = tokenManager.getActiveDomainCodes()
+    if (activeCodes.isEmpty()) return arisDomains
+    return arisDomains.filter { it.key in activeCodes }
+}

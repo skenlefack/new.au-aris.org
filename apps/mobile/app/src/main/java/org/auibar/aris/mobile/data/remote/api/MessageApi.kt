@@ -29,6 +29,6 @@ class MessageApi @Inject constructor(
     }
 
     suspend fun markAllAsRead() {
-        client.post("/api/v1/messages/read-all")
+        client.post("/api/v1/messages/mark-all-read")
     }
 }

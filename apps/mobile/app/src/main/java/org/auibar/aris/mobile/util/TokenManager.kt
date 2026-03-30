@@ -79,6 +79,29 @@ class TokenManager @Inject constructor(
     fun getUserDomainList(): List<String> =
         userDomains?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
 
+    /** Comma-separated system-active domain codes from server (e.g. "health,livestock,fisheries") */
+    var activeDomains: String?
+        get() = prefs.getString(KEY_ACTIVE_DOMAINS, null)
+        set(value) = prefs.edit().putString(KEY_ACTIVE_DOMAINS, value).apply()
+
+    /** Returns system-active domain codes as a list */
+    fun getActiveDomainCodes(): List<String> =
+        activeDomains?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
+
+    /** Comma-separated active locale codes from server (e.g. "en,fr") */
+    var activeLocales: String?
+        get() = prefs.getString(KEY_ACTIVE_LOCALES, null)
+        set(value) = prefs.edit().putString(KEY_ACTIVE_LOCALES, value).apply()
+
+    /** Returns active locale codes as a list */
+    fun getActiveLocaleList(): List<String> =
+        activeLocales?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
+
+    /** Firebase Cloud Messaging device token */
+    var fcmToken: String?
+        get() = prefs.getString(KEY_FCM_TOKEN, null)
+        set(value) = prefs.edit().putString(KEY_FCM_TOKEN, value).apply()
+
     var language: String
         get() = prefs.getString(KEY_LANGUAGE, "en") ?: "en"
         set(value) = prefs.edit().putString(KEY_LANGUAGE, value).apply()
@@ -116,8 +139,11 @@ class TokenManager @Inject constructor(
         private const val KEY_USER_EMAIL = "user_email"
         private const val KEY_TENANT_LEVEL = "tenant_level"
         private const val KEY_USER_DOMAINS = "user_domains"
+        private const val KEY_ACTIVE_DOMAINS = "active_domains"
+        private const val KEY_ACTIVE_LOCALES = "active_locales"
         private const val KEY_LANGUAGE = "language"
         private const val KEY_SYNC_FREQUENCY = "sync_frequency_minutes"
+        private const val KEY_FCM_TOKEN = "fcm_token"
         private const val KEY_SERVER_ENV = "server_environment"
     }
 }

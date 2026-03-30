@@ -66,6 +66,7 @@ class FormFillViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val campaignId: String = savedStateHandle["campaignId"] ?: ""
+    private val overrideTemplateId: String? = savedStateHandle["templateId"]
     private val parser = FormSchemaParser()
     private val validator = FormValidator()
 
@@ -84,7 +85,8 @@ class FormFillViewModel @Inject constructor(
             try {
                 val campaign = campaignRepository.getById(campaignId)
                     ?: throw IllegalStateException("Campaign not found")
-                val template = formTemplateRepository.getById(campaign.templateId)
+                val templateId = overrideTemplateId ?: campaign.templateId
+                val template = formTemplateRepository.getById(templateId)
                     ?: throw IllegalStateException("Template not found")
 
                 val fields = parser.parse(template.schema, template.uiSchema)

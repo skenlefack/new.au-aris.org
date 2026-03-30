@@ -59,6 +59,7 @@ fun DomainDashboardScreen(
     onNewSubmission: () -> Unit,
     onReports: () -> Unit,
     onMap: () -> Unit,
+    onDomainForm: (String) -> Unit = {},
     viewModel: DomainDashboardViewModel = hiltViewModel(),
 ) {
     val campaigns by viewModel.campaigns.collectAsStateWithLifecycle()
@@ -183,6 +184,13 @@ fun DomainDashboardScreen(
                                         "campaigns" -> onNewSubmission()
                                         "reports" -> onReports()
                                         "map" -> onMap()
+                                        "outbreak_report", "surveillance_event",
+                                        "capture_record", "aquaculture_record",
+                                        "wildlife_observation", "hwc_report",
+                                        "apiary_record", "colony_health",
+                                        "trade_flow", "sps_certificate",
+                                        "legal_framework", "vet_capacity",
+                                        "water_stress", "rangeland" -> onDomainForm(link.action)
                                         else -> onNewSubmission()
                                     }
                                 },

@@ -54,8 +54,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
 import org.auibar.aris.mobile.R
+import org.auibar.aris.mobile.ui.components.LocalWindowType
 import org.auibar.aris.mobile.ui.components.RoleConfig
-import org.auibar.aris.mobile.ui.components.arisDomains
+import org.auibar.aris.mobile.ui.components.WindowType
 import org.auibar.aris.mobile.ui.theme.GradientDarkGreen
 import org.auibar.aris.mobile.ui.theme.GradientMidGreen
 import org.auibar.aris.mobile.ui.theme.GradientTeal
@@ -106,6 +107,7 @@ fun HomeDashboardScreen(
     }
 
     val userDomains = viewModel.userDomains
+    val activeDomains = viewModel.activeDomains
 
     LazyColumn(
         modifier = Modifier
@@ -114,11 +116,11 @@ fun HomeDashboardScreen(
         contentPadding = PaddingValues(bottom = 24.dp),
     ) {
         // ── Domain scope indicator (when user has limited domains) ──
-        if (userDomains.isNotEmpty() && userDomains.size < 9) {
+        if (userDomains.isNotEmpty() && userDomains.size < activeDomains.size) {
             item {
-                val domainLabels = remember(userDomains) {
+                val domainLabels = remember(userDomains, activeDomains) {
                     val mappedKeys = userDomains.map { RoleConfig.backendToMobileKey(it) }.toSet()
-                    arisDomains.filter { it.key in mappedKeys }.map { it.label }
+                    activeDomains.filter { it.key in mappedKeys }.map { it.label }
                 }
                 Row(
                     modifier = Modifier
@@ -146,38 +148,68 @@ fun HomeDashboardScreen(
             }
         }
 
-        // ── Row 1: Outbreaks by REC ────────────────────────────────
-        item {
-            WidgetCard(title = "OUTBREAKS BY REC") {
-                HorizontalBarChart(entries = outbreaksByRec)
+        // ── Chart widgets — paired side-by-side on tablets ─────────
+        if (LocalWindowType.current != WindowType.COMPACT) {
+            // Tablet: 2 charts per row
+            item {
+                Row(Modifier.fillMaxWidth()) {
+                    Box(Modifier.weight(1f)) {
+                        WidgetCard(title = "OUTBREAKS BY REC") {
+                            HorizontalBarChart(entries = outbreaksByRec)
+                        }
+                    }
+                    Box(Modifier.weight(1f)) {
+                        WidgetCard(title = "DISEASE DISTRIBUTION") {
+                            DonutChart(slices = diseaseDistribution)
+                        }
+                    }
+                }
             }
-        }
-
-        // ── Row 2: Disease Distribution (Donut) ────────────────────
-        item {
-            WidgetCard(title = "DISEASE DISTRIBUTION") {
-                DonutChart(slices = diseaseDistribution)
+            item {
+                Row(Modifier.fillMaxWidth()) {
+                    Box(Modifier.weight(1f)) {
+                        WidgetCard(title = "CASES BY DISEASE") {
+                            HorizontalBarChart(entries = casesByDisease)
+                        }
+                    }
+                    Box(Modifier.weight(1f)) {
+                        WidgetCard(title = "TOP COUNTRIES \u2014 CASES") {
+                            HorizontalBarChart(entries = topCountries)
+                        }
+                    }
+                }
             }
-        }
-
-        // ── Row 3: Cases by Disease ────────────────────────────────
-        item {
-            WidgetCard(title = "CASES BY DISEASE") {
-                HorizontalBarChart(entries = casesByDisease)
+            item {
+                WidgetCard(title = "MONTHLY TREND \u2014 OUTBREAKS & SUBMISSIONS") {
+                    LineChart(points = monthlyTrend)
+                }
             }
-        }
-
-        // ── Row 4: Monthly Trend ───────────────────────────────────
-        item {
-            WidgetCard(title = "MONTHLY TREND \u2014 OUTBREAKS & SUBMISSIONS") {
-                LineChart(points = monthlyTrend)
+        } else {
+            // Phone: single column
+            item {
+                WidgetCard(title = "OUTBREAKS BY REC") {
+                    HorizontalBarChart(entries = outbreaksByRec)
+                }
             }
-        }
-
-        // ── Row 5: Top Countries ───────────────────────────────────
-        item {
-            WidgetCard(title = "TOP COUNTRIES \u2014 CASES") {
-                HorizontalBarChart(entries = topCountries)
+            item {
+                WidgetCard(title = "DISEASE DISTRIBUTION") {
+                    DonutChart(slices = diseaseDistribution)
+                }
+            }
+            item {
+                WidgetCard(title = "CASES BY DISEASE") {
+                    HorizontalBarChart(entries = casesByDisease)
+                }
+            }
+            item {
+                WidgetCard(title = "MONTHLY TREND \u2014 OUTBREAKS & SUBMISSIONS") {
+                    LineChart(points = monthlyTrend)
+                }
+            }
+            item {
+                WidgetCard(title = "TOP COUNTRIES \u2014 CASES") {
+                    HorizontalBarChart(entries = topCountries)
+                }
             }
         }
 
@@ -617,7 +649,7 @@ private fun AfricaOutbreakMap() {
         },
         modifier = Modifier
             .fillMaxWidth()
-            .height(320.dp)
+            .height(if (LocalWindowType.current == WindowType.EXPANDED) 480.dp else 320.dp)
             .clip(RoundedCornerShape(8.dp)),
     )
 }

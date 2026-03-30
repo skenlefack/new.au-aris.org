@@ -13,6 +13,7 @@ import org.auibar.aris.mobile.data.local.entity.GeoEntity
 import org.auibar.aris.mobile.data.local.entity.SpeciesEntity
 import org.auibar.aris.mobile.BuildConfig
 import org.auibar.aris.mobile.data.remote.api.SyncApi
+import org.auibar.aris.mobile.ui.components.RoleConfig
 import org.auibar.aris.mobile.data.remote.dto.SubmissionDto
 import org.auibar.aris.mobile.data.remote.dto.SyncRequest
 import org.auibar.aris.mobile.util.TokenManager
@@ -84,7 +85,7 @@ class SyncRepository @Inject constructor(
                         id = dto.id,
                         tenantId = dto.tenantId,
                         name = dto.name,
-                        domain = dto.domain,
+                        domain = RoleConfig.backendToMobileKey(dto.domain),
                         templateId = dto.templateId,
                         startDate = dto.startDate,
                         endDate = dto.endDate,

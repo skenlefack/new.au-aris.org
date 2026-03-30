@@ -1,7 +1,11 @@
 package org.auibar.aris.mobile.data.repository
 
+import android.util.Log
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.tasks.await
 import org.auibar.aris.mobile.data.remote.api.AuthApi
 import org.auibar.aris.mobile.data.remote.websocket.WebSocketManager
+import org.auibar.aris.mobile.ui.components.RoleConfig
 import org.auibar.aris.mobile.util.TokenManager
 import javax.inject.Inject
 
@@ -27,6 +31,9 @@ class AuthRepository @Inject constructor(
                 return LoginResult.MfaRequired
             }
             saveSession(loginData)
+            fetchServerConfig()
+            registerFcmToken()
+            LoginResult.Success
         } catch (e: Exception) {
             LoginResult.Error(e.message ?: "Login failed")
         }
@@ -37,14 +44,17 @@ class AuthRepository @Inject constructor(
             val response = authApi.login(email, password, totpCode)
             val loginData = response.data
             saveSession(loginData)
+            fetchServerConfig()
+            registerFcmToken()
+            LoginResult.Success
         } catch (e: Exception) {
             LoginResult.Error(e.message ?: "Invalid verification code")
         }
     }
 
-    private fun saveSession(loginData: org.auibar.aris.mobile.data.remote.dto.LoginResponse): LoginResult {
+    private fun saveSession(loginData: org.auibar.aris.mobile.data.remote.dto.LoginResponse) {
         val user = loginData.user
-            ?: return LoginResult.Error("Login failed: no user data")
+            ?: throw Exception("Login failed: no user data")
         tokenManager.accessToken = loginData.accessToken
         tokenManager.refreshToken = loginData.refreshToken
         tokenManager.userId = user.id
@@ -56,7 +66,42 @@ class AuthRepository @Inject constructor(
         tokenManager.userDomains = user.domains
             .map { it.code }
             .joinToString(",")
-        return LoginResult.Success
+    }
+
+    /** Register FCM token with backend (best-effort). */
+    private suspend fun registerFcmToken() {
+        try {
+            val token = tokenManager.fcmToken
+                ?: FirebaseMessaging.getInstance().token.await()
+            tokenManager.fcmToken = token
+            authApi.registerFcmToken(token, tokenManager.deviceId)
+            Log.d("AuthRepository", "FCM token registered")
+        } catch (e: Exception) {
+            Log.w("AuthRepository", "FCM token registration failed: ${e.message}")
+        }
+    }
+
+    /** Fetch system-active domains and locales from server (best-effort). */
+    private suspend fun fetchServerConfig() {
+        try {
+            val domainsResponse = authApi.fetchActiveDomains()
+            val mobileCodes = domainsResponse.data
+                .filter { it.isActive }
+                .sortedBy { it.sortOrder }
+                .map { RoleConfig.backendToMobileKey(it.code) }
+            tokenManager.activeDomains = mobileCodes.joinToString(",")
+        } catch (e: Exception) {
+            Log.w("AuthRepository", "Failed to fetch active domains: ${e.message}")
+        }
+        try {
+            val i18nResponse = authApi.fetchI18nConfig()
+            val locales = i18nResponse.data.availableLocales
+            if (locales.isNotEmpty()) {
+                tokenManager.activeLocales = locales.joinToString(",")
+            }
+        } catch (e: Exception) {
+            Log.w("AuthRepository", "Failed to fetch i18n config: ${e.message}")
+        }
     }
 
     fun logout() {

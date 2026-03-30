@@ -55,6 +55,18 @@
 -keep class androidx.camera.** { *; }
 -dontwarn androidx.camera.**
 
+# ── Firebase / FCM ──
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+-keep class com.google.android.gms.internal.firebase-messaging.** { *; }
+
+# ── OSMDroid (offline maps) ──
+-keep class org.osmdroid.** { *; }
+-dontwarn org.osmdroid.**
+
+# ── EncryptedSharedPreferences ──
+-keep class androidx.security.crypto.** { *; }
+
 # ── Enum safety (for Kotlin enum serialization) ──
 -keepclassmembers enum * {
     public static **[] values();

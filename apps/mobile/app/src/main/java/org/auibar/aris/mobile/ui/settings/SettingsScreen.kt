@@ -161,10 +161,15 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
-                    val visibleDomains = remember(uiState.userDomains) {
-                        arisDomains.filter { it.key in uiState.userDomains.map { code ->
+                    val visibleDomains = remember(uiState.userDomains, uiState.activeDomainCodes) {
+                        val activeCodes = uiState.activeDomainCodes.toSet()
+                        val mappedUserCodes = uiState.userDomains.map { code ->
                             RoleConfig.backendToMobileKey(code)
-                        }.toSet() }
+                        }.toSet()
+                        arisDomains.filter { domain ->
+                            domain.key in mappedUserCodes &&
+                                (activeCodes.isEmpty() || domain.key in activeCodes)
+                        }
                     }
                     visibleDomains.forEach { domain ->
                         Row(

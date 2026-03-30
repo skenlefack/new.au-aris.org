@@ -1,0 +1,36 @@
+ARIS (Animal Resources Information System) is the official mobile application of the African Union Inter-African Bureau for Animal Resources (AU-IBAR).
+
+ARIS enables field agents, veterinary officers, and national administrators across 55 African Member States to:
+
+- Collect and submit animal health surveillance data, even offline
+- Monitor disease outbreaks with real-time alerts and push notifications
+- Track vaccination campaigns and field activities
+- Access continental dashboards with KPIs across 9 domains
+- Navigate offline maps with GPS tracking for field operations
+- Submit data through customizable form templates
+- Synchronize data automatically when connectivity is restored
+
+Covering 9 business domains:
+1. Animal Health & One Health
+2. Livestock Production & Pastoralism
+3. Fisheries & Aquaculture
+4. Trade, Markets & SPS
+5. Wildlife & Biodiversity
+6. Apiculture & Pollination
+7. Climate & Environment
+8. Governance & Capacities
+9. Knowledge Management
+
+Key features:
+- Offline-first architecture with automatic sync
+- Multi-language support (English, French, Portuguese, Arabic)
+- Biometric authentication and PIN lock
+- GPS tracking for transhumance corridors and field activities
+- Photo capture with compression and metadata
+- Role-based access control (8 roles)
+- Multi-tenant support (Continental, REC, Member State levels)
+- Push notifications for outbreak alerts
+
+ARIS is part of the AU Digital Transformation Strategy 2020-2030, aligned with Agenda 2063 and the Livestock Development Strategy for Africa (LiDeSA).
+
+Developed by AU-IBAR, Nairobi, Kenya.

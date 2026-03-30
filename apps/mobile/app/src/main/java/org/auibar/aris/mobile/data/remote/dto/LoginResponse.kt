@@ -31,3 +31,22 @@ data class UserDto(
     val tenantLevel: String = "",
     val domains: List<DomainDto> = emptyList(),
 )
+
+/** Response from GET /api/v1/public/domains */
+@Serializable
+data class AppDomainDto(
+    val id: String = "",
+    val code: String,
+    val name: Map<String, String> = emptyMap(),
+    val icon: String = "",
+    val color: String = "",
+    val sortOrder: Int = 0,
+    val isActive: Boolean = true,
+)
+
+/** Response from GET /api/v1/public/i18n */
+@Serializable
+data class I18nConfigDto(
+    val availableLocales: List<String> = emptyList(),
+    val defaultLocale: String = "en",
+)

@@ -120,9 +120,9 @@ export function Footer() {
         <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-[#3E2100]/20 pt-6 text-xs text-[#5C3A00]/70 sm:flex-row">
           <p>{t('copyright', { year: new Date().getFullYear().toString() })}</p>
           <div className="flex gap-4">
-            <Link href="#" className="transition-colors hover:text-[#3E2100]">{t('privacyPolicy')}</Link>
-            <Link href="#" className="transition-colors hover:text-[#3E2100]">{t('termsOfService')}</Link>
-            <Link href="#" className="transition-colors hover:text-[#3E2100]">{t('accessibility')}</Link>
+            <Link href="/privacy-policy" className="transition-colors hover:text-[#3E2100]">{t('privacyPolicy')}</Link>
+            <Link href="/terms-of-service" className="transition-colors hover:text-[#3E2100]">{t('termsOfService')}</Link>
+            <Link href="/accessibility" className="transition-colors hover:text-[#3E2100]">{t('accessibility')}</Link>
           </div>
         </div>
       </div>

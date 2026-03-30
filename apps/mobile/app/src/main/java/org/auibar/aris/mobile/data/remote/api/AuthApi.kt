@@ -3,6 +3,7 @@ package org.auibar.aris.mobile.data.remote.api
 import android.util.Log
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -10,6 +11,8 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
 import org.auibar.aris.mobile.data.remote.dto.ApiResponse
+import org.auibar.aris.mobile.data.remote.dto.AppDomainDto
+import org.auibar.aris.mobile.data.remote.dto.I18nConfigDto
 import org.auibar.aris.mobile.data.remote.dto.LoginRequest
 import org.auibar.aris.mobile.data.remote.dto.LoginResponse
 import javax.inject.Inject
@@ -62,6 +65,34 @@ class AuthApi @Inject constructor(
         }
         return response.body()
     }
+
+    /** Register FCM device token with the backend for push notifications. */
+    suspend fun registerFcmToken(token: String, deviceId: String) {
+        try {
+            client.post("/api/v1/credential/devices/register") {
+                contentType(ContentType.Application.Json)
+                setBody(FcmTokenRequest(token = token, deviceId = deviceId, platform = "android"))
+            }
+        } catch (e: Exception) {
+            Log.w("AuthApi", "Failed to register FCM token: ${e.message}")
+        }
+    }
+
+    suspend fun fetchActiveDomains(): ApiResponse<List<AppDomainDto>> {
+        val response = client.get("/api/v1/public/domains")
+        if (response.status.value !in 200..299) {
+            throw Exception("Failed to fetch domains (HTTP ${response.status.value})")
+        }
+        return response.body()
+    }
+
+    suspend fun fetchI18nConfig(): ApiResponse<I18nConfigDto> {
+        val response = client.get("/api/v1/public/i18n")
+        if (response.status.value !in 200..299) {
+            throw Exception("Failed to fetch i18n config (HTTP ${response.status.value})")
+        }
+        return response.body()
+    }
 }
 
 @Serializable
@@ -74,4 +105,11 @@ data class ErrorResponse(
 @Serializable
 data class RefreshRequest(
     val refreshToken: String,
+)
+
+@Serializable
+data class FcmTokenRequest(
+    val token: String,
+    val deviceId: String,
+    val platform: String,
 )

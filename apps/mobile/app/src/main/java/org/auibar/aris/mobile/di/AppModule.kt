@@ -94,7 +94,8 @@ object AppModule {
         campaignRepository: CampaignRepository,
         submissionRepository: SubmissionRepository,
         cachePolicy: CachePolicy,
-    ): DashboardRepository = DashboardRepository(analyticsApi, campaignRepository, submissionRepository, cachePolicy)
+        tokenManager: TokenManager,
+    ): DashboardRepository = DashboardRepository(analyticsApi, campaignRepository, submissionRepository, cachePolicy, tokenManager)
 
     @Provides
     @Singleton

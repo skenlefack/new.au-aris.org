@@ -26,7 +26,8 @@ fun DomainGrid(
     domains: List<DomainInfo> = arisDomains,
     onDomainClick: (DomainInfo) -> Unit = {},
 ) {
-    val rows = domains.chunked(3)
+    val columns = gridColumns(LocalWindowType.current)
+    val rows = domains.chunked(columns)
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -43,8 +44,8 @@ fun DomainGrid(
                         modifier = Modifier.weight(1f),
                     )
                 }
-                // Fill remaining slots if row has fewer than 3
-                repeat(3 - rowDomains.size) {
+                // Fill remaining slots if row has fewer than `columns`
+                repeat(columns - rowDomains.size) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }

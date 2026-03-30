@@ -15,6 +15,8 @@ import org.auibar.aris.mobile.data.remote.dto.KpiCard
 import org.auibar.aris.mobile.data.repository.Campaign
 import org.auibar.aris.mobile.data.repository.AuthRepository
 import org.auibar.aris.mobile.data.repository.DashboardRepository
+import org.auibar.aris.mobile.ui.components.DomainInfo
+import org.auibar.aris.mobile.ui.components.getActiveDomains
 import org.auibar.aris.mobile.util.TokenManager
 import javax.inject.Inject
 
@@ -27,6 +29,7 @@ data class DashboardUiState(
     val userRole: String? = null,
     val tenantLevel: String? = null,
     val userDomains: List<String> = emptyList(),
+    val activeDomains: List<DomainInfo> = emptyList(),
 )
 
 @HiltViewModel
@@ -45,6 +48,7 @@ class DashboardViewModel @Inject constructor(
             userRole = tokenManager.userRole,
             tenantLevel = tokenManager.tenantLevel,
             userDomains = tokenManager.getUserDomainList(),
+            activeDomains = getActiveDomains(tokenManager),
         )
     )
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()

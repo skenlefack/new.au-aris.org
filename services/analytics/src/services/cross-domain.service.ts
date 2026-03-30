@@ -12,6 +12,8 @@ import type {
   WildlifeCrimeTrends,
   ClimateAlert,
   PvsScoreEntry,
+  ContinentalKpiResponse,
+  KpiCard,
 } from '../dto/cross-domain.dto';
 
 // ── Risk score weights ──
@@ -554,6 +556,285 @@ export class CrossDomainService {
       }
     }
     return results;
+  }
+
+  // ── Continental KPIs (aggregated across all domains & countries) ──
+
+  async getContinentalKpis(): Promise<ContinentalKpiResponse> {
+    const countries = await this.discoverCountries();
+    const countriesReporting = countries.length;
+
+    // Health: aggregate outbreaks, cases, deaths across all countries
+    let totalActiveOutbreaks = 0;
+    let totalCases = 0;
+    let totalDeaths = 0;
+    for (const cc of countries) {
+      const healthKeys = await this.redis.scanKeys(`analytics:health:${cc}:*`);
+      for (const key of healthKeys) {
+        if (key.includes(':trend:')) continue;
+        const data = await this.redis.hGetAll(key);
+        totalActiveOutbreaks += parseInt(data['active'] ?? '0', 10);
+        totalCases += parseInt(data['cases'] ?? '0', 10);
+        totalDeaths += parseInt(data['deaths'] ?? '0', 10);
+      }
+    }
+
+    // Vaccination coverage (average across all countries/diseases)
+    let totalCoverage = 0;
+    let vaccCount = 0;
+    for (const cc of countries) {
+      const vaccKeys = await this.redis.scanKeys(`analytics:vaccination:${cc}:*`);
+      for (const key of vaccKeys) {
+        const data = await this.redis.hGetAll(key);
+        const cov = parseFloat(data['coverage'] ?? '0');
+        if (cov > 0) {
+          totalCoverage += cov;
+          vaccCount++;
+        }
+      }
+    }
+    const avgVaccinationCoverage = vaccCount > 0 ? Math.round(totalCoverage / vaccCount * 10) / 10 : 0;
+
+    // Livestock: total population
+    let totalLivestockPop = 0;
+    for (const cc of countries) {
+      const data = await this.redis.hGetAll(DOMAIN_REDIS_KEYS.livestock(cc));
+      totalLivestockPop += parseInt(data['totalPopulation'] ?? '0', 10);
+    }
+
+    // Fisheries: total catches
+    let totalCatchesKg = 0;
+    for (const cc of countries) {
+      const data = await this.redis.hGetAll(DOMAIN_REDIS_KEYS.fisheries(cc));
+      totalCatchesKg += parseFloat(data['totalCatchesKg'] ?? '0');
+    }
+
+    // Trade: total exports
+    let totalExports = 0;
+    for (const cc of countries) {
+      const data = await this.redis.hGetAll(DOMAIN_REDIS_KEYS.trade(cc));
+      totalExports += parseFloat(data['exports'] ?? '0');
+    }
+
+    // Wildlife crimes
+    let totalWildlifeCrimes = 0;
+    for (const cc of countries) {
+      const data = await this.redis.hGetAll(DOMAIN_REDIS_KEYS.wildlife(cc));
+      totalWildlifeCrimes += parseInt(data['totalCrimes'] ?? '0', 10);
+    }
+
+    // Climate hotspots
+    let totalHotspots = 0;
+    for (const cc of countries) {
+      const data = await this.redis.hGetAll(DOMAIN_REDIS_KEYS.climate(cc));
+      totalHotspots += parseInt(data['activeHotspots'] ?? '0', 10);
+    }
+
+    // Quality pass rate
+    const qualityData = await this.redis.hGetAll(REDIS_KEYS.qualityGlobal);
+    const qualityPassRate = parseFloat(qualityData['passRate'] ?? '0');
+
+    const kpis: KpiCard[] = [
+      {
+        key: 'countries_reporting',
+        label: 'Countries Reporting',
+        value: countriesReporting,
+        unit: '',
+        trend: 'stable',
+        trendPercent: 0,
+      },
+      {
+        key: 'active_outbreaks',
+        label: 'Active Outbreaks',
+        value: totalActiveOutbreaks,
+        unit: '',
+        trend: totalActiveOutbreaks > 10 ? 'up' : 'stable',
+        trendPercent: 0,
+      },
+      {
+        key: 'total_cases',
+        label: 'Total Cases',
+        value: totalCases,
+        unit: '',
+        trend: 'stable',
+        trendPercent: 0,
+      },
+      {
+        key: 'vaccination_coverage',
+        label: 'Avg Vaccination Coverage',
+        value: avgVaccinationCoverage,
+        unit: '%',
+        trend: avgVaccinationCoverage >= 70 ? 'up' : 'down',
+        trendPercent: 0,
+      },
+      {
+        key: 'livestock_population',
+        label: 'Livestock Population',
+        value: totalLivestockPop,
+        unit: 'heads',
+        trend: 'stable',
+        trendPercent: 0,
+      },
+      {
+        key: 'fisheries_catches',
+        label: 'Fisheries Catches',
+        value: Math.round(totalCatchesKg / 1000),
+        unit: 'tonnes',
+        trend: 'stable',
+        trendPercent: 0,
+      },
+      {
+        key: 'trade_exports',
+        label: 'Trade Exports',
+        value: totalExports,
+        unit: 'USD',
+        trend: 'stable',
+        trendPercent: 0,
+      },
+      {
+        key: 'wildlife_crimes',
+        label: 'Wildlife Crimes',
+        value: totalWildlifeCrimes,
+        unit: '',
+        trend: totalWildlifeCrimes > 0 ? 'up' : 'stable',
+        trendPercent: 0,
+      },
+      {
+        key: 'climate_hotspots',
+        label: 'Climate Hotspots',
+        value: totalHotspots,
+        unit: '',
+        trend: totalHotspots > 5 ? 'up' : 'stable',
+        trendPercent: 0,
+      },
+      {
+        key: 'quality_pass_rate',
+        label: 'Data Quality Pass Rate',
+        value: qualityPassRate,
+        unit: '%',
+        trend: qualityPassRate >= 80 ? 'up' : 'down',
+        trendPercent: 0,
+      },
+    ];
+
+    return {
+      kpis,
+      asOf: new Date().toISOString(),
+    };
+  }
+
+  // ── Domain-specific KPIs (generic endpoint) ──
+
+  async getDomainKpis(domainKey: string): Promise<ContinentalKpiResponse> {
+    const kpis: KpiCard[] = [];
+    const now = new Date().toISOString();
+
+    switch (domainKey) {
+      case 'health': {
+        const countries = await this.discoverCountriesForPrefix('analytics:health:');
+        let active = 0, cases = 0, deaths = 0;
+        for (const cc of countries) {
+          const keys = await this.redis.scanKeys(`analytics:health:${cc}:*`);
+          for (const key of keys) {
+            if (key.includes(':trend:')) continue;
+            const d = await this.redis.hGetAll(key);
+            active += parseInt(d['active'] ?? '0', 10);
+            cases += parseInt(d['cases'] ?? '0', 10);
+            deaths += parseInt(d['deaths'] ?? '0', 10);
+          }
+        }
+        kpis.push(
+          { key: 'active_outbreaks', label: 'Active Outbreaks', value: active, unit: '', trend: 'stable', trendPercent: 0 },
+          { key: 'total_cases', label: 'Total Cases', value: cases, unit: '', trend: 'stable', trendPercent: 0 },
+          { key: 'total_deaths', label: 'Total Deaths', value: deaths, unit: '', trend: 'stable', trendPercent: 0 },
+        );
+        break;
+      }
+      case 'livestock': {
+        const countries = await this.discoverCountriesForPrefix('analytics:livestock:');
+        let pop = 0;
+        for (const cc of countries) {
+          const d = await this.redis.hGetAll(DOMAIN_REDIS_KEYS.livestock(cc));
+          pop += parseInt(d['totalPopulation'] ?? '0', 10);
+        }
+        kpis.push({ key: 'livestock_population', label: 'Total Population', value: pop, unit: 'heads', trend: 'stable', trendPercent: 0 });
+        break;
+      }
+      case 'fisheries': {
+        const countries = await this.discoverCountriesForPrefix('analytics:fisheries:');
+        let catches = 0;
+        for (const cc of countries) {
+          const d = await this.redis.hGetAll(DOMAIN_REDIS_KEYS.fisheries(cc));
+          catches += parseFloat(d['totalCatchesKg'] ?? '0');
+        }
+        kpis.push({ key: 'total_catches', label: 'Total Catches', value: Math.round(catches / 1000), unit: 'tonnes', trend: 'stable', trendPercent: 0 });
+        break;
+      }
+      case 'trade': {
+        const countries = await this.discoverCountriesForPrefix('analytics:trade:');
+        let exp = 0, imp = 0;
+        for (const cc of countries) {
+          const d = await this.redis.hGetAll(DOMAIN_REDIS_KEYS.trade(cc));
+          exp += parseFloat(d['exports'] ?? '0');
+          imp += parseFloat(d['imports'] ?? '0');
+        }
+        kpis.push(
+          { key: 'total_exports', label: 'Exports', value: exp, unit: 'USD', trend: 'stable', trendPercent: 0 },
+          { key: 'total_imports', label: 'Imports', value: imp, unit: 'USD', trend: 'stable', trendPercent: 0 },
+          { key: 'trade_balance', label: 'Balance', value: exp - imp, unit: 'USD', trend: (exp - imp) >= 0 ? 'up' : 'down', trendPercent: 0 },
+        );
+        break;
+      }
+      case 'wildlife': {
+        const countries = await this.discoverCountriesForPrefix('analytics:wildlife:');
+        let crimes = 0, species = 0;
+        for (const cc of countries) {
+          const d = await this.redis.hGetAll(DOMAIN_REDIS_KEYS.wildlife(cc));
+          crimes += parseInt(d['totalCrimes'] ?? '0', 10);
+          species += parseInt(d['speciesAffected'] ?? '0', 10);
+        }
+        kpis.push(
+          { key: 'total_crimes', label: 'Wildlife Crimes', value: crimes, unit: '', trend: 'stable', trendPercent: 0 },
+          { key: 'species_affected', label: 'Species Affected', value: species, unit: '', trend: 'stable', trendPercent: 0 },
+        );
+        break;
+      }
+      case 'climate': {
+        const countries = await this.discoverCountriesForPrefix('analytics:climate:');
+        let hotspots = 0;
+        for (const cc of countries) {
+          const d = await this.redis.hGetAll(DOMAIN_REDIS_KEYS.climate(cc));
+          hotspots += parseInt(d['activeHotspots'] ?? '0', 10);
+        }
+        kpis.push({ key: 'active_hotspots', label: 'Active Hotspots', value: hotspots, unit: '', trend: 'stable', trendPercent: 0 });
+        break;
+      }
+      case 'governance': {
+        const entries = await this.getPvsScores();
+        const avgScore = entries.length > 0
+          ? Math.round(entries.reduce((s, e) => s + e.latestScore, 0) / entries.length * 10) / 10
+          : 0;
+        kpis.push(
+          { key: 'avg_pvs_score', label: 'Avg PVS Score', value: avgScore, unit: '', trend: 'stable', trendPercent: 0 },
+          { key: 'countries_evaluated', label: 'Countries Evaluated', value: entries.length, unit: '', trend: 'stable', trendPercent: 0 },
+        );
+        break;
+      }
+      case 'apiculture': {
+        const countries = await this.discoverCountriesForPrefix('analytics:apiculture:');
+        let totalKg = 0;
+        for (const cc of countries) {
+          const d = await this.redis.hGetAll(DOMAIN_REDIS_KEYS.apiculture(cc));
+          totalKg += parseFloat(d['totalProductionKg'] ?? '0');
+        }
+        kpis.push({ key: 'total_production', label: 'Honey Production', value: Math.round(totalKg), unit: 'kg', trend: 'stable', trendPercent: 0 });
+        break;
+      }
+      default:
+        break;
+    }
+
+    return { kpis, asOf: now };
   }
 
   // ── Helpers ──

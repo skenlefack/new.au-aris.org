@@ -173,3 +173,19 @@ export interface PvsScoreEntry {
   year: number;
   lastUpdated: string;
 }
+
+// ── Continental KPIs (mobile KpiCard format) ──
+
+export interface KpiCard {
+  key: string;
+  label: string;
+  value: number;
+  unit: string;
+  trend: 'up' | 'down' | 'stable';
+  trendPercent: number;
+}
+
+export interface ContinentalKpiResponse {
+  kpis: KpiCard[];
+  asOf: string;
+}

@@ -8,9 +8,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import org.auibar.aris.mobile.ui.components.LocalWindowType
+import org.auibar.aris.mobile.ui.components.rememberWindowType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
@@ -89,30 +92,33 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             ArisTheme {
-                // Update prompt dialog
-                val updateInfo = pendingUpdateInfo.value
-                if (updateInfo != null) {
-                    UpdatePromptDialog(
-                        updateInfo = updateInfo,
-                        onUpdate = {
-                            appUpdateManager.openUpdateUrl(updateInfo.downloadUrl)
-                        },
-                        onDismiss = {
-                            pendingUpdateInfo.value = null
-                        },
-                    )
-                }
+                val windowType = rememberWindowType()
+                CompositionLocalProvider(LocalWindowType provides windowType) {
+                    // Update prompt dialog
+                    val updateInfo = pendingUpdateInfo.value
+                    if (updateInfo != null) {
+                        UpdatePromptDialog(
+                            updateInfo = updateInfo,
+                            onUpdate = {
+                                appUpdateManager.openUpdateUrl(updateInfo.downloadUrl)
+                            },
+                            onDismiss = {
+                                pendingUpdateInfo.value = null
+                            },
+                        )
+                    }
 
-                val isOnline by connectivityObserver.isOnline.collectAsStateWithLifecycle(
-                    initialValue = true,
-                )
-                Column(modifier = Modifier.fillMaxSize()) {
-                    OfflineBanner(isOffline = !isOnline)
-                    val navController = rememberNavController()
-                    ArisNavGraph(
-                        navController = navController,
-                        startDestination = ArisRoutes.SPLASH,
+                    val isOnline by connectivityObserver.isOnline.collectAsStateWithLifecycle(
+                        initialValue = true,
                     )
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        OfflineBanner(isOffline = !isOnline)
+                        val navController = rememberNavController()
+                        ArisNavGraph(
+                            navController = navController,
+                            startDestination = ArisRoutes.SPLASH,
+                        )
+                    }
                 }
             }
         }

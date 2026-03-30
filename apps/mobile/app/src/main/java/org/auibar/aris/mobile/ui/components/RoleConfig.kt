@@ -119,6 +119,32 @@ object RoleConfig {
         }
     }
 
+    /**
+     * Combine role-based access with user's assigned domains, filtered through
+     * server-active domains. This ensures deactivated domains never appear.
+     */
+    fun visibleDomains(
+        role: String?,
+        userDomainCodes: List<String>,
+        activeDomains: List<DomainInfo>,
+    ): List<DomainInfo> {
+        val roleAllowed = roleDomainAccess[role]
+        if (userDomainCodes.isEmpty()) {
+            // No assigned domains → show all active domains the role can see
+            return if (roleAllowed == null) {
+                activeDomains
+            } else {
+                activeDomains.filter { it.key in roleAllowed }
+            }
+        }
+        val mappedCodes = userDomainCodes.map { backendToMobileKey(it) }.toSet()
+        return if (roleAllowed == null) {
+            activeDomains.filter { it.key in mappedCodes }
+        } else {
+            activeDomains.filter { it.key in roleAllowed && it.key in mappedCodes }
+        }
+    }
+
     /** Map backend domain codes to mobile DomainConfig keys */
     fun backendToMobileKey(code: String): String = when (code) {
         "animal-health" -> "health"

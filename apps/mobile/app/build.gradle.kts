@@ -4,6 +4,13 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
     kotlin("plugin.serialization")
+    id("com.google.gms.google-services")
+}
+
+// Load keystore.properties if present (gitignored, for local builds)
+val keystorePropsFile = rootProject.file("keystore.properties")
+val keystoreProps = java.util.Properties().apply {
+    if (keystorePropsFile.exists()) load(keystorePropsFile.inputStream())
 }
 
 android {
@@ -14,8 +21,8 @@ android {
         applicationId = "org.auibar.aris.mobile"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0-alpha"
+        versionCode = 2
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -27,11 +34,17 @@ android {
 
     signingConfigs {
         create("release") {
-            // Placeholder — configure via environment variables or keystore.properties
-            storeFile = file("release-keystore.jks")
-            storePassword = System.getenv("ARIS_KEYSTORE_PASSWORD") ?: "placeholder"
-            keyAlias = System.getenv("ARIS_KEY_ALIAS") ?: "aris"
-            keyPassword = System.getenv("ARIS_KEY_PASSWORD") ?: "placeholder"
+            // Priority: env vars > keystore.properties > placeholder
+            storeFile = file(
+                System.getenv("ARIS_KEYSTORE_FILE")
+                    ?: keystoreProps.getProperty("storeFile", "release-keystore.jks")
+            )
+            storePassword = System.getenv("ARIS_KEYSTORE_PASSWORD")
+                ?: keystoreProps.getProperty("storePassword", "placeholder")
+            keyAlias = System.getenv("ARIS_KEY_ALIAS")
+                ?: keystoreProps.getProperty("keyAlias", "aris")
+            keyPassword = System.getenv("ARIS_KEY_PASSWORD")
+                ?: keystoreProps.getProperty("keyPassword", "placeholder")
         }
     }
 
@@ -144,6 +157,10 @@ dependencies {
 
     // OSMDroid (offline maps)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
+
+    // Firebase (BOM + Cloud Messaging)
+    implementation(platform("com.google.firebase:firebase-bom:32.7.1"))
+    implementation("com.google.firebase:firebase-messaging-ktx")
 
     // Socket.IO (WebSocket for realtime alerts)
     implementation("io.socket:socket.io-client:2.1.0") {

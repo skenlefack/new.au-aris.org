@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.data.remote.dto.KpiCard
 import org.auibar.aris.mobile.data.repository.DashboardRepository
+import org.auibar.aris.mobile.ui.components.DomainInfo
+import org.auibar.aris.mobile.ui.components.getActiveDomains
 import org.auibar.aris.mobile.util.TokenManager
 import javax.inject.Inject
 
@@ -26,6 +28,9 @@ class HomeDashboardViewModel @Inject constructor(
 
     /** Domain codes assigned to the current user (empty = all domains). */
     val userDomains: List<String> = tokenManager.getUserDomainList()
+
+    /** System-active domains (filtered by server settings). */
+    val activeDomains: List<DomainInfo> = getActiveDomains(tokenManager)
 
     private val _kpis = MutableStateFlow<List<KpiCard>>(emptyList())
     val kpis: StateFlow<List<KpiCard>> = _kpis.asStateFlow()

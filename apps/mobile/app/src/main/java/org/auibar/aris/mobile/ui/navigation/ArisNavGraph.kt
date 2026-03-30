@@ -57,6 +57,20 @@ import org.auibar.aris.mobile.ui.message.MessageListScreen
 import org.auibar.aris.mobile.ui.message.MessageThreadScreen
 import org.auibar.aris.mobile.ui.components.UserTopBanner
 import org.auibar.aris.mobile.ui.domain.DomainDashboardScreen
+import org.auibar.aris.mobile.ui.health.OutbreakReportScreen
+import org.auibar.aris.mobile.ui.health.SurveillanceEventScreen
+import org.auibar.aris.mobile.ui.fisheries.CaptureRecordScreen
+import org.auibar.aris.mobile.ui.fisheries.AquacultureRecordScreen
+import org.auibar.aris.mobile.ui.wildlife.WildlifeObservationScreen
+import org.auibar.aris.mobile.ui.wildlife.HumanWildlifeConflictScreen
+import org.auibar.aris.mobile.ui.apiculture.ApiaryRecordScreen
+import org.auibar.aris.mobile.ui.apiculture.ColonyHealthScreen
+import org.auibar.aris.mobile.ui.trade.TradeFlowScreen
+import org.auibar.aris.mobile.ui.trade.SPSCertificateScreen
+import org.auibar.aris.mobile.ui.governance.LegalFrameworkScreen
+import org.auibar.aris.mobile.ui.governance.VetCapacityScreen
+import org.auibar.aris.mobile.ui.climate.WaterStressScreen
+import org.auibar.aris.mobile.ui.climate.RangelandScreen
 import org.auibar.aris.mobile.ui.lock.AppLockScreen
 import org.auibar.aris.mobile.ui.lock.SetPinScreen
 import org.auibar.aris.mobile.ui.navigation.AppLockViewModel
@@ -71,7 +85,8 @@ object ArisRoutes {
     const val DASHBOARD = "dashboard"
     const val CAMPAIGNS = "campaigns"
     const val CAMPAIGN_DETAIL = "campaign/{campaignId}"
-    const val FORM_FILL = "form/{campaignId}"
+    const val FORM_FILL = "form/{campaignId}?templateId={templateId}"
+    const val FORM_FILL_BASE = "form/{campaignId}"
     const val SUBMISSIONS = "submissions"
     const val NOTIFICATIONS = "notifications"
     const val SETTINGS = "settings"
@@ -88,15 +103,45 @@ object ArisRoutes {
     const val DOMAIN_DASHBOARD = "domain/{domainKey}"
     const val APP_LOCK = "app-lock"
     const val SET_PIN = "set-pin"
+    const val OUTBREAK_REPORT = "outbreak-report/{campaignId}"
+    const val SURVEILLANCE_EVENT = "surveillance-event/{campaignId}"
+    const val CAPTURE_RECORD = "capture-record/{campaignId}"
+    const val AQUACULTURE_RECORD = "aquaculture-record/{campaignId}"
+    const val WILDLIFE_OBSERVATION = "wildlife-observation/{campaignId}"
+    const val HWC_REPORT = "hwc-report/{campaignId}"
+    const val APIARY_RECORD = "apiary-record/{campaignId}"
+    const val COLONY_HEALTH = "colony-health/{campaignId}"
+    const val TRADE_FLOW = "trade-flow/{campaignId}"
+    const val SPS_CERTIFICATE = "sps-certificate/{campaignId}"
+    const val LEGAL_FRAMEWORK = "legal-framework/{campaignId}"
+    const val VET_CAPACITY = "vet-capacity/{campaignId}"
+    const val WATER_STRESS = "water-stress/{campaignId}"
+    const val RANGELAND = "rangeland/{campaignId}"
     const val MESSAGES = "messages"
     const val COMPOSE_MESSAGE = "compose-message"
     const val MESSAGE_THREAD = "messages/{threadId}/{recipientId}/{recipientName}"
 
     fun domainDashboard(domainKey: String) = "domain/$domainKey"
     fun campaignDetail(campaignId: String) = "campaign/$campaignId"
-    fun formFill(campaignId: String) = "form/$campaignId"
+    fun formFill(campaignId: String, templateId: String? = null) =
+        if (templateId != null) "form/$campaignId?templateId=$templateId"
+        else "form/$campaignId"
     fun livestockCensus(campaignId: String) = "livestock-census/$campaignId"
     fun productionRecord(campaignId: String) = "production-record/$campaignId"
+    fun outbreakReport(campaignId: String) = "outbreak-report/$campaignId"
+    fun surveillanceEvent(campaignId: String) = "surveillance-event/$campaignId"
+    fun captureRecord(campaignId: String) = "capture-record/$campaignId"
+    fun aquacultureRecord(campaignId: String) = "aquaculture-record/$campaignId"
+    fun wildlifeObservation(campaignId: String) = "wildlife-observation/$campaignId"
+    fun hwcReport(campaignId: String) = "hwc-report/$campaignId"
+    fun apiaryRecord(campaignId: String) = "apiary-record/$campaignId"
+    fun colonyHealth(campaignId: String) = "colony-health/$campaignId"
+    fun tradeFlow(campaignId: String) = "trade-flow/$campaignId"
+    fun spsCertificate(campaignId: String) = "sps-certificate/$campaignId"
+    fun legalFramework(campaignId: String) = "legal-framework/$campaignId"
+    fun vetCapacity(campaignId: String) = "vet-capacity/$campaignId"
+    fun waterStress(campaignId: String) = "water-stress/$campaignId"
+    fun rangeland(campaignId: String) = "rangeland/$campaignId"
     fun photoGallery(submissionId: String) = "photo-gallery/$submissionId"
     fun submissionDetail(submissionId: String) = "submission/$submissionId"
     fun conflictResolution(submissionId: String) = "conflict/$submissionId"
@@ -262,13 +307,23 @@ fun ArisNavGraph(
                     onNewSubmission = {
                         navController.navigate(ArisRoutes.formFill(campaignId))
                     },
+                    onFillTemplate = { cId, templateId ->
+                        navController.navigate(ArisRoutes.formFill(cId, templateId))
+                    },
                     onBack = { navController.popBackStack() },
                 )
             }
 
             composable(
                 route = ArisRoutes.FORM_FILL,
-                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+                arguments = listOf(
+                    navArgument("campaignId") { type = NavType.StringType },
+                    navArgument("templateId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
             ) { backStackEntry ->
                 val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
                 FormFillScreen(
@@ -359,6 +414,167 @@ fun ArisNavGraph(
                 )
             }
 
+            // ── Animal Health ──
+            composable(
+                route = ArisRoutes.OUTBREAK_REPORT,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                OutbreakReportScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.SURVEILLANCE_EVENT,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                SurveillanceEventScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // ── Fisheries ──
+            composable(
+                route = ArisRoutes.CAPTURE_RECORD,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                CaptureRecordScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.AQUACULTURE_RECORD,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                AquacultureRecordScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // ── Wildlife ──
+            composable(
+                route = ArisRoutes.WILDLIFE_OBSERVATION,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                WildlifeObservationScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.HWC_REPORT,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                HumanWildlifeConflictScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // ── Apiculture ──
+            composable(
+                route = ArisRoutes.APIARY_RECORD,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                ApiaryRecordScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.COLONY_HEALTH,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                ColonyHealthScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // ── Trade & SPS ──
+            composable(
+                route = ArisRoutes.TRADE_FLOW,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                TradeFlowScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.SPS_CERTIFICATE,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                SPSCertificateScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // ── Governance ──
+            composable(
+                route = ArisRoutes.LEGAL_FRAMEWORK,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                LegalFrameworkScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.VET_CAPACITY,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                VetCapacityScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // ── Climate & Environment ──
+            composable(
+                route = ArisRoutes.WATER_STRESS,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                WaterStressScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.RANGELAND,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                RangelandScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
             composable(
                 route = ArisRoutes.PHOTO_GALLERY,
                 arguments = listOf(navArgument("submissionId") { type = NavType.StringType }),
@@ -416,6 +632,28 @@ fun ArisNavGraph(
                     },
                     onMap = {
                         navController.navigate(ArisRoutes.offlineMap(domainKey))
+                    },
+                    onDomainForm = { action ->
+                        // Domain-specific form screens use a placeholder campaignId
+                        // until the user selects a campaign from the list
+                        val route = when (action) {
+                            "outbreak_report" -> ArisRoutes.outbreakReport("new")
+                            "surveillance_event" -> ArisRoutes.surveillanceEvent("new")
+                            "capture_record" -> ArisRoutes.captureRecord("new")
+                            "aquaculture_record" -> ArisRoutes.aquacultureRecord("new")
+                            "wildlife_observation" -> ArisRoutes.wildlifeObservation("new")
+                            "hwc_report" -> ArisRoutes.hwcReport("new")
+                            "apiary_record" -> ArisRoutes.apiaryRecord("new")
+                            "colony_health" -> ArisRoutes.colonyHealth("new")
+                            "trade_flow" -> ArisRoutes.tradeFlow("new")
+                            "sps_certificate" -> ArisRoutes.spsCertificate("new")
+                            "legal_framework" -> ArisRoutes.legalFramework("new")
+                            "vet_capacity" -> ArisRoutes.vetCapacity("new")
+                            "water_stress" -> ArisRoutes.waterStress("new")
+                            "rangeland" -> ArisRoutes.rangeland("new")
+                            else -> return@DomainDashboardScreen
+                        }
+                        navController.navigate(route)
                     },
                 )
             }

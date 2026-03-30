@@ -80,8 +80,9 @@ fun DashboardScreen(
 
     val userRole = uiState.userRole
     val userDomains = uiState.userDomains
-    val visibleDomains = remember(userRole, userDomains) {
-        RoleConfig.visibleDomains(userRole, userDomains)
+    val activeDomains = uiState.activeDomains
+    val visibleDomains = remember(userRole, userDomains, activeDomains) {
+        RoleConfig.visibleDomains(userRole, userDomains, activeDomains)
     }
     val canCreate = remember(userRole) { RoleConfig.canCreate(userRole) }
     val canReport = remember(userRole) { RoleConfig.canReport(userRole) }

@@ -39,6 +39,43 @@ data class CampaignDto(
 )
 
 @Serializable
+data class CampaignDetailDto(
+    val id: String,
+    val tenantId: String,
+    val name: String,
+    val domain: String,
+    val templateId: String? = null,
+    val templateIds: List<String> = emptyList(),
+    val targetCountries: List<String> = emptyList(),
+    val startDate: String,
+    val endDate: String,
+    val status: String,
+    val description: String? = null,
+    val targetSubmissions: Int? = null,
+    val assignedAgents: List<String> = emptyList(),
+    val progress: CampaignProgressDto? = null,
+    val createdAt: String? = null,
+)
+
+@Serializable
+data class CampaignProgressDto(
+    val totalSubmissions: Int = 0,
+    val validated: Int = 0,
+    val rejected: Int = 0,
+    val pending: Int = 0,
+    val completionRate: Double = 0.0,
+)
+
+@Serializable
+data class TemplateInfoDto(
+    val id: String,
+    val name: String,
+    val domain: String? = null,
+    val version: Int = 1,
+    val status: String? = null,
+)
+
+@Serializable
 data class FormTemplateDto(
     val id: String,
     val name: String,

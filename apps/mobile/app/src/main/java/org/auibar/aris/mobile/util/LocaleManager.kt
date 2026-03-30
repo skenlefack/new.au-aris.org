@@ -21,12 +21,19 @@ class LocaleManager @Inject constructor(
     val isRtl: Boolean
         get() = currentLanguage == "ar"
 
-    val supportedLanguages: List<LanguageOption> = listOf(
+    private val allLanguages: List<LanguageOption> = listOf(
         LanguageOption("en", "English"),
         LanguageOption("fr", "Fran\u00e7ais"),
         LanguageOption("pt", "Portugu\u00eas"),
         LanguageOption("ar", "\u0627\u0644\u0639\u0631\u0628\u064a\u0629"),
     )
+
+    val supportedLanguages: List<LanguageOption>
+        get() {
+            val active = tokenManager.getActiveLocaleList()
+            if (active.isEmpty()) return allLanguages
+            return allLanguages.filter { it.code in active }
+        }
 
     fun setLanguage(languageCode: String) {
         tokenManager.language = languageCode

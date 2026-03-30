@@ -120,6 +120,28 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
       .send(csv);
   });
 
+  // ── Continental KPIs (all domains aggregated) ──
+
+  app.get(`${PREFIX}/continental/kpis`, {
+    preHandler: [app.authHookFn, tenantHook()],
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
+    const data = await app.crossDomainService.getContinentalKpis();
+    return reply.code(200).send({ data });
+  });
+
+  // ── Generic Domain KPIs (mobile app uses /{domainKey}/kpis) ──
+
+  app.get(`${PREFIX}/:domainKey/kpis`, {
+    preHandler: [app.authHookFn, tenantHook()],
+  }, async (
+    request: FastifyRequest<{ Params: { domainKey: string } }>,
+    reply: FastifyReply,
+  ) => {
+    const { domainKey } = request.params;
+    const data = await app.crossDomainService.getDomainKpis(domainKey);
+    return reply.code(200).send({ data });
+  });
+
   // ── Cross-Domain Correlations ──
 
   app.get(`${PREFIX}/cross-domain/correlations`, {

@@ -35,6 +35,7 @@ data class SettingsUiState(
     val isPinEnabled: Boolean = false,
     val serverEnvironment: ServerEnvironment = ServerEnvironment.PRODUCTION,
     val userDomains: List<String> = emptyList(),
+    val activeDomainCodes: List<String> = emptyList(),
 )
 
 data class SyncFrequencyOption(
@@ -66,6 +67,7 @@ class SettingsViewModel @Inject constructor(
             isPinEnabled = appLockManager.isPinEnabled,
             serverEnvironment = ServerEnvironment.fromName(tokenManager.serverEnvironment),
             userDomains = tokenManager.getUserDomainList(),
+            activeDomainCodes = tokenManager.getActiveDomainCodes(),
         )
     )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()

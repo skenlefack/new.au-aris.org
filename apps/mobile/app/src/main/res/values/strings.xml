@@ -31,6 +31,30 @@
     <string name="campaign_detail">Campaign Details</string>
     <string name="progress">Progress</string>
     <string name="recent_campaigns">Recent Campaigns</string>
+    <string name="campaign_status">Status</string>
+    <string name="campaign_domain">Domain</string>
+    <string name="campaign_start">Start</string>
+    <string name="campaign_end">End</string>
+    <string name="campaign_target">Target</string>
+    <string name="campaign_forms">Forms</string>
+    <string name="campaign_countries">Countries</string>
+    <string name="campaign_agents">Agents</string>
+    <string name="campaign_info">Campaign Info</string>
+    <string name="form_templates">Form Templates</string>
+    <string name="no_templates">No templates assigned</string>
+    <string name="fill_form">Fill Form</string>
+    <string name="target_countries">Target Countries</string>
+    <string name="no_countries">No countries specified</string>
+    <string name="submitted">Submitted</string>
+    <string name="validated">Validated</string>
+    <string name="rejected">Rejected</string>
+    <string name="completion">%d%%</string>
+    <string name="status_planned">Planned</string>
+    <string name="status_active">Active</string>
+    <string name="status_completed">Completed</string>
+    <string name="status_cancelled">Cancelled</string>
+    <string name="loading_campaign">Loading campaign details\u2026</string>
+    <string name="campaign_not_found">Campaign not found</string>
 
     <!-- Sync -->
     <string name="sync">Sync</string>
@@ -232,6 +256,67 @@
     <string name="unit_heads">Heads</string>
     <string name="unit_dozens">Dozens</string>
 
+    <!-- Animal Health -->
+    <string name="outbreak_report">Outbreak Report</string>
+    <string name="surveillance_event">Surveillance Event</string>
+    <string name="surveillance_type">Surveillance Type</string>
+    <string name="target_species">Target Species</string>
+    <string name="suspicion_date">Suspicion Date</string>
+    <string name="confirmation_date">Confirmation Date</string>
+    <string name="morbidity_count">Morbidity Count</string>
+    <string name="mortality_count">Mortality Count</string>
+    <string name="sample_count">Sample Count</string>
+    <string name="result">Result</string>
+    <string name="lab_reference">Lab Reference</string>
+    <string name="event_date">Event Date</string>
+    <string name="gps_location">GPS Location</string>
+    <string name="notes">Notes</string>
+
+    <!-- Fisheries -->
+    <string name="capture_record">Capture Record</string>
+    <string name="aquaculture_record">Aquaculture Record</string>
+    <string name="fao_catch_area">FAO Catch Area</string>
+    <string name="quantity_kg">Quantity (kg)</string>
+    <string name="vessel_name">Vessel Name</string>
+    <string name="gear_type">Gear Type</string>
+    <string name="landing_site">Landing Site</string>
+    <string name="capture_date">Capture Date</string>
+    <string name="farm_type">Farm Type</string>
+    <string name="production_tonnes">Production (tonnes)</string>
+    <string name="area_hectares">Area (hectares)</string>
+    <string name="water_source">Water Source</string>
+    <string name="stocking_density">Stocking Density</string>
+
+    <!-- Apiculture -->
+    <string name="apiary_record">Apiary Record</string>
+    <string name="colony_health">Colony Health</string>
+    <string name="colony_count">Colony Count</string>
+    <string name="hive_type">Hive Type</string>
+    <string name="honey_production_kg">Honey Production (kg)</string>
+    <string name="health_status">Health Status</string>
+    <string name="bee_species">Bee Species</string>
+    <string name="inspection_date">Inspection Date</string>
+    <string name="colony_id">Colony ID</string>
+    <string name="queen_status">Queen Status</string>
+    <string name="pest_disease">Pest / Disease</string>
+    <string name="treatment_applied">Treatment Applied</string>
+    <string name="losses">Losses</string>
+
+    <!-- Wildlife -->
+    <string name="wildlife_observation">Wildlife Observation</string>
+    <string name="observation_method">Observation Method</string>
+    <string name="habitat_type">Habitat Type</string>
+    <string name="protected_area">Protected Area</string>
+    <string name="threat_level">Threat Level</string>
+    <string name="count">Count</string>
+    <string name="observation_date">Observation Date</string>
+    <string name="hwc_report">Human-Wildlife Conflict Report</string>
+    <string name="conflict_type">Conflict Type</string>
+    <string name="casualties">Casualties</string>
+    <string name="damage_estimate">Damage Estimate (USD)</string>
+    <string name="mitigation_measures">Mitigation Measures</string>
+    <string name="incident_date">Incident Date</string>
+
     <!-- Photo Evidence -->
     <string name="photo_gallery">Photo Gallery</string>
     <string name="add_photo">Add Photo</string>
@@ -429,6 +514,21 @@
     <string name="deep_link_error">Could not open the requested item</string>
     <string name="deep_link_not_found">Item not found</string>
 
+    <!-- Governance -->
+    <string name="legal_framework">Legal Framework</string>
+    <string name="law_title">Law Title</string>
+    <string name="law_type">Law Type</string>
+    <string name="adoption_date">Adoption Date</string>
+    <string name="law_status">Law Status</string>
+    <string name="scope">Scope</string>
+    <string name="implementing_body">Implementing Body</string>
+    <string name="vet_capacity">Veterinary Capacity</string>
+    <string name="facility_type">Facility Type</string>
+    <string name="staff_count">Staff Count</string>
+    <string name="equipment_level">Equipment Level</string>
+    <string name="accreditation_status">Accreditation Status</string>
+    <string name="location">Location</string>
+
     <!-- App Update -->
     <string name="update_available">Update Available</string>
     <string name="update_message">A new version of ARIS (%s) is available. Please update for the latest features and security fixes.</string>
@@ -437,4 +537,39 @@
     <string name="update_now">Update Now</string>
     <string name="update_later">Later</string>
     <string name="update_checking">Checking for updates\u2026</string>
+
+    <!-- Trade & SPS -->
+    <string name="trade_flow">Trade Flow</string>
+    <string name="sps_certificate">SPS Certificate</string>
+    <string name="commodity">Commodity</string>
+    <string name="origin_country">Origin Country</string>
+    <string name="destination_country">Destination Country</string>
+    <string name="quantity_tonnes">Quantity (Tonnes)</string>
+    <string name="value_usd">Value (USD)</string>
+    <string name="sps_cert_ref">SPS Certificate Ref</string>
+    <string name="border_point">Border Point</string>
+    <string name="trade_date">Trade Date</string>
+    <string name="cert_number">Certificate Number</string>
+    <string name="cert_type">Certificate Type</string>
+    <string name="exporter">Exporter Name</string>
+    <string name="importer">Importer Name</string>
+    <string name="validity_start">Validity Start</string>
+    <string name="validity_end">Validity End</string>
+    <string name="cert_status">Certificate Status</string>
+    <string name="issue_date">Issue Date</string>
+
+    <!-- Climate & Environment -->
+    <string name="water_stress_record">Water Stress Record</string>
+    <string name="water_body_name">Water Body Name</string>
+    <string name="stress_level">Stress Level</string>
+    <string name="measurement_date">Measurement Date</string>
+    <string name="cause">Cause</string>
+    <string name="affected_area_km2">Affected Area (km\u00B2)</string>
+    <string name="rangeland_assessment">Rangeland Assessment</string>
+    <string name="area_name">Area Name</string>
+    <string name="condition_score">Condition Score (1\u20135)</string>
+    <string name="vegetation_cover">Vegetation Cover (%)</string>
+    <string name="degradation_level">Degradation Level</string>
+    <string name="carrying_capacity">Carrying Capacity (heads/ha)</string>
+    <string name="assessment_date">Assessment Date</string>
 </resources>

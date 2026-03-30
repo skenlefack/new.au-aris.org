@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.map
 import org.auibar.aris.mobile.data.local.dao.CampaignDao
 import org.auibar.aris.mobile.data.local.entity.CampaignEntity
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
+import org.auibar.aris.mobile.ui.components.RoleConfig
 import javax.inject.Inject
 
 data class Campaign(
@@ -57,7 +58,7 @@ class CampaignRepository @Inject constructor(
                     id = dto.id,
                     tenantId = dto.tenantId,
                     name = dto.name,
-                    domain = dto.domain,
+                    domain = RoleConfig.backendToMobileKey(dto.domain),
                     templateId = dto.templateId,
                     startDate = dto.startDate,
                     endDate = dto.endDate,
