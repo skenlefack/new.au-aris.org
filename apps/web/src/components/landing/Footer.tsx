@@ -90,7 +90,7 @@ export function Footer() {
             <ul className="mt-3 space-y-2 text-sm text-[#5C3A00]/80">
               <li><Link href="#" className="transition-colors hover:text-[#3E2100]">{t('documentation')}</Link></li>
               <li><Link href="#" className="transition-colors hover:text-[#3E2100]">{t('apiReference')}</Link></li>
-              <li><Link href="#" className="transition-colors hover:text-[#3E2100]">{t('dataStandards')}</Link></li>
+              {/* Data Standards — hidden until content is available */}
               <li><Link href="#" className="transition-colors hover:text-[#3E2100]">{t('trainingPortal')}</Link></li>
             </ul>
           </div>

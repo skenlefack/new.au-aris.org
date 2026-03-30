@@ -235,13 +235,6 @@ export function LoginPanel({ context }: LoginPanelProps) {
 
       {/* Footer links */}
       <div className="mt-5 space-y-3">
-        <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-          {ta('noAccount')}{' '}
-          <Link href="/register" className="font-medium hover:underline" style={{ color: accentColor }}>
-            {ta('requestAccess')}
-          </Link>
-        </p>
-
         <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
           <Shield className="h-3.5 w-3.5" />
           <span>{ta('securedBy')}</span>

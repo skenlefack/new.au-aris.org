@@ -91,7 +91,7 @@
     "signInTo": "Iniciar sesión en",
     "accessNational": "Acceder a los datos nacionales de ARIS",
     "accessRegional": "Acceder a los datos regionales de los Estados miembros",
-    "accessContinental": "Acceder a los datos continentales de ARIS",
+    "accessContinental": "Acceder al hub digital continental",
     "enterValidEmail": "Por favor, introduzca un correo electrónico válido",
     "passwordMinLength": "La contraseña debe tener al menos 8 caracteres",
     "loginFailed": "Error de inicio de sesión. Verifique sus credenciales.",

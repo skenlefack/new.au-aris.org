@@ -1,13 +1,15 @@
 'use client';
 
+import { useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import type { RecConfig } from '@/data/recs-config';
 import type { CountryConfig } from '@/data/countries-config';
 import { useLocaleStore } from '@/lib/stores/locale-store';
-import { LOCALES, type Locale } from '@/lib/i18n/config';
+import { LOCALES, LOCALE_LABELS, type Locale } from '@/lib/i18n/config';
 import { useTranslations } from '@/lib/i18n/translations';
+import { usePublicLocales } from '@/lib/api/settings-hooks';
 
 interface Crumb {
   label: string;
@@ -24,6 +26,16 @@ export function LandingHeader({ rec, country }: LandingHeaderProps) {
   const setLocale = useLocaleStore((s) => s.setLocale);
   const tc = useTranslations('common');
   const ta = useTranslations('auth');
+  const { data: i18nConfig } = usePublicLocales();
+
+  // Filter LOCALES to only show active ones from settings
+  const activeLocales = useMemo(() => {
+    const available = i18nConfig?.data?.availableLocales;
+    if (!available || !Array.isArray(available) || available.length === 0) {
+      return LOCALES as readonly Locale[];
+    }
+    return LOCALES.filter((loc) => available.includes(loc));
+  }, [i18nConfig]);
 
   const crumbs: Crumb[] = [{ label: 'African Union', href: '/' }];
   if (rec) {
@@ -88,8 +100,10 @@ export function LandingHeader({ rec, country }: LandingHeaderProps) {
             value={locale}
             onChange={(e) => setLocale(e.target.value as Locale)}
           >
-            {LOCALES.map((loc) => (
-              <option key={loc} value={loc}>{loc.toUpperCase()}</option>
+            {activeLocales.map((loc) => (
+              <option key={loc} value={loc}>
+                {LOCALE_LABELS[loc]?.flag} {loc.toUpperCase()}
+              </option>
             ))}
           </select>
           <a
