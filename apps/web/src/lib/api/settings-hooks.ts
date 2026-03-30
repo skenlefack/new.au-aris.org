@@ -814,8 +814,8 @@ export function useCountryStatistics(countryId: string) {
 export function useUpsertCountryStatistics() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ countryId, statistics }: { countryId: string; statistics: any[] }) =>
-      tenantPut(`/api/v1/settings/countries/${countryId}/statistics`, { statistics }),
+    mutationFn: ({ countryId, items }: { countryId: string; items: any[] }) =>
+      tenantPut(`/api/v1/settings/countries/${countryId}/statistics`, { items }),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['settings', 'country-statistics', vars.countryId] });
       qc.invalidateQueries({ queryKey: ['settings', 'countries'] });
@@ -882,8 +882,8 @@ export function useCountryKpiScores(countryId: string, year?: number) {
 export function useUpsertCountryKpiScores() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ countryId, scores }: { countryId: string; scores: any[] }) =>
-      tenantPut(`/api/v1/settings/countries/${countryId}/kpi-scores`, { scores }),
+    mutationFn: ({ countryId, items }: { countryId: string; items: any[] }) =>
+      tenantPut(`/api/v1/settings/countries/${countryId}/kpi-scores`, { items }),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['settings', 'country-kpi-scores', vars.countryId] });
       qc.invalidateQueries({ queryKey: ['settings', 'countries'] });
