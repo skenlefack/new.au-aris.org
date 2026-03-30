@@ -759,10 +759,11 @@ export function useRemoveUserFunction() {
 
 // ── Statistic Definitions ──
 
-export function useStatisticDefinitions(params?: { domainCode?: string; status?: string }) {
+export function useStatisticDefinitions(params?: { domainCode?: string; status?: string; isActive?: boolean }) {
   const qs = new URLSearchParams();
   if (params?.domainCode) qs.set('domainCode', params.domainCode);
   if (params?.status) qs.set('status', params.status);
+  if (params?.isActive !== undefined) qs.set('isActive', String(params.isActive));
   const query = qs.toString() ? `?${qs.toString()}` : '';
 
   return useQuery({
@@ -824,11 +825,12 @@ export function useUpsertCountryStatistics() {
 
 // ── KPI Definitions ──
 
-export function useKpiDefinitions(params?: { domainCode?: string; status?: string; scope?: string }) {
+export function useKpiDefinitions(params?: { domainCode?: string; status?: string; scope?: string; isActive?: boolean }) {
   const qs = new URLSearchParams();
   if (params?.domainCode) qs.set('domainCode', params.domainCode);
   if (params?.status) qs.set('status', params.status);
   if (params?.scope) qs.set('scope', params.scope);
+  if (params?.isActive !== undefined) qs.set('isActive', String(params.isActive));
   const query = qs.toString() ? `?${qs.toString()}` : '';
 
   return useQuery({

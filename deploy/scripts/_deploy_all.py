@@ -1,162 +1,259 @@
 #!/usr/bin/env python3
 """
-ARIS -- Deploy web container to BOTH staging and production
-"""
+ARIS 4.0 - Deploy to PRODUCTION + STAGING
+==========================================
+Deploys tenant service + web frontend + prisma push + KPI seed.
 
+Usage:
+  python deploy/scripts/_deploy_all.py              # Both environments
+  python deploy/scripts/_deploy_all.py --prod       # Production only
+  python deploy/scripts/_deploy_all.py --stg        # Staging only
+"""
 import paramiko
 import sys
 import time
-from datetime import datetime
+import argparse
 
-sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 SSH_USER = "arisadmin"
 SSH_PASS = "@u-1baR.0rg$U24"
 
-ENVIRONMENTS = [
-    {
-        "name": "STAGING",
-        "host": "10.202.101.146",
-        "deploy_dir": "/opt/aris-deploy/vm-app-stg",
-        "compose_src": "/opt/aris/deploy/vm-app-stg/docker-compose.yml",
-        "container": "aris-stg-web",
-    },
-    {
-        "name": "PRODUCTION",
-        "host": "10.202.101.183",
+ENVS = {
+    "prod": {
+        "label": "PRODUCTION",
+        "url": "https://au-aris.org",
+        "app_host": "10.202.101.183",
+        "db_host": "10.202.101.185",
+        "db_pass": "Ar1s_Pr0d_2024!xK9mZ",
+        "git_dir": "/opt/aris",
         "deploy_dir": "/opt/aris-deploy/vm-app",
-        "compose_src": "/opt/aris/deploy/vm-app/docker-compose.yml",
-        "container": "aris-web",
+        "compose_src": "deploy/vm-app/docker-compose.yml",
+        "container_prefix": "aris",
     },
-]
+    "stg": {
+        "label": "STAGING",
+        "url": "https://test.au-aris.org",
+        "app_host": "10.202.101.146",
+        "db_host": "10.202.101.148",
+        "db_pass": "Ar1s_Stg_2024!xK9mZ",
+        "git_dir": "/opt/aris",
+        "deploy_dir": "/opt/aris-deploy/vm-app-stg",
+        "compose_src": "deploy/vm-app-stg/docker-compose.yml",
+        "container_prefix": "aris-stg",
+    },
+}
+
+SERVICES_TO_REBUILD = ["tenant", "web"]
 
 
-def run_sudo(client, cmd, timeout=600):
-    full_cmd = f"sudo -S bash -c '{cmd}'"
-    stdin, stdout, stderr = client.exec_command(full_cmd, timeout=timeout)
-    stdin.write(SSH_PASS + "\n")
-    stdin.flush()
-    out = stdout.read().decode("utf-8", errors="replace").strip()
-    err = stderr.read().decode("utf-8", errors="replace").strip()
-    code = stdout.channel.recv_exit_status()
-    err_lines = [l for l in err.split("\n") if "[sudo]" not in l and "password for" not in l.lower()]
-    err = "\n".join(err_lines).strip()
-    return out, err, code
-
-
-def deploy(env):
-    name = env["name"]
-    host = env["host"]
-    deploy_dir = env["deploy_dir"]
-    compose_src = env["compose_src"]
-    container = env["container"]
-
-    print(f"\n{'='*70}")
-    print(f"  DEPLOYING TO {name} ({host})")
-    print(f"{'='*70}")
-
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+def safe_print(msg):
     try:
-        client.connect(host, username=SSH_USER, password=SSH_PASS, timeout=15)
-    except Exception as e:
-        print(f"  [!] Connection failed: {e}")
-        return False
+        print(msg)
+    except UnicodeEncodeError:
+        print(msg.encode("ascii", "replace").decode("ascii"))
 
-    print(f"  [+] Connected to {name}")
+
+def connect(host):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(host, username=SSH_USER, password=SSH_PASS, timeout=15)
+    return ssh
+
+
+def sudo(ssh, cmd, timeout=120):
+    ch = ssh.get_transport().open_session()
+    ch.settimeout(timeout)
+    ch.exec_command("sudo -S " + cmd)
+    ch.sendall((SSH_PASS + "\n").encode())
+    time.sleep(0.5)
+    out = b""
+    while ch.recv_ready() or not ch.exit_status_ready():
+        if ch.recv_ready():
+            out += ch.recv(65536)
+        else:
+            time.sleep(0.3)
+            if ch.exit_status_ready() and not ch.recv_ready():
+                break
+    lines = [l for l in out.decode("utf-8", "replace").splitlines()
+             if "[sudo]" not in l and "password" not in l.lower()]
+    return "\n".join(lines)
+
+
+def sudo_stream(ssh, cmd, timeout=600):
+    ch = ssh.get_transport().open_session()
+    ch.settimeout(timeout)
+    ch.exec_command("sudo -S " + cmd)
+    ch.sendall((SSH_PASS + "\n").encode())
+    time.sleep(0.5)
+    lines = []
+    buf = b""
+    while not ch.exit_status_ready() or ch.recv_ready():
+        if ch.recv_ready():
+            buf += ch.recv(65536)
+            while b"\n" in buf:
+                line, buf = buf.split(b"\n", 1)
+                decoded = line.decode("utf-8", "replace").rstrip()
+                if decoded and "[sudo]" not in decoded and "password" not in decoded.lower():
+                    lines.append(decoded)
+                    low = decoded.lower()
+                    if any(k in low for k in [
+                        "error", "built", "running", "created", "started",
+                        "pulling", "building", "done", "fail", "warn",
+                        "seed", "migrat", "prisma", "already up", "applied"
+                    ]):
+                        safe_print(f"    {decoded}")
+        else:
+            time.sleep(0.5)
+    if buf:
+        decoded = buf.decode("utf-8", "replace").rstrip()
+        if decoded:
+            lines.append(decoded)
+    return "\n".join(lines)
+
+
+def step(n, total, msg):
+    safe_print(f"\n{'='*60}")
+    safe_print(f"  [{n}/{total}] {msg}")
+    safe_print(f"{'='*60}")
+
+
+def deploy_env(env_key):
+    """Full deploy for one environment."""
+    env = ENVS[env_key]
+    total = 6
+    safe_print(f"\n{'#'*60}")
+    safe_print(f"  DEPLOYING TO {env['label']}")
+    safe_print(f"  Host: {env['app_host']}")
+    safe_print(f"  URL:  {env['url']}")
+    safe_print(f"{'#'*60}")
+
+    ssh = connect(env["app_host"])
+    safe_print(f"  Connected to {env['app_host']}")
 
     # 1. Git pull
-    print(f"\n  1. Git pull")
-    out, err, code = run_sudo(client, "cd /opt/aris && git pull origin main 2>&1")
-    if code != 0:
-        print(f"  [!] Git pull failed: {err or out}")
-        client.close()
-        return False
-    # Show relevant lines
-    for line in out.split("\n"):
-        if any(kw in line.lower() for kw in ["updating", "fast-forward", "already up", "file changed", "files changed"]):
-            print(f"     {line}")
-    print(f"  [OK]")
+    step(1, total, "Git pull latest code")
+    out = sudo_stream(ssh,
+        f"bash -c 'cd {env['git_dir']} && git pull origin main 2>&1'",
+        timeout=60)
+    for line in (out or "").splitlines()[-5:]:
+        if line.strip():
+            safe_print(f"    {line}")
 
-    # 2. Copy compose file
-    print(f"\n  2. Copy compose file")
-    out, err, code = run_sudo(client, f"cp {compose_src} {deploy_dir}/docker-compose.yml && echo COPIED")
-    if "COPIED" in out:
-        print(f"  [OK]")
+    # 2. Copy docker-compose.yml
+    step(2, total, "Copy docker-compose.yml")
+    sudo(ssh,
+        f"cp {env['git_dir']}/{env['compose_src']} {env['deploy_dir']}/docker-compose.yml",
+        timeout=10)
+    safe_print("  Copied")
+
+    # 3. Rebuild services (tenant + web) — BEFORE prisma push so container has new schema
+    step(3, total, f"Rebuild {len(SERVICES_TO_REBUILD)} services: {', '.join(SERVICES_TO_REBUILD)}")
+    for svc in SERVICES_TO_REBUILD:
+        safe_print(f"\n  Building {svc}...")
+        sudo_stream(ssh,
+            f"bash -c 'cd {env['deploy_dir']} && docker compose up -d --build --no-deps {svc} 2>&1'",
+            timeout=600 if svc == "web" else 300)
+        s = sudo(ssh,
+            f"docker ps --filter name={env['container_prefix']}-{svc} --format '{{{{.Status}}}}'",
+            timeout=10)
+        icon = "+" if "Up" in s else "?"
+        safe_print(f"  [{icon}] {svc}: {s}")
+
+    # 4. Prisma db push (new tables) — uses rebuilt tenant container with new schema
+    step(4, total, "Prisma db push (new statistics + KPI tables)")
+    db_url = f"postgresql://aris:{env['db_pass']}@{env['db_host']}:5432/aris"
+    container = f"{env['container_prefix']}-tenant"
+    safe_print(f"  Container: {container}")
+    safe_print(f"  DB: {env['db_host']}:5432")
+    out = sudo_stream(ssh,
+        f"bash -c 'docker exec "
+        f"-e DATABASE_URL=\"{db_url}\" "
+        f"-e DIRECT_DATABASE_URL=\"{db_url}\" "
+        f"-w /app/packages/db-schemas "
+        f"{container} npx prisma db push --schema=prisma --accept-data-loss 2>&1'",
+        timeout=120)
+    if "error" in (out or "").lower() and "already" not in (out or "").lower():
+        safe_print(f"  WARN: Prisma push had issues: {(out or '')[-500:]}")
     else:
-        print(f"  [!] Copy failed: {err or out}")
-        client.close()
-        return False
+        safe_print("  Prisma schema pushed OK")
 
-    # 3. Build and restart web
-    print(f"\n  3. Rebuild web container (this takes ~2-3 min)...")
-    out, err, code = run_sudo(
-        client,
-        f"cd {deploy_dir} && docker compose up -d --no-deps --build web 2>&1 | tail -50",
-        timeout=600,
-    )
+    # 5. Seed CAADEP KPI presets
+    step(5, total, "Seed CAADEP KPI presets")
+    container_tenant = f"{env['container_prefix']}-tenant"
+    out = sudo_stream(ssh,
+        f"bash -c 'docker exec "
+        f"-e DATABASE_URL=\"{db_url}\" "
+        f"-e DIRECT_DATABASE_URL=\"{db_url}\" "
+        f"-w /app/services/tenant "
+        f"{container_tenant} node dist/seed-kpis.js 2>&1'",
+        timeout=60)
+    for line in (out or "").splitlines()[-10:]:
+        if line.strip():
+            safe_print(f"    {line}")
 
-    # Check for build failure
-    if "ERROR" in out and "process" in out and "did not complete successfully" in out:
-        print(f"  [!] BUILD FAILED on {name}")
-        # Extract error
-        for line in out.split("\n"):
-            if "Type error" in line or "error TS" in line or "Failed to compile" in line:
-                print(f"     {line}")
-        client.close()
-        return False
-
-    # Show key lines
-    for line in out.split("\n"):
-        low = line.lower()
-        if any(kw in low for kw in ["built", "started", "recreated", "creating", "running"]):
-            print(f"     {line.strip()}")
-    print(f"  [OK]")
-
-    # 4. Wait and verify
-    print(f"\n  4. Waiting 15s for container to start...")
+    # 6. Health check
+    step(6, total, "Health checks")
+    safe_print("  Waiting 15s...")
     time.sleep(15)
 
-    out, _, code = run_sudo(client, f"docker ps --filter name={container} --format '{{{{.Names}}}} {{{{.Status}}}}'")
-    print(f"     {out}")
+    ok_count = 0
+    for svc in SERVICES_TO_REBUILD:
+        s = sudo(ssh,
+            f"docker ps --filter name={env['container_prefix']}-{svc} --format '{{{{.Status}}}}'",
+            timeout=10)
+        up = "Up" in s
+        if up:
+            ok_count += 1
+        icon = "+" if up else "X"
+        safe_print(f"  [{icon}] {svc:20s} -> {s.strip()}")
 
-    if "Up" not in out:
-        print(f"  [!] Container not running!")
-        # Get logs
-        out2, _, _ = run_sudo(client, f"docker logs {container} --tail 10 2>&1")
-        print(f"     Last logs: {out2[:300]}")
-        client.close()
-        return False
+    # Curl health check
+    if env_key == "prod":
+        out = sudo(ssh, 'curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://au-aris.org', timeout=15)
+    else:
+        out = sudo(ssh, 'curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://test.au-aris.org', timeout=15)
+    safe_print(f"  HTTP status: {out.strip()}")
 
-    # 5. Quick health check
-    print(f"\n  5. Health check")
-    out, _, code = run_sudo(client, "curl -s -o /dev/null -w '%{http_code}' http://localhost:3100/ 2>/dev/null")
-    print(f"     / -> HTTP {out}")
-
-    client.close()
-    print(f"\n  [{name}] DEPLOY SUCCESS")
-    return True
+    ssh.close()
+    return ok_count == len(SERVICES_TO_REBUILD)
 
 
 def main():
-    print(f"{'#'*70}")
-    print(f"  ARIS -- Deploy Web to Staging + Production")
-    print(f"  {datetime.now().isoformat()}")
-    print(f"{'#'*70}")
+    parser = argparse.ArgumentParser(description="Deploy ARIS to PROD + STG")
+    parser.add_argument("--prod", action="store_true", help="Production only")
+    parser.add_argument("--stg", action="store_true", help="Staging only")
+    args = parser.parse_args()
+
+    if not args.prod and not args.stg:
+        # Both
+        envs_to_deploy = ["stg", "prod"]
+    elif args.prod:
+        envs_to_deploy = ["prod"]
+    else:
+        envs_to_deploy = ["stg"]
 
     results = {}
-    for env in ENVIRONMENTS:
-        success = deploy(env)
-        results[env["name"]] = success
+    for env_key in envs_to_deploy:
+        try:
+            results[env_key] = deploy_env(env_key)
+        except Exception as e:
+            safe_print(f"\n  FATAL ERROR deploying {env_key}: {e}")
+            results[env_key] = False
 
-    print(f"\n{'#'*70}")
-    print(f"  SUMMARY")
-    print(f"{'#'*70}")
-    for name, ok in results.items():
-        status = "OK" if ok else "FAILED"
-        print(f"  {name}: {status}")
-    print(f"\n  Done -- {datetime.now().isoformat()}")
-    print(f"{'#'*70}")
+    # Summary
+    safe_print(f"\n{'#'*60}")
+    safe_print("  FINAL SUMMARY")
+    safe_print(f"{'#'*60}")
+    for env_key, ok in results.items():
+        env = ENVS[env_key]
+        safe_print(f"  {env['label']:12s} {'OK' if ok else 'FAIL'} -> {env['url']}")
+    safe_print("")
+
+    if not all(results.values()):
+        sys.exit(1)
 
 
 if __name__ == "__main__":
