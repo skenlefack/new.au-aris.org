@@ -4,7 +4,6 @@ import {
   Clock,
   Users,
   CheckCircle2,
-  XCircle,
   ArrowUpRight,
   ArrowDownRight,
   Minus,
@@ -127,26 +126,20 @@ export default async function CountryPage({ params }: Props) {
         <div className="flex flex-col gap-10 lg:flex-row">
           {/* Left: Country details */}
           <div className="flex-1 space-y-6">
-            {/* Status card */}
-            <div className={`rounded-xl border p-5 ${isConfigured ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20'}`}>
-              <div className="flex items-center gap-3">
-                {isConfigured ? (
+            {/* Status card — only show when active */}
+            {isConfigured && (
+              <div className="rounded-xl border border-green-200 bg-green-50 p-5 dark:border-green-800 dark:bg-green-900/20">
+                <div className="flex items-center gap-3">
                   <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
-                ) : (
-                  <XCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-                )}
-                <div>
-                  <p className={`text-sm font-semibold ${isConfigured ? 'text-green-800 dark:text-green-300' : 'text-amber-800 dark:text-amber-300'}`}>
-                    {isConfigured ? 'Active on ARIS' : 'Pending Configuration'}
-                  </p>
-                  <p className={`text-xs ${isConfigured ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                    {isConfigured
-                      ? 'This country is fully configured and operational on the ARIS platform.'
-                      : 'This country is scheduled for onboarding. Contact your REC coordinator for setup.'}
-                  </p>
+                  <div>
+                    <p className="text-sm font-semibold text-green-800 dark:text-green-300">Active on ARIS</p>
+                    <p className="text-xs text-green-600 dark:text-green-400">
+                      This country is fully configured and operational on the ARIS platform.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* REC memberships */}
             <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
