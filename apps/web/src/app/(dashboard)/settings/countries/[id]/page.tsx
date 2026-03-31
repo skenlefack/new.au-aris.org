@@ -415,7 +415,7 @@ export default function CountryDetailPage() {
             );
           })}
         </div>
-      </section>
+      </section>}
 
       {/* Admin Levels (edit mode only) */}
       {!isNew && <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
