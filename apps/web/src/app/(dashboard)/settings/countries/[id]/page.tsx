@@ -14,13 +14,8 @@ import { useTranslations } from '@/lib/i18n/translations';
 import { ArrowLeft, Loader2, Layers, Plus, Trash2, Save, MapPin, BarChart3, Activity, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
-
-const RichTextEditor = dynamic(() => import('@/components/settings/RichTextEditor').then((m) => m.RichTextEditor), {
-  ssr: false,
-  loading: () => <div className="flex h-[300px] items-center justify-center rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>,
-});
+import { RichTextEditor } from '@/components/settings/RichTextEditor';
 
 const emptyML = { en: '', fr: '', pt: '', ar: '' };
 
