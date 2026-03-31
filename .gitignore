@@ -13,6 +13,9 @@ coverage/
 # Next.js
 .next/
 
+# TinyMCE (copied from node_modules by postinstall)
+apps/web/public/tinymce/
+
 # Build info
 *.tsbuildinfo
 

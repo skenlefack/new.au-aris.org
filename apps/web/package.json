@@ -10,7 +10,9 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "clean": "rm -rf .next out"
+    "clean": "rm -rf .next out",
+    "copy-tinymce": "node scripts/copy-tinymce.js",
+    "postinstall": "node scripts/copy-tinymce.js"
   },
   "dependencies": {
     "@aris/shared-types": "workspace:*",
