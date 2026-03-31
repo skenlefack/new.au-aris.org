@@ -4,21 +4,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  transpilePackages: [
-    '@aris/ui-components',
-    '@aris/shared-types',
-    '@tiptap/react',
-    '@tiptap/starter-kit',
-    '@tiptap/core',
-    '@tiptap/pm',
-    '@tiptap/extension-link',
-    '@tiptap/extension-image',
-    '@tiptap/extension-text-align',
-    '@tiptap/extension-underline',
-    '@tiptap/extension-text-style',
-    '@tiptap/extension-color',
-    '@tiptap/extension-placeholder',
-  ],
+  transpilePackages: ['@aris/ui-components', '@aris/shared-types'],
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },
