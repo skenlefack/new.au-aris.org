@@ -190,7 +190,7 @@ export function useSettingsCountries(params?: { search?: string; recCode?: strin
   });
 }
 
-export function useSettingsCountry(idOrCode: string) {
+export function useSettingsCountry(idOrCode: string, opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['settings', 'countries', idOrCode],
     queryFn: async () => {
@@ -227,7 +227,7 @@ export function useSettingsCountry(idOrCode: string) {
         return { data: null };
       }
     },
-    enabled: !!idOrCode,
+    enabled: (opts?.enabled ?? true) && !!idOrCode,
     staleTime: 10 * 60_000,
   });
 }
@@ -481,7 +481,7 @@ function buildFallbackAdminLevels(countryCode: string): { data: AdminLevel[] } {
  * @param countryId - URL param (UUID or ISO code)
  * @param countryCode - Optional resolved ISO-alpha-2 code (e.g., from useSettingsCountry)
  */
-export function useAdminLevels(countryId: string, countryCode?: string) {
+export function useAdminLevels(countryId: string, countryCode?: string, opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['settings', 'admin-levels', countryId, countryCode],
     queryFn: async () => {
@@ -500,7 +500,7 @@ export function useAdminLevels(countryId: string, countryCode?: string) {
       if (code) return buildFallbackAdminLevels(code);
       return { data: [] as AdminLevel[] };
     },
-    enabled: !!countryId,
+    enabled: (opts?.enabled ?? true) && !!countryId,
     staleTime: 10 * 60_000,
   });
 }

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import {
-  useSettingsCountry, useUpdateCountry, useSettingsRecs, useAdminLevels, useUpsertAdminLevels, type AdminLevel,
+  useSettingsCountry, useCreateCountry, useUpdateCountry, useSettingsRecs, useAdminLevels, useUpsertAdminLevels, type AdminLevel,
   useStatisticDefinitions, useCountryStatistics, useUpsertCountryStatistics,
   useKpiDefinitions, useCountryKpiScores, useUpsertCountryKpiScores,
 } from '@/lib/api/settings-hooks';
@@ -13,6 +13,7 @@ import { SaveBar } from '@/components/settings/SaveBar';
 import { useTranslations } from '@/lib/i18n/translations';
 import { ArrowLeft, Loader2, Layers, Plus, Trash2, Save, MapPin, BarChart3, Activity, FileText } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 
@@ -25,23 +26,27 @@ const emptyML = { en: '', fr: '', pt: '', ar: '' };
 
 export default function CountryDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const isNew = id === 'new';
   const { canManageCountries, isSuperAdmin, isContinentalAdmin, isNationalAdmin } = useSettingsAccess();
   const t = useTranslations('settings');
-  const { data, isLoading } = useSettingsCountry(id);
+  const { data, isLoading } = useSettingsCountry(id, { enabled: !isNew });
   const { data: recsData } = useSettingsRecs();
+  const createMutation = useCreateCountry();
   const updateMutation = useUpdateCountry();
 
   // Resolved country code (from API or fallback)
   const resolvedCode: string | undefined = (data?.data as any)?.code;
 
   // Admin levels — pass resolved country code for GADM fallback
-  const { data: adminLevelsData, isLoading: adminLevelsLoading } = useAdminLevels(id, resolvedCode);
+  const { data: adminLevelsData, isLoading: adminLevelsLoading } = useAdminLevels(id, resolvedCode, { enabled: !isNew });
   const upsertAdminLevelsMutation = useUpsertAdminLevels();
   const canEditAdminLevels = isSuperAdmin || isContinentalAdmin || isNationalAdmin;
 
   const allRecs: any[] = recsData?.data ?? [];
 
   const [form, setForm] = useState<Record<string, any>>({
+    code: '',
     name: { ...emptyML },
     officialName: { ...emptyML },
     capital: { ...emptyML },
@@ -69,6 +74,7 @@ export default function CountryDetailPage() {
     if (data?.data) {
       const c = data.data;
       setForm({
+        code: c.code ?? '',
         name: c.name ?? { ...emptyML },
         officialName: c.officialName ?? { ...emptyML },
         capital: c.capital ?? { ...emptyML },
@@ -107,8 +113,7 @@ export default function CountryDetailPage() {
   };
 
   const handleSave = async () => {
-    const body = {
-      id,
+    const payload = {
       name: form.name,
       officialName: form.officialName,
       capital: form.capital,
@@ -124,20 +129,34 @@ export default function CountryDetailPage() {
       stats: form.stats,
       sectorPerformance: form.sectorPerformance,
       welcomeMessage: form.welcomeMessage || null,
+      code: form.code || undefined,
     };
     try {
-      await updateMutation.mutateAsync(body);
-      setDirty(false);
-      toast.success('Country updated successfully');
+      if (isNew) {
+        const result = await createMutation.mutateAsync(payload);
+        setDirty(false);
+        toast.success('Country created successfully');
+        const newId = (result as any)?.data?.id;
+        if (newId) router.push(`/settings/countries/${newId}`);
+      } else {
+        await updateMutation.mutateAsync({ id, ...payload });
+        setDirty(false);
+        toast.success('Country updated successfully');
+      }
     } catch {
-      toast.error('Failed to update country');
+      toast.error(isNew ? 'Failed to create country' : 'Failed to update country');
     }
   };
 
   const handleDiscard = () => {
+    if (isNew) {
+      router.push('/settings/countries');
+      return;
+    }
     if (data?.data) {
       const c = data.data;
       setForm({
+        code: c.code ?? '',
         name: c.name ?? { ...emptyML },
         officialName: c.officialName ?? { ...emptyML },
         capital: c.capital ?? { ...emptyML },
@@ -204,7 +223,7 @@ export default function CountryDetailPage() {
     }
   };
 
-  if (isLoading) {
+  if (!isNew && isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
@@ -222,14 +241,16 @@ export default function CountryDetailPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <span className="text-3xl">{form.flag}</span>
+        {!isNew && <span className="text-3xl">{form.flag}</span>}
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {form.name?.en || t('editCountry')}
+            {isNew ? t('addCountry') : (form.name?.en || t('editCountry'))}
           </h1>
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-            {form.officialName?.en}
-          </p>
+          {!isNew && (
+            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+              {form.officialName?.en}
+            </p>
+          )}
         </div>
       </div>
 
@@ -237,6 +258,19 @@ export default function CountryDetailPage() {
       <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
         <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">{t('basicInformation')}</h2>
         <div className="grid gap-5 lg:grid-cols-2">
+          {isNew && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Country Code (ISO 3166-1 alpha-2)</label>
+              <input
+                type="text"
+                value={form.code}
+                onChange={(e) => updateField('code', e.target.value.toUpperCase())}
+                maxLength={2}
+                placeholder="KE"
+                className="w-20 rounded-lg border border-gray-200 px-3 py-2 text-center font-mono text-sm uppercase dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+              />
+            </div>
+          )}
           <MultilingualInput
             label={t('countryName')}
             value={form.name}
@@ -361,8 +395,8 @@ export default function CountryDetailPage() {
         </div>
       </section>
 
-      {/* REC memberships */}
-      <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+      {/* REC memberships (edit mode only) */}
+      {!isNew && <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
         <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">{t('recMemberships')}</h2>
         <div className="flex flex-wrap gap-2">
           {allRecs.map((rec: any) => {
@@ -388,8 +422,8 @@ export default function CountryDetailPage() {
         </div>
       </section>
 
-      {/* Admin Levels */}
-      <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+      {/* Admin Levels (edit mode only) */}
+      {!isNew && <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Layers className="h-4 w-4 text-gray-500" />
@@ -511,38 +545,41 @@ export default function CountryDetailPage() {
             </Link>
           </div>
         )}
-      </section>
+      </section>}
 
-      {/* Welcome Message (shown when country is not active) */}
-      <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-        <div className="mb-4 flex items-center gap-2">
-          <FileText className="h-4 w-4 text-gray-500" />
-          <div>
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Welcome Message</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Displayed on the public country page when the country is not yet active on ARIS. Supports rich text with images (paste from Word).
-            </p>
+      {/* Welcome Message (edit mode only) */}
+      {!isNew && (
+        <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+          <div className="mb-4 flex items-center gap-2">
+            <FileText className="h-4 w-4 text-gray-500" />
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Welcome Message</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Displayed on the public country page when the country is not yet active on ARIS. Supports rich text with images (paste from Word).
+              </p>
+            </div>
           </div>
-        </div>
-        <RichTextEditor
-          value={form.welcomeMessage}
-          onChange={(html) => updateField('welcomeMessage', html)}
-          disabled={!canManageCountries}
-          height={350}
-        />
-      </section>
+          <RichTextEditor
+            value={form.welcomeMessage}
+            onChange={(html) => updateField('welcomeMessage', html)}
+            disabled={!canManageCountries}
+            height={350}
+          />
+        </section>
+      )}
 
-      {/* Statistics Configuration */}
-      <CountryStatisticsSection countryId={id} />
+      {/* Statistics Configuration (edit mode only) */}
+      {!isNew && <CountryStatisticsSection countryId={id} />}
 
-      {/* KPI Scores */}
-      <CountryKpiScoresSection countryId={id} />
+      {/* KPI Scores (edit mode only) */}
+      {!isNew && <CountryKpiScoresSection countryId={id} />}
 
       <SaveBar
-        show={dirty}
-        saving={updateMutation.isPending}
+        show={isNew || dirty}
+        saving={createMutation.isPending || updateMutation.isPending}
         onSave={handleSave}
         onDiscard={handleDiscard}
+        message={isNew ? 'Fill in the details and save to create the country' : undefined}
       />
     </div>
   );
