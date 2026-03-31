@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useCallback } from 'react';
 import { Editor } from '@tinymce/tinymce-react';
 
 interface RichTextEditorProps {
@@ -12,6 +12,12 @@ interface RichTextEditorProps {
 
 export function RichTextEditor({ value, onChange, disabled = false, height = 400 }: RichTextEditorProps) {
   const editorRef = useRef<any>(null);
+  const readyRef = useRef(false);
+
+  const handleEditorChange = useCallback((content: string) => {
+    if (!readyRef.current) return;
+    onChange(content);
+  }, [onChange]);
 
   return (
     <Editor
@@ -19,9 +25,11 @@ export function RichTextEditor({ value, onChange, disabled = false, height = 400
       licenseKey="gpl"
       onInit={(_evt, editor) => {
         editorRef.current = editor;
+        // Allow onChange only after editor is fully initialized
+        requestAnimationFrame(() => { readyRef.current = true; });
       }}
       value={value}
-      onEditorChange={(content) => onChange(content)}
+      onEditorChange={handleEditorChange}
       disabled={disabled}
       init={{
         height,

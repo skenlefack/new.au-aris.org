@@ -22,7 +22,7 @@ export function SaveBar({
   return (
     <div
       className={cn(
-        'fixed inset-x-0 bottom-0 z-40 transform transition-transform duration-300',
+        'fixed inset-x-0 bottom-0 z-[9999] transform transition-transform duration-300',
         show ? 'translate-y-0' : 'translate-y-full',
       )}
     >
