@@ -43,12 +43,13 @@ model Country {
   languages         Json?        // ["sw", "en"]
   currency          String?      @db.VarChar(10)
   phoneCode         String?      @map("phone_code") @db.VarChar(10)
-  isActive          Boolean      @default(true) @map("is_active")
+  isActive          Boolean      @default(false) @map("is_active")
   isOperational     Boolean      @default(false) @map("is_operational")
   tenantId          String?      @map("tenant_id") @db.Uuid
   sortOrder         Int          @default(0) @map("sort_order")
   stats             Json?        // { activeOutbreaks: 6, vaccinationCoverage: 52, ... }
   sectorPerformance Json?        @map("sector_performance") // { vaccination: 52, fisheries: 74, ... }
+  welcomeMessage    String?      @map("welcome_message") @db.Text  // HTML content for inactive country landing page
   metadata          Json?
   createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt         DateTime     @updatedAt @map("updated_at") @db.Timestamptz

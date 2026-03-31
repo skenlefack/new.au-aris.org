@@ -20,7 +20,6 @@ import {
   Shield,
   Activity,
   Info,
-  Mail,
   BarChart3,
   type LucideIcon,
 } from 'lucide-react';
@@ -56,6 +55,7 @@ export default async function CountryPage({ params }: Props) {
   let apiKpiScores: any[] = [];
   let isActive = false;
   let hasInterop = false;
+  let welcomeMessage: string | null = null;
 
   try {
     const apiRes = await getPublicCountryByCode(code);
@@ -93,6 +93,7 @@ export default async function CountryPage({ params }: Props) {
       apiKpiScores = apiCountry.kpiScores ?? [];
       isActive = apiCountry.isActive ?? false;
       hasInterop = apiCountry.hasInterop ?? false;
+      welcomeMessage = apiCountry.welcomeMessage ?? null;
     }
   } catch {
     // Static fallback already assigned
@@ -282,7 +283,7 @@ export default async function CountryPage({ params }: Props) {
                 )}
               </>
             ) : (
-              <FallbackMessage countryName={country.name} />
+              <FallbackMessage countryName={country.name} welcomeMessage={welcomeMessage} />
             )}
           </div>
 
@@ -445,50 +446,72 @@ function PerformanceSection({ kpiScores }: { kpiScores: any[] }) {
   );
 }
 
-function FallbackMessage({ countryName }: { countryName: string }) {
+function FallbackMessage({ countryName, welcomeMessage }: { countryName: string; welcomeMessage: string | null }) {
+  const currentYear = new Date().getFullYear();
+
+  const defaultHtml = `
+    <p>The African Union Inter-African Bureau for Animal Resources (AU-IBAR) is currently
+    working with ${countryName}\u2019s national veterinary and livestock authorities to establish
+    a comprehensive digital connection with the Animal Resources Information System (ARIS).
+    This integration will enable real-time monitoring of animal health, production systems,
+    and trade across all key domains.</p>
+    <p>Once operational, this page will feature live national statistics including disease
+    surveillance indicators, livestock census figures, vaccination coverage rates, fisheries
+    and aquaculture metrics, wildlife conservation indices, and trade flow data. These
+    indicators are drawn from official notifications submitted through ARIS by national
+    focal points and validated through a rigorous four-level quality assurance process.</p>
+    <p>ARIS supports the African Union\u2019s Agenda 2063 and the Livestock Development Strategy
+    for Africa (LiDeSA) by providing a continental digital infrastructure that connects
+    55 Member States across 8 Regional Economic Communities. The platform ensures data
+    sovereignty \u2014 each country retains full ownership and control of its data while
+    contributing to continental-level analytics for evidence-based policy making.</p>
+    <p>For information on onboarding timelines or to initiate the integration process,
+    national authorities are invited to contact their Regional Economic Community
+    coordinator or the AU-IBAR ARIS technical team at
+    <a href="mailto:aris@au-ibar.org">aris@au-ibar.org</a>.</p>
+  `;
+
+  const htmlContent = welcomeMessage || defaultHtml;
+
   return (
-    <div className="rounded-2xl border border-gray-200/60 bg-white p-6 shadow-md dark:border-gray-700 dark:bg-gray-800">
-      <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-aris-primary-50 dark:bg-aris-primary-900/30">
-          <Info className="h-5 w-5 text-aris-primary-600 dark:text-aris-primary-400" />
+    <div className="space-y-4">
+      {/* Welcome content */}
+      <div className="rounded-2xl border border-gray-200/60 bg-white p-6 shadow-md dark:border-gray-700 dark:bg-gray-800">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-aris-primary-50 dark:bg-aris-primary-900/30">
+            <Info className="h-5 w-5 text-aris-primary-600 dark:text-aris-primary-400" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+            Welcome to {countryName}&apos;s ARIS Portal
+          </h3>
         </div>
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-          Welcome to {countryName}&apos;s ARIS Portal
-        </h3>
+        <div
+          className="prose prose-sm max-w-none text-gray-600 prose-a:text-aris-primary-600 prose-a:no-underline hover:prose-a:underline prose-img:rounded-lg dark:text-gray-300 dark:prose-a:text-aris-primary-400"
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
+        />
       </div>
-      <div className="space-y-4 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
-        <p>
-          The African Union Inter-African Bureau for Animal Resources (AU-IBAR) is currently
-          working with {countryName}&apos;s national veterinary and livestock authorities to establish
-          a comprehensive digital connection with the Animal Resources Information System (ARIS).
-          This integration will enable real-time monitoring of animal health, production systems,
-          and trade across all key domains.
-        </p>
-        <p>
-          Once operational, this page will feature live national statistics including disease
-          surveillance indicators, livestock census figures, vaccination coverage rates, fisheries
-          and aquaculture metrics, wildlife conservation indices, and trade flow data. These
-          indicators are drawn from official notifications submitted through ARIS by national
-          focal points and validated through a rigorous four-level quality assurance process.
-        </p>
-        <p>
-          ARIS supports the African Union&apos;s Agenda 2063 and the Livestock Development Strategy
-          for Africa (LiDeSA) by providing a continental digital infrastructure that connects
-          55 Member States across 8 Regional Economic Communities. The platform ensures data
-          sovereignty &mdash; each country retains full ownership and control of its data while
-          contributing to continental-level analytics for evidence-based policy making.
-        </p>
-        <p className="flex items-start gap-2">
-          <Mail className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
-          <span>
-            For information on onboarding timelines or to initiate the integration process,
-            national authorities are invited to contact their Regional Economic Community
-            coordinator or the AU-IBAR ARIS technical team at{' '}
-            <a href="mailto:aris@au-ibar.org" className="font-medium text-aris-primary-600 hover:underline dark:text-aris-primary-400">
-              aris@au-ibar.org
-            </a>.
-          </span>
-        </p>
+
+      {/* Red status banner */}
+      <div className="overflow-hidden rounded-2xl border border-red-200 bg-gradient-to-r from-red-600 via-red-700 to-red-800 shadow-lg dark:border-red-900">
+        <div className="px-6 py-5">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
+              <Info className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-white">
+                Not Yet Active on ARIS &mdash; {currentYear}
+              </h4>
+              <p className="mt-1 text-sm leading-relaxed text-red-100">
+                {countryName} has not yet started submitting official notifications and data reports
+                through the ARIS platform for the {currentYear} reporting period. Country statistics and
+                performance indicators will be displayed on this page once the national data submission
+                process is initiated and validated.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="h-1 bg-gradient-to-r from-red-400 via-amber-400 to-red-400" />
       </div>
     </div>
   );

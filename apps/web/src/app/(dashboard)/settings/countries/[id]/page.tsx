@@ -11,8 +11,14 @@ import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { SaveBar } from '@/components/settings/SaveBar';
 import { useTranslations } from '@/lib/i18n/translations';
-import { ArrowLeft, Loader2, Layers, Plus, Trash2, Save, MapPin, BarChart3, Activity } from 'lucide-react';
+import { ArrowLeft, Loader2, Layers, Plus, Trash2, Save, MapPin, BarChart3, Activity, FileText } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+const RichTextEditor = dynamic(() => import('@/components/settings/RichTextEditor').then((m) => m.RichTextEditor), {
+  ssr: false,
+  loading: () => <div className="flex h-[300px] items-center justify-center rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>,
+});
 
 const emptyML = { en: '', fr: '', pt: '', ar: '' };
 
@@ -45,10 +51,11 @@ export default function CountryDetailPage() {
     languages: [] as string[],
     currency: '',
     phoneCode: '',
-    isActive: true,
+    isActive: false,
     isOperational: false,
     stats: {} as Record<string, number>,
     sectorPerformance: { vaccination: 0, fisheries: 0, wildlife: 0, governance: 0, dataQuality: 0, analytics: 0 },
+    welcomeMessage: '',
   });
 
   const [dirty, setDirty] = useState(false);
@@ -71,10 +78,11 @@ export default function CountryDetailPage() {
         languages: c.languages ?? [],
         currency: c.currency ?? '',
         phoneCode: c.phoneCode ?? '',
-        isActive: c.isActive ?? true,
+        isActive: c.isActive ?? false,
         isOperational: c.isOperational ?? false,
         stats: c.stats ?? {},
         sectorPerformance: c.sectorPerformance ?? { vaccination: 0, fisheries: 0, wildlife: 0, governance: 0, dataQuality: 0, analytics: 0 },
+        welcomeMessage: c.welcomeMessage ?? '',
       });
       setDirty(false);
     }
@@ -114,6 +122,7 @@ export default function CountryDetailPage() {
       isOperational: form.isOperational,
       stats: form.stats,
       sectorPerformance: form.sectorPerformance,
+      welcomeMessage: form.welcomeMessage || null,
     };
     await updateMutation.mutateAsync(body);
     setDirty(false);
@@ -133,10 +142,11 @@ export default function CountryDetailPage() {
         languages: c.languages ?? [],
         currency: c.currency ?? '',
         phoneCode: c.phoneCode ?? '',
-        isActive: c.isActive ?? true,
+        isActive: c.isActive ?? false,
         isOperational: c.isOperational ?? false,
         stats: c.stats ?? {},
         sectorPerformance: c.sectorPerformance ?? {},
+        welcomeMessage: c.welcomeMessage ?? '',
       });
     }
     setDirty(false);
@@ -490,6 +500,25 @@ export default function CountryDetailPage() {
             </Link>
           </div>
         )}
+      </section>
+
+      {/* Welcome Message (shown when country is not active) */}
+      <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <div className="mb-4 flex items-center gap-2">
+          <FileText className="h-4 w-4 text-gray-500" />
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Welcome Message</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Displayed on the public country page when the country is not yet active on ARIS. Supports rich text with images (paste from Word).
+            </p>
+          </div>
+        </div>
+        <RichTextEditor
+          value={form.welcomeMessage}
+          onChange={(html) => updateField('welcomeMessage', html)}
+          disabled={!canManageCountries}
+          height={350}
+        />
       </section>
 
       {/* Statistics Configuration */}

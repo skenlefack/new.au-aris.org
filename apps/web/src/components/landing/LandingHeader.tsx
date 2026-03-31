@@ -38,11 +38,11 @@ export function LandingHeader({ rec, country }: LandingHeaderProps) {
   }, [i18nConfig]);
 
   const crumbs: Crumb[] = [{ label: 'African Union', href: '/' }];
-  if (rec) {
-    crumbs.push({ label: rec.name, href: `/rec/${rec.code}` });
-  }
   if (country) {
+    // Country pages: AU > Country only (countries can belong to multiple RECs)
     crumbs.push({ label: country.name, href: `/country/${country.code}` });
+  } else if (rec) {
+    crumbs.push({ label: rec.name, href: `/rec/${rec.code}` });
   }
 
   return (

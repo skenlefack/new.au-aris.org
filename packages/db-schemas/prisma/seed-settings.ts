@@ -1362,11 +1362,21 @@ async function seedRecs(): Promise<void> {
   console.log(`    ${RECS_DATA.length} RECs seeded.`);
 }
 
+function generateWelcomeMessage(countryName: string): string {
+  return `<h3>Welcome to ${countryName}\u2019s ARIS Portal</h3>
+<p>The African Union Inter-African Bureau for Animal Resources (AU-IBAR) is currently working with ${countryName}\u2019s national veterinary and livestock authorities to establish a comprehensive digital connection with the Animal Resources Information System (ARIS). This integration will enable real-time monitoring of animal health, production systems, and trade across all key domains.</p>
+<p>Once operational, this page will feature live national statistics including disease surveillance indicators, livestock census figures, vaccination coverage rates, fisheries and aquaculture metrics, wildlife conservation indices, and trade flow data. These indicators are drawn from official notifications submitted through ARIS by national focal points and validated through a rigorous four-level quality assurance process.</p>
+<p>ARIS supports the African Union\u2019s Agenda 2063 and the Livestock Development Strategy for Africa (LiDeSA) by providing a continental digital infrastructure that connects 55 Member States across 8 Regional Economic Communities. The platform ensures data sovereignty \u2014 each country retains full ownership and control of its data while contributing to continental-level analytics for evidence-based policy making.</p>
+<p>For information on onboarding timelines or to initiate the integration process, national authorities are invited to contact their Regional Economic Community coordinator or the AU-IBAR ARIS technical team at <a href="mailto:aris@au-ibar.org">aris@au-ibar.org</a>.</p>`;
+}
+
 async function seedCountries(): Promise<void> {
   console.log('  Seeding countries...');
   const db = prisma as any;
 
   for (const country of COUNTRIES_DATA) {
+    const nameEn = (country.name as any)?.en ?? country.code;
+    const defaultMsg = generateWelcomeMessage(nameEn);
     await db.country.upsert({
       where: { code: country.code },
       update: {
@@ -1398,10 +1408,11 @@ async function seedCountries(): Promise<void> {
         languages: country.languages,
         currency: country.currency,
         phoneCode: country.phoneCode,
-        isActive: true,
+        isActive: false,
         isOperational: country.isOperational,
         tenantId: country.tenantId ?? null,
         sortOrder: country.sortOrder,
+        welcomeMessage: defaultMsg,
       },
     });
   }

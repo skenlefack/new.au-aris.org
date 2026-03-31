@@ -467,12 +467,13 @@ export class SettingsService {
         languages: (dto.languages ?? []) as Prisma.InputJsonValue,
         currency: (dto.currency as string) ?? null,
         phoneCode: (dto.phoneCode as string) ?? null,
-        isActive: (dto.isActive as boolean) ?? true,
+        isActive: (dto.isActive as boolean) ?? false,
         isOperational: (dto.isOperational as boolean) ?? false,
         tenantId: (dto.tenantId as string) ?? null,
         sortOrder: (dto.sortOrder as number) ?? 0,
         stats: (dto.stats ?? {}) as Prisma.InputJsonValue,
         sectorPerformance: (dto.sectorPerformance ?? {}) as Prisma.InputJsonValue,
+        welcomeMessage: (dto.welcomeMessage as string) ?? null,
         metadata: (dto.metadata ?? {}) as Prisma.InputJsonValue,
       },
     });
@@ -501,6 +502,7 @@ export class SettingsService {
     if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
     if (dto.stats !== undefined) updateData.stats = dto.stats as Prisma.InputJsonValue;
     if (dto.sectorPerformance !== undefined) updateData.sectorPerformance = dto.sectorPerformance as Prisma.InputJsonValue;
+    if (dto.welcomeMessage !== undefined) updateData.welcomeMessage = dto.welcomeMessage;
     if (dto.metadata !== undefined) updateData.metadata = dto.metadata as Prisma.InputJsonValue;
 
     try {
@@ -1003,6 +1005,7 @@ export class SettingsService {
         tenantId: true,
         stats: true,
         sectorPerformance: true,
+        welcomeMessage: true,
         recs: {
           select: {
             rec: {
