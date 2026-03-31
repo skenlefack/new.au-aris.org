@@ -14,6 +14,7 @@ import { useTranslations } from '@/lib/i18n/translations';
 import { ArrowLeft, Loader2, Layers, Plus, Trash2, Save, MapPin, BarChart3, Activity, FileText } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { toast } from 'sonner';
 
 const RichTextEditor = dynamic(() => import('@/components/settings/RichTextEditor').then((m) => m.RichTextEditor), {
   ssr: false,
@@ -124,8 +125,13 @@ export default function CountryDetailPage() {
       sectorPerformance: form.sectorPerformance,
       welcomeMessage: form.welcomeMessage || null,
     };
-    await updateMutation.mutateAsync(body);
-    setDirty(false);
+    try {
+      await updateMutation.mutateAsync(body);
+      setDirty(false);
+      toast.success('Country updated successfully');
+    } catch {
+      toast.error('Failed to update country');
+    }
   };
 
   const handleDiscard = () => {
@@ -189,8 +195,13 @@ export default function CountryDetailPage() {
   };
 
   const handleSaveAdminLevels = async () => {
-    await upsertAdminLevelsMutation.mutateAsync({ countryId: id, levels: adminLevels });
-    setAdminLevelsDirty(false);
+    try {
+      await upsertAdminLevelsMutation.mutateAsync({ countryId: id, levels: adminLevels });
+      setAdminLevelsDirty(false);
+      toast.success('Administrative levels saved');
+    } catch {
+      toast.error('Failed to save administrative levels');
+    }
   };
 
   if (isLoading) {
@@ -617,8 +628,13 @@ function CountryStatisticsSection({ countryId }: { countryId: string }) {
         overrideValue: v.overrideValue ? Number(v.overrideValue) : null,
         sortOrder: v.sortOrder,
       }));
-    await upsertMutation.mutateAsync({ countryId, items });
-    setStatsDirty(false);
+    try {
+      await upsertMutation.mutateAsync({ countryId, items });
+      setStatsDirty(false);
+      toast.success('Statistics configuration saved');
+    } catch {
+      toast.error('Failed to save statistics');
+    }
   };
 
   if (definitions.length === 0) return null;
@@ -753,8 +769,13 @@ function CountryKpiScoresSection({ countryId }: { countryId: string }) {
         year,
         notes: v.notes || null,
       }));
-    await upsertMutation.mutateAsync({ countryId, items });
-    setScoresDirty(false);
+    try {
+      await upsertMutation.mutateAsync({ countryId, items });
+      setScoresDirty(false);
+      toast.success('KPI scores saved');
+    } catch {
+      toast.error('Failed to save KPI scores');
+    }
   };
 
   if (definitions.length === 0) return null;
