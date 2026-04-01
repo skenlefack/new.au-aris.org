@@ -4,6 +4,7 @@ export interface JwtPayload {
   sub: string;
   email: string;
   role: UserRole;
+  roles?: string[];  // effective role codes (new permission system)
   tenantId: string;
   tenantLevel: TenantLevel;
   locale?: string;
@@ -16,6 +17,7 @@ export interface AuthenticatedUser {
   userId: string;
   email: string;
   role: UserRole;
+  roles: string[];  // effective role codes — defaults to [role] for backward compat
   tenantId: string;
   tenantLevel: TenantLevel;
   locale?: string;

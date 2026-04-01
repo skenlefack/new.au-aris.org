@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   User,
   Shield,
+  ShieldAlert,
   Bell,
   Globe,
   Palette,
@@ -12,6 +13,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { useTranslations } from '@/lib/i18n/translations';
 
 interface SettingsCard {
@@ -25,6 +27,7 @@ interface SettingsCard {
 
 export default function SettingsOverviewPage() {
   const user = useAuthStore((s) => s.user);
+  const { canManageRoles } = useSettingsAccess();
   const t = useTranslations('settings');
 
   const SETTINGS_CARDS: SettingsCard[] = [
@@ -76,6 +79,14 @@ export default function SettingsOverviewPage() {
       color: 'text-gray-600',
       bgColor: 'bg-gray-100',
     },
+    ...(canManageRoles ? [{
+      href: '/settings/roles',
+      label: t('rolesPermissions') || 'Roles & Permissions',
+      description: t('rolesPermissionsDesc') || 'Manage roles and configure permission matrix',
+      icon: <ShieldAlert className="h-5 w-5" />,
+      color: 'text-violet-600',
+      bgColor: 'bg-violet-100',
+    }] : []),
   ];
 
   return (

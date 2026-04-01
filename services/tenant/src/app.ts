@@ -12,6 +12,7 @@ import { authHook } from '@aris/auth-middleware/fastify';
 import type { AuthHookOptions } from '@aris/auth-middleware/fastify';
 import { TenantService } from './services/tenant.service.js';
 import { SettingsService } from './services/settings.service.js';
+import { RoleService } from './services/role.service.js';
 import { BiService } from './services/bi.service.js';
 import { registerTenantRoutes } from './routes/tenant.routes.js';
 import { registerSettingsRoutes } from './routes/settings.routes.js';
@@ -91,6 +92,9 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   const settingsService = new SettingsService(app.prisma, kafka, redis);
   app.decorate('settingsService', settingsService);
+
+  const roleService = new RoleService(app.prisma, kafka, redis);
+  app.decorate('roleService', roleService);
 
   const biService = new BiService(app.prisma, redis);
   app.decorate('biService', biService);

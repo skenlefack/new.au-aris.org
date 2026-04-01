@@ -3,6 +3,18 @@ import { rolesHook, tenantHook } from '@aris/auth-middleware/fastify';
 import { UserRole } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import {
+  RoleBodySchema,
+  RoleUpdateBodySchema,
+  RoleQuerySchema,
+  PermissionQuerySchema,
+  RolePermissionBatchSchema,
+  type RoleBodyInput,
+  type RoleUpdateBodyInput,
+  type RoleQueryInput,
+  type PermissionQueryInput,
+  type RolePermissionBatchInput,
+} from '../schemas/role.schemas.js';
+import {
   RecCodeParamSchema,
   RecBodySchema,
   RecSortBodySchema,
@@ -624,5 +636,69 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.settingsService.upsertCountryKpiScores(request.params.id, request.body.scores, user);
+  });
+
+  // ───────────────────── Roles & Permissions ─────────────────────
+
+  // GET /api/v1/settings/roles — list roles (tenant-scoped + global system roles)
+  app.get<{ Querystring: RoleQueryInput }>('/api/v1/settings/roles', {
+    schema: { querystring: RoleQuerySchema },
+    preHandler: authAndTenant,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.roleService.listRoles(request.query, user);
+  });
+
+  // GET /api/v1/settings/roles/:id — role detail with permissions matrix
+  app.get<{ Params: UuidParamInput }>('/api/v1/settings/roles/:id', {
+    schema: { params: UuidParamSchema },
+    preHandler: authAndTenant,
+  }, async (request) => {
+    return app.roleService.getRoleById(request.params.id);
+  });
+
+  // POST /api/v1/settings/roles — create custom role
+  app.post<{ Body: RoleBodyInput }>('/api/v1/settings/roles', {
+    schema: { body: RoleBodySchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+  }, async (request, reply) => {
+    const user = request.user as AuthenticatedUser;
+    const result = await app.roleService.createRole(request.body as Record<string, unknown>, user);
+    return reply.code(201).send(result);
+  });
+
+  // PATCH /api/v1/settings/roles/:id — update role
+  app.patch<{ Params: UuidParamInput; Body: RoleUpdateBodyInput }>('/api/v1/settings/roles/:id', {
+    schema: { params: UuidParamSchema, body: RoleUpdateBodySchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.roleService.updateRole(request.params.id, request.body as Record<string, unknown>, user);
+  });
+
+  // DELETE /api/v1/settings/roles/:id — delete role (non-system only)
+  app.delete<{ Params: UuidParamInput }>('/api/v1/settings/roles/:id', {
+    schema: { params: UuidParamSchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.roleService.deleteRole(request.params.id, user);
+  });
+
+  // GET /api/v1/settings/permissions — list all permission definitions
+  app.get<{ Querystring: PermissionQueryInput }>('/api/v1/settings/permissions', {
+    schema: { querystring: PermissionQuerySchema },
+    preHandler: authAndTenant,
+  }, async (request) => {
+    return app.roleService.listPermissions(request.query);
+  });
+
+  // PUT /api/v1/settings/roles/:id/permissions — batch update permission matrix
+  app.put<{ Params: UuidParamInput; Body: RolePermissionBatchInput }>('/api/v1/settings/roles/:id/permissions', {
+    schema: { params: UuidParamSchema, body: RolePermissionBatchSchema },
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.roleService.updateRolePermissions(request.params.id, request.body.permissionIds, user);
   });
 }

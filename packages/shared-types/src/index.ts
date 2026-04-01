@@ -22,6 +22,13 @@ export type {
 } from './dto';
 export { DEFAULT_PAGE, DEFAULT_LIMIT, MAX_LIMIT } from './dto';
 
+// Interfaces
+export type {
+  PermissionEntry,
+  UserPermissions,
+  RoleInfo,
+} from './interfaces/permission.interface';
+
 // Kafka contracts
 export type { KafkaEvent, KafkaHeaders } from './kafka';
 export * from './kafka/topic-names';

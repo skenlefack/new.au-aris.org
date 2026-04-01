@@ -35,7 +35,10 @@ import {
   useUpdateUser,
   useDeleteUser,
   useToggleUserActive,
+  useSettingsRoles,
+  useUserFunctions,
   type ManagedUser,
+  type RoleItem,
 } from '@/lib/api/settings-hooks';
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -139,6 +142,134 @@ const EMPTY_FORM: UserFormState = {
   isActive: true,
   domainIds: [],
 };
+
+/* ================================================================ */
+/*  Functions & Effective Roles Section                               */
+/* ================================================================ */
+
+function UserFunctionsAndRolesSection({ userId, userRole }: { userId: string | null; userRole: string }) {
+  const { data: rolesData } = useSettingsRoles({ limit: 50 });
+  const allRoles: RoleItem[] = rolesData?.data ?? [];
+  const { data: userFunctionsData } = useUserFunctions(userId ?? '');
+  const userFunctions = (userFunctionsData as any)?.data ?? [];
+
+  // Derive roles from functions
+  const derivedRoleIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const uf of userFunctions) {
+      const fn = uf.function ?? uf;
+      if (fn.roles) {
+        for (const fr of fn.roles) {
+          const roleId = fr.role?.id ?? fr.roleId;
+          if (roleId) ids.add(roleId);
+        }
+      }
+    }
+    return ids;
+  }, [userFunctions]);
+
+  // System role from the user's primary role field
+  const primarySystemRole = allRoles.find((r) => r.code === userRole);
+
+  // Effective roles = primary system role + function-derived roles
+  const effectiveRoles = useMemo(() => {
+    const roleMap = new Map<string, RoleItem>();
+    if (primarySystemRole) roleMap.set(primarySystemRole.id, primarySystemRole);
+    for (const id of derivedRoleIds) {
+      const r = allRoles.find((role) => role.id === id);
+      if (r) roleMap.set(r.id, r);
+    }
+    return Array.from(roleMap.values());
+  }, [primarySystemRole, derivedRoleIds, allRoles]);
+
+  if (!userId) return null;
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 overflow-hidden">
+      <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-gray-400" />
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Functions & Effective Roles</h2>
+        </div>
+        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+          Roles derived from assigned functions and primary system role
+        </p>
+      </div>
+      <div className="px-6 py-5 space-y-4">
+        {/* Assigned functions */}
+        <div>
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Assigned Functions
+          </label>
+          {userFunctions.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {userFunctions.map((uf: any) => {
+                const fn = uf.function ?? uf;
+                return (
+                  <div
+                    key={uf.id ?? fn.id}
+                    className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5"
+                  >
+                    <span className="text-xs font-medium text-gray-900 dark:text-white">
+                      {fn.name?.en ?? fn.code}
+                    </span>
+                    {fn.roles?.length > 0 && (
+                      <div className="flex gap-1">
+                        {fn.roles.map((fr: any) => (
+                          <span
+                            key={fr.role?.id ?? fr.roleId}
+                            className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold text-white"
+                            style={{ backgroundColor: fr.role?.color ?? '#6b7280' }}
+                            title={fr.role?.name?.en ?? fr.role?.code ?? ''}
+                          >
+                            {(fr.role?.name?.en ?? 'R').charAt(0)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {uf.isPrimary && (
+                      <span className="text-[10px] text-aris-primary-600 font-semibold">Primary</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400 italic">No functions assigned</p>
+          )}
+        </div>
+
+        {/* Effective roles summary */}
+        <div>
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Effective Roles
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {effectiveRoles.length > 0 ? (
+              effectiveRoles.map((role) => (
+                <span
+                  key={role.id}
+                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-white"
+                  style={{ backgroundColor: role.color }}
+                >
+                  {role.name?.en ?? role.code}
+                  {role.id === primarySystemRole?.id && (
+                    <span className="text-[9px] opacity-80">(primary)</span>
+                  )}
+                  {derivedRoleIds.has(role.id) && role.id !== primarySystemRole?.id && (
+                    <span className="text-[9px] opacity-80">(function)</span>
+                  )}
+                </span>
+              ))
+            ) : (
+              <span className="text-xs text-gray-400">{userRole.replace(/_/g, ' ')}</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ================================================================ */
 /*  User Form (inline page, not modal)                               */
@@ -451,6 +582,9 @@ function UserForm({
             )}
           </div>
         </div>
+
+        {/* ---- Section: Functions & Effective Roles ---- */}
+        <UserFunctionsAndRolesSection userId={editingUser?.id ?? null} userRole={form.role} />
 
         {/* ---- Section: Domains ---- */}
         {allDomains.length > 0 && (

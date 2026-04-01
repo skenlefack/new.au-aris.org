@@ -158,18 +158,27 @@ export class AuthService {
     const domainCodes = this.domainService ? await this.domainService.getUserDomainCodes(user.id) : [];
     const userDomainsResult = this.domainService ? await this.domainService.getUserDomains(user.id) : { data: [] };
 
-    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, domainCodes);
+    // Compute effective roles from UserRoleAssignment table
+    const effectiveRoles = await this.computeEffectiveRoles(user.id, user.role);
+    // Compute permissions for frontend
+    const permissions = await this.computePermissions(effectiveRoles);
+
+    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, domainCodes, effectiveRoles);
     await this.storeRefreshToken(user.id, tokens.refreshTokenId, user.role, user.tenantId, user.tenant.level);
 
     await (this.prisma as any).user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     await this.publishEvent(TOPIC_SYS_CREDENTIAL_USER_AUTHENTICATED, user.id, { userId: user.id, email: user.email, tenantId: user.tenantId }, user.tenantId, user.id);
+
+    // Cache permissions in Redis (TTL 15 min)
+    await this.cachePermissions(user.id, effectiveRoles, permissions);
 
     return {
       data: {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresIn: 900,
-        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, tenantId: user.tenantId, tenantLevel: user.tenant.level, domains: userDomainsResult.data },
+        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, roles: effectiveRoles, tenantId: user.tenantId, tenantLevel: user.tenant.level, domains: userDomainsResult.data },
+        permissions,
       },
     };
   }
@@ -195,7 +204,10 @@ export class AuthService {
     // Fetch fresh domain codes for the new JWT
     const domainCodes = this.domainService ? await this.domainService.getUserDomainCodes(user.id) : [];
 
-    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, domainCodes);
+    // Refresh effective roles
+    const effectiveRoles = await this.computeEffectiveRoles(user.id, user.role);
+
+    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, domainCodes, effectiveRoles);
     await this.storeRefreshToken(user.id, tokens.refreshTokenId, sessionData.role, sessionData.tenantId, sessionData.tenantLevel);
 
     return { data: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, expiresIn: 900 } };
@@ -278,8 +290,9 @@ export class AuthService {
     return { data: { message: 'Password has been reset successfully. You can now log in.' } };
   }
 
-  private generateTokens(userId: string, email: string, role: string, tenantId: string, tenantLevel: string, locale?: string, domains?: string[]) {
-    const accessToken = jwt.sign({ sub: userId, email, role, tenantId, tenantLevel, locale: locale ?? 'en', domains: domains ?? [] }, this.privateKey, { algorithm: 'RS256', expiresIn: ACCESS_TOKEN_EXPIRY });
+  private generateTokens(userId: string, email: string, role: string, tenantId: string, tenantLevel: string, locale?: string, domains?: string[], roles?: string[]) {
+    const effectiveRoles = roles ?? [role];
+    const accessToken = jwt.sign({ sub: userId, email, role, roles: effectiveRoles, tenantId, tenantLevel, locale: locale ?? 'en', domains: domains ?? [] }, this.privateKey, { algorithm: 'RS256', expiresIn: ACCESS_TOKEN_EXPIRY });
     const refreshTokenId = randomUUID();
     const refreshToken = Buffer.from(`${userId}:${refreshTokenId}`).toString('base64url');
     return { accessToken, refreshToken, refreshTokenId };
@@ -311,6 +324,84 @@ export class AuthService {
       lastLoginAt: user.lastLoginAt, isActive: user.isActive,
       createdAt: user.createdAt, updatedAt: user.updatedAt,
     };
+  }
+
+  // ─── Permission resolution ─────────────────────────────────────────
+
+  /**
+   * Compute effective role codes for a user:
+   * 1. The user's primary `role` field (UserRole enum)
+   * 2. Direct UserRoleAssignment records (source="direct")
+   * 3. Function-derived UserRoleAssignment records (source="function")
+   * Returns a deduplicated array of role codes.
+   */
+  private async computeEffectiveRoles(userId: string, primaryRole: string): Promise<string[]> {
+    try {
+      const assignments = await (this.prisma as any).userRoleAssignment.findMany({
+        where: { userId },
+        include: { role: { select: { code: true, isActive: true } } },
+      });
+      const roleCodes = new Set<string>([primaryRole]);
+      for (const a of assignments) {
+        if (a.role?.isActive) roleCodes.add(a.role.code);
+      }
+      return Array.from(roleCodes);
+    } catch {
+      // Table may not exist yet (migration not run) — fallback to primary role
+      return [primaryRole];
+    }
+  }
+
+  /**
+   * Compute permissions from effective roles via RolePermission → Permission join.
+   */
+  private async computePermissions(effectiveRoles: string[]): Promise<Array<{ module: string; feature: string; action: string }>> {
+    try {
+      const rolePermissions = await (this.prisma as any).rolePermission.findMany({
+        where: {
+          role: { code: { in: effectiveRoles }, isActive: true },
+        },
+        include: {
+          permission: { select: { module: true, feature: true, action: true, isActive: true } },
+        },
+      });
+
+      const permSet = new Set<string>();
+      const result: Array<{ module: string; feature: string; action: string }> = [];
+
+      for (const rp of rolePermissions) {
+        if (!rp.permission?.isActive) continue;
+        const key = `${rp.permission.module}:${rp.permission.feature}:${rp.permission.action}`;
+        if (!permSet.has(key)) {
+          permSet.add(key);
+          result.push({
+            module: rp.permission.module,
+            feature: rp.permission.feature,
+            action: rp.permission.action,
+          });
+        }
+      }
+
+      return result;
+    } catch {
+      // Table may not exist yet — return empty
+      return [];
+    }
+  }
+
+  /**
+   * Cache user permissions in Redis with TTL 15 minutes.
+   */
+  private async cachePermissions(
+    userId: string,
+    roles: string[],
+    permissions: Array<{ module: string; feature: string; action: string }>,
+  ): Promise<void> {
+    try {
+      const key = `aris:permissions:${userId}`;
+      const value = JSON.stringify({ roles, permissions });
+      await this.redis.set(key, value, 'EX', 900); // 15 min
+    } catch {}
   }
 
   private async publishEvent(topic: string, entityId: string, payload: unknown, tenantId: string, userId: string): Promise<void> {

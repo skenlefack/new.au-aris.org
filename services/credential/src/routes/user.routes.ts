@@ -44,6 +44,14 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     return app.userService.updateMe(user, request.body);
   });
 
+  // GET /api/v1/credential/users/me/permissions — get cached permissions for current user
+  app.get('/api/v1/credential/users/me/permissions', {
+    preHandler: authAndTenant,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.userService.getMyPermissions(user);
+  });
+
   // PUT /api/v1/credential/users/me/locale
   app.put<{ Body: UpdateLocaleInput }>('/api/v1/credential/users/me/locale', {
     schema: { body: UpdateLocaleSchema },

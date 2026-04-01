@@ -6,7 +6,9 @@ import {
   useCreateFunction,
   useUpdateFunction,
   useDeleteFunction,
+  useSettingsRoles,
   type FunctionItem,
+  type RoleItem,
 } from '@/lib/api/settings-hooks';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -48,6 +50,7 @@ interface FunctionFormData {
   code: string;
   level: 'continental' | 'regional' | 'national';
   category: string;
+  roleIds: string[];
   name: { en: string; fr: string; pt: string; ar: string };
   description: { en: string; fr: string; pt: string; ar: string };
   isActive: boolean;
@@ -59,6 +62,7 @@ const EMPTY_FORM: FunctionFormData = {
   code: '',
   level: 'continental',
   category: 'management',
+  roleIds: [],
   name: { en: '', fr: '', pt: '', ar: '' },
   description: { en: '', fr: '', pt: '', ar: '' },
   isActive: true,
@@ -118,6 +122,10 @@ export default function FunctionsPage() {
   // View state
   const [view, setView] = useState<'list' | 'form'>('list');
 
+  // Fetch all roles for the role picker
+  const { data: rolesData } = useSettingsRoles({ limit: 50 });
+  const availableRoles: RoleItem[] = rolesData?.data ?? [];
+
   const { data, isLoading } = useSettingsFunctions({
     search,
     level: activeTab || undefined,
@@ -145,11 +153,12 @@ export default function FunctionsPage() {
     setView('form');
   }, [activeTab, allowedLevels]);
 
-  const openEdit = useCallback((fn: FunctionItem) => {
+  const openEdit = useCallback((fn: FunctionItem & { roles?: Array<{ role: { id: string } }> }) => {
     setForm({
       code: fn.code,
       level: fn.level,
       category: fn.category ?? 'management',
+      roleIds: fn.roles?.map((fr: any) => fr.role?.id ?? fr.roleId).filter(Boolean) ?? [],
       name: { en: fn.name?.en ?? '', fr: fn.name?.fr ?? '', pt: fn.name?.pt ?? '', ar: fn.name?.ar ?? '' },
       description: {
         en: fn.description?.en ?? '', fr: fn.description?.fr ?? '',
@@ -193,6 +202,7 @@ export default function FunctionsPage() {
           name: cleanName,
           description: cleanDesc,
           category: form.category || null,
+          roleIds: form.roleIds,
           isActive: form.isActive,
           isDefault: form.isDefault,
           sortOrder: form.sortOrder,
@@ -208,6 +218,7 @@ export default function FunctionsPage() {
           description: cleanDesc,
           level: form.level,
           category: form.category || null,
+          roleIds: form.roleIds,
           isActive: form.isActive,
           isDefault: form.isDefault,
           sortOrder: form.sortOrder,
@@ -301,7 +312,7 @@ export default function FunctionsPage() {
               </select>
             </div>
 
-            {/* Category */}
+            {/* Category (legacy) */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t('category')}
@@ -315,6 +326,50 @@ export default function FunctionsPage() {
               </select>
             </div>
           </div>
+
+          {/* Roles assignment */}
+          {availableRoles.length > 0 && (
+            <div className="mt-5">
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Associated Roles
+                <span className="ml-2 text-xs font-normal text-gray-400">
+                  ({form.roleIds.length} selected)
+                </span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {availableRoles.filter((r) => r.isActive).map((role) => {
+                  const selected = form.roleIds.includes(role.id);
+                  return (
+                    <button
+                      key={role.id}
+                      type="button"
+                      onClick={() => {
+                        setForm((f) => ({
+                          ...f,
+                          roleIds: selected
+                            ? f.roleIds.filter((id) => id !== role.id)
+                            : [...f.roleIds, role.id],
+                        }));
+                      }}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition-all',
+                        selected
+                          ? 'border-transparent text-white shadow-sm'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600',
+                      )}
+                      style={selected ? { backgroundColor: role.color } : undefined}
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: selected ? 'white' : role.color }}
+                      />
+                      {role.name?.en ?? role.code}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Names (4 languages) */}
           <div className="mt-5">
@@ -506,6 +561,7 @@ export default function FunctionsPage() {
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('nameFr')}</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('level')}</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('category')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Roles</th>
                 {(isSuperAdmin || isContinentalAdmin) && (
                   <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('tenant')}</th>
                 )}
@@ -532,6 +588,26 @@ export default function FunctionsPage() {
                   </td>
                   <td className="px-4 py-3">{getLevelBadge(fn.level)}</td>
                   <td className="px-4 py-3">{getCategoryBadge(fn.category)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1 max-w-[160px]">
+                      {(fn as any).roles?.length > 0 ? (
+                        (fn as any).roles.slice(0, 2).map((fr: any) => (
+                          <span
+                            key={fr.role?.id ?? fr.roleId}
+                            className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium text-white"
+                            style={{ backgroundColor: fr.role?.color ?? '#6b7280' }}
+                          >
+                            {fr.role?.name?.en ?? fr.role?.code ?? '?'}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-[11px] text-gray-400">--</span>
+                      )}
+                      {(fn as any).roles?.length > 2 && (
+                        <span className="text-[10px] text-gray-400">+{(fn as any).roles.length - 2}</span>
+                      )}
+                    </div>
+                  </td>
                   {(isSuperAdmin || isContinentalAdmin) && (
                     <td className="px-4 py-3">
                       {fn.tenant ? (

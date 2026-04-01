@@ -921,3 +921,108 @@ export function useSetUserDomains() {
     },
   });
 }
+
+// ── Roles & Permissions ──
+
+export interface RoleItem {
+  id: string;
+  code: string;
+  name: Record<string, string>;
+  description?: Record<string, string> | null;
+  level: string;
+  color: string;
+  icon: string;
+  isSystem: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  tenantId?: string | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  _count?: { userRoles: number };
+  permissions?: Array<{
+    id: string;
+    permissionId: string;
+    permission: PermissionItem;
+  }>;
+}
+
+export interface PermissionItem {
+  id: string;
+  module: string;
+  feature: string;
+  action: string;
+  description?: Record<string, string> | null;
+  isActive: boolean;
+}
+
+export function useSettingsRoles(params?: { search?: string; level?: string; status?: string; page?: number; limit?: number }) {
+  const qs = new URLSearchParams();
+  qs.set('page', String(params?.page ?? 1));
+  qs.set('limit', String(params?.limit ?? 50));
+  if (params?.search) qs.set('search', params.search);
+  if (params?.level) qs.set('level', params.level);
+  if (params?.status) qs.set('status', params.status);
+  const query = `?${qs.toString()}`;
+
+  const tid = getCurrentUserTenantId();
+  return useQuery({
+    queryKey: ['settings', 'roles', tid, params],
+    queryFn: () => tenantFetch<{ data: RoleItem[]; meta: { total: number; page: number; limit: number } }>(`/api/v1/settings/roles${query}`),
+    staleTime: 10 * 60_000,
+  });
+}
+
+export function useSettingsRole(id: string) {
+  return useQuery({
+    queryKey: ['settings', 'roles', 'detail', id],
+    queryFn: () => tenantFetch<{ data: RoleItem }>(`/api/v1/settings/roles/${id}`),
+    enabled: !!id,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useCreateRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => tenantPost('/api/v1/settings/roles', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'roles'] }),
+  });
+}
+
+export function useUpdateRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string } & Record<string, unknown>) =>
+      tenantPatch(`/api/v1/settings/roles/${id}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'roles'] }),
+  });
+}
+
+export function useDeleteRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => tenantDelete(`/api/v1/settings/roles/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'roles'] }),
+  });
+}
+
+export function useSettingsPermissions() {
+  return useQuery({
+    queryKey: ['settings', 'permissions'],
+    queryFn: () => tenantFetch<{ data: PermissionItem[] }>('/api/v1/settings/permissions'),
+    staleTime: 30 * 60_000,
+  });
+}
+
+export function useUpdateRolePermissions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ roleId, permissionIds }: { roleId: string; permissionIds: string[] }) =>
+      tenantPut(`/api/v1/settings/roles/${roleId}/permissions`, { permissionIds }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['settings', 'roles'] });
+      qc.invalidateQueries({ queryKey: ['settings', 'permissions'] });
+    },
+  });
+}

@@ -51,7 +51,7 @@ export type {
 export { AUTH_MODULE_OPTIONS } from './interfaces/jwt-payload.interface';
 
 // Fastify hooks (standalone, no NestJS)
-export { authHook, rolesHook, tenantHook, domainsHook } from './fastify';
+export { authHook, rolesHook, tenantHook, domainsHook, permissionsHook } from './fastify';
 export type { AuthHookOptions } from './fastify';
 
 // Fastify plugin (registers app.authenticate decorator)

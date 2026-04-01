@@ -16,6 +16,7 @@ import {
 } from './client';
 import { useAuthStore, type UserRole } from '../stores/auth-store';
 import { useDomainStore } from '../stores/domain-store';
+import { usePermissionStore } from '../stores/permission-store';
 import { useTenantStore } from '../stores/tenant-store';
 
 /**
@@ -69,6 +70,7 @@ interface LoginResponse {
       firstName: string;
       lastName: string;
       role: string;
+      roles?: string[];
       tenantId: string;
       tenantLevel?: string;
       locale?: string;
@@ -80,6 +82,7 @@ interface LoginResponse {
         color: string;
       }>;
     };
+    permissions?: Array<{ module: string; feature: string; action: string }>;
   };
 }
 
@@ -269,7 +272,8 @@ export function useLogin() {
     mutationFn: async (data: LoginRequest) =>
       apiClient.post<LoginResponse>('/credential/auth/login', data),
     onSuccess: (res) => {
-      const { user, accessToken, refreshToken } = res.data;
+      const { user, accessToken, refreshToken, permissions } = res.data;
+      const effectiveRoles = user.roles ?? [user.role];
       setAuth(
         {
           id: user.id,
@@ -277,6 +281,7 @@ export function useLogin() {
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role as UserRole,
+          roles: effectiveRoles,
           tenantId: user.tenantId,
           tenantLevel: user.tenantLevel,
           locale: user.locale,
@@ -285,11 +290,36 @@ export function useLogin() {
         refreshToken,
       );
 
+      // Populate permission store with roles + permissions from login response
+      if (permissions) {
+        usePermissionStore.getState().setPermissions(effectiveRoles, permissions);
+      }
+
       // Populate domain store with user's assigned domains
       if (user.domains && user.domains.length > 0) {
         useDomainStore.getState().setUserDomains(user.domains);
       }
     },
+  });
+}
+
+export function useMyPermissions() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isPermissionsLoaded = usePermissionStore((s) => s.isLoaded);
+
+  return useQuery({
+    queryKey: ['auth', 'permissions'],
+    queryFn: async () => {
+      const res = await apiClient.get<{
+        data: { roles: string[]; permissions: Array<{ module: string; feature: string; action: string }> };
+      }>('/credential/users/me/permissions');
+      const { roles, permissions } = res.data;
+      usePermissionStore.getState().setPermissions(roles, permissions);
+      return res.data;
+    },
+    enabled: isAuthenticated && !isPermissionsLoaded,
+    staleTime: 15 * 60 * 1000, // 15 min — matches Redis TTL
+    retry: 1,
   });
 }
 

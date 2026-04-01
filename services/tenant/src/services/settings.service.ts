@@ -1258,6 +1258,7 @@ export class SettingsService {
         include: {
           _count: { select: { users: true } },
           tenant: { select: this.functionTenantSelect },
+          roles: { include: { role: { select: { id: true, code: true, name: true, color: true, icon: true } } } },
         },
       }),
       (this.prisma as any).function.count({ where }),
@@ -1281,6 +1282,7 @@ export class SettingsService {
       include: {
         _count: { select: { users: true } },
         tenant: { select: this.functionTenantSelect },
+        roles: { include: { role: { select: { id: true, code: true, name: true, color: true, icon: true } } } },
         users: {
           include: {
             user: { select: { id: true, email: true, firstName: true, lastName: true, role: true } },
@@ -1327,11 +1329,36 @@ export class SettingsService {
         metadata: (dto.metadata ?? null) as Prisma.InputJsonValue,
         tenantId,
       },
-      include: { tenant: { select: this.functionTenantSelect } },
+      include: {
+        tenant: { select: this.functionTenantSelect },
+        roles: { include: { role: { select: { id: true, code: true, name: true, color: true, icon: true } } } },
+      },
     });
+
+    // Assign roles if provided
+    if (Array.isArray(dto.roleIds) && (dto.roleIds as string[]).length > 0) {
+      const roleIds = dto.roleIds as string[];
+      await (this.prisma as any).functionRole.createMany({
+        data: roleIds.map((roleId: string) => ({ functionId: fn.id, roleId })),
+        skipDuplicates: true,
+      });
+    }
 
     await this.publishEvent(TOPIC_SETTINGS_FUNCTION_UPDATED, { ...fn, action: 'created' }, user);
     await this.invalidateFunctionCache();
+
+    // Re-fetch with roles included
+    if (Array.isArray(dto.roleIds) && (dto.roleIds as string[]).length > 0) {
+      const refreshed = await (this.prisma as any).function.findUnique({
+        where: { id: fn.id },
+        include: {
+          tenant: { select: this.functionTenantSelect },
+          roles: { include: { role: { select: { id: true, code: true, name: true, color: true, icon: true } } } },
+        },
+      });
+      return { data: refreshed };
+    }
+
     return { data: fn };
   }
 
@@ -1351,11 +1378,26 @@ export class SettingsService {
     if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
     if (dto.metadata !== undefined) updateData.metadata = dto.metadata as Prisma.InputJsonValue;
 
+    // Handle roleIds update: replace all FunctionRole records
+    if (Array.isArray(dto.roleIds)) {
+      const roleIds = dto.roleIds as string[];
+      await (this.prisma as any).functionRole.deleteMany({ where: { functionId: id } });
+      if (roleIds.length > 0) {
+        await (this.prisma as any).functionRole.createMany({
+          data: roleIds.map((roleId: string) => ({ functionId: id, roleId })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
     try {
       const fn = await (this.prisma as any).function.update({
         where: { id },
         data: updateData,
-        include: { tenant: { select: this.functionTenantSelect } },
+        include: {
+          tenant: { select: this.functionTenantSelect },
+          roles: { include: { role: { select: { id: true, code: true, name: true, color: true, icon: true } } } },
+        },
       });
       await this.publishEvent(TOPIC_SETTINGS_FUNCTION_UPDATED, { ...fn, action: 'updated' }, user);
       await this.invalidateFunctionCache();

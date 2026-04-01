@@ -19,6 +19,7 @@ export interface AuthUser {
   firstName: string;
   lastName: string;
   role: UserRole;
+  roles: string[];  // effective role codes from permission system
   tenantId: string;
   tenantLevel?: string;
   avatarUrl?: string;

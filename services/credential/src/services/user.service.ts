@@ -101,6 +101,59 @@ export class UserService {
     return { data: this.transformUser(user) };
   }
 
+  async getMyPermissions(caller: AuthenticatedUser): Promise<ApiResponse<any>> {
+    // Try Redis cache first
+    if (this.redis) {
+      try {
+        const cached = await this.redis.get(`aris:permissions:${caller.userId}`);
+        if (cached) return { data: JSON.parse(cached) };
+      } catch {}
+    }
+
+    // Compute from DB
+    try {
+      // Get effective roles
+      const assignments = await (this.prisma as any).userRoleAssignment.findMany({
+        where: { userId: caller.userId },
+        include: { role: { select: { code: true, isActive: true } } },
+      });
+      const roleCodes = new Set<string>([caller.role]);
+      for (const a of assignments) {
+        if (a.role?.isActive) roleCodes.add(a.role.code);
+      }
+      const roles = Array.from(roleCodes);
+
+      // Get permissions
+      const rolePermissions = await (this.prisma as any).rolePermission.findMany({
+        where: { role: { code: { in: roles }, isActive: true } },
+        include: { permission: { select: { module: true, feature: true, action: true, isActive: true } } },
+      });
+
+      const permSet = new Set<string>();
+      const permissions: Array<{ module: string; feature: string; action: string }> = [];
+      for (const rp of rolePermissions) {
+        if (!rp.permission?.isActive) continue;
+        const key = `${rp.permission.module}:${rp.permission.feature}:${rp.permission.action}`;
+        if (!permSet.has(key)) {
+          permSet.add(key);
+          permissions.push({ module: rp.permission.module, feature: rp.permission.feature, action: rp.permission.action });
+        }
+      }
+
+      const result = { roles, permissions };
+
+      // Cache for 15 min
+      if (this.redis) {
+        try { await this.redis.set(`aris:permissions:${caller.userId}`, JSON.stringify(result), 'EX', 900); } catch {}
+      }
+
+      return { data: result };
+    } catch {
+      // Tables may not exist yet
+      return { data: { roles: [caller.role], permissions: [] } };
+    }
+  }
+
   async update(id: string, dto: Record<string, unknown>, caller: AuthenticatedUser): Promise<ApiResponse<any>> {
     const existing = await (this.prisma as any).user.findUnique({ where: { id }, select: { ...USER_SELECT, tenantId: true } });
     if (!existing) throw new HttpError(404, `User ${id} not found`);

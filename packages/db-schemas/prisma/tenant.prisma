@@ -29,6 +29,7 @@ model Tenant {
   users     User[]
   countries Country[]
   functions Function[]
+  roles     Role[]
 
   @@index([parentId], map: "idx_tenant_parent_id")
   @@index([level], map: "idx_tenant_level")

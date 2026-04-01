@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useDomainStore } from '@/lib/stores/domain-store';
+import { usePermissionStore } from '@/lib/stores/permission-store';
+import { useMyPermissions } from '@/lib/api/hooks';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -64,6 +66,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const refreshInProgressRef = useRef(false);
 
+  // Auto-load permissions for existing sessions that don't have them yet
+  useMyPermissions();
+
   useEffect(() => {
     setHydrated(true);
   }, []);
@@ -114,6 +119,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const handleAuthFailure = useCallback(() => {
     logout();
     useDomainStore.getState().reset();
+    usePermissionStore.getState().reset();
     router.replace('/');
   }, [logout, router]);
 

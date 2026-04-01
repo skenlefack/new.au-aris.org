@@ -180,6 +180,7 @@ model Function {
   updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz
   tenant      Tenant         @relation(fields: [tenantId], references: [id])
   users       UserFunction[]
+  roles       FunctionRole[]
 
   @@unique([tenantId, code, level], map: "uq_function_code_level")
   @@index([level], map: "idx_function_level")
@@ -207,6 +208,98 @@ model UserFunction {
   @@index([userId], map: "idx_user_function_user_id")
   @@index([functionId], map: "idx_user_function_function_id")
   @@map("user_functions")
+  @@schema("governance")
+}
+
+// ── Roles & Permissions ───────────────────────────────────────────────
+
+model Role {
+  id          String    @id @default(uuid()) @db.Uuid
+  code        String    @db.VarChar(50)
+  name        Json      // { en, fr, pt, ar }
+  description Json?
+  level       String    @db.VarChar(20) // continental, regional, national
+  color       String    @default("#6b7280") @db.VarChar(20)
+  icon        String    @default("Shield") @db.VarChar(50)
+  isSystem    Boolean   @default(false) @map("is_system")
+  isActive    Boolean   @default(true) @map("is_active")
+  sortOrder   Int       @default(0) @map("sort_order")
+  tenantId    String?   @map("tenant_id") @db.Uuid
+  metadata    Json?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  tenant      Tenant?   @relation(fields: [tenantId], references: [id])
+  permissions RolePermission[]
+  functionRoles FunctionRole[]
+  userRoles   UserRoleAssignment[]
+
+  @@unique([tenantId, code], map: "uq_role_tenant_code")
+  @@index([isActive], map: "idx_role_is_active")
+  @@index([tenantId], map: "idx_role_tenant_id")
+  @@map("roles")
+  @@schema("governance")
+}
+
+model Permission {
+  id          String    @id @default(uuid()) @db.Uuid
+  module      String    @db.VarChar(50)
+  feature     String    @db.VarChar(100)
+  action      String    @db.VarChar(20)
+  description Json?
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  rolePermissions RolePermission[]
+
+  @@unique([module, feature, action], map: "uq_perm_module_feature_action")
+  @@index([module], map: "idx_permission_module")
+  @@map("permissions")
+  @@schema("governance")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid()) @db.Uuid
+  roleId       String     @map("role_id") @db.Uuid
+  permissionId String     @map("permission_id") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId], map: "uq_role_permission")
+  @@index([roleId], map: "idx_role_perm_role_id")
+  @@index([permissionId], map: "idx_role_perm_perm_id")
+  @@map("role_permissions")
+  @@schema("governance")
+}
+
+model FunctionRole {
+  id         String   @id @default(uuid()) @db.Uuid
+  functionId String   @map("function_id") @db.Uuid
+  roleId     String   @map("role_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  function   Function @relation(fields: [functionId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([functionId, roleId], map: "uq_function_role")
+  @@index([functionId], map: "idx_func_role_function_id")
+  @@index([roleId], map: "idx_func_role_role_id")
+  @@map("function_roles")
+  @@schema("governance")
+}
+
+model UserRoleAssignment {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  roleId     String   @map("role_id") @db.Uuid
+  source     String   @default("direct") @db.VarChar(20) // "direct" | "function"
+  assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz
+  assignedBy String?  @map("assigned_by") @db.Uuid
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId], map: "uq_user_role_assign")
+  @@index([userId], map: "idx_user_role_user_id")
+  @@index([roleId], map: "idx_user_role_role_id")
+  @@map("user_role_assignments")
   @@schema("governance")
 }
 

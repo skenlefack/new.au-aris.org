@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { useAuthStore, type UserRole } from '@/lib/stores/auth-store';
 import { useDomainStore } from '@/lib/stores/domain-store';
+import { usePermissionStore } from '@/lib/stores/permission-store';
 import { useTenantStore } from '@/lib/stores/tenant-store';
 import { useUnreadNotifications } from '@/lib/api/hooks';
 import {
@@ -300,6 +301,7 @@ export function Header({ sidebarCollapsed, onSidebarToggle }: HeaderProps) {
     queryClient.clear();
     logout();
     useDomainStore.getState().reset();
+    usePermissionStore.getState().reset();
     router.push('/');
   }
 

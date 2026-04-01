@@ -59,6 +59,7 @@ export function authHook(options: AuthHookOptions) {
         userId: payload.sub,
         email: payload.email,
         role: payload.role,
+        roles: payload.roles ?? [payload.role],
         tenantId: payload.tenantId,
         tenantLevel: payload.tenantLevel,
         locale: payload.locale,
