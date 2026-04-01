@@ -165,7 +165,7 @@ export async function getPublicDomains() {
       { code: 'wildlife', name: { en: 'Wildlife & Biodiversity', fr: 'Faune & Biodiversit\u00e9' }, description: { en: 'Biodiversity & CITES', fr: 'Biodiversit\u00e9 & CITES' }, color: '#2E7D32', icon: 'TreePine' },
       { code: 'apiculture', name: { en: 'Apiculture & Pollination', fr: 'Apiculture & Pollinisation' }, description: { en: 'Pollination & honey', fr: 'Pollinisation & miel' }, color: '#F9A825', icon: 'Bug' },
       { code: 'climate-env', name: { en: 'Climate & Environment', fr: 'Climat & Environnement' }, description: { en: 'Water stress & rangelands', fr: 'Stress hydrique & parcours' }, color: '#00695C', icon: 'Cloud' },
-      { code: 'knowledge-hub', name: { en: 'Knowledge Management', fr: 'Gestion des Connaissances' }, description: { en: 'E-learning & resources', fr: 'E-learning & ressources' }, color: '#4527A0', icon: 'BookOpen' },
+      { code: 'knowledge-hub', name: { en: 'Knowledge Management', fr: 'Gestion des Connaissances', pt: 'Gestão do Conhecimento' }, description: { en: 'Continental resources', fr: 'Des ressources continentales', pt: 'Recursos continentais' }, color: '#4527A0', icon: 'BookOpen' },
     ],
   };
 }

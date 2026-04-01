@@ -22,7 +22,7 @@ const FALLBACK_DOMAINS: PublicDomain[] = [
   { code: 'apiculture', name: { en: 'Apiculture' }, icon: 'Bug', color: '#F9A825', description: { en: 'Pollination & honey' } },
   { code: 'governance', name: { en: 'Governance' }, icon: 'Landmark', color: '#37474F', description: { en: 'Legal frameworks & PVS' } },
   { code: 'climate-env', name: { en: 'Climate & Env' }, icon: 'CloudSun', color: '#00695C', description: { en: 'Water stress & rangelands' } },
-  { code: 'knowledge-hub', name: { en: 'Knowledge' }, icon: 'BookOpen', color: '#4527A0', description: { en: 'E-learning & resources' } },
+  { code: 'knowledge-hub', name: { en: 'Knowledge', fr: 'Connaissances', pt: 'Conhecimento' }, icon: 'BookOpen', color: '#4527A0', description: { en: 'Continental resources', fr: 'Des ressources continentales', pt: 'Recursos continentais' } },
 ];
 
 interface ContinentalStatsProps {
