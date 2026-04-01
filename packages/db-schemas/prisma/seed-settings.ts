@@ -1317,9 +1317,9 @@ const DOMAINS_DATA: DomainSeedData[] = [
     code: 'knowledge-hub',
     name: { en: 'Knowledge Management', fr: 'Gestion des connaissances', pt: 'Gest\u00e3o do Conhecimento' },
     description: {
-      en: 'Knowledge portal, e-repository, e-learning platform, policy briefs, and monitoring/evaluation/learning.',
-      fr: "Portail de connaissances, e-r\u00e9f\u00e9rentiel, plateforme e-learning, notes de politique et suivi/\u00e9valuation/apprentissage.",
-      pt: 'Portal de conhecimento, e-reposit\u00f3rio, plataforma de e-learning, notas de pol\u00edtica e monitoriza\u00e7\u00e3o/avalia\u00e7\u00e3o/aprendizagem.',
+      en: 'Knowledge base, e-repository, e-learning platform, policy briefs, and monitoring/evaluation/learning.',
+      fr: "Base de connaissances, e-r\u00e9f\u00e9rentiel, plateforme e-learning, notes de politique et suivi/\u00e9valuation/apprentissage.",
+      pt: 'Base de conhecimento, e-reposit\u00f3rio, plataforma de e-learning, notas de pol\u00edtica e monitoriza\u00e7\u00e3o/avalia\u00e7\u00e3o/aprendizagem.',
     },
     icon: 'BookOpen', color: '#4527A0', sortOrder: 9,
   },
