@@ -31,7 +31,7 @@ ENVS = [
 DOMAINS = [
     {
         "code": "governance",
-        "name": {"en": "Governance & Capacities", "fr": "Gouvernance et capacit\u00e9s", "pt": "Governan\u00e7a e Capacidades"},
+        "name": {"en": "Governance", "fr": "Gouvernance", "pt": "Governan\u00e7a"},
         "description": {
             "en": "Legal frameworks, veterinary services evaluation, PVS metrics, and institutional capacity building.",
             "fr": "Cadres juridiques, \u00e9valuation des services v\u00e9t\u00e9rinaires, indicateurs PVS et renforcement des capacit\u00e9s institutionnelles.",
@@ -40,7 +40,7 @@ DOMAINS = [
     },
     {
         "code": "animal-health",
-        "name": {"en": "Animal Health & One Health", "fr": "Sant\u00e9 animale et One Health", "pt": "Sa\u00fade Animal e One Health"},
+        "name": {"en": "Animal Health", "fr": "Sant\u00e9 animale", "pt": "Sa\u00fade Animal"},
         "description": {
             "en": "Disease surveillance, outbreak management, laboratory results, vaccination campaigns, and antimicrobial resistance monitoring.",
             "fr": "Surveillance des maladies, gestion des foyers, r\u00e9sultats de laboratoire, campagnes de vaccination et surveillance de la r\u00e9sistance aux antimicrobiens.",
@@ -49,7 +49,7 @@ DOMAINS = [
     },
     {
         "code": "livestock-prod",
-        "name": {"en": "Production & Pastoralism", "fr": "Production et pastoralisme", "pt": "Produ\u00e7\u00e3o e Pastoralismo"},
+        "name": {"en": "Livestock", "fr": "\u00c9levage", "pt": "Pecu\u00e1ria"},
         "description": {
             "en": "Livestock census, production systems, slaughterhouse data, and transhumance corridor management.",
             "fr": "Recensement du b\u00e9tail, syst\u00e8mes de production, donn\u00e9es d\u2019abattage et gestion des corridors de transhumance.",
@@ -58,7 +58,7 @@ DOMAINS = [
     },
     {
         "code": "trade-sps",
-        "name": {"en": "Trade, Markets & SPS", "fr": "Commerce, march\u00e9s et SPS", "pt": "Com\u00e9rcio, Mercados e SPS"},
+        "name": {"en": "Trade & SPS", "fr": "Commerce & SPS", "pt": "Com\u00e9rcio & SPS"},
         "description": {
             "en": "Trade flows, SPS certification, market price intelligence, and AfCFTA integration support.",
             "fr": "Flux commerciaux, certification SPS, intelligence des prix de march\u00e9 et soutien \u00e0 l\u2019int\u00e9gration ZLECAf.",
@@ -67,7 +67,7 @@ DOMAINS = [
     },
     {
         "code": "fisheries",
-        "name": {"en": "Fisheries & Aquaculture", "fr": "P\u00eaches et aquaculture", "pt": "Pescas e Aquicultura"},
+        "name": {"en": "Fisheries", "fr": "P\u00eaches", "pt": "Pescas"},
         "description": {
             "en": "Capture fisheries, fishing fleet management, aquaculture farms, and aquatic animal health.",
             "fr": "P\u00eache de capture, gestion de la flotte de p\u00eache, fermes aquacoles et sant\u00e9 des animaux aquatiques.",
@@ -76,7 +76,7 @@ DOMAINS = [
     },
     {
         "code": "wildlife",
-        "name": {"en": "Wildlife & Biodiversity", "fr": "Faune sauvage et biodiversit\u00e9", "pt": "Vida Selvagem e Biodiversidade"},
+        "name": {"en": "Wildlife", "fr": "Faune sauvage", "pt": "Vida Selvagem"},
         "description": {
             "en": "Wildlife inventories, protected area management, CITES permits, and human-wildlife conflict resolution.",
             "fr": "Inventaires de la faune, gestion des aires prot\u00e9g\u00e9es, permis CITES et r\u00e9solution des conflits homme-faune.",
@@ -85,7 +85,7 @@ DOMAINS = [
     },
     {
         "code": "apiculture",
-        "name": {"en": "Apiculture & Pollination", "fr": "Apiculture et pollinisation", "pt": "Apicultura e Poliniza\u00e7\u00e3o"},
+        "name": {"en": "Apiculture", "fr": "Apiculture", "pt": "Apicultura"},
         "description": {
             "en": "Apiary management, honey and hive product production, colony health monitoring, and beekeeper training.",
             "fr": "Gestion des ruchers, production de miel et produits de la ruche, suivi de la sant\u00e9 des colonies et formation des apiculteurs.",
@@ -94,7 +94,7 @@ DOMAINS = [
     },
     {
         "code": "climate-env",
-        "name": {"en": "Climate & Environment", "fr": "Climat et environnement", "pt": "Clima e Ambiente"},
+        "name": {"en": "Climate & Env", "fr": "Climat & Env", "pt": "Clima & Amb"},
         "description": {
             "en": "Water stress monitoring, rangeland condition assessment, GHG tracking, and vulnerability hotspot mapping.",
             "fr": "Suivi du stress hydrique, \u00e9valuation de l\u2019\u00e9tat des parcours, suivi des GES et cartographie des zones vuln\u00e9rables.",
@@ -103,7 +103,7 @@ DOMAINS = [
     },
     {
         "code": "knowledge-hub",
-        "name": {"en": "Knowledge Management", "fr": "Gestion des connaissances", "pt": "Gest\u00e3o do Conhecimento"},
+        "name": {"en": "Knowledge", "fr": "Connaissances", "pt": "Conhecimento"},
         "description": {
             "en": "Knowledge base, e-repository, e-learning platform, policy briefs, and monitoring/evaluation/learning.",
             "fr": "Base de connaissances, e-r\u00e9f\u00e9rentiel, plateforme e-learning, notes de politique et suivi/\u00e9valuation/apprentissage.",
