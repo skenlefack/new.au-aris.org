@@ -157,14 +157,14 @@ export async function getPublicDomains() {
   }
   return {
     data: [
-      { code: 'governance', name: { en: 'Governance & Capacities', fr: 'Gouvernance & Capacit\u00e9s' }, description: { en: 'Legal frameworks & PVS', fr: 'Cadres juridiques & PVS' }, color: '#6B21A8', icon: 'Building2' },
-      { code: 'animal-health', name: { en: 'Animal Health & One Health', fr: 'Sant\u00e9 Animale & One Health' }, description: { en: 'Surveillance, outbreaks, AMR', fr: 'Surveillance, \u00e9pid\u00e9mies, RAM' }, color: '#C62828', icon: 'HeartPulse' },
-      { code: 'livestock-prod', name: { en: 'Production & Pastoralism', fr: 'Production & Pastoralisme' }, description: { en: 'Census & production systems', fr: 'Recensement & syst\u00e8mes de production' }, color: '#E65100', icon: 'Wheat' },
-      { code: 'trade-sps', name: { en: 'Trade, Markets & SPS', fr: 'Commerce, March\u00e9s & SPS' }, description: { en: 'Markets & certification', fr: 'March\u00e9s & certification' }, color: '#1565C0', icon: 'TrendingUp' },
-      { code: 'fisheries', name: { en: 'Fisheries & Aquaculture', fr: 'P\u00eaches & Aquaculture' }, description: { en: 'Captures & aquaculture', fr: 'Captures & aquaculture' }, color: '#00838F', icon: 'Fish' },
-      { code: 'wildlife', name: { en: 'Wildlife & Biodiversity', fr: 'Faune & Biodiversit\u00e9' }, description: { en: 'Biodiversity & CITES', fr: 'Biodiversit\u00e9 & CITES' }, color: '#2E7D32', icon: 'TreePine' },
-      { code: 'apiculture', name: { en: 'Apiculture & Pollination', fr: 'Apiculture & Pollinisation' }, description: { en: 'Pollination & honey', fr: 'Pollinisation & miel' }, color: '#F9A825', icon: 'Bug' },
-      { code: 'climate-env', name: { en: 'Climate & Environment', fr: 'Climat & Environnement' }, description: { en: 'Water stress & rangelands', fr: 'Stress hydrique & parcours' }, color: '#00695C', icon: 'Cloud' },
+      { code: 'governance', name: { en: 'Governance & Capacities', fr: 'Gouvernance & Capacit\u00e9s', pt: 'Governan\u00e7a & Capacidades' }, description: { en: 'Legal frameworks & PVS', fr: 'Cadres juridiques & PVS', pt: 'Quadros jur\u00eddicos & PVS' }, color: '#6B21A8', icon: 'Building2' },
+      { code: 'animal-health', name: { en: 'Animal Health & One Health', fr: 'Sant\u00e9 animale & One Health', pt: 'Sa\u00fade animal & One Health' }, description: { en: 'Surveillance, outbreaks, AMR', fr: 'Surveillance, \u00e9pid\u00e9mies, RAM', pt: 'Vigil\u00e2ncia, surtos, RAM' }, color: '#C62828', icon: 'HeartPulse' },
+      { code: 'livestock-prod', name: { en: 'Production & Pastoralism', fr: 'Production & Pastoralisme', pt: 'Produ\u00e7\u00e3o & Pastoralismo' }, description: { en: 'Census & production systems', fr: 'Recensement & syst\u00e8mes de production', pt: 'Censo & sistemas de produ\u00e7\u00e3o' }, color: '#E65100', icon: 'Wheat' },
+      { code: 'trade-sps', name: { en: 'Trade, Markets & SPS', fr: 'Commerce, March\u00e9s & SPS', pt: 'Com\u00e9rcio, Mercados & SPS' }, description: { en: 'Markets & certification', fr: 'March\u00e9s & certification', pt: 'Mercados & certifica\u00e7\u00e3o' }, color: '#1565C0', icon: 'TrendingUp' },
+      { code: 'fisheries', name: { en: 'Fisheries & Aquaculture', fr: 'P\u00eaches & Aquaculture', pt: 'Pescas & Aquicultura' }, description: { en: 'Captures & aquaculture', fr: 'Captures & aquaculture', pt: 'Capturas & aquicultura' }, color: '#00838F', icon: 'Fish' },
+      { code: 'wildlife', name: { en: 'Wildlife & Biodiversity', fr: 'Faune & Biodiversit\u00e9', pt: 'Fauna & Biodiversidade' }, description: { en: 'Biodiversity & CITES', fr: 'Biodiversit\u00e9 & CITES', pt: 'Biodiversidade & CITES' }, color: '#2E7D32', icon: 'TreePine' },
+      { code: 'apiculture', name: { en: 'Apiculture & Pollination', fr: 'Apiculture & Pollinisation', pt: 'Apicultura & Poliniza\u00e7\u00e3o' }, description: { en: 'Pollination & honey', fr: 'Pollinisation & miel', pt: 'Poliniza\u00e7\u00e3o & mel' }, color: '#F9A825', icon: 'Bug' },
+      { code: 'climate-env', name: { en: 'Climate & Environment', fr: 'Climat & Environnement', pt: 'Clima & Ambiente' }, description: { en: 'Water stress & rangelands', fr: 'Stress hydrique & parcours', pt: 'Estresse h\u00eddrico & pastagens' }, color: '#00695C', icon: 'Cloud' },
       { code: 'knowledge-hub', name: { en: 'Knowledge Management', fr: 'Gestion des Connaissances', pt: 'Gestão do Conhecimento' }, description: { en: 'Continental resources', fr: 'Des ressources continentales', pt: 'Recursos continentais' }, color: '#4527A0', icon: 'BookOpen' },
     ],
   };

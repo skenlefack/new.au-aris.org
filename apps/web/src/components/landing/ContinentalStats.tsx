@@ -14,14 +14,14 @@ export interface PublicDomain {
 
 /** Fallback domains when the API is unavailable */
 const FALLBACK_DOMAINS: PublicDomain[] = [
-  { code: 'animal-health', name: { en: 'Animal Health' }, icon: 'HeartPulse', color: '#C62828', description: { en: 'Surveillance, outbreaks, AMR' } },
-  { code: 'livestock-prod', name: { en: 'Livestock' }, icon: 'Wheat', color: '#E65100', description: { en: 'Census & production' } },
-  { code: 'fisheries', name: { en: 'Fisheries' }, icon: 'Fish', color: '#00838F', description: { en: 'Captures & aquaculture' } },
-  { code: 'trade-sps', name: { en: 'Trade & SPS' }, icon: 'TrendingUp', color: '#1565C0', description: { en: 'Markets & certification' } },
-  { code: 'wildlife', name: { en: 'Wildlife' }, icon: 'Leaf', color: '#2E7D32', description: { en: 'Biodiversity & CITES' } },
-  { code: 'apiculture', name: { en: 'Apiculture' }, icon: 'Bug', color: '#F9A825', description: { en: 'Pollination & honey' } },
-  { code: 'governance', name: { en: 'Governance' }, icon: 'Landmark', color: '#37474F', description: { en: 'Legal frameworks & PVS' } },
-  { code: 'climate-env', name: { en: 'Climate & Env' }, icon: 'CloudSun', color: '#00695C', description: { en: 'Water stress & rangelands' } },
+  { code: 'animal-health', name: { en: 'Animal Health', fr: 'Santé animale', pt: 'Saúde animal' }, icon: 'HeartPulse', color: '#C62828', description: { en: 'Surveillance, outbreaks, AMR', fr: 'Surveillance, épidémies, RAM', pt: 'Vigilância, surtos, RAM' } },
+  { code: 'livestock-prod', name: { en: 'Livestock', fr: 'Élevage', pt: 'Pecuária' }, icon: 'Wheat', color: '#E65100', description: { en: 'Census & production', fr: 'Recensement & production', pt: 'Censo & produção' } },
+  { code: 'fisheries', name: { en: 'Fisheries', fr: 'Pêches', pt: 'Pescas' }, icon: 'Fish', color: '#00838F', description: { en: 'Captures & aquaculture', fr: 'Captures & aquaculture', pt: 'Capturas & aquicultura' } },
+  { code: 'trade-sps', name: { en: 'Trade & SPS', fr: 'Commerce & SPS', pt: 'Comércio & SPS' }, icon: 'TrendingUp', color: '#1565C0', description: { en: 'Markets & certification', fr: 'Marchés & certification', pt: 'Mercados & certificação' } },
+  { code: 'wildlife', name: { en: 'Wildlife', fr: 'Faune sauvage', pt: 'Fauna selvagem' }, icon: 'Leaf', color: '#2E7D32', description: { en: 'Biodiversity & CITES', fr: 'Biodiversité & CITES', pt: 'Biodiversidade & CITES' } },
+  { code: 'apiculture', name: { en: 'Apiculture', fr: 'Apiculture', pt: 'Apicultura' }, icon: 'Bug', color: '#F9A825', description: { en: 'Pollination & honey', fr: 'Pollinisation & miel', pt: 'Polinização & mel' } },
+  { code: 'governance', name: { en: 'Governance', fr: 'Gouvernance', pt: 'Governança' }, icon: 'Landmark', color: '#37474F', description: { en: 'Legal frameworks & PVS', fr: 'Cadres juridiques & PVS', pt: 'Quadros jurídicos & PVS' } },
+  { code: 'climate-env', name: { en: 'Climate & Env', fr: 'Climat & Env', pt: 'Clima & Amb' }, icon: 'CloudSun', color: '#00695C', description: { en: 'Water stress & rangelands', fr: 'Stress hydrique & parcours', pt: 'Estresse hídrico & pastagens' } },
   { code: 'knowledge-hub', name: { en: 'Knowledge', fr: 'Connaissances', pt: 'Conhecimento' }, icon: 'BookOpen', color: '#4527A0', description: { en: 'Continental resources', fr: 'Des ressources continentales', pt: 'Recursos continentais' } },
 ];
 
