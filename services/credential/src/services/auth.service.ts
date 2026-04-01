@@ -30,10 +30,12 @@ export interface TokenResponse {
     firstName: string;
     lastName: string;
     role: string;
+    roles: string[];
     tenantId: string;
     tenantLevel: string;
     domains: Array<{ id: string; code: string; name: Record<string, string>; icon: string; color: string }>;
   };
+  permissions?: Array<{ module: string; feature: string; action: string }>;
 }
 
 export interface MfaRequiredResponse {
