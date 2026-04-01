@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { MapPin, Users, ChevronRight, Building2 } from 'lucide-react';
 import type { RecConfig } from '@/data/recs-config';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
+import { getLocalizedField } from '@/lib/i18n/localize';
 
 interface RecCardProps {
   rec: RecConfig;
@@ -11,6 +13,13 @@ interface RecCardProps {
 
 export function RecCard({ rec }: RecCardProps) {
   const t = useTranslations('landing');
+  const locale = useLocaleStore((s) => s.locale);
+
+  const recName = getLocalizedField(rec, 'name', locale);
+  const recFullName = getLocalizedField(rec, 'fullName', locale);
+  const recRegion = getLocalizedField(rec, 'region', locale);
+  const recDescription = getLocalizedField(rec, 'description', locale);
+
   return (
     <Link
       href={`/rec/${rec.code}`}
@@ -27,12 +36,12 @@ export function RecCard({ rec }: RecCardProps) {
 
         {/* Badge */}
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20 text-lg font-extrabold text-white shadow-sm backdrop-blur-sm">
-          {rec.name.slice(0, 2)}
+          {recName.slice(0, 2)}
         </div>
 
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-bold text-white">{rec.name}</h3>
-          <p className="truncate text-xs text-white/70">{rec.fullName}</p>
+          <h3 className="text-lg font-bold text-white">{recName}</h3>
+          <p className="truncate text-xs text-white/70">{recFullName}</p>
         </div>
 
         <ChevronRight className="h-5 w-5 shrink-0 text-white/40 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-white/80" />
@@ -63,14 +72,14 @@ export function RecCard({ rec }: RecCardProps) {
             </div>
             <div>
               <p className="text-xs text-gray-400">{t('region')}</p>
-              <p className="font-bold text-gray-900 dark:text-white">{rec.region}</p>
+              <p className="font-bold text-gray-900 dark:text-white">{recRegion}</p>
             </div>
           </div>
         </div>
 
         {/* Description */}
         <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-          {rec.description}
+          {recDescription}
         </p>
 
         {/* Footer */}

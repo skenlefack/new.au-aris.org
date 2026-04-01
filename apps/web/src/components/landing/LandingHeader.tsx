@@ -10,6 +10,7 @@ import { useLocaleStore } from '@/lib/stores/locale-store';
 import { LOCALES, LOCALE_LABELS, type Locale } from '@/lib/i18n/config';
 import { useTranslations } from '@/lib/i18n/translations';
 import { usePublicLocales } from '@/lib/api/settings-hooks';
+import { getLocalizedField } from '@/lib/i18n/localize';
 
 interface Crumb {
   label: string;
@@ -40,9 +41,9 @@ export function LandingHeader({ rec, country }: LandingHeaderProps) {
   const crumbs: Crumb[] = [{ label: 'African Union', href: '/' }];
   if (country) {
     // Country pages: AU > Country only (countries can belong to multiple RECs)
-    crumbs.push({ label: country.name, href: `/country/${country.code}` });
+    crumbs.push({ label: getLocalizedField(country, 'name', locale), href: `/country/${country.code}` });
   } else if (rec) {
-    crumbs.push({ label: rec.name, href: `/rec/${rec.code}` });
+    crumbs.push({ label: getLocalizedField(rec, 'name', locale), href: `/rec/${rec.code}` });
   }
 
   return (

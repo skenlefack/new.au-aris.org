@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import type { CountryConfig } from '@/data/countries-config';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
+import { getLocalizedField } from '@/lib/i18n/localize';
 
 interface CountryCardProps {
   country: CountryConfig;
@@ -12,7 +14,9 @@ interface CountryCardProps {
 
 export function CountryCard({ country, accentColor = '#006B3F' }: CountryCardProps) {
   const t = useTranslations('landing');
+  const locale = useLocaleStore((s) => s.locale);
   const isConfigured = !!country.tenantId;
+  const countryName = getLocalizedField(country, 'name', locale);
 
   return (
     <Link
@@ -26,7 +30,7 @@ export function CountryCard({ country, accentColor = '#006B3F' }: CountryCardPro
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <h3 className="truncate text-sm font-bold text-gray-900 dark:text-white">
-            {country.name}
+            {countryName}
           </h3>
           {isConfigured && (
             <span
