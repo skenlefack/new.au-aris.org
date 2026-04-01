@@ -1,26 +1,15 @@
 // ─── Public domain statistics per country ──────────────────────────────────
 // Deterministic pseudo-random stats based on country population & code.
 // These are illustrative figures for the landing page display.
-
-import {
-  Bug,
-  Syringe,
-  Wheat,
-  Fish,
-  Leaf,
-  Globe2,
-  ShieldCheck,
-  ClipboardCheck,
-  TrendingUp,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+// NOTE: Icons are passed as string names (not React components) so that
+// this data can be serialized from Server Components to Client Components.
 
 export type TrendDir = 'up' | 'down' | 'stable';
 export type StatusLevel = 'good' | 'warning' | 'alert';
 
 export interface DomainHighlight {
   domain: string;
-  icon: LucideIcon;
+  icon: string;
   color: string;
   value: string;
   subtitle: string;
@@ -30,7 +19,7 @@ export interface DomainHighlight {
 
 export interface DomainGauge {
   domain: string;
-  icon: LucideIcon;
+  icon: string;
   color: string;
   score: number;       // 0–100
   status: StatusLevel;
@@ -84,7 +73,7 @@ export function getHighlights(code: string, pop: number): DomainHighlight[] {
   return [
     {
       domain: 'Active Outbreaks',
-      icon: Bug,
+      icon: 'Bug',
       color: '#C62828',
       value: String(num(code, 1, 0.08, p)),
       subtitle: 'Under surveillance this quarter',
@@ -93,7 +82,7 @@ export function getHighlights(code: string, pop: number): DomainHighlight[] {
     },
     {
       domain: 'Livestock Census',
-      icon: Wheat,
+      icon: 'Wheat',
       color: '#E65100',
       value: fmt(num(code, 3, 420, p)),
       subtitle: 'Heads registered nationally',
@@ -102,7 +91,7 @@ export function getHighlights(code: string, pop: number): DomainHighlight[] {
     },
     {
       domain: 'Trade Volume',
-      icon: Globe2,
+      icon: 'Globe2',
       color: '#6A1B9A',
       value: `$${fmt(num(code, 6, 85, p))}`,
       subtitle: 'Live animal & product exports (annual)',
@@ -125,7 +114,7 @@ export function getGauges(code: string, pop: number): DomainGauge[] {
   return [
     {
       domain: 'Vaccination Coverage',
-      icon: Syringe,
+      icon: 'Syringe',
       color: '#1565C0',
       score: vacc,
       ...status(vacc),
@@ -133,7 +122,7 @@ export function getGauges(code: string, pop: number): DomainGauge[] {
     },
     {
       domain: 'Fisheries & Aquaculture',
-      icon: Fish,
+      icon: 'Fish',
       color: '#00838F',
       score: fish,
       ...status(fish),
@@ -141,7 +130,7 @@ export function getGauges(code: string, pop: number): DomainGauge[] {
     },
     {
       domain: 'Wildlife Conservation',
-      icon: Leaf,
+      icon: 'Leaf',
       color: '#2E7D32',
       score: wild,
       ...status(wild),
@@ -149,7 +138,7 @@ export function getGauges(code: string, pop: number): DomainGauge[] {
     },
     {
       domain: 'Veterinary Governance',
-      icon: ShieldCheck,
+      icon: 'ShieldCheck',
       color: '#37474F',
       score: gov,
       ...status(gov),
@@ -157,7 +146,7 @@ export function getGauges(code: string, pop: number): DomainGauge[] {
     },
     {
       domain: 'Data Quality',
-      icon: ClipboardCheck,
+      icon: 'ClipboardCheck',
       color: '#F57F17',
       score: qual,
       ...status(qual),
@@ -165,7 +154,7 @@ export function getGauges(code: string, pop: number): DomainGauge[] {
     },
     {
       domain: 'Analytics Readiness',
-      icon: TrendingUp,
+      icon: 'TrendingUp',
       color: '#1B5E20',
       score: ana,
       ...status(ana),
