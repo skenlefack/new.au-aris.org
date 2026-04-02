@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   useStatisticDefinitions,
   useCreateStatisticDefinition,
@@ -8,7 +8,10 @@ import {
   useDeleteStatisticDefinition,
   useSettingsDomains,
 } from '@/lib/api/settings-hooks';
+import { useFormBuilderTemplates, useFormBuilderTemplate } from '@/lib/api/form-builder-hooks';
+import type { FormSchema, FormField, FormSection } from '@/components/form-builder/utils/form-schema';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
+import { useTranslations } from '@/lib/i18n/translations';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { ColorPicker } from '@/components/settings/ColorPicker';
 import {
@@ -56,7 +59,33 @@ const UNITS = ['count', 'percentage', 'currency', 'tonnes', 'heads', 'doses'];
 const FORMATS = ['number', 'currency', 'compact'];
 const SOURCE_TYPES = ['manual', 'form_builder'];
 
+const LAYOUT_FIELD_TYPES = ['heading', 'divider', 'info-box', 'spacer'];
+const NUMERIC_FIELD_TYPES = ['number', 'calculated', 'rating'];
+const AGGREGATIONS = ['count', 'sum', 'avg', 'min', 'max', 'count_distinct'] as const;
+const FILTER_OPERATORS = ['equals', 'not_equals', 'greater_than', 'less_than', 'is_not_empty'] as const;
+
+type Aggregation = typeof AGGREGATIONS[number];
+type FilterOperator = typeof FILTER_OPERATORS[number];
+
+interface SourceConfigField {
+  fieldCode: string;
+  fieldLabel: string;
+  fieldType: string;
+  aggregation: Aggregation;
+  filter?: {
+    operator: FilterOperator;
+    value?: string | number;
+  };
+}
+
+interface SourceConfig {
+  templateId: string;
+  templateName: string;
+  fields: SourceConfigField[];
+}
+
 export default function StatisticsPage() {
+  const t = useTranslations('settings');
   const { isSuperAdmin, isContinentalAdmin } = useSettingsAccess();
   const canManage = isSuperAdmin || isContinentalAdmin;
   const { data, isLoading } = useStatisticDefinitions();
@@ -177,10 +206,10 @@ export default function StatisticsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Statistic Definitions
+              {t('statisticDefinitions')}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Define statistics that countries can display on their landing pages ({statDefs.length} definitions)
+              {t('statisticDefinitionsDesc', { count: String(statDefs.length) })}
             </p>
           </div>
         </div>
@@ -191,7 +220,7 @@ export default function StatisticsPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
           >
             <Plus className="h-4 w-4" />
-            Add Statistic
+            {t('addStatistic')}
           </button>
         )}
       </div>
@@ -199,7 +228,7 @@ export default function StatisticsPage() {
       {/* Add Form */}
       {showAddForm && (
         <StatFormPanel
-          title="New Statistic Definition"
+          title={t('newStatisticDef')}
           form={form}
           setForm={setForm}
           domains={domains}
@@ -228,7 +257,7 @@ export default function StatisticsPage() {
                   return (
                     <StatFormPanel
                       key={stat.id}
-                      title={`Edit: ${stat.name?.en ?? stat.code}`}
+                      title={t('editStatistic', { name: stat.name?.en ?? stat.code })}
                       form={form}
                       setForm={setForm}
                       domains={domains}
@@ -254,7 +283,7 @@ export default function StatisticsPage() {
                         {stat.name?.en ?? stat.code}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {stat.unit} | {stat.sourceType} | {stat.format}
+                        {stat.unit} | {stat.sourceType}{stat.sourceType === 'form_builder' && stat.sourceConfig?.templateName ? ` (${stat.sourceConfig.templateName})` : ''} | {stat.format}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -268,7 +297,7 @@ export default function StatisticsPage() {
                           color: stat.isActive ? '#059669' : '#9ca3af',
                         }}
                       >
-                        {stat.isActive ? 'Active' : 'Inactive'}
+                        {stat.isActive ? t('active') : t('inactive')}
                       </span>
                       {canManage && (
                         <>
@@ -299,7 +328,7 @@ export default function StatisticsPage() {
 
       {statDefs.length === 0 && !showAddForm && (
         <div className="py-12 text-center text-sm text-gray-400">
-          No statistic definitions yet. Add one to get started.
+          {t('noStatisticsYet')}
         </div>
       )}
 
@@ -313,11 +342,10 @@ export default function StatisticsPage() {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Delete Statistic
+                  {t('deleteStatistic')}
                 </h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Are you sure you want to delete &ldquo;{deletingStat.name?.en ?? deletingStat.code}&rdquo;?
-                  This will also remove all country configurations for this statistic.
+                  {t('deleteStatisticConfirm', { name: deletingStat.name?.en ?? deletingStat.code })}
                 </p>
               </div>
             </div>
@@ -327,7 +355,7 @@ export default function StatisticsPage() {
                 onClick={() => setDeletingId(null)}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 type="button"
@@ -336,7 +364,7 @@ export default function StatisticsPage() {
                 className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
               >
                 {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                Delete
+                {t('delete')}
               </button>
             </div>
           </div>
@@ -365,6 +393,7 @@ function StatFormPanel({
   saving: boolean;
   isNew?: boolean;
 }) {
+  const t = useTranslations('settings');
   const canSave = form.code.trim().length >= 1 && (form.name.en?.trim() ?? '').length > 0 && form.domainCode.length > 0;
 
   return (
@@ -380,13 +409,13 @@ function StatFormPanel({
         {isNew && (
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Code <span className="text-red-500">*</span>
+              {t('code')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={form.code}
               onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
-              placeholder="e.g. active-outbreaks"
+              placeholder={t('codePlaceholder')}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 font-mono text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             />
           </div>
@@ -394,14 +423,14 @@ function StatFormPanel({
 
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Domain <span className="text-red-500">*</span>
+            {t('domain')} <span className="text-red-500">*</span>
           </label>
           <select
             value={form.domainCode}
             onChange={(e) => setForm((f) => ({ ...f, domainCode: e.target.value }))}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           >
-            <option value="">Select domain...</option>
+            <option value="">{t('selectDomain')}</option>
             {domains.map((d: any) => (
               <option key={d.code} value={d.code}>{d.name?.en ?? d.code}</option>
             ))}
@@ -409,24 +438,24 @@ function StatFormPanel({
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Icon (Lucide)</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('iconLucide')}</label>
           <input
             type="text"
             value={form.icon}
             onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}
-            placeholder="e.g. Bug, Syringe, Fish"
+            placeholder={t('iconPlaceholder')}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
 
         <ColorPicker
-          label="Color"
+          label={t('color')}
           value={form.color}
           onChange={(c) => setForm((f) => ({ ...f, color: c }))}
         />
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Unit</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('unit')}</label>
           <select
             value={form.unit}
             onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))}
@@ -437,7 +466,7 @@ function StatFormPanel({
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Format</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('format')}</label>
           <select
             value={form.format}
             onChange={(e) => setForm((f) => ({ ...f, format: e.target.value }))}
@@ -448,10 +477,17 @@ function StatFormPanel({
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Source Type</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('sourceType')}</label>
           <select
             value={form.sourceType}
-            onChange={(e) => setForm((f) => ({ ...f, sourceType: e.target.value }))}
+            onChange={(e) => {
+              const v = e.target.value;
+              setForm((f) => ({
+                ...f,
+                sourceType: v,
+                sourceConfig: v === 'form_builder' ? f.sourceConfig : null,
+              }));
+            }}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           >
             {SOURCE_TYPES.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
@@ -459,7 +495,7 @@ function StatFormPanel({
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Sort Order</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('sortOrder')}</label>
           <input
             type="number"
             min={0}
@@ -477,17 +513,23 @@ function StatFormPanel({
           >
             <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${form.isActive ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
-          <span className="text-sm text-gray-700 dark:text-gray-300">{form.isActive ? 'Active' : 'Inactive'}</span>
+          <span className="text-sm text-gray-700 dark:text-gray-300">{form.isActive ? t('active') : t('inactive')}</span>
         </div>
       </div>
 
+      {form.sourceType === 'form_builder' && (
+        <div className="mt-4">
+          <FormBuilderSourceConfig form={form} setForm={setForm} />
+        </div>
+      )}
+
       <div className="mt-4">
         <MultilingualInput
-          label="Name"
+          label={t('name')}
           value={form.name}
           onChange={(v) => setForm((f) => ({ ...f, name: v }))}
           required
-          placeholder="Statistic name..."
+          placeholder={t('statNamePlaceholder')}
         />
       </div>
 
@@ -497,7 +539,7 @@ function StatFormPanel({
           onClick={onCancel}
           className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
         >
-          Cancel
+          {t('cancel')}
         </button>
         <button
           type="button"
@@ -506,9 +548,247 @@ function StatFormPanel({
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-          {isNew ? 'Create' : 'Save'}
+          {isNew ? t('create') : t('save')}
         </button>
       </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// Form Builder Source Config
+// ════════════════════════════════════════════════════════════════
+
+function FormBuilderSourceConfig({
+  form,
+  setForm,
+}: {
+  form: StatForm;
+  setForm: React.Dispatch<React.SetStateAction<StatForm>>;
+}) {
+  const t = useTranslations('settings');
+  const sourceConfig = form.sourceConfig as SourceConfig | null;
+  const selectedTemplateId = sourceConfig?.templateId ?? '';
+
+  const { data: templatesData, isLoading: loadingTemplates } = useFormBuilderTemplates({ status: 'PUBLISHED', limit: 200 });
+  const templates = templatesData?.data ?? [];
+
+  const { data: templateDetail, isLoading: loadingDetail } = useFormBuilderTemplate(selectedTemplateId || undefined);
+  const schema = (templateDetail?.data?.schema as FormSchema | undefined) ?? null;
+
+  const dataFields = useMemo(() => {
+    if (!schema?.sections) return [];
+    const result: Array<{ section: FormSection; field: FormField }> = [];
+    for (const section of schema.sections) {
+      for (const field of section.fields) {
+        if (!LAYOUT_FIELD_TYPES.includes(field.type)) {
+          result.push({ section, field });
+        }
+      }
+    }
+    return result;
+  }, [schema]);
+
+  const sectionGroups = useMemo(() => {
+    const map = new Map<string, { section: FormSection; fields: FormField[] }>();
+    for (const { section, field } of dataFields) {
+      if (!map.has(section.id)) {
+        map.set(section.id, { section, fields: [] });
+      }
+      map.get(section.id)!.fields.push(field);
+    }
+    return Array.from(map.values());
+  }, [dataFields]);
+
+  const handleTemplateChange = (templateId: string) => {
+    const tpl = templates.find((t) => t.id === templateId);
+    if (!templateId) {
+      setForm((f) => ({ ...f, sourceConfig: null }));
+      return;
+    }
+    setForm((f) => ({
+      ...f,
+      sourceConfig: {
+        templateId,
+        templateName: tpl?.name ?? '',
+        fields: [],
+      } satisfies SourceConfig,
+    }));
+  };
+
+  const updateFields = (fields: SourceConfigField[]) => {
+    setForm((f) => ({
+      ...f,
+      sourceConfig: {
+        ...(f.sourceConfig as SourceConfig),
+        fields,
+      },
+    }));
+  };
+
+  const toggleField = (field: FormField, checked: boolean) => {
+    const current = (sourceConfig?.fields ?? []) as SourceConfigField[];
+    if (checked) {
+      const defaultAgg: Aggregation = NUMERIC_FIELD_TYPES.includes(field.type) ? 'sum' : 'count';
+      updateFields([
+        ...current,
+        { fieldCode: field.code, fieldLabel: field.label?.en ?? field.code, fieldType: field.type, aggregation: defaultAgg },
+      ]);
+    } else {
+      updateFields(current.filter((f) => f.fieldCode !== field.code));
+    }
+  };
+
+  const updateFieldConfig = (fieldCode: string, updates: Partial<SourceConfigField>) => {
+    const current = (sourceConfig?.fields ?? []) as SourceConfigField[];
+    updateFields(current.map((f) => f.fieldCode === fieldCode ? { ...f, ...updates } : f));
+  };
+
+  const selectedCodes = new Set((sourceConfig?.fields ?? []).map((f: SourceConfigField) => f.fieldCode));
+
+  const selectCls = 'rounded border border-gray-200 px-2 py-1 text-xs shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white';
+  const inputCls = 'w-20 rounded border border-gray-200 px-2 py-1 text-xs shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white';
+
+  return (
+    <div className="space-y-4 rounded-lg border border-indigo-200 bg-indigo-50/30 p-4 dark:border-indigo-800 dark:bg-indigo-900/10">
+      <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200">{t('formBuilderConfig')}</h4>
+
+      {/* Template selector */}
+      <div className="space-y-1.5">
+        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('formTemplate')}</label>
+        {loadingTemplates ? (
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <Loader2 className="h-3 w-3 animate-spin" /> {t('loadingTemplates')}
+          </div>
+        ) : (
+          <select
+            value={selectedTemplateId}
+            onChange={(e) => handleTemplateChange(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+          >
+            <option value="">{t('selectForm')}</option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name} ({t.domain}) — v{t.version}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {/* Fields configuration */}
+      {selectedTemplateId && (
+        loadingDetail ? (
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <Loader2 className="h-3 w-3 animate-spin" /> {t('loadingFormFields')}
+          </div>
+        ) : sectionGroups.length === 0 ? (
+          <p className="text-xs text-gray-400">{t('noDataFields')}</p>
+        ) : (
+          <div className="space-y-3">
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fieldsConfig')}</label>
+            {sectionGroups.map(({ section, fields }) => (
+              <div key={section.id} className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                <p className="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  {section.name?.en ?? t('sectionFallback')}
+                </p>
+                <div className="space-y-2">
+                  {fields.map((field) => {
+                    const isSelected = selectedCodes.has(field.code);
+                    const config = isSelected
+                      ? (sourceConfig?.fields as SourceConfigField[]).find((f) => f.fieldCode === field.code)
+                      : null;
+                    const isNumeric = NUMERIC_FIELD_TYPES.includes(field.type);
+
+                    return (
+                      <div key={field.id} className="flex flex-wrap items-center gap-2">
+                        {/* Checkbox */}
+                        <label className="flex items-center gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => toggleField(field, e.target.checked)}
+                            className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="font-medium text-gray-700 dark:text-gray-300">
+                            {field.label?.en ?? field.code}
+                          </span>
+                          <span className="font-mono text-[10px] text-gray-400">{field.code}</span>
+                          <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                            {field.type}
+                          </span>
+                        </label>
+
+                        {/* Aggregation + Filter (only when selected) */}
+                        {isSelected && config && (
+                          <div className="ml-auto flex flex-wrap items-center gap-2">
+                            <select
+                              value={config.aggregation}
+                              onChange={(e) => updateFieldConfig(field.code, { aggregation: e.target.value as Aggregation })}
+                              className={selectCls}
+                            >
+                              {AGGREGATIONS.map((a) => (
+                                <option
+                                  key={a}
+                                  value={a}
+                                  disabled={!isNumeric && !['count', 'count_distinct'].includes(a)}
+                                >
+                                  {a}
+                                </option>
+                              ))}
+                            </select>
+
+                            {/* Filter */}
+                            <select
+                              value={config.filter?.operator ?? ''}
+                              onChange={(e) => {
+                                const op = e.target.value as FilterOperator | '';
+                                if (!op) {
+                                  updateFieldConfig(field.code, { filter: undefined });
+                                } else {
+                                  updateFieldConfig(field.code, {
+                                    filter: { operator: op, value: op === 'is_not_empty' ? undefined : config.filter?.value ?? '' },
+                                  });
+                                }
+                              }}
+                              className={selectCls}
+                            >
+                              <option value="">{t('noFilter')}</option>
+                              {FILTER_OPERATORS.map((op) => (
+                                <option key={op} value={op}>{op.replace(/_/g, ' ')}</option>
+                              ))}
+                            </select>
+
+                            {config.filter && config.filter.operator !== 'is_not_empty' && (
+                              <input
+                                type="text"
+                                value={config.filter.value ?? ''}
+                                onChange={(e) =>
+                                  updateFieldConfig(field.code, {
+                                    filter: { ...config.filter!, value: e.target.value },
+                                  })
+                                }
+                                placeholder="value"
+                                className={inputCls}
+                              />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            {selectedCodes.size > 0 && (
+              <p className="text-[10px] text-gray-400">
+                {t('fieldsSelected', { count: String(selectedCodes.size) })}
+              </p>
+            )}
+          </div>
+        )
+      )}
     </div>
   );
 }
