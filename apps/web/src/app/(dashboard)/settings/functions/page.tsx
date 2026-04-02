@@ -603,22 +603,18 @@ export default function FunctionsPage() {
                   <td className="px-4 py-3">{getLevelBadge(fn.level)}</td>
                   <td className="px-4 py-3">{getCategoryBadge(fn.category)}</td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1 max-w-[160px]">
+                    <div className="flex items-center gap-1">
                       {(fn as any).roles?.length > 0 ? (
-                        (fn as any).roles.slice(0, 2).map((fr: any) => (
+                        (fn as any).roles.map((fr: any) => (
                           <span
                             key={fr.role?.id ?? fr.roleId}
-                            className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium text-white"
+                            title={fr.role?.name?.[locale] ?? fr.role?.name?.en ?? fr.role?.code ?? '?'}
+                            className="inline-block h-2.5 w-2.5 rounded-full ring-1 ring-white dark:ring-gray-800"
                             style={{ backgroundColor: fr.role?.color ?? '#6b7280' }}
-                          >
-                            {fr.role?.name?.en ?? fr.role?.code ?? '?'}
-                          </span>
+                          />
                         ))
                       ) : (
                         <span className="text-[11px] text-gray-400">--</span>
-                      )}
-                      {(fn as any).roles?.length > 2 && (
-                        <span className="text-[10px] text-gray-400">+{(fn as any).roles.length - 2}</span>
                       )}
                     </div>
                   </td>
