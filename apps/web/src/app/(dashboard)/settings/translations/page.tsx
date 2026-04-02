@@ -80,12 +80,12 @@ function flattenMessages(
 
 export default function TranslationsPage() {
   const t = useTranslations('settings');
-  const [activeTab, setActiveTab] = useState<TabId>('config');
+  const [activeTab, setActiveTab] = useState<TabId>('references');
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
-    { id: 'config', label: t('systranConfig'), icon: <Settings2 className="h-4 w-4" /> },
     { id: 'references', label: t('i18nReferences'), icon: <BookOpen className="h-4 w-4" /> },
     { id: 'review', label: t('translationReview'), icon: <Languages className="h-4 w-4" /> },
+    { id: 'config', label: t('systranConfig'), icon: <Settings2 className="h-4 w-4" /> },
   ];
 
   return (
@@ -313,6 +313,13 @@ function ReferencesTab() {
   const [filterStatus, setFilterStatus] = useState<'' | 'complete' | 'missing'>('');
   const [expandedNs, setExpandedNs] = useState<Set<string>>(new Set());
 
+  // Edits: { "settings.myKey|fr": "new value" }
+  const [edits, setEdits] = useState<Record<string, string>>({});
+  // Currently editing cell: "settings.myKey|fr"
+  const [editingCell, setEditingCell] = useState<string | null>(null);
+  const [editBuffer, setEditBuffer] = useState('');
+  const editCount = Object.keys(edits).length;
+
   // Build flat maps for each language
   const flatMaps = useMemo(() => {
     const maps: Record<string, Record<string, string>> = {};
@@ -321,6 +328,16 @@ function ReferencesTab() {
     }
     return maps;
   }, []);
+
+  /** Get the displayed value for a cell, including pending edits */
+  const getCellValue = useCallback(
+    (key: string, lang: string): string => {
+      const editKey = `${key}|${lang}`;
+      if (editKey in edits) return edits[editKey];
+      return flatMaps[lang]?.[key] ?? '';
+    },
+    [flatMaps, edits],
+  );
 
   // Extract all unique keys from English (reference language)
   const allKeys = useMemo(() => Object.keys(flatMaps['en'] ?? {}).sort(), [flatMaps]);
@@ -347,9 +364,8 @@ function ReferencesTab() {
       const q = search.toLowerCase();
       keys = keys.filter((k) => {
         if (k.toLowerCase().includes(q)) return true;
-        // Also search in values
         for (const lang of Object.keys(flatMaps)) {
-          if (flatMaps[lang][k]?.toLowerCase().includes(q)) return true;
+          if (getCellValue(k, lang).toLowerCase().includes(q)) return true;
         }
         return false;
       });
@@ -357,23 +373,23 @@ function ReferencesTab() {
 
     if (filterStatus === 'missing') {
       keys = keys.filter((k) =>
-        LANGUAGES.some((l) => !flatMaps[l.code]?.[k]?.trim()),
+        LANGUAGES.some((l) => !getCellValue(k, l.code).trim()),
       );
     } else if (filterStatus === 'complete') {
       keys = keys.filter((k) =>
-        LANGUAGES.every((l) => !!flatMaps[l.code]?.[k]?.trim()),
+        LANGUAGES.every((l) => !!getCellValue(k, l.code).trim()),
       );
     }
 
     return keys;
-  }, [allKeys, filterNamespace, search, filterStatus, flatMaps]);
+  }, [allKeys, filterNamespace, search, filterStatus, flatMaps, getCellValue]);
 
   // Completion stats
   const stats = useMemo(() => {
     const total = allKeys.length;
     const perLang: Record<string, { filled: number; missing: number; pct: number }> = {};
     for (const lang of LANGUAGES) {
-      const filled = allKeys.filter((k) => !!flatMaps[lang.code]?.[k]?.trim()).length;
+      const filled = allKeys.filter((k) => !!getCellValue(k, lang.code).trim()).length;
       perLang[lang.code] = {
         filled,
         missing: total - filled,
@@ -381,7 +397,7 @@ function ReferencesTab() {
       };
     }
     return { total, perLang };
-  }, [allKeys, flatMaps]);
+  }, [allKeys, getCellValue]);
 
   const toggleNs = (ns: string) => {
     setExpandedNs((prev) => {
@@ -403,6 +419,59 @@ function ReferencesTab() {
     }
     return groups;
   }, [filteredKeys]);
+
+  /* ── Inline edit helpers ── */
+
+  const startEdit = (key: string, lang: string) => {
+    const cellId = `${key}|${lang}`;
+    setEditingCell(cellId);
+    setEditBuffer(getCellValue(key, lang));
+  };
+
+  const confirmEdit = () => {
+    if (!editingCell) return;
+    const [key, lang] = editingCell.split('|');
+    const original = flatMaps[lang]?.[key] ?? '';
+    if (editBuffer !== original) {
+      setEdits((prev) => ({ ...prev, [editingCell]: editBuffer }));
+    } else {
+      // Value reverted to original → remove from edits
+      setEdits((prev) => {
+        const next = { ...prev };
+        delete next[editingCell];
+        return next;
+      });
+    }
+    setEditingCell(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingCell(null);
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') { e.preventDefault(); confirmEdit(); }
+    if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+  };
+
+  const handleExportEdits = () => {
+    if (editCount === 0) return;
+    // Group edits by language
+    const perLang: Record<string, Record<string, string>> = {};
+    for (const [cellId, value] of Object.entries(edits)) {
+      const [key, lang] = cellId.split('|');
+      if (!perLang[lang]) perLang[lang] = {};
+      perLang[lang][key] = value;
+    }
+    const blob = new Blob([JSON.stringify(perLang, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'i18n_edits.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(t('editsExported'));
+  };
 
   return (
     <div className="space-y-5">
@@ -495,6 +564,29 @@ function ReferencesTab() {
         <span className="text-xs text-gray-400">
           {filteredKeys.length} / {allKeys.length} {t('keys')}
         </span>
+
+        {/* Pending edits indicator + export */}
+        {editCount > 0 && (
+          <div className="ml-auto flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+              <Pencil className="h-2.5 w-2.5" />
+              {t('pendingEdits', { count: String(editCount) })}
+            </span>
+            <button
+              onClick={handleExportEdits}
+              className="inline-flex items-center gap-1 rounded-lg border border-aris-primary-300 bg-aris-primary-50 px-2.5 py-1 text-[10px] font-medium text-aris-primary-700 hover:bg-aris-primary-100 dark:border-aris-primary-700 dark:bg-aris-primary-900/20 dark:text-aris-primary-300 dark:hover:bg-aris-primary-900/40"
+            >
+              <Save className="h-3 w-3" />
+              {t('exportJson')}
+            </button>
+            <button
+              onClick={() => setEdits({})}
+              className="rounded-lg border border-gray-200 px-2.5 py-1 text-[10px] font-medium text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+            >
+              {t('discardEdits')}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Keys browser - grouped by namespace */}
@@ -521,7 +613,7 @@ function ReferencesTab() {
               </div>
               <div className="flex gap-1">
                 {LANGUAGES.map((lang) => {
-                  const filled = keys.filter((k) => !!flatMaps[lang.code]?.[k]?.trim()).length;
+                  const filled = keys.filter((k) => !!getCellValue(k, lang.code).trim()).length;
                   const pct = keys.length > 0 ? Math.round((filled / keys.length) * 100) : 0;
                   return (
                     <span
@@ -545,11 +637,11 @@ function ReferencesTab() {
 
             {expandedNs.has(ns) && (
               <div className="border-t border-gray-100 dark:border-gray-800">
-                <div className="max-h-[400px] overflow-y-auto">
+                <div className="max-h-[500px] overflow-y-auto">
                   <table className="w-full text-xs">
-                    <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800">
+                    <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
                       <tr>
-                        <th className="px-4 py-2 text-left font-medium text-gray-500 w-1/4">
+                        <th className="px-4 py-2 text-left font-medium text-gray-500 w-[18%]">
                           {t('key')}
                         </th>
                         {LANGUAGES.map((lang) => (
@@ -563,25 +655,69 @@ function ReferencesTab() {
                       {keys.slice(0, 100).map((key) => {
                         const shortKey = key.slice(ns.length + 1);
                         return (
-                          <tr key={key} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
+                          <tr key={key} className="group hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
                             <td className="px-4 py-1.5 font-mono text-gray-600 dark:text-gray-400 break-all">
                               {shortKey}
                             </td>
                             {LANGUAGES.map((lang) => {
-                              const val = flatMaps[lang.code]?.[key];
-                              const filled = !!val?.trim();
+                              const cellId = `${key}|${lang.code}`;
+                              const val = getCellValue(key, lang.code);
+                              const filled = !!val.trim();
+                              const isEditing = editingCell === cellId;
+                              const isEdited = cellId in edits;
+
+                              if (isEditing) {
+                                return (
+                                  <td key={lang.code} className="px-1 py-0.5">
+                                    <div className="flex items-center gap-0.5">
+                                      <input
+                                        value={editBuffer}
+                                        onChange={(e) => setEditBuffer(e.target.value)}
+                                        onKeyDown={handleEditKeyDown}
+                                        onBlur={confirmEdit}
+                                        autoFocus
+                                        dir={lang.code === 'ar' ? 'rtl' : 'ltr'}
+                                        className="flex-1 rounded border border-aris-primary-400 bg-white px-1.5 py-0.5 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-aris-primary-600 dark:bg-gray-800 dark:text-white"
+                                      />
+                                      <button
+                                        onMouseDown={(e) => { e.preventDefault(); confirmEdit(); }}
+                                        className="rounded p-0.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                      >
+                                        <Check className="h-3 w-3" />
+                                      </button>
+                                      <button
+                                        onMouseDown={(e) => { e.preventDefault(); cancelEdit(); }}
+                                        className="rounded p-0.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                );
+                              }
+
                               return (
                                 <td
                                   key={lang.code}
+                                  onClick={() => startEdit(key, lang.code)}
                                   className={cn(
-                                    'px-2 py-1.5 max-w-[200px] truncate',
-                                    filled
-                                      ? 'text-gray-700 dark:text-gray-300'
-                                      : 'text-red-400 italic',
+                                    'px-2 py-1.5 max-w-[200px] truncate cursor-pointer rounded-sm transition-colors',
+                                    'hover:bg-aris-primary-50/50 dark:hover:bg-aris-primary-900/10',
+                                    isEdited
+                                      ? 'bg-amber-50 text-amber-800 dark:bg-amber-900/15 dark:text-amber-300'
+                                      : filled
+                                        ? 'text-gray-700 dark:text-gray-300'
+                                        : 'text-red-400 italic',
                                   )}
-                                  title={val || t('translationMissing')}
+                                  title={filled ? `${val}\n\n${t('clickToEdit')}` : t('clickToEdit')}
                                 >
-                                  {filled ? val : '\u2014'}
+                                  <span className="flex items-center gap-1">
+                                    {filled ? val : '\u2014'}
+                                    {isEdited && <Pencil className="inline h-2 w-2 shrink-0 text-amber-500" />}
+                                    {!isEditing && (
+                                      <Pencil className="invisible inline h-2 w-2 shrink-0 text-gray-300 group-hover:visible" />
+                                    )}
+                                  </span>
                                 </td>
                               );
                             })}
