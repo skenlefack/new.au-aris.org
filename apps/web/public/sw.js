@@ -20,6 +20,11 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Skip cross-origin requests (BI subdomains, external resources)
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
   // Network-first strategy for API calls
   if (event.request.url.includes('/api/')) {
     event.respondWith(
