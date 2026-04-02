@@ -1163,6 +1163,13 @@
     "creating": "Criando...",
     "deleteStep": "Excluir esta etapa?",
     "delay": "atraso de {hours}h",
+    "levelRange": "Nível {start} → {end}",
+    "levelAdmin": "(nível {level})",
+    "stepNameEnPlaceholder": "County Validation",
+    "stepNameFrPlaceholder": "Validation Comté",
+    "optionalPlaceholder": "Opcional",
+    "workflowNameEnPlaceholder": "Kenya Validation Workflow",
+    "workflowNameFrPlaceholder": "Workflow de Validação Quénia",
 
     "dataQualityTitle": "Qualidade dos Dados",
     "dataQualitySubtitle": "Regras de validação, limiares de completude e configuração das portas de qualidade",

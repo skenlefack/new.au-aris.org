@@ -216,7 +216,7 @@ function WorkflowCard({
             </h3>
             <p className="text-xs text-gray-500">
               {i18n(workflow.country?.name)} &middot; {(workflow.steps ?? []).length || '?'} {t('steps')}
-              &middot; Level {workflow.startLevel} &rarr; {workflow.endLevel}
+              &middot; {t('levelRange', { start: workflow.startLevel, end: workflow.endLevel })}
             </p>
           </div>
         </div>
@@ -468,7 +468,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
                 {i18n(step.name)}
               </p>
               <p className="text-xs text-gray-500">
-                {step.levelType} {step.adminLevel != null ? `(level ${step.adminLevel})` : ''}
+                {step.levelType} {step.adminLevel != null ? t('levelAdmin', { level: step.adminLevel }) : ''}
                 {step.canEdit && ` · ${t('canEdit')}`}
                 {step.canValidate && ` · ${t('canValidate')}`}
                 {step.transmitDelayHours && ` · ${t('delay', { hours: step.transmitDelayHours })}`}
@@ -499,7 +499,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
                 value={newStep.nameEn}
                 onChange={(e) => setNewStep((s) => ({ ...s, nameEn: e.target.value }))}
                 className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
-                placeholder="County Validation"
+                placeholder={t('stepNameEnPlaceholder')}
               />
             </div>
             <div>
@@ -508,7 +508,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
                 value={newStep.nameFr}
                 onChange={(e) => setNewStep((s) => ({ ...s, nameFr: e.target.value }))}
                 className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
-                placeholder="Validation Comté"
+                placeholder={t('stepNameFrPlaceholder')}
               />
             </div>
             <div>
@@ -549,7 +549,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
                 value={newStep.transmitDelayHours}
                 onChange={(e) => setNewStep((s) => ({ ...s, transmitDelayHours: e.target.value }))}
                 className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
-                placeholder="Optional"
+                placeholder={t('optionalPlaceholder')}
               />
             </div>
           </div>
@@ -655,7 +655,7 @@ function CreateWorkflowForm({ onClose }: { onClose: () => void }) {
             value={form.nameEn}
             onChange={(e) => setForm((s) => ({ ...s, nameEn: e.target.value }))}
             className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
-            placeholder="Kenya Validation Workflow"
+            placeholder={t('workflowNameEnPlaceholder')}
           />
         </div>
         <div>
@@ -664,7 +664,7 @@ function CreateWorkflowForm({ onClose }: { onClose: () => void }) {
             value={form.nameFr}
             onChange={(e) => setForm((s) => ({ ...s, nameFr: e.target.value }))}
             className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
-            placeholder="Workflow de Validation Kenya"
+            placeholder={t('workflowNameFrPlaceholder')}
           />
         </div>
         <div>

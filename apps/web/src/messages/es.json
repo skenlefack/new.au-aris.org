@@ -1135,6 +1135,13 @@
     "creating": "Creando...",
     "deleteStep": "¿Eliminar este paso?",
     "delay": "demora de {hours}h",
+    "levelRange": "Nivel {start} → {end}",
+    "levelAdmin": "(nivel {level})",
+    "stepNameEnPlaceholder": "County Validation",
+    "stepNameFrPlaceholder": "Validation Comté",
+    "optionalPlaceholder": "Opcional",
+    "workflowNameEnPlaceholder": "Kenya Validation Workflow",
+    "workflowNameFrPlaceholder": "Workflow de Validación Kenia",
 
     "dataQualityTitle": "Calidad de Datos",
     "dataQualitySubtitle": "Reglas de validación, umbrales de completitud y configuración de puertas de calidad",

@@ -1135,6 +1135,13 @@
     "creating": "جارٍ الإنشاء...",
     "deleteStep": "حذف هذه الخطوة؟",
     "delay": "تأخير {hours}س",
+    "levelRange": "المستوى {start} ← {end}",
+    "levelAdmin": "(المستوى {level})",
+    "stepNameEnPlaceholder": "County Validation",
+    "stepNameFrPlaceholder": "Validation Comté",
+    "optionalPlaceholder": "اختياري",
+    "workflowNameEnPlaceholder": "Kenya Validation Workflow",
+    "workflowNameFrPlaceholder": "Workflow de Validation Kenya",
 
     "dataQualityTitle": "جودة البيانات",
     "dataQualitySubtitle": "قواعد التحقق وعتبات الاكتمال وتكوين بوابات الجودة",

@@ -1163,6 +1163,13 @@
     "creating": "Création en cours...",
     "deleteStep": "Supprimer cette étape ?",
     "delay": "Délai de {hours} h",
+    "levelRange": "Niveau {start} → {end}",
+    "levelAdmin": "(niveau {level})",
+    "stepNameEnPlaceholder": "County Validation",
+    "stepNameFrPlaceholder": "Validation Comté",
+    "optionalPlaceholder": "Facultatif",
+    "workflowNameEnPlaceholder": "Kenya Validation Workflow",
+    "workflowNameFrPlaceholder": "Workflow de Validation Kenya",
 
     "dataQualityTitle": "Qualité des données",
     "dataQualitySubtitle": "Règles de validation, seuils de complétude et configuration des contrôles qualité",
