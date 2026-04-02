@@ -660,7 +660,7 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
   // POST /api/v1/settings/roles — create custom role
   app.post<{ Body: RoleBodyInput }>('/api/v1/settings/roles', {
     schema: { body: RoleBodySchema },
-    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN)],
   }, async (request, reply) => {
     const user = request.user as AuthenticatedUser;
     const result = await app.roleService.createRole(request.body as Record<string, unknown>, user);
@@ -670,7 +670,7 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
   // PATCH /api/v1/settings/roles/:id — update role
   app.patch<{ Params: UuidParamInput; Body: RoleUpdateBodyInput }>('/api/v1/settings/roles/:id', {
     schema: { params: UuidParamSchema, body: RoleUpdateBodySchema },
-    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN)],
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.roleService.updateRole(request.params.id, request.body as Record<string, unknown>, user);
@@ -679,7 +679,7 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
   // DELETE /api/v1/settings/roles/:id — delete role (non-system only)
   app.delete<{ Params: UuidParamInput }>('/api/v1/settings/roles/:id', {
     schema: { params: UuidParamSchema },
-    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN)],
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.roleService.deleteRole(request.params.id, user);
@@ -696,7 +696,7 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
   // PUT /api/v1/settings/roles/:id/permissions — batch update permission matrix
   app.put<{ Params: UuidParamInput; Body: RolePermissionBatchInput }>('/api/v1/settings/roles/:id/permissions', {
     schema: { params: UuidParamSchema, body: RolePermissionBatchSchema },
-    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN)],
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.roleService.updateRolePermissions(request.params.id, request.body.permissionIds, user);

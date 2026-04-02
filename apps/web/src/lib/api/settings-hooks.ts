@@ -948,6 +948,7 @@ export interface RoleItem {
   isActive: boolean;
   sortOrder: number;
   tenantId?: string | null;
+  tenant?: { id: string; name: string; level: string; countryCode?: string } | null;
   metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;

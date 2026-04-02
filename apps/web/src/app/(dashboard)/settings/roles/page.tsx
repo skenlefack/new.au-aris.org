@@ -13,6 +13,7 @@ import {
   type PermissionItem,
 } from '@/lib/api/settings-hooks';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { Pagination } from '@/components/ui/Pagination';
 import {
   ShieldAlert,
@@ -102,13 +103,29 @@ const ROLE_COLORS = [
 
 export default function RolesPage() {
   const t = useTranslations('settings');
-  const { isSuperAdmin, isContinentalAdmin, canManageRoles, canCreateRole, canDeleteRole } = useSettingsAccess();
+  const { isSuperAdmin, isContinentalAdmin, isRecAdmin, canManageRoles, canCreateRole, canDeleteRole } = useSettingsAccess();
+  const user = useAuthStore((s) => s.user);
 
   const LEVELS = LEVEL_DEFS.map((l) => ({ ...l, label: t(l.labelKey) }));
 
+  // Only allow creating roles at or below the user's level
+  const allowedLevels = useMemo(() => {
+    if (isSuperAdmin || isContinentalAdmin) return LEVELS;
+    if (isRecAdmin) return LEVELS.filter((l) => l.key !== 'continental');
+    return LEVELS.filter((l) => l.key === 'national');
+  }, [isSuperAdmin, isContinentalAdmin, isRecAdmin]);
+
+  // Check if a role belongs to the current user's tenant (editable)
+  const isOwnRole = useCallback((role: RoleItem) => {
+    if (isSuperAdmin || isContinentalAdmin) return true;
+    // System roles (tenantId=null) are read-only for non-continental
+    if (!role.tenantId) return false;
+    return role.tenantId === user?.tenantId;
+  }, [isSuperAdmin, isContinentalAdmin, user?.tenantId]);
+
   // List state
+  const [activeTab, setActiveTab] = useState<string>('');
   const [search, setSearch] = useState('');
-  const [levelFilter, setLevelFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -125,11 +142,19 @@ export default function RolesPage() {
 
   // API hooks
   const { data, isLoading } = useSettingsRoles({
-    search, level: levelFilter || undefined,
+    search, level: activeTab || undefined,
     status: statusFilter || undefined, page, limit,
   });
   const roles: RoleItem[] = data?.data ?? [];
   const meta = data?.meta ?? { total: roles.length, page: 1, limit };
+
+  // Fetch total counts per level for the header badges
+  const { data: contData } = useSettingsRoles({ level: 'continental', limit: 1 });
+  const { data: regData } = useSettingsRoles({ level: 'regional', limit: 1 });
+  const { data: natData } = useSettingsRoles({ level: 'national', limit: 1 });
+  const countContinental = contData?.meta?.total ?? 0;
+  const countRegional = regData?.meta?.total ?? 0;
+  const countNational = natData?.meta?.total ?? 0;
 
   const { data: roleDetail, isLoading: detailLoading } = useSettingsRole(editingId ?? '');
   const { data: allPermsData } = useSettingsPermissions();
@@ -243,13 +268,16 @@ export default function RolesPage() {
   /* ── Actions ── */
 
   const openCreate = useCallback(() => {
-    setForm(EMPTY_FORM);
+    const defaultLevel = (activeTab && allowedLevels.some((l) => l.key === activeTab))
+      ? activeTab
+      : allowedLevels[0]?.key ?? 'national';
+    setForm({ ...EMPTY_FORM, level: defaultLevel });
     setEditingId(null);
     setSelectedPermissionIds(new Set());
     setPermissionsDirty(false);
     setExpandedModules(new Set());
     setView('form');
-  }, []);
+  }, [activeTab, allowedLevels]);
 
   const openEdit = useCallback((role: RoleItem) => {
     setForm({
@@ -591,10 +619,10 @@ export default function RolesPage() {
               <select
                 value={form.level}
                 onChange={(e) => setForm((f) => ({ ...f, level: e.target.value }))}
-                disabled={!!isSystemRole}
+                disabled={!!editingId || !!isSystemRole}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:opacity-50"
               >
-                {LEVELS.map((l) => <option key={l.key} value={l.key}>{l.label}</option>)}
+                {allowedLevels.map((l) => <option key={l.key} value={l.key}>{l.label}</option>)}
               </select>
             </div>
 
@@ -734,6 +762,20 @@ export default function RolesPage() {
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Manage roles and configure their permission matrix
           </p>
+          <div className="mt-2 flex items-center gap-3">
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+              <Globe className="h-3 w-3" />
+              Continental ({countContinental})
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+              <Building2 className="h-3 w-3" />
+              RECs ({countRegional})
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+              <Flag className="h-3 w-3" />
+              National ({countNational})
+            </span>
+          </div>
         </div>
         {canCreateRole && (
           <button
@@ -744,6 +786,42 @@ export default function RolesPage() {
             New Role
           </button>
         )}
+      </div>
+
+      {/* Level Tabs */}
+      <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-gray-800/50">
+        <button
+          onClick={() => { setActiveTab(''); setPage(1); }}
+          className={cn(
+            'rounded-md px-4 py-2 text-sm font-medium transition-colors',
+            !activeTab
+              ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+          )}
+        >
+          All ({meta.total})
+        </button>
+        {LEVELS.map((lvl) => {
+          const count = lvl.key === 'continental' ? countContinental
+            : lvl.key === 'regional' ? countRegional
+            : countNational;
+          return (
+            <button
+              key={lvl.key}
+              onClick={() => { setActiveTab(lvl.key); setPage(1); }}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors',
+                activeTab === lvl.key
+                  ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+              )}
+            >
+              <lvl.icon className="h-3.5 w-3.5" />
+              {lvl.label}
+              <span className="ml-1 text-[10px] text-gray-400">({count})</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Filters */}
@@ -758,14 +836,6 @@ export default function RolesPage() {
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
-        <select
-          value={levelFilter}
-          onChange={(e) => { setLevelFilter(e.target.value); setPage(1); }}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-        >
-          <option value="">All levels</option>
-          {LEVELS.map((l) => <option key={l.key} value={l.key}>{l.label}</option>)}
-        </select>
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
@@ -791,6 +861,9 @@ export default function RolesPage() {
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Code</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Level</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Type</th>
+                {(isSuperAdmin || isContinentalAdmin) && (
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Tenant</th>
+                )}
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Users</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Status</th>
                 {canManageRoles && (
@@ -837,6 +910,19 @@ export default function RolesPage() {
                       </span>
                     )}
                   </td>
+                  {(isSuperAdmin || isContinentalAdmin) && (
+                    <td className="px-4 py-3">
+                      {role.tenant ? (
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                          {role.tenant.countryCode ? role.tenant.countryCode.toUpperCase() : role.tenant.name}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                          Global
+                        </span>
+                      )}
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <span className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
                       <Users className="h-3.5 w-3.5 text-gray-400" />
@@ -855,32 +941,36 @@ export default function RolesPage() {
                   </td>
                   {canManageRoles && (
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openEdit(role)}
-                          className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-white"
-                          title="Edit role & permissions"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        {canDeleteRole && !role.isSystem && (
+                      {isOwnRole(role) ? (
+                        <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleDelete(role.id, role.code)}
-                            className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                            title="Delete role"
-                            disabled={deleteMut.isPending}
+                            onClick={() => openEdit(role)}
+                            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-white"
+                            title="Edit role & permissions"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Pencil className="h-4 w-4" />
                           </button>
-                        )}
-                      </div>
+                          {canDeleteRole && !role.isSystem && (
+                            <button
+                              onClick={() => handleDelete(role.id, role.code)}
+                              className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                              title="Delete role"
+                              disabled={deleteMut.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-gray-400">--</span>
+                      )}
                     </td>
                   )}
                 </tr>
               ))}
               {roles.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                     No roles found. {canCreateRole && 'Click "New Role" to create one.'}
                   </td>
                 </tr>

@@ -52,9 +52,9 @@ export function useSettingsAccess() {
     canResetPassword: isSuperAdmin || isContinentalAdmin,
 
     // Roles management
-    canManageRoles: isSuperAdmin || isContinentalAdmin,
-    canCreateRole: isSuperAdmin || isContinentalAdmin,
-    canDeleteRole: isSuperAdmin || isContinentalAdmin,
+    canManageRoles: isSuperAdmin || isContinentalAdmin || isRecAdmin || isNationalAdmin,
+    canCreateRole: isSuperAdmin || isContinentalAdmin || isRecAdmin || isNationalAdmin,
+    canDeleteRole: isSuperAdmin || isContinentalAdmin || isRecAdmin || isNationalAdmin,
 
     // Section visibility
     canViewSection: (section: string): boolean => {
@@ -70,7 +70,7 @@ export function useSettingsAccess() {
         case 'users':
           return isRecAdmin || isNationalAdmin;
         case 'roles':
-          return false; // Only super/continental admins can manage roles
+          return isRecAdmin || isNationalAdmin;
         case 'general':
         case 'security':
           return false;

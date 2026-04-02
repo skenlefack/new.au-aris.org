@@ -99,6 +99,7 @@ export class RoleService {
         take: limit,
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
         include: {
+          tenant: { select: { id: true, name: true, level: true, countryCode: true } },
           _count: {
             select: { userRoles: true, functionRoles: true },
           },
