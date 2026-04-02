@@ -762,20 +762,6 @@ export default function RolesPage() {
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Manage roles and configure their permission matrix
           </p>
-          <div className="mt-2 flex items-center gap-3">
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-              <Globe className="h-3 w-3" />
-              Continental ({countContinental})
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-              <Building2 className="h-3 w-3" />
-              RECs ({countRegional})
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-              <Flag className="h-3 w-3" />
-              National ({countNational})
-            </span>
-          </div>
         </div>
         {canCreateRole && (
           <button
@@ -812,13 +798,13 @@ export default function RolesPage() {
               className={cn(
                 'flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors',
                 activeTab === lvl.key
-                  ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+                  ? cn('bg-white shadow-sm dark:bg-gray-700', lvl.color)
                   : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
               )}
             >
               <lvl.icon className="h-3.5 w-3.5" />
               {lvl.label}
-              <span className="ml-1 text-[10px] text-gray-400">({count})</span>
+              <span className="ml-1 text-[10px] opacity-70">({count})</span>
             </button>
           );
         })}
