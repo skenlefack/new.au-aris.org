@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { Loader2, Wand2 } from 'lucide-react';
+import { useTranslateToAll } from '@/lib/api/translation-hooks';
 
 type LangCode = 'en' | 'fr' | 'pt' | 'ar' | 'es';
 
@@ -47,10 +49,34 @@ export function MultilingualInput({
   error,
 }: MultilingualInputProps) {
   const [activeLang, setActiveLang] = useState<LangCode>(languages[0]);
+  const translateMut = useTranslateToAll();
 
   const handleChange = (lang: LangCode, text: string) => {
     onChange({ ...value, [lang]: text });
   };
+
+  const handleAutoTranslate = async () => {
+    const sourceText = value[activeLang]?.trim();
+    if (!sourceText) return;
+
+    const targets = languages.filter((l) => l !== activeLang && !value[l]?.trim());
+    if (targets.length === 0) return;
+
+    try {
+      const results = await translateMut.mutateAsync({
+        source: activeLang,
+        text: sourceText,
+        targets,
+      });
+      onChange({ ...value, ...results });
+    } catch {
+      // Silently fail — user can still manually translate
+    }
+  };
+
+  const hasTextToTranslate = !!value[activeLang]?.trim();
+  const hasEmptyLangs = languages.some((l) => l !== activeLang && !value[l]?.trim());
+  const showAutoTranslate = hasTextToTranslate && hasEmptyLangs && !disabled;
 
   return (
     <div className="space-y-1.5">
@@ -60,7 +86,7 @@ export function MultilingualInput({
       </label>
 
       {/* Language tabs */}
-      <div className="flex gap-1 rounded-t-lg border border-b-0 border-gray-200 bg-gray-50 px-2 pt-2 dark:border-gray-700 dark:bg-gray-800/50">
+      <div className="flex items-center gap-1 rounded-t-lg border border-b-0 border-gray-200 bg-gray-50 px-2 pt-2 dark:border-gray-700 dark:bg-gray-800/50">
         {languages.map((lang) => {
           const filled = !!value[lang]?.trim();
           const active = activeLang === lang;
@@ -87,6 +113,24 @@ export function MultilingualInput({
             </button>
           );
         })}
+
+        {/* Auto-translate button */}
+        {showAutoTranslate && (
+          <button
+            type="button"
+            onClick={handleAutoTranslate}
+            disabled={translateMut.isPending}
+            className="ml-auto mb-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-aris-primary-600 hover:bg-aris-primary-50 disabled:opacity-50 dark:text-aris-primary-400 dark:hover:bg-aris-primary-900/20"
+            title="Auto-translate to other languages"
+          >
+            {translateMut.isPending ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Wand2 className="h-3 w-3" />
+            )}
+            Auto
+          </button>
+        )}
       </div>
 
       {/* Input field */}

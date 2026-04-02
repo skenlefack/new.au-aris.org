@@ -36,7 +36,7 @@ export function useSettingsAccess() {
     canManageConfig: (category: string): boolean => {
       if (isSuperAdmin) return true;
       if (category === 'email') return false; // email config contains secrets — super admin only
-      if (isContinentalAdmin && ['branding', 'notifications'].includes(category)) return true;
+      if (isContinentalAdmin && ['branding', 'notifications', 'systran'].includes(category)) return true;
       return false;
     },
 
@@ -77,6 +77,7 @@ export function useSettingsAccess() {
         case 'notifications':
           return isRecAdmin;
         case 'i18n':
+        case 'translations':
         case 'data-quality':
           return isRecAdmin || isNationalAdmin;
         case 'domains':

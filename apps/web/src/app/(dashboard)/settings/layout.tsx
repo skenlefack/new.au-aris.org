@@ -27,6 +27,7 @@ import {
   Building2,
   TrendingUp,
   Activity,
+  Wand2,
 } from 'lucide-react';
 
 interface SettingsNavItem {
@@ -56,6 +57,7 @@ export default function SettingsLayout({
     { href: '/settings/security', label: t('security'), icon: <Shield className="h-4 w-4" />, section: 'security' },
     { href: '/settings/notifications', label: t('notificationsSettings'), icon: <Bell className="h-4 w-4" />, section: 'notifications' },
     { href: '/settings/i18n', label: t('languages'), icon: <Languages className="h-4 w-4" />, section: 'i18n' },
+    { href: '/settings/translations', label: t('translations'), icon: <Wand2 className="h-4 w-4" />, section: 'translations' },
     { href: '/settings/data-quality', label: t('dataQuality'), icon: <ShieldCheck className="h-4 w-4" />, section: 'data-quality' },
     { href: '/settings/statistics', label: t('statistics'), icon: <TrendingUp className="h-4 w-4" />, section: 'statistics' },
     { href: '/settings/kpis', label: t('kpiIndicators'), icon: <Activity className="h-4 w-4" />, section: 'kpis' },
