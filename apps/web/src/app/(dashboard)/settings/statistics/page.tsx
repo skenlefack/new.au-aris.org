@@ -620,7 +620,7 @@ function FormBuilderSourceConfig({
     setForm((f) => ({
       ...f,
       sourceConfig: {
-        ...(f.sourceConfig as SourceConfig),
+        ...(f.sourceConfig as unknown as SourceConfig),
         fields,
       },
     }));
