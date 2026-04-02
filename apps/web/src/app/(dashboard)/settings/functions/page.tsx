@@ -487,20 +487,6 @@ export default function FunctionsPage() {
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {t('functionsSubtitle')}
           </p>
-          <div className="mt-2 flex items-center gap-3">
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-              <Globe className="h-3 w-3" />
-              {t('continental')} ({countContinental})
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-              <Building2 className="h-3 w-3" />
-              {t('regional')} ({countRegional})
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-              <Flag className="h-3 w-3" />
-              {t('national')} ({countNational})
-            </span>
-          </div>
         </div>
         {canManage && (
           <button
@@ -524,24 +510,32 @@ export default function FunctionsPage() {
               : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
           )}
         >
-          All ({meta.total})
+          {t('all')} ({countContinental + countRegional + countNational})
         </button>
         {LEVELS.map((lvl) => {
-          const g = grouped.find((g) => g.key === lvl.key);
+          const count = lvl.key === 'continental' ? countContinental : lvl.key === 'regional' ? countRegional : countNational;
+          const isActive = activeTab === lvl.key;
           return (
             <button
               key={lvl.key}
               onClick={() => { setActiveTab(lvl.key); setPage(1); }}
               className={cn(
                 'flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors',
-                activeTab === lvl.key
-                  ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+                isActive
+                  ? cn('bg-white shadow-sm dark:bg-gray-700', lvl.color.split(' ').filter(c => c.startsWith('text-')).join(' '))
                   : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
               )}
             >
-              <lvl.icon className="h-3.5 w-3.5" />
+              <lvl.icon className={cn('h-3.5 w-3.5', isActive ? '' : lvl.color.split(' ').filter(c => c.startsWith('text-') && !c.startsWith('text-gray')).slice(0, 1).join(' '))} />
               {lvl.label}
-              <span className="ml-1 text-[10px] text-gray-400">({g?.count ?? 0})</span>
+              <span className={cn(
+                'ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold',
+                isActive
+                  ? lvl.color
+                  : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400',
+              )}>
+                {count}
+              </span>
             </button>
           );
         })}
