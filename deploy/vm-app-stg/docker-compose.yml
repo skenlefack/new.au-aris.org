@@ -179,6 +179,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=Host(`grafana-test.au-aris.org`)"
       - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls=true"
       - "traefik.http.routers.grafana.priority=10"
       - "traefik.http.routers.grafana.middlewares=grafana-auth"
       - "traefik.http.middlewares.grafana-auth.forwardauth.address=http://web:3000/api/bi-proxy/grafana-auth"

@@ -183,6 +183,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=Host(`grafana.au-aris.org`)"
       - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls=true"
       - "traefik.http.routers.grafana.priority=10"
       # ForwardAuth: Next.js decodes ARIS JWT → injects X-WEBAUTH-* headers for Grafana auth proxy
       - "traefik.http.routers.grafana.middlewares=grafana-auth"
