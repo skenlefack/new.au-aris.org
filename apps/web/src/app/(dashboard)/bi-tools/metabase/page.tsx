@@ -19,10 +19,10 @@ export default function MetabaseEmbedPage() {
   const user = useAuthStore((s) => s.user);
   const requestSession = useRequestMetabaseSession();
 
-  // Access check
+  // Access check — allow by default when no rules are configured
   const { data: rulesData, isLoading: rulesLoading } = useBiAccessRulesForRole(user?.role ?? '', 'metabase');
   const accessRule = rulesData?.data?.[0];
-  const hasAccess = rulesLoading || !rulesData ? true : (accessRule?.allowedSchemas?.length ?? 0) > 0;
+  const hasAccess = rulesLoading ? true : accessRule ? accessRule.allowedSchemas.length > 0 : true;
 
   const metabaseUrl = process.env.NEXT_PUBLIC_METABASE_URL ?? '/bi-metabase';
   const embedUrl = sessionReady ? `${metabaseUrl}/` : '';

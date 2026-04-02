@@ -21,10 +21,10 @@ export default function GrafanaEmbedPage() {
   const { data: dashboardsData } = useBiDashboards('grafana');
   const dashboards = dashboardsData?.data ?? [];
 
-  // Access check
+  // Access check — allow by default when no rules are configured
   const { data: rulesData, isLoading: rulesLoading } = useBiAccessRulesForRole(user?.role ?? '', 'grafana');
   const accessRule = rulesData?.data?.[0];
-  const hasAccess = rulesLoading || !rulesData ? true : (accessRule?.allowedSchemas?.length ?? 0) > 0;
+  const hasAccess = rulesLoading ? true : accessRule ? accessRule.allowedSchemas.length > 0 : true;
 
   // Set auth cookie so the proxy can read the JWT from iframe requests
   // Cookie domain set to .au-aris.org so it reaches grafana.au-aris.org subdomain

@@ -23,10 +23,10 @@ export default function SupersetEmbedPage() {
   const requestGuestToken = useRequestSupersetGuestToken();
   const user = useAuthStore((s) => s.user);
 
-  // Access check
+  // Access check — allow by default when no rules are configured
   const { data: rulesData, isLoading: rulesLoading } = useBiAccessRulesForRole(user?.role ?? '', 'superset');
   const accessRule = rulesData?.data?.[0];
-  const hasAccess = rulesLoading || !rulesData ? true : (accessRule?.allowedSchemas?.length ?? 0) > 0;
+  const hasAccess = rulesLoading ? true : accessRule ? accessRule.allowedSchemas.length > 0 : true;
 
   // Determine if we should use SDK embed (dashboards registered) or iframe fallback
   const useFallbackIframe = !dashboardsLoading && dashboards.length === 0;
