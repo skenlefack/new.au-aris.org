@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { ExternalLink, RefreshCw, Maximize2, Minimize2, Loader2, ChevronLeft, CheckCircle2 } from 'lucide-react';
+import { ExternalLink, RefreshCw, Maximize2, Minimize2, Loader2, ChevronLeft, CheckCircle2, Lock } from 'lucide-react';
 import Link from 'next/link';
-import { useBiDashboards, useGrafanaEmbedUrl } from '@/lib/api/bi-hooks';
+import { useBiDashboards, useGrafanaEmbedUrl, useBiAccessRulesForRole } from '@/lib/api/bi-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTranslations } from '@/lib/i18n/translations';
 
 export default function GrafanaEmbedPage() {
+  const t = useTranslations('biTools');
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
@@ -19,14 +21,22 @@ export default function GrafanaEmbedPage() {
   const { data: dashboardsData } = useBiDashboards('grafana');
   const dashboards = dashboardsData?.data ?? [];
 
+  // Access check
+  const { data: rulesData, isLoading: rulesLoading } = useBiAccessRulesForRole(user?.role ?? '', 'grafana');
+  const accessRule = rulesData?.data?.[0];
+  const hasAccess = rulesLoading || !rulesData ? true : (accessRule?.allowedSchemas?.length ?? 0) > 0;
+
   // Set auth cookie so the proxy can read the JWT from iframe requests
-  // (iframe requests carry cookies but NOT localStorage or Authorization headers)
+  // Cookie domain set to .au-aris.org so it reaches grafana.au-aris.org subdomain
   useEffect(() => {
+    if (!hasAccess) return;
     if (accessToken) {
-      document.cookie = `aris-bi-token=${accessToken}; path=/; SameSite=Lax; Secure`;
+      const isProduction = typeof window !== 'undefined' && window.location.hostname.endsWith('au-aris.org');
+      const domainSuffix = isProduction ? '; domain=.au-aris.org' : '';
+      document.cookie = `aris-bi-token=${accessToken}; path=/; SameSite=Lax; Secure${domainSuffix}`;
       setAuthReady(true);
     }
-  }, [accessToken]);
+  }, [accessToken, hasAccess]);
 
   // Auto-select first dashboard
   useEffect(() => {
@@ -51,10 +61,30 @@ export default function GrafanaEmbedPage() {
   };
 
   const tenantLabel = user?.tenantLevel === 'CONTINENTAL'
-    ? 'All data'
+    ? t('allData')
     : user?.tenantLevel === 'REC'
-      ? 'Regional data'
-      : 'Country data';
+      ? t('regionalData')
+      : t('countryData');
+
+  // Access denied screen
+  if (!rulesLoading && !hasAccess) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center max-w-md px-6">
+          <Lock className="mx-auto mb-3 h-12 w-12 text-slate-300 dark:text-slate-600" />
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">{t('accessDenied')}</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{t('accessDeniedDesc')}</p>
+          <Link
+            href="/bi-tools"
+            className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            {t('backToTools')}
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-gray-950' : 'h-full'}`}>
@@ -79,13 +109,12 @@ export default function GrafanaEmbedPage() {
           </div>
           <div>
             <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Grafana</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Dashboard Builder &amp; BI Analytics</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{t('grafanaSubtitle')}</p>
           </div>
 
-          {/* Auto-connected badge */}
           <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400">
             <CheckCircle2 className="h-3 w-3" />
-            Auto-connected
+            {t('autoConnected')}
           </span>
 
           <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
@@ -95,13 +124,12 @@ export default function GrafanaEmbedPage() {
           {loading && (
             <div className="ml-2 flex items-center gap-1.5 text-xs text-slate-400">
               <Loader2 className="h-3 w-3 animate-spin" />
-              Loading...
+              {t('loading')}
             </div>
           )}
         </div>
 
         <div className="flex items-center gap-1">
-          {/* Dashboard selector */}
           {dashboards.length > 1 && (
             <select
               value={selectedUid ?? ''}
@@ -123,14 +151,14 @@ export default function GrafanaEmbedPage() {
           <button
             onClick={handleRefresh}
             className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            title="Refresh"
+            title={t('refresh')}
           >
             <RefreshCw className="h-4 w-4" />
           </button>
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            title={isFullscreen ? t('exitFullscreen') : t('fullscreen')}
           >
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>
@@ -139,14 +167,14 @@ export default function GrafanaEmbedPage() {
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            title="Open in new tab"
+            title={t('openNewTab')}
           >
             <ExternalLink className="h-4 w-4" />
           </a>
         </div>
       </div>
 
-      {/* iframe — via Next.js proxy with auth headers */}
+      {/* iframe */}
       <div className="relative flex-1 min-h-0">
         {authReady && embedUrl && (
           <iframe

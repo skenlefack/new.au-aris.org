@@ -225,7 +225,19 @@ export class BiService {
   async getGrafanaEmbedUrl(user: BiUser, dashboardUid?: string): Promise<string> {
     const tenantIds = await this.resolveTenantIds(user);
 
-    let path = dashboardUid ? `/d/${dashboardUid}` : '/';
+    // Resolve base URL from DB config (supports subdomain routing)
+    let baseUrl = '/api/bi-proxy/grafana';
+    try {
+      const rows = await this.prisma.$queryRawUnsafe<{ baseUrl: string }[]>(`
+        SELECT base_url as "baseUrl" FROM governance.bi_tool_configs
+        WHERE tool = 'grafana' AND is_active = true LIMIT 1
+      `);
+      if (rows.length > 0 && rows[0].baseUrl) {
+        baseUrl = rows[0].baseUrl;
+      }
+    } catch { /* fallback to proxy path */ }
+
+    const path = dashboardUid ? `/d/${dashboardUid}` : '/';
 
     const params = new URLSearchParams();
     params.set('kiosk', '');
@@ -239,7 +251,7 @@ export class BiService {
       }
     }
 
-    return `/api/bi-proxy/grafana${path}?${params.toString()}`;
+    return `${baseUrl}${path}?${params.toString()}`;
   }
 
   /* ═══════════════════════════════════════════

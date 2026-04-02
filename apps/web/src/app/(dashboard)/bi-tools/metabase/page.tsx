@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { ExternalLink, RefreshCw, Maximize2, Minimize2, Loader2, ChevronLeft, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ExternalLink, RefreshCw, Maximize2, Minimize2, Loader2, ChevronLeft, CheckCircle2, AlertTriangle, Lock } from 'lucide-react';
 import Link from 'next/link';
-import { useRequestMetabaseSession } from '@/lib/api/bi-hooks';
+import { useRequestMetabaseSession, useBiAccessRulesForRole } from '@/lib/api/bi-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTranslations } from '@/lib/i18n/translations';
 
 export default function MetabaseEmbedPage() {
+  const t = useTranslations('biTools');
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
@@ -17,11 +19,17 @@ export default function MetabaseEmbedPage() {
   const user = useAuthStore((s) => s.user);
   const requestSession = useRequestMetabaseSession();
 
+  // Access check
+  const { data: rulesData, isLoading: rulesLoading } = useBiAccessRulesForRole(user?.role ?? '', 'metabase');
+  const accessRule = rulesData?.data?.[0];
+  const hasAccess = rulesLoading || !rulesData ? true : (accessRule?.allowedSchemas?.length ?? 0) > 0;
+
   const metabaseUrl = process.env.NEXT_PUBLIC_METABASE_URL ?? '/bi-metabase';
   const embedUrl = sessionReady ? `${metabaseUrl}/` : '';
 
   // Auto-login: get Metabase session token and set cookie
   useEffect(() => {
+    if (!hasAccess) return;
     let cancelled = false;
 
     async function autoLogin() {
@@ -31,14 +39,9 @@ export default function MetabaseEmbedPage() {
         if (cancelled) return;
 
         const token = result.data.sessionToken;
-
-        // Same-origin cookie for sub-path routing (/bi-metabase)
         document.cookie = `metabase.SESSION=${token}; path=${metabaseUrl}; SameSite=Lax; Secure`;
-
         setSessionReady(true);
       } catch {
-        // Auto-login failed — fall back to loading Metabase directly
-        // The user will see Metabase's own login page (or be already logged in)
         if (!cancelled) {
           setSessionReady(true);
         }
@@ -47,9 +50,8 @@ export default function MetabaseEmbedPage() {
 
     autoLogin();
     return () => { cancelled = true; };
-  // Only run once on mount
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hasAccess]);
 
   const handleLoad = useCallback(() => {
     setLoading(false);
@@ -61,10 +63,30 @@ export default function MetabaseEmbedPage() {
   };
 
   const tenantLabel = user?.tenantLevel === 'CONTINENTAL'
-    ? 'All data'
+    ? t('allData')
     : user?.tenantLevel === 'REC'
-      ? 'Regional data'
-      : 'Country data';
+      ? t('regionalData')
+      : t('countryData');
+
+  // Access denied screen
+  if (!rulesLoading && !hasAccess) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center max-w-md px-6">
+          <Lock className="mx-auto mb-3 h-12 w-12 text-slate-300 dark:text-slate-600" />
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">{t('accessDenied')}</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{t('accessDeniedDesc')}</p>
+          <Link
+            href="/bi-tools"
+            className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            {t('backToTools')}
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-gray-950' : 'h-full'}`}>
@@ -93,14 +115,13 @@ export default function MetabaseEmbedPage() {
           </div>
           <div>
             <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Metabase</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Simple &amp; Intuitive Business Intelligence</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{t('metabaseSubtitle')}</p>
           </div>
 
-          {/* Auto-connected badge */}
           {sessionReady && (
             <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400">
               <CheckCircle2 className="h-3 w-3" />
-              Auto-connected
+              {t('autoConnected')}
             </span>
           )}
 
@@ -111,7 +132,7 @@ export default function MetabaseEmbedPage() {
           {loading && !error && (
             <div className="ml-2 flex items-center gap-1.5 text-xs text-slate-400">
               <Loader2 className="h-3 w-3 animate-spin" />
-              {sessionReady ? 'Loading...' : 'Connecting...'}
+              {sessionReady ? t('loading') : t('connecting')}
             </div>
           )}
         </div>
@@ -120,14 +141,14 @@ export default function MetabaseEmbedPage() {
           <button
             onClick={handleRefresh}
             className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            title="Refresh"
+            title={t('refresh')}
           >
             <RefreshCw className="h-4 w-4" />
           </button>
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            title={isFullscreen ? t('exitFullscreen') : t('fullscreen')}
           >
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>
@@ -136,7 +157,7 @@ export default function MetabaseEmbedPage() {
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            title="Open in new tab"
+            title={t('openNewTab')}
           >
             <ExternalLink className="h-4 w-4" />
           </a>
@@ -150,7 +171,7 @@ export default function MetabaseEmbedPage() {
             <div className="text-center max-w-md px-6">
               <AlertTriangle className="mx-auto mb-3 h-12 w-12 text-amber-500" />
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                Connection failed
+                {t('connectionFailed')}
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{error}</p>
               <div className="flex flex-col gap-3 items-center">
@@ -162,7 +183,7 @@ export default function MetabaseEmbedPage() {
                   style={{ backgroundColor: '#509EE3' }}
                 >
                   <ExternalLink className="h-4 w-4" />
-                  Open Metabase (new tab)
+                  {t('openMetabaseNewTab')}
                 </a>
                 <button
                   onClick={() => {
@@ -173,7 +194,7 @@ export default function MetabaseEmbedPage() {
                   }}
                   className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 >
-                  Retry connection
+                  {t('retryConnection')}
                 </button>
               </div>
             </div>

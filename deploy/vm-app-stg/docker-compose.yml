@@ -166,8 +166,7 @@ services:
       GF_AUTH_PROXY_HEADERS: "Name:X-WEBAUTH-NAME Role:X-WEBAUTH-ROLE"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_SECURITY_ALLOW_EMBEDDING: "true"
-      GF_SERVER_ROOT_URL: "https://test.au-aris.org/grafana/"
-      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_SERVER_ROOT_URL: "https://grafana-test.au-aris.org/"
     volumes:
       - /opt/aris/infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - /opt/aris-deploy/vm-app-stg/grafana-datasources.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
@@ -178,7 +177,7 @@ services:
       - jaeger
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)"
+      - "traefik.http.routers.grafana.rule=Host(`grafana-test.au-aris.org`)"
       - "traefik.http.routers.grafana.entrypoints=websecure"
       - "traefik.http.routers.grafana.priority=10"
       - "traefik.http.routers.grafana.middlewares=grafana-auth"
@@ -186,6 +185,15 @@ services:
       - "traefik.http.middlewares.grafana-auth.forwardauth.authResponseHeaders=X-WEBAUTH-USER,X-WEBAUTH-NAME,X-WEBAUTH-ROLE"
       - "traefik.http.middlewares.grafana-auth.forwardauth.trustForwardHeader=true"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      # Legacy redirect: /grafana → grafana-test.au-aris.org
+      - "traefik.http.routers.grafana-legacy.rule=PathPrefix(`/grafana`)"
+      - "traefik.http.routers.grafana-legacy.entrypoints=websecure"
+      - "traefik.http.routers.grafana-legacy.tls=true"
+      - "traefik.http.routers.grafana-legacy.priority=5"
+      - "traefik.http.routers.grafana-legacy.middlewares=grafana-redirect"
+      - "traefik.http.middlewares.grafana-redirect.redirectregex.regex=^https://test.au-aris.org/grafana(.*)"
+      - "traefik.http.middlewares.grafana-redirect.redirectregex.replacement=https://grafana-test.au-aris.org$${1}"
+      - "traefik.http.middlewares.grafana-redirect.redirectregex.permanent=true"
 
   jaeger:
     image: jaegertracing/all-in-one:1.57
@@ -217,6 +225,7 @@ services:
       - "8088:8088"
     environment:
       SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      SUPERSET_SCRIPT_NAME: ""
       TALISMAN_ENABLED: "false"
       ENABLE_CORS: "true"
       SQLALCHEMY_DATABASE_URI: "postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD}@${DB_HOST}:5432/${POSTGRES_DB:-aris}"
@@ -234,17 +243,21 @@ services:
       "
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.superset.rule=PathPrefix(`/bi-superset`)"
+      # Subdomain route: superset-test.au-aris.org → Superset
+      - "traefik.http.routers.superset.rule=Host(`superset-test.au-aris.org`)"
       - "traefik.http.routers.superset.entrypoints=websecure"
       - "traefik.http.routers.superset.tls=true"
       - "traefik.http.routers.superset.priority=20"
-      - "traefik.http.routers.superset.middlewares=superset-strip"
-      - "traefik.http.middlewares.superset-strip.stripprefix.prefixes=/bi-superset"
-      - "traefik.http.routers.superset-static.rule=PathPrefix(`/static`)"
-      - "traefik.http.routers.superset-static.entrypoints=websecure"
-      - "traefik.http.routers.superset-static.tls=true"
-      - "traefik.http.routers.superset-static.priority=15"
       - "traefik.http.services.superset.loadbalancer.server.port=8088"
+      # Legacy redirect: /bi-superset → superset-test.au-aris.org
+      - "traefik.http.routers.superset-legacy.rule=PathPrefix(`/bi-superset`)"
+      - "traefik.http.routers.superset-legacy.entrypoints=websecure"
+      - "traefik.http.routers.superset-legacy.tls=true"
+      - "traefik.http.routers.superset-legacy.priority=15"
+      - "traefik.http.routers.superset-legacy.middlewares=superset-redirect"
+      - "traefik.http.middlewares.superset-redirect.redirectregex.regex=^https://test.au-aris.org/bi-superset(.*)"
+      - "traefik.http.middlewares.superset-redirect.redirectregex.replacement=https://superset-test.au-aris.org$${1}"
+      - "traefik.http.middlewares.superset-redirect.redirectregex.permanent=true"
 
   metabase:
     image: metabase/metabase:v0.49.6
@@ -261,23 +274,31 @@ services:
       MB_DB_HOST: ${DB_HOST}
       MB_EMBEDDING_SECRET_KEY: ${METABASE_EMBEDDING_SECRET}
       MB_ENABLE_EMBEDDING: "true"
-      MB_EMBEDDING_APP_ORIGIN: "https://test.au-aris.org"
-      MB_SITE_URL: "https://test.au-aris.org/bi-metabase"
+      MB_EMBEDDING_APP_ORIGIN: "https://test.au-aris.org,https://metabase-test.au-aris.org"
+      MB_SITE_URL: "https://metabase-test.au-aris.org"
       MB_SITE_LOCALE: en
       MB_SITE_NAME: "ARIS BI Analytics (Staging)"
       MB_ANON_TRACKING_ENABLED: "false"
-      JAVA_OPTS: "-Dmetabase.embedding.app.origin=https://test.au-aris.org"
+      JAVA_OPTS: "-Dmetabase.embedding.app.origin=https://test.au-aris.org,https://metabase-test.au-aris.org"
     volumes:
       - metabase_data:/metabase-data
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.metabase.rule=PathPrefix(`/bi-metabase`)"
+      # Subdomain route: metabase-test.au-aris.org → Metabase
+      - "traefik.http.routers.metabase.rule=Host(`metabase-test.au-aris.org`)"
       - "traefik.http.routers.metabase.entrypoints=websecure"
       - "traefik.http.routers.metabase.tls=true"
       - "traefik.http.routers.metabase.priority=20"
-      - "traefik.http.routers.metabase.middlewares=metabase-strip"
-      - "traefik.http.middlewares.metabase-strip.stripprefix.prefixes=/bi-metabase"
       - "traefik.http.services.metabase.loadbalancer.server.port=3000"
+      # Legacy redirect: /bi-metabase → metabase-test.au-aris.org
+      - "traefik.http.routers.metabase-legacy.rule=PathPrefix(`/bi-metabase`)"
+      - "traefik.http.routers.metabase-legacy.entrypoints=websecure"
+      - "traefik.http.routers.metabase-legacy.tls=true"
+      - "traefik.http.routers.metabase-legacy.priority=15"
+      - "traefik.http.routers.metabase-legacy.middlewares=metabase-redirect"
+      - "traefik.http.middlewares.metabase-redirect.redirectregex.regex=^https://test.au-aris.org/bi-metabase(.*)"
+      - "traefik.http.middlewares.metabase-redirect.redirectregex.replacement=https://metabase-test.au-aris.org$${1}"
+      - "traefik.http.middlewares.metabase-redirect.redirectregex.permanent=true"
 
   # ═══════════════════════════════════════════════════
   #  VECTOR TILE SERVER
@@ -309,18 +330,20 @@ services:
         APP: web
         NEXT_PUBLIC_API_URL: https://test.au-aris.org
         NEXT_PUBLIC_WS_URL: wss://test.au-aris.org
-        NEXT_PUBLIC_GRAFANA_URL: /grafana
-        NEXT_PUBLIC_METABASE_URL: /bi-metabase
-        NEXT_PUBLIC_SUPERSET_URL: /bi-superset
+        # BI tool URLs — subdomain routing
+        NEXT_PUBLIC_GRAFANA_URL: https://grafana-test.au-aris.org
+        NEXT_PUBLIC_METABASE_URL: https://metabase-test.au-aris.org
+        NEXT_PUBLIC_SUPERSET_URL: https://superset-test.au-aris.org
     ports:
       - "3100:3000"
     environment:
       NODE_ENV: staging
       NEXT_PUBLIC_API_URL: https://test.au-aris.org
       NEXT_PUBLIC_WS_URL: wss://test.au-aris.org
-      NEXT_PUBLIC_GRAFANA_URL: /grafana
-      NEXT_PUBLIC_METABASE_URL: /bi-metabase
-      NEXT_PUBLIC_SUPERSET_URL: /bi-superset
+      # BI tool URLs — subdomain routing
+      NEXT_PUBLIC_GRAFANA_URL: https://grafana-test.au-aris.org
+      NEXT_PUBLIC_METABASE_URL: https://metabase-test.au-aris.org
+      NEXT_PUBLIC_SUPERSET_URL: https://superset-test.au-aris.org
       # Internal service URLs (Docker Compose service names)
       INTERNAL_TENANT_URL: http://tenant:3001
       # Server-side env vars for BI proxy API routes (Docker service names, fallback)

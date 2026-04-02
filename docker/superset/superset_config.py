@@ -48,11 +48,13 @@ PROXY_FIX_CONFIG = {
     "x_port": 1,
 }
 
-# ── Sub-path routing ──
-# Superset is served at /bi-superset/ behind Traefik (no subdomain DNS needed).
-# FORCE_SCRIPT_NAME makes url_for() and all generated URLs include the prefix.
-# Traefik StripPrefix removes /bi-superset before forwarding to Gunicorn.
-FORCE_SCRIPT_NAME = "/bi-superset"
+# ── Sub-path / Subdomain routing ──
+# When using subdomain routing (superset.au-aris.org), FORCE_SCRIPT_NAME is not needed.
+# When using sub-path routing (/bi-superset), FORCE_SCRIPT_NAME must be set.
+# Set SUPERSET_SCRIPT_NAME="" in env to disable (subdomain mode).
+_script_name = os.environ.get('SUPERSET_SCRIPT_NAME', '/bi-superset')
+if _script_name:
+    FORCE_SCRIPT_NAME = _script_name
 
 # ── Disable Talisman CSP for iframe embedding ──
 TALISMAN_ENABLED = False

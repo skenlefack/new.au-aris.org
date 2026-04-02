@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ExternalLink, RefreshCw, Maximize2, Minimize2, Loader2, ChevronLeft, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ExternalLink, RefreshCw, Maximize2, Minimize2, Loader2, ChevronLeft, CheckCircle2, AlertTriangle, Lock } from 'lucide-react';
 import Link from 'next/link';
-import { useBiDashboards, useRequestSupersetGuestToken } from '@/lib/api/bi-hooks';
+import { useBiDashboards, useRequestSupersetGuestToken, useBiAccessRulesForRole } from '@/lib/api/bi-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const SUPERSET_URL = process.env.NEXT_PUBLIC_SUPERSET_URL ?? '/bi-superset';
 
 export default function SupersetEmbedPage() {
+  const t = useTranslations('biTools');
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,11 @@ export default function SupersetEmbedPage() {
   const dashboards = dashboardsData?.data ?? [];
   const requestGuestToken = useRequestSupersetGuestToken();
   const user = useAuthStore((s) => s.user);
-  const accessToken = useAuthStore((s) => s.accessToken);
+
+  // Access check
+  const { data: rulesData, isLoading: rulesLoading } = useBiAccessRulesForRole(user?.role ?? '', 'superset');
+  const accessRule = rulesData?.data?.[0];
+  const hasAccess = rulesLoading || !rulesData ? true : (accessRule?.allowedSchemas?.length ?? 0) > 0;
 
   // Determine if we should use SDK embed (dashboards registered) or iframe fallback
   const useFallbackIframe = !dashboardsLoading && dashboards.length === 0;
@@ -40,14 +46,14 @@ export default function SupersetEmbedPage() {
 
   // Mount embedded dashboard when selected (SDK mode)
   useEffect(() => {
-    if (useFallbackIframe) return; // iframe mode handles its own loading
+    if (!hasAccess) return;
+    if (useFallbackIframe) return;
     if (!selectedDashboardId || !embedRef.current) return;
 
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    // Clear previous embed
     if (embedRef.current) {
       embedRef.current.innerHTML = '';
     }
@@ -81,14 +87,14 @@ export default function SupersetEmbedPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to embed dashboard');
+          setError(err instanceof Error ? err.message : t('embedFailed'));
           setLoading(false);
         }
       }
     })();
 
     return () => { cancelled = true; };
-  }, [selectedDashboardId, fetchGuestToken, useFallbackIframe]);
+  }, [selectedDashboardId, fetchGuestToken, useFallbackIframe, hasAccess, t]);
 
   const handleRefresh = () => {
     if (useFallbackIframe) {
@@ -107,10 +113,30 @@ export default function SupersetEmbedPage() {
   }, []);
 
   const tenantLabel = user?.tenantLevel === 'CONTINENTAL'
-    ? 'All data'
+    ? t('allData')
     : user?.tenantLevel === 'REC'
-      ? 'Regional data'
-      : 'Country data';
+      ? t('regionalData')
+      : t('countryData');
+
+  // Access denied screen
+  if (!rulesLoading && !hasAccess) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center max-w-md px-6">
+          <Lock className="mx-auto mb-3 h-12 w-12 text-slate-300 dark:text-slate-600" />
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">{t('accessDenied')}</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{t('accessDeniedDesc')}</p>
+          <Link
+            href="/bi-tools"
+            className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            {t('backToTools')}
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-gray-950' : 'h-full'}`}>
@@ -135,13 +161,12 @@ export default function SupersetEmbedPage() {
           </div>
           <div>
             <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Apache Superset</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Advanced Analytics &amp; Data Exploration</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{t('supersetSubtitle')}</p>
           </div>
 
-          {/* Auto-connected badge */}
           <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400">
             <CheckCircle2 className="h-3 w-3" />
-            Auto-connected
+            {t('autoConnected')}
           </span>
 
           <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
@@ -151,13 +176,12 @@ export default function SupersetEmbedPage() {
           {loading && (
             <div className="ml-2 flex items-center gap-1.5 text-xs text-slate-400">
               <Loader2 className="h-3 w-3 animate-spin" />
-              Loading...
+              {t('loading')}
             </div>
           )}
         </div>
 
         <div className="flex items-center gap-1">
-          {/* Dashboard selector (SDK mode with multiple dashboards) */}
           {dashboards.length > 1 && (
             <select
               value={selectedDashboardId ?? ''}
@@ -175,14 +199,14 @@ export default function SupersetEmbedPage() {
           <button
             onClick={handleRefresh}
             className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            title="Refresh"
+            title={t('refresh')}
           >
             <RefreshCw className="h-4 w-4" />
           </button>
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            title={isFullscreen ? t('exitFullscreen') : t('fullscreen')}
           >
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>
@@ -191,7 +215,7 @@ export default function SupersetEmbedPage() {
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            title="Open in new tab"
+            title={t('openNewTab')}
           >
             <ExternalLink className="h-4 w-4" />
           </a>
@@ -205,7 +229,7 @@ export default function SupersetEmbedPage() {
             <div className="text-center max-w-md px-6">
               <AlertTriangle className="mx-auto mb-3 h-12 w-12 text-amber-500" />
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                Dashboard unavailable
+                {t('dashboardUnavailable')}
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{error}</p>
               <button
@@ -214,13 +238,12 @@ export default function SupersetEmbedPage() {
                 style={{ backgroundColor: '#1FC2A7' }}
               >
                 <RefreshCw className="h-4 w-4" />
-                Retry
+                {t('retry')}
               </button>
             </div>
           </div>
         )}
 
-        {/* Fallback: direct iframe when no dashboards are registered */}
         {useFallbackIframe && (
           <iframe
             key={iframeKey}
@@ -232,7 +255,6 @@ export default function SupersetEmbedPage() {
           />
         )}
 
-        {/* SDK embed mode when dashboards are registered */}
         {!useFallbackIframe && <div ref={embedRef} className="h-full w-full" />}
       </div>
     </div>
