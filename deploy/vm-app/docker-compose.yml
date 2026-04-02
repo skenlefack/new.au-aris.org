@@ -294,6 +294,9 @@ services:
       - "traefik.http.routers.metabase.entrypoints=websecure"
       - "traefik.http.routers.metabase.tls=true"
       - "traefik.http.routers.metabase.priority=20"
+      - "traefik.http.routers.metabase.middlewares=metabase-embed"
+      - "traefik.http.middlewares.metabase-embed.headers.customResponseHeaders.Content-Security-Policy=frame-ancestors 'self' https://au-aris.org https://test.au-aris.org"
+      - "traefik.http.middlewares.metabase-embed.headers.customResponseHeaders.X-Frame-Options="
       - "traefik.http.services.metabase.loadbalancer.server.port=3000"
       # Legacy redirect: /bi-metabase → metabase.au-aris.org
       - "traefik.http.routers.metabase-legacy.rule=PathPrefix(`/bi-metabase`)"
@@ -382,6 +385,14 @@ services:
       <<: *service-env
       SERVICE_PORT: "3001"
       KAFKA_CLIENT_ID: aris-tenant-service
+      # BI integration — internal service URLs (Docker service names)
+      METABASE_INTERNAL_URL: http://metabase:3000
+      SUPERSET_INTERNAL_URL: http://superset:8088
+      GRAFANA_INTERNAL_URL: http://grafana:3000
+      METABASE_ADMIN_EMAIL: admin@au-aris.org
+      METABASE_ADMIN_PASSWORD: ${METABASE_ADMIN_PASSWORD:-ArisMetabase2024!}
+      SUPERSET_ADMIN_USERNAME: admin
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-Sup3rs3t_Pr0d_2024!qR5tY}
     volumes: *service-volumes
     labels:
       - "traefik.enable=true"

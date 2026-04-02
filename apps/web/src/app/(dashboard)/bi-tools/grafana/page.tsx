@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { ExternalLink, RefreshCw, Maximize2, Minimize2, Loader2, ChevronLeft, CheckCircle2, Lock } from 'lucide-react';
 import Link from 'next/link';
-import { useBiDashboards, useGrafanaEmbedUrl, useBiAccessRulesForRole } from '@/lib/api/bi-hooks';
+import { useBiDashboards, useBiAccessRulesForRole } from '@/lib/api/bi-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTranslations } from '@/lib/i18n/translations';
 
@@ -46,9 +46,9 @@ export default function GrafanaEmbedPage() {
   }, [dashboards, selectedUid]);
 
   const grafanaBaseUrl = process.env.NEXT_PUBLIC_GRAFANA_URL ?? '/api/bi-proxy/grafana';
-  const { data: embedData } = useGrafanaEmbedUrl(selectedUid);
+  // Always use the public URL — the API may return internal/localhost URLs from DB
   const embedUrl = authReady
-    ? (embedData?.data?.url ?? `${grafanaBaseUrl}/?kiosk`)
+    ? `${grafanaBaseUrl}/${selectedUid ? `d/${selectedUid}` : ''}?kiosk`
     : '';
 
   const handleLoad = useCallback(() => {
