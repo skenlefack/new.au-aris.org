@@ -1434,6 +1434,13 @@
     "noInfraFound": "لم يتم العثور على أنواع بنية تحتية. انقر على \"إضافة نوع\" لإنشاء واحد.",
     "pageOf": "صفحة {page} من {total}",
     "deleteInfraConfirm": "حذف تعريف النوع \"{name}\"؟ سيتم إزالته من كتالوج الأنواع.",
+    "selectCategory": "اختر فئة...",
+    "subTypePlaceholder": "مثال: بيطري، صناعي",
+    "codePlaceholderInfra": "مثال: INFRA-LAB-VET",
+    "nameEnPlaceholder": "Name in English",
+    "nameFrPlaceholder": "Nom en français",
+    "clickToDeactivate": "انقر للتعطيل",
+    "clickToActivate": "انقر للتنشيط",
 
     "editRec": "تعديل التجمع الاقتصادي الإقليمي",
     "landingPagePreview": "معاينة الصفحة الرئيسية",

@@ -1524,7 +1524,14 @@
     "createType": "Create Type",
     "noInfraFound": "No infrastructure types found. Click \"Add Type\" to create one.",
     "pageOf": "Page {page} of {total}",
-    "deleteInfraConfirm": "Delete type definition \"{name}\"? This will remove it from the type catalogue."
+    "deleteInfraConfirm": "Delete type definition \"{name}\"? This will remove it from the type catalogue.",
+    "selectCategory": "Select category...",
+    "subTypePlaceholder": "e.g. veterinary, industrial",
+    "codePlaceholderInfra": "e.g. INFRA-LAB-VET",
+    "nameEnPlaceholder": "Name in English",
+    "nameFrPlaceholder": "Nom en français",
+    "clickToDeactivate": "Click to deactivate",
+    "clickToActivate": "Click to activate"
   },
   "collecte": {
     "title": "Collecte",

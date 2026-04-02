@@ -1434,6 +1434,13 @@
     "noInfraFound": "No se encontraron tipos de infraestructura. Haga clic en \"Agregar Tipo\" para crear uno.",
     "pageOf": "Página {page} de {total}",
     "deleteInfraConfirm": "¿Eliminar la definición de tipo \"{name}\"? Se eliminará del catálogo de tipos.",
+    "selectCategory": "Seleccionar categoría...",
+    "subTypePlaceholder": "ej. veterinario, industrial",
+    "codePlaceholderInfra": "ej. INFRA-LAB-VET",
+    "nameEnPlaceholder": "Name in English",
+    "nameFrPlaceholder": "Nom en français",
+    "clickToDeactivate": "Clic para desactivar",
+    "clickToActivate": "Clic para activar",
 
     "editRec": "Editar CER",
     "landingPagePreview": "Vista Previa de la Página de Inicio",

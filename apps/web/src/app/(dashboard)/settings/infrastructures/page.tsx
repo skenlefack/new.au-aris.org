@@ -197,7 +197,7 @@ export default function InfrastructureTypesConfigPage() {
                 className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-aris-primary-500"
                 required
               >
-                <option value="">Select category...</option>
+                <option value="">{t('selectCategory')}</option>
                 {CATEGORY_OPTIONS.map((c) => (
                   <option key={c.value} value={c.value}>{c.en} / {c.fr}</option>
                 ))}
@@ -214,7 +214,7 @@ export default function InfrastructureTypesConfigPage() {
                 value={subType}
                 onChange={(e) => setSubType(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-aris-primary-500"
-                placeholder="e.g. veterinary, industrial"
+                placeholder={t('subTypePlaceholder')}
                 required
               />
             </div>
@@ -229,7 +229,7 @@ export default function InfrastructureTypesConfigPage() {
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm font-mono text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-aris-primary-500"
-                placeholder="e.g. INFRA-LAB-VET"
+                placeholder={t('codePlaceholderInfra')}
                 required
                 maxLength={50}
               />
@@ -245,7 +245,7 @@ export default function InfrastructureTypesConfigPage() {
                 value={nameEn}
                 onChange={(e) => setNameEn(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-aris-primary-500"
-                placeholder="Name in English"
+                placeholder={t('nameEnPlaceholder')}
                 required
               />
             </div>
@@ -260,7 +260,7 @@ export default function InfrastructureTypesConfigPage() {
                 value={nameFr}
                 onChange={(e) => setNameFr(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-aris-primary-500"
-                placeholder="Nom en français"
+                placeholder={t('nameFrPlaceholder')}
               />
             </div>
 
@@ -441,7 +441,7 @@ export default function InfrastructureTypesConfigPage() {
                       <button
                         onClick={() => handleToggleActive(item)}
                         className="group"
-                        title={item.isActive ? 'Click to deactivate' : 'Click to activate'}
+                        title={item.isActive ? t('clickToDeactivate') : t('clickToActivate')}
                       >
                         {item.isActive ? (
                           <CheckCircle className="h-4 w-4 text-emerald-500 group-hover:text-emerald-700" />
@@ -463,14 +463,14 @@ export default function InfrastructureTypesConfigPage() {
                         <button
                           onClick={() => handleEdit(item)}
                           className="rounded p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 transition-colors"
-                          title="Edit"
+                          title={t('edit')}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => handleDelete(item)}
                           className="rounded p-1.5 text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors"
-                          title="Delete"
+                          title={t('delete')}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
