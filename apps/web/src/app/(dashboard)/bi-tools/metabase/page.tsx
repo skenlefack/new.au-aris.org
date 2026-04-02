@@ -39,7 +39,10 @@ export default function MetabaseEmbedPage() {
         if (cancelled) return;
 
         const token = result.data.sessionToken;
-        document.cookie = `metabase.SESSION=${token}; path=${metabaseUrl}; SameSite=Lax; Secure`;
+        // Cookie must have domain=.au-aris.org to be sent to metabase.au-aris.org iframe
+        const isProduction = typeof window !== 'undefined' && window.location.hostname.endsWith('au-aris.org');
+        const domainSuffix = isProduction ? '; domain=.au-aris.org' : '';
+        document.cookie = `metabase.SESSION=${token}; path=/; SameSite=Lax; Secure${domainSuffix}`;
         setSessionReady(true);
       } catch {
         if (!cancelled) {

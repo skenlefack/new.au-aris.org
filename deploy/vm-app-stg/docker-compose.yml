@@ -383,9 +383,9 @@ services:
       SUPERSET_INTERNAL_URL: http://superset:8088
       GRAFANA_INTERNAL_URL: http://grafana:3000
       METABASE_ADMIN_EMAIL: admin@au-aris.org
-      METABASE_ADMIN_PASSWORD: ${METABASE_ADMIN_PASSWORD:-ArisMetabase2024!}
+      METABASE_ADMIN_PASSWORD: "ArisMetabase2024!"
       SUPERSET_ADMIN_USERNAME: admin
-      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-Sup3rs3t_Pr0d_2024!qR5tY}
+      SUPERSET_ADMIN_PASSWORD: "Sup3rs3t_Pr0d_2024!qR5tY"
     volumes: *service-volumes
     labels:
       - "traefik.enable=true"
