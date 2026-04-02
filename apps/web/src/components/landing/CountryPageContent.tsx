@@ -103,11 +103,6 @@ export function CountryPageContent({
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <span className="text-4xl sm:text-5xl">{country.flag}</span>
               <div>
-                <div className="mb-1 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-0.5 text-xs text-white/90 backdrop-blur-sm">
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#D4A843]" />
-                  {t('memberStateBadge')}
-                  {primaryRec && ` \u2022 ${getLocalizedField(primaryRec, 'name', locale)}`}
-                </div>
                 <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl lg:text-4xl">
                   {countryName}
                 </h1>
@@ -169,6 +164,9 @@ export function CountryPageContent({
                 ))}
               </div>
             </div>
+
+            {/* Welcome message — always visible */}
+            <WelcomeCard countryName={countryName} welcomeMessage={welcomeMessage} t={t} />
 
             {showRealSections ? (
               <>
@@ -260,7 +258,7 @@ export function CountryPageContent({
                 )}
               </>
             ) : (
-              <FallbackMessage countryName={countryName} welcomeMessage={welcomeMessage} t={t} />
+              <NotYetActiveBanner countryName={countryName} t={t} />
             )}
           </div>
 
@@ -423,56 +421,53 @@ function PerformanceSection({ kpiScores, locale, t }: { kpiScores: any[]; locale
   );
 }
 
-function FallbackMessage({ countryName, welcomeMessage, t }: { countryName: string; welcomeMessage: string | null; t: (key: string, params?: Record<string, string>) => string }) {
-  const currentYear = new Date().getFullYear();
-
+function WelcomeCard({ countryName, welcomeMessage, t }: { countryName: string; welcomeMessage: string | null; t: (key: string, params?: Record<string, string>) => string }) {
   const defaultHtml = `
     <p>${t('defaultWelcomeP1', { country: countryName })}</p>
-    <p>${t('defaultWelcomeP2')}</p>
-    <p>${t('defaultWelcomeP3')}</p>
-    <p>${t('defaultWelcomeP4')}
-    <a href="mailto:aris@au-ibar.org">aris@au-ibar.org</a>.</p>
+    <p>${t('defaultWelcomeP2', { country: countryName })}</p>
   `;
 
   const htmlContent = welcomeMessage || defaultHtml;
 
   return (
-    <div className="space-y-4">
-      {/* Welcome content */}
-      <div className="rounded-2xl border border-gray-200/60 bg-white p-6 shadow-md dark:border-gray-700 dark:bg-gray-800">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-aris-primary-50 dark:bg-aris-primary-900/30">
-            <Info className="h-5 w-5 text-aris-primary-600 dark:text-aris-primary-400" />
-          </div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-            {t('welcomeTo', { country: countryName })}
-          </h3>
+    <div className="rounded-2xl border border-gray-200/60 bg-white p-6 shadow-md dark:border-gray-700 dark:bg-gray-800">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-aris-primary-50 dark:bg-aris-primary-900/30">
+          <Info className="h-5 w-5 text-aris-primary-600 dark:text-aris-primary-400" />
         </div>
-        <div
-          className="prose prose-sm max-w-none text-gray-600 prose-a:text-aris-primary-600 prose-a:no-underline hover:prose-a:underline prose-img:rounded-lg dark:text-gray-300 dark:prose-a:text-aris-primary-400"
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
-        />
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+          {t('welcomeTo', { country: countryName })}
+        </h3>
       </div>
+      <div
+        className="prose prose-sm max-w-none text-gray-600 prose-a:text-aris-primary-600 prose-a:no-underline hover:prose-a:underline prose-img:rounded-lg dark:text-gray-300 dark:prose-a:text-aris-primary-400"
+        dangerouslySetInnerHTML={{ __html: htmlContent }}
+      />
+    </div>
+  );
+}
 
-      {/* Red status banner */}
-      <div className="overflow-hidden rounded-2xl border border-red-200 bg-gradient-to-r from-red-600 via-red-700 to-red-800 shadow-lg dark:border-red-900">
-        <div className="px-6 py-5">
-          <div className="flex items-start gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
-              <Info className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-white">
-                {t('notYetActiveYear', { year: String(currentYear) })}
-              </h4>
-              <p className="mt-1 text-sm leading-relaxed text-red-100">
-                {t('notYetActiveDesc', { country: countryName, year: String(currentYear) })}
-              </p>
-            </div>
+function NotYetActiveBanner({ countryName, t }: { countryName: string; t: (key: string, params?: Record<string, string>) => string }) {
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-red-200 bg-gradient-to-r from-red-600 via-red-700 to-red-800 shadow-lg dark:border-red-900">
+      <div className="px-6 py-5">
+        <div className="flex items-start gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
+            <Info className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-white">
+              {t('notYetActiveYear', { year: String(currentYear) })}
+            </h4>
+            <p className="mt-1 text-sm leading-relaxed text-red-100">
+              {t('notYetActiveDesc', { country: countryName, year: String(currentYear) })}
+            </p>
           </div>
         </div>
-        <div className="h-1 bg-gradient-to-r from-red-400 via-amber-400 to-red-400" />
       </div>
+      <div className="h-1 bg-gradient-to-r from-red-400 via-amber-400 to-red-400" />
     </div>
   );
 }

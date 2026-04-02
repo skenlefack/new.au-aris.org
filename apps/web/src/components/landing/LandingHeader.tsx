@@ -103,7 +103,7 @@ export function LandingHeader({ rec, country }: LandingHeaderProps) {
           >
             {activeLocales.map((loc) => (
               <option key={loc} value={loc}>
-                {LOCALE_LABELS[loc]?.flag} {loc.toUpperCase()}
+                {loc.toUpperCase()}
               </option>
             ))}
           </select>

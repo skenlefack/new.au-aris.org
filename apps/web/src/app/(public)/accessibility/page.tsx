@@ -4,7 +4,7 @@ import { LandingHeader } from '@/components/landing/LandingHeader';
 
 export const metadata = {
   title: 'Accessibility | ARIS 4.0 — AU-IBAR',
-  description: 'Accessibility Statement for the Animal Resources Information System (ARIS) of the African Union Inter-African Bureau for Animal Resources.',
+  description: 'Accessibility Statement for the Animal Resources Information System (ARIS) of the African Union Interafrican Bureau for Animal Resources.',
 };
 
 export default function AccessibilityPage() {

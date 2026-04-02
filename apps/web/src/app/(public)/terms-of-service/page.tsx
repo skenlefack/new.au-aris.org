@@ -4,7 +4,7 @@ import { LandingHeader } from '@/components/landing/LandingHeader';
 
 export const metadata = {
   title: 'Terms of Service | ARIS 4.0 — AU-IBAR',
-  description: 'Terms of Service for the Animal Resources Information System (ARIS) of the African Union Inter-African Bureau for Animal Resources.',
+  description: 'Terms of Service for the Animal Resources Information System (ARIS) of the African Union Interafrican Bureau for Animal Resources.',
 };
 
 export default function TermsOfServicePage() {
@@ -25,7 +25,7 @@ export default function TermsOfServicePage() {
           <h2>1. Acceptance of Terms</h2>
           <p>
             By accessing or using the Animal Resources Information System (ARIS), operated by the African Union
-            Inter-African Bureau for Animal Resources (AU-IBAR), you agree to be bound by these Terms of Service.
+            Interafrican Bureau for Animal Resources (AU-IBAR), you agree to be bound by these Terms of Service.
             ARIS is a restricted-access platform; access is granted only to authorized personnel of AU Member States,
             Regional Economic Communities (RECs), and partner organizations.
           </p>

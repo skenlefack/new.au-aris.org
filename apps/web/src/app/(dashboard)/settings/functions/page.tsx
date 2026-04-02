@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 import { toast } from 'sonner';
 
 const LEVEL_DEFS = [
@@ -72,6 +73,7 @@ const EMPTY_FORM: FunctionFormData = {
 
 export default function FunctionsPage() {
   const t = useTranslations('settings');
+  const locale = useLocaleStore((s) => s.locale);
   const [activeTab, setActiveTab] = useState<string>('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -136,6 +138,14 @@ export default function FunctionsPage() {
 
   const functions: FunctionItem[] = data?.data ?? [];
   const meta = data?.meta ?? { total: functions.length, page: 1, limit };
+
+  // Fetch total counts per level for the subtitle badges
+  const { data: contData } = useSettingsFunctions({ level: 'continental', limit: 1 });
+  const { data: regData } = useSettingsFunctions({ level: 'regional', limit: 1 });
+  const { data: natData } = useSettingsFunctions({ level: 'national', limit: 1 });
+  const countContinental = contData?.meta?.total ?? 0;
+  const countRegional = regData?.meta?.total ?? 0;
+  const countNational = natData?.meta?.total ?? 0;
 
   const createMut = useCreateFunction();
   const updateMut = useUpdateFunction();
@@ -477,6 +487,20 @@ export default function FunctionsPage() {
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {t('functionsSubtitle')}
           </p>
+          <div className="mt-2 flex items-center gap-3">
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+              <Globe className="h-3 w-3" />
+              {t('continental')} ({countContinental})
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+              <Building2 className="h-3 w-3" />
+              {t('regional')} ({countRegional})
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+              <Flag className="h-3 w-3" />
+              {t('national')} ({countNational})
+            </span>
+          </div>
         </div>
         {canManage && (
           <button
@@ -557,8 +581,7 @@ export default function FunctionsPage() {
             <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
               <tr>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('code')}</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('nameEn')}</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('nameFr')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('name')}</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('level')}</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('category')}</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Roles</th>
@@ -581,10 +604,7 @@ export default function FunctionsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                    {fn.name?.en ?? fn.code}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
-                    {fn.name?.fr ?? '-'}
+                    {fn.name?.[locale] ?? fn.name?.en ?? fn.code}
                   </td>
                   <td className="px-4 py-3">{getLevelBadge(fn.level)}</td>
                   <td className="px-4 py-3">{getCategoryBadge(fn.category)}</td>
@@ -666,7 +686,7 @@ export default function FunctionsPage() {
               ))}
               {functions.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                     {t('noFunctionsFound')}
                   </td>
                 </tr>

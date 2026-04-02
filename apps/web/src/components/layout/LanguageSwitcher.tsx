@@ -77,7 +77,7 @@ export function LanguageSwitcher() {
         )}
       >
         <Languages className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-        <span className="hidden sm:inline">{currentLabel.flag}</span>
+        {/* flag removed */}
         <span className="font-medium text-gray-700 dark:text-gray-200">
           {locale.toUpperCase()}
         </span>
@@ -106,7 +106,6 @@ export function LanguageSwitcher() {
                 )}
                 style={isSelected ? { color: 'var(--color-accent)' } : undefined}
               >
-                <span className="text-base">{info.flag}</span>
                 <span className="text-gray-700 dark:text-gray-300">{info.label}</span>
                 {info.dir === 'rtl' && (
                   <span className="ml-auto rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-[9px] font-medium text-gray-400">

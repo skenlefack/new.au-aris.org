@@ -4,7 +4,7 @@ import { LandingHeader } from '@/components/landing/LandingHeader';
 
 export const metadata = {
   title: 'Privacy Policy | ARIS 4.0 — AU-IBAR',
-  description: 'Privacy Policy for the Animal Resources Information System (ARIS) of the African Union Inter-African Bureau for Animal Resources.',
+  description: 'Privacy Policy for the Animal Resources Information System (ARIS) of the African Union Interafrican Bureau for Animal Resources.',
 };
 
 export default function PrivacyPolicyPage() {
@@ -24,7 +24,7 @@ export default function PrivacyPolicyPage() {
         <div className="max-w-none text-gray-700 [&_a]:text-[#006B3F] [&_a]:underline [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-gray-900 [&_h3]:mb-2 [&_h3]:mt-5 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-gray-800 [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-4 [&_p]:leading-relaxed [&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-gray-200 [&_td]:px-3 [&_td]:py-2 [&_td]:text-sm [&_th]:border [&_th]:border-gray-200 [&_th]:bg-gray-50 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold [&_ul]:mb-4 [&_ul]:space-y-1">
           <h2>1. Introduction</h2>
           <p>
-            The African Union Inter-African Bureau for Animal Resources (AU-IBAR), headquartered in Nairobi, Kenya,
+            The African Union Interafrican Bureau for Animal Resources (AU-IBAR), headquartered in Nairobi, Kenya,
             operates the Animal Resources Information System (ARIS) &mdash; a continental digital platform serving
             55 Member States and 8 Regional Economic Communities (RECs). This Privacy Policy describes how we collect,
             use, protect, and share information through the ARIS platform, including the web application

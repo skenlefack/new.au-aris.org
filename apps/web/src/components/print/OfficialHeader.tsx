@@ -14,7 +14,7 @@ export function OfficialHeader({ title, subtitle, classification }: OfficialHead
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-gray-500">
-            African Union — Inter-African Bureau for Animal Resources
+            African Union — Interafrican Bureau for Animal Resources
           </p>
           <h1 className="mt-1 text-2xl font-bold text-gray-900">{title}</h1>
           {subtitle && (
