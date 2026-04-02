@@ -1227,6 +1227,7 @@
     "priorityLabel": "Prioridad (1-3)",
     "createChain": "Crear Cadena",
     "backup": "Suplente:",
+    "priorityPrefix": "P{priority}",
 
     "functionsTitle": "Funciones",
     "functionsSubtitle": "Funci\u00f3n por nivel jer\u00e1rquico (Continental, Regional, Nacional)",

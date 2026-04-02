@@ -118,7 +118,7 @@ export default function ValidationChainsPage() {
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700',
             )}
           >
-            All
+            {t('all')}
           </button>
           {LEVEL_TYPES.map((lt) => (
             <button
@@ -200,7 +200,7 @@ export default function ValidationChainsPage() {
                 )}>
                   {chain.levelType}
                 </span>
-                <span className="text-xs text-gray-500">P{chain.priority}</span>
+                <span className="text-xs text-gray-500">{t('priorityPrefix', { priority: chain.priority })}</span>
               </div>
 
               {/* Backup */}

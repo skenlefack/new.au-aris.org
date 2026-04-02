@@ -1255,6 +1255,7 @@
     "priorityLabel": "Priorité (1-3)",
     "createChain": "Créer la chaîne",
     "backup": "Suppléant :",
+    "priorityPrefix": "P{priority}",
 
     "functionsTitle": "Fonctions",
     "functionsSubtitle": "Fonction par niveau hi\u00e9rarchique (Continental, R\u00e9gional, National)",
