@@ -1177,6 +1177,11 @@
     "noDomains": "لا توجد مجالات مكوّنة بعد. انقر على \"إضافة مجال\" لإنشاء واحد.",
     "domainName": "اسم المجال",
     "domainCode": "رمز-المجال",
+    "domainCodePlaceholder": "مثال: animal-health",
+    "domainIconPlaceholder": "مثال: HeartPulse, Wheat, Fish",
+    "domainNamePlaceholder": "اسم المجال...",
+    "domainDescPlaceholder": "وصف المجال...",
+    "preview": "معاينة",
 
     "dataContracts": "عقود البيانات",
     "dataContractsDesc": "سجل المخططات والتكرار وتعريفات SLA",

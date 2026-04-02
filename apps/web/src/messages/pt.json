@@ -1205,6 +1205,11 @@
     "noDomains": "Nenhum domínio configurado. Clique em \"Adicionar Domínio\" para criar um.",
     "domainName": "Nome do Domínio",
     "domainCode": "codigo-do-dominio",
+    "domainCodePlaceholder": "ex. animal-health",
+    "domainIconPlaceholder": "ex. HeartPulse, Wheat, Fish",
+    "domainNamePlaceholder": "Nome do domínio...",
+    "domainDescPlaceholder": "Descrição do domínio...",
+    "preview": "Pré-visualização",
 
     "dataContracts": "Contratos de Dados",
     "dataContractsDesc": "Registro de esquemas, frequência e definições de SLA",

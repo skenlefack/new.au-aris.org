@@ -254,7 +254,7 @@ export default function DomainsPage() {
                       type="button"
                       onClick={() => openEdit(domain)}
                       className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                      title="Edit"
+                      title={t('edit')}
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -262,7 +262,7 @@ export default function DomainsPage() {
                       type="button"
                       onClick={() => setDeletingId(domain.id)}
                       className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                      title="Delete"
+                      title={t('delete')}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -366,13 +366,13 @@ function DomainFormPanel({
         {isNew && (
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Code <span className="text-red-500">*</span>
+              {t('code')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={form.code}
               onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
-              placeholder="e.g. animal-health"
+              placeholder={t('domainCodePlaceholder')}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 font-mono text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             />
           </div>
@@ -387,7 +387,7 @@ function DomainFormPanel({
             type="text"
             value={form.icon}
             onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}
-            placeholder="e.g. HeartPulse, Wheat, Fish"
+            placeholder={t('domainIconPlaceholder')}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
@@ -441,7 +441,7 @@ function DomainFormPanel({
           value={form.name}
           onChange={(v) => setForm((f) => ({ ...f, name: v }))}
           required
-          placeholder="Domain name..."
+          placeholder={t('domainNamePlaceholder')}
         />
       </div>
 
@@ -451,7 +451,7 @@ function DomainFormPanel({
           label={t('description')}
           value={form.description}
           onChange={(v) => setForm((f) => ({ ...f, description: v }))}
-          placeholder="Domain description..."
+          placeholder={t('domainDescPlaceholder')}
           rows={2}
         />
       </div>
@@ -523,7 +523,7 @@ function DomainFormPanel({
       {/* Preview */}
       <div className="mt-4 rounded-lg border border-dashed border-gray-200 bg-gray-50/50 p-3 dark:border-gray-700 dark:bg-gray-800/30">
         <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-          Preview
+          {t('preview')}
         </p>
         <div className="flex items-center gap-3">
           <div

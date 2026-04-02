@@ -1205,6 +1205,11 @@
     "noDomains": "No domains configured yet. Click \"Add Domain\" to create one.",
     "domainName": "Domain Name",
     "domainCode": "domain-code",
+    "domainCodePlaceholder": "e.g. animal-health",
+    "domainIconPlaceholder": "e.g. HeartPulse, Wheat, Fish",
+    "domainNamePlaceholder": "Domain name...",
+    "domainDescPlaceholder": "Domain description...",
+    "preview": "Preview",
 
     "dataContracts": "Data Contracts",
     "dataContractsDesc": "Schema registry, frequency, and SLA definitions",
