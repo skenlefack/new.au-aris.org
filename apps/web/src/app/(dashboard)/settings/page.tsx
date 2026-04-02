@@ -81,8 +81,8 @@ export default function SettingsOverviewPage() {
     },
     ...(canManageRoles ? [{
       href: '/settings/roles',
-      label: 'Roles & Permissions',
-      description: 'Manage roles and configure permission matrix',
+      label: t('rolesPermissions'),
+      description: t('rolesPermissionsDesc'),
       icon: <ShieldAlert className="h-5 w-5" />,
       color: 'text-violet-600',
       bgColor: 'bg-violet-100',

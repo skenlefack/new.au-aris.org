@@ -47,27 +47,37 @@ const LEVEL_DEFS = [
 
 const ACTIONS = ['view', 'create', 'edit', 'delete', 'export', 'validate', 'configure'] as const;
 
-const MODULE_LABELS: Record<string, string> = {
-  dashboard: 'Dashboard',
-  'animal-health': 'Animal Health',
-  livestock: 'Livestock & Production',
-  fisheries: 'Fisheries & Aquaculture',
-  trade: 'Trade & SPS',
-  wildlife: 'Wildlife & Biodiversity',
-  apiculture: 'Apiculture',
-  governance: 'Governance & Capacities',
-  'climate-env': 'Climate & Environment',
-  knowledge: 'Knowledge Management',
-  collecte: 'Data Collection',
-  workflow: 'Workflow',
-  'master-data': 'Master Data',
-  quality: 'Data Quality',
-  interop: 'Interoperability',
-  analytics: 'Analytics',
-  historical: 'Historical Data',
-  reports: 'Reports',
-  'bi-tools': 'BI Tools',
-  settings: 'Settings',
+const ACTION_KEY_MAP: Record<string, string> = {
+  view: 'actionView',
+  create: 'actionCreate',
+  edit: 'actionEdit',
+  delete: 'actionDelete',
+  export: 'actionExport',
+  validate: 'actionValidate',
+  configure: 'actionConfigure',
+};
+
+const MODULE_KEY_MAP: Record<string, string> = {
+  dashboard: 'moduleDashboard',
+  'animal-health': 'moduleAnimalHealth',
+  livestock: 'moduleLivestock',
+  fisheries: 'moduleFisheries',
+  trade: 'moduleTrade',
+  wildlife: 'moduleWildlife',
+  apiculture: 'moduleApiculture',
+  governance: 'moduleGovernance',
+  'climate-env': 'moduleClimateEnv',
+  knowledge: 'moduleKnowledge',
+  collecte: 'moduleCollecte',
+  workflow: 'moduleWorkflow',
+  'master-data': 'moduleMasterData',
+  quality: 'moduleQuality',
+  interop: 'moduleInterop',
+  analytics: 'moduleAnalytics',
+  historical: 'moduleHistorical',
+  reports: 'moduleReports',
+  'bi-tools': 'moduleBiTools',
+  settings: 'moduleSettings',
 };
 
 /* ── Form type ── */
@@ -310,7 +320,7 @@ export default function RolesPage() {
       if (v.trim()) cleanName[k] = v.trim();
     }
     if (!cleanName.en) {
-      toast.error('Validation error', { description: 'Name (EN) is required.' });
+      toast.error(t('validationError'), { description: t('nameEnRequired') });
       return;
     }
 
@@ -330,12 +340,12 @@ export default function RolesPage() {
           isActive: form.isActive,
           sortOrder: form.sortOrder,
         });
-        toast.success('Role updated', {
-          description: `${cleanName.en} has been updated successfully.`,
+        toast.success(t('roleUpdated'), {
+          description: t('roleUpdatedDesc', { name: cleanName.en }),
         });
       } else {
         if (!form.code) {
-          toast.error('Validation error', { description: 'Code is required.' });
+          toast.error(t('validationError'), { description: t('codeRequired') });
           return;
         }
         const result: any = await createMut.mutateAsync({
@@ -349,8 +359,8 @@ export default function RolesPage() {
           sortOrder: form.sortOrder,
         });
         const newId = result?.data?.id;
-        toast.success('Role created', {
-          description: `${cleanName.en} has been created successfully.`,
+        toast.success(t('roleCreated'), {
+          description: t('roleCreatedDesc', { name: cleanName.en }),
         });
         // If permissions were set during creation, save them
         if (newId && selectedPermissionIds.size > 0) {
@@ -367,20 +377,20 @@ export default function RolesPage() {
       setEditingId(null);
       setPermissionsDirty(false);
     } catch (err: any) {
-      toast.error(editingId ? 'Failed to update role' : 'Failed to create role', {
-        description: err?.message ?? 'An unexpected error occurred.',
+      toast.error(editingId ? t('failedUpdateRole') : t('failedCreateRole'), {
+        description: err?.message ?? t('unexpectedError'),
       });
     }
   }, [form, editingId, selectedPermissionIds, permissionsDirty, createMut, updateMut, permMut]);
 
   const handleDelete = useCallback(async (id: string, code: string) => {
-    if (!confirm(`Delete role "${code}"? This action cannot be undone.`)) return;
+    if (!confirm(t('deleteRoleConfirm', { code }))) return;
     try {
       await deleteMut.mutateAsync(id);
-      toast.success('Role deleted', { description: `${code} has been removed.` });
+      toast.success(t('roleDeleted'), { description: t('roleDeletedDesc', { code }) });
     } catch (err: any) {
-      toast.error('Failed to delete role', {
-        description: err?.message ?? 'Please try again.',
+      toast.error(t('failedDeleteRole'), {
+        description: err?.message ?? t('pleaseTryAgain'),
       });
     }
   }, [deleteMut]);
@@ -416,7 +426,7 @@ export default function RolesPage() {
     if (!allPermissions.length) {
       return (
         <div className="flex items-center justify-center py-8 text-sm text-gray-500 dark:text-gray-400">
-          No permissions found. Run the seed script first.
+          {t('noPermissionsFound')}
         </div>
       );
     }
@@ -430,18 +440,18 @@ export default function RolesPage() {
               onClick={expandAll}
               className="text-xs text-aris-primary-600 hover:text-aris-primary-700 dark:text-aris-primary-400"
             >
-              Expand all
+              {t('expandAll')}
             </button>
             <span className="text-gray-300 dark:text-gray-600">|</span>
             <button
               onClick={collapseAll}
               className="text-xs text-aris-primary-600 hover:text-aris-primary-700 dark:text-aris-primary-400"
             >
-              Collapse all
+              {t('collapseAll')}
             </button>
           </div>
           <span className="rounded-full bg-aris-primary-50 px-2.5 py-0.5 text-xs font-semibold text-aris-primary-700 dark:bg-aris-primary-900/30 dark:text-aris-primary-400">
-            {selectedPermissionIds.size} / {allPermissions.length} permissions
+            {selectedPermissionIds.size} / {allPermissions.length} {t('permissionsLabel')}
           </span>
         </div>
 
@@ -451,16 +461,15 @@ export default function RolesPage() {
             <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
               <tr>
                 <th className="sticky left-0 z-10 bg-gray-50 px-4 py-2.5 text-left font-medium text-gray-500 dark:bg-gray-800/50 dark:text-gray-400 min-w-[240px]">
-                  Module / Feature
+                  {t('moduleFeature')}
                 </th>
                 {ACTIONS.map((action) => (
                   <th key={action} className="px-2 py-2.5 text-center font-medium text-gray-500 dark:text-gray-400 min-w-[70px]">
                     <button
                       onClick={() => toggleAction(action)}
-                      className="hover:text-aris-primary-600 dark:hover:text-aris-primary-400 capitalize"
-                      title={`Toggle all ${action}`}
+                      className="hover:text-aris-primary-600 dark:hover:text-aris-primary-400"
                     >
-                      {action}
+                      {t(ACTION_KEY_MAP[action] ?? action)}
                     </button>
                   </th>
                 ))}
@@ -500,7 +509,7 @@ export default function RolesPage() {
                             onClick={() => toggleModuleExpand(module)}
                             className="font-semibold text-gray-900 dark:text-white"
                           >
-                            {MODULE_LABELS[module] ?? module}
+                            {MODULE_KEY_MAP[module] ? t(MODULE_KEY_MAP[module]) : module}
                           </button>
                           <span className="text-[10px] text-gray-400">({featureKeys.length})</span>
                         </div>
@@ -576,12 +585,12 @@ export default function RolesPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <ShieldAlert className="h-6 w-6 text-aris-primary-600" />
-              {editingId ? 'Edit Role' : 'New Role'}
+              {editingId ? t('editRole') : t('newRole')}
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {editingId
-                ? `Editing ${form.name.en || form.code}${isSystemRole ? ' (system role — limited editing)' : ''}`
-                : 'Define a new role and assign permissions'}
+                ? `${t('editingRole', { name: form.name.en || form.code })}${isSystemRole ? ` ${t('systemRoleLimited')}` : ''}`
+                : t('defineNewRole')}
             </p>
           </div>
           <button
@@ -589,18 +598,18 @@ export default function RolesPage() {
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {t('back')}
           </button>
         </div>
 
         {/* Role details form */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-          <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Role Details</h2>
+          <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">{t('roleDetails')}</h2>
           <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* Code */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Code <span className="text-red-500">*</span>
+                {t('code')} <span className="text-red-500">*</span>
               </label>
               <input
                 value={form.code}
@@ -614,7 +623,7 @@ export default function RolesPage() {
             {/* Level */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Level <span className="text-red-500">*</span>
+                {t('level')} <span className="text-red-500">*</span>
               </label>
               <select
                 value={form.level}
@@ -629,7 +638,7 @@ export default function RolesPage() {
             {/* Color */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Color
+                {t('color')}
               </label>
               <div className="flex items-center gap-2">
                 {ROLE_COLORS.map((c) => (
@@ -650,7 +659,7 @@ export default function RolesPage() {
           {/* Names (4 languages) */}
           <div className="mt-5">
             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Name <span className="text-red-500">*</span>
+              {t('name')} <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {(['en', 'fr', 'pt', 'ar'] as const).map((lang) => (
@@ -661,7 +670,7 @@ export default function RolesPage() {
                   <input
                     value={form.name[lang]}
                     onChange={(e) => setForm((f) => ({ ...f, name: { ...f.name, [lang]: e.target.value } }))}
-                    placeholder={lang === 'en' ? 'Name (required)' : `Name (${lang})`}
+                    placeholder={lang === 'en' ? t('nameRequired') : t('nameInLang', { lang: lang.toUpperCase() })}
                     dir={lang === 'ar' ? 'rtl' : 'ltr'}
                     className="w-full rounded-lg border border-gray-200 pl-10 pr-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
                   />
@@ -673,12 +682,12 @@ export default function RolesPage() {
           {/* Description */}
           <div className="mt-4">
             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Description (EN)
+              {t('descriptionEn')}
             </label>
             <input
               value={form.description.en}
               onChange={(e) => setForm((f) => ({ ...f, description: { ...f.description, en: e.target.value } }))}
-              placeholder="Brief description..."
+              placeholder={t('briefDescription')}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             />
           </div>
@@ -693,10 +702,10 @@ export default function RolesPage() {
                 disabled={!!isSystemRole}
                 className="h-4 w-4 rounded border-gray-300 text-aris-primary-600"
               />
-              Active
+              {t('active')}
             </label>
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-500 dark:text-gray-400">Sort order</label>
+              <label className="text-sm text-gray-500 dark:text-gray-400">{t('sortOrder')}</label>
               <input
                 type="number"
                 value={form.sortOrder}
@@ -712,7 +721,7 @@ export default function RolesPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
           <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <Shield className="h-4 w-4 text-aris-primary-600" />
-            Permission Matrix
+            {t('permissionMatrix')}
           </h2>
           {detailLoading && editingId ? (
             <div className="flex items-center justify-center py-8">
@@ -729,7 +738,7 @@ export default function RolesPage() {
             onClick={handleBack}
             className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button
             onClick={handleSave}
@@ -741,7 +750,7 @@ export default function RolesPage() {
             ) : (
               <Check className="h-4 w-4" />
             )}
-            {editingId ? 'Update Role' : 'Create Role'}
+            {editingId ? t('updateRole') : t('createRole')}
           </button>
         </div>
       </div>
@@ -757,10 +766,10 @@ export default function RolesPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <ShieldAlert className="h-6 w-6 text-aris-primary-600" />
-            Roles & Permissions
+            {t('rolesPermissions')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Manage roles and configure their permission matrix
+            {t('manageRolesSubtitle')}
           </p>
         </div>
         {canCreateRole && (
@@ -769,7 +778,7 @@ export default function RolesPage() {
             className="flex items-center gap-1.5 rounded-lg bg-aris-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-aris-primary-700"
           >
             <Plus className="h-4 w-4" />
-            New Role
+            {t('newRole')}
           </button>
         )}
       </div>
@@ -785,7 +794,7 @@ export default function RolesPage() {
               : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
           )}
         >
-          All ({meta.total})
+          {t('all')} ({meta.total})
         </button>
         {LEVELS.map((lvl) => {
           const count = lvl.key === 'continental' ? countContinental
@@ -818,7 +827,7 @@ export default function RolesPage() {
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search roles..."
+            placeholder={t('searchRoles')}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
@@ -827,9 +836,9 @@ export default function RolesPage() {
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
         >
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option value="">{t('allStatuses')}</option>
+          <option value="active">{t('active')}</option>
+          <option value="inactive">{t('inactive')}</option>
         </select>
       </div>
 
@@ -843,17 +852,17 @@ export default function RolesPage() {
           <table className="w-full text-left text-sm">
             <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
               <tr>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Role</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Code</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Level</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Type</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('role')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('code')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('level')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('type')}</th>
                 {(isSuperAdmin || isContinentalAdmin) && (
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Tenant</th>
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('tenant')}</th>
                 )}
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Users</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Status</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('users')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('status')}</th>
                 {canManageRoles && (
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Actions</th>
+                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('actions')}</th>
                 )}
               </tr>
             </thead>
@@ -888,11 +897,11 @@ export default function RolesPage() {
                     {role.isSystem ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
                         <Shield className="h-3 w-3" />
-                        System
+                        {t('systemRole')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                        Custom
+                        {t('customRole')}
                       </span>
                     )}
                   </td>
@@ -904,7 +913,7 @@ export default function RolesPage() {
                         </span>
                       ) : (
                         <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                          Global
+                          {t('globalRole')}
                         </span>
                       )}
                     </td>
@@ -922,7 +931,7 @@ export default function RolesPage() {
                         ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                         : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
                     )}>
-                      {role.isActive ? 'Active' : 'Inactive'}
+                      {role.isActive ? t('active') : t('inactive')}
                     </span>
                   </td>
                   {canManageRoles && (
@@ -932,7 +941,7 @@ export default function RolesPage() {
                           <button
                             onClick={() => openEdit(role)}
                             className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-white"
-                            title="Edit role & permissions"
+                            title={t('editRolePermissions')}
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
@@ -940,7 +949,7 @@ export default function RolesPage() {
                             <button
                               onClick={() => handleDelete(role.id, role.code)}
                               className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                              title="Delete role"
+                              title={t('deleteRoleBtn')}
                               disabled={deleteMut.isPending}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -957,7 +966,7 @@ export default function RolesPage() {
               {roles.length === 0 && (
                 <tr>
                   <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                    No roles found. {canCreateRole && 'Click "New Role" to create one.'}
+                    {t('noRolesFound')} {canCreateRole && t('clickNewRole')}
                   </td>
                 </tr>
               )}
