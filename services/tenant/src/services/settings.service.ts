@@ -1538,48 +1538,83 @@ export class SettingsService {
         take: limit,
         orderBy,
         select: {
-          id: true, email: true, firstName: true, lastName: true,
+          id: true, email: true, firstName: true, lastName: true, phone: true,
           role: true, locale: true, mfaEnabled: true, isActive: true,
           lastLoginAt: true, createdAt: true, updatedAt: true,
           tenantId: true,
           tenant: { select: { id: true, name: true, level: true, countryCode: true, recCode: true } },
           functions: {
             include: {
-              function: { select: { id: true, code: true, name: true, level: true, category: true } },
+              function: {
+                select: {
+                  id: true, code: true, name: true, level: true, category: true,
+                  roles: { include: { role: { select: { id: true, code: true, name: true, color: true } } } },
+                },
+              },
             },
             orderBy: { isPrimary: 'desc' },
+          },
+          userDomains: {
+            where: { isActive: true },
+            include: { domain: { select: { id: true, code: true, name: true, icon: true, color: true } } },
+            orderBy: { domain: { sortOrder: 'asc' as const } },
+          },
+          roleAssignments: {
+            include: { role: { select: { id: true, code: true, name: true, color: true } } },
           },
         },
       }),
       (this.prisma as any).user.count({ where }),
     ]);
 
-    return { data, meta: { total, page, limit } };
+    // Transform userDomains to domains
+    const transformed = data.map((u: any) => {
+      const { userDomains, ...rest } = u;
+      return { ...rest, domains: userDomains?.map((ud: any) => ud.domain) ?? [] };
+    });
+
+    return { data: transformed, meta: { total, page, limit } };
   }
 
   async getUserById(id: string, caller: AuthenticatedUser) {
-    const user = await (this.prisma as any).user.findUnique({
+    const raw = await (this.prisma as any).user.findUnique({
       where: { id },
       select: {
-        id: true, email: true, firstName: true, lastName: true,
+        id: true, email: true, firstName: true, lastName: true, phone: true,
         role: true, locale: true, mfaEnabled: true, isActive: true,
         lastLoginAt: true, createdAt: true, updatedAt: true,
         tenantId: true,
         tenant: { select: { id: true, name: true, level: true, countryCode: true, recCode: true } },
         functions: {
           include: {
-            function: { select: { id: true, code: true, name: true, level: true, category: true } },
+            function: {
+              select: {
+                id: true, code: true, name: true, level: true, category: true,
+                roles: { include: { role: { select: { id: true, code: true, name: true, color: true } } } },
+              },
+            },
           },
           orderBy: { isPrimary: 'desc' },
         },
+        userDomains: {
+          where: { isActive: true },
+          include: { domain: { select: { id: true, code: true, name: true, icon: true, color: true } } },
+          orderBy: { domain: { sortOrder: 'asc' as const } },
+        },
+        roleAssignments: {
+          include: { role: { select: { id: true, code: true, name: true, color: true } } },
+        },
       },
     });
-    if (!user) throw new HttpError(404, `User ${id} not found`);
+    if (!raw) throw new HttpError(404, `User ${id} not found`);
 
     // Access check
-    if (caller.tenantLevel === 'MEMBER_STATE' && user.tenantId !== caller.tenantId) {
+    if (caller.tenantLevel === 'MEMBER_STATE' && raw.tenantId !== caller.tenantId) {
       throw new HttpError(403, 'Access denied');
     }
+
+    const { userDomains, ...rest } = raw;
+    const user = { ...rest, domains: userDomains?.map((ud: any) => ud.domain) ?? [] };
 
     return { data: user };
   }
@@ -1597,6 +1632,7 @@ export class SettingsService {
         passwordHash,
         firstName: dto.firstName as string,
         lastName: dto.lastName as string,
+        phone: (dto.phone as string) ?? null,
         role: dto.role as string,
         tenantId: dto.tenantId as string,
         locale: (dto.locale as string) ?? 'en',
@@ -1621,6 +1657,33 @@ export class SettingsService {
       });
     }
 
+    // Assign direct roles if provided
+    const directRoleIds = dto.directRoleIds as string[] | undefined;
+    if (directRoleIds && directRoleIds.length > 0) {
+      await (this.prisma as any).userRoleAssignment.createMany({
+        data: directRoleIds.map((roleId) => ({
+          userId: user.id,
+          roleId,
+          source: 'direct',
+          assignedBy: caller.userId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    // Assign domains if provided
+    const domainIds = dto.domainIds as string[] | undefined;
+    if (domainIds && domainIds.length > 0) {
+      await (this.prisma as any).userDomain.createMany({
+        data: domainIds.map((domainId) => ({
+          userId: user.id,
+          domainId,
+          assignedBy: caller.userId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
     await this.publishEvent(TOPIC_SETTINGS_USER_UPDATED, { ...user, action: 'created' }, caller);
     await this.invalidateUserCache();
     return { data: user };
@@ -1630,7 +1693,7 @@ export class SettingsService {
     const existing = await (this.prisma as any).user.findUnique({ where: { id } });
     if (!existing) throw new HttpError(404, `User ${id} not found`);
 
-    // Only SUPER_ADMIN can change roles
+    // Only SUPER_ADMIN can change system role
     if (dto.role !== undefined && dto.role !== existing.role) {
       if (caller.role !== 'SUPER_ADMIN') throw new HttpError(403, 'Only SUPER_ADMIN can change user roles');
     }
@@ -1639,9 +1702,15 @@ export class SettingsService {
     if (dto.email !== undefined) updateData.email = dto.email;
     if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
     if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
+    if (dto.phone !== undefined) updateData.phone = dto.phone;
     if (dto.role !== undefined) updateData.role = dto.role;
     if (dto.locale !== undefined) updateData.locale = dto.locale;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
+
+    // Hash password if provided
+    if (dto.password !== undefined && typeof dto.password === 'string') {
+      updateData.passwordHash = await hash(dto.password, BCRYPT_ROUNDS);
+    }
 
     const user = await (this.prisma as any).user.update({
       where: { id },
@@ -1651,6 +1720,68 @@ export class SettingsService {
         role: true, locale: true, isActive: true, tenantId: true, updatedAt: true,
       },
     });
+
+    // Sync function assignments if provided
+    const functionIds = dto.functionIds as string[] | undefined;
+    if (functionIds !== undefined) {
+      // Remove all existing function assignments
+      await (this.prisma as any).userFunction.deleteMany({ where: { userId: id } });
+      // Create new ones
+      if (functionIds.length > 0) {
+        await (this.prisma as any).userFunction.createMany({
+          data: functionIds.map((fId, idx) => ({
+            userId: id,
+            functionId: fId,
+            isPrimary: idx === 0,
+            assignedBy: caller.userId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    // Sync direct role assignments if provided
+    const directRoleIds = dto.directRoleIds as string[] | undefined;
+    if (directRoleIds !== undefined) {
+      // Remove all existing direct role assignments
+      await (this.prisma as any).userRoleAssignment.deleteMany({
+        where: { userId: id, source: 'direct' },
+      });
+      // Create new direct role assignments
+      if (directRoleIds.length > 0) {
+        await (this.prisma as any).userRoleAssignment.createMany({
+          data: directRoleIds.map((roleId) => ({
+            userId: id,
+            roleId,
+            source: 'direct',
+            assignedBy: caller.userId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    // Sync domain assignments if provided
+    const domainIds = dto.domainIds as string[] | undefined;
+    if (domainIds !== undefined) {
+      await (this.prisma as any).userDomain.deleteMany({ where: { userId: id } });
+      if (domainIds.length > 0) {
+        await (this.prisma as any).userDomain.createMany({
+          data: domainIds.map((domainId) => ({
+            userId: id,
+            domainId,
+            assignedBy: caller.userId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    // Invalidate permission cache for this user
+    if (this.redis) {
+      try { await this.redis.del(`aris:permissions:${id}`); } catch { /* non-blocking */ }
+      try { await this.redis.del(`aris:credential:user:${id}`); } catch { /* non-blocking */ }
+    }
 
     await this.publishEvent(TOPIC_SETTINGS_USER_UPDATED, { ...user, action: 'updated' }, caller);
     await this.invalidateUserCache();

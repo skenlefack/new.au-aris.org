@@ -12,7 +12,6 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
-  Clock,
   UserCheck,
   Mail,
   Phone,
@@ -26,6 +25,9 @@ import {
   CheckCircle2,
   AlertCircle,
   RefreshCw,
+  Briefcase,
+  Lock,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DomainBadge } from '@/components/domain/DomainBadge';
@@ -36,9 +38,10 @@ import {
   useDeleteUser,
   useToggleUserActive,
   useSettingsRoles,
-  useUserFunctions,
+  useSettingsFunctions,
   type ManagedUser,
   type RoleItem,
+  type FunctionItem,
 } from '@/lib/api/settings-hooks';
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -57,18 +60,17 @@ type UserRole =
   | 'ANALYST'
   | 'FIELD_AGENT';
 
-const ROLE_CONFIG: Record<UserRole, { label: string; description: string; color: string; iconColor: string }> = {
-  SUPER_ADMIN:       { label: 'Super Admin',       description: 'Full system access',               color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',             iconColor: '#dc2626' },
-  CONTINENTAL_ADMIN: { label: 'Continental Admin',  description: 'AU-IBAR continental oversight',    color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400', iconColor: '#7c3aed' },
-  REC_ADMIN:         { label: 'REC Admin',          description: 'Regional community coordinator',   color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',         iconColor: '#2563eb' },
-  NATIONAL_ADMIN:    { label: 'National Admin',     description: 'National CVO office administrator',color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',     iconColor: '#16a34a' },
-  DATA_STEWARD:      { label: 'Data Steward',       description: 'Data quality officer',             color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',     iconColor: '#d97706' },
-  WAHIS_FOCAL_POINT: { label: 'WAHIS Focal Point',  description: 'Authorized WOAH reporter',         color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',         iconColor: '#0891b2' },
-  ANALYST:           { label: 'Analyst',            description: 'Read-only data analyst',           color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',             iconColor: '#6b7280' },
-  FIELD_AGENT:       { label: 'Field Agent',        description: 'Mobile data collector',            color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', iconColor: '#ea580c' },
+const ROLE_PRIORITY: Record<string, number> = {
+  SUPER_ADMIN: 1,
+  CONTINENTAL_ADMIN: 2,
+  REC_ADMIN: 3,
+  NATIONAL_ADMIN: 4,
+  DATA_STEWARD: 5,
+  WAHIS_FOCAL_POINT: 6,
+  ANALYST: 7,
+  FIELD_AGENT: 8,
 };
 
-const ALL_ROLES = Object.keys(ROLE_CONFIG) as UserRole[];
 const ITEMS_PER_PAGE = 20;
 
 type PageView = 'list' | 'form';
@@ -102,7 +104,6 @@ function generatePassword(length = 12): string {
   const digits = '23456789';
   const special = '!@#$%&*';
   const all = upper + lower + digits + special;
-  // Ensure at least one of each category
   let pwd = '';
   pwd += upper[Math.floor(Math.random() * upper.length)];
   pwd += lower[Math.floor(Math.random() * lower.length)];
@@ -111,8 +112,22 @@ function generatePassword(length = 12): string {
   for (let i = pwd.length; i < length; i++) {
     pwd += all[Math.floor(Math.random() * all.length)];
   }
-  // Shuffle
   return pwd.split('').sort(() => Math.random() - 0.5).join('');
+}
+
+/** Given all selected roles (function-derived + direct), determine the primary system role */
+function computePrimaryRole(allRoles: RoleItem[], selectedRoleIds: Set<string>): UserRole {
+  let best: UserRole = 'FIELD_AGENT';
+  let bestPrio = 999;
+  for (const role of allRoles) {
+    if (!selectedRoleIds.has(role.id)) continue;
+    const prio = ROLE_PRIORITY[role.code] ?? 999;
+    if (prio < bestPrio) {
+      bestPrio = prio;
+      best = role.code as UserRole;
+    }
+  }
+  return best;
 }
 
 /* ================================================================ */
@@ -125,10 +140,11 @@ interface UserFormState {
   password: string;
   firstName: string;
   lastName: string;
-  role: UserRole;
   tenantId: string;
   isActive: boolean;
   domainIds: string[];
+  functionIds: string[];
+  directRoleIds: string[];
 }
 
 const EMPTY_FORM: UserFormState = {
@@ -137,139 +153,12 @@ const EMPTY_FORM: UserFormState = {
   password: '',
   firstName: '',
   lastName: '',
-  role: 'FIELD_AGENT',
   tenantId: '',
   isActive: true,
   domainIds: [],
+  functionIds: [],
+  directRoleIds: [],
 };
-
-/* ================================================================ */
-/*  Functions & Effective Roles Section                               */
-/* ================================================================ */
-
-function UserFunctionsAndRolesSection({ userId, userRole }: { userId: string | null; userRole: string }) {
-  const { data: rolesData } = useSettingsRoles({ limit: 50 });
-  const allRoles: RoleItem[] = rolesData?.data ?? [];
-  const { data: userFunctionsData } = useUserFunctions(userId ?? '');
-  const userFunctions = (userFunctionsData as any)?.data ?? [];
-
-  // Derive roles from functions
-  const derivedRoleIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const uf of userFunctions) {
-      const fn = uf.function ?? uf;
-      if (fn.roles) {
-        for (const fr of fn.roles) {
-          const roleId = fr.role?.id ?? fr.roleId;
-          if (roleId) ids.add(roleId);
-        }
-      }
-    }
-    return ids;
-  }, [userFunctions]);
-
-  // System role from the user's primary role field
-  const primarySystemRole = allRoles.find((r) => r.code === userRole);
-
-  // Effective roles = primary system role + function-derived roles
-  const effectiveRoles = useMemo(() => {
-    const roleMap = new Map<string, RoleItem>();
-    if (primarySystemRole) roleMap.set(primarySystemRole.id, primarySystemRole);
-    for (const id of derivedRoleIds) {
-      const r = allRoles.find((role) => role.id === id);
-      if (r) roleMap.set(r.id, r);
-    }
-    return Array.from(roleMap.values());
-  }, [primarySystemRole, derivedRoleIds, allRoles]);
-
-  if (!userId) return null;
-
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 overflow-hidden">
-      <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
-        <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 text-gray-400" />
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Functions & Effective Roles</h2>
-        </div>
-        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-          Roles derived from assigned functions and primary system role
-        </p>
-      </div>
-      <div className="px-6 py-5 space-y-4">
-        {/* Assigned functions */}
-        <div>
-          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Assigned Functions
-          </label>
-          {userFunctions.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {userFunctions.map((uf: any) => {
-                const fn = uf.function ?? uf;
-                return (
-                  <div
-                    key={uf.id ?? fn.id}
-                    className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5"
-                  >
-                    <span className="text-xs font-medium text-gray-900 dark:text-white">
-                      {fn.name?.en ?? fn.code}
-                    </span>
-                    {fn.roles?.length > 0 && (
-                      <div className="flex gap-1">
-                        {fn.roles.map((fr: any) => (
-                          <span
-                            key={fr.role?.id ?? fr.roleId}
-                            className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold text-white"
-                            style={{ backgroundColor: fr.role?.color ?? '#6b7280' }}
-                            title={fr.role?.name?.en ?? fr.role?.code ?? ''}
-                          >
-                            {(fr.role?.name?.en ?? 'R').charAt(0)}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {uf.isPrimary && (
-                      <span className="text-[10px] text-aris-primary-600 font-semibold">Primary</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-xs text-gray-400 italic">No functions assigned</p>
-          )}
-        </div>
-
-        {/* Effective roles summary */}
-        <div>
-          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Effective Roles
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {effectiveRoles.length > 0 ? (
-              effectiveRoles.map((role) => (
-                <span
-                  key={role.id}
-                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-white"
-                  style={{ backgroundColor: role.color }}
-                >
-                  {role.name?.en ?? role.code}
-                  {role.id === primarySystemRole?.id && (
-                    <span className="text-[9px] opacity-80">(primary)</span>
-                  )}
-                  {derivedRoleIds.has(role.id) && role.id !== primarySystemRole?.id && (
-                    <span className="text-[9px] opacity-80">(function)</span>
-                  )}
-                </span>
-              ))
-            ) : (
-              <span className="text-xs text-gray-400">{userRole.replace(/_/g, ' ')}</span>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ================================================================ */
 /*  User Form (inline page, not modal)                               */
@@ -289,28 +178,69 @@ function UserForm({
   const [showPassword, setShowPassword] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Load all roles and functions from the database
+  const { data: rolesData } = useSettingsRoles({ limit: 100 });
+  const allRoles: RoleItem[] = useMemo(() => (rolesData?.data ?? []).filter((r) => r.isActive), [rolesData]);
+
+  const { data: functionsData } = useSettingsFunctions({ limit: 100, status: 'active' });
+  const allFunctions: FunctionItem[] = useMemo(() => (functionsData as any)?.data ?? [], [functionsData]);
+
   const [form, setForm] = useState<UserFormState>(() => {
     if (editingUser) {
+      // Extract function IDs from user's functions
+      const functionIds = editingUser.functions?.map((uf) => uf.function?.id).filter(Boolean) as string[] ?? [];
+      // Extract direct role IDs (source='direct') from roleAssignments
+      const directRoleIds = editingUser.roleAssignments
+        ?.filter((ra) => ra.source === 'direct')
+        .map((ra) => ra.role.id) ?? [];
+
       return {
         email: editingUser.email,
         phone: editingUser.phone ?? '',
         password: '',
         firstName: editingUser.firstName,
         lastName: editingUser.lastName,
-        role: editingUser.role as UserRole,
         tenantId: editingUser.tenantId,
         isActive: editingUser.isActive,
         domainIds: editingUser.domains?.map((d) => d.id) ?? [],
+        functionIds,
+        directRoleIds,
       };
     }
     return { ...EMPTY_FORM, tenantId: currentUser?.tenantId ?? '' };
   });
+
+  // Compute derived role IDs from selected functions
+  const derivedRoleIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const fnId of form.functionIds) {
+      const fn = allFunctions.find((f) => f.id === fnId) as any;
+      if (fn?.roles) {
+        for (const fr of fn.roles) {
+          const roleId = fr.role?.id ?? fr.roleId;
+          if (roleId) ids.add(roleId);
+        }
+      }
+    }
+    return ids;
+  }, [form.functionIds, allFunctions]);
+
+  // All effective role IDs = function-derived + direct
+  const allSelectedRoleIds = useMemo(() => {
+    const all = new Set(derivedRoleIds);
+    for (const id of form.directRoleIds) all.add(id);
+    return all;
+  }, [derivedRoleIds, form.directRoleIds]);
 
   const isPending = createMut.isPending || updateMut.isPending;
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     const fullName = `${form.firstName} ${form.lastName}`.trim();
+
+    // Compute the primary system role from all effective roles
+    const primaryRole = computePrimaryRole(allRoles, allSelectedRoleIds);
+
     try {
       if (editingUser) {
         const body: Record<string, unknown> = {
@@ -318,9 +248,11 @@ function UserForm({
           firstName: form.firstName,
           lastName: form.lastName,
           phone: form.phone || null,
-          role: form.role,
+          role: primaryRole,
           isActive: form.isActive,
           domainIds: form.domainIds,
+          functionIds: form.functionIds,
+          directRoleIds: form.directRoleIds,
         };
         if (form.email !== editingUser.email) body.email = form.email;
         if (form.password) body.password = form.password;
@@ -335,9 +267,11 @@ function UserForm({
           firstName: form.firstName,
           lastName: form.lastName,
           phone: form.phone || undefined,
-          role: form.role,
+          role: primaryRole,
           tenantId: form.tenantId,
           domainIds: form.domainIds.length > 0 ? form.domainIds : undefined,
+          functionIds: form.functionIds.length > 0 ? form.functionIds : undefined,
+          directRoleIds: form.directRoleIds.length > 0 ? form.directRoleIds : undefined,
         });
         toast.success('User created', {
           description: `${fullName} (${form.email}) has been created successfully.`,
@@ -350,12 +284,30 @@ function UserForm({
         description: err?.message ?? 'An unexpected error occurred. Please try again.',
       });
     }
-  }, [form, editingUser, createMut, updateMut, onBack]);
+  }, [form, editingUser, createMut, updateMut, onBack, allRoles, allSelectedRoleIds]);
 
   const handleGeneratePassword = useCallback(() => {
     const pwd = generatePassword(12);
     setForm((p) => ({ ...p, password: pwd }));
     setShowPassword(true);
+  }, []);
+
+  const toggleFunction = useCallback((fnId: string) => {
+    setForm((prev) => ({
+      ...prev,
+      functionIds: prev.functionIds.includes(fnId)
+        ? prev.functionIds.filter((id) => id !== fnId)
+        : [...prev.functionIds, fnId],
+    }));
+  }, []);
+
+  const toggleDirectRole = useCallback((roleId: string) => {
+    setForm((prev) => ({
+      ...prev,
+      directRoleIds: prev.directRoleIds.includes(roleId)
+        ? prev.directRoleIds.filter((id) => id !== roleId)
+        : [...prev.directRoleIds, roleId],
+    }));
   }, []);
 
   const toggleDomain = useCallback((domainId: string) => {
@@ -401,7 +353,7 @@ function UserForm({
               {editingUser ? `Edit ${editingUser.firstName} ${editingUser.lastName}` : 'Create New User'}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {editingUser ? 'Update account details, role and domain assignments' : 'Set up a new user account with role and domain access'}
+              {editingUser ? 'Update account details, functions, roles and domain assignments' : 'Set up a new user account with functions, roles and domain access'}
             </p>
           </div>
         </div>
@@ -512,49 +464,8 @@ function UserForm({
                 <p className="mt-1 text-[11px] text-gray-400">Must be at least 8 characters</p>
               )}
             </div>
-          </div>
-        </div>
 
-        {/* ---- Section: Role & Status ---- */}
-        <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 overflow-hidden">
-          <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-gray-400" />
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Role & Permissions</h2>
-            </div>
-            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Define access level and account status</p>
-          </div>
-          <div className="px-6 py-5 space-y-5">
-            {/* Role selector — card grid */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Role</label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {ALL_ROLES.map((role) => {
-                  const cfg = ROLE_CONFIG[role];
-                  const selected = form.role === role;
-                  return (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => setForm((p) => ({ ...p, role }))}
-                      className={cn(
-                        'flex flex-col items-start gap-1 rounded-lg border px-3 py-2.5 text-left transition-all',
-                        selected
-                          ? 'border-blue-500 bg-blue-50/50 ring-1 ring-blue-500/30 dark:bg-blue-900/20 dark:border-blue-400'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/50',
-                      )}
-                    >
-                      <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold', cfg.color)}>
-                        {cfg.label}
-                      </span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">{cfg.description}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Active toggle */}
+            {/* Active toggle (edit only) */}
             {editingUser && (
               <div className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3">
                 <div>
@@ -583,8 +494,188 @@ function UserForm({
           </div>
         </div>
 
-        {/* ---- Section: Functions & Effective Roles ---- */}
-        <UserFunctionsAndRolesSection userId={editingUser?.id ?? null} userRole={form.role} />
+        {/* ---- Section: Functions ---- */}
+        <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 overflow-hidden">
+          <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+            <div className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4 text-gray-400" />
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Functions</h2>
+            </div>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+              Select user functions (job titles). Each function brings its associated roles automatically.
+              {form.functionIds.length > 0 && (
+                <span className="ml-1 font-medium text-blue-600 dark:text-blue-400">
+                  {form.functionIds.length} selected
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="px-6 py-5">
+            {allFunctions.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {allFunctions.map((fn) => {
+                  const selected = form.functionIds.includes(fn.id);
+                  const fnRoles = (fn as any).roles ?? [];
+                  return (
+                    <button
+                      key={fn.id}
+                      type="button"
+                      onClick={() => toggleFunction(fn.id)}
+                      className={cn(
+                        'flex flex-col items-start gap-2 rounded-lg border px-3.5 py-3 text-left transition-all',
+                        selected
+                          ? 'border-blue-500 bg-blue-50/50 ring-1 ring-blue-500/30 dark:bg-blue-900/20 dark:border-blue-400'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/50',
+                      )}
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <div className={cn(
+                          'flex h-5 w-5 items-center justify-center rounded border flex-shrink-0 transition-colors',
+                          selected
+                            ? 'bg-blue-600 border-blue-600'
+                            : 'border-gray-300 dark:border-gray-600',
+                        )}>
+                          {selected && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
+                        </div>
+                        <span className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                          {fn.name?.en ?? fn.code}
+                        </span>
+                        <span className="ml-auto text-[10px] text-gray-400 dark:text-gray-500 capitalize flex-shrink-0">
+                          {fn.level}
+                        </span>
+                      </div>
+                      {/* Show associated roles */}
+                      {fnRoles.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pl-7">
+                          {fnRoles.map((fr: any) => (
+                            <span
+                              key={fr.role?.id ?? fr.roleId}
+                              className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium text-white"
+                              style={{ backgroundColor: fr.role?.color ?? '#6b7280' }}
+                            >
+                              {fr.role?.name?.en ?? fr.role?.code ?? 'Role'}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 italic">No functions available. Create functions in Settings &gt; Functions first.</p>
+            )}
+          </div>
+        </div>
+
+        {/* ---- Section: Roles ---- */}
+        <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 overflow-hidden">
+          <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-gray-400" />
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Roles</h2>
+            </div>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+              Roles inherited from functions are locked. You can assign additional direct roles.
+              {allSelectedRoleIds.size > 0 && (
+                <span className="ml-1 font-medium text-blue-600 dark:text-blue-400">
+                  {allSelectedRoleIds.size} effective role{allSelectedRoleIds.size !== 1 ? 's' : ''}
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="px-6 py-5">
+            {allRoles.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {allRoles.map((role) => {
+                  const isDerived = derivedRoleIds.has(role.id);
+                  const isDirect = form.directRoleIds.includes(role.id);
+                  const isSelected = isDerived || isDirect;
+
+                  return (
+                    <button
+                      key={role.id}
+                      type="button"
+                      onClick={() => {
+                        if (isDerived) return; // Cannot toggle function-derived roles
+                        toggleDirectRole(role.id);
+                      }}
+                      disabled={isDerived}
+                      className={cn(
+                        'flex items-center gap-3 rounded-lg border px-3.5 py-3 text-left transition-all',
+                        isSelected
+                          ? isDerived
+                            ? 'border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800 cursor-not-allowed'
+                            : 'border-blue-500 bg-blue-50/50 ring-1 ring-blue-500/30 dark:bg-blue-900/20 dark:border-blue-400'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/50',
+                      )}
+                    >
+                      {/* Role color dot */}
+                      <span
+                        className="flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 text-white text-[10px] font-bold"
+                        style={{ backgroundColor: role.color }}
+                      >
+                        {(role.name?.en ?? role.code).charAt(0)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className={cn('text-xs font-medium truncate', isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400')}>
+                            {role.name?.en ?? role.code}
+                          </p>
+                          {isDerived && (
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700 dark:text-amber-400 flex-shrink-0">
+                              <Lock className="h-2.5 w-2.5" />
+                              function
+                            </span>
+                          )}
+                          {isDirect && !isDerived && (
+                            <span className="inline-flex rounded-full bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 text-[9px] font-semibold text-blue-700 dark:text-blue-400 flex-shrink-0">
+                              direct
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 capitalize">{role.level}</p>
+                      </div>
+                      {isSelected && !isDerived && (
+                        <CheckCircle2 className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                      )}
+                      {isDerived && (
+                        <Lock className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 italic">Loading roles...</p>
+            )}
+
+            {/* Effective roles summary */}
+            {allSelectedRoleIds.size > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  Effective Roles Summary
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {allRoles
+                    .filter((r) => allSelectedRoleIds.has(r.id))
+                    .map((role) => (
+                      <span
+                        key={role.id}
+                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium text-white"
+                        style={{ backgroundColor: role.color }}
+                      >
+                        {role.name?.en ?? role.code}
+                        {derivedRoleIds.has(role.id) && !form.directRoleIds.includes(role.id) && (
+                          <Lock className="h-2.5 w-2.5 opacity-70" />
+                        )}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* ---- Section: Domains ---- */}
         {allDomains.length > 0 && (
@@ -748,6 +839,10 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
   const [deletingUser, setDeletingUser] = useState<ManagedUser | null>(null);
 
+  // Load roles for the filter dropdown
+  const { data: rolesData } = useSettingsRoles({ limit: 100 });
+  const filterRoles: RoleItem[] = useMemo(() => (rolesData?.data ?? []).filter((r) => r.isActive), [rolesData]);
+
   const { data, isLoading, error } = useSettingsUsers({
     page,
     limit: ITEMS_PER_PAGE,
@@ -842,7 +937,7 @@ export default function UsersPage() {
             User Management
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Manage user accounts, roles and domain assignments
+            Manage user accounts, functions, roles and domain assignments
           </p>
         </div>
         <button
@@ -905,8 +1000,8 @@ export default function UsersPage() {
           className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
         >
           <option value="">All Roles</option>
-          {ALL_ROLES.map((role) => (
-            <option key={role} value={role}>{ROLE_CONFIG[role].label}</option>
+          {filterRoles.map((role) => (
+            <option key={role.id} value={role.code}>{role.name?.en ?? role.code}</option>
           ))}
         </select>
         <select
@@ -945,7 +1040,8 @@ export default function UsersPage() {
               <tr>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Email</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Role</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Functions</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Roles</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Domains</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-[80px]">Login</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-[70px]">Active</th>
@@ -954,10 +1050,30 @@ export default function UsersPage() {
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
               {users.map((user) => {
-                const roleKey = user.role as UserRole;
-                const roleConfig = ROLE_CONFIG[roleKey] ?? { label: user.role, color: 'bg-gray-100 text-gray-600' };
+                // Collect all effective roles for display
+                const functionRoleIds = new Set<string>();
+                for (const uf of (user.functions ?? [])) {
+                  for (const fr of ((uf.function as any)?.roles ?? [])) {
+                    functionRoleIds.add(fr.role?.id);
+                  }
+                }
+                const directRoles = (user.roleAssignments ?? [])
+                  .filter((ra) => ra.source === 'direct')
+                  .map((ra) => ra.role);
+                const allEffectiveRoles = new Map<string, { id: string; code: string; name: Record<string, string>; color: string }>();
+                for (const uf of (user.functions ?? [])) {
+                  for (const fr of ((uf.function as any)?.roles ?? [])) {
+                    if (fr.role) allEffectiveRoles.set(fr.role.id, fr.role);
+                  }
+                }
+                for (const r of directRoles) {
+                  allEffectiveRoles.set(r.id, r);
+                }
+                const effectiveRolesList = Array.from(allEffectiveRoles.values());
+
                 const canDelete = !user.lastLoginAt;
                 const isToggling = toggleActiveMut.isPending && (toggleActiveMut.variables as any)?.id === user.id;
+
                 return (
                   <tr key={user.id} className="transition-colors hover:bg-blue-50/30 dark:hover:bg-gray-800/50 group">
                     <td className="px-4 py-3">
@@ -972,9 +1088,46 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 font-mono truncate max-w-[180px]">{user.email}</td>
                     <td className="px-4 py-3">
-                      <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap', roleConfig.color)}>
-                        {roleConfig.label}
-                      </span>
+                      <div className="flex flex-wrap gap-1 max-w-[140px]">
+                        {user.functions && user.functions.length > 0 ? (
+                          <>
+                            {user.functions.slice(0, 2).map((uf) => (
+                              <span key={uf.id} className="inline-flex items-center rounded-full bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 text-[10px] font-medium text-indigo-700 dark:text-indigo-400 whitespace-nowrap">
+                                {uf.function?.name?.en ?? uf.function?.code}
+                              </span>
+                            ))}
+                            {user.functions.length > 2 && (
+                              <span className="text-[10px] text-gray-400 self-center">+{user.functions.length - 2}</span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-[11px] text-gray-400 dark:text-gray-500">--</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1 max-w-[140px]">
+                        {effectiveRolesList.length > 0 ? (
+                          <>
+                            {effectiveRolesList.slice(0, 2).map((role) => (
+                              <span
+                                key={role.id}
+                                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium text-white whitespace-nowrap"
+                                style={{ backgroundColor: role.color }}
+                              >
+                                {role.name?.en ?? role.code}
+                              </span>
+                            ))}
+                            {effectiveRolesList.length > 2 && (
+                              <span className="text-[10px] text-gray-400 self-center">+{effectiveRolesList.length - 2}</span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                            {user.role.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1 max-w-[160px]">
@@ -1045,7 +1198,7 @@ export default function UsersPage() {
 
               {users.length === 0 && !isLoading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-16 text-center">
+                  <td colSpan={8} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
                         <Users className="h-6 w-6 text-gray-400" />

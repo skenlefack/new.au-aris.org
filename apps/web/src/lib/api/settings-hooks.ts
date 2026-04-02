@@ -546,6 +546,9 @@ export interface FunctionItem {
   createdAt: string;
   updatedAt: string;
   _count?: { users: number };
+  roles?: Array<{
+    role: { id: string; code: string; name: Record<string, string>; color: string };
+  }>;
 }
 
 export function useSettingsFunctions(params?: { search?: string; level?: string; category?: string; status?: string; page?: number; limit?: number }) {
@@ -639,7 +642,15 @@ export interface ManagedUser {
       name: Record<string, string>;
       level: string;
       category?: string | null;
+      roles?: Array<{
+        role: { id: string; code: string; name: Record<string, string>; color: string };
+      }>;
     };
+  }>;
+  roleAssignments?: Array<{
+    id: string;
+    source: string;
+    role: { id: string; code: string; name: Record<string, string>; color: string };
   }>;
 }
 
@@ -648,20 +659,21 @@ export function useSettingsUsers(params?: {
   tenantId?: string; functionId?: string;
   page?: number; limit?: number;
 }) {
-  const qs: Record<string, string> = {
-    page: String(params?.page ?? 1),
-    limit: String(params?.limit ?? 50),
-  };
-  if (params?.search) qs.search = params.search;
-  if (params?.role) qs.role = params.role;
-  if (params?.status) qs.status = params.status;
-  if (params?.tenantId) qs.tenantId = params.tenantId;
-  if (params?.functionId) qs.functionId = params.functionId;
+  const qs = new URLSearchParams();
+  qs.set('page', String(params?.page ?? 1));
+  qs.set('limit', String(params?.limit ?? 50));
+  if (params?.search) qs.set('search', params.search);
+  if (params?.role) qs.set('role', params.role);
+  if (params?.status) qs.set('status', params.status);
+  if (params?.tenantId) qs.set('tenantId', params.tenantId);
+  if (params?.functionId) qs.set('functionId', params.functionId);
+  const query = `?${qs.toString()}`;
 
+  const tid = getCurrentUserTenantId();
   return useQuery({
-    queryKey: ['settings', 'users', params],
-    queryFn: () => apiClient.get<{ data: ManagedUser[]; meta: { total: number; page: number; limit: number } }>(
-      '/credential/users', qs,
+    queryKey: ['settings', 'users', tid, params],
+    queryFn: () => tenantFetch<{ data: ManagedUser[]; meta: { total: number; page: number; limit: number } }>(
+      `/api/v1/settings/users${query}`,
     ),
     staleTime: 2 * 60_000,
   });
@@ -670,7 +682,7 @@ export function useSettingsUsers(params?: {
 export function useSettingsUser(id: string) {
   return useQuery({
     queryKey: ['settings', 'users', id],
-    queryFn: () => apiClient.get<{ data: ManagedUser }>(`/credential/users/${id}`),
+    queryFn: () => tenantFetch<{ data: ManagedUser }>(`/api/v1/settings/users/${id}`),
     enabled: !!id,
     staleTime: 2 * 60_000,
   });
@@ -680,7 +692,7 @@ export function useCreateUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: Record<string, unknown>) =>
-      apiClient.post('/credential/auth/register', body),
+      tenantPost('/api/v1/settings/users', body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'users'] }),
   });
 }
@@ -689,7 +701,7 @@ export function useUpdateUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, ...body }: { id: string } & Record<string, unknown>) =>
-      apiClient.patch(`/credential/users/${id}`, body),
+      tenantPut(`/api/v1/settings/users/${id}`, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'users'] }),
   });
 }
@@ -698,7 +710,7 @@ export function useResetUserPassword() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, password }: { id: string; password: string }) =>
-      apiClient.patch(`/credential/users/${id}`, { password }),
+      tenantPatch(`/api/v1/settings/users/${id}/password`, { password }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'users'] }),
   });
 }
@@ -707,7 +719,7 @@ export function useDeleteUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      apiClient.delete(`/credential/users/${id}`),
+      tenantDelete(`/api/v1/settings/users/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'users'] }),
   });
 }
@@ -716,7 +728,7 @@ export function useToggleUserActive() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
-      apiClient.patch(`/credential/users/${id}`, { isActive }),
+      tenantPut(`/api/v1/settings/users/${id}`, { isActive }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'users'] }),
   });
 }

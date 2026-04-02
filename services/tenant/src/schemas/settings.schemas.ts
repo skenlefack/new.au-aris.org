@@ -279,13 +279,17 @@ export const UserCreateBodySchema = Type.Object({
   tenantId: Type.String({ format: 'uuid' }),
   locale: Type.Optional(Type.String({ maxLength: 5 })),
   functionIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
+  directRoleIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
+  domainIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
 });
 export type UserCreateBodyInput = Static<typeof UserCreateBodySchema>;
 
 export const UserUpdateBodySchema = Type.Object({
   email: Type.Optional(Type.String({ format: 'email', maxLength: 255 })),
+  password: Type.Optional(Type.String({ minLength: 8, maxLength: 128 })),
   firstName: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
   lastName: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
+  phone: Type.Optional(Type.Union([Type.String({ maxLength: 30 }), Type.Null()])),
   role: Type.Optional(Type.Union([
     Type.Literal('SUPER_ADMIN'), Type.Literal('CONTINENTAL_ADMIN'),
     Type.Literal('REC_ADMIN'), Type.Literal('NATIONAL_ADMIN'),
@@ -294,6 +298,9 @@ export const UserUpdateBodySchema = Type.Object({
   ])),
   locale: Type.Optional(Type.String({ maxLength: 5 })),
   isActive: Type.Optional(Type.Boolean()),
+  functionIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
+  directRoleIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
+  domainIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
 });
 export type UserUpdateBodyInput = Static<typeof UserUpdateBodySchema>;
 
