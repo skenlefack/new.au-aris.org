@@ -58,7 +58,7 @@ export default function SettingsLayout({
     { href: '/settings/i18n', label: t('languages'), icon: <Languages className="h-4 w-4" />, section: 'i18n' },
     { href: '/settings/data-quality', label: t('dataQuality'), icon: <ShieldCheck className="h-4 w-4" />, section: 'data-quality' },
     { href: '/settings/statistics', label: t('statistics'), icon: <TrendingUp className="h-4 w-4" />, section: 'statistics' },
-    { href: '/settings/kpis', label: 'KPI Indicators', icon: <Activity className="h-4 w-4" />, section: 'kpis' },
+    { href: '/settings/kpis', label: t('kpiIndicators'), icon: <Activity className="h-4 w-4" />, section: 'kpis' },
     { href: '/settings/domains', label: t('domains'), icon: <Layers className="h-4 w-4" />, section: 'domains' },
     { href: '/settings/workflow', label: t('workflowConfig'), icon: <GitPullRequestArrow className="h-4 w-4" />, section: 'workflow' },
     { href: '/settings/validation-chains', label: t('validationChains'), icon: <Link2 className="h-4 w-4" />, section: 'validation-chains' },

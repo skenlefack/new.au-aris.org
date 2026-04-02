@@ -9,6 +9,7 @@ import {
   useSettingsDomains,
 } from '@/lib/api/settings-hooks';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
+import { useTranslations } from '@/lib/i18n/translations';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { ColorPicker } from '@/components/settings/ColorPicker';
 import {
@@ -57,6 +58,7 @@ const EMPTY_FORM: KpiForm = {
 
 export default function KpisPage() {
   const { isSuperAdmin, isContinentalAdmin } = useSettingsAccess();
+  const t = useTranslations('settings');
   const canManage = isSuperAdmin || isContinentalAdmin;
   const { data, isLoading } = useKpiDefinitions();
   const { data: domainsData } = useSettingsDomains();
@@ -171,10 +173,10 @@ export default function KpisPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              KPI Indicators
+              {t('kpiIndicators')}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Define performance indicators for countries and RECs ({kpis.length} definitions)
+              {t('kpiIndicatorsDesc', { count: kpis.length })}
             </p>
           </div>
         </div>
@@ -185,7 +187,7 @@ export default function KpisPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700"
           >
             <Plus className="h-4 w-4" />
-            Add KPI
+            {t('addKpi')}
           </button>
         )}
       </div>
@@ -193,7 +195,7 @@ export default function KpisPage() {
       {/* Add Form */}
       {showAddForm && (
         <KpiFormPanel
-          title="New KPI Definition"
+          title={t('newKpiDef')}
           form={form}
           setForm={setForm}
           domains={domains}
@@ -211,7 +213,7 @@ export default function KpisPage() {
             return (
               <KpiFormPanel
                 key={kpi.id}
-                title={`Edit: ${kpi.name?.en ?? kpi.code}`}
+                title={t('editKpi', { name: kpi.name?.en ?? kpi.code })}
                 form={form}
                 setForm={setForm}
                 domains={domains}
@@ -243,12 +245,12 @@ export default function KpisPage() {
                   {kpi.isPreset && (
                     <span className="inline-flex items-center gap-0.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                       <Star className="h-2.5 w-2.5" />
-                      Preset
+                      {t('preset')}
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {domain?.name?.en ?? kpi.domainCode ?? 'General'} | Target: {kpi.targetValue}{kpi.unit === 'percentage' ? '%' : ''} | Good: {'\u2265'}{kpi.thresholdGood}% | Warn: {'\u2265'}{kpi.thresholdWarn}%
+                  {domain?.name?.en ?? kpi.domainCode ?? t('generalDomain')} | {t('targetLabel')}: {kpi.targetValue}{kpi.unit === 'percentage' ? '%' : ''} | {t('goodLabel')}: {'\u2265'}{kpi.thresholdGood}% | {t('warnLabel')}: {'\u2265'}{kpi.thresholdWarn}%
                 </p>
                 {/* Mini progress bar preview */}
                 <div className="mt-1.5 flex items-center gap-2">
@@ -259,7 +261,7 @@ export default function KpisPage() {
                       <div className="h-full bg-emerald-400" style={{ width: `${100 - kpi.thresholdGood}%` }} />
                     </div>
                   </div>
-                  <span className="text-[10px] text-gray-400">alert | warn | good</span>
+                  <span className="text-[10px] text-gray-400">{t('alertWarnGood')}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -273,7 +275,7 @@ export default function KpisPage() {
                     color: kpi.isActive ? '#059669' : '#9ca3af',
                   }}
                 >
-                  {kpi.isActive ? 'Active' : 'Inactive'}
+                  {kpi.isActive ? t('active') : t('inactive')}
                 </span>
                 {canManage && (
                   <>
@@ -303,7 +305,7 @@ export default function KpisPage() {
 
       {kpis.length === 0 && !showAddForm && (
         <div className="py-12 text-center text-sm text-gray-400">
-          No KPI definitions yet. Run the seed to load CAADP presets.
+          {t('noKpisYet')}
         </div>
       )}
 
@@ -316,16 +318,15 @@ export default function KpisPage() {
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Delete KPI</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('deleteKpi')}</h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Are you sure you want to delete &ldquo;{deletingKpi.name?.en ?? deletingKpi.code}&rdquo;?
-                  This will also remove all country scores for this KPI.
+                  {t('deleteKpiConfirm', { name: deletingKpi.name?.en ?? deletingKpi.code })}
                 </p>
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3">
               <button type="button" onClick={() => setDeletingId(null)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 type="button"
@@ -334,7 +335,7 @@ export default function KpisPage() {
                 className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
               >
                 {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                Delete
+                {t('delete')}
               </button>
             </div>
           </div>
@@ -363,6 +364,7 @@ function KpiFormPanel({
   saving: boolean;
   isNew?: boolean;
 }) {
+  const t = useTranslations('settings');
   const canSave = form.code.trim().length >= 1 && (form.name.en?.trim() ?? '').length > 0;
 
   return (
@@ -378,26 +380,26 @@ function KpiFormPanel({
         {isNew && (
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Code <span className="text-red-500">*</span>
+              {t('code')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={form.code}
               onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
-              placeholder="e.g. vaccination-coverage"
+              placeholder={t('kpiCodePlaceholder')}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 font-mono text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             />
           </div>
         )}
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Domain</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('domain')}</label>
           <select
             value={form.domainCode}
             onChange={(e) => setForm((f) => ({ ...f, domainCode: e.target.value }))}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           >
-            <option value="">General (all domains)</option>
+            <option value="">{t('generalAllDomains')}</option>
             {domains.map((d: any) => (
               <option key={d.code} value={d.code}>{d.name?.en ?? d.code}</option>
             ))}
@@ -405,24 +407,24 @@ function KpiFormPanel({
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Icon (Lucide)</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('icon')} (Lucide)</label>
           <input
             type="text"
             value={form.icon}
             onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}
-            placeholder="e.g. Syringe, Target, Shield"
+            placeholder={t('kpiIconPlaceholder')}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
 
         <ColorPicker
-          label="Color"
+          label={t('color')}
           value={form.color}
           onChange={(c) => setForm((f) => ({ ...f, color: c }))}
         />
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Target Value</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('targetValue')}</label>
           <input
             type="number"
             min={0}
@@ -434,7 +436,7 @@ function KpiFormPanel({
 
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Good Threshold ({'\u2265'}%)
+            {t('goodThreshold')}
           </label>
           <input
             type="number"
@@ -448,7 +450,7 @@ function KpiFormPanel({
 
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Warning Threshold ({'\u2265'}%)
+            {t('warnThreshold')}
           </label>
           <input
             type="number"
@@ -461,15 +463,15 @@ function KpiFormPanel({
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Scope</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('scope')}</label>
           <select
             value={form.scope}
             onChange={(e) => setForm((f) => ({ ...f, scope: e.target.value }))}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           >
-            <option value="both">Both (Country + REC)</option>
-            <option value="country">Country only</option>
-            <option value="rec">REC only</option>
+            <option value="both">{t('scopeBoth')}</option>
+            <option value="country">{t('scopeCountry')}</option>
+            <option value="rec">{t('scopeRec')}</option>
           </select>
         </div>
 
@@ -481,24 +483,24 @@ function KpiFormPanel({
           >
             <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${form.isActive ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
-          <span className="text-sm text-gray-700 dark:text-gray-300">{form.isActive ? 'Active' : 'Inactive'}</span>
+          <span className="text-sm text-gray-700 dark:text-gray-300">{form.isActive ? t('active') : t('inactive')}</span>
         </div>
       </div>
 
       <div className="mt-4">
         <MultilingualInput
-          label="Name"
+          label={t('name')}
           value={form.name}
           onChange={(v) => setForm((f) => ({ ...f, name: v }))}
           required
-          placeholder="KPI name..."
+          placeholder={t('kpiNamePlaceholder')}
         />
       </div>
 
       {/* Threshold Preview */}
       <div className="mt-4 rounded-lg border border-dashed border-gray-200 bg-gray-50/50 p-3 dark:border-gray-700 dark:bg-gray-800/30">
         <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-          Threshold Preview
+          {t('thresholdPreview')}
         </p>
         <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
           <div className="flex h-full">
@@ -508,9 +510,9 @@ function KpiFormPanel({
           </div>
         </div>
         <div className="mt-1 flex justify-between text-[10px] text-gray-400">
-          <span>0% (Alert)</span>
-          <span>{form.thresholdWarn}% (Warning)</span>
-          <span>{form.thresholdGood}% (Good)</span>
+          <span>0% ({t('thresholdAlert')})</span>
+          <span>{form.thresholdWarn}% ({t('thresholdWarning')})</span>
+          <span>{form.thresholdGood}% ({t('thresholdGood')})</span>
           <span>100%</span>
         </div>
       </div>
@@ -521,7 +523,7 @@ function KpiFormPanel({
           onClick={onCancel}
           className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
         >
-          Cancel
+          {t('cancel')}
         </button>
         <button
           type="button"
@@ -530,7 +532,7 @@ function KpiFormPanel({
           className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-          {isNew ? 'Create' : 'Save'}
+          {isNew ? t('create') : t('save')}
         </button>
       </div>
     </div>
