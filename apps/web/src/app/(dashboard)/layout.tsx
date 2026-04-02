@@ -8,7 +8,8 @@ import { ToastContainer } from '@/components/realtime/ToastContainer';
 import { RouteChangeLoader } from '@/components/ui/PageLoader';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useDomainStore } from '@/lib/stores/domain-store';
-import { usePublicDomains } from '@/lib/api/settings-hooks';
+import { useI18nOverridesStore } from '@/lib/stores/i18n-overrides-store';
+import { usePublicDomains, useSettingsConfig } from '@/lib/api/settings-hooks';
 import { useRealtime } from '@/lib/realtime/use-realtime';
 import { useEntityTheme } from '@/hooks/useEntityTheme';
 import { Menu } from 'lucide-react';
@@ -42,6 +43,24 @@ export default function DashboardLayout({
       setAllDomains(domains);
     }
   }, [publicDomainData, setAllDomains]);
+
+  // Load i18n translation overrides from backend (SystemConfig category: i18n-overrides)
+  const { data: i18nOverridesData } = useSettingsConfig('i18n-overrides');
+  const setI18nOverrides = useI18nOverridesStore((s) => s.setOverrides);
+  useEffect(() => {
+    const configs = (i18nOverridesData as any)?.data;
+    if (Array.isArray(configs)) {
+      const map: Record<string, Record<string, string>> = {};
+      for (const cfg of configs) {
+        // key stored as "namespace.key" (e.g. "settings.translationsTitle")
+        const k = typeof cfg.key === 'string' ? cfg.key : '';
+        if (k && typeof cfg.value === 'object' && cfg.value !== null) {
+          map[k] = cfg.value as Record<string, string>;
+        }
+      }
+      setI18nOverrides(map);
+    }
+  }, [i18nOverridesData, setI18nOverrides]);
 
   // Persist sidebar state + auto-collapse on tablet
   useEffect(() => {

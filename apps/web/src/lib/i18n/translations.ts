@@ -1,6 +1,7 @@
 'use client';
 
 import { useLocaleStore } from '@/lib/stores/locale-store';
+import { useI18nOverridesStore } from '@/lib/stores/i18n-overrides-store';
 import en from '@/messages/en.json';
 import fr from '@/messages/fr.json';
 import pt from '@/messages/pt.json';
@@ -12,15 +13,22 @@ const messages: Record<Locale, Record<string, Record<string, string>>> = { en, f
 
 /**
  * Hook that returns translation function for a namespace.
+ * Merges runtime overrides from the backend (SystemConfig i18n-overrides)
+ * on top of static JSON files — overrides take priority.
+ *
  * Usage: const t = useTranslations('dashboard');
  *        t('title') -> 'Dashboard'
  */
 export function useTranslations(namespace: string) {
   const locale = useLocaleStore((s) => s.locale);
+  const overrides = useI18nOverridesStore((s) => s.overrides);
   const ns = messages[locale]?.[namespace] ?? messages.en[namespace] ?? {};
 
   return function t(key: string, params?: Record<string, string | number>): string {
-    let value = ns[key] ?? messages.en[namespace]?.[key] ?? key;
+    // Check runtime overrides first (full key = "namespace.key")
+    const fullKey = `${namespace}.${key}`;
+    const override = overrides[fullKey]?.[locale];
+    let value = override ?? ns[key] ?? messages.en[namespace]?.[key] ?? key;
     if (params) {
       Object.entries(params).forEach(([k, v]) => {
         value = value.replace(`{${k}}`, String(v));

@@ -24,8 +24,10 @@ import {
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSettingsConfig, useBulkUpdateConfig } from '@/lib/api/settings-hooks';
 import { useSystranStatus, useTranslateText } from '@/lib/api/translation-hooks';
+import { useI18nOverridesStore } from '@/lib/stores/i18n-overrides-store';
 import { SaveBar } from '@/components/settings/SaveBar';
 import { toast } from 'sonner';
 
@@ -308,6 +310,10 @@ function ConfigTab() {
 
 function ReferencesTab() {
   const t = useTranslations('settings');
+  const queryClient = useQueryClient();
+  const bulkSaveMutation = useBulkUpdateConfig();
+  const setI18nOverrides = useI18nOverridesStore((s) => s.setOverrides);
+  const currentOverrides = useI18nOverridesStore((s) => s.overrides);
   const [search, setSearch] = useState('');
   const [filterNamespace, setFilterNamespace] = useState('');
   const [filterStatus, setFilterStatus] = useState<'' | 'complete' | 'missing'>('');
@@ -329,14 +335,27 @@ function ReferencesTab() {
     return maps;
   }, []);
 
-  /** Get the displayed value for a cell, including pending edits */
+  /** Get the displayed value for a cell, including pending edits and saved overrides */
   const getCellValue = useCallback(
     (key: string, lang: string): string => {
       const editKey = `${key}|${lang}`;
+      // 1. Local pending edit takes priority
       if (editKey in edits) return edits[editKey];
+      // 2. Saved override from database
+      const override = currentOverrides[key]?.[lang];
+      if (override) return override;
+      // 3. Static JSON file value
       return flatMaps[lang]?.[key] ?? '';
     },
-    [flatMaps, edits],
+    [flatMaps, edits, currentOverrides],
+  );
+
+  /** Check if a cell has a saved override in the database */
+  const hasOverride = useCallback(
+    (key: string, lang: string): boolean => {
+      return !!currentOverrides[key]?.[lang];
+    },
+    [currentOverrides],
   );
 
   // Extract all unique keys from English (reference language)
@@ -473,6 +492,50 @@ function ReferencesTab() {
     toast.success(t('editsExported'));
   };
 
+  /** Save pending edits to the database as i18n-overrides config entries */
+  const handleSaveOverrides = async () => {
+    if (editCount === 0) return;
+
+    // Group edits by translation key: { "settings.myKey": { fr: "val", en: "val" } }
+    const grouped: Record<string, Record<string, string>> = {};
+    for (const [cellId, value] of Object.entries(edits)) {
+      const pipeIdx = cellId.lastIndexOf('|');
+      const key = cellId.slice(0, pipeIdx);
+      const lang = cellId.slice(pipeIdx + 1);
+      if (!grouped[key]) {
+        // Start from existing overrides if any
+        grouped[key] = { ...(currentOverrides[key] ?? {}) };
+      }
+      grouped[key][lang] = value;
+    }
+
+    // Convert to bulk config format
+    const configs = Object.entries(grouped).map(([key, value]) => ({
+      category: 'i18n-overrides',
+      key,
+      value,
+    }));
+
+    try {
+      await bulkSaveMutation.mutateAsync(configs);
+
+      // Update the local overrides store immediately
+      const mergedOverrides = { ...currentOverrides };
+      for (const [key, langMap] of Object.entries(grouped)) {
+        mergedOverrides[key] = { ...(mergedOverrides[key] ?? {}), ...langMap };
+      }
+      setI18nOverrides(mergedOverrides);
+
+      // Invalidate the config query so the dashboard layout re-fetches
+      queryClient.invalidateQueries({ queryKey: ['settings', 'config', 'i18n-overrides'] });
+
+      setEdits({});
+      toast.success(t('overridesSaved'));
+    } catch (err: any) {
+      toast.error(t('overridesSaveError'), { description: err?.message });
+    }
+  };
+
   return (
     <div className="space-y-5">
       {/* Stats cards */}
@@ -565,7 +628,7 @@ function ReferencesTab() {
           {filteredKeys.length} / {allKeys.length} {t('keys')}
         </span>
 
-        {/* Pending edits indicator + export */}
+        {/* Pending edits indicator + save / export / discard */}
         {editCount > 0 && (
           <div className="ml-auto flex items-center gap-2">
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
@@ -573,8 +636,20 @@ function ReferencesTab() {
               {t('pendingEdits', { count: String(editCount) })}
             </span>
             <button
+              onClick={handleSaveOverrides}
+              disabled={bulkSaveMutation.isPending}
+              className="inline-flex items-center gap-1 rounded-lg bg-aris-primary-600 px-3 py-1 text-[10px] font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50 dark:bg-aris-primary-500 dark:hover:bg-aris-primary-600"
+            >
+              {bulkSaveMutation.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Save className="h-3 w-3" />
+              )}
+              {bulkSaveMutation.isPending ? t('savingOverrides') : t('saveOverrides')}
+            </button>
+            <button
               onClick={handleExportEdits}
-              className="inline-flex items-center gap-1 rounded-lg border border-aris-primary-300 bg-aris-primary-50 px-2.5 py-1 text-[10px] font-medium text-aris-primary-700 hover:bg-aris-primary-100 dark:border-aris-primary-700 dark:bg-aris-primary-900/20 dark:text-aris-primary-300 dark:hover:bg-aris-primary-900/40"
+              className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-[10px] font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
             >
               <Save className="h-3 w-3" />
               {t('exportJson')}
@@ -696,6 +771,8 @@ function ReferencesTab() {
                                 );
                               }
 
+                              const isOverridden = hasOverride(key, lang.code);
+
                               return (
                                 <td
                                   key={lang.code}
@@ -705,16 +782,19 @@ function ReferencesTab() {
                                     'hover:bg-aris-primary-50/50 dark:hover:bg-aris-primary-900/10',
                                     isEdited
                                       ? 'bg-amber-50 text-amber-800 dark:bg-amber-900/15 dark:text-amber-300'
-                                      : filled
-                                        ? 'text-gray-700 dark:text-gray-300'
-                                        : 'text-red-400 italic',
+                                      : isOverridden
+                                        ? 'bg-blue-50/50 text-blue-800 dark:bg-blue-900/10 dark:text-blue-300'
+                                        : filled
+                                          ? 'text-gray-700 dark:text-gray-300'
+                                          : 'text-red-400 italic',
                                   )}
-                                  title={filled ? `${val}\n\n${t('clickToEdit')}` : t('clickToEdit')}
+                                  title={filled ? `${val}\n\n${isOverridden ? '(override)' : ''}${t('clickToEdit')}` : t('clickToEdit')}
                                 >
                                   <span className="flex items-center gap-1">
                                     {filled ? val : '\u2014'}
                                     {isEdited && <Pencil className="inline h-2 w-2 shrink-0 text-amber-500" />}
-                                    {!isEditing && (
+                                    {isOverridden && !isEdited && <CheckCircle2 className="inline h-2 w-2 shrink-0 text-blue-500" />}
+                                    {!isEditing && !isEdited && !isOverridden && (
                                       <Pencil className="invisible inline h-2 w-2 shrink-0 text-gray-300 group-hover:visible" />
                                     )}
                                   </span>
