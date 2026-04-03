@@ -296,7 +296,7 @@ export function useRemoveCountryRec() {
 // ── Public i18n (no auth needed) ──
 
 export function usePublicLocales() {
-  return useQuery<{ data: { availableLocales: string[]; defaultLocale: string } }>({
+  return useQuery<{ data: { availableLocales: string[]; defaultLocale: string; autoDetect?: boolean } }>({
     queryKey: ['public', 'i18n'],
     queryFn: async () => {
       try {

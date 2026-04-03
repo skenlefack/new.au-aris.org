@@ -9,7 +9,9 @@ import { RouteChangeLoader } from '@/components/ui/PageLoader';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { useI18nOverridesStore } from '@/lib/stores/i18n-overrides-store';
-import { usePublicDomains, useSettingsConfig } from '@/lib/api/settings-hooks';
+import { useLocaleStore } from '@/lib/stores/locale-store';
+import { usePublicDomains, useSettingsConfig, usePublicLocales } from '@/lib/api/settings-hooks';
+import { LOCALES, type Locale } from '@/lib/i18n/config';
 import { useRealtime } from '@/lib/realtime/use-realtime';
 import { useEntityTheme } from '@/hooks/useEntityTheme';
 import { Menu } from 'lucide-react';
@@ -30,6 +32,23 @@ export default function DashboardLayout({
 
   // Connect to WebSocket realtime service
   useRealtime();
+
+  // Auto-detect browser language if i18n.autoDetect is enabled
+  const { data: i18nConfig } = usePublicLocales();
+  const setLocale = useLocaleStore((s) => s.setLocale);
+  const _hasHydrated = useLocaleStore((s) => s._hasHydrated);
+  useEffect(() => {
+    if (!_hasHydrated) return;
+    if (!i18nConfig?.data?.autoDetect) return;
+    if (typeof sessionStorage === 'undefined') return;
+    if (sessionStorage.getItem('aris-locale-autodetected')) return;
+    sessionStorage.setItem('aris-locale-autodetected', '1');
+    const browserLang = navigator.language.split('-')[0].toLowerCase();
+    const available = (i18nConfig?.data?.availableLocales ?? []) as string[];
+    if (available.includes(browserLang) && (LOCALES as readonly string[]).includes(browserLang)) {
+      setLocale(browserLang as Locale);
+    }
+  }, [_hasHydrated, i18nConfig, setLocale]);
 
   // Apply dynamic entity accent color
   useEntityTheme();

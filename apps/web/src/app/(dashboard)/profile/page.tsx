@@ -20,6 +20,7 @@ import {
   Camera,
   Trash2,
   ImagePlus,
+  Languages,
 } from 'lucide-react';
 import {
   useUserProfile,
@@ -29,9 +30,13 @@ import {
   useMfaVerify,
   useMfaDisable,
   useUploadAvatar,
+  useUpdateLocale,
 } from '@/lib/api/hooks';
 import { useAuthStore, type UserRole } from '@/lib/stores/auth-store';
 import { useTenantStore, findTenantById } from '@/lib/stores/tenant-store';
+import { useLocaleStore } from '@/lib/stores/locale-store';
+import { usePublicLocales } from '@/lib/api/settings-hooks';
+import { LOCALES, LOCALE_LABELS, type Locale } from '@/lib/i18n/config';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
 import { useTranslations, useFormattedDate } from '@/lib/i18n/translations';
 import { cn } from '@/lib/utils';
@@ -104,6 +109,26 @@ export default function ProfilePage() {
   const profile = data?.data;
   const updateProfile = useUpdateProfile();
   const changePassword = useChangePassword();
+
+  // Locale preference
+  const locale = useLocaleStore((s) => s.locale);
+  const setLocale = useLocaleStore((s) => s.setLocale);
+  const updateLocaleMutation = useUpdateLocale();
+  const { data: localesConfig } = usePublicLocales();
+  const [selectedLocale, setSelectedLocale] = useState<Locale>(locale);
+  const [localeSaved, setLocaleSaved] = useState(false);
+
+  const activeLocales = (localesConfig?.data?.availableLocales ?? LOCALES) as Locale[];
+
+  function handleSaveLocale() {
+    setLocale(selectedLocale);
+    updateLocaleMutation.mutate(selectedLocale, {
+      onSuccess: () => {
+        setLocaleSaved(true);
+        setTimeout(() => setLocaleSaved(false), 4000);
+      },
+    });
+  }
 
   // MFA hooks
   const mfaSetup = useMfaSetup();
@@ -557,6 +582,56 @@ export default function ProfilePage() {
           {mfaSuccess}
         </div>
       )}
+
+      {/* ── Language Preference ── */}
+      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+          <Languages className="h-4 w-4" style={{ color: 'var(--color-accent)' }} />
+          Langue préférée
+        </h3>
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          Choisissez la langue d'affichage de l'interface pour votre compte.
+        </p>
+
+        {localeSaved && (
+          <div className="mt-3 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-400">
+            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+            Langue mise à jour avec succès.
+          </div>
+        )}
+
+        <div className="mt-4 flex items-center gap-3">
+          <div className="flex-1">
+            <select
+              value={selectedLocale}
+              onChange={(e) => setSelectedLocale(e.target.value as Locale)}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[var(--color-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            >
+              {activeLocales.map((loc) => {
+                const info = LOCALE_LABELS[loc];
+                return (
+                  <option key={loc} value={loc}>
+                    {info?.label ?? loc.toUpperCase()} ({loc.toUpperCase()})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+          <button
+            onClick={handleSaveLocale}
+            disabled={updateLocaleMutation.isPending || selectedLocale === locale}
+            className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
+            style={{ backgroundColor: 'var(--color-accent)' }}
+          >
+            {updateLocaleMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {updateLocaleMutation.isPending ? 'Saving...' : 'Appliquer'}
+          </button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* ── Section 2: Personal Information ── */}

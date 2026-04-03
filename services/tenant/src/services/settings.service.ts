@@ -1203,6 +1203,7 @@ export class SettingsService {
       data: {
         availableLocales: map['i18n.availableLocales'] ?? ['en', 'fr', 'pt', 'ar', 'es'],
         defaultLocale: map['i18n.defaultLocale'] ?? 'en',
+        autoDetect: (map['i18n.autoDetect'] as boolean) ?? false,
       },
     };
     await this.cacheSet(cacheKey, result, CACHE_TTL_PUBLIC);

@@ -6,19 +6,39 @@ import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { ConfigField } from '@/components/settings/ConfigField';
 import { SaveBar } from '@/components/settings/SaveBar';
 import { useTranslations } from '@/lib/i18n/translations';
-import { Loader2, Globe, ArrowRightLeft, Calendar, Check } from 'lucide-react';
+import { useLocaleStore } from '@/lib/stores/locale-store';
+import { Loader2, Globe, ArrowRightLeft, Calendar, Check, Hash } from 'lucide-react';
 import { toast } from 'sonner';
 
 const LANGUAGES = [
-  { code: 'en', name: 'English',    native: 'English',    flag: '\uD83C\uDDEC\uD83C\uDDE7', rtl: false },
-  { code: 'fr', name: 'French',     native: 'Fran\u00e7ais',   flag: '\uD83C\uDDEB\uD83C\uDDF7', rtl: false },
-  { code: 'pt', name: 'Portuguese', native: 'Portugu\u00eas',  flag: '\uD83C\uDDF5\uD83C\uDDF9', rtl: false },
-  { code: 'es', name: 'Spanish',    native: 'Espa\u00f1ol',    flag: '\uD83C\uDDEA\uD83C\uDDF8', rtl: false },
-  { code: 'ar', name: 'Arabic',     native: '\u0627\u0644\u0639\u0631\u0628\u064a\u0629',     flag: '\uD83C\uDDF8\uD83C\uDDE6', rtl: true },
+  { code: 'en', name: 'English',    native: 'English',    rtl: false },
+  { code: 'fr', name: 'French',     native: 'Fran\u00e7ais',   rtl: false },
+  { code: 'pt', name: 'Portuguese', native: 'Portugu\u00eas',  rtl: false },
+  { code: 'es', name: 'Spanish',    native: 'Espa\u00f1ol',    rtl: false },
+  { code: 'ar', name: 'Arabic',     native: '\u0627\u0644\u0639\u0631\u0628\u064a\u0629',     rtl: true },
 ] as const;
+
+const NUMBER_SAMPLE = 1234567.89;
+
+function formatNumber(localeCode: string): string {
+  try {
+    return new Intl.NumberFormat(localeCode).format(NUMBER_SAMPLE);
+  } catch {
+    return String(NUMBER_SAMPLE);
+  }
+}
+
+function formatPercent(localeCode: string): string {
+  try {
+    return new Intl.NumberFormat(localeCode, { style: 'percent', maximumFractionDigits: 1 }).format(0.874);
+  } catch {
+    return '87.4%';
+  }
+}
 
 export default function I18nSettingsPage() {
   const t = useTranslations('settings');
+  const locale = useLocaleStore((s) => s.locale);
   const { canManageConfig } = useSettingsAccess();
   const canEdit = canManageConfig('i18n');
   const { data, isLoading } = useSettingsConfig('i18n');
@@ -66,6 +86,12 @@ export default function I18nSettingsPage() {
     ? (getValue(availableLocalesConfig) as string[])
     : LANGUAGES.map((l) => l.code);
 
+  // Auto-detect setting
+  const autoDetectConfig = configs.find((c: any) => c.key === 'i18n.autoDetect');
+  const autoDetect: boolean = ('i18n:i18n.autoDetect' in changes)
+    ? (changes['i18n:i18n.autoDetect'] as boolean)
+    : ((autoDetectConfig?.value as boolean | undefined) ?? false);
+
   const handleSetDefault = (code: string) => {
     if (!canEdit) return;
     if (!availableLocales.includes(code)) return;
@@ -90,7 +116,10 @@ export default function I18nSettingsPage() {
     c.key === 'i18n.dateFormat',
   );
   const otherConfigs = configs.filter((c: any) =>
-    !localeConfigs.includes(c) && !formatConfigs.includes(c) && c.key !== 'i18n.rtl.locales',
+    !localeConfigs.includes(c) &&
+    !formatConfigs.includes(c) &&
+    c.key !== 'i18n.rtl.locales' &&
+    c.key !== 'i18n.autoDetect',
   );
 
   if (isLoading) {
@@ -119,6 +148,44 @@ export default function I18nSettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Auto-detect browser language */}
+      <section>
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+          <Globe className="h-3.5 w-3.5" />
+          {t('autoDetect') || 'Détection automatique'}
+          <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+        </h2>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900/50">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {t('autoDetectBrowserLang') || 'Détecter la langue du navigateur'}
+              </p>
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                {t('autoDetectBrowserLangDesc') || 'Définit automatiquement la langue de l\'interface selon les préférences système de l\'utilisateur lors de sa première visite.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={autoDetect}
+              disabled={!canEdit}
+              onClick={() => handleChange('i18n.autoDetect', !autoDetect)}
+              className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-aris-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+                autoDetect ? 'bg-aris-primary-500' : 'bg-gray-300 dark:bg-gray-600'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm ring-0 transition-transform ${
+                  autoDetect ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* Supported Languages Grid */}
       <section>
@@ -181,8 +248,7 @@ export default function I18nSettingsPage() {
                     </span>
                   </div>
                 )}
-                <div className="mb-2 text-3xl">{lang.flag}</div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
                   {lang.name}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -217,8 +283,8 @@ export default function I18nSettingsPage() {
             {localeConfigs.map((config: any) => (
               <ConfigField
                 key={config.id}
-                label={config.label?.en ?? config.key}
-                description={config.description?.en}
+                label={config.label?.[locale] ?? config.label?.en ?? config.key}
+                description={config.description?.[locale] ?? config.description?.en}
                 type={config.type}
                 value={getValue(config)}
                 onChange={(v) => handleChange(config.key, v)}
@@ -243,8 +309,8 @@ export default function I18nSettingsPage() {
             {formatConfigs.map((config: any) => (
               <ConfigField
                 key={config.id}
-                label={config.label?.en ?? config.key}
-                description={config.description?.en}
+                label={config.label?.[locale] ?? config.label?.en ?? config.key}
+                description={config.description?.[locale] ?? config.description?.en}
                 type={config.type}
                 value={getValue(config)}
                 onChange={(v) => handleChange(config.key, v)}
@@ -267,12 +333,84 @@ export default function I18nSettingsPage() {
               </span>
               <span>
                 <span className="text-xs text-gray-400">{t('number')} </span>
-                1,450,300,000
+                {formatNumber(defaultLocale)}
               </span>
             </div>
           </div>
         </section>
       )}
+
+      {/* Number Formats per Language */}
+      <section>
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+          <Hash className="h-3.5 w-3.5" />
+          {t('numberFormats') || 'Formats des nombres par langue'}
+          <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+        </h2>
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900/50">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Langue
+                </th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Nombre (1 234 567,89)
+                </th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Pourcentage
+                </th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Dir.
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {LANGUAGES.filter((l) => availableLocales.includes(l.code)).map((lang) => (
+                <tr
+                  key={lang.code}
+                  className={`transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/30 ${
+                    defaultLocale === lang.code ? 'bg-aris-primary-50/30 dark:bg-aris-primary-900/10' : ''
+                  }`}
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[11px] font-bold uppercase text-gray-400 dark:text-gray-500">
+                        {lang.code}
+                      </span>
+                      <span className="font-medium text-gray-800 dark:text-gray-200">
+                        {lang.native}
+                      </span>
+                      {defaultLocale === lang.code && (
+                        <span className="rounded-full bg-aris-primary-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-aris-primary-700 dark:bg-aris-primary-900/50 dark:text-aris-primary-300">
+                          défaut
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-gray-700 dark:text-gray-300" dir={lang.rtl ? 'rtl' : undefined}>
+                    {formatNumber(lang.code)}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-gray-700 dark:text-gray-300">
+                    {formatPercent(lang.code)}
+                  </td>
+                  <td className="px-4 py-3">
+                    {lang.rtl ? (
+                      <span className="inline-flex items-center gap-0.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                        <ArrowRightLeft className="h-2.5 w-2.5" />
+                        RTL
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-400">LTR</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {/* RTL Info */}
       <section>
@@ -333,8 +471,8 @@ export default function I18nSettingsPage() {
             {otherConfigs.map((config: any) => (
               <ConfigField
                 key={config.id}
-                label={config.label?.en ?? config.key}
-                description={config.description?.en}
+                label={config.label?.[locale] ?? config.label?.en ?? config.key}
+                description={config.description?.[locale] ?? config.description?.en}
                 type={config.type}
                 value={getValue(config)}
                 onChange={(v) => handleChange(config.key, v)}
