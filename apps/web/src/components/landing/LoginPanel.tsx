@@ -99,7 +99,7 @@ export function LoginPanel({ context }: LoginPanelProps) {
         {context?.level === 'country' && context.flag ? (
           <span className="text-4xl">{context.flag}</span>
         ) : (
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={platformLogoUrl}
             alt={platformName}

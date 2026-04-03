@@ -1,11 +1,12 @@
 'use client';
 
+import { type ReactNode } from 'react';
 import { usePublicPlatformConfig } from '@/hooks/usePlatformConfig';
 
 export default function AuthLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const { name, fullName } = usePublicPlatformConfig();
 
