@@ -126,7 +126,9 @@
     "confirmNewPassword": "Confirm new password",
     "resetting": "Resetting...",
     "resetPasswordBtn": "Reset Password",
-    "resetFailed": "Password reset failed. Please try again."
+    "resetFailed": "Password reset failed. Please try again.",
+    "sessionRevokedNewDevice": "Your session was closed because you signed in from another device. Please sign in again.",
+    "sessionExpiredMessage": "Your session has expired. Please sign in again."
   },
   "header": {
     "tenantHierarchy": "Tenant hierarchy",

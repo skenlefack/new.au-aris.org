@@ -12,6 +12,7 @@ const API_BASE_URL =
 interface ApiError {
   statusCode: number;
   message: string;
+  code?: string;
   errors?: Array<{ field: string; message: string }>;
 }
 
@@ -20,6 +21,7 @@ export class ApiClientError extends Error {
     public statusCode: number,
     message: string,
     public errors?: Array<{ field: string; message: string }>,
+    public code?: string,
   ) {
     super(message);
     this.name = 'ApiClientError';
@@ -179,6 +181,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
       response.status,
       body?.message ?? `Request failed with status ${response.status}`,
       body?.errors,
+      body?.code,
     );
   }
   return response.json();

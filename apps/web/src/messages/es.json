@@ -126,7 +126,9 @@
     "confirmNewPassword": "Confirmar nueva contraseña",
     "resetting": "Restableciendo...",
     "resetPasswordBtn": "Restablecer Contraseña",
-    "resetFailed": "Error al restablecer. Inténtelo de nuevo."
+    "resetFailed": "Error al restablecer. Inténtelo de nuevo.",
+    "sessionRevokedNewDevice": "Tu sesión fue cerrada porque se abrió una nueva conexión desde otro dispositivo. Por favor, inicia sesión de nuevo.",
+    "sessionExpiredMessage": "Tu sesión ha expirado. Por favor, inicia sesión de nuevo."
   },
   "header": {
     "tenantHierarchy": "Jerarquía de inquilinos",

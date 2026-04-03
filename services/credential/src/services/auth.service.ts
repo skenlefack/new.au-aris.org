@@ -1,6 +1,6 @@
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
-import { randomUUID, randomBytes } from 'crypto';
+import { randomUUID, randomBytes, createHash } from 'crypto';
 import type { PrismaClient } from '@prisma/client';
 import type Redis from 'ioredis';
 import type { FastifyKafka } from '@aris/kafka-client';
@@ -8,6 +8,7 @@ import {
   TOPIC_SYS_CREDENTIAL_USER_CREATED,
   TOPIC_SYS_CREDENTIAL_USER_AUTHENTICATED,
   TOPIC_SYS_CREDENTIAL_PASSWORD_RESET,
+  TOPIC_SYS_CREDENTIAL_NEW_DEVICE_LOGIN,
 } from '@aris/shared-types';
 import type { KafkaHeaders } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
@@ -16,6 +17,42 @@ import type { DomainService } from './domain.service.js';
 
 const SERVICE_NAME = 'credential-service';
 const BCRYPT_ROUNDS = 10;
+
+// ── Device detection helpers ──────────────────────────────────────────────────
+
+function parseDeviceInfo(userAgent: string): { deviceName: string; deviceType: 'web' | 'mobile' } {
+  const ua = userAgent.toLowerCase();
+  const isMobile = /android|mobile|iphone|ipad|ipod|blackberry|opera mini|windows phone/i.test(ua);
+  const deviceType: 'web' | 'mobile' = isMobile ? 'mobile' : 'web';
+
+  let browser = 'Unknown Browser';
+  if (ua.includes('edg/') || ua.includes('edge/')) browser = 'Edge';
+  else if (ua.includes('firefox/')) browser = 'Firefox';
+  else if (ua.includes('opr/') || ua.includes('opera/')) browser = 'Opera';
+  else if (ua.includes('chrome/')) browser = 'Chrome';
+  else if (ua.includes('safari/')) browser = 'Safari';
+  else if (!ua) browser = 'Mobile App';
+
+  let os = 'Unknown OS';
+  if (ua.includes('windows nt 10') || ua.includes('windows nt 11')) os = 'Windows 10/11';
+  else if (ua.includes('windows')) os = 'Windows';
+  else if (ua.includes('mac os x') || ua.includes('macos')) os = 'macOS';
+  else if (ua.includes('android')) os = 'Android';
+  else if (ua.includes('iphone')) os = 'iPhone';
+  else if (ua.includes('ipad')) os = 'iPad';
+  else if (ua.includes('linux')) os = 'Linux';
+
+  const deviceName = isMobile ? `${browser} on ${os} (mobile)` : `${browser} on ${os}`;
+  return { deviceName, deviceType };
+}
+
+/** Compute a short fingerprint from the User-Agent string (SHA-256, first 32 hex chars). */
+function computeFingerprint(userAgent: string): string {
+  const input = userAgent || 'unknown';
+  return createHash('sha256').update(input).digest('hex').substring(0, 32);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 const PASSWORD_RESET_TTL_SECONDS = 15 * 60; // 15 minutes
@@ -61,7 +98,7 @@ export interface SafeUser {
 }
 
 class HttpError extends Error {
-  constructor(public statusCode: number, message: string) {
+  constructor(public statusCode: number, message: string, public code?: string) {
     super(message);
   }
 }
@@ -124,6 +161,7 @@ export class AuthService {
 
   async login(
     dto: { email: string; password: string; totpCode?: string },
+    context?: { ipAddress?: string; userAgent?: string },
   ): Promise<{ data: TokenResponse | MfaRequiredResponse }> {
     const locked = await this.lockout.isLocked(dto.email);
     if (locked) throw new HttpError(401, 'Compte temporairement verrouill\u00e9 suite \u00e0 trop de tentatives. R\u00e9essayez plus tard.');
@@ -156,6 +194,36 @@ export class AuthService {
 
     await this.lockout.resetAttempts(dto.email);
 
+    // ── Device & session management ──────────────────────────────────
+    const ipAddress = context?.ipAddress ?? 'unknown';
+    const userAgent = context?.userAgent ?? '';
+    const { deviceName, deviceType } = parseDeviceInfo(userAgent);
+    const fingerprint = computeFingerprint(userAgent);
+
+    // Read security settings (non-blocking — fallback to safe defaults)
+    const allowMultipleConnections = await this.getSecuritySetting('security.session.allowMultipleConnections') as boolean ?? false;
+    const loginNotificationEmail = await this.getSecuritySetting('security.session.loginNotificationEmail') as boolean ?? true;
+
+    // Track device: upsert UserDevice record + detect if first-time device
+    let isNewDevice = false;
+    try {
+      const existingDevice = await (this.prisma as any).userDevice.findUnique({
+        where: { userId_fingerprint: { userId: user.id, fingerprint } },
+      });
+      isNewDevice = !existingDevice;
+      await (this.prisma as any).userDevice.upsert({
+        where: { userId_fingerprint: { userId: user.id, fingerprint } },
+        update: { lastIp: ipAddress, deviceName },
+        create: { userId: user.id, fingerprint, deviceName, deviceType, lastIp: ipAddress },
+      });
+    } catch { /* UserDevice table may not exist yet — skip silently */ }
+
+    // Enforce 1 web + 1 mobile limit when allowMultipleConnections=false
+    if (!allowMultipleConnections) {
+      await this.revokeSessionsByDeviceType(user.id, deviceType);
+    }
+    // ─────────────────────────────────────────────────────────────────
+
     // Fetch user's domain codes for JWT + full objects for frontend
     const domainCodes = this.domainService ? await this.domainService.getUserDomainCodes(user.id) : [];
     const userDomainsResult = this.domainService ? await this.domainService.getUserDomains(user.id) : { data: [] };
@@ -166,13 +234,33 @@ export class AuthService {
     const permissions = await this.computePermissions(effectiveRoles);
 
     const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, domainCodes, effectiveRoles);
-    await this.storeRefreshToken(user.id, tokens.refreshTokenId, user.role, user.tenantId, user.tenant.level);
+    await this.storeRefreshToken(user.id, tokens.refreshTokenId, user.role, user.tenantId, user.tenant.level, deviceType);
 
     await (this.prisma as any).user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     await this.publishEvent(TOPIC_SYS_CREDENTIAL_USER_AUTHENTICATED, user.id, { userId: user.id, email: user.email, tenantId: user.tenantId }, user.tenantId, user.id);
 
     // Cache permissions in Redis (TTL 15 min)
     await this.cachePermissions(user.id, effectiveRoles, permissions);
+
+    // Send login notification email:
+    //   • always for a new/unrecognised device
+    //   • always when allowMultipleConnections=true (every login is a potential security event)
+    if (loginNotificationEmail && (isNewDevice || allowMultipleConnections)) {
+      await this.publishEvent(TOPIC_SYS_CREDENTIAL_NEW_DEVICE_LOGIN, user.id, {
+        userId: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        deviceName,
+        deviceType,
+        fingerprint,
+        ipAddress,
+        loginAt: new Date().toISOString(),
+        isNewDevice,
+        allowMultipleConnections,
+        tenantId: user.tenantId,
+      }, user.tenantId, user.id);
+    }
 
     return {
       data: {
@@ -192,9 +280,13 @@ export class AuthService {
     const { userId, tokenId } = decoded;
     const redisKey = `refresh:${userId}:${tokenId}`;
     const stored = await this.redis.get(redisKey);
-    if (!stored) throw new HttpError(401, 'Session expir\u00e9e. Veuillez vous reconnecter.');
+    if (!stored) throw new HttpError(401, 'Session expir\u00e9e. Veuillez vous reconnecter.', 'SESSION_EXPIRED');
 
-    const sessionData = JSON.parse(stored) as { role: string; tenantId: string; tenantLevel: string };
+    const sessionData = JSON.parse(stored) as { role: string; tenantId: string; tenantLevel: string; revoked?: boolean; revokedReason?: string };
+    if (sessionData.revoked) {
+      await this.redis.del(redisKey);
+      throw new HttpError(401, 'Votre session a \u00e9t\u00e9 ferm\u00e9e car une nouvelle connexion a \u00e9t\u00e9 ouverte depuis un autre appareil.', sessionData.revokedReason ?? 'SESSION_REVOKED_NEW_DEVICE');
+    }
     await this.redis.del(redisKey);
 
     const user = await (this.prisma as any).user.findUnique({
@@ -300,10 +392,43 @@ export class AuthService {
     return { accessToken, refreshToken, refreshTokenId };
   }
 
-  private async storeRefreshToken(userId: string, tokenId: string, role: string, tenantId: string, tenantLevel: string): Promise<void> {
+  private async storeRefreshToken(
+    userId: string, tokenId: string, role: string, tenantId: string, tenantLevel: string,
+    deviceType?: string,
+  ): Promise<void> {
     const key = `refresh:${userId}:${tokenId}`;
-    const value = JSON.stringify({ role, tenantId, tenantLevel, createdAt: new Date().toISOString() });
+    const value = JSON.stringify({ role, tenantId, tenantLevel, createdAt: new Date().toISOString(), deviceType: deviceType ?? 'web' });
     await this.redis.set(key, value, 'EX', REFRESH_TOKEN_TTL_SECONDS);
+  }
+
+  /** Revoke all active refresh tokens of a given device type (web/mobile) for a user. */
+  private async revokeSessionsByDeviceType(userId: string, deviceType: string): Promise<void> {
+    try {
+      const keys = await this.redis.keys(`refresh:${userId}:*`);
+      for (const key of keys) {
+        const stored = await this.redis.get(key);
+        if (!stored) continue;
+        try {
+          const data = JSON.parse(stored) as { deviceType?: string };
+          const storedType = data.deviceType ?? 'web';
+          if (storedType === deviceType) {
+            // Mark as revoked with short TTL (5 min) so the device can show a descriptive error
+            const revokedData = { ...data, revoked: true, revokedReason: 'SESSION_REVOKED_NEW_DEVICE' };
+            await this.redis.set(key, JSON.stringify(revokedData), 'EX', 300);
+          }
+        } catch { /* malformed — skip */ }
+      }
+    } catch { /* best-effort */ }
+  }
+
+  /** Read a security setting from the governance.system_configs table. */
+  private async getSecuritySetting(key: string): Promise<unknown> {
+    try {
+      const config = await (this.prisma as any).systemConfig.findUnique({
+        where: { category_key: { category: 'security', key } },
+      });
+      return config?.value ?? null;
+    } catch { return null; }
   }
 
   private decodeRefreshToken(token: string): { userId: string; tokenId: string } | null {

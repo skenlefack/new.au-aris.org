@@ -33,7 +33,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(cors, { origin: true, credentials: true });
 
   // Error handler
-  app.setErrorHandler((error: Error & { statusCode?: number; errors?: unknown }, request, reply) => {
+  app.setErrorHandler((error: Error & { statusCode?: number; code?: string; errors?: unknown }, request, reply) => {
     const statusCode = error.statusCode ?? 500;
     const message = error.message ?? 'Internal Server Error';
 
@@ -44,6 +44,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     return reply.code(statusCode).send({
       statusCode,
       message,
+      ...(error.code ? { code: error.code } : {}),
       errors: error.errors ?? undefined,
     });
   });

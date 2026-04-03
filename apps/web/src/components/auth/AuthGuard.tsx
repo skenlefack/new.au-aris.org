@@ -76,14 +76,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
   /**
    * Attempt to refresh the access token using raw fetch (NOT apiClient)
    * to avoid recursive refresh loops through fetchWithRefresh.
-   * Returns true on success, false on failure.
+   * Returns null on success (token updated), or an error code string on failure.
    */
-  const attemptRefresh = useCallback(async (): Promise<boolean> => {
-    if (refreshInProgressRef.current) return false;
+  const attemptRefresh = useCallback(async (): Promise<string | null> => {
+    if (refreshInProgressRef.current) return 'REFRESH_IN_PROGRESS';
 
     // Read the latest refresh token from the store (not from the closure)
     const currentRefreshToken = useAuthStore.getState().refreshToken;
-    if (!currentRefreshToken) return false;
+    if (!currentRefreshToken) return 'NO_REFRESH_TOKEN';
 
     refreshInProgressRef.current = true;
     setIsRefreshing(true);
@@ -95,18 +95,25 @@ export function AuthGuard({ children }: AuthGuardProps) {
         body: JSON.stringify({ refreshToken: currentRefreshToken }),
       });
 
-      if (!res.ok) return false;
+      if (!res.ok) {
+        try {
+          const errBody = await res.json();
+          return errBody?.code ?? 'SESSION_EXPIRED';
+        } catch {
+          return 'SESSION_EXPIRED';
+        }
+      }
 
       const body = await res.json();
       const newAccessToken = body?.data?.accessToken;
       const newRefreshToken = body?.data?.refreshToken;
       if (newAccessToken && newRefreshToken) {
         updateTokens(newAccessToken, newRefreshToken);
-        return true;
+        return null; // success
       }
-      return false;
+      return 'SESSION_EXPIRED';
     } catch {
-      return false;
+      return 'NETWORK_ERROR';
     } finally {
       refreshInProgressRef.current = false;
       setIsRefreshing(false);
@@ -115,12 +122,13 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   /**
    * Handle auth failure: clear state and redirect to login.
+   * Optionally passes a reason code in the URL so the login page can show a specific message.
    */
-  const handleAuthFailure = useCallback(() => {
+  const handleAuthFailure = useCallback((reason?: string) => {
     logout();
     useDomainStore.getState().reset();
     usePermissionStore.getState().reset();
-    router.replace('/');
+    router.replace(reason ? `/?reason=${reason}` : '/');
   }, [logout, router]);
 
   // On hydration, check if the existing token is expired and attempt refresh
@@ -133,8 +141,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
 
     if (isTokenExpired(accessToken)) {
-      attemptRefresh().then((success) => {
-        if (!success) {
+      attemptRefresh().then((errorCode) => {
+        if (errorCode !== null && errorCode !== 'NETWORK_ERROR' && errorCode !== 'REFRESH_IN_PROGRESS') {
           // Before logging out, check if another path (e.g. fetchWithRefresh)
           // already refreshed the token while we were trying. With token rotation,
           // only one concurrent refresh can succeed; losing the race is not a failure.
@@ -142,7 +150,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           if (freshToken && freshToken !== accessToken && !isTokenExpired(freshToken)) {
             return; // Token was refreshed by another path, session is still alive
           }
-          handleAuthFailure();
+          handleAuthFailure(errorCode === 'REFRESH_IN_PROGRESS' ? undefined : errorCode);
         }
       });
     }
@@ -158,14 +166,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
       if (isTokenExpiringSoon(currentToken, REFRESH_THRESHOLD_SEC)) {
         const tokenBeforeRefresh = currentToken;
-        attemptRefresh().then((success) => {
-          if (!success) {
+        attemptRefresh().then((errorCode) => {
+          if (errorCode !== null && errorCode !== 'NETWORK_ERROR' && errorCode !== 'REFRESH_IN_PROGRESS') {
             // Check if fetchWithRefresh already refreshed the token (race condition)
             const freshToken = useAuthStore.getState().accessToken;
             if (freshToken && freshToken !== tokenBeforeRefresh && !isTokenExpired(freshToken)) {
               return; // Token was refreshed by another path
             }
-            handleAuthFailure();
+            handleAuthFailure(errorCode === 'REFRESH_IN_PROGRESS' ? undefined : errorCode);
           }
         });
       }

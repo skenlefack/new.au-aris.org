@@ -126,7 +126,9 @@
     "confirmNewPassword": "Confirmar nova senha",
     "resetting": "Redefinindo...",
     "resetPasswordBtn": "Redefinir Senha",
-    "resetFailed": "Falha na redefinição. Tente novamente."
+    "resetFailed": "Falha na redefinição. Tente novamente.",
+    "sessionRevokedNewDevice": "Sua sessão foi encerrada porque uma nova conexão foi aberta em outro dispositivo. Por favor, entre novamente.",
+    "sessionExpiredMessage": "Sua sessão expirou. Por favor, entre novamente."
   },
   "header": {
     "tenantHierarchy": "Hierarquia de entidades",

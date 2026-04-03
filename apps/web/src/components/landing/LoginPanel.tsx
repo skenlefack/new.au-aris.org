@@ -2,11 +2,11 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Eye, EyeOff, LogIn, Shield } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Shield, AlertTriangle } from 'lucide-react';
 import { useLogin } from '@/lib/api/hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTenantStore } from '@/lib/stores/tenant-store';
@@ -37,6 +37,8 @@ interface LoginPanelProps {
 
 export function LoginPanel({ context }: LoginPanelProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionReason = searchParams.get('reason');
   const loginMutation = useLogin();
   const ta = useTranslations('auth');
   const { name: platformName, logoUrl: platformLogoUrl } = usePublicPlatformConfig();
@@ -134,6 +136,22 @@ export function LoginPanel({ context }: LoginPanelProps) {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {sessionReason === 'SESSION_REVOKED_NEW_DEVICE' && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{ta('sessionRevokedNewDevice')}</span>
+            </div>
+          </div>
+        )}
+        {sessionReason && sessionReason !== 'SESSION_REVOKED_NEW_DEVICE' && sessionReason !== 'NETWORK_ERROR' && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{ta('sessionExpiredMessage')}</span>
+            </div>
+          </div>
+        )}
         {loginMutation.error && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
             {loginMutation.error instanceof Error

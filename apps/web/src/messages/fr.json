@@ -126,7 +126,9 @@
     "confirmNewPassword": "Confirmer le nouveau mot de passe",
     "resetting": "Réinitialisation...",
     "resetPasswordBtn": "Réinitialiser le mot de passe",
-    "resetFailed": "Échec de la réinitialisation. Veuillez réessayer."
+    "resetFailed": "Échec de la réinitialisation. Veuillez réessayer.",
+    "sessionRevokedNewDevice": "Votre session a été fermée car une nouvelle connexion a été ouverte depuis un autre appareil. Veuillez vous reconnecter.",
+    "sessionExpiredMessage": "Votre session a expiré. Veuillez vous reconnecter."
   },
   "header": {
     "tenantHierarchy": "Hiérarchie des entités",
