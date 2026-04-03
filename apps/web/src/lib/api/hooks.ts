@@ -1522,6 +1522,8 @@ export interface NotificationPreferences {
   email: Record<string, boolean>;
   sms: Record<string, boolean>;
   push: Record<string, boolean>;
+  whatsapp: Record<string, boolean>;
+  telegram: Record<string, boolean>;
 }
 
 export function useNotifications(params?: { page?: number; limit?: number }) {
@@ -1575,7 +1577,7 @@ export function useNotificationPreferences() {
   return useQuery({
     queryKey: ['settings', 'notification-preferences'],
     queryFn: () =>
-      apiClient.get<{ data: Array<{ eventType: string; email: boolean; sms: boolean; push: boolean }> }>(
+      apiClient.get<{ data: Array<{ eventType: string; email: boolean; sms: boolean; push: boolean; whatsapp: boolean; telegram: boolean }> }>(
         '/messages/preferences',
       ),
   });
@@ -1586,11 +1588,13 @@ export function useUpdateNotificationPreferences() {
 
   return useMutation({
     mutationFn: async (prefs: NotificationPreferences) => {
-      // API expects one POST per event type: { eventType, email, sms, push }
+      // API expects one POST per event type: { eventType, email, sms, push, whatsapp, telegram }
       const eventKeys = new Set([
         ...Object.keys(prefs.email),
         ...Object.keys(prefs.sms),
         ...Object.keys(prefs.push),
+        ...Object.keys(prefs.whatsapp),
+        ...Object.keys(prefs.telegram),
       ]);
       await Promise.all(
         Array.from(eventKeys).map((eventType) =>
@@ -1599,6 +1603,8 @@ export function useUpdateNotificationPreferences() {
             email: !!prefs.email[eventType],
             sms: !!prefs.sms[eventType],
             push: !!prefs.push[eventType],
+            whatsapp: !!prefs.whatsapp[eventType],
+            telegram: !!prefs.telegram[eventType],
           }),
         ),
       );
@@ -1608,6 +1614,16 @@ export function useUpdateNotificationPreferences() {
         queryKey: ['settings', 'notification-preferences'],
       });
     },
+  });
+}
+
+export function useSendTestEmail() {
+  return useMutation({
+    mutationFn: (to: string) =>
+      apiClient.post<{ data: { success: boolean; messageId?: string; error?: string } }>(
+        '/messages/test-email',
+        { to },
+      ),
   });
 }
 
