@@ -24,19 +24,25 @@ export function usePlatformConfig() {
   const configs: any[] = data?.data ?? [];
   const get = (key: string) => configs.find((c: any) => c.key === key)?.value;
 
-  const fullNameRaw = get('platform.fullName');
-
   return {
     name: (get('platform.name') as string) || 'ARIS',
-    fullName: resolveFullName(fullNameRaw, locale),
+    fullName: resolveFullName(get('platform.fullName'), locale),
     logoUrl: (get('platform.logo.url') as string) || '/au-logo.png',
   };
 }
 
-/** For public pages (login, landing) — no auth required, falls back to defaults. */
-async function fetchPublicPlatformConfig(): Promise<{ data: any[] } | null> {
+/** For public pages (login, landing) — calls /api/v1/public/platform (no auth). */
+interface PublicPlatformData {
+  data: {
+    name: string;
+    fullName: unknown;
+    logoUrl: string;
+  };
+}
+
+async function fetchPublicPlatformConfig(): Promise<PublicPlatformData | null> {
   try {
-    const res = await fetch(`${TENANT_API}/api/v1/settings/config/general`);
+    const res = await fetch(`${TENANT_API}/api/v1/public/platform`);
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -54,12 +60,9 @@ export function usePublicPlatformConfig() {
     placeholderData: null,
   });
 
-  const configs: any[] = data?.data ?? [];
-  const get = (key: string) => configs.find((c: any) => c.key === key)?.value;
-
   return {
-    name: (get('platform.name') as string) || 'ARIS',
-    fullName: resolveFullName(get('platform.fullName'), locale),
-    logoUrl: (get('platform.logo.url') as string) || '/au-logo.png',
+    name: data?.data?.name || 'ARIS',
+    fullName: resolveFullName(data?.data?.fullName, locale),
+    logoUrl: data?.data?.logoUrl || '/au-logo.png',
   };
 }

@@ -41,4 +41,9 @@ export async function registerPublicRoutes(app: FastifyInstance): Promise<void> 
   app.get('/api/v1/public/i18n', async () => {
     return app.settingsService.getPublicI18nConfig();
   });
+
+  // GET /api/v1/public/platform — platform name, full name, logo (no auth)
+  app.get('/api/v1/public/platform', async () => {
+    return app.settingsService.getPublicPlatformConfig();
+  });
 }

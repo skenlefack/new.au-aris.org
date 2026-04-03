@@ -7,13 +7,14 @@ import { ConfigField } from '@/components/settings/ConfigField';
 import { SaveBar } from '@/components/settings/SaveBar';
 import { Loader2, Upload, ImageIcon, X } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useRealtimeStore } from '@/lib/realtime/realtime-store';
 import { cn } from '@/lib/utils';
 
 // Explicit display order for general config keys
 const GENERAL_KEY_ORDER = [
-  'platform.fullName',
   'platform.name',
+  'platform.fullName',
   'platform.version',
   'platform.organization',
   'platform.logo.url',
@@ -224,6 +225,7 @@ function MultiLangConfigField({ label, description, value, onChange, disabled }:
 
 export default function GeneralSettingsPage() {
   const t = useTranslations('settings');
+  const locale = useLocaleStore((s) => s.locale);
   const { canManageConfig } = useSettingsAccess();
   const canEdit = canManageConfig('general');
   const canEditEmail = canManageConfig('email');
@@ -298,8 +300,8 @@ export default function GeneralSettingsPage() {
               return (
                 <LogoUploadField
                   key={config.id}
-                  label={config.label?.en ?? config.key}
-                  description={config.description?.en}
+                  label={config.label?.[locale] ?? config.label?.en ?? config.key}
+                  description={config.description?.[locale] ?? config.description?.en}
                   value={(getValue(config) as string) ?? ''}
                   onChange={(v) => handleChange(config.category, config.key, v)}
                   disabled={!canEdit}
@@ -310,8 +312,8 @@ export default function GeneralSettingsPage() {
               return (
                 <MultiLangConfigField
                   key={config.id}
-                  label={config.label?.en ?? config.key}
-                  description={config.description?.en}
+                  label={config.label?.[locale] ?? config.label?.en ?? config.key}
+                  description={config.description?.[locale] ?? config.description?.en}
                   value={getValue(config)}
                   onChange={(v) => handleChange(config.category, config.key, v)}
                   disabled={!canEdit}
@@ -321,8 +323,8 @@ export default function GeneralSettingsPage() {
             return (
               <ConfigField
                 key={config.id}
-                label={config.label?.en ?? config.key}
-                description={config.description?.en}
+                label={config.label?.[locale] ?? config.label?.en ?? config.key}
+                description={config.description?.[locale] ?? config.description?.en}
                 type={config.type}
                 value={getValue(config)}
                 onChange={(v) => handleChange(config.category, config.key, v)}
@@ -342,8 +344,8 @@ export default function GeneralSettingsPage() {
             {brandingConfigs.map((config: any) => (
               <ConfigField
                 key={config.id}
-                label={config.label?.en ?? config.key}
-                description={config.description?.en}
+                label={config.label?.[locale] ?? config.label?.en ?? config.key}
+                description={config.description?.[locale] ?? config.description?.en}
                 type={config.type}
                 value={getValue(config)}
                 onChange={(v) => handleChange(config.category, config.key, v)}
@@ -366,8 +368,8 @@ export default function GeneralSettingsPage() {
             {emailConfigs.map((config: any) => (
               <ConfigField
                 key={config.id}
-                label={config.label?.en ?? config.key}
-                description={config.description?.en}
+                label={config.label?.[locale] ?? config.label?.en ?? config.key}
+                description={config.description?.[locale] ?? config.description?.en}
                 type={config.type}
                 value={getValue(config)}
                 onChange={(v) => handleChange(config.category, config.key, v)}

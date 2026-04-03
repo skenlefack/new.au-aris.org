@@ -1162,6 +1162,30 @@ export class SettingsService {
     return result;
   }
 
+  async getPublicPlatformConfig() {
+    const cacheKey = 'aris:public:platform';
+    const cached = await this.cacheGet<{ data: any }>(cacheKey);
+    if (cached) return cached;
+
+    const configs = await (this.prisma as any).systemConfig.findMany({
+      where: { category: 'general' },
+      select: { key: true, value: true },
+    });
+
+    const map: Record<string, unknown> = {};
+    for (const c of configs) map[c.key] = c.value;
+
+    const result = {
+      data: {
+        name: (map['platform.name'] as string) ?? 'ARIS',
+        fullName: map['platform.fullName'] ?? { en: 'Animal Resources Information System' },
+        logoUrl: (map['platform.logo.url'] as string) ?? '/au-logo.png',
+      },
+    };
+    await this.cacheSet(cacheKey, result, CACHE_TTL_PUBLIC);
+    return result;
+  }
+
   async getPublicI18nConfig() {
     const cacheKey = 'aris:public:i18n';
     const cached = await this.cacheGet<{ data: any }>(cacheKey);
