@@ -247,7 +247,7 @@ export default function SupersetEmbedPage() {
         {useFallbackIframe && (
           <iframe
             key={iframeKey}
-            src={`${SUPERSET_URL}/superset/welcome/?standalone=true`}
+            src={`${SUPERSET_URL}/superset/dashboard/list/`}
             className="h-full w-full border-0"
             title="Apache Superset"
             onLoad={handleIframeLoad}

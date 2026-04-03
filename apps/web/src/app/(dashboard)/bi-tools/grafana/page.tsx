@@ -7,19 +7,36 @@ import { useBiDashboards, useBiAccessRulesForRole } from '@/lib/api/bi-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTranslations } from '@/lib/i18n/translations';
 
+// Provisioned ARIS dashboards — used as fallback when no dashboards are registered in the API
+const PROVISIONED_DASHBOARDS = [
+  { uid: 'aris-overview', label: 'ARIS Overview' },
+  { uid: 'aris-continental', label: 'Continental' },
+  { uid: 'aris-api', label: 'API Performance' },
+  { uid: 'aris-kafka', label: 'Kafka' },
+  { uid: 'aris-business', label: 'Business' },
+  { uid: 'aris-animal-health', label: 'Animal Health' },
+  { uid: 'aris-trade-production', label: 'Trade & Production' },
+  { uid: 'aris-distributed-traces', label: 'Distributed Traces' },
+];
+
 export default function GrafanaEmbedPage() {
   const t = useTranslations('biTools');
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
-  const [selectedUid, setSelectedUid] = useState<string | undefined>(undefined);
+  const [selectedUid, setSelectedUid] = useState<string>('aris-overview');
   const [authReady, setAuthReady] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const user = useAuthStore((s) => s.user);
   const accessToken = useAuthStore((s) => s.accessToken);
   const { data: dashboardsData } = useBiDashboards('grafana');
-  const dashboards = dashboardsData?.data ?? [];
+  const apiDashboards = dashboardsData?.data ?? [];
+
+  // Use API dashboards if available, otherwise fall back to provisioned list
+  const dashboardList = apiDashboards.length > 0
+    ? apiDashboards.map((d) => ({ uid: d.externalId, label: d.name.en ?? d.name.fr ?? d.externalId }))
+    : PROVISIONED_DASHBOARDS;
 
   // Access check — allow by default when no rules are configured
   const { data: rulesData, isLoading: rulesLoading } = useBiAccessRulesForRole(user?.role ?? '', 'grafana');
@@ -38,17 +55,9 @@ export default function GrafanaEmbedPage() {
     }
   }, [accessToken, hasAccess]);
 
-  // Auto-select first dashboard
-  useEffect(() => {
-    if (dashboards.length > 0 && !selectedUid) {
-      setSelectedUid(dashboards[0].externalId);
-    }
-  }, [dashboards, selectedUid]);
-
   const grafanaBaseUrl = process.env.NEXT_PUBLIC_GRAFANA_URL ?? '/api/bi-proxy/grafana';
-  // Always use the public URL — the API may return internal/localhost URLs from DB
   const embedUrl = authReady
-    ? `${grafanaBaseUrl}/${selectedUid ? `d/${selectedUid}` : ''}?kiosk`
+    ? `${grafanaBaseUrl}/d/${selectedUid}?kiosk`
     : '';
 
   const handleLoad = useCallback(() => {
@@ -130,23 +139,21 @@ export default function GrafanaEmbedPage() {
         </div>
 
         <div className="flex items-center gap-1">
-          {dashboards.length > 1 && (
-            <select
-              value={selectedUid ?? ''}
-              onChange={(e) => {
-                setSelectedUid(e.target.value);
-                setLoading(true);
-                setIframeKey((prev) => prev + 1);
-              }}
-              className="mr-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-            >
-              {dashboards.map((d) => (
-                <option key={d.externalId} value={d.externalId}>
-                  {d.name.en ?? d.name.fr ?? d.externalId}
-                </option>
-              ))}
-            </select>
-          )}
+          <select
+            value={selectedUid}
+            onChange={(e) => {
+              setSelectedUid(e.target.value);
+              setLoading(true);
+              setIframeKey((prev) => prev + 1);
+            }}
+            className="mr-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+          >
+            {dashboardList.map((d) => (
+              <option key={d.uid} value={d.uid}>
+                {d.label}
+              </option>
+            ))}
+          </select>
 
           <button
             onClick={handleRefresh}
