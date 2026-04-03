@@ -150,15 +150,71 @@ function LogoUploadField({ label, description, value, onChange, disabled }: Logo
                 src={currentLogo}
                 alt="Platform logo"
                 onError={() => setImgError(true)}
-                className="h-16 w-auto max-w-[120px] rounded-lg border border-gray-100 object-contain opacity-80 shadow-sm dark:border-gray-700"
+                className="h-10 w-auto max-w-[80px] rounded-lg border border-gray-100 object-contain opacity-80 shadow-sm dark:border-gray-700"
               />
             </div>
           ) : (
-            <div className="flex h-16 w-20 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
-              <ImageIcon className="h-6 w-6 text-gray-300 dark:text-gray-600" />
+            <div className="flex h-10 w-16 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+              <ImageIcon className="h-5 w-5 text-gray-300 dark:text-gray-600" />
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Multilingual Config Field ─────────────────────────────────────────────────
+
+const LANGS = [
+  { code: 'en', label: 'EN', flag: '🇬🇧' },
+  { code: 'fr', label: 'FR', flag: '🇫🇷' },
+  { code: 'pt', label: 'PT', flag: '🇵🇹' },
+  { code: 'ar', label: 'AR', flag: '🇸🇦', rtl: true },
+];
+
+interface MultiLangConfigFieldProps {
+  label: string;
+  description?: string;
+  value: unknown;
+  onChange: (value: Record<string, string>) => void;
+  disabled?: boolean;
+}
+
+function MultiLangConfigField({ label, description, value, onChange, disabled }: MultiLangConfigFieldProps) {
+  const obj: Record<string, string> =
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, string>)
+      : { en: '', fr: '', pt: '', ar: '' };
+
+  return (
+    <div className="rounded-lg border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900/50">
+      <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
+      {description && (
+        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{description}</p>
+      )}
+      <div className="mt-3 space-y-2">
+        {LANGS.map(({ code, label: lbl, flag, rtl }) => (
+          <div key={code} className="flex items-center gap-3">
+            <span className="w-12 shrink-0 text-xs text-gray-400 dark:text-gray-500">
+              {flag} {lbl}
+            </span>
+            <input
+              type="text"
+              dir={rtl ? 'rtl' : undefined}
+              value={obj[code] ?? ''}
+              onChange={(e) => onChange({ ...obj, [code]: e.target.value })}
+              disabled={disabled}
+              className={cn(
+                'flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm',
+                'focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500',
+                'dark:border-gray-700 dark:bg-gray-900 dark:text-white',
+                'disabled:cursor-not-allowed disabled:opacity-50',
+                rtl && 'text-right',
+              )}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -245,6 +301,18 @@ export default function GeneralSettingsPage() {
                   label={config.label?.en ?? config.key}
                   description={config.description?.en}
                   value={(getValue(config) as string) ?? ''}
+                  onChange={(v) => handleChange(config.category, config.key, v)}
+                  disabled={!canEdit}
+                />
+              );
+            }
+            if (config.key === 'platform.fullName') {
+              return (
+                <MultiLangConfigField
+                  key={config.id}
+                  label={config.label?.en ?? config.key}
+                  description={config.description?.en}
+                  value={getValue(config)}
                   onChange={(v) => handleChange(config.category, config.key, v)}
                   disabled={!canEdit}
                 />

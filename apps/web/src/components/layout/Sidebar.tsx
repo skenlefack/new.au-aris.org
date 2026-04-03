@@ -9,6 +9,7 @@ import { useDomainStore, ROUTE_TO_DOMAIN } from '@/lib/stores/domain-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useTranslations } from '@/lib/i18n/translations';
 import { usePublicDomains } from '@/lib/api/settings-hooks';
+import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import { resolveIcon } from '@/lib/lucide-icon-map';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -286,6 +287,9 @@ export function Sidebar({
   const t = useTranslations('nav');
   const hasAccess = useDomainStore((s) => s.hasAccess);
 
+  // Platform branding from settings config
+  const { name: platformName, logoUrl: platformLogoUrl } = usePlatformConfig();
+
   // Fetch active domains from public API (no auth needed, cached 5min)
   const { data: domainData } = usePublicDomains();
   const apiDomains: any[] = (domainData as any)?.data ?? [];
@@ -499,8 +503,8 @@ export function Sidebar({
         <div className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/au-logo.png"
-            alt="AU-IBAR"
+            src={platformLogoUrl}
+            alt={platformName}
             className={cn(
               'flex-shrink-0 object-contain',
               collapsed ? 'h-9 w-9' : 'h-10 w-10',
@@ -511,7 +515,7 @@ export function Sidebar({
               className="font-bold leading-none tracking-tight"
               style={{ fontSize: '1.9rem', color: '#800020' }}
             >
-              ARIS
+              {platformName}
             </span>
           )}
         </div>

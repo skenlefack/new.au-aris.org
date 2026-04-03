@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -15,6 +14,7 @@ import { useLocaleStore } from '@/lib/stores/locale-store';
 import type { Locale } from '@/lib/i18n/config';
 import { LOCALES } from '@/lib/i18n/config';
 import { useTranslations } from '@/lib/i18n/translations';
+import { usePublicPlatformConfig } from '@/hooks/usePlatformConfig';
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -39,6 +39,7 @@ export function LoginPanel({ context }: LoginPanelProps) {
   const router = useRouter();
   const loginMutation = useLogin();
   const ta = useTranslations('auth');
+  const { name: platformName, logoUrl: platformLogoUrl } = usePublicPlatformConfig();
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -82,7 +83,7 @@ export function LoginPanel({ context }: LoginPanelProps) {
       ? `${ta('signInTo')} ${context.name}`
       : context?.level === 'rec'
         ? `${ta('signIn')} \u2014 ${context.name}`
-        : `${ta('signInTo')} ARIS`;
+        : `${ta('signInTo')} ${platformName}`;
 
   const contextSubtitle =
     context?.level === 'country'
@@ -98,9 +99,10 @@ export function LoginPanel({ context }: LoginPanelProps) {
         {context?.level === 'country' && context.flag ? (
           <span className="text-4xl">{context.flag}</span>
         ) : (
-          <Image
-            src="/au-logo.png"
-            alt="African Union"
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={platformLogoUrl}
+            alt={platformName}
             width={48}
             height={48}
             className="h-12 w-12 object-contain"

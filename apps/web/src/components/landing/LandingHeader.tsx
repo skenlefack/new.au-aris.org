@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import type { RecConfig } from '@/data/recs-config';
@@ -10,6 +9,7 @@ import { useLocaleStore } from '@/lib/stores/locale-store';
 import { LOCALES, LOCALE_LABELS, type Locale } from '@/lib/i18n/config';
 import { useTranslations } from '@/lib/i18n/translations';
 import { usePublicLocales } from '@/lib/api/settings-hooks';
+import { usePublicPlatformConfig } from '@/hooks/usePlatformConfig';
 import { getLocalizedField } from '@/lib/i18n/localize';
 
 interface Crumb {
@@ -28,6 +28,7 @@ export function LandingHeader({ rec, country }: LandingHeaderProps) {
   const tc = useTranslations('common');
   const ta = useTranslations('auth');
   const { data: i18nConfig } = usePublicLocales();
+  const { name: platformName, fullName: platformFullName, logoUrl: platformLogoUrl } = usePublicPlatformConfig();
 
   // Filter LOCALES to only show active ones from settings
   const activeLocales = useMemo(() => {
@@ -52,20 +53,20 @@ export function LandingHeader({ rec, country }: LandingHeaderProps) {
         {/* Left: Logo + Title */}
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-3">
-            <Image
-              src="/au-logo.png"
-              alt="African Union"
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={platformLogoUrl}
+              alt={platformName}
               width={48}
               height={48}
               className="h-12 w-12 object-contain"
-              priority
             />
             <div className="hidden sm:block">
               <h1 className="font-extrabold leading-tight text-[#800020]" style={{ fontSize: '1.9rem' }}>
-                ARIS
+                {platformName}
               </h1>
               <p className="text-[11px] leading-tight text-gray-500 dark:text-gray-400">
-                {tc('appSubtitle')}
+                {platformFullName}
               </p>
             </div>
           </Link>

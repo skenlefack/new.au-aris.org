@@ -1,17 +1,23 @@
+'use client';
+
+import { usePublicPlatformConfig } from '@/hooks/usePlatformConfig';
+
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { name, fullName } = usePublicPlatformConfig();
+
   return (
     <div className="flex min-h-screen">
       {/* Left panel — branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-aris-primary-700 via-aris-primary-600 to-aris-secondary-700 items-center justify-center p-12">
         <div className="max-w-md text-white">
           <div className="mb-8">
-            <h1 className="text-4xl font-bold tracking-tight">ARIS</h1>
+            <h1 className="text-4xl font-bold tracking-tight">{name}</h1>
             <p className="mt-1 text-lg text-aris-primary-200">
-              Animal Resources Information System
+              {fullName}
             </p>
           </div>
           <p className="text-aris-primary-100 leading-relaxed">
