@@ -44,6 +44,9 @@ deploy
 certificat
 References-data.txt
 
+# Turbo cache (must NOT be copied — stale cache causes Turbo to skip recompile)
+**/.turbo
+
 # Misc
 *.log
 **/*.tsbuildinfo
