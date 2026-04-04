@@ -32,18 +32,44 @@ function TelegramIcon({ className }: { className?: string }) {
   );
 }
 
-const EVENT_TYPE_KEYS = [
-  { key: 'outbreak_new', tKey: 'outbreakNew' },
-  { key: 'outbreak_confirmed', tKey: 'outbreakConfirmed' },
-  { key: 'outbreak_alert', tKey: 'outbreakAlert' },
-  { key: 'workflow_approved', tKey: 'workflowApproved' },
-  { key: 'workflow_rejected', tKey: 'workflowRejected' },
-  { key: 'workflow_assigned', tKey: 'workflowAssigned' },
-  { key: 'quality_failed', tKey: 'qualityFailed' },
-  { key: 'quality_correction', tKey: 'qualityCorrectionRequired' },
-  { key: 'sync_completed', tKey: 'syncCompleted' },
-  { key: 'system_maintenance', tKey: 'systemMaintenance' },
+const EVENT_CATEGORIES = [
+  {
+    key: 'alerts',
+    labelKey: 'categoryAlerts',
+    events: [
+      { key: 'alert_new', tKey: 'alertNew' },
+      { key: 'alert_confirmed', tKey: 'alertConfirmed' },
+      { key: 'alert_regional', tKey: 'alertRegional' },
+    ],
+  },
+  {
+    key: 'workflow',
+    labelKey: 'categoryWorkflow',
+    events: [
+      { key: 'workflow_approved', tKey: 'workflowApproved' },
+      { key: 'workflow_rejected', tKey: 'workflowRejected' },
+      { key: 'workflow_assigned', tKey: 'workflowAssigned' },
+    ],
+  },
+  {
+    key: 'quality',
+    labelKey: 'categoryQuality',
+    events: [
+      { key: 'quality_failed', tKey: 'qualityFailed' },
+      { key: 'quality_correction', tKey: 'qualityCorrectionRequired' },
+    ],
+  },
+  {
+    key: 'system',
+    labelKey: 'categorySystem',
+    events: [
+      { key: 'sync_completed', tKey: 'syncCompleted' },
+      { key: 'system_maintenance', tKey: 'systemMaintenance' },
+    ],
+  },
 ] as const;
+
+const ALL_EVENT_KEYS = EVENT_CATEGORIES.flatMap((cat) => cat.events);
 
 type ChannelKey = 'email' | 'sms' | 'push' | 'whatsapp' | 'telegram';
 
@@ -80,9 +106,9 @@ export default function NotificationPreferencesPage() {
       whatsapp: {},
       telegram: {},
     };
-    for (const event of EVENT_TYPE_KEYS) {
+    for (const event of ALL_EVENT_KEYS) {
       defaults.email[event.key] = true;
-      defaults.sms[event.key] = event.key.includes('alert') || event.key.includes('outbreak');
+      defaults.sms[event.key] = event.key.includes('alert') || event.key.includes('regional');
       defaults.push[event.key] = true;
       defaults.whatsapp[event.key] = false;
       defaults.telegram[event.key] = false;
@@ -187,34 +213,46 @@ export default function NotificationPreferencesPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-            {EVENT_TYPE_KEYS.map((event) => (
-              <tr key={event.key} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{t(event.tKey)}</td>
-                {CHANNELS.map((ch) => (
-                  <td key={ch.key} className="px-3 py-3 text-center">
-                    <button
-                      type="button"
-                      onClick={() => toggle(ch.key, event.key)}
-                      aria-label={`Toggle ${ch.key} for ${event.key}`}
-                      className={cn(
-                        'h-5 w-9 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1',
-                        prefs[ch.key][event.key]
-                          ? 'bg-aris-primary-600 focus:ring-aris-primary-500'
-                          : 'bg-gray-300 dark:bg-gray-600 focus:ring-gray-400',
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'block h-4 w-4 rounded-full bg-white transition-transform shadow-sm',
-                          prefs[ch.key][event.key]
-                            ? 'translate-x-4.5 ml-[18px]'
-                            : 'translate-x-0.5 ml-[2px]',
-                        )}
-                      />
-                    </button>
+            {EVENT_CATEGORIES.map((cat) => (
+              <>
+                <tr key={`cat-${cat.key}`} className="bg-gray-50/80 dark:bg-gray-800/40">
+                  <td
+                    colSpan={CHANNELS.length + 1}
+                    className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                  >
+                    {t(cat.labelKey as any)}
                   </td>
+                </tr>
+                {cat.events.map((event) => (
+                  <tr key={event.key} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                    <td className="px-4 py-3 pl-6 text-gray-900 dark:text-gray-100">{t(event.tKey as any)}</td>
+                    {CHANNELS.map((ch) => (
+                      <td key={ch.key} className="px-3 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => toggle(ch.key, event.key)}
+                          aria-label={`Toggle ${ch.key} for ${event.key}`}
+                          className={cn(
+                            'h-5 w-9 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1',
+                            prefs[ch.key][event.key]
+                              ? 'bg-aris-primary-600 focus:ring-aris-primary-500'
+                              : 'bg-gray-300 dark:bg-gray-600 focus:ring-gray-400',
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              'block h-4 w-4 rounded-full bg-white transition-transform shadow-sm',
+                              prefs[ch.key][event.key]
+                                ? 'translate-x-4.5 ml-[18px]'
+                                : 'translate-x-0.5 ml-[2px]',
+                            )}
+                          />
+                        </button>
+                      </td>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
+              </>
             ))}
           </tbody>
         </table>

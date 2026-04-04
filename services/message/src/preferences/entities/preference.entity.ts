@@ -7,6 +7,8 @@ export interface NotificationPreferenceEntity {
   sms: boolean;
   push: boolean;
   inApp: boolean;
+  whatsapp: boolean;
+  telegram: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -15,12 +17,18 @@ export interface NotificationPreferenceEntity {
  * All notification event types that support per-user channel preferences.
  */
 export const NOTIFICATION_EVENT_TYPES = [
+  // Alerts & Events (cross-domain — animal health, fisheries, wildlife, apiculture, climate…)
+  'ALERT_NEW',
+  'ALERT_CONFIRMED',
+  'ALERT_REGIONAL',
+  // Workflow
   'WORKFLOW_APPROVED',
   'WORKFLOW_REJECTED',
+  'CAMPAIGN_ASSIGNED',
+  // Data Quality
   'QUALITY_FAILED',
   'CORRECTION_OVERDUE',
-  'OUTBREAK_ALERT',
-  'CAMPAIGN_ASSIGNED',
+  // System
   'DAILY_DIGEST',
   'FORM_SUBMITTED',
 ] as const;
