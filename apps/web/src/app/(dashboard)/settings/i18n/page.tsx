@@ -154,17 +154,17 @@ export default function I18nSettingsPage() {
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           <Globe className="h-3.5 w-3.5" />
-          {t('autoDetect') || 'Détection automatique'}
+          {t('autoDetect')}
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
         </h2>
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900/50">
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {t('autoDetectBrowserLang') || 'Détecter la langue du navigateur'}
+                {t('autoDetectBrowserLang')}
               </p>
               <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                {t('autoDetectBrowserLangDesc') || 'Définit automatiquement la langue de l\'interface selon les préférences système de l\'utilisateur lors de sa première visite.'}
+                {t('autoDetectBrowserLangDesc')}
               </p>
             </div>
             <button
@@ -345,7 +345,7 @@ export default function I18nSettingsPage() {
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           <Hash className="h-3.5 w-3.5" />
-          {t('numberFormats') || 'Formats des nombres par langue'}
+          {t('numberFormats')}
           <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
         </h2>
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900/50">
