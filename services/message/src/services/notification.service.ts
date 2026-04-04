@@ -30,6 +30,8 @@ export class NotificationService {
       sms: MessageChannel;
       push: MessageChannel;
       inApp: MessageChannel;
+      whatsapp: MessageChannel;
+      telegram: MessageChannel;
     },
   ) {}
 
@@ -135,12 +137,30 @@ export class NotificationService {
     return this.send(dto, caller.tenantId, caller.userId);
   }
 
+  async testEmail(to: string): Promise<ApiResponse<{ success: boolean; messageId?: string; error?: string }>> {
+    const result = await this.channels.email.send({
+      to,
+      subject: 'ARIS — Test Email (Postmark / SMTP)',
+      body: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+          <h2 style="color:#1a1a1a">Test Email — ARIS 4.0</h2>
+          <p style="color:#444">This is a test email sent from the ARIS notification system.</p>
+          <p style="color:#444">If you received this, your email provider is configured correctly.</p>
+          <p style="color:#888;font-size:12px;margin-top:24px">Sent at: ${new Date().toISOString()}</p>
+        </div>
+      `,
+    });
+    return { data: { success: result.success, messageId: result.messageId, error: result.error } };
+  }
+
   resolveChannel(channel: NotificationChannel): MessageChannel {
     switch (channel) {
       case NotificationChannel.EMAIL: return this.channels.email;
       case NotificationChannel.SMS: return this.channels.sms;
       case NotificationChannel.PUSH: return this.channels.push;
       case NotificationChannel.IN_APP: return this.channels.inApp;
+      case NotificationChannel.WHATSAPP: return this.channels.whatsapp;
+      case NotificationChannel.TELEGRAM: return this.channels.telegram;
       default: throw new Error(`Unknown notification channel: ${String(channel)}`);
     }
   }

@@ -6,6 +6,8 @@ export const UpsertPreferenceSchema = Type.Object({
   sms: Type.Optional(Type.Boolean()),
   push: Type.Optional(Type.Boolean()),
   inApp: Type.Optional(Type.Boolean()),
+  whatsapp: Type.Optional(Type.Boolean()),
+  telegram: Type.Optional(Type.Boolean()),
 });
 
 export type UpsertPreferenceInput = Static<typeof UpsertPreferenceSchema>;

@@ -6,6 +6,8 @@ enum NotificationChannel {
   SMS
   PUSH
   IN_APP
+  WHATSAPP
+  TELEGRAM
 
   @@map("notification_channel")
   @@schema("public")
@@ -55,6 +57,8 @@ model NotificationPreference {
   sms        Boolean  @default(false)
   push       Boolean  @default(false)
   inApp      Boolean  @default(true) @map("in_app")
+  whatsapp   Boolean  @default(false)
+  telegram   Boolean  @default(false)
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
 

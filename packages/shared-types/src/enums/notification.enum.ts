@@ -3,6 +3,8 @@ export enum NotificationChannel {
   SMS = 'SMS',
   PUSH = 'PUSH',
   IN_APP = 'IN_APP',
+  WHATSAPP = 'WHATSAPP',
+  TELEGRAM = 'TELEGRAM',
 }
 
 export enum NotificationStatus {

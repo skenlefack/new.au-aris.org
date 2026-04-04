@@ -9,6 +9,8 @@ import { createEmailChannel } from '../services/channels/email-channel.factory';
 import { SmsChannel } from '../services/channels/sms.channel';
 import { PushChannel } from '../services/channels/push.channel';
 import { InAppChannel } from '../services/channels/in-app.channel';
+import { WhatsAppChannel } from '../services/channels/whatsapp.channel';
+import { TelegramChannel } from '../services/channels/telegram.channel';
 
 export default fp(
   async (app: FastifyInstance) => {
@@ -17,12 +19,16 @@ export default fp(
     const smsChannel = new SmsChannel();
     const pushChannel = new PushChannel();
     const inAppChannel = new InAppChannel();
+    const whatsappChannel = new WhatsAppChannel();
+    const telegramChannel = new TelegramChannel();
 
     const notificationService = new NotificationService(app.prisma, app.kafka, {
       email: emailChannel,
       sms: smsChannel,
       push: pushChannel,
       inApp: inAppChannel,
+      whatsapp: whatsappChannel,
+      telegram: telegramChannel,
     });
     const preferencesService = new PreferencesService(app.prisma);
     const templateEngine = new TemplateEngine();

@@ -903,6 +903,42 @@ const SYSTEM_CONFIGS: SystemConfigSeedData[] = [
 
   // ── NOTIFICATIONS ──
   {
+    category: 'security', key: 'security.session.allowMultipleConnections',
+    value: false,
+    label: {
+      en: 'Allow Multiple Simultaneous Connections',
+      fr: 'Autoriser les connexions simultan\u00e9es multiples',
+      pt: 'Permitir liga\u00e7\u00f5es simult\u00e2neas m\u00faltiplas',
+      ar: '\u0627\u0644\u0633\u0645\u0627\u062d \u0628\u0627\u0644\u0627\u062a\u0635\u0627\u0644\u0627\u062a \u0627\u0644\u0645\u062a\u0632\u0627\u0645\u0646\u0629 \u0627\u0644\u0645\u062a\u0639\u062f\u062f\u0629',
+    },
+    description: {
+      en: 'If disabled (default), each account may only maintain 1 active web session and 1 active mobile session simultaneously. A new login on the same device type revokes the previous session. A security email is sent on login from any new or unrecognised device. If enabled, unlimited simultaneous sessions are allowed but a warning email is sent for every login.',
+      fr: "Si d\u00e9sactiv\u00e9 (par d\u00e9faut), chaque compte ne peut maintenir qu'1 session web et 1 session mobile actives simultan\u00e9ment. Une nouvelle connexion sur le m\u00eame type d'appareil r\u00e9voque la pr\u00e9c\u00e9dente. Un email de s\u00e9curit\u00e9 est envoy\u00e9 lors de toute connexion depuis un appareil non reconnu. Si activ\u00e9, les sessions simultan\u00e9es illimit\u00e9es sont autoris\u00e9es mais un email d'avertissement est envoy\u00e9 \u00e0 chaque connexion.",
+      pt: 'Se desativado (padr\u00e3o), cada conta s\u00f3 pode manter 1 sess\u00e3o web e 1 sess\u00e3o mobile ativas simultaneamente. Um novo login no mesmo tipo de dispositivo revoga a sess\u00e3o anterior. Um email de seguran\u00e7a \u00e9 enviado ao login de qualquer dispositivo n\u00e3o reconhecido. Se ativado, sess\u00f5es simult\u00e2neas ilimitadas s\u00e3o permitidas mas um email de aviso \u00e9 enviado a cada login.',
+      ar: '\u0625\u0630\u0627 \u062a\u0645 \u0627\u0644\u062a\u0639\u0637\u064a\u0644 (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a)\u060c \u064a\u0645\u0643\u0646 \u0644\u0643\u0644 \u062d\u0633\u0627\u0628 \u0627\u0644\u062d\u0641\u0627\u0638 \u0639\u0644\u0649 \u062c\u0644\u0633\u0629 \u0648\u064a\u0628 \u0648\u062c\u0644\u0633\u0629 \u062c\u0648\u0627\u0644 \u0648\u0627\u062d\u062f\u0629 \u0641\u0642\u0637. \u064a\u0644\u063a\u064a \u062a\u0633\u062c\u064a\u0644 \u062f\u062e\u0648\u0644 \u062c\u062f\u064a\u062f \u0627\u0644\u062c\u0644\u0633\u0629 \u0627\u0644\u0633\u0627\u0628\u0642\u0629 \u0644\u0646\u0641\u0633 \u0627\u0644\u0646\u0648\u0639.',
+    },
+    type: 'boolean', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'security', key: 'security.session.loginNotificationEmail',
+    value: true,
+    label: {
+      en: 'Login Notification Email',
+      fr: 'Email de notification de connexion',
+      pt: 'Email de notifica\u00e7\u00e3o de login',
+      ar: '\u0625\u0634\u0639\u0627\u0631 \u0628\u0631\u064a\u062f \u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u0644\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644',
+    },
+    description: {
+      en: 'Master switch for login security emails. When enabled, an email is always sent on first login from a new or unrecognised device. When "Allow Multiple Simultaneous Connections" is also enabled, an email is sent for every login regardless of device.',
+      fr: "Interrupteur principal des emails de s\u00e9curit\u00e9 de connexion. Lorsqu'activ\u00e9, un email est toujours envoy\u00e9 lors de la premi\u00e8re connexion depuis un appareil non reconnu. Lorsque \"Autoriser les connexions simultan\u00e9es multiples\" est aussi activ\u00e9, un email est envoy\u00e9 pour chaque connexion.",
+      pt: 'Interruptor principal para emails de seguran\u00e7a de login. Quando ativado, um email \u00e9 sempre enviado no primeiro login de um dispositivo n\u00e3o reconhecido. Quando "Permitir liga\u00e7\u00f5es simult\u00e2neas m\u00faltiplas" tamb\u00e9m est\u00e1 ativado, um email \u00e9 enviado para cada login.',
+      ar: '\u0627\u0644\u0645\u0641\u062a\u0627\u062d \u0627\u0644\u0631\u0626\u064a\u0633\u064a \u0644\u0631\u0633\u0627\u0626\u0644 \u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0623\u0645\u0646\u064a. \u0639\u0646\u062f \u0627\u0644\u062a\u0641\u0639\u064a\u0644\u060c \u064a\u064f\u0631\u0633\u0644 \u0628\u0631\u064a\u062f \u062f\u0627\u0626\u0645\u0627\u064b \u0639\u0646\u062f \u0623\u0648\u0644 \u062a\u0633\u062c\u064a\u0644 \u062f\u062e\u0648\u0644 \u0645\u0646 \u062c\u0647\u0627\u0632 \u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0641.',
+    },
+    type: 'boolean', isEditable: true, scope: 'global',
+  },
+
+  // ── NOTIFICATIONS ──
+  {
     category: 'notifications', key: 'notifications.email.enabled',
     value: true,
     label: { en: 'Email Notifications', fr: 'Notifications par email', pt: 'Notifica\u00e7\u00f5es por email' },

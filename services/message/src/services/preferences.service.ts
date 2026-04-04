@@ -8,6 +8,8 @@ const DEFAULT_CHANNELS = {
   sms: false,
   push: false,
   inApp: true,
+  whatsapp: false,
+  telegram: false,
 };
 
 export class PreferencesService {
@@ -22,7 +24,7 @@ export class PreferencesService {
   }
 
   async upsert(
-    dto: { eventType: string; email?: boolean; sms?: boolean; push?: boolean; inApp?: boolean },
+    dto: { eventType: string; email?: boolean; sms?: boolean; push?: boolean; inApp?: boolean; whatsapp?: boolean; telegram?: boolean },
     user: AuthenticatedUser,
   ): Promise<ApiResponse<NotificationPreferenceEntity>> {
     const { userId, tenantId } = user;
@@ -33,6 +35,8 @@ export class PreferencesService {
       sms: dto.sms ?? DEFAULT_CHANNELS.sms,
       push: dto.push ?? DEFAULT_CHANNELS.push,
       inApp: dto.inApp ?? DEFAULT_CHANNELS.inApp,
+      whatsapp: dto.whatsapp ?? DEFAULT_CHANNELS.whatsapp,
+      telegram: dto.telegram ?? DEFAULT_CHANNELS.telegram,
     };
 
     const preference = await (this.prisma as any).notificationPreference.upsert({
@@ -48,7 +52,7 @@ export class PreferencesService {
     userId: string,
     tenantId: string,
     eventType: string,
-  ): Promise<{ email: boolean; sms: boolean; push: boolean; inApp: boolean }> {
+  ): Promise<{ email: boolean; sms: boolean; push: boolean; inApp: boolean; whatsapp: boolean; telegram: boolean }> {
     const preference = await (this.prisma as any).notificationPreference.findUnique({
       where: { userId_eventType: { userId, eventType } },
     });
@@ -58,6 +62,8 @@ export class PreferencesService {
       sms: preference.sms,
       push: preference.push,
       inApp: preference.inApp,
+      whatsapp: preference.whatsapp ?? false,
+      telegram: preference.telegram ?? false,
     };
   }
 }

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useSettingsConfig, useBulkUpdateConfig } from '@/lib/api/settings-hooks';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 import { ConfigField } from '@/components/settings/ConfigField';
 import { SaveBar } from '@/components/settings/SaveBar';
 import {
@@ -27,6 +28,7 @@ interface SectionDef {
 
 export default function DataQualitySettingsPage() {
   const t = useTranslations('settings');
+  const locale = useLocaleStore((s) => s.locale);
 
   const QUALITY_GATES = [
     t('gateCompleteness'),
@@ -180,8 +182,8 @@ export default function DataQualitySettingsPage() {
               {items.map((config: any) => (
                 <ConfigField
                   key={config.id}
-                  label={config.label?.en ?? config.key.split('.').pop()}
-                  description={config.description?.en}
+                  label={config.label?.[locale] ?? config.label?.en ?? config.key.split('.').pop()}
+                  description={config.description?.[locale] ?? config.description?.en}
                   type={config.type}
                   value={getValue(config)}
                   onChange={(v) => handleChange(config.key, v)}

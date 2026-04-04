@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { rolesHook } from '@aris/auth-middleware/fastify';
+import { Type, type Static } from '@sinclair/typebox';
 import { UserRole } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import {
@@ -10,6 +11,9 @@ import {
   type ListNotificationsQueryInput,
   type UuidParamInput,
 } from '../schemas/notification.schema';
+
+const TestEmailSchema = Type.Object({ to: Type.String({ format: 'email' }) });
+type TestEmailInput = Static<typeof TestEmailSchema>;
 
 export async function registerNotificationRoutes(app: FastifyInstance): Promise<void> {
   // GET /api/v1/messages -- list notifications
@@ -56,5 +60,16 @@ export async function registerNotificationRoutes(app: FastifyInstance): Promise<
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.notificationService.sendManual(request.body, user);
+  });
+
+  // POST /api/v1/messages/test-email — send a test email to verify provider (admin only)
+  app.post<{ Body: TestEmailInput }>('/api/v1/messages/test-email', {
+    schema: { body: TestEmailSchema },
+    preHandler: [
+      app.authHookFn,
+      rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN),
+    ],
+  }, async (request) => {
+    return app.notificationService.testEmail(request.body.to);
   });
 }

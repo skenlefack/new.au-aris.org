@@ -21,7 +21,11 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     schema: { body: LoginSchema },
     preHandler: [rateLimitHook(app, 10, 60)],
   }, async (request, reply) => {
-    const result = await app.authService.login(request.body);
+    const ipAddress = request.headers['x-forwarded-for']
+      ? String(request.headers['x-forwarded-for']).split(',')[0].trim()
+      : request.ip;
+    const userAgent = request.headers['user-agent'] ?? '';
+    const result = await app.authService.login(request.body, { ipAddress, userAgent });
     return reply.code(200).send(result);
   });
 

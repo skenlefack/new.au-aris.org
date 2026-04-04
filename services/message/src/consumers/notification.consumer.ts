@@ -7,6 +7,7 @@ import {
   TOPIC_AU_QUALITY_CORRECTION_OVERDUE,
   TOPIC_MS_COLLECTE_FORM_SUBMITTED,
   TOPIC_SYS_CREDENTIAL_PASSWORD_RESET,
+  TOPIC_SYS_CREDENTIAL_NEW_DEVICE_LOGIN,
 } from '@aris/shared-types';
 import type { NotificationService } from '../services/notification.service';
 import type { TemplateEngine } from '../services/template-engine';
@@ -32,6 +33,7 @@ export class NotificationConsumer {
       this.subscribeCorrectionOverdue(),
       this.subscribeFormSubmitted(),
       this.subscribePasswordReset(),
+      this.subscribeNewDeviceLogin(),
     ]);
     console.log('All notification consumers subscribed');
   }
@@ -69,6 +71,22 @@ export class NotificationConsumer {
       const subject = this.templateEngine.renderSubject(eventType as any, data);
       await this.notificationService.send(
         { userId, channel: NotificationChannel.IN_APP, subject, body: inAppFallbackBody },
+        tenantId,
+      );
+    }
+
+    if (channels.whatsapp) {
+      const msgBody = this.templateEngine.renderSms(eventType as any, data);
+      await this.notificationService.send(
+        { userId, channel: NotificationChannel.WHATSAPP, subject: (data['subject'] as string) ?? eventType, body: msgBody },
+        tenantId,
+      );
+    }
+
+    if (channels.telegram) {
+      const msgBody = this.templateEngine.renderSms(eventType as any, data);
+      await this.notificationService.send(
+        { userId, channel: NotificationChannel.TELEGRAM, subject: (data['subject'] as string) ?? eventType, body: msgBody },
         tenantId,
       );
     }
@@ -162,5 +180,42 @@ export class NotificationConsumer {
         console.error(`[PASSWORD_RESET] Failed to send email to ${data.email}: ${result.error}`);
       }
     });
+  }
+
+  private async subscribeNewDeviceLogin(): Promise<void> {
+    if (!this.emailChannel) {
+      console.warn('[NotificationConsumer] No email channel provided — new device login emails will not be sent');
+      return;
+    }
+    const channel = this.emailChannel;
+    await this.kafkaConsumer.subscribe(
+      { topic: TOPIC_SYS_CREDENTIAL_NEW_DEVICE_LOGIN, groupId: 'message-service-transactional' },
+      async (payload) => {
+        const data = payload as any;
+        const templateData = {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          deviceName: data.deviceName,
+          deviceType: data.deviceType,
+          ipAddress: data.ipAddress,
+          loginAt: data.loginAt,
+          isNewDevice: data.isNewDevice,
+          allowMultipleConnections: data.allowMultipleConnections,
+          dashboardUrl: process.env['DASHBOARD_URL'] ?? 'https://au-aris.org/dashboard',
+        };
+        const rendered = this.templateEngine.renderEmail('NEW_DEVICE_LOGIN', templateData);
+        const result = await channel.send({
+          to: data.email,
+          subject: rendered.subject,
+          body: rendered.html,
+        });
+        const tag = data.isNewDevice ? '[NEW_DEVICE_LOGIN]' : '[LOGIN_ALERT]';
+        if (result.success) {
+          console.log(`${tag} Security email sent to ${data.email} (device: ${data.deviceName})`);
+        } else {
+          console.error(`${tag} Failed to send security email to ${data.email}: ${result.error}`);
+        }
+      },
+    );
   }
 }
