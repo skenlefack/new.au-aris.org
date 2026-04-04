@@ -928,6 +928,9 @@
     "dataPrivacyDesc": "Gestionar exportación de datos, retención y preferencias de privacidad",
     "profileUpdateFailed": "Error al actualizar el perfil. Inténtalo de nuevo.",
     "passwordStrength": "Seguridad de la contraseña",
+    "passwordWeak": "Débil",
+    "passwordMedium": "Medio",
+    "passwordStrong": "Fuerte",
     "updatePassword": "Actualizar contraseña",
 
     "accountInfo": "Información de la cuenta",
@@ -947,6 +950,8 @@
     "mfaDisableConfirm": "Ingrese su código de 6 dígitos para desactivar la autenticación de dos factores",
     "mfaDisableSuccess": "La autenticación de dos factores ha sido desactivada.",
     "mfaSecretKey": "Clave secreta (entrada manual)",
+    "mfaInitFailed": "Error al inicializar la configuración MFA.",
+    "mfaInvalidCode": "Código inválido. Por favor, inténtelo de nuevo.",
 
     "changePhoto": "Cambiar foto",
     "uploadPhoto": "Agregar foto de perfil",
@@ -956,6 +961,10 @@
     "photoUploadFailed": "Error al subir la foto. Inténtalo de nuevo.",
     "photoMaxSize": "Tamaño máximo: 5 MB",
     "photoFormats": "JPG, PNG o WebP",
+    "preferredLanguage": "Idioma preferido",
+    "preferredLanguageDesc": "Elija el idioma de visualización de la interfaz para su cuenta.",
+    "localeSaved": "Idioma actualizado correctamente.",
+    "apply": "Aplicar",
 
     "tenantConfig": "Configuración de Inquilino",
     "tenantConfigDesc": "Gestionar la configuración de su organización",

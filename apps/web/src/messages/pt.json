@@ -956,6 +956,9 @@
     "dataPrivacyDesc": "Gerenciar exportação de dados, retenção e preferências de privacidade",
     "profileUpdateFailed": "Falha ao atualizar o perfil. Tente novamente.",
     "passwordStrength": "Força da senha",
+    "passwordWeak": "Fraco",
+    "passwordMedium": "Médio",
+    "passwordStrong": "Forte",
     "updatePassword": "Atualizar senha",
 
     "accountInfo": "Informações da conta",
@@ -975,6 +978,8 @@
     "mfaDisableConfirm": "Digite seu código de 6 dígitos para desativar a autenticação de dois fatores",
     "mfaDisableSuccess": "A autenticação de dois fatores foi desativada.",
     "mfaSecretKey": "Chave secreta (entrada manual)",
+    "mfaInitFailed": "Falha ao inicializar a configuração MFA.",
+    "mfaInvalidCode": "Código inválido. Por favor, tente novamente.",
 
     "changePhoto": "Alterar foto",
     "uploadPhoto": "Adicionar foto de perfil",
@@ -984,6 +989,10 @@
     "photoUploadFailed": "Falha ao enviar a foto. Tente novamente.",
     "photoMaxSize": "Tamanho máximo: 5 MB",
     "photoFormats": "JPG, PNG ou WebP",
+    "preferredLanguage": "Idioma preferido",
+    "preferredLanguageDesc": "Escolha o idioma de exibição da interface para a sua conta.",
+    "localeSaved": "Idioma atualizado com sucesso.",
+    "apply": "Aplicar",
 
     "tenantConfig": "Configuração do Locatário",
     "tenantConfigDesc": "Gerenciar as configurações da sua organização",

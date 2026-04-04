@@ -87,10 +87,10 @@ function getPasswordStrength(password: string): PasswordStrength {
   return 'weak';
 }
 
-const STRENGTH_CONFIG: Record<PasswordStrength, { label: string; color: string; width: string }> = {
-  weak: { label: 'Weak', color: 'bg-red-500', width: 'w-1/3' },
-  medium: { label: 'Medium', color: 'bg-amber-500', width: 'w-2/3' },
-  strong: { label: 'Strong', color: 'bg-green-500', width: 'w-full' },
+const STRENGTH_CONFIG: Record<PasswordStrength, { labelKey: string; color: string; width: string }> = {
+  weak: { labelKey: 'passwordWeak', color: 'bg-red-500', width: 'w-1/3' },
+  medium: { labelKey: 'passwordMedium', color: 'bg-amber-500', width: 'w-2/3' },
+  strong: { labelKey: 'passwordStrong', color: 'bg-green-500', width: 'w-full' },
 };
 
 /* ------------------------------------------------------------------ */
@@ -259,7 +259,7 @@ export default function ProfilePage() {
         setMfaStep('setup');
       },
       onError: () => {
-        setMfaError('Failed to initialize MFA setup.');
+        setMfaError(t('mfaInitFailed'));
       },
     });
   }
@@ -282,7 +282,7 @@ export default function ProfilePage() {
           setTimeout(() => setMfaSuccess(''), 5000);
         },
         onError: () => {
-          setMfaError('Invalid code. Please try again.');
+          setMfaError(t('mfaInvalidCode'));
         },
       },
     );
@@ -304,7 +304,7 @@ export default function ProfilePage() {
           setTimeout(() => setMfaSuccess(''), 5000);
         },
         onError: () => {
-          setMfaError('Invalid code. Please try again.');
+          setMfaError(t('mfaInvalidCode'));
         },
       },
     );
@@ -587,16 +587,16 @@ export default function ProfilePage() {
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
           <Languages className="h-4 w-4" style={{ color: 'var(--color-accent)' }} />
-          Langue préférée
+          {t('preferredLanguage')}
         </h3>
         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Choisissez la langue d'affichage de l'interface pour votre compte.
+          {t('preferredLanguageDesc')}
         </p>
 
         {localeSaved && (
           <div className="mt-3 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-400">
             <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-            Langue mise à jour avec succès.
+            {t('localeSaved')}
           </div>
         )}
 
@@ -628,7 +628,7 @@ export default function ProfilePage() {
             ) : (
               <Save className="h-4 w-4" />
             )}
-            {updateLocaleMutation.isPending ? 'Saving...' : 'Appliquer'}
+            {updateLocaleMutation.isPending ? t('saving') : t('apply')}
           </button>
         </div>
       </div>
@@ -805,7 +805,7 @@ export default function ProfilePage() {
                           : 'text-red-600'
                     }`}
                   >
-                    {strengthConfig.label}
+                    {t(strengthConfig.labelKey)}
                   </span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">

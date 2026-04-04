@@ -956,6 +956,9 @@
     "dataPrivacyDesc": "Manage data export, retention, and privacy preferences",
     "profileUpdateFailed": "Failed to update profile. Please try again.",
     "passwordStrength": "Password strength",
+    "passwordWeak": "Weak",
+    "passwordMedium": "Medium",
+    "passwordStrong": "Strong",
     "updatePassword": "Update Password",
 
     "accountInfo": "Account Information",
@@ -975,6 +978,8 @@
     "mfaDisableConfirm": "Enter your 6-digit code to disable two-factor authentication",
     "mfaDisableSuccess": "Two-factor authentication has been disabled.",
     "mfaSecretKey": "Secret key (manual entry)",
+    "mfaInitFailed": "Failed to initialize MFA setup.",
+    "mfaInvalidCode": "Invalid code. Please try again.",
 
     "changePhoto": "Change photo",
     "uploadPhoto": "Upload a profile photo",
@@ -984,6 +989,10 @@
     "photoUploadFailed": "Failed to upload photo. Please try again.",
     "photoMaxSize": "Maximum file size: 5 MB",
     "photoFormats": "JPG, PNG or WebP",
+    "preferredLanguage": "Preferred Language",
+    "preferredLanguageDesc": "Choose the display language for your account interface.",
+    "localeSaved": "Language updated successfully.",
+    "apply": "Apply",
 
     "tenantConfig": "Tenant Configuration",
     "tenantConfigDesc": "Manage your organization's settings",

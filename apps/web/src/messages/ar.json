@@ -928,6 +928,9 @@
     "dataPrivacyDesc": "إدارة تصدير البيانات والاحتفاظ بها وتفضيلات الخصوصية",
     "profileUpdateFailed": "فشل تحديث الملف الشخصي. يرجى المحاولة مرة أخرى.",
     "passwordStrength": "قوة كلمة المرور",
+    "passwordWeak": "ضعيف",
+    "passwordMedium": "متوسط",
+    "passwordStrong": "قوي",
     "updatePassword": "تحديث كلمة المرور",
 
     "accountInfo": "معلومات الحساب",
@@ -947,6 +950,8 @@
     "mfaDisableConfirm": "أدخل رمزك المكون من 6 أرقام لتعطيل المصادقة الثنائية",
     "mfaDisableSuccess": "تم تعطيل المصادقة الثنائية.",
     "mfaSecretKey": "المفتاح السري (إدخال يدوي)",
+    "mfaInitFailed": "فشل تهيئة إعداد المصادقة الثنائية.",
+    "mfaInvalidCode": "رمز غير صالح. يرجى المحاولة مرة أخرى.",
 
     "changePhoto": "تغيير الصورة",
     "uploadPhoto": "إضافة صورة الملف الشخصي",
@@ -956,6 +961,10 @@
     "photoUploadFailed": "فشل رفع الصورة. يرجى المحاولة مرة أخرى.",
     "photoMaxSize": "الحجم الأقصى: 5 ميغابايت",
     "photoFormats": "JPG أو PNG أو WebP",
+    "preferredLanguage": "اللغة المفضلة",
+    "preferredLanguageDesc": "اختر لغة عرض الواجهة لحسابك.",
+    "localeSaved": "تم تحديث اللغة بنجاح.",
+    "apply": "تطبيق",
 
     "tenantConfig": "تكوين الكيان",
     "tenantConfigDesc": "إدارة إعدادات مؤسستك",
