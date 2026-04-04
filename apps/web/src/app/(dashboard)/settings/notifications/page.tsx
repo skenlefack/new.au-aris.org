@@ -86,11 +86,15 @@ const CHANNELS: { key: ChannelKey; labelKey: string; icon: React.ReactNode; colo
 export default function NotificationPreferencesPage() {
   const t = useTranslations('settings');
   const userEmail = useAuthStore((s) => s.user?.email ?? '');
+  const userRole = useAuthStore((s) => s.user?.role);
+  const isAdmin = userRole === 'SUPER_ADMIN' || userRole === 'CONTINENTAL_ADMIN'
+    || userRole === 'REC_ADMIN' || userRole === 'NATIONAL_ADMIN';
   const { data, isLoading } = useNotificationPreferences();
   const updatePrefs = useUpdateNotificationPreferences();
   const testEmail = useSendTestEmail();
   const [saved, setSaved] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [testEmailTo, setTestEmailTo] = useState(userEmail || 'serge.kenlefack@au-ibar.org');
 
   const [prefs, setPrefs] = useState<NotificationPreferences>({
     email: {},
@@ -151,7 +155,7 @@ export default function NotificationPreferencesPage() {
   }
 
   function handleTestEmail() {
-    const to = userEmail || '';
+    const to = testEmailTo.trim();
     if (!to) return;
     setTestResult(null);
     testEmail.mutate(to, {
@@ -279,7 +283,8 @@ export default function NotificationPreferencesPage() {
         )}
       </div>
 
-      {/* Postmark / email test */}
+      {/* Postmark / email test — admin only */}
+      {isAdmin && (
       <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900/50">
         <div className="flex items-start gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
@@ -292,11 +297,18 @@ export default function NotificationPreferencesPage() {
             <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
               {t('testEmailDeliveryDesc')}
             </p>
-            <div className="mt-3 flex items-center gap-3">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <input
+                type="email"
+                value={testEmailTo}
+                onChange={(e) => setTestEmailTo(e.target.value)}
+                placeholder="recipient@example.com"
+                className="h-7 rounded-md border border-gray-300 bg-white px-2.5 text-xs text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 w-64"
+              />
               <button
                 type="button"
                 onClick={handleTestEmail}
-                disabled={testEmail.isPending || !userEmail}
+                disabled={testEmail.isPending || !testEmailTo.trim()}
                 className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
               >
                 {testEmail.isPending ? (
@@ -304,7 +316,7 @@ export default function NotificationPreferencesPage() {
                 ) : (
                   <Mail className="h-3.5 w-3.5" />
                 )}
-                {testEmail.isPending ? t('sending') : t('sendTestEmail')} {userEmail && `→ ${userEmail}`}
+                {testEmail.isPending ? t('sending') : t('sendTestEmail')}
               </button>
             </div>
             {testResult && (
@@ -323,6 +335,7 @@ export default function NotificationPreferencesPage() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
