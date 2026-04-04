@@ -69,7 +69,9 @@ const EVENT_CATEGORIES = [
   },
 ] as const;
 
-const ALL_EVENT_KEYS = EVENT_CATEGORIES.flatMap((cat) => cat.events);
+const ALL_EVENT_KEYS = EVENT_CATEGORIES.flatMap(
+  (cat) => cat.events as ReadonlyArray<{ readonly key: string; readonly tKey: string }>,
+);
 
 type ChannelKey = 'email' | 'sms' | 'push' | 'whatsapp' | 'telegram';
 
