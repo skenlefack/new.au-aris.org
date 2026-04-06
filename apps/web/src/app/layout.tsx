@@ -86,8 +86,30 @@ export default function RootLayout({
                     keys.forEach(function(k) { caches.delete(k); });
                   });
                 } else {
+                  // Force a reload when a new service worker takes control
+                  // so users stuck on a broken old SW recover automatically.
+                  var refreshing = false;
+                  navigator.serviceWorker.addEventListener('controllerchange', function() {
+                    if (refreshing) return;
+                    refreshing = true;
+                    window.location.reload();
+                  });
                   window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('/sw.js').catch(function() {});
+                    navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                      // Immediately ask the browser to revalidate sw.js
+                      reg.update().catch(function() {});
+                      // Detect new SW being installed and tell it to take over
+                      reg.addEventListener('updatefound', function() {
+                        var nw = reg.installing;
+                        if (!nw) return;
+                        nw.addEventListener('statechange', function() {
+                          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                            // A new SW is waiting — activate it now
+                            nw.postMessage({ type: 'SKIP_WAITING' });
+                          }
+                        });
+                      });
+                    }).catch(function() {});
                   });
                 }
               }

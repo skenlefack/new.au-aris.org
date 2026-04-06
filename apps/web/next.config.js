@@ -14,6 +14,30 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
+  // ─── HTTP headers ──────────────────────────────────────────────────────────
+  // Force browsers to always revalidate sw.js so deploys propagate immediately.
+  // Without this, Chrome/Edge can serve a stale sw.js from disk cache.
+  async headers() {
+    return [
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Pragma', value: 'no-cache' },
+          { key: 'Expires', value: '0' },
+          { key: 'Service-Worker-Allowed', value: '/' },
+        ],
+      },
+      {
+        source: '/manifest.json',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, must-revalidate' },
+          { key: 'Content-Type', value: 'application/manifest+json' },
+        ],
+      },
+    ];
+  },
+
   // ─── Dev proxy: route API calls to the correct backend service ─────────────
   // In production Traefik handles routing — rewrites are NOT needed.
   // In dev, Next.js rewrites act as proxy so the browser stays same-origin.

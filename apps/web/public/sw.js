@@ -1,73 +1,100 @@
-const CACHE_NAME = 'aris-v2';
+const CACHE_NAME = 'aris-v3';
 const PRECACHE_URLS = ['/', '/login'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then(() => self.skipWaiting()),
   );
-  self.skipWaiting();
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)),
+        ),
       )
-    )
+      .then(() => self.clients.claim()),
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests entirely (POST/PUT/PATCH/DELETE can't be cached)
-  if (event.request.method !== 'GET') {
-    return;
-  }
+  const req = event.request;
 
-  // Skip cross-origin requests (BI subdomains, external resources)
-  if (!event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
+  // Only handle GET — POST/PUT/PATCH/DELETE pass through untouched
+  if (req.method !== 'GET') return;
 
-  // API calls: pass-through to network. Do NOT intercept — let the browser
-  // handle errors naturally so the app's fetch logic sees real Response objects.
-  if (event.request.url.includes('/api/')) {
-    return;
-  }
+  // Same-origin only — never intercept BI subdomains or external resources
+  if (!req.url.startsWith(self.location.origin)) return;
 
-  // Cache-first for static assets
+  // Never intercept API calls — let the browser deliver real Response objects
+  // and real errors to the app's fetch logic
+  if (req.url.includes('/api/')) return;
+
+  // Never intercept the manifest, the SW itself, or Next.js internals
   if (
-    event.request.destination === 'image' ||
-    event.request.destination === 'font' ||
-    event.request.destination === 'style'
+    req.url.includes('/manifest.json') ||
+    req.url.includes('/sw.js') ||
+    req.url.includes('/_next/data/') ||
+    req.url.includes('/_next/static/chunks/')
+  ) {
+    return;
+  }
+
+  // Cache-first for static media assets (images, fonts, stylesheets)
+  if (
+    req.destination === 'image' ||
+    req.destination === 'font' ||
+    req.destination === 'style'
   ) {
     event.respondWith(
-      caches.match(event.request).then((cached) => {
+      caches.match(req).then((cached) => {
         if (cached) return cached;
-        return fetch(event.request).then((response) => {
-          if (response && response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        }).catch(() => new Response('', { status: 504, statusText: 'Gateway Timeout' }));
-      })
+        return fetch(req)
+          .then((response) => {
+            if (response && response.ok) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+            }
+            return response;
+          })
+          .catch(() => new Response('', { status: 504, statusText: 'Gateway Timeout' }));
+      }),
     );
     return;
   }
 
-  // Network-first for navigation — always return a Response, never undefined
-  event.respondWith(
-    fetch(event.request)
-      .catch(() =>
-        caches.match(event.request).then((cached) => {
-          if (cached) return cached;
-          return caches.match('/').then((root) => root || new Response(
-            '<h1>Offline</h1>',
-            { status: 503, headers: { 'Content-Type': 'text/html' } },
-          ));
-        })
+  // Network-first for HTML navigation only — always return a Response
+  if (req.mode === 'navigate' || req.destination === 'document') {
+    event.respondWith(
+      fetch(req).catch(() =>
+        caches.match(req).then(
+          (cached) =>
+            cached ||
+            caches.match('/').then(
+              (root) =>
+                root ||
+                new Response('<h1>Offline</h1>', {
+                  status: 503,
+                  headers: { 'Content-Type': 'text/html' },
+                }),
+            ),
+        ),
       ),
-  );
+    );
+    return;
+  }
+
+  // Everything else: do NOT intercept — let the browser handle it natively
 });
