@@ -79,22 +79,30 @@ LANGUAGES = {
     "pt": {"flag": "pt", "name": "Portuguese"},
 }
 
-# ── Cache (uses ARIS Redis) ──
-CACHE_CONFIG = {
+# ── Cache (uses ARIS Redis on VM-CACHE) ──
+_REDIS_HOST = os.environ.get("REDIS_HOST", "10.202.101.186")
+_REDIS_PORT = int(os.environ.get("REDIS_PORT", "6379"))
+_REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "")
+
+_redis_cache_base = {
     "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_HOST": _REDIS_HOST,
+    "CACHE_REDIS_PORT": _REDIS_PORT,
+}
+if _REDIS_PASSWORD:
+    _redis_cache_base["CACHE_REDIS_PASSWORD"] = _REDIS_PASSWORD
+
+CACHE_CONFIG = {
+    **_redis_cache_base,
     "CACHE_DEFAULT_TIMEOUT": 300,
     "CACHE_KEY_PREFIX": "superset_",
-    "CACHE_REDIS_HOST": "redis",
-    "CACHE_REDIS_PORT": 6379,
     "CACHE_REDIS_DB": 2,
 }
 
 DATA_CACHE_CONFIG = {
-    "CACHE_TYPE": "RedisCache",
+    **_redis_cache_base,
     "CACHE_DEFAULT_TIMEOUT": 600,
     "CACHE_KEY_PREFIX": "superset_data_",
-    "CACHE_REDIS_HOST": "redis",
-    "CACHE_REDIS_PORT": 6379,
     "CACHE_REDIS_DB": 3,
 }
 

@@ -234,7 +234,11 @@ services:
       SUPERSET_SCRIPT_NAME: ""
       TALISMAN_ENABLED: "false"
       ENABLE_CORS: "true"
-      SQLALCHEMY_DATABASE_URI: "postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-Ar1s_Pr0d_2024!xK9mZ}@10.202.101.185:5432/${POSTGRES_DB:-aris}"
+      SQLALCHEMY_DATABASE_URI: "postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-Ar1s_Pr0d_2024!xK9mZ}@10.202.101.185:5432/superset_meta"
+      REDIS_HOST: "10.202.101.186"
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-R3d1s_Pr0d_2024!vN7wQ}
+      ARIS_DB_URI: "postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-Ar1s_Pr0d_2024!xK9mZ}@10.202.101.185:5432/${POSTGRES_DB:-aris}"
     volumes:
       - /opt/aris/docker/superset/superset_config.py:/app/pythonpath/superset_config.py
       - /opt/aris/docker/superset/bootstrap_datasource.py:/app/pythonpath/bootstrap_datasource.py

@@ -16,7 +16,10 @@ SUPERSET_META_URI = os.environ.get(
 )
 
 ARIS_DB_NAME = "ARIS"
-ARIS_DB_URI = "postgresql://aris_bi_reader:BiReader2024!@postgres:5432/aris"
+ARIS_DB_URI = os.environ.get(
+    "ARIS_DB_URI",
+    "postgresql://aris:Ar1s_Pr0d_2024!xK9mZ@10.202.101.185:5432/aris",
+)
 
 
 def bootstrap():
