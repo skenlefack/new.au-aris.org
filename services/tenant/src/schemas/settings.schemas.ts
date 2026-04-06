@@ -37,6 +37,7 @@ export const RecBodySchema = Type.Object({
   accentColor: Type.Optional(Type.String({ maxLength: 20 })),
   logoUrl: Type.Optional(Type.String({ maxLength: 500 })),
   website: Type.Optional(Type.String({ maxLength: 500 })),
+  currency: Type.Optional(Type.Union([Type.String({ maxLength: 10 }), Type.Null()])),
   isActive: Type.Optional(Type.Boolean()),
   sortOrder: Type.Optional(Type.Integer({ minimum: 0 })),
   stats: Type.Optional(Type.Record(Type.String(), Type.Unknown())),

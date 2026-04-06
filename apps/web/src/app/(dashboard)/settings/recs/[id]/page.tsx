@@ -33,6 +33,7 @@ export default function RecDetailPage() {
     accentColor: '#003399',
     logoUrl: '',
     website: '',
+    currency: '',
     isActive: true,
     sortOrder: 0,
     stats: {} as Record<string, number>,
@@ -53,6 +54,7 @@ export default function RecDetailPage() {
         accentColor: rec.accentColor ?? '#003399',
         logoUrl: rec.logoUrl ?? '',
         website: rec.website ?? '',
+        currency: rec.currency ?? '',
         isActive: rec.isActive ?? true,
         sortOrder: rec.sortOrder ?? 0,
         stats: rec.stats ?? {},
@@ -84,6 +86,7 @@ export default function RecDetailPage() {
         accentColor: rec.accentColor ?? '#003399',
         logoUrl: rec.logoUrl ?? '',
         website: rec.website ?? '',
+        currency: rec.currency ?? '',
         isActive: rec.isActive ?? true,
         sortOrder: rec.sortOrder ?? 0,
         stats: rec.stats ?? {},
@@ -214,6 +217,43 @@ export default function RecDetailPage() {
               placeholder="https://..."
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:cursor-not-allowed disabled:opacity-50"
             />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t('recCurrency')}
+            </label>
+            <p className="mb-1.5 text-xs text-gray-500 dark:text-gray-400">
+              {t('recCurrencyDesc')}
+            </p>
+            <select
+              value={form.currency}
+              onChange={(e) => updateField('currency', e.target.value || null)}
+              disabled={!canManageRecs}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="">—</option>
+              <option value="USD">USD — US Dollar ($)</option>
+              <option value="EUR">EUR — Euro (€)</option>
+              <option value="XOF">XOF — CFA Franc BCEAO (CFA)</option>
+              <option value="XAF">XAF — CFA Franc BEAC (FCFA)</option>
+              <option value="ZAR">ZAR — South African Rand (R)</option>
+              <option value="KES">KES — Kenyan Shilling (KSh)</option>
+              <option value="NGN">NGN — Nigerian Naira (₦)</option>
+              <option value="EGP">EGP — Egyptian Pound (E£)</option>
+              <option value="GHS">GHS — Ghanaian Cedi (GH₵)</option>
+              <option value="ETB">ETB — Ethiopian Birr (Br)</option>
+              <option value="TZS">TZS — Tanzanian Shilling (TSh)</option>
+              <option value="UGX">UGX — Ugandan Shilling (USh)</option>
+              <option value="MAD">MAD — Moroccan Dirham</option>
+              <option value="TND">TND — Tunisian Dinar (DT)</option>
+              <option value="DZD">DZD — Algerian Dinar (DA)</option>
+              <option value="BWP">BWP — Botswana Pula (P)</option>
+              <option value="MUR">MUR — Mauritian Rupee (₨)</option>
+              <option value="RWF">RWF — Rwandan Franc (RF)</option>
+              <option value="SZL">SZL — Swazi Lilangeni (E)</option>
+              <option value="MZN">MZN — Mozambican Metical (MT)</option>
+            </select>
           </div>
 
           <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900/50">

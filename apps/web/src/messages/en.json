@@ -1114,6 +1114,12 @@
     "autoDetectBrowserLangDesc": "Automatically sets the interface language based on the user's browser/system preferences on their first visit.",
     "numberFormats": "Number formats per language",
 
+    "defaultCurrency": "Default Currency",
+    "defaultCurrencyDesc": "Default currency used across the platform at continental level. Each REC can override this with its own regional currency.",
+    "currencyPreview": "Currency:",
+    "recCurrency": "Currency",
+    "recCurrencyDesc": "Official currency used by this REC for financial reporting and trade data",
+
     "recsTitle": "Regional Economic Communities",
     "recsSubtitle": "Manage the 8 RECs and their member state associations",
     "searchRecs": "Search RECs...",

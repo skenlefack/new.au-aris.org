@@ -7,7 +7,7 @@ import { ConfigField } from '@/components/settings/ConfigField';
 import { SaveBar } from '@/components/settings/SaveBar';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
-import { Loader2, Globe, ArrowRightLeft, Calendar, Check, Hash } from 'lucide-react';
+import { Loader2, Globe, ArrowRightLeft, Calendar, Check, Hash, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 
 const LANGUAGES = [
@@ -33,6 +33,37 @@ function formatPercent(localeCode: string): string {
     return new Intl.NumberFormat(localeCode, { style: 'percent', maximumFractionDigits: 1 }).format(0.874);
   } catch {
     return '87.4%';
+  }
+}
+
+const CURRENCIES = [
+  { code: 'USD', name: 'US Dollar', symbol: '$' },
+  { code: 'EUR', name: 'Euro', symbol: '€' },
+  { code: 'XOF', name: 'CFA Franc BCEAO', symbol: 'CFA' },
+  { code: 'XAF', name: 'CFA Franc BEAC', symbol: 'FCFA' },
+  { code: 'ZAR', name: 'South African Rand', symbol: 'R' },
+  { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh' },
+  { code: 'NGN', name: 'Nigerian Naira', symbol: '₦' },
+  { code: 'EGP', name: 'Egyptian Pound', symbol: 'E£' },
+  { code: 'GHS', name: 'Ghanaian Cedi', symbol: 'GH₵' },
+  { code: 'ETB', name: 'Ethiopian Birr', symbol: 'Br' },
+  { code: 'TZS', name: 'Tanzanian Shilling', symbol: 'TSh' },
+  { code: 'UGX', name: 'Ugandan Shilling', symbol: 'USh' },
+  { code: 'MAD', name: 'Moroccan Dirham', symbol: 'MAD' },
+  { code: 'TND', name: 'Tunisian Dinar', symbol: 'DT' },
+  { code: 'DZD', name: 'Algerian Dinar', symbol: 'DA' },
+  { code: 'BWP', name: 'Botswana Pula', symbol: 'P' },
+  { code: 'MUR', name: 'Mauritian Rupee', symbol: '₨' },
+  { code: 'RWF', name: 'Rwandan Franc', symbol: 'RF' },
+  { code: 'SZL', name: 'Swazi Lilangeni', symbol: 'E' },
+  { code: 'MZN', name: 'Mozambican Metical', symbol: 'MT' },
+] as const;
+
+function formatCurrency(localeCode: string, currencyCode: string): string {
+  try {
+    return new Intl.NumberFormat(localeCode, { style: 'currency', currency: currencyCode }).format(NUMBER_SAMPLE);
+  } catch {
+    return `${currencyCode} ${NUMBER_SAMPLE}`;
   }
 }
 
@@ -92,6 +123,12 @@ export default function I18nSettingsPage() {
     ? (changes['i18n:i18n.autoDetect'] as boolean)
     : ((autoDetectConfig?.value as boolean | undefined) ?? false);
 
+  // Default currency setting
+  const defaultCurrencyConfig = configs.find((c: any) => c.key === 'i18n.defaultCurrency');
+  const defaultCurrency: string = ('i18n:i18n.defaultCurrency' in changes)
+    ? (changes['i18n:i18n.defaultCurrency'] as string)
+    : ((defaultCurrencyConfig?.value as string | undefined) ?? 'USD');
+
   const handleSetDefault = (code: string) => {
     if (!canEdit) return;
     if (!availableLocales.includes(code)) return;
@@ -119,7 +156,8 @@ export default function I18nSettingsPage() {
     !localeConfigs.includes(c) &&
     !formatConfigs.includes(c) &&
     c.key !== 'i18n.rtl.locales' &&
-    c.key !== 'i18n.autoDetect',
+    c.key !== 'i18n.autoDetect' &&
+    c.key !== 'i18n.defaultCurrency',
   );
 
   if (isLoading) {
@@ -335,10 +373,60 @@ export default function I18nSettingsPage() {
                 <span className="text-xs text-gray-400">{t('number')} </span>
                 {formatNumber(defaultLocale)}
               </span>
+              <span>
+                <span className="text-xs text-gray-400">{t('currencyPreview')} </span>
+                {formatCurrency(defaultLocale, defaultCurrency)}
+              </span>
             </div>
           </div>
         </section>
       )}
+
+      {/* Default Currency */}
+      <section>
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+          <Banknote className="h-3.5 w-3.5" />
+          {t('defaultCurrency')}
+          <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+        </h2>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900/50">
+          <div className="flex-1 mb-3">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">
+              {t('defaultCurrency')}
+            </p>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+              {t('defaultCurrencyDesc')}
+            </p>
+          </div>
+          <select
+            value={defaultCurrency}
+            onChange={(e) => handleChange('i18n.defaultCurrency', e.target.value)}
+            disabled={!canEdit}
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code} — {c.name} ({c.symbol})
+              </option>
+            ))}
+          </select>
+          {/* Currency format preview */}
+          <div className="mt-3 rounded-lg border border-dashed border-gray-200 bg-gray-50/50 p-3 dark:border-gray-700 dark:bg-gray-800/30">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+              {t('preview')}
+            </p>
+            <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-300">
+              {LANGUAGES.filter((l) => availableLocales.includes(l.code)).map((lang) => (
+                <span key={lang.code}>
+                  <span className="text-xs text-gray-400">{lang.code.toUpperCase()}: </span>
+                  {formatCurrency(lang.code, defaultCurrency)}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Number Formats per Language */}
       <section>

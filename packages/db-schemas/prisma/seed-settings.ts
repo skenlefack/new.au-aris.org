@@ -1026,6 +1026,13 @@ const SYSTEM_CONFIGS: SystemConfigSeedData[] = [
     description: { en: 'Default date display format', fr: "Format d'affichage des dates par d\u00e9faut", pt: 'Formato padr\u00e3o de exibi\u00e7\u00e3o de datas' },
     type: 'string', isEditable: true, scope: 'global',
   },
+  {
+    category: 'i18n', key: 'i18n.defaultCurrency',
+    value: 'USD',
+    label: { en: 'Default Currency', fr: 'Devise par défaut', pt: 'Moeda padrão', ar: 'العملة الافتراضية', es: 'Moneda predeterminada' },
+    description: { en: 'Default currency used at continental level', fr: 'Devise utilisée par défaut au niveau continental', pt: 'Moeda utilizada por padrão ao nível continental', ar: 'العملة المستخدمة افتراضيًا على المستوى القاري', es: 'Moneda utilizada por defecto a nivel continental' },
+    type: 'enum', options: ['USD', 'EUR', 'XOF', 'XAF', 'ZAR', 'KES', 'NGN', 'EGP', 'GHS', 'ETB', 'TZS', 'UGX', 'MAD', 'TND', 'DZD', 'BWP', 'MUR', 'RWF', 'SZL', 'MZN'], isEditable: true, scope: 'global',
+  },
 
   // ── DATA_QUALITY ──
   {

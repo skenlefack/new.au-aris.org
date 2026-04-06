@@ -260,6 +260,7 @@ export class SettingsService {
         accentColor: (dto.accentColor as string) ?? null,
         logoUrl: (dto.logoUrl as string) ?? null,
         website: (dto.website as string) ?? null,
+        currency: (dto.currency as string) ?? null,
         isActive: (dto.isActive as boolean) ?? true,
         sortOrder: (dto.sortOrder as number) ?? 0,
         stats: (dto.stats ?? {}) as Prisma.InputJsonValue,
@@ -283,6 +284,7 @@ export class SettingsService {
     if (dto.accentColor !== undefined) updateData.accentColor = dto.accentColor;
     if (dto.logoUrl !== undefined) updateData.logoUrl = dto.logoUrl;
     if (dto.website !== undefined) updateData.website = dto.website;
+    if (dto.currency !== undefined) updateData.currency = dto.currency;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
     if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
     if (dto.stats !== undefined) updateData.stats = dto.stats as Prisma.InputJsonValue;

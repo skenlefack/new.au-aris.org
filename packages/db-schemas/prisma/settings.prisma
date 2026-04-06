@@ -15,6 +15,7 @@ model Rec {
   accentColor   String       @map("accent_color") @db.VarChar(20)
   logoUrl       String?      @map("logo_url") @db.VarChar(500)
   website       String?      @db.VarChar(500)
+  currency      String?      @db.VarChar(10)  // ISO 4217 currency code (e.g. XOF, USD, KES)
   isActive      Boolean      @default(true) @map("is_active")
   sortOrder     Int          @default(0) @map("sort_order")
   stats         Json?        // { activeCampaigns: 12, reportsSubmitted: 450, ... }

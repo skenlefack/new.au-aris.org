@@ -1114,6 +1114,12 @@
     "autoDetectBrowserLangDesc": "Define automaticamente o idioma da interface com base nas preferências do navegador/sistema do utilizador na primeira visita.",
     "numberFormats": "Formatos de números por idioma",
 
+    "defaultCurrency": "Moeda padrão",
+    "defaultCurrencyDesc": "Moeda utilizada por padrão na plataforma ao nível continental. Cada CER pode substituí-la pela sua própria moeda regional.",
+    "currencyPreview": "Moeda:",
+    "recCurrency": "Moeda",
+    "recCurrencyDesc": "Moeda oficial utilizada por esta CER para relatórios financeiros e dados comerciais",
+
     "recsTitle": "Comunidades Econômicas Regionais",
     "recsSubtitle": "Gerenciar as 8 CERs e suas associações de estados-membros",
     "searchRecs": "Pesquisar CERs...",
