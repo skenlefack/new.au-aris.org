@@ -25,7 +25,7 @@ ARIS_DB_URI = os.environ.get(
 def bootstrap():
     """Insert the ARIS datasource into Superset's metadata DB if missing."""
     engine = create_engine(SUPERSET_META_URI)
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         row = conn.execute(
             text("SELECT id FROM dbs WHERE database_name = :name"),
             {"name": ARIS_DB_NAME},
@@ -52,7 +52,6 @@ def bootstrap():
             ),
             {"name": ARIS_DB_NAME, "uri": ARIS_DB_URI},
         )
-        conn.commit()
         logger.info("ARIS datasource created successfully.")
 
 
