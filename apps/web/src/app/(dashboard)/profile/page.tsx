@@ -118,7 +118,21 @@ export default function ProfilePage() {
   const [selectedLocale, setSelectedLocale] = useState<Locale>(locale);
   const [localeSaved, setLocaleSaved] = useState(false);
 
-  const activeLocales = (localesConfig?.data?.availableLocales ?? LOCALES) as Locale[];
+  // Only show locales that are BOTH valid (in our LOCALES constant) AND
+  // explicitly enabled by the admin in i18n settings (availableLocales).
+  // Fall back to the current user locale only when the API response isn't ready yet,
+  // so we never display inactive languages.
+  const activeLocales = useMemo<Locale[]>(() => {
+    const apiLocales = localesConfig?.data?.availableLocales;
+    if (apiLocales && Array.isArray(apiLocales) && apiLocales.length > 0) {
+      return apiLocales.filter((c): c is Locale =>
+        (LOCALES as readonly string[]).includes(c),
+      );
+    }
+    // API not yet loaded — show just the current user locale to avoid
+    // flashing all 5 and then collapsing to fewer.
+    return [locale];
+  }, [localesConfig?.data?.availableLocales, locale]);
 
   function handleSaveLocale() {
     setLocale(selectedLocale);
