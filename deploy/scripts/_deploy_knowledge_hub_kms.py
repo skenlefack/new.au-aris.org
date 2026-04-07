@@ -35,6 +35,7 @@ ENVS = {
         "db_host": "10.202.101.148",
         "db_pass": "Ar1s_Stg_2024!xK9mZ",
         "deploy_dir": "/opt/aris-deploy/vm-app-stg",
+        "compose_src": "/opt/aris/deploy/vm-app-stg/docker-compose.yml",
         "prefix": "aris-stg",
         "url": "https://test.au-aris.org",
     },
@@ -44,6 +45,7 @@ ENVS = {
         "db_host": "10.202.101.185",
         "db_pass": "Ar1s_Pr0d_2024!xK9mZ",
         "deploy_dir": "/opt/aris-deploy/vm-app",
+        "compose_src": "/opt/aris/deploy/vm-app/docker-compose.yml",
         "prefix": "aris",
         "url": "https://au-aris.org",
     },
@@ -147,8 +149,8 @@ def deploy(env):
             safe_print(f"    {line}")
 
     # 2. copy compose
-    step(2, total, "Copy docker-compose.yml")
-    sudo(ssh, f"cp /opt/aris/deploy/vm-app/docker-compose.yml {env['deploy_dir']}/docker-compose.yml", timeout=10)
+    step(2, total, f"Copy docker-compose.yml (from {env['compose_src']})")
+    sudo(ssh, f"cp {env['compose_src']} {env['deploy_dir']}/docker-compose.yml", timeout=10)
     safe_print("    Copied")
 
     # 3. rebuild services
