@@ -95,7 +95,7 @@ const STACK_ITEMS = [
   { label: 'ORM', value: 'Prisma 6.2' },
   { label: 'Cache', value: 'Redis 7' },
   { label: 'Message Broker', value: 'Kafka 3.7 KRaft' },
-  { label: 'Search', value: 'Elasticsearch 8' },
+  { label: 'Search', value: 'OpenSearch 2' },
   { label: 'Object Storage', value: 'MinIO (S3)' },
   { label: 'Proxy', value: 'PgBouncer + Traefik' },
   { label: 'Monitoring', value: 'Prometheus + Grafana' },
