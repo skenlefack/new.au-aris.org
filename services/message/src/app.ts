@@ -45,7 +45,7 @@ export async function buildApp() {
   // Error handler -- maps HttpError.statusCode to HTTP response
   app.setErrorHandler((error, request, reply) => {
     const statusCode = (error as { statusCode?: number }).statusCode ?? 500;
-    const message = error.message ?? 'Internal Server Error';
+    const message = (error as { message?: string }).message ?? 'Internal Server Error';
 
     if (statusCode >= 500) {
       request.log.error(error, 'Unhandled server error');

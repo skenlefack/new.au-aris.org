@@ -54,6 +54,7 @@ const ROLE_COLORS: Record<UserRole, string> = {
   WAHIS_FOCAL_POINT: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
   ANALYST: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
   FIELD_AGENT: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  KNOWLEDGE_MANAGER: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-400',
 };
 
 const ROLE_TRANSLATION_KEYS: Record<UserRole, string> = {
@@ -65,6 +66,7 @@ const ROLE_TRANSLATION_KEYS: Record<UserRole, string> = {
   WAHIS_FOCAL_POINT: 'roleWahisFocalPoint',
   ANALYST: 'roleAnalyst',
   FIELD_AGENT: 'roleFieldAgent',
+  KNOWLEDGE_MANAGER: 'roleKnowledgeManager',
 };
 
 /* ------------------------------------------------------------------ */

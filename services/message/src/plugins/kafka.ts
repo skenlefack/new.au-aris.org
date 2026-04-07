@@ -16,7 +16,7 @@ export default fp(
       app.log.warn(`Kafka connect failed, events will be unavailable: ${err}`);
     }
 
-    app.decorate('kafka', kafka);
+    app.decorate('kafka', kafka as any);
 
     app.addHook('onClose', async () => {
       await kafka.disconnect();

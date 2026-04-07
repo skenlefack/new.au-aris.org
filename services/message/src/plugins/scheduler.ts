@@ -22,7 +22,7 @@ export default fp(
     const whatsappChannel = new WhatsAppChannel();
     const telegramChannel = new TelegramChannel();
 
-    const notificationService = new NotificationService(app.prisma, app.kafka, {
+    const notificationService = new NotificationService(app.prisma, app.kafka as any, {
       email: emailChannel,
       sms: smsChannel,
       push: pushChannel,

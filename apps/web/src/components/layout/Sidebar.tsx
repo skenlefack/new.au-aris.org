@@ -215,6 +215,7 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
   ]),
   CONTINENTAL_ADMIN: new Set(), // full access handled below
   SUPER_ADMIN: new Set(), // full access handled below
+  KNOWLEDGE_MANAGER: new Set(['/home', '/knowledge/admin']),
 };
 
 /** Roles that have access to ALL business domains */
