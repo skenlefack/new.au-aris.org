@@ -9,6 +9,7 @@ export type StatusLevel = 'good' | 'warning' | 'alert';
 
 export interface DomainHighlight {
   domain: string;
+  domainCode?: string; // links to Domain.code in DB; undefined = cross-cutting (always shown)
   icon: string;
   color: string;
   value: string;
@@ -19,6 +20,7 @@ export interface DomainHighlight {
 
 export interface DomainGauge {
   domain: string;
+  domainCode?: string; // links to Domain.code in DB; undefined = cross-cutting (always shown)
   icon: string;
   color: string;
   score: number;       // 0–100
@@ -73,6 +75,7 @@ export function getHighlights(code: string, pop: number): DomainHighlight[] {
   return [
     {
       domain: 'Active Outbreaks',
+      domainCode: 'animal-health',
       icon: 'Bug',
       color: '#C62828',
       value: String(num(code, 1, 0.08, p)),
@@ -82,6 +85,7 @@ export function getHighlights(code: string, pop: number): DomainHighlight[] {
     },
     {
       domain: 'Livestock Census',
+      domainCode: 'livestock-prod',
       icon: 'Wheat',
       color: '#E65100',
       value: fmt(num(code, 3, 420, p)),
@@ -91,6 +95,7 @@ export function getHighlights(code: string, pop: number): DomainHighlight[] {
     },
     {
       domain: 'Trade Volume',
+      domainCode: 'trade-sps',
       icon: 'Globe2',
       color: '#6A1B9A',
       value: `$${fmt(num(code, 6, 85, p))}`,
@@ -114,6 +119,7 @@ export function getGauges(code: string, pop: number): DomainGauge[] {
   return [
     {
       domain: 'Vaccination Coverage',
+      domainCode: 'animal-health',
       icon: 'Syringe',
       color: '#1565C0',
       score: vacc,
@@ -122,6 +128,7 @@ export function getGauges(code: string, pop: number): DomainGauge[] {
     },
     {
       domain: 'Fisheries & Aquaculture',
+      domainCode: 'fisheries',
       icon: 'Fish',
       color: '#00838F',
       score: fish,
@@ -130,6 +137,7 @@ export function getGauges(code: string, pop: number): DomainGauge[] {
     },
     {
       domain: 'Wildlife Conservation',
+      domainCode: 'wildlife',
       icon: 'Leaf',
       color: '#2E7D32',
       score: wild,
@@ -138,6 +146,7 @@ export function getGauges(code: string, pop: number): DomainGauge[] {
     },
     {
       domain: 'Veterinary Governance',
+      domainCode: 'governance',
       icon: 'ShieldCheck',
       color: '#37474F',
       score: gov,

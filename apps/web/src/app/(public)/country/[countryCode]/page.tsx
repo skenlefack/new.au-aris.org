@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCountry, type CountryConfig } from '@/data/countries-config';
 import { getRecsForCountry, type RecConfig } from '@/data/recs-config';
 import { getHighlights, getGauges } from '@/data/country-domain-stats';
-import { getPublicCountryByCode } from '@/lib/api/public-data';
+import { getPublicCountryByCode, getPublicDomains } from '@/lib/api/public-data';
 import { CountryPageContent } from '@/components/landing/CountryPageContent';
 
 export const revalidate = 300;
@@ -78,8 +78,27 @@ export default async function CountryPage({ params }: Props) {
   const primaryRec = recs[0];
   const isConfigured = !!country.tenantId;
   const showRealSections = isActive || hasInterop;
-  const highlights = getHighlights(code, country.population);
-  const gauges = getGauges(code, country.population);
+
+  // Fetch active domain codes to filter illustrative stats
+  let activeDomainCodes: Set<string> | null = null;
+  try {
+    const domainsRes = await getPublicDomains();
+    const apiDomains: any[] = domainsRes?.data ?? [];
+    if (apiDomains.length > 0) {
+      activeDomainCodes = new Set(apiDomains.map((d) => d.code));
+    }
+  } catch {
+    // If API fails, show all (no filtering)
+  }
+
+  const allHighlights = getHighlights(code, country.population);
+  const allGauges = getGauges(code, country.population);
+  const highlights = activeDomainCodes
+    ? allHighlights.filter((h) => !h.domainCode || activeDomainCodes!.has(h.domainCode))
+    : allHighlights;
+  const gauges = activeDomainCodes
+    ? allGauges.filter((g) => !g.domainCode || activeDomainCodes!.has(g.domainCode))
+    : allGauges;
 
   return (
     <CountryPageContent
