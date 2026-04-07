@@ -559,6 +559,27 @@ services:
       - "traefik.http.routers.data-contract.entrypoints=websecure"
       - "traefik.http.services.data-contract.loadbalancer.server.port=3005"
 
+  data-sharing:
+    container_name: aris-data-sharing
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: data-sharing
+        SERVICE_PORT: "3034"
+    ports:
+      - "3034:3034"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3034"
+      KAFKA_CLIENT_ID: aris-data-sharing-service
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.data-sharing.rule=PathPrefix(`/api/v1/data-sharing`)"
+      - "traefik.http.routers.data-sharing.entrypoints=websecure"
+      - "traefik.http.services.data-sharing.loadbalancer.server.port=3034"
+
   interop-hub:
     container_name: aris-interop-hub
     <<: *service-common

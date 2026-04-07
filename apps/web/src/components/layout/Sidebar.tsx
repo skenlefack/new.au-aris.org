@@ -36,6 +36,7 @@ import {
   Bug,
   Landmark,
   CloudSun,
+  Share2,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -92,6 +93,12 @@ const STATIC_GROUPS: NavGroup[] = [
       { tKey: 'analytics', href: '/analytics', icon: BarChart3, matchPrefix: '/analytics' },
       { tKey: 'historicalData', href: '/historical', icon: HardDrive, matchPrefix: '/historical' },
       { tKey: 'reports', href: '/reports', icon: FileBarChart, matchPrefix: '/reports' },
+    ],
+  },
+  {
+    tKey: 'sectionCollaboration',
+    items: [
+      { tKey: 'dataSharing', href: '/data-sharing', icon: Share2, matchPrefix: '/data-sharing' },
     ],
   },
   {
@@ -190,32 +197,32 @@ function buildDomainGroup(
 
 /** Non-domain routes that each role can access */
 const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
-  FIELD_AGENT: new Set(['/home', '/collecte', '/workflow']),
+  FIELD_AGENT: new Set(['/home', '/collecte', '/workflow', '/data-sharing']),
   ANALYST: new Set([
-    '/home', '/analytics', '/historical', '/reports',
+    '/home', '/analytics', '/historical', '/reports', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   WAHIS_FOCAL_POINT: new Set([
-    '/home', '/collecte', '/analytics', '/historical', '/reports', '/interop',
+    '/home', '/collecte', '/analytics', '/historical', '/reports', '/interop', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   DATA_STEWARD: new Set([
-    '/home', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
+    '/home', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   NATIONAL_ADMIN: new Set([
     '/home', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
-    '/master-data', '/settings',
+    '/master-data', '/settings', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   REC_ADMIN: new Set([
     '/home', '/collecte', '/workflow', '/master-data', '/quality',
-    '/interop', '/analytics', '/historical', '/reports', '/settings',
+    '/interop', '/analytics', '/historical', '/reports', '/settings', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   CONTINENTAL_ADMIN: new Set(), // full access handled below
   SUPER_ADMIN: new Set(), // full access handled below
-  KNOWLEDGE_MANAGER: new Set(['/home', '/knowledge/admin']),
+  KNOWLEDGE_MANAGER: new Set(['/home', '/knowledge/admin', '/data-sharing']),
 };
 
 /** Roles that have access to ALL business domains */

@@ -152,6 +152,15 @@ export const TOPIC_MS_GEO_RISK_LAYER_UPDATED = 'ms.geo.risk-layer.updated.v1' as
 export const TOPIC_MS_GEO_RISK_LAYER_DELETED = 'ms.geo.risk-layer.deleted.v1' as const;
 export const TOPIC_MS_GEO_SPATIAL_ALERT_TRIGGERED = 'ms.geo.spatial-alert.triggered.v1' as const;
 
+// ── Data Sharing Topics ──
+export const TOPIC_SYS_DATA_SHARING_AGREEMENT_CREATED = 'sys.data-sharing.agreement.created.v1' as const;
+export const TOPIC_SYS_DATA_SHARING_AGREEMENT_SUBMITTED = 'sys.data-sharing.agreement.submitted.v1' as const;
+export const TOPIC_SYS_DATA_SHARING_AGREEMENT_ACCEPTED = 'sys.data-sharing.agreement.accepted.v1' as const;
+export const TOPIC_SYS_DATA_SHARING_AGREEMENT_REJECTED = 'sys.data-sharing.agreement.rejected.v1' as const;
+export const TOPIC_SYS_DATA_SHARING_AGREEMENT_REVOKED = 'sys.data-sharing.agreement.revoked.v1' as const;
+export const TOPIC_SYS_DATA_SHARING_AGREEMENT_EXPIRED = 'sys.data-sharing.agreement.expired.v1' as const;
+export const TOPIC_SYS_DATA_SHARING_ACCESS_RECORDED = 'sys.data-sharing.access.recorded.v1' as const;
+
 // ── DLQ Topics ──
 export const TOPIC_DLQ_ALL = 'dlq.all.v1' as const;
 export const TOPIC_DLQ_HEALTH = 'dlq.health.v1' as const;
@@ -277,6 +286,13 @@ export const ALL_TOPICS = [
   TOPIC_MS_GEO_RISK_LAYER_UPDATED,
   TOPIC_MS_GEO_RISK_LAYER_DELETED,
   TOPIC_MS_GEO_SPATIAL_ALERT_TRIGGERED,
+  TOPIC_SYS_DATA_SHARING_AGREEMENT_CREATED,
+  TOPIC_SYS_DATA_SHARING_AGREEMENT_SUBMITTED,
+  TOPIC_SYS_DATA_SHARING_AGREEMENT_ACCEPTED,
+  TOPIC_SYS_DATA_SHARING_AGREEMENT_REJECTED,
+  TOPIC_SYS_DATA_SHARING_AGREEMENT_REVOKED,
+  TOPIC_SYS_DATA_SHARING_AGREEMENT_EXPIRED,
+  TOPIC_SYS_DATA_SHARING_ACCESS_RECORDED,
   TOPIC_DLQ_ALL,
   TOPIC_DLQ_HEALTH,
   TOPIC_DLQ_COLLECTE,

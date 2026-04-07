@@ -19,8 +19,18 @@ export type {
   ApiResponseMeta,
   ApiErrorDetail,
   PaginationQuery,
+  ShareStatus,
+  ShareAccessAction,
+  DataShareScope,
+  DataShareAgreementDto,
+  CreateDataShareAgreementDto,
+  UpdateDataShareAgreementDto,
+  RejectAgreementDto,
+  RevokeAgreementDto,
+  DataShareAccessLogDto,
+  DataShareDashboardStats,
 } from './dto';
-export { DEFAULT_PAGE, DEFAULT_LIMIT, MAX_LIMIT } from './dto';
+export { DEFAULT_PAGE, DEFAULT_LIMIT, MAX_LIMIT, SHARE_STATUSES, SHARE_ACCESS_ACTIONS } from './dto';
 
 // Interfaces
 export type {

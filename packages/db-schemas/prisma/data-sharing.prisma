@@ -1,0 +1,115 @@
+// ARIS 4.0 — Data Sharing Schema
+// Bilateral data sharing agreements between tenants (REC ↔ Country)
+// Owner defines rules → Recipient validates → System enforces access
+
+enum ShareStatus {
+  DRAFT       // Owner is editing
+  SUBMITTED   // Owner submitted; awaiting recipient decision
+  ACCEPTED    // Recipient accepted; not yet active
+  ACTIVE      // Within validity window; recipient can query
+  REJECTED    // Recipient declined
+  EXPIRED     // Past valid_until
+  REVOKED     // Owner cancelled
+
+  @@schema("data_sharing")
+}
+
+enum ShareAccessAction {
+  CONSULT
+  EXPORT
+  MODIFY
+  DOWNLOAD
+
+  @@schema("data_sharing")
+}
+
+model DataShareAgreement {
+  id                  String      @id @default(uuid()) @db.Uuid
+
+  // Identification
+  title               String      @db.VarChar(255)
+  description         String?
+  reference           String      @unique @db.VarChar(64) // human-readable, e.g. DSA-2026-00042
+
+  // Parties
+  owner_tenant_id     String      @db.Uuid
+  owner_user_id       String      @db.Uuid
+  recipient_tenant_id String      @db.Uuid
+  recipient_user_id   String?     @db.Uuid // user who validated (filled at accept)
+
+  // Data scope
+  data_domain         String      @db.VarChar(50)  // animal-health, fisheries, etc.
+  data_scope          Json        // { entities: ['outbreaks'], filters: {...}, fields: [...], geoFilter: {...} }
+  data_classification String      @default("RESTRICTED") @db.VarChar(20)
+
+  // Purpose & legal basis
+  purpose             String
+  legal_basis         String?
+
+  // Temporal validity
+  valid_from          DateTime
+  valid_until         DateTime?
+
+  // Permissions (the heart of the agreement)
+  can_consult         Boolean     @default(true)
+  can_export          Boolean     @default(false)
+  can_modify          Boolean     @default(false)
+  can_redistribute    Boolean     @default(false)
+
+  // Limits
+  max_records_per_query Int?
+  max_exports_per_month Int?
+  require_mfa         Boolean     @default(false)
+  allowed_ip_ranges   String[]    @default([])
+
+  // Workflow status
+  status              ShareStatus @default(DRAFT)
+
+  // Workflow timestamps & actors
+  submitted_at        DateTime?
+  reviewed_at         DateTime?
+  reviewed_by         String?     @db.Uuid
+  rejection_reason    String?
+  revoked_at          DateTime?
+  revoked_by          String?     @db.Uuid
+  revocation_reason   String?
+  expired_at          DateTime?
+
+  // Audit
+  created_at          DateTime    @default(now())
+  updated_at          DateTime    @updatedAt
+
+  access_logs         DataShareAccessLog[]
+
+  @@index([owner_tenant_id])
+  @@index([recipient_tenant_id])
+  @@index([status])
+  @@index([data_domain])
+  @@index([valid_from])
+  @@index([valid_until])
+  @@map("data_share_agreements")
+  @@schema("data_sharing")
+}
+
+model DataShareAccessLog {
+  id            String              @id @default(uuid()) @db.Uuid
+  agreement_id  String              @db.Uuid
+  user_id       String              @db.Uuid
+  tenant_id     String              @db.Uuid
+  action        ShareAccessAction
+  record_count  Int?
+  query_filters Json?
+  ip_address    String?             @db.VarChar(45)
+  user_agent    String?             @db.VarChar(255)
+  success       Boolean             @default(true)
+  error_message String?
+  created_at    DateTime            @default(now())
+
+  agreement     DataShareAgreement  @relation(fields: [agreement_id], references: [id], onDelete: Cascade)
+
+  @@index([agreement_id])
+  @@index([tenant_id])
+  @@index([created_at])
+  @@map("data_share_access_logs")
+  @@schema("data_sharing")
+}
