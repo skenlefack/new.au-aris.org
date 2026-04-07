@@ -11,7 +11,8 @@ export type UserRole =
   | 'DATA_STEWARD'
   | 'WAHIS_FOCAL_POINT'
   | 'ANALYST'
-  | 'FIELD_AGENT';
+  | 'FIELD_AGENT'
+  | 'KNOWLEDGE_MANAGER';
 
 export interface AuthUser {
   id: string;

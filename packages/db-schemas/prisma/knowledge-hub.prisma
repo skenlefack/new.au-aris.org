@@ -1,105 +1,173 @@
 // ARIS 4.0 — Knowledge Hub domain schema
 // Service: knowledge-hub (port 3033)
 // Owner: CC-4
+//
+// Full Knowledge Management System:
+//   - Hierarchical categories scoped CONTINENTAL | REC | COUNTRY (auto-seeded defaults)
+//   - Multilingual publications (EN/FR/PT/AR) with TinyMCE HTML content
+//   - Workflow: DRAFT → SUBMITTED → UNDER_REVIEW → APPROVED/REJECTED → PUBLISHED → ARCHIVED
+//   - Multi-attachment file management via drive-service
+//   - Public/Private visibility (public = no auth required)
+//   - Validation reviews trail (KNOWLEDGE_MANAGER role)
+//
+// String fields are used for enums to keep migrations simple and align with
+// existing ARIS conventions (see DataClassification on other domains).
+// Allowed values are enforced in application code (TypeBox schemas + service layer).
 
-// ── Publications (briefs, reports, guidelines, bulletins) ──
+// ── Categories (hierarchical taxonomy) ──
+//
+// scope = CONTINENTAL  → scopeTenantId NULL, only CONTINENTAL_ADMIN/SUPER_ADMIN/KNOWLEDGE_MANAGER may publish
+// scope = REC          → scopeTenantId = REC tenant id, REC_ADMIN of that REC may publish
+//                        (continental roles too); national users CANNOT publish here
+// scope = COUNTRY      → scopeTenantId = country tenant id, only that country's users may publish
+//                        (parent REC and continental roles too)
+//
+// isSystem = true marks the auto-seeded default categories that cannot be deleted.
 
-model Publication {
-  id                  String    @id @default(uuid()) @db.Uuid
-  tenantId            String    @map("tenant_id") @db.Uuid
-  title               String    @db.VarChar(500)
-  abstract            String?   @db.Text
-  authors             String[]
-  domain              String    @db.VarChar(100)
-  type                String    @db.VarChar(50)               // BRIEF | REPORT | GUIDELINE | BULLETIN
-  fileId              String?   @map("file_id") @db.Uuid      // Link to drive service
-  publishedAt         DateTime? @map("published_at") @db.Timestamptz
-  tags                String[]
-  language            String    @db.VarChar(5) @default("EN")  // EN | FR
-  dataClassification  String    @map("data_classification") @default("PUBLIC")
-  createdBy           String    @map("created_by") @db.Uuid
-  updatedBy           String    @map("updated_by") @db.Uuid
-  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+model KnowledgeCategory {
+  id              String   @id @default(uuid()) @db.Uuid
+  parentId        String?  @map("parent_id") @db.Uuid
+  parent          KnowledgeCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  children        KnowledgeCategory[] @relation("CategoryTree")
 
-  @@index([tenantId])
-  @@index([domain])
-  @@index([type])
-  @@index([language])
-  @@index([publishedAt])
-  @@map("publications")
+  slug            String   @unique @db.VarChar(200)
+
+  // Multilingual labels (required EN, optional others)
+  nameEn          String   @map("name_en") @db.VarChar(200)
+  nameFr          String?  @map("name_fr") @db.VarChar(200)
+  namePt          String?  @map("name_pt") @db.VarChar(200)
+  nameAr          String?  @map("name_ar") @db.VarChar(200)
+
+  descriptionEn   String?  @map("description_en") @db.Text
+  descriptionFr   String?  @map("description_fr") @db.Text
+  descriptionPt   String?  @map("description_pt") @db.Text
+  descriptionAr   String?  @map("description_ar") @db.Text
+
+  // Scope of publishing rights
+  scope           String   @db.VarChar(20)                       // CONTINENTAL | REC | COUNTRY
+  scopeTenantId   String?  @map("scope_tenant_id") @db.Uuid      // null if CONTINENTAL ; REC tenant id ; or country tenant id
+  recParentTenantId String? @map("rec_parent_tenant_id") @db.Uuid  // for COUNTRY scope: the REC tenant id of that country (enables REC users to publish in their member countries)
+
+  icon            String?  @db.VarChar(50)
+  color           String?  @db.VarChar(20)
+  sortOrder       Int      @default(0) @map("sort_order")
+  isSystem        Boolean  @default(false) @map("is_system")
+  isActive        Boolean  @default(true)  @map("is_active")
+
+  createdBy       String?  @map("created_by") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  publications    KnowledgePublication[]
+
+  @@index([parentId, sortOrder])
+  @@index([scope, scopeTenantId])
+  @@index([recParentTenantId])
+  @@index([isActive])
+  @@map("knowledge_categories")
   @@schema("knowledge_hub")
 }
 
-// ── E-Learning Modules ──
+// ── Publications (unified content model) ──
+//
+// Replaces former Publication / FAQ / ELearningModule models.
+// Type discriminates the kind of content; render template chosen by frontend.
 
-model ELearningModule {
-  id                  String    @id @default(uuid()) @db.Uuid
-  tenantId            String    @map("tenant_id") @db.Uuid
-  title               String    @db.VarChar(500)
-  description         String?   @db.Text
-  domain              String    @db.VarChar(100)
-  lessons             Json      @default("[]")
-  estimatedDuration   Int       @map("estimated_duration") @default(0)  // minutes
-  prerequisiteIds     String[]  @map("prerequisite_ids") @db.Uuid
-  publishedAt         DateTime? @map("published_at") @db.Timestamptz
-  dataClassification  String    @map("data_classification") @default("PUBLIC")
-  createdBy           String    @map("created_by") @db.Uuid
-  updatedBy           String    @map("updated_by") @db.Uuid
-  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+model KnowledgePublication {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
 
-  learnerProgress     LearnerProgress[]
+  categoryId      String   @map("category_id") @db.Uuid
+  category        KnowledgeCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  @@index([tenantId])
-  @@index([domain])
-  @@index([publishedAt])
-  @@map("elearning_modules")
+  // Multilingual content (JSON: { en, fr, pt, ar })
+  // title is the only required language field at creation (default = author locale).
+  title           Json                                          // { en?: string, fr?: string, pt?: string, ar?: string }
+  summary         Json?                                         // short description per locale
+  contentHtml     Json     @map("content_html")                 // TinyMCE HTML output per locale
+  contentText     Json?    @map("content_text")                 // stripped plain text for search indexing per locale
+
+  slug            String   @unique @db.VarChar(250)
+  type            String   @db.VarChar(30)                      // ARTICLE | REPORT | BRIEF | GUIDELINE | NEWS | EVENT | FAQ | DATASET | INFOGRAPHIC | VIDEO | ANNOUNCEMENT
+
+  // Workflow
+  status          String   @db.VarChar(20) @default("DRAFT")    // DRAFT | SUBMITTED | UNDER_REVIEW | APPROVED | REJECTED | PUBLISHED | ARCHIVED
+  visibility      String   @db.VarChar(20) @default("PUBLIC")   // PUBLIC | PRIVATE
+  dataClassification String @map("data_classification") @db.VarChar(20) @default("PUBLIC")
+
+  authors         String[]
+  tags            String[]
+  coverImageId    String?  @map("cover_image_id") @db.Uuid      // FileRecord (drive)
+
+  // Workflow audit trail
+  createdBy       String   @map("created_by") @db.Uuid
+  updatedBy       String   @map("updated_by") @db.Uuid
+  submittedAt     DateTime? @map("submitted_at") @db.Timestamptz
+  reviewedBy      String?  @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime? @map("reviewed_at") @db.Timestamptz
+  rejectionReason String?  @map("rejection_reason") @db.Text
+  publishedAt     DateTime? @map("published_at") @db.Timestamptz
+  publishedBy     String?  @map("published_by") @db.Uuid
+  archivedAt      DateTime? @map("archived_at") @db.Timestamptz
+
+  // SEO / metadata
+  metaTitle       Json?    @map("meta_title")
+  metaDescription Json?    @map("meta_description")
+
+  // Counters
+  viewCount       Int      @default(0) @map("view_count")
+  downloadCount   Int      @default(0) @map("download_count")
+
+  attachments     KnowledgePublicationAttachment[]
+  reviews         KnowledgePublicationReview[]
+
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([tenantId, status])
+  @@index([categoryId, status, publishedAt])
+  @@index([visibility, status, publishedAt])
+  @@index([type, status])
+  @@index([status, submittedAt])
+  @@map("knowledge_publications")
   @@schema("knowledge_hub")
 }
 
-// ── Learner Progress ──
+// ── Attachments (multi-file support per publication) ──
 
-model LearnerProgress {
-  id               String    @id @default(uuid()) @db.Uuid
-  userId           String    @map("user_id") @db.Uuid
-  moduleId         String    @map("module_id") @db.Uuid
-  completedLessons Json      @map("completed_lessons") @default("[]")  // array of lesson IDs
-  score            Float?
-  startedAt        DateTime  @default(now()) @map("started_at") @db.Timestamptz
-  completedAt      DateTime? @map("completed_at") @db.Timestamptz
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+model KnowledgePublicationAttachment {
+  id              String   @id @default(uuid()) @db.Uuid
+  publicationId   String   @map("publication_id") @db.Uuid
+  publication     KnowledgePublication @relation(fields: [publicationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  module           ELearningModule @relation(fields: [moduleId], references: [id])
+  fileId          String   @map("file_id") @db.Uuid              // FileRecord (drive-service)
+  caption         String?  @db.VarChar(500)
+  kind            String   @db.VarChar(20)                       // DOCUMENT | IMAGE | VIDEO | AUDIO | ARCHIVE | OTHER
+  sortOrder       Int      @default(0) @map("sort_order")
 
-  @@unique([userId, moduleId])
-  @@index([userId])
-  @@index([moduleId])
-  @@map("learner_progress")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([publicationId, sortOrder])
+  @@map("knowledge_publication_attachments")
   @@schema("knowledge_hub")
 }
 
-// ── FAQ ──
+// ── Review trail (validation history) ──
 
-model FAQ {
-  id                  String   @id @default(uuid()) @db.Uuid
-  tenantId            String   @map("tenant_id") @db.Uuid
-  question            String   @db.Text
-  answer              String   @db.Text
-  domain              String   @db.VarChar(100)
-  language            String   @db.VarChar(5) @default("EN")  // EN | FR
-  sortOrder           Int      @map("sort_order") @default(0)
-  dataClassification  String   @map("data_classification") @default("PUBLIC")
-  createdBy           String   @map("created_by") @db.Uuid
-  updatedBy           String   @map("updated_by") @db.Uuid
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+model KnowledgePublicationReview {
+  id              String   @id @default(uuid()) @db.Uuid
+  publicationId   String   @map("publication_id") @db.Uuid
+  publication     KnowledgePublication @relation(fields: [publicationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@index([tenantId])
-  @@index([domain])
-  @@index([language])
-  @@index([sortOrder])
-  @@map("faqs")
+  reviewerId      String   @map("reviewer_id") @db.Uuid
+  reviewerRole    String   @map("reviewer_role") @db.VarChar(40)
+  decision        String   @db.VarChar(20)                       // APPROVED | REJECTED | REQUEST_CHANGES | COMMENT
+  comment         String?  @db.Text
+
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([publicationId, createdAt])
+  @@index([reviewerId])
+  @@map("knowledge_publication_reviews")
   @@schema("knowledge_hub")
 }

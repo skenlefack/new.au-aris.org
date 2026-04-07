@@ -53,7 +53,7 @@ export function ContinentalContent({ recs }: ContinentalContentProps) {
               <div className="space-y-2 text-sm">
                 <QuickLink label={t('outbreakMap')} desc={t('outbreakMapDesc')} color="#C62828" />
                 <QuickLink label={t('dataQualityLink')} desc={t('dataQualityLinkDesc')} color="#F57F17" />
-                <QuickLink label={t('knowledgePortal')} desc={t('knowledgePortalDesc')} color="#1B5E20" />
+                <QuickLink href="/knowledge" label={t('knowledgePortal')} desc={t('knowledgePortalDesc')} color="#1B5E20" />
               </div>
             </div>
           </div>
@@ -63,8 +63,8 @@ export function ContinentalContent({ recs }: ContinentalContentProps) {
   );
 }
 
-function QuickLink({ label, desc, color }: { label: string; desc: string; color: string }) {
-  return (
+function QuickLink({ label, desc, color, href }: { label: string; desc: string; color: string; href?: string }) {
+  const inner = (
     <div className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-white dark:hover:bg-gray-700">
       <div
         className="h-2 w-2 shrink-0 rounded-full"
@@ -76,4 +76,12 @@ function QuickLink({ label, desc, color }: { label: string; desc: string; color:
       </div>
     </div>
   );
+  if (href) {
+    return (
+      <a href={href} className="block">
+        {inner}
+      </a>
+    );
+  }
+  return inner;
 }

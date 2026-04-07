@@ -123,7 +123,7 @@ const FALLBACK_DOMAIN_ITEMS: NavItem[] = [
   { tKey: 'apiculture', href: '/apiculture', icon: Bug, matchPrefix: '/apiculture', isDomain: true },
   { tKey: 'governance', href: '/governance', icon: Landmark, matchPrefix: '/governance', isDomain: true },
   { tKey: 'climateEnv', href: '/climate-env', icon: CloudSun, matchPrefix: '/climate-env', isDomain: true },
-  { tKey: 'knowledge', href: '/knowledge', icon: BookOpen, matchPrefix: '/knowledge', isDomain: true },
+  { tKey: 'knowledge', href: '/knowledge/admin', icon: BookOpen, matchPrefix: '/knowledge/admin', isDomain: true },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -133,7 +133,7 @@ const FALLBACK_DOMAIN_ITEMS: NavItem[] = [
 const CODE_TO_ROUTE: Record<string, string> = {
   'livestock-prod': '/livestock',
   'trade-sps': '/trade',
-  'knowledge-hub': '/knowledge',
+  'knowledge-hub': '/knowledge/admin',
 };
 
 function domainHref(domain: { code: string; metadata?: Record<string, unknown> | null }): string {

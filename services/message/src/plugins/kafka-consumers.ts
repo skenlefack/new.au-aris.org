@@ -25,6 +25,7 @@ export default fp(
       templateEngine,
       preferencesService,
       emailChannel,
+      app.prisma,
     );
 
     // Start consumer after app is ready

@@ -1,13 +1,13 @@
 import type { authHook } from '@aris/auth-middleware';
 import type { PublicationService } from '../services/publication.service';
-import type { ELearningService } from '../services/elearning.service';
-import type { FaqService } from '../services/faq.service';
+import type { CategoryService } from '../services/category.service';
+import type { SearchService } from '../services/search.service';
 
 declare module 'fastify' {
   interface FastifyInstance {
     authHookFn: ReturnType<typeof authHook>;
     publicationService: PublicationService;
-    elearningService: ELearningService;
-    faqService: FaqService;
+    categoryService: CategoryService;
+    searchService: SearchService;
   }
 }

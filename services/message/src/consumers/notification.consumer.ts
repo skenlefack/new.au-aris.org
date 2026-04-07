@@ -8,7 +8,12 @@ import {
   TOPIC_MS_COLLECTE_FORM_SUBMITTED,
   TOPIC_SYS_CREDENTIAL_PASSWORD_RESET,
   TOPIC_SYS_CREDENTIAL_NEW_DEVICE_LOGIN,
+  TOPIC_AU_KNOWLEDGE_PUBLICATION_SUBMITTED,
+  TOPIC_AU_KNOWLEDGE_PUBLICATION_APPROVED,
+  TOPIC_AU_KNOWLEDGE_PUBLICATION_REJECTED,
+  TOPIC_AU_KNOWLEDGE_PUBLICATION_PUBLISHED,
 } from '@aris/shared-types';
+import type { PrismaClient } from '@prisma/client';
 import type { NotificationService } from '../services/notification.service';
 import type { TemplateEngine } from '../services/template-engine';
 import type { PreferencesService } from '../services/preferences.service';
@@ -23,6 +28,7 @@ export class NotificationConsumer {
     private readonly templateEngine: TemplateEngine,
     private readonly preferencesService: PreferencesService,
     private readonly emailChannel?: MessageChannel,
+    private readonly prisma?: PrismaClient,
   ) {}
 
   async start(): Promise<void> {
@@ -34,6 +40,10 @@ export class NotificationConsumer {
       this.subscribeFormSubmitted(),
       this.subscribePasswordReset(),
       this.subscribeNewDeviceLogin(),
+      this.subscribeKnowledgeSubmitted(),
+      this.subscribeKnowledgeApproved(),
+      this.subscribeKnowledgeRejected(),
+      this.subscribeKnowledgePublished(),
     ]);
     console.log('All notification consumers subscribed');
   }
@@ -180,6 +190,118 @@ export class NotificationConsumer {
         console.error(`[PASSWORD_RESET] Failed to send email to ${data.email}: ${result.error}`);
       }
     });
+  }
+
+  // ─── Knowledge Hub publication workflow ─────────────────────────────────
+  //
+  // Bidirectional notifications:
+  //   - SUBMITTED → notify all KNOWLEDGE_MANAGER + CONTINENTAL_ADMIN reviewers
+  //   - APPROVED  → notify the author (publication.authorId)
+  //   - REJECTED  → notify the author with reviewer comment
+  //   - PUBLISHED → notify the author so they know it's live
+
+  private extractTitle(data: any): string {
+    const t = data?.title ?? {};
+    return t.en ?? t.fr ?? t.pt ?? t.ar ?? data?.slug ?? '(untitled)';
+  }
+
+  private async subscribeKnowledgeSubmitted(): Promise<void> {
+    await this.kafkaConsumer.subscribe(
+      { topic: TOPIC_AU_KNOWLEDGE_PUBLICATION_SUBMITTED, groupId: GROUP_ID },
+      async (payload) => {
+        const data = payload as any;
+        const title = this.extractTitle(data);
+        const portalUrl = `${process.env['DASHBOARD_URL'] ?? 'https://au-aris.org/dashboard'}/knowledge/admin/review/${data.id}`;
+        const body = `A new publication "${title}" is awaiting your review on the Knowledge Hub.\n\n${portalUrl}`;
+
+        // Find all reviewers (KNOWLEDGE_MANAGER + CONTINENTAL_ADMIN + SUPER_ADMIN)
+        if (!this.prisma) {
+          console.warn('[NotificationConsumer] No prisma client — cannot resolve KH reviewers');
+          return;
+        }
+        try {
+          const reviewers = await (this.prisma as any).user.findMany({
+            where: {
+              role: { in: ['KNOWLEDGE_MANAGER', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'] },
+              isActive: true,
+            },
+            select: { id: true, tenantId: true },
+          });
+          for (const r of reviewers) {
+            await this.notificationService.send(
+              { userId: r.id, channel: NotificationChannel.IN_APP, subject: `Knowledge Hub review needed: ${title}`, body },
+              r.tenantId,
+            );
+          }
+        } catch (err) {
+          console.error('[NotificationConsumer] Failed to notify reviewers:', err);
+        }
+      },
+    );
+  }
+
+  private async subscribeKnowledgeApproved(): Promise<void> {
+    await this.kafkaConsumer.subscribe(
+      { topic: TOPIC_AU_KNOWLEDGE_PUBLICATION_APPROVED, groupId: GROUP_ID },
+      async (payload) => {
+        const data = payload as any;
+        const title = this.extractTitle(data);
+        const authorId = data.authorId ?? data.createdBy;
+        if (!authorId) return;
+        await this.notificationService.send(
+          {
+            userId: authorId,
+            channel: NotificationChannel.IN_APP,
+            subject: `✅ Publication approved: ${title}`,
+            body: `Your publication "${title}" has been approved by the continental knowledge manager.${data.reviewerComment ? `\n\nComment: ${data.reviewerComment}` : ''}`,
+          },
+          data.tenantId,
+        );
+      },
+    );
+  }
+
+  private async subscribeKnowledgeRejected(): Promise<void> {
+    await this.kafkaConsumer.subscribe(
+      { topic: TOPIC_AU_KNOWLEDGE_PUBLICATION_REJECTED, groupId: GROUP_ID },
+      async (payload) => {
+        const data = payload as any;
+        const title = this.extractTitle(data);
+        const authorId = data.authorId ?? data.createdBy;
+        if (!authorId) return;
+        await this.notificationService.send(
+          {
+            userId: authorId,
+            channel: NotificationChannel.IN_APP,
+            subject: `Publication needs revision: ${title}`,
+            body: `Your publication "${title}" was not approved. ${data.reviewerComment || data.rejectionReason || 'See details on the Knowledge Hub.'}`,
+          },
+          data.tenantId,
+        );
+      },
+    );
+  }
+
+  private async subscribeKnowledgePublished(): Promise<void> {
+    await this.kafkaConsumer.subscribe(
+      { topic: TOPIC_AU_KNOWLEDGE_PUBLICATION_PUBLISHED, groupId: GROUP_ID },
+      async (payload) => {
+        const data = payload as any;
+        const title = this.extractTitle(data);
+        const authorId = data.authorId ?? data.createdBy;
+        if (!authorId) return;
+        const url = `${process.env['DASHBOARD_URL'] ?? 'https://au-aris.org'}/knowledge/p/${data.slug}`;
+        await this.notificationService.send(
+          {
+            userId: authorId,
+            channel: NotificationChannel.IN_APP,
+            subject: `🌍 Publication is live: ${title}`,
+            body: `Your publication "${title}" is now visible on the public Knowledge Hub portal.\n\n${url}`,
+          },
+          data.tenantId,
+        );
+      },
+    );
   }
 
   private async subscribeNewDeviceLogin(): Promise<void> {

@@ -5,13 +5,13 @@ import { PrismaClient } from '@prisma/client';
 import { StandaloneKafkaProducer } from '@aris/kafka-client';
 import { authHook } from '@aris/auth-middleware';
 import type { AuthHookOptions } from '@aris/auth-middleware';
+import { CategoryService } from './services/category.service';
 import { PublicationService } from './services/publication.service';
-import { ELearningService } from './services/elearning.service';
-import { FaqService } from './services/faq.service';
+import { SearchService } from './services/search.service';
 import { registerHealthRoutes } from './routes/health.routes';
+import { registerCategoryRoutes } from './routes/category.routes';
 import { registerPublicationRoutes } from './routes/publication.routes';
-import { registerELearningRoutes } from './routes/elearning.routes';
-import { registerFaqRoutes } from './routes/faq.routes';
+import { registerSearchRoutes } from './routes/search.routes';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -26,7 +26,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   // CORS
   await app.register(cors, { origin: true, credentials: true });
 
-  // --- Error handler --- maps statusCode on Error to HTTP response
+  // --- Error handler ---
   app.setErrorHandler((error: FastifyError, request, reply) => {
     const statusCode = error.statusCode ?? 500;
     const message = error.message ?? 'Internal Server Error';
@@ -82,19 +82,24 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.decorate('authHookFn', authHook(authOptions));
 
   // --- Services ---
-  const publicationService = new PublicationService(prisma, kafka);
-  const elearningService = new ELearningService(prisma, kafka);
-  const faqService = new FaqService(prisma, kafka);
+  const searchService = new SearchService(prisma);
+  // Best-effort: set up the OpenSearch index in the background so service
+  // boot doesn't block on cluster availability.
+  searchService.ensureIndex().catch((err) =>
+    app.log.warn(`SearchService.ensureIndex failed (will retry on first use): ${err}`),
+  );
+  const categoryService = new CategoryService(prisma, kafka);
+  const publicationService = new PublicationService(prisma, kafka, categoryService, searchService);
 
+  app.decorate('categoryService', categoryService);
   app.decorate('publicationService', publicationService);
-  app.decorate('elearningService', elearningService);
-  app.decorate('faqService', faqService);
+  app.decorate('searchService', searchService);
 
   // --- Routes ---
   await app.register(registerHealthRoutes);
+  await app.register(registerCategoryRoutes);
   await app.register(registerPublicationRoutes);
-  await app.register(registerELearningRoutes);
-  await app.register(registerFaqRoutes);
+  await app.register(registerSearchRoutes);
 
   return app;
 }

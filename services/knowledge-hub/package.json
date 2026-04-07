@@ -2,7 +2,7 @@
   "name": "@aris/knowledge-hub-service",
   "version": "0.2.0",
   "private": true,
-  "description": "ARIS 4.0 — Knowledge Hub service (Fastify): publications, e-learning, FAQ",
+  "description": "ARIS 4.0 — Knowledge Hub service (Fastify): KMS publications, categories, search",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc --build",
@@ -19,6 +19,7 @@
     "@aris/kafka-client": "workspace:*",
     "@aris/shared-types": "workspace:*",
     "@fastify/cors": "^10.0.0",
+    "@opensearch-project/opensearch": "^2.12.0",
     "@prisma/client": "^6.2.0",
     "@sinclair/typebox": "^0.34.0",
     "dotenv": "^17.3.1",

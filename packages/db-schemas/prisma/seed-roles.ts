@@ -17,6 +17,7 @@ const ROLE_IDS = {
   WAHIS_FOCAL_POINT: '20000000-0000-4000-a000-000000000006',
   ANALYST: '20000000-0000-4000-a000-000000000007',
   FIELD_AGENT: '20000000-0000-4000-a000-000000000008',
+  KNOWLEDGE_MANAGER: '20000000-0000-4000-a000-000000000009',
 } as const;
 
 // ── System Roles Definition ────────────────────────────────────────────────
@@ -113,6 +114,16 @@ const SYSTEM_ROLES: RoleSeed[] = [
     icon: 'Smartphone',
     sortOrder: 8,
   },
+  {
+    id: ROLE_IDS.KNOWLEDGE_MANAGER,
+    code: 'KNOWLEDGE_MANAGER',
+    name: { en: 'Knowledge Manager', fr: 'Gestionnaire de la Base de Connaissances', pt: 'Gestor de Conhecimento', ar: 'مدير المعرفة' },
+    description: { en: 'Continental editor who validates and publishes knowledge base content', fr: 'Éditeur continental qui valide et publie les contenus de la base de connaissances', pt: 'Editor continental que valida e publica conteúdos da base de conhecimento', ar: 'محرر قاري يقوم بالتحقق من محتوى قاعدة المعرفة ونشره' },
+    level: 'continental',
+    color: '#9333ea',
+    icon: 'BookOpenCheck',
+    sortOrder: 9,
+  },
 ];
 
 // ── Permission Definitions ─────────────────────────────────────────────────
@@ -176,10 +187,13 @@ const PERMISSION_DEFS: PermissionSeed[] = [
   { module: 'climate-env', feature: 'rangelands', actions: ACTIONS_VIEW_EXPORT },
   { module: 'climate-env', feature: 'hotspots', actions: ACTIONS_VIEW_EXPORT },
 
-  // Knowledge
-  { module: 'knowledge', feature: 'publications', actions: ACTIONS_CRUD },
-  { module: 'knowledge', feature: 'elearning', actions: ACTIONS_CRUD },
-  { module: 'knowledge', feature: 'faq', actions: ACTIONS_CRUD },
+  // Knowledge Hub (KMS)
+  // - publications: create/edit own drafts; KNOWLEDGE_MANAGER reviews & publishes
+  // - categories: managed by KNOWLEDGE_MANAGER + continental roles only
+  // - review: validation queue (approve/reject) reserved to reviewers
+  { module: 'knowledge', feature: 'publications', actions: ['view', 'create', 'edit', 'delete', 'submit', 'publish', 'archive'] },
+  { module: 'knowledge', feature: 'categories', actions: ACTIONS_CRUD },
+  { module: 'knowledge', feature: 'review', actions: ['view', 'approve', 'reject'] },
 
   // Collecte
   { module: 'collecte', feature: 'forms', actions: ACTIONS_CRUD },
@@ -372,6 +386,26 @@ const FIELD_AGENT_PERMS = [
   'settings:profile:view', 'settings:profile:edit',
 ];
 
+// KNOWLEDGE_MANAGER: continental editor — full control of the Knowledge Hub
+// Validates and publishes content from all RECs and countries.
+const KNOWLEDGE_MANAGER_PERMS = [
+  'dashboard:home:view',
+  // Full publication lifecycle
+  'knowledge:publications:view', 'knowledge:publications:create', 'knowledge:publications:edit',
+  'knowledge:publications:delete', 'knowledge:publications:submit', 'knowledge:publications:publish',
+  'knowledge:publications:archive',
+  // Category management
+  'knowledge:categories:view', 'knowledge:categories:create', 'knowledge:categories:edit', 'knowledge:categories:delete',
+  // Review queue
+  'knowledge:review:view', 'knowledge:review:approve', 'knowledge:review:reject',
+  // Read-only domain visibility for context
+  ...allPermsForModules(DOMAIN_MODULES).filter(p => p.endsWith(':view')),
+  'analytics:trends:view',
+  'reports:generate:view', 'reports:history:view',
+  'settings:profile:view', 'settings:profile:edit',
+  'settings:audit:view',
+];
+
 const ROLE_PERMISSION_MAP: Record<string, string[]> = {
   SUPER_ADMIN: SUPER_ADMIN_PERMS,
   CONTINENTAL_ADMIN: CONTINENTAL_ADMIN_PERMS,
@@ -381,6 +415,7 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
   WAHIS_FOCAL_POINT: WAHIS_FOCAL_POINT_PERMS,
   ANALYST: ANALYST_PERMS,
   FIELD_AGENT: FIELD_AGENT_PERMS,
+  KNOWLEDGE_MANAGER: KNOWLEDGE_MANAGER_PERMS,
 };
 
 // ── Function Category → Role Mapping ───────────────────────────────────────
