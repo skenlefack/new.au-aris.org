@@ -1632,6 +1632,9 @@ importers:
       '@fastify/cors':
         specifier: ^10.0.0
         version: 10.1.0
+      '@opensearch-project/opensearch':
+        specifier: ^2.12.0
+        version: 2.13.0
       '@prisma/client':
         specifier: ^6.2.0
         version: 6.2.0(prisma@6.2.0)
