@@ -94,6 +94,8 @@ export interface DataShareAgreementDto {
 export interface CreateDataShareAgreementDto {
   title: string;
   description?: string;
+  /** Source tenant. Only continental users may set this; defaults to caller's tenantId. */
+  ownerTenantId?: string;
   recipientTenantId: string;
   dataDomain: string;
   dataScope: DataShareScope;

@@ -27,9 +27,11 @@ import {
 import { useTenantTree, useCampaigns, useFormTemplates } from '@/lib/api/hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTranslations } from '@/lib/i18n/translations';
+import { SearchCombobox } from '@/components/ui/SearchCombobox';
 
 interface FormState {
   // Step 1
+  sourceTenantId: string;
   recipientTenantId: string;
   title: string;
   description: string;
@@ -54,6 +56,7 @@ interface FormState {
 }
 
 interface FieldErrors {
+  sourceTenantId?: string;
   recipientTenantId?: string;
   title?: string;
   campaignId?: string;
@@ -84,8 +87,18 @@ export default function NewDataSharingPage() {
   const tCommon = useTranslations('common');
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const isContinental = user?.tenantLevel === 'CONTINENTAL';
   const { data: tenantTree } = useTenantTree();
-  const tenants = useMemo(() => flattenTenants((tenantTree as any)?.data ?? []), [tenantTree]);
+  const allTenants = useMemo(
+    () => flattenTenants((tenantTree as any)?.data ?? []),
+    [tenantTree],
+  );
+  // Only RECs and Member States can be parties to a sharing agreement
+  // (continental cannot be a party — it's the supervisor)
+  const partyTenants = useMemo(
+    () => allTenants.filter((t) => t.level === 'REC' || t.level === 'MEMBER_STATE'),
+    [allTenants],
+  );
 
   const create = useCreateDataShareAgreement();
   const submit = useSubmitDataShareAgreement();
@@ -94,6 +107,9 @@ export default function NewDataSharingPage() {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [form, setForm] = useState<FormState>({
+    // For non-continental users, source is locked to their tenant.
+    // Continental users start with a blank source they must pick.
+    sourceTenantId: isContinental ? '' : (user?.tenantId ?? ''),
     recipientTenantId: '',
     title: '',
     description: '',
@@ -180,12 +196,27 @@ export default function NewDataSharingPage() {
     setFieldErrors((e) => ({ ...e, [k]: undefined } as FieldErrors));
   };
 
+  // Keep source/recipient in sync — they cannot be the same.
+  // Tenants available as recipients = parties minus the chosen source.
+  const recipientCandidates = useMemo(
+    () => partyTenants.filter((tn) => tn.id !== form.sourceTenantId),
+    [partyTenants, form.sourceTenantId],
+  );
+  // Source candidates: continental sees all parties; everyone else only sees
+  // their own tenant (the field is locked anyway, but this keeps the combobox
+  // option present so the label renders).
+  const sourceCandidates = useMemo(() => {
+    if (isContinental) return partyTenants;
+    return partyTenants.filter((tn) => tn.id === user?.tenantId);
+  }, [partyTenants, isContinental, user?.tenantId]);
+
   // ── Validation ──────────────────────────────────────────────────────────────
   function validateStep(s: number): { errors: FieldErrors; firstMessage?: string } {
     const errors: FieldErrors = {};
     if (s === 1) {
+      if (!form.sourceTenantId) errors.sourceTenantId = t('errors.sourceRequired');
       if (!form.recipientTenantId) errors.recipientTenantId = t('errors.recipientRequired');
-      else if (form.recipientTenantId === user?.tenantId)
+      else if (form.recipientTenantId === form.sourceTenantId)
         errors.recipientTenantId = t('errors.recipientSameAsOwner');
       if (!form.title.trim()) errors.title = t('errors.titleRequired');
       else if (form.title.trim().length < 3) errors.title = t('errors.titleTooShort');
@@ -237,6 +268,10 @@ export default function NewDataSharingPage() {
     return {
       title: form.title.trim(),
       description: form.description.trim() || undefined,
+      // Always send ownerTenantId so the backend knows which tenant the
+      // continental user is acting on behalf of. For non-continental users
+      // it equals user.tenantId — the backend rejects mismatches.
+      ownerTenantId: form.sourceTenantId,
       recipientTenantId: form.recipientTenantId,
       dataDomain: form.dataDomain,
       dataScope: scope,
@@ -358,26 +393,63 @@ export default function NewDataSharingPage() {
         {step === 1 && (
           <div className="space-y-4">
             <Field
+              label={t('wizard.sourceLabel')}
+              required
+              error={fieldErrors.sourceTenantId}
+              hint={
+                isContinental
+                  ? t('wizard.sourceHintContinental')
+                  : t('wizard.sourceHintLocked')
+              }
+            >
+              {isContinental ? (
+                <SearchCombobox
+                  value={
+                    sourceCandidates.find((tn) => tn.id === form.sourceTenantId) ?? null
+                  }
+                  onChange={(item) => update('sourceTenantId', item?.id ?? '')}
+                  items={sourceCandidates}
+                  labelKey={(tn) => `${tn.name} (${tn.level})`}
+                  filterKey={(tn) => `${tn.name} ${tn.level}`}
+                  placeholder={t('wizard.sourcePlaceholder')}
+                  className={
+                    fieldErrors.sourceTenantId ? 'rounded-lg ring-1 ring-destructive' : ''
+                  }
+                />
+              ) : (
+                <div className="flex items-center gap-2 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm">
+                  <span className="font-medium">
+                    {sourceCandidates[0]?.name ?? user?.tenantId}
+                  </span>
+                  {sourceCandidates[0]?.level && (
+                    <span className="text-xs text-muted-foreground">
+                      ({sourceCandidates[0].level})
+                    </span>
+                  )}
+                </div>
+              )}
+            </Field>
+            <Field
               label={t('wizard.recipientLabel')}
               required
               error={fieldErrors.recipientTenantId}
+              hint={t('wizard.recipientHint')}
             >
-              <select
-                value={form.recipientTenantId}
-                onChange={(e) => update('recipientTenantId', e.target.value)}
-                className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
-                  fieldErrors.recipientTenantId ? 'border-destructive' : 'border-input'
-                }`}
-              >
-                <option value="">— {t('wizard.recipientPlaceholder')} —</option>
-                {tenants
-                  .filter((tn) => tn.id !== user?.tenantId)
-                  .map((tn) => (
-                    <option key={tn.id} value={tn.id}>
-                      {tn.name} ({tn.level})
-                    </option>
-                  ))}
-              </select>
+              <SearchCombobox
+                value={
+                  recipientCandidates.find((tn) => tn.id === form.recipientTenantId) ??
+                  null
+                }
+                onChange={(item) => update('recipientTenantId', item?.id ?? '')}
+                items={recipientCandidates}
+                labelKey={(tn) => `${tn.name} (${tn.level})`}
+                filterKey={(tn) => `${tn.name} ${tn.level}`}
+                placeholder={t('wizard.recipientPlaceholder')}
+                disabled={!form.sourceTenantId}
+                className={
+                  fieldErrors.recipientTenantId ? 'rounded-lg ring-1 ring-destructive' : ''
+                }
+              />
             </Field>
             <Field label={t('wizard.titleLabel')} required error={fieldErrors.title}>
               <input
@@ -624,8 +696,18 @@ export default function NewDataSharingPage() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">{t('wizard.reviewTitle')}</h3>
             <SummaryRow
+              label={t('wizard.sourceLabel')}
+              value={
+                allTenants.find((x) => x.id === form.sourceTenantId)?.name ??
+                form.sourceTenantId
+              }
+            />
+            <SummaryRow
               label={t('wizard.recipientLabel')}
-              value={tenants.find((x) => x.id === form.recipientTenantId)?.name ?? form.recipientTenantId}
+              value={
+                allTenants.find((x) => x.id === form.recipientTenantId)?.name ??
+                form.recipientTenantId
+              }
             />
             <SummaryRow label={t('wizard.titleLabel')} value={form.title} />
             {form.description && <SummaryRow label={t('wizard.descriptionLabel')} value={form.description} />}

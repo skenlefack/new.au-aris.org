@@ -59,8 +59,28 @@ export class AgreementService {
     if (!dto.recipientTenantId) {
       throw new HttpError(400, 'recipientTenantId is required');
     }
-    if (dto.recipientTenantId === user.tenantId) {
-      throw new HttpError(400, 'Recipient tenant must differ from owner tenant');
+
+    // Resolve the owner (source) tenant.
+    // - Continental users (CONTINENTAL_ADMIN/SUPER_ADMIN) may specify any
+    //   ownerTenantId; default to their own when omitted.
+    // - All other users always create on behalf of their own tenant — any
+    //   ownerTenantId in the body must match user.tenantId.
+    const isContinental = user.tenantLevel === TenantLevel.CONTINENTAL;
+    let ownerTenantId = user.tenantId;
+    const requestedOwner = (dto as any).ownerTenantId as string | undefined;
+    if (requestedOwner) {
+      if (isContinental) {
+        ownerTenantId = requestedOwner;
+      } else if (requestedOwner !== user.tenantId) {
+        throw new HttpError(
+          403,
+          'Only continental users can set a different source tenant',
+        );
+      }
+    }
+
+    if (dto.recipientTenantId === ownerTenantId) {
+      throw new HttpError(400, 'Recipient tenant must differ from source tenant');
     }
 
     const reference = await this.generateReference();
@@ -70,7 +90,7 @@ export class AgreementService {
         title: dto.title,
         description: dto.description ?? null,
         reference,
-        owner_tenant_id: user.tenantId,
+        owner_tenant_id: ownerTenantId,
         owner_user_id: user.userId,
         recipient_tenant_id: dto.recipientTenantId,
         data_domain: dto.dataDomain,
