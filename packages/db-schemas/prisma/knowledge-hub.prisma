@@ -54,6 +54,17 @@ model KnowledgeCategory {
   isSystem        Boolean  @default(false) @map("is_system")
   isActive        Boolean  @default(true)  @map("is_active")
 
+  // ── Submission workflow ──
+  // Categories proposed by REC or COUNTRY users start as PENDING and must be
+  // approved by a continental KNOWLEDGE_MANAGER before they appear in the
+  // publication picker. System categories (isSystem=true) are auto-APPROVED.
+  status          String   @db.VarChar(20) @default("APPROVED")  // PENDING | APPROVED | REJECTED
+  submittedBy     String?  @map("submitted_by") @db.Uuid
+  submittedAt     DateTime? @map("submitted_at") @db.Timestamptz
+  reviewedBy      String?  @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime? @map("reviewed_at") @db.Timestamptz
+  rejectionReason String?  @map("rejection_reason") @db.Text
+
   createdBy       String?  @map("created_by") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
@@ -64,6 +75,7 @@ model KnowledgeCategory {
   @@index([scope, scopeTenantId])
   @@index([recParentTenantId])
   @@index([isActive])
+  @@index([status])
   @@map("knowledge_categories")
   @@schema("knowledge_hub")
 }

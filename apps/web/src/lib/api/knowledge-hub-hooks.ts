@@ -21,6 +21,8 @@ export type AttachmentKind = 'DOCUMENT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'ARCHIVE
 
 export type LocalisedText = Partial<Record<'en' | 'fr' | 'pt' | 'ar', string>>;
 
+export type CategoryStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export interface KnowledgeCategory {
   id: string;
   parentId: string | null;
@@ -38,6 +40,12 @@ export interface KnowledgeCategory {
   sortOrder: number;
   isSystem: boolean;
   isActive: boolean;
+  status: CategoryStatus;
+  submittedBy: string | null;
+  submittedAt: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  rejectionReason: string | null;
   publicationCount?: number;
   children?: KnowledgeCategory[];
 }
@@ -176,6 +184,31 @@ export function useDeleteCategory() {
   return useMutation({
     mutationFn: (id: string) => knowledgeHubClient.delete<{ data: { deleted: boolean } }>(`/knowledge/categories/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['knowledge', 'categories'] }),
+  });
+}
+
+// ─── Category review (continental managers only) ────────────────────────────
+
+export function useCategoryReviewQueue() {
+  return useQuery({
+    queryKey: ['knowledge', 'categories', 'review-queue'],
+    queryFn: () =>
+      knowledgeHubClient.get<{ data: KnowledgeCategory[] }>('/knowledge/categories/review-queue'),
+    refetchInterval: 60_000,
+  });
+}
+
+export function useReviewCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, decision, comment }: { id: string; decision: 'APPROVED' | 'REJECTED'; comment?: string }) =>
+      knowledgeHubClient.post<{ data: KnowledgeCategory }>(
+        `/knowledge/categories/${id}/review`,
+        { decision, comment },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['knowledge', 'categories'] });
+    },
   });
 }
 

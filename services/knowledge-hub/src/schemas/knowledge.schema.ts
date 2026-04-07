@@ -124,8 +124,15 @@ export const CategoryFilterSchema = Type.Object({
   scopeTenantId: Type.Optional(Type.String({ format: 'uuid' })),
   parentId: Type.Optional(Type.String({ format: 'uuid' })),
   search: Type.Optional(Type.String()),
+  includePending: Type.Optional(Type.Boolean()),
 });
 export type CategoryFilterInput = Static<typeof CategoryFilterSchema>;
+
+export const ReviewCategorySchema = Type.Object({
+  decision: Type.Union([Type.Literal('APPROVED'), Type.Literal('REJECTED')]),
+  comment: Type.Optional(Type.String({ maxLength: 2000 })),
+});
+export type ReviewCategoryInput = Static<typeof ReviewCategorySchema>;
 
 // ── Publications ──
 

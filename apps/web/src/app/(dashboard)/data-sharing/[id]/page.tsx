@@ -183,7 +183,24 @@ export default function DataShareDetailPage() {
           <Card title={t('detail.dataScope')}>
             <KV label={t('wizard.domainLabel')} value={agreement.dataDomain} />
             <KV label={t('wizard.classificationLabel')} value={agreement.dataClassification} />
-            <KV label={t('wizard.entitiesLabel')} value={(agreement.dataScope?.entities ?? []).join(', ') || '—'} />
+            {(agreement.dataScope as any)?.campaignName && (
+              <KV
+                label={t('wizard.campaignLabel')}
+                value={(agreement.dataScope as any).campaignName}
+              />
+            )}
+            <KV
+              label={t('wizard.entitiesLabel')}
+              value={
+                (() => {
+                  const ids: string[] =
+                    (agreement.dataScope as any)?.formIds ??
+                    agreement.dataScope?.entities ??
+                    [];
+                  return ids.length ? `${ids.length} fiche(s)` : '—';
+                })()
+              }
+            />
             {agreement.dataScope?.geoFilter?.countries && (
               <KV label="Countries" value={agreement.dataScope.geoFilter.countries.join(', ')} />
             )}

@@ -12,6 +12,9 @@ import {
   TOPIC_AU_KNOWLEDGE_PUBLICATION_APPROVED,
   TOPIC_AU_KNOWLEDGE_PUBLICATION_REJECTED,
   TOPIC_AU_KNOWLEDGE_PUBLICATION_PUBLISHED,
+  TOPIC_AU_KNOWLEDGE_CATEGORY_SUBMITTED,
+  TOPIC_AU_KNOWLEDGE_CATEGORY_APPROVED,
+  TOPIC_AU_KNOWLEDGE_CATEGORY_REJECTED,
 } from '@aris/shared-types';
 import type { PrismaClient } from '@prisma/client';
 import type { NotificationService } from '../services/notification.service';
@@ -44,6 +47,9 @@ export class NotificationConsumer {
       this.subscribeKnowledgeApproved(),
       this.subscribeKnowledgeRejected(),
       this.subscribeKnowledgePublished(),
+      this.subscribeKnowledgeCategorySubmitted(),
+      this.subscribeKnowledgeCategoryApproved(),
+      this.subscribeKnowledgeCategoryRejected(),
     ]);
     console.log('All notification consumers subscribed');
   }
@@ -299,6 +305,78 @@ export class NotificationConsumer {
             body: `Your publication "${title}" is now visible on the public Knowledge Hub portal.\n\n${url}`,
           },
           data.tenantId,
+        );
+      },
+    );
+  }
+
+  // ── Knowledge Hub category proposal workflow ──────────────────────────
+
+  private async subscribeKnowledgeCategorySubmitted(): Promise<void> {
+    await this.kafkaConsumer.subscribe(
+      { topic: TOPIC_AU_KNOWLEDGE_CATEGORY_SUBMITTED, groupId: GROUP_ID },
+      async (payload) => {
+        const data = payload as any;
+        const name = data.nameEn ?? data.slug ?? '(category)';
+        const portalUrl = `${process.env['DASHBOARD_URL'] ?? 'https://au-aris.org/dashboard'}/knowledge/admin/categories/review`;
+        const body = `A new ${data.scope} category "${name}" was proposed and is awaiting your approval.\n\n${portalUrl}`;
+        if (!this.prisma) return;
+        try {
+          const reviewers = await (this.prisma as any).user.findMany({
+            where: {
+              role: { in: ['KNOWLEDGE_MANAGER', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'] },
+              isActive: true,
+            },
+            select: { id: true, tenantId: true },
+          });
+          for (const r of reviewers) {
+            await this.notificationService.send(
+              { userId: r.id, channel: NotificationChannel.IN_APP, subject: `Knowledge Hub category review: ${name}`, body },
+              r.tenantId,
+            );
+          }
+        } catch (err) {
+          console.error('[NotificationConsumer] Failed to notify category reviewers:', err);
+        }
+      },
+    );
+  }
+
+  private async subscribeKnowledgeCategoryApproved(): Promise<void> {
+    await this.kafkaConsumer.subscribe(
+      { topic: TOPIC_AU_KNOWLEDGE_CATEGORY_APPROVED, groupId: GROUP_ID },
+      async (payload) => {
+        const data = payload as any;
+        const submitterId = data.submitterId ?? data.submittedBy;
+        if (!submitterId) return;
+        await this.notificationService.send(
+          {
+            userId: submitterId,
+            channel: NotificationChannel.IN_APP,
+            subject: `✅ Category approved: ${data.nameEn ?? data.slug}`,
+            body: `Your proposed category "${data.nameEn ?? data.slug}" has been approved and is now available for publishing.`,
+          },
+          data.tenantId ?? data.scopeTenantId,
+        );
+      },
+    );
+  }
+
+  private async subscribeKnowledgeCategoryRejected(): Promise<void> {
+    await this.kafkaConsumer.subscribe(
+      { topic: TOPIC_AU_KNOWLEDGE_CATEGORY_REJECTED, groupId: GROUP_ID },
+      async (payload) => {
+        const data = payload as any;
+        const submitterId = data.submitterId ?? data.submittedBy;
+        if (!submitterId) return;
+        await this.notificationService.send(
+          {
+            userId: submitterId,
+            channel: NotificationChannel.IN_APP,
+            subject: `Category not approved: ${data.nameEn ?? data.slug}`,
+            body: `Your proposed category "${data.nameEn ?? data.slug}" was not approved. ${data.reviewerComment || data.rejectionReason || ''}`,
+          },
+          data.tenantId ?? data.scopeTenantId,
         );
       },
     );

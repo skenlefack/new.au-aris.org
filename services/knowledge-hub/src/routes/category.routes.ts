@@ -4,10 +4,12 @@ import {
   CreateCategorySchema,
   UpdateCategorySchema,
   CategoryFilterSchema,
+  ReviewCategorySchema,
   UuidParamSchema,
   type CreateCategoryInput,
   type UpdateCategoryInput,
   type CategoryFilterInput,
+  type ReviewCategoryInput,
   type UuidParamInput,
 } from '../schemas/knowledge.schema';
 
@@ -50,6 +52,29 @@ export async function registerCategoryRoutes(app: FastifyInstance): Promise<void
     const user = request.user as AuthenticatedUser;
     return app.categoryService.listPublishable(user);
   });
+
+  // ── Continental review queue (KNOWLEDGE_MANAGER + continental roles) ─────
+  app.get(`${PREFIX}/review-queue`, { preHandler: [app.authHookFn] }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.categoryService.reviewQueue(user);
+  });
+
+  app.post<{ Params: UuidParamInput; Body: ReviewCategoryInput }>(
+    `${PREFIX}/:id/review`,
+    {
+      schema: { params: UuidParamSchema, body: ReviewCategorySchema },
+      preHandler: [app.authHookFn],
+    },
+    async (request) => {
+      const user = request.user as AuthenticatedUser;
+      return app.categoryService.review(
+        request.params.id,
+        request.body.decision,
+        request.body.comment,
+        user,
+      );
+    },
+  );
 
   app.get<{ Params: UuidParamInput }>(
     `${PREFIX}/:id`,

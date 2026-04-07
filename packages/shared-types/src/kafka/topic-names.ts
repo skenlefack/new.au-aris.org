@@ -110,6 +110,9 @@ export const TOPIC_AU_KNOWLEDGE_PUBLICATION_ARCHIVED = 'au.knowledge.publication
 export const TOPIC_AU_KNOWLEDGE_CATEGORY_CREATED = 'au.knowledge.category.created.v1' as const;
 export const TOPIC_AU_KNOWLEDGE_CATEGORY_UPDATED = 'au.knowledge.category.updated.v1' as const;
 export const TOPIC_AU_KNOWLEDGE_CATEGORY_DELETED = 'au.knowledge.category.deleted.v1' as const;
+export const TOPIC_AU_KNOWLEDGE_CATEGORY_SUBMITTED = 'au.knowledge.category.submitted.v1' as const;
+export const TOPIC_AU_KNOWLEDGE_CATEGORY_APPROVED = 'au.knowledge.category.approved.v1' as const;
+export const TOPIC_AU_KNOWLEDGE_CATEGORY_REJECTED = 'au.knowledge.category.rejected.v1' as const;
 
 // ── Support Topics ──
 export const TOPIC_SYS_SUPPORT_TICKET_CREATED = 'sys.support.ticket.created.v1' as const;
@@ -257,6 +260,9 @@ export const ALL_TOPICS = [
   TOPIC_AU_KNOWLEDGE_CATEGORY_CREATED,
   TOPIC_AU_KNOWLEDGE_CATEGORY_UPDATED,
   TOPIC_AU_KNOWLEDGE_CATEGORY_DELETED,
+  TOPIC_AU_KNOWLEDGE_CATEGORY_SUBMITTED,
+  TOPIC_AU_KNOWLEDGE_CATEGORY_APPROVED,
+  TOPIC_AU_KNOWLEDGE_CATEGORY_REJECTED,
   TOPIC_SYS_SUPPORT_TICKET_CREATED,
   TOPIC_SYS_SUPPORT_TICKET_UPDATED,
   TOPIC_SYS_SUPPORT_TICKET_CLOSED,

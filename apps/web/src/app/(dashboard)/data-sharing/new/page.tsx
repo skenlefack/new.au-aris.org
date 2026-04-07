@@ -2,10 +2,20 @@
 
 // Data Sharing — 4-step wizard to create a new bilateral agreement.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Check, X, Save, Send } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  X,
+  Save,
+  Send,
+  AlertCircle,
+  Loader2,
+  FileText,
+} from 'lucide-react';
 import {
   useCreateDataShareAgreement,
   useSubmitDataShareAgreement,
@@ -14,20 +24,21 @@ import {
   type CreateDataShareAgreementDto,
   type DataShareScope,
 } from '@/lib/api/data-sharing';
-import { useTenantTree } from '@/lib/api/hooks';
+import { useTenantTree, useCampaigns, useFormTemplates } from '@/lib/api/hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTranslations } from '@/lib/i18n/translations';
 
 interface FormState {
+  // Step 1
   recipientTenantId: string;
   title: string;
   description: string;
+  // Step 2
   dataDomain: string;
-  entities: string[];
-  countries: string[];
-  timeFrom: string;
-  timeTo: string;
+  campaignId: string;
+  selectedFormIds: string[]; // form templates checked for sharing
   dataClassification: string;
+  // Step 3
   canConsult: boolean;
   canExport: boolean;
   canModify: boolean;
@@ -40,6 +51,15 @@ interface FormState {
   allowedIpRanges: string[];
   purpose: string;
   legalBasis: string;
+}
+
+interface FieldErrors {
+  recipientTenantId?: string;
+  title?: string;
+  campaignId?: string;
+  selectedFormIds?: string;
+  validFrom?: string;
+  purpose?: string;
 }
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -71,16 +91,15 @@ export default function NewDataSharingPage() {
   const submit = useSubmitDataShareAgreement();
 
   const [step, setStep] = useState(1);
-  const [error, setError] = useState<string | null>(null);
+  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [form, setForm] = useState<FormState>({
     recipientTenantId: '',
     title: '',
     description: '',
     dataDomain: 'animal-health',
-    entities: [],
-    countries: [],
-    timeFrom: '',
-    timeTo: '',
+    campaignId: '',
+    selectedFormIds: [],
     dataClassification: 'PARTNER',
     canConsult: true,
     canExport: false,
@@ -96,51 +115,125 @@ export default function NewDataSharingPage() {
     legalBasis: '',
   });
 
-  const update = <K extends keyof FormState>(k: K, v: FormState[K]) =>
-    setForm((s) => ({ ...s, [k]: v }));
+  // ── Step 2 data: campaigns + form templates ─────────────────────────────────
+  const { data: campaignsRes, isLoading: campaignsLoading } = useCampaigns({
+    domain: form.dataDomain,
+    limit: 100,
+  });
+  const allCampaigns = (campaignsRes as any)?.data ?? [];
+  // "campagnes en cours ou archivées" → ACTIVE + COMPLETED
+  const campaigns = useMemo(
+    () => allCampaigns.filter((c: any) => c.status === 'ACTIVE' || c.status === 'COMPLETED'),
+    [allCampaigns],
+  );
 
-  function validateStep(s: number): string | null {
+  const { data: templatesRes } = useFormTemplates();
+  const allTemplates: any[] = (templatesRes as any)?.data ?? [];
+  const templatesById = useMemo(() => {
+    const m: Record<string, any> = {};
+    for (const tpl of allTemplates) m[tpl.id] = tpl;
+    return m;
+  }, [allTemplates]);
+
+  const selectedCampaign = useMemo(
+    () => campaigns.find((c: any) => c.id === form.campaignId),
+    [campaigns, form.campaignId],
+  );
+
+  const campaignTemplateIds: string[] = useMemo(() => {
+    if (!selectedCampaign) return [];
+    if (Array.isArray(selectedCampaign.templateIds) && selectedCampaign.templateIds.length > 0) {
+      return selectedCampaign.templateIds;
+    }
+    if (selectedCampaign.templateId) return [selectedCampaign.templateId];
+    return [];
+  }, [selectedCampaign]);
+
+  // When campaign changes, default-check all forms
+  useEffect(() => {
+    if (campaignTemplateIds.length > 0) {
+      setForm((s) => ({ ...s, selectedFormIds: [...campaignTemplateIds] }));
+    } else {
+      setForm((s) => ({ ...s, selectedFormIds: [] }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.campaignId]);
+
+  // When domain changes, reset campaign + forms
+  function changeDomain(d: string) {
+    setForm((s) => ({ ...s, dataDomain: d, campaignId: '', selectedFormIds: [] }));
+    setFieldErrors((e) => ({ ...e, campaignId: undefined, selectedFormIds: undefined }));
+  }
+
+  function toggleForm(id: string) {
+    setForm((s) => ({
+      ...s,
+      selectedFormIds: s.selectedFormIds.includes(id)
+        ? s.selectedFormIds.filter((x) => x !== id)
+        : [...s.selectedFormIds, id],
+    }));
+    setFieldErrors((e) => ({ ...e, selectedFormIds: undefined }));
+  }
+
+  const update = <K extends keyof FormState>(k: K, v: FormState[K]) => {
+    setForm((s) => ({ ...s, [k]: v }));
+    setFieldErrors((e) => ({ ...e, [k]: undefined } as FieldErrors));
+  };
+
+  // ── Validation ──────────────────────────────────────────────────────────────
+  function validateStep(s: number): { errors: FieldErrors; firstMessage?: string } {
+    const errors: FieldErrors = {};
     if (s === 1) {
-      if (!form.recipientTenantId) return t('errors.recipientSameAsOwner');
-      if (form.recipientTenantId === user?.tenantId)
-        return t('errors.recipientSameAsOwner');
-      if (!form.title.trim()) return t('errors.titleRequired');
+      if (!form.recipientTenantId) errors.recipientTenantId = t('errors.recipientRequired');
+      else if (form.recipientTenantId === user?.tenantId)
+        errors.recipientTenantId = t('errors.recipientSameAsOwner');
+      if (!form.title.trim()) errors.title = t('errors.titleRequired');
+      else if (form.title.trim().length < 3) errors.title = t('errors.titleTooShort');
+    }
+    if (s === 2) {
+      if (!form.campaignId) errors.campaignId = t('errors.campaignRequired');
+      else if (form.selectedFormIds.length === 0)
+        errors.selectedFormIds = t('errors.formsRequired');
     }
     if (s === 3) {
-      if (!form.validFrom) return t('errors.validFromRequired');
-      if (!form.purpose.trim()) return t('errors.purposeRequired');
+      if (!form.validFrom) errors.validFrom = t('errors.validFromRequired');
+      if (form.validUntil && form.validFrom && form.validUntil < form.validFrom) {
+        errors.validFrom = t('errors.validUntilBeforeFrom');
+      }
+      if (!form.purpose.trim()) errors.purpose = t('errors.purposeRequired');
     }
-    return null;
+    const firstKey = Object.keys(errors)[0] as keyof FieldErrors | undefined;
+    return { errors, firstMessage: firstKey ? errors[firstKey] : undefined };
   }
 
   function next() {
-    const err = validateStep(step);
-    if (err) {
-      setError(err);
+    const { errors, firstMessage } = validateStep(step);
+    setFieldErrors(errors);
+    if (firstMessage) {
+      setGlobalError(firstMessage);
+      // Scroll to top so the alert is visible
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { /* */ }
       return;
     }
-    setError(null);
+    setGlobalError(null);
     setStep((s) => Math.min(4, s + 1));
   }
 
   function prev() {
-    setError(null);
+    setGlobalError(null);
     setStep((s) => Math.max(1, s - 1));
   }
 
   function buildPayload(): CreateDataShareAgreementDto {
     const scope: DataShareScope = {
-      entities: form.entities,
-      ...(form.countries.length || form.timeFrom || form.timeTo
-        ? {
-            geoFilter: form.countries.length ? { countries: form.countries } : undefined,
-            timeRange:
-              form.timeFrom || form.timeTo
-                ? { from: form.timeFrom || undefined, to: form.timeTo || undefined }
-                : undefined,
-          }
-        : {}),
-    };
+      // We send formIds as the primary entity selector. Backend stores
+      // dataScope as opaque JSON; the future preview/export proxy will use
+      // these fields to filter the source domain service queries.
+      entities: form.selectedFormIds,
+      campaignId: form.campaignId,
+      campaignName: selectedCampaign?.name,
+      formIds: form.selectedFormIds,
+    } as any;
     return {
       title: form.title.trim(),
       description: form.description.trim() || undefined,
@@ -163,38 +256,50 @@ export default function NewDataSharingPage() {
     };
   }
 
-  async function saveDraft() {
+  function validateAll(): boolean {
+    let allErrors: FieldErrors = {};
+    let firstStepWithErr: number | null = null;
+    let firstMsg: string | undefined;
     for (const s of [1, 2, 3]) {
-      const e = validateStep(s);
-      if (e) {
-        setError(e);
-        setStep(s);
-        return;
+      const { errors, firstMessage } = validateStep(s);
+      if (Object.keys(errors).length > 0) {
+        allErrors = { ...allErrors, ...errors };
+        if (firstStepWithErr === null) {
+          firstStepWithErr = s;
+          firstMsg = firstMessage;
+        }
       }
     }
+    if (firstStepWithErr !== null) {
+      setFieldErrors(allErrors);
+      setGlobalError(firstMsg ?? null);
+      setStep(firstStepWithErr);
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { /* */ }
+      return false;
+    }
+    setFieldErrors({});
+    setGlobalError(null);
+    return true;
+  }
+
+  async function saveDraft() {
+    if (!validateAll()) return;
     try {
       await create.mutateAsync(buildPayload());
       router.push('/data-sharing');
     } catch (err: any) {
-      setError(err?.message ?? 'Error');
+      setGlobalError(err?.message ?? 'Error');
     }
   }
 
   async function saveAndSubmit() {
-    for (const s of [1, 2, 3]) {
-      const e = validateStep(s);
-      if (e) {
-        setError(e);
-        setStep(s);
-        return;
-      }
-    }
+    if (!validateAll()) return;
     try {
       const created = await create.mutateAsync(buildPayload());
       await submit.mutateAsync(created.data.id);
       router.push(`/data-sharing/${created.data.id}`);
     } catch (err: any) {
-      setError(err?.message ?? 'Error');
+      setGlobalError(err?.message ?? 'Error');
     }
   }
 
@@ -242,22 +347,29 @@ export default function NewDataSharingPage() {
         ))}
       </div>
 
-      {error && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-          {error}
+      {globalError && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{globalError}</span>
         </div>
       )}
 
       <div className="rounded-lg border bg-card p-6">
         {step === 1 && (
           <div className="space-y-4">
-            <Field label={t('wizard.recipientLabel')}>
+            <Field
+              label={t('wizard.recipientLabel')}
+              required
+              error={fieldErrors.recipientTenantId}
+            >
               <select
                 value={form.recipientTenantId}
                 onChange={(e) => update('recipientTenantId', e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
+                  fieldErrors.recipientTenantId ? 'border-destructive' : 'border-input'
+                }`}
               >
-                <option value="">—</option>
+                <option value="">— {t('wizard.recipientPlaceholder')} —</option>
                 {tenants
                   .filter((tn) => tn.id !== user?.tenantId)
                   .map((tn) => (
@@ -267,12 +379,15 @@ export default function NewDataSharingPage() {
                   ))}
               </select>
             </Field>
-            <Field label={t('wizard.titleLabel')}>
+            <Field label={t('wizard.titleLabel')} required error={fieldErrors.title}>
               <input
                 type="text"
                 value={form.title}
                 onChange={(e) => update('title', e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                placeholder={t('wizard.titlePlaceholder')}
+                className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
+                  fieldErrors.title ? 'border-destructive' : 'border-input'
+                }`}
               />
             </Field>
             <Field label={t('wizard.descriptionLabel')}>
@@ -280,6 +395,7 @@ export default function NewDataSharingPage() {
                 value={form.description}
                 onChange={(e) => update('description', e.target.value)}
                 rows={4}
+                placeholder={t('wizard.descriptionPlaceholder')}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               />
             </Field>
@@ -287,11 +403,11 @@ export default function NewDataSharingPage() {
         )}
 
         {step === 2 && (
-          <div className="space-y-4">
-            <Field label={t('wizard.domainLabel')}>
+          <div className="space-y-5">
+            <Field label={t('wizard.domainLabel')} required>
               <select
                 value={form.dataDomain}
-                onChange={(e) => update('dataDomain', e.target.value)}
+                onChange={(e) => changeDomain(e.target.value)}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 {DATA_DOMAINS.map((d) => (
@@ -301,14 +417,115 @@ export default function NewDataSharingPage() {
                 ))}
               </select>
             </Field>
-            <Field label={t('wizard.entitiesLabel')}>
-              <ChipsInput
-                values={form.entities}
-                onChange={(v) => update('entities', v)}
-                placeholder="outbreaks, lab_results..."
-              />
+
+            <Field
+              label={t('wizard.campaignLabel')}
+              required
+              error={fieldErrors.campaignId}
+              hint={t('wizard.campaignHint')}
+            >
+              {campaignsLoading ? (
+                <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {tCommon('loading')}
+                </div>
+              ) : campaigns.length === 0 ? (
+                <div className="rounded-md border border-amber-300/40 bg-amber-50 px-3 py-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+                  {t('wizard.noCampaigns')}
+                </div>
+              ) : (
+                <select
+                  value={form.campaignId}
+                  onChange={(e) => update('campaignId', e.target.value)}
+                  className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
+                    fieldErrors.campaignId ? 'border-destructive' : 'border-input'
+                  }`}
+                >
+                  <option value="">— {t('wizard.campaignPlaceholder')} —</option>
+                  {campaigns.map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} · {c.status === 'ACTIVE' ? t('campaign.active') : t('campaign.completed')}
+                    </option>
+                  ))}
+                </select>
+              )}
             </Field>
-            <Field label={t('wizard.classificationLabel')}>
+
+            {form.campaignId && (
+              <Field
+                label={t('wizard.formsLabel')}
+                hint={t('wizard.formsHint')}
+                error={fieldErrors.selectedFormIds}
+              >
+                <div
+                  className={`divide-y rounded-md border ${
+                    fieldErrors.selectedFormIds ? 'border-destructive' : 'border-input'
+                  }`}
+                >
+                  {campaignTemplateIds.length === 0 ? (
+                    <div className="px-3 py-4 text-sm text-muted-foreground">
+                      {t('wizard.noFormsInCampaign')}
+                    </div>
+                  ) : (
+                    campaignTemplateIds.map((tplId) => {
+                      const tpl = templatesById[tplId];
+                      const checked = form.selectedFormIds.includes(tplId);
+                      const tplName = tpl?.name ?? tplId;
+                      return (
+                        <label
+                          key={tplId}
+                          className="flex cursor-pointer items-start gap-3 px-3 py-2.5 hover:bg-accent/30"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleForm(tplId)}
+                            className="mt-0.5 h-4 w-4 cursor-pointer"
+                          />
+                          <div className="flex min-w-0 flex-1 items-start gap-2">
+                            <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium">{tplName}</p>
+                              {tpl && (
+                                <p className="truncate text-xs text-muted-foreground">
+                                  v{tpl.version} · {tpl.status}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+                {campaignTemplateIds.length > 0 && (
+                  <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      {form.selectedFormIds.length} / {campaignTemplateIds.length} {t('wizard.formsSelected')}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => update('selectedFormIds', [...campaignTemplateIds])}
+                        className="hover:text-foreground"
+                      >
+                        {t('wizard.selectAll')}
+                      </button>
+                      <span>·</span>
+                      <button
+                        type="button"
+                        onClick={() => update('selectedFormIds', [])}
+                        className="hover:text-foreground"
+                      >
+                        {t('wizard.deselectAll')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </Field>
+            )}
+
+            <Field label={t('wizard.classificationLabel')} required>
               <select
                 value={form.dataClassification}
                 onChange={(e) => update('dataClassification', e.target.value)}
@@ -321,24 +538,6 @@ export default function NewDataSharingPage() {
                 ))}
               </select>
             </Field>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label={t('wizard.validFromLabel')}>
-                <input
-                  type="date"
-                  value={form.timeFrom}
-                  onChange={(e) => update('timeFrom', e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                />
-              </Field>
-              <Field label={t('wizard.validUntilLabel')}>
-                <input
-                  type="date"
-                  value={form.timeTo}
-                  onChange={(e) => update('timeTo', e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                />
-              </Field>
-            </div>
           </div>
         )}
 
@@ -354,12 +553,14 @@ export default function NewDataSharingPage() {
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label={t('wizard.validFromLabel')}>
+              <Field label={t('wizard.validFromLabel')} required error={fieldErrors.validFrom}>
                 <input
                   type="date"
                   value={form.validFrom}
                   onChange={(e) => update('validFrom', e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
+                    fieldErrors.validFrom ? 'border-destructive' : 'border-input'
+                  }`}
                 />
               </Field>
               <Field label={t('wizard.validUntilLabel')}>
@@ -397,12 +598,15 @@ export default function NewDataSharingPage() {
                 placeholder="10.0.0.0/8"
               />
             </Field>
-            <Field label={t('wizard.purposeLabel')}>
+            <Field label={t('wizard.purposeLabel')} required error={fieldErrors.purpose}>
               <textarea
                 value={form.purpose}
                 onChange={(e) => update('purpose', e.target.value)}
                 rows={3}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                placeholder={t('wizard.purposePlaceholder')}
+                className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
+                  fieldErrors.purpose ? 'border-destructive' : 'border-input'
+                }`}
               />
             </Field>
             <Field label={t('wizard.legalBasisLabel')}>
@@ -419,22 +623,37 @@ export default function NewDataSharingPage() {
         {step === 4 && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">{t('wizard.reviewTitle')}</h3>
-            <SummaryRow label={t('wizard.recipientLabel')} value={tenants.find((x) => x.id === form.recipientTenantId)?.name ?? form.recipientTenantId} />
+            <SummaryRow
+              label={t('wizard.recipientLabel')}
+              value={tenants.find((x) => x.id === form.recipientTenantId)?.name ?? form.recipientTenantId}
+            />
             <SummaryRow label={t('wizard.titleLabel')} value={form.title} />
             {form.description && <SummaryRow label={t('wizard.descriptionLabel')} value={form.description} />}
             <SummaryRow label={t('wizard.domainLabel')} value={form.dataDomain} />
-            <SummaryRow label={t('wizard.entitiesLabel')} value={form.entities.join(', ') || '—'} />
+            <SummaryRow label={t('wizard.campaignLabel')} value={selectedCampaign?.name ?? '—'} />
+            <SummaryRow
+              label={t('wizard.formsLabel')}
+              value={
+                form.selectedFormIds.length > 0
+                  ? form.selectedFormIds
+                      .map((id) => templatesById[id]?.name ?? id)
+                      .join(' · ')
+                  : '—'
+              }
+            />
             <SummaryRow label={t('wizard.classificationLabel')} value={form.dataClassification} />
             <SummaryRow
               label={t('wizard.permissionsLabel')}
-              value={[
-                form.canConsult && t('wizard.canConsult'),
-                form.canExport && t('wizard.canExport'),
-                form.canModify && t('wizard.canModify'),
-                form.canRedistribute && t('wizard.canRedistribute'),
-              ]
-                .filter(Boolean)
-                .join(' · ') || '—'}
+              value={
+                [
+                  form.canConsult && t('wizard.canConsult'),
+                  form.canExport && t('wizard.canExport'),
+                  form.canModify && t('wizard.canModify'),
+                  form.canRedistribute && t('wizard.canRedistribute'),
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || '—'
+              }
             />
             <SummaryRow
               label={`${t('wizard.validFromLabel')} → ${t('wizard.validUntilLabel')}`}
@@ -499,11 +718,33 @@ export default function NewDataSharingPage() {
 
 // ─── Helper components ───────────────────────────────────────────────────────
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  required,
+  error,
+  hint,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  error?: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium">{label}</label>
+      <label className="mb-1 block text-sm font-medium">
+        {label}
+        {required && <span className="ml-0.5 text-destructive">*</span>}
+      </label>
       {children}
+      {hint && !error && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+      {error && (
+        <p className="mt-1 flex items-center gap-1 text-xs text-destructive">
+          <AlertCircle className="h-3 w-3" />
+          {error}
+        </p>
+      )}
     </div>
   );
 }

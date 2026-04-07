@@ -7,6 +7,9 @@ import {
   TOPIC_AU_KNOWLEDGE_CATEGORY_CREATED,
   TOPIC_AU_KNOWLEDGE_CATEGORY_UPDATED,
   TOPIC_AU_KNOWLEDGE_CATEGORY_DELETED,
+  TOPIC_AU_KNOWLEDGE_CATEGORY_SUBMITTED,
+  TOPIC_AU_KNOWLEDGE_CATEGORY_APPROVED,
+  TOPIC_AU_KNOWLEDGE_CATEGORY_REJECTED,
 } from '@aris/shared-types';
 import type { KafkaHeaders, ApiResponse } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
@@ -40,6 +43,12 @@ interface CategoryNode {
   sortOrder: number;
   isSystem: boolean;
   isActive: boolean;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  submittedBy: string | null;
+  submittedAt: Date | null;
+  reviewedBy: string | null;
+  reviewedAt: Date | null;
+  rejectionReason: string | null;
   children?: CategoryNode[];
   publicationCount?: number;
 }
@@ -136,21 +145,81 @@ export class CategoryService {
   // CRUD
   // ─────────────────────────────────────────────────────────────
 
+  /**
+   * Create a category.
+   *
+   * Authorization & scope rules:
+   *  - Continental managers (KNOWLEDGE_MANAGER, CONTINENTAL_ADMIN, SUPER_ADMIN)
+   *    can create categories at ANY scope and the result is auto-APPROVED.
+   *  - REC users (REC_ADMIN, tenantLevel REC) may create REC categories scoped
+   *    to their own REC, OR COUNTRY categories for any country in their REC.
+   *    Result starts as PENDING, awaiting continental review.
+   *  - COUNTRY users (NATIONAL_ADMIN etc., tenantLevel MEMBER_STATE) may
+   *    create COUNTRY categories scoped to their own country only.
+   *    Result starts as PENDING.
+   *
+   * Scope/tenant fields are auto-derived from the user's tenant for non-
+   * continental users — they cannot bypass the rule by sending a different
+   * scopeTenantId.
+   */
   async create(dto: CreateCategoryInput, user: AuthenticatedUser): Promise<ApiResponse<CategoryNode>> {
-    this.assertManager(user);
+    const isManager = this.isManager(user);
 
-    // Validate scope/tenant pairing
-    if (dto.scope === 'CONTINENTAL' && dto.scopeTenantId) {
+    // ── Resolve effective scope + tenant + initial status ────────────────
+    let scope: string;
+    let scopeTenantId: string | null;
+    let recParentTenantId: string | null;
+    let status: 'PENDING' | 'APPROVED';
+
+    if (isManager) {
+      // Managers can create anywhere; whatever they send is the source of truth
+      scope = dto.scope;
+      scopeTenantId = dto.scopeTenantId ?? null;
+      recParentTenantId = dto.recParentTenantId ?? null;
+      status = 'APPROVED';
+    } else if (user.tenantLevel === TenantLevel.REC) {
+      // REC user: allowed to create REC + COUNTRY (in own REC) — both PENDING
+      if (dto.scope !== 'REC' && dto.scope !== 'COUNTRY') {
+        throw this.httpError(403, 'REC users may only propose REC or COUNTRY categories');
+      }
+      scope = dto.scope;
+      if (dto.scope === 'REC') {
+        // Auto-scope to user's own REC (ignore client value)
+        scopeTenantId = user.tenantId;
+        recParentTenantId = null;
+      } else {
+        // COUNTRY proposal — must target a country whose REC is the user's tenant
+        if (!dto.scopeTenantId || dto.recParentTenantId !== user.tenantId) {
+          throw this.httpError(403, 'REC users may only propose COUNTRY categories within their own REC');
+        }
+        scopeTenantId = dto.scopeTenantId;
+        recParentTenantId = user.tenantId;
+      }
+      status = 'PENDING';
+    } else if (user.tenantLevel === TenantLevel.MEMBER_STATE) {
+      // Country user: only own country
+      if (dto.scope !== 'COUNTRY') {
+        throw this.httpError(403, 'Country users may only propose COUNTRY categories');
+      }
+      scope = 'COUNTRY';
+      scopeTenantId = user.tenantId;
+      // recParentTenantId is the parent REC of the user's tenant — we trust
+      // the client to send it (they got it from /me) but fall back gracefully.
+      recParentTenantId = dto.recParentTenantId ?? null;
+      status = 'PENDING';
+    } else {
+      throw this.httpError(403, 'Your role does not permit category creation');
+    }
+
+    // ── Validate cross-field invariants ───────────────────────────────────
+    if (scope === 'CONTINENTAL' && scopeTenantId) {
       throw this.httpError(400, 'CONTINENTAL categories must not have a scopeTenantId');
     }
-    if ((dto.scope === 'REC' || dto.scope === 'COUNTRY') && !dto.scopeTenantId) {
-      throw this.httpError(400, `${dto.scope} categories require a scopeTenantId`);
-    }
-    if (dto.scope === 'COUNTRY' && !dto.recParentTenantId) {
-      throw this.httpError(400, 'COUNTRY categories require a recParentTenantId');
+    if ((scope === 'REC' || scope === 'COUNTRY') && !scopeTenantId) {
+      throw this.httpError(400, `${scope} categories require a scopeTenantId`);
     }
 
-    // Slug uniqueness check
+    // ── Slug uniqueness ──────────────────────────────────────────────────
     const slugExists = await (this.prisma as any).knowledgeCategory.findUnique({ where: { slug: dto.slug } });
     if (slugExists) throw this.httpError(409, `Category slug "${dto.slug}" already exists`);
 
@@ -166,19 +235,74 @@ export class CategoryService {
         descriptionFr: dto.descriptionFr ?? null,
         descriptionPt: dto.descriptionPt ?? null,
         descriptionAr: dto.descriptionAr ?? null,
-        scope: dto.scope,
-        scopeTenantId: dto.scopeTenantId ?? null,
-        recParentTenantId: dto.recParentTenantId ?? null,
+        scope,
+        scopeTenantId,
+        recParentTenantId,
         icon: dto.icon ?? null,
         color: dto.color ?? null,
         sortOrder: dto.sortOrder ?? 0,
         isSystem: false,
+        status,
+        submittedBy: status === 'PENDING' ? user.userId : null,
+        submittedAt: status === 'PENDING' ? new Date() : null,
+        reviewedBy: status === 'APPROVED' ? user.userId : null,
+        reviewedAt: status === 'APPROVED' ? new Date() : null,
         createdBy: user.userId,
       },
     });
 
-    await this.publishEvent(TOPIC_AU_KNOWLEDGE_CATEGORY_CREATED, category, user);
+    if (status === 'PENDING') {
+      await this.publishEvent(TOPIC_AU_KNOWLEDGE_CATEGORY_SUBMITTED, category, user);
+    } else {
+      await this.publishEvent(TOPIC_AU_KNOWLEDGE_CATEGORY_CREATED, category, user);
+    }
     return { data: category };
+  }
+
+  /**
+   * Approve / reject a PENDING category. Reserved to continental managers.
+   */
+  async review(
+    id: string,
+    decision: 'APPROVED' | 'REJECTED',
+    comment: string | undefined,
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<CategoryNode>> {
+    this.assertManager(user);
+
+    const existing = await (this.prisma as any).knowledgeCategory.findUnique({ where: { id } });
+    if (!existing) throw this.httpError(404, 'Category not found');
+    if (existing.status !== 'PENDING') {
+      throw this.httpError(409, `Category status is ${existing.status}, not PENDING`);
+    }
+
+    const category = await (this.prisma as any).knowledgeCategory.update({
+      where: { id },
+      data: {
+        status: decision,
+        reviewedBy: user.userId,
+        reviewedAt: new Date(),
+        rejectionReason: decision === 'REJECTED' ? (comment ?? null) : null,
+      },
+    });
+
+    const topic = decision === 'APPROVED'
+      ? TOPIC_AU_KNOWLEDGE_CATEGORY_APPROVED
+      : TOPIC_AU_KNOWLEDGE_CATEGORY_REJECTED;
+    await this.publishEvent(topic, { ...category, submitterId: existing.submittedBy, reviewerComment: comment }, user);
+    return { data: category };
+  }
+
+  /**
+   * Continental review queue: PENDING categories awaiting validation.
+   */
+  async reviewQueue(user: AuthenticatedUser): Promise<ApiResponse<CategoryNode[]>> {
+    this.assertManager(user);
+    const data = await (this.prisma as any).knowledgeCategory.findMany({
+      where: { status: 'PENDING' },
+      orderBy: { submittedAt: 'asc' },
+    });
+    return { data };
   }
 
   async update(id: string, dto: UpdateCategoryInput, user: AuthenticatedUser): Promise<ApiResponse<CategoryNode>> {
@@ -253,8 +377,18 @@ export class CategoryService {
    * List categories the user can VIEW. Optionally filtered.
    * Returns flat list ordered by (scope, parentId, sortOrder).
    */
-  async list(filters: CategoryFilterInput, user: AuthenticatedUser | null): Promise<ApiResponse<CategoryNode[]>> {
+  async list(
+    filters: CategoryFilterInput & { includePending?: boolean },
+    user: AuthenticatedUser | null,
+  ): Promise<ApiResponse<CategoryNode[]>> {
     const where: Record<string, unknown> = { isActive: true };
+
+    // Only APPROVED categories are visible by default. Continental managers
+    // can pass includePending=true (e.g. for the admin tree view) to see
+    // pending submissions inline alongside approved ones.
+    if (!filters.includePending || !user || !this.isManager(user)) {
+      where.status = 'APPROVED';
+    }
 
     if (filters.scope) where.scope = filters.scope;
     if (filters.scopeTenantId) where.scopeTenantId = filters.scopeTenantId;
@@ -330,7 +464,9 @@ export class CategoryService {
    * frontend to populate the category picker on the create-publication form.
    */
   async listPublishable(user: AuthenticatedUser): Promise<ApiResponse<CategoryNode[]>> {
-    const where: Record<string, unknown> = { isActive: true };
+    // Only APPROVED categories may be used to publish content. Pending
+    // categories proposed by REC/COUNTRY users are hidden until reviewed.
+    const where: Record<string, unknown> = { isActive: true, status: 'APPROVED' };
 
     if (
       user.tenantLevel === TenantLevel.CONTINENTAL ||
@@ -360,9 +496,15 @@ export class CategoryService {
   // Internals
   // ─────────────────────────────────────────────────────────────
 
+  private isManager(user: AuthenticatedUser): boolean {
+    if (user.tenantLevel === TenantLevel.CONTINENTAL) return true;
+    return !!user.roles?.some((r) => CATEGORY_MANAGER_ROLES.has(r));
+  }
+
   private assertManager(user: AuthenticatedUser): void {
-    const allowed = user.roles?.some((r) => CATEGORY_MANAGER_ROLES.has(r));
-    if (!allowed) throw this.httpError(403, 'Only continental knowledge managers can manage categories');
+    if (!this.isManager(user)) {
+      throw this.httpError(403, 'Only continental knowledge managers can perform this action');
+    }
   }
 
   private httpError(statusCode: number, message: string): Error & { statusCode: number } {
