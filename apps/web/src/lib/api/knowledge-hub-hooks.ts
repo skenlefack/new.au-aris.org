@@ -381,6 +381,30 @@ export function usePublicPublication(slug: string | undefined) {
   });
 }
 
+// ─── Tenant directory (used by the REC/Country pickers) ────────────────────
+
+export interface TenantSummary {
+  id: string;
+  code: string;
+  name: string;
+  level: 'CONTINENTAL' | 'REC' | 'MEMBER_STATE';
+  parentId: string | null;
+  countryCode: string | null;
+  recCode: string | null;
+}
+
+export function useAllTenants() {
+  return useQuery({
+    queryKey: ['knowledge', 'all-tenants'],
+    queryFn: () =>
+      knowledgeHubClient.get<{ data: TenantSummary[]; meta: { total: number } }>(
+        '/tenants',
+        { limit: '200', page: '1' },
+      ),
+    staleTime: 10 * 60_000,
+  });
+}
+
 // ─── Helper: pick localised text by locale with EN fallback ─────────────────
 
 export function pickLocale(text: LocalisedText | null | undefined, locale: string): string {

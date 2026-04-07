@@ -1,33 +1,57 @@
 'use client';
 
 // Public search results page. Reads ?q= from the URL and renders OpenSearch
-// hits with category and type facets in a Google-style results layout.
+// hits with category, type, REC and country facets in a Google-style layout.
 
-import { Suspense, useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Search } from 'lucide-react';
-import { useKnowledgeSearch, pickLocale, type PublicationType } from '@/lib/api/knowledge-hub-hooks';
+import {
+  useKnowledgeSearch,
+  useAllTenants,
+  pickLocale,
+  type PublicationType,
+} from '@/lib/api/knowledge-hub-hooks';
+import { PublicKnowledgeHeader } from '@/components/knowledge/PublicHeader';
 
 function SearchResultsInner() {
   const params = useSearchParams();
-  const router = useRouter();
   const initialQ = params.get('q') ?? '';
-  const [q, setQ] = useState(initialQ);
-  const [type, setType] = useState<PublicationType | undefined>();
   const [page, setPage] = useState(1);
+  const [type, setType] = useState<PublicationType | undefined>();
+  const [recTenantId, setRecTenantId] = useState<string | undefined>();
+  const [countryTenantId, setCountryTenantId] = useState<string | undefined>();
 
+  // Reset filters when the query changes from the header search bar
   useEffect(() => {
-    setQ(initialQ);
     setPage(1);
   }, [initialQ]);
 
-  const { data, isLoading } = useKnowledgeSearch({ q: initialQ, type, page, limit: 12 });
+  const tenants = useAllTenants();
+  const recs = useMemo(
+    () => (tenants.data?.data ?? []).filter((t) => t.level === 'REC'),
+    [tenants.data],
+  );
+  const countriesInRec = useMemo(() => {
+    if (!recTenantId) return [];
+    return (tenants.data?.data ?? []).filter(
+      (t) => t.level === 'MEMBER_STATE' && t.parentId === recTenantId,
+    );
+  }, [tenants.data, recTenantId]);
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    router.push(`/knowledge/search?q=${encodeURIComponent(q.trim())}`);
-  };
+  // The search service supports filtering by scopeTenantId — we feed it
+  // either the country tenant id (most specific) or the REC tenant id.
+  const scopeTenantId = countryTenantId ?? recTenantId;
+  const scope = countryTenantId ? 'COUNTRY' : recTenantId ? 'REC' : undefined;
+
+  const { data, isLoading } = useKnowledgeSearch({
+    q: initialQ,
+    type,
+    scope,
+    scopeTenantId,
+    page,
+    limit: 12,
+  });
 
   const hits = data?.data?.hits ?? [];
   const facets = data?.data?.facets;
@@ -35,67 +59,100 @@ function SearchResultsInner() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      <header className="border-b bg-emerald-50 px-6 py-4 dark:bg-gray-800">
-        <div className="mx-auto flex max-w-6xl items-center gap-4">
-          <Link href="/knowledge" className="text-lg font-bold text-emerald-700">AU-IBAR KH</Link>
-          <form onSubmit={submit} className="flex-1">
-            <div className="flex items-center rounded-full border border-gray-300 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-700">
-              <Search className="mr-2 h-4 w-4 text-gray-400" />
-              <input value={q} onChange={(e) => setQ(e.target.value)} className="flex-1 bg-transparent text-sm outline-none" />
-            </div>
-          </form>
-        </div>
-      </header>
+      <PublicKnowledgeHeader initialQuery={initialQ} />
 
       <div className="mx-auto grid max-w-6xl grid-cols-12 gap-6 px-6 py-8">
-        {/* Facets */}
-        <aside className="col-span-3">
-          <h3 className="mb-2 text-sm font-semibold">Type</h3>
-          <ul className="space-y-1 text-sm">
-            <li>
-              <button onClick={() => setType(undefined)} className={`hover:underline ${!type ? 'font-medium text-emerald-700' : ''}`}>
-                All
-              </button>
-            </li>
-            {facets?.types.map((f) => (
-              <li key={f.value}>
+        {/* ─── Facets sidebar ─────────────────────────────── */}
+        <aside className="col-span-12 space-y-6 md:col-span-3">
+          <FacetGroup label="Filter by REC">
+            <select
+              value={recTenantId ?? ''}
+              onChange={(e) => {
+                setRecTenantId(e.target.value || undefined);
+                setCountryTenantId(undefined);
+                setPage(1);
+              }}
+              className="w-full rounded-md border px-3 py-2 text-sm"
+            >
+              <option value="">All RECs</option>
+              {recs.map((r) => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+          </FacetGroup>
+
+          <FacetGroup label="Filter by country">
+            <select
+              value={countryTenantId ?? ''}
+              onChange={(e) => {
+                setCountryTenantId(e.target.value || undefined);
+                setPage(1);
+              }}
+              disabled={!recTenantId}
+              className="w-full rounded-md border px-3 py-2 text-sm disabled:opacity-50"
+            >
+              <option value="">{recTenantId ? 'All countries' : 'Pick a REC first'}</option>
+              {countriesInRec.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </FacetGroup>
+
+          <FacetGroup label="Type">
+            <ul className="space-y-1 text-sm">
+              <li>
                 <button
-                  onClick={() => setType(f.value as PublicationType)}
-                  className={`hover:underline ${type === f.value ? 'font-medium text-emerald-700' : ''}`}
+                  onClick={() => { setType(undefined); setPage(1); }}
+                  className={`hover:underline ${!type ? 'font-semibold text-emerald-700' : ''}`}
                 >
-                  {f.value} ({f.count})
+                  All types
                 </button>
               </li>
-            ))}
-          </ul>
+              {(facets?.types ?? []).map((f) => (
+                <li key={f.value}>
+                  <button
+                    onClick={() => { setType(f.value as PublicationType); setPage(1); }}
+                    className={`hover:underline ${type === f.value ? 'font-semibold text-emerald-700' : ''}`}
+                  >
+                    {f.value} <span className="text-gray-400">({f.count})</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </FacetGroup>
 
-          {(facets?.scopes?.length ?? 0) > 0 && (
-            <>
-              <h3 className="mb-2 mt-6 text-sm font-semibold">Scope</h3>
-              <ul className="space-y-1 text-sm">
-                {facets!.scopes.map((f) => (
-                  <li key={f.value}>{f.value} ({f.count})</li>
-                ))}
-              </ul>
-            </>
+          {(recTenantId || countryTenantId || type) && (
+            <button
+              onClick={() => {
+                setType(undefined);
+                setRecTenantId(undefined);
+                setCountryTenantId(undefined);
+                setPage(1);
+              }}
+              className="text-xs text-gray-500 hover:text-emerald-700 hover:underline"
+            >
+              Clear all filters
+            </button>
           )}
         </aside>
 
-        {/* Results */}
-        <section className="col-span-9">
+        {/* ─── Results ─────────────────────────────────────── */}
+        <section className="col-span-12 md:col-span-9">
           <p className="mb-4 text-xs text-gray-500">
-            About {total} result{total !== 1 ? 's' : ''} for "{initialQ}"
+            About {total} result{total !== 1 ? 's' : ''}{initialQ && <> for &quot;<strong>{initialQ}</strong>&quot;</>}
           </p>
 
           {isLoading ? (
             <p className="text-sm text-gray-500">Searching…</p>
           ) : hits.length === 0 ? (
-            <p className="text-sm text-gray-500">No results. Try another keyword.</p>
+            <div className="rounded-lg border border-dashed bg-muted/30 p-10 text-center text-sm text-gray-500">
+              No results. Try another keyword or remove some filters.
+            </div>
           ) : (
             <ul className="space-y-6">
               {hits.map((hit) => (
                 <li key={hit.id}>
-                  <Link href={`/knowledge/p/${hit.slug}`} className="group">
+                  <Link href={`/knowledge/p/${hit.slug}`} className="group block">
                     <p className="text-xs text-gray-500">/{hit.scope?.toLowerCase()} · {hit.type}</p>
                     <h2 className="text-lg font-medium text-blue-700 group-hover:underline">
                       {pickLocale(hit.title, 'en')}
@@ -121,9 +178,8 @@ function SearchResultsInner() {
             </ul>
           )}
 
-          {/* Pagination */}
           {total > 12 && (
-            <div className="mt-8 flex gap-2">
+            <div className="mt-8 flex flex-wrap gap-2">
               {Array.from({ length: Math.ceil(total / 12) }).slice(0, 10).map((_, i) => (
                 <button
                   key={i}
@@ -137,6 +193,15 @@ function SearchResultsInner() {
           )}
         </section>
       </div>
+    </div>
+  );
+}
+
+function FacetGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">{label}</h3>
+      {children}
     </div>
   );
 }

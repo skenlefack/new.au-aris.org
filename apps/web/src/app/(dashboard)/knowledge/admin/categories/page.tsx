@@ -21,6 +21,7 @@ import {
   type CategoryScope,
 } from '@/lib/api/knowledge-hub-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { RecCountryPicker } from '@/components/knowledge/RecCountryPicker';
 
 const REVIEWER_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'KNOWLEDGE_MANAGER']);
 
@@ -259,16 +260,43 @@ function CategoryFormModal({
           <input value={nameAr} onChange={(e) => setNameAr(e.target.value)} placeholder="Name (AR)" className="w-full rounded border px-3 py-2 text-sm" />
           {!initial && isReviewer && (
             <>
-              <select value={scope} onChange={(e) => setScope(e.target.value as CategoryScope)} className="w-full rounded border px-3 py-2 text-sm">
-                <option value="CONTINENTAL">CONTINENTAL</option>
-                <option value="REC">REC</option>
-                <option value="COUNTRY">COUNTRY</option>
-              </select>
-              {scope !== 'CONTINENTAL' && (
-                <input value={scopeTenantId} onChange={(e) => setScopeTenantId(e.target.value)} placeholder="Scope tenant id (UUID)" className="w-full rounded border px-3 py-2 text-sm" />
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Scope</label>
+                <select
+                  value={scope}
+                  onChange={(e) => {
+                    const next = e.target.value as CategoryScope;
+                    setScope(next);
+                    if (next === 'CONTINENTAL') {
+                      setScopeTenantId('');
+                      setRecParentTenantId('');
+                    }
+                  }}
+                  className="w-full rounded border px-3 py-2 text-sm"
+                >
+                  <option value="CONTINENTAL">Continental (AU-IBAR)</option>
+                  <option value="REC">Regional (REC)</option>
+                  <option value="COUNTRY">National (Country)</option>
+                </select>
+              </div>
+              {scope === 'REC' && (
+                <RecCountryPicker
+                  mode="rec"
+                  recTenantId={scopeTenantId || null}
+                  onRecChange={(id) => setScopeTenantId(id ?? '')}
+                />
               )}
               {scope === 'COUNTRY' && (
-                <input value={recParentTenantId} onChange={(e) => setRecParentTenantId(e.target.value)} placeholder="Parent REC tenant id (UUID)" className="w-full rounded border px-3 py-2 text-sm" />
+                <RecCountryPicker
+                  mode="country"
+                  recTenantId={recParentTenantId || null}
+                  onRecChange={(id) => {
+                    setRecParentTenantId(id ?? '');
+                    setScopeTenantId('');
+                  }}
+                  countryTenantId={scopeTenantId || null}
+                  onCountryChange={(id) => setScopeTenantId(id ?? '')}
+                />
               )}
             </>
           )}
