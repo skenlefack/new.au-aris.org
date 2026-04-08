@@ -12,10 +12,11 @@ import { useState, useMemo, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, Folder, Globe2, Building2, Flag, ChevronRight } from 'lucide-react';
+import { Search, Folder, Globe2, Building2, Flag, ChevronRight, FileText, FolderTree, Eye } from 'lucide-react';
 import {
   usePublicCategoryTree,
   useKnowledgeSearch,
+  usePublicKnowledgeStats,
   pickLocale,
   type KnowledgeCategory,
 } from '@/lib/api/knowledge-hub-hooks';
@@ -25,6 +26,7 @@ export default function PublicKnowledgePortalPage() {
   const [q, setQ] = useState('');
 
   const tree = usePublicCategoryTree();
+  const stats = usePublicKnowledgeStats();
   // Latest 6 published items (search with empty query bypass via space)
   const featured = useKnowledgeSearch({ limit: 6, page: 1, q: ' ' });
 
@@ -68,7 +70,7 @@ export default function PublicKnowledgePortalPage() {
           </p>
 
           <form onSubmit={onSubmit} className="mt-8 w-full max-w-2xl">
-            <div className="flex items-center rounded-full border border-gray-300 bg-white px-5 py-3 shadow-lg focus-within:border-emerald-500 dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center rounded-full border border-gray-300 bg-white px-5 py-3 shadow-lg transition-shadow focus-within:border-transparent focus-within:shadow-xl focus-within:ring-0 dark:border-gray-700 dark:bg-gray-800">
               <Search className="mr-3 h-5 w-5 text-gray-400" />
               <input
                 value={q}
@@ -99,13 +101,43 @@ export default function PublicKnowledgePortalPage() {
       <section className="border-t bg-white px-6 py-12 dark:bg-gray-900">
         <div className="mx-auto max-w-6xl space-y-12">
           {/* Continental */}
-          <ScopeBlock
-            icon={<Globe2 className="h-5 w-5" />}
-            label="Continental"
-            tagline="AU-IBAR continental publications and policy briefs"
-            color="#7c3aed"
-            categories={grouped.continental}
-          />
+          <div className="space-y-6">
+            <ScopeBlock
+              icon={<Globe2 className="h-5 w-5" />}
+              label="Continental"
+              tagline="AU-IBAR continental publications and policy briefs"
+              color="#7c3aed"
+              categories={grouped.continental}
+            />
+
+            {/* ── Headline KPIs of the knowledge base ── */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <StatCard
+                icon={<FileText className="h-5 w-5" />}
+                label="Publications"
+                value={stats.data?.data?.publications}
+                hint="Public publications across all scopes"
+                accent="#7c3aed"
+                loading={stats.isLoading}
+              />
+              <StatCard
+                icon={<FolderTree className="h-5 w-5" />}
+                label="Categories"
+                value={stats.data?.data?.categories}
+                hint="Active categories in the taxonomy"
+                accent="#2563eb"
+                loading={stats.isLoading}
+              />
+              <StatCard
+                icon={<Eye className="h-5 w-5" />}
+                label="Total views"
+                value={stats.data?.data?.totalViews}
+                hint="Cumulative reads across the knowledge base"
+                accent="#16a34a"
+                loading={stats.isLoading}
+              />
+            </div>
+          </div>
 
           {/* RECs */}
           <ScopeBlock
@@ -201,6 +233,63 @@ function ScopeBlock({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  hint,
+  accent,
+  loading,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number | undefined;
+  hint: string;
+  accent: string;
+  loading?: boolean;
+}) {
+  const formatted =
+    value === undefined
+      ? '—'
+      : value >= 1000
+      ? value.toLocaleString()
+      : String(value);
+  return (
+    <div
+      className="group relative overflow-hidden rounded-xl border bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-800"
+      style={{ borderTop: `3px solid ${accent}` }}
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">{label}</p>
+          <p
+            className="mt-2 text-3xl font-bold tabular-nums text-gray-900 dark:text-white"
+            aria-busy={loading}
+          >
+            {loading ? (
+              <span className="inline-block h-8 w-20 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+            ) : (
+              formatted
+            )}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">{hint}</p>
+        </div>
+        <span
+          className="flex h-10 w-10 items-center justify-center rounded-lg"
+          style={{ backgroundColor: accent + '15', color: accent }}
+        >
+          {icon}
+        </span>
+      </div>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-5 transition-opacity group-hover:opacity-10"
+        style={{ backgroundColor: accent }}
+      />
     </div>
   );
 }

@@ -45,7 +45,7 @@ export function PublicKnowledgeHeader({ initialQuery = '', context }: Props) {
         </Link>
 
         <form onSubmit={onSubmit} className="flex-1">
-          <div className="flex items-center rounded-full border border-gray-300 bg-white px-4 py-2 transition-shadow focus-within:shadow-md dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex items-center rounded-full border border-gray-300 bg-white px-4 py-2 transition-shadow focus-within:border-transparent focus-within:shadow-md focus-within:ring-0 dark:border-gray-700 dark:bg-gray-800">
             <Search className="mr-2 h-4 w-4 text-gray-400" />
             <input
               value={q}

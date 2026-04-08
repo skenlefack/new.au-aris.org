@@ -18,6 +18,7 @@ import {
   type KnowledgeCategory,
 } from '@/lib/api/knowledge-hub-hooks';
 import { PublicKnowledgeHeader } from '@/components/knowledge/PublicHeader';
+import { KnowledgeBreadcrumb, type BreadcrumbItem } from '@/components/knowledge/KnowledgeBreadcrumb';
 
 export default function PublicCategoryPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -33,24 +34,34 @@ export default function PublicCategoryPage() {
 
   const tree = usePublicCategoryTree();
 
-  // Find this category's children (subcategories) by walking the tree
-  const subcategories = useMemo(() => {
-    if (!cat.data?.data) return [];
-    const findNode = (
+  // Find this category in the tree + walk up to assemble the ancestor chain
+  const { subcategories, ancestors } = useMemo(() => {
+    if (!cat.data?.data) return { subcategories: [], ancestors: [] as KnowledgeCategory[] };
+    const targetId = cat.data.data.id;
+    // DFS that returns the path from a root down to the target
+    const findPath = (
       cats: KnowledgeCategory[] | undefined,
       id: string,
-    ): KnowledgeCategory | null => {
+      trail: KnowledgeCategory[] = [],
+    ): KnowledgeCategory[] | null => {
       if (!cats) return null;
       for (const c of cats) {
-        if (c.id === id) return c;
-        const found = findNode(c.children, id);
+        const next = [...trail, c];
+        if (c.id === id) return next;
+        const found = findPath(c.children, id, next);
         if (found) return found;
       }
       return null;
     };
-    const node = findNode(tree.data?.data, cat.data.data.id);
-    return node?.children ?? [];
+    const path = findPath(tree.data?.data, targetId) ?? [cat.data.data];
+    const node = path[path.length - 1];
+    return { subcategories: node.children ?? [], ancestors: path };
   }, [cat.data, tree.data]);
+
+  const breadcrumbItems: BreadcrumbItem[] = ancestors.map((c, i) => ({
+    label: c.nameEn,
+    href: i === ancestors.length - 1 ? undefined : `/knowledge/c/${c.slug}`,
+  }));
 
   const list = useKnowledgeSearch({
     categoryId: cat.data?.data?.id,
@@ -62,12 +73,7 @@ export default function PublicCategoryPage() {
       <PublicKnowledgeHeader context={cat.data?.data?.nameEn} />
 
       <div className="mx-auto max-w-6xl px-6 py-8">
-        {/* Breadcrumb */}
-        <nav className="mb-4 flex items-center gap-2 text-xs text-gray-500">
-          <Link href="/knowledge" className="hover:text-emerald-700">Knowledge Hub</Link>
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-gray-900 dark:text-gray-200">{cat.data?.data?.nameEn ?? 'Category'}</span>
-        </nav>
+        <KnowledgeBreadcrumb items={breadcrumbItems} className="mb-4" />
 
         {/* Title block */}
         {cat.data && (

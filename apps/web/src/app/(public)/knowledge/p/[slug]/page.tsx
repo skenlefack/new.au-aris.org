@@ -7,9 +7,10 @@
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { usePublicPublication, pickLocale } from '@/lib/api/knowledge-hub-hooks';
 import { PublicKnowledgeHeader } from '@/components/knowledge/PublicHeader';
+import { KnowledgeBreadcrumb, type BreadcrumbItem } from '@/components/knowledge/KnowledgeBreadcrumb';
 
 const LOCALES = ['en', 'fr', 'pt', 'ar'] as const;
 
@@ -33,14 +34,18 @@ export default function PublicPublicationPage() {
 
   const pub = data.data;
   const availableLocales = LOCALES.filter((l) => pub.title?.[l] || pub.contentHtml?.[l]);
+  const breadcrumbItems: BreadcrumbItem[] = [
+    ...(pub.category
+      ? [{ label: pub.category.nameEn, href: `/knowledge/c/${pub.category.slug}` }]
+      : []),
+    { label: pickLocale(pub.title, 'en') || 'Publication' },
+  ];
 
   return (
     <>
       <PublicKnowledgeHeader context={pub.category?.nameEn} />
-    <article className="mx-auto max-w-4xl px-6 py-12">
-      <Link href="/knowledge" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-emerald-700">
-        <ArrowLeft className="h-4 w-4" /> Back to Knowledge Hub
-      </Link>
+    <article className="mx-auto max-w-4xl px-6 py-8">
+      <KnowledgeBreadcrumb items={breadcrumbItems} />
 
       <header className="mt-6 space-y-3">
         <div className="flex items-center gap-2 text-xs text-gray-500">

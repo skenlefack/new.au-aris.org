@@ -373,6 +373,22 @@ export function usePublicCategoryTree(scope?: CategoryScope) {
   });
 }
 
+export interface PublicKnowledgeStats {
+  publications: number;
+  categories: number;
+  contributingTenants: number;
+  totalViews: number;
+}
+
+export function usePublicKnowledgeStats() {
+  return useQuery({
+    queryKey: ['knowledge', 'public-stats'],
+    queryFn: () =>
+      knowledgeHubClient.get<{ data: PublicKnowledgeStats }>('/knowledge/publications/public/stats'),
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function usePublicPublication(slug: string | undefined) {
   return useQuery({
     queryKey: ['knowledge', 'public-publication', slug],

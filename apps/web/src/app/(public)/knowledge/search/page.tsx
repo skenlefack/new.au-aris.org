@@ -13,6 +13,7 @@ import {
   type PublicationType,
 } from '@/lib/api/knowledge-hub-hooks';
 import { PublicKnowledgeHeader } from '@/components/knowledge/PublicHeader';
+import { KnowledgeBreadcrumb } from '@/components/knowledge/KnowledgeBreadcrumb';
 
 function SearchResultsInner() {
   const params = useSearchParams();
@@ -60,6 +61,14 @@ function SearchResultsInner() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <PublicKnowledgeHeader initialQuery={initialQ} />
+
+      <div className="mx-auto max-w-6xl px-6 pt-6">
+        <KnowledgeBreadcrumb
+          items={[
+            { label: initialQ ? `Search: "${initialQ}"` : 'Search results' },
+          ]}
+        />
+      </div>
 
       <div className="mx-auto grid max-w-6xl grid-cols-12 gap-6 px-6 py-8">
         {/* ─── Facets sidebar ─────────────────────────────── */}

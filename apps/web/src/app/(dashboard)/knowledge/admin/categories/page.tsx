@@ -1,16 +1,34 @@
 'use client';
 
-// Category management — accessible to all admins.
+// Knowledge categories — admin management.
 //
 // Continental managers (KNOWLEDGE_MANAGER, CONTINENTAL_ADMIN, SUPER_ADMIN)
-// can create categories at any scope and approve them instantly. REC and
-// COUNTRY users can *propose* categories scoped to their own tenant; the
-// proposal goes to a continental review queue and only becomes usable for
-// publishing once approved.
+// can create / edit / delete categories at any scope. REC and Country users
+// see only the categories at their own level and can manage their own ones.
+// The page renders a modern table with inline create / edit form (no modal).
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, Lock, ClipboardCheck, Clock } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import {
+  ChevronRight,
+  ChevronDown,
+  Plus,
+  Pencil,
+  Trash2,
+  Lock,
+  ClipboardCheck,
+  Clock,
+  ArrowLeft,
+  FolderTree,
+  Search,
+  X,
+  Check,
+  AlertCircle,
+  FileText,
+  Shield,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import {
   useCategoryTree,
   useCreateCategory,
@@ -25,49 +43,280 @@ import { RecCountryPicker } from '@/components/knowledge/RecCountryPicker';
 
 const REVIEWER_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'KNOWLEDGE_MANAGER']);
 
+const INPUT_CLS =
+  'w-full rounded-lg border bg-card px-3 py-2 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+
+type ViewMode = 'list' | 'create' | 'edit';
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+/** Render a Lucide icon by name, falling back to FolderTree. */
+function CategoryIcon({ name, color, className }: { name: string | null; color: string | null; className?: string }) {
+  const Icon =
+    name && (LucideIcons as Record<string, unknown>)[name]
+      ? ((LucideIcons as Record<string, unknown>)[name] as React.ComponentType<{ className?: string }>)
+      : FolderTree;
+  return (
+    <div
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${className ?? ''}`}
+      style={color ? { backgroundColor: `${color}15`, borderColor: `${color}40`, color } : undefined}
+    >
+      <Icon className="h-4 w-4" />
+    </div>
+  );
+}
+
+const SCOPE_STYLES: Record<CategoryScope, string> = {
+  CONTINENTAL: 'bg-purple-50 text-purple-700 ring-purple-200',
+  REC: 'bg-blue-50 text-blue-700 ring-blue-200',
+  COUNTRY: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+};
+
+function ScopeBadge({ scope }: { scope: CategoryScope }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${SCOPE_STYLES[scope]}`}
+    >
+      {scope}
+    </span>
+  );
+}
+
+function StatusBadge({ status }: { status: KnowledgeCategory['status'] }) {
+  if (status === 'APPROVED')
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-200">
+        <Check className="h-3 w-3" /> Approved
+      </span>
+    );
+  if (status === 'PENDING')
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-700 ring-1 ring-inset ring-orange-200">
+        <Clock className="h-3 w-3" /> Pending
+      </span>
+    );
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-200">
+      <X className="h-3 w-3" /> Rejected
+    </span>
+  );
+}
+
+/** Flatten the tree to a row list, respecting collapsed parents. */
+interface FlatRow {
+  cat: KnowledgeCategory;
+  depth: number;
+  hasChildren: boolean;
+}
+
+function flattenTree(
+  nodes: KnowledgeCategory[],
+  collapsed: Set<string>,
+  depth = 0,
+  out: FlatRow[] = [],
+): FlatRow[] {
+  for (const cat of nodes) {
+    const hasChildren = (cat.children?.length ?? 0) > 0;
+    out.push({ cat, depth, hasChildren });
+    if (hasChildren && !collapsed.has(cat.id)) {
+      flattenTree(cat.children!, collapsed, depth + 1, out);
+    }
+  }
+  return out;
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────
+
 export default function CategoriesAdminPage() {
   const user = useAuthStore((s) => s.user);
   const isReviewer = !!user?.roles?.some((r) => REVIEWER_ROLES.has(r));
   const isContinental = user?.tenantLevel === 'CONTINENTAL';
+  const isManager = isReviewer || isContinental;
 
-  const tree = useCategoryTree({ withCounts: true });
+  // Non-managers only see categories at their own level. Managers see the
+  // whole tree.
+  const treeScope: CategoryScope | undefined = useMemo(() => {
+    if (isManager) return undefined;
+    if (user?.tenantLevel === 'REC') return 'REC';
+    if (user?.tenantLevel === 'MEMBER_STATE') return 'COUNTRY';
+    return undefined;
+  }, [isManager, user?.tenantLevel]);
+
+  const tree = useCategoryTree({ withCounts: true, scope: treeScope });
+  const queue = useCategoryReviewQueue();
   const createMut = useCreateCategory();
   const updateMut = useUpdateCategory();
   const deleteMut = useDeleteCategory();
-  const queue = useCategoryReviewQueue();
 
-  const [newOpen, setNewOpen] = useState(false);
+  const [view, setView] = useState<ViewMode>('list');
   const [editing, setEditing] = useState<KnowledgeCategory | null>(null);
-
-  const handleDelete = async (cat: KnowledgeCategory) => {
-    if (!confirm(`Delete category "${cat.nameEn}"?`)) return;
-    try {
-      await deleteMut.mutateAsync(cat.id);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Delete failed');
-    }
-  };
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState('');
 
   // Default scope for the proposal form, derived from the user's tenant level
   const defaultScope: CategoryScope = useMemo(() => {
-    if (isReviewer || isContinental) return 'CONTINENTAL';
+    if (isManager) return 'CONTINENTAL';
     if (user?.tenantLevel === 'REC') return 'REC';
     return 'COUNTRY';
-  }, [isReviewer, isContinental, user?.tenantLevel]);
+  }, [isManager, user?.tenantLevel]);
+
+  // Whether the *current user* is allowed to edit/delete a given category
+  const canManageCategory = (cat: KnowledgeCategory): boolean => {
+    if (cat.isSystem && !isManager) return false;
+    if (isManager) return true;
+    if (user?.tenantLevel === 'REC' && cat.scope === 'REC' && cat.scopeTenantId === user.tenantId) return true;
+    if (user?.tenantLevel === 'MEMBER_STATE' && cat.scope === 'COUNTRY' && cat.scopeTenantId === user.tenantId) return true;
+    return false;
+  };
+
+  const openCreate = () => {
+    setEditing(null);
+    setView('create');
+  };
+  const openEdit = (cat: KnowledgeCategory) => {
+    setEditing(cat);
+    setView('edit');
+  };
+  const backToList = () => {
+    setEditing(null);
+    setView('list');
+  };
+
+  const handleDelete = async (cat: KnowledgeCategory) => {
+    if ((cat.publicationCount ?? 0) > 0) {
+      toast.error('Cannot delete this category', {
+        description: `It still contains ${cat.publicationCount} publication(s). Move or remove them first.`,
+        icon: <AlertCircle className="h-4 w-4" />,
+      });
+      return;
+    }
+    if (cat.isSystem) {
+      toast.error('System category', {
+        description: 'Default categories shipped with ARIS cannot be deleted.',
+      });
+      return;
+    }
+    const ok = window.confirm(`Delete category "${cat.nameEn}"? This action cannot be undone.`);
+    if (!ok) return;
+    try {
+      await deleteMut.mutateAsync(cat.id);
+      toast.success('Category deleted', { description: `"${cat.nameEn}" has been removed.` });
+    } catch (err) {
+      toast.error('Delete failed', {
+        description: err instanceof Error ? err.message : 'Unknown error',
+      });
+    }
+  };
+
+  const handleSave = async (input: any) => {
+    try {
+      if (editing) {
+        await updateMut.mutateAsync({ id: editing.id, ...input });
+        toast.success('Category updated', { description: `"${input.nameEn ?? editing.nameEn}" saved.` });
+      } else {
+        await createMut.mutateAsync(input);
+        toast.success(
+          isManager ? 'Category created' : 'Proposal submitted',
+          {
+            description: isManager
+              ? `"${input.nameEn}" is now available.`
+              : 'Your proposal will be reviewed by the continental knowledge manager.',
+          },
+        );
+      }
+      backToList();
+    } catch (err) {
+      toast.error('Save failed', {
+        description: err instanceof Error ? err.message : 'Please review the form and try again.',
+      });
+      throw err;
+    }
+  };
+
+  // ── Filter & flatten tree for the table ──
+  const allRoots = tree.data?.data ?? [];
+  const filteredRoots = useMemo(() => {
+    if (!search.trim()) return allRoots;
+    const q = search.toLowerCase();
+    const matches = (c: KnowledgeCategory): boolean =>
+      c.nameEn.toLowerCase().includes(q) ||
+      c.slug.toLowerCase().includes(q) ||
+      (c.children ?? []).some(matches);
+    const filterTree = (nodes: KnowledgeCategory[]): KnowledgeCategory[] =>
+      nodes
+        .filter(matches)
+        .map((c) => ({ ...c, children: c.children ? filterTree(c.children) : [] }));
+    return filterTree(allRoots);
+  }, [allRoots, search]);
+
+  const rows = useMemo(
+    () => flattenTree(filteredRoots, collapsed),
+    [filteredRoots, collapsed],
+  );
+
+  const toggleCollapse = (id: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // ─── Render ───────────────────────────────────────────────────────────
+
+  if (view !== 'list') {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={backToList}
+            className="inline-flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-accent"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to categories
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold">
+              {editing ? 'Edit category' : isManager ? 'New category' : 'Propose new category'}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {editing
+                ? `Editing "${editing.nameEn}"`
+                : isManager
+                ? 'Create a category that publishers can use immediately.'
+                : 'Your proposal will be reviewed by the continental knowledge manager.'}
+            </p>
+          </div>
+        </div>
+
+        <CategoryForm
+          initial={editing}
+          isManager={isManager}
+          defaultScope={defaultScope}
+          userTenantId={user?.tenantId}
+          allCategories={allRoots}
+          onCancel={backToList}
+          onSave={handleSave}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+      {/* ── Header ── */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Knowledge categories</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {isReviewer
-              ? 'Manage and validate the taxonomy used across the Knowledge Hub. System defaults cannot be deleted.'
-              : 'Browse approved categories and propose new ones for your level. Continental managers will review your proposals.'}
+            {isManager
+              ? 'Manage and validate the taxonomy used across the Knowledge Hub.'
+              : 'Browse the categories at your level and propose new ones.'}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {isReviewer && (queue.data?.data?.length ?? 0) > 0 && (
+          {isManager && (queue.data?.data?.length ?? 0) > 0 && (
             <Link
               href="/knowledge/admin/categories/review"
               className="inline-flex items-center gap-2 rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100"
@@ -77,127 +326,192 @@ export default function CategoriesAdminPage() {
             </Link>
           )}
           <button
-            onClick={() => setNewOpen(true)}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            onClick={openCreate}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" />
-            {isReviewer ? 'New category' : 'Propose category'}
+            {isManager ? 'New category' : 'Propose category'}
           </button>
         </div>
       </div>
 
-      {!isReviewer && (
-        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-          <strong>How it works:</strong> categories you propose are reviewed by the continental
-          knowledge manager. Once approved they become available to everyone in your{' '}
-          {user?.tenantLevel === 'REC' ? 'REC' : 'country'} for publishing content.
+      {!isManager && (
+        <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+          <Shield className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <p className="font-medium">Scoped view</p>
+            <p className="mt-0.5 text-blue-800">
+              You see and manage only categories at your{' '}
+              {user?.tenantLevel === 'REC' ? 'REC' : 'country'} level. Proposed categories will be
+              reviewed by the continental knowledge manager before becoming usable.
+            </p>
+          </div>
         </div>
       )}
 
-      <div className="rounded-lg border bg-card p-4">
-        {tree.isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : (
-          <ul className="space-y-1">
-            {(tree.data?.data ?? []).map((cat) => (
-              <CategoryNode key={cat.id} cat={cat} depth={0} onEdit={setEditing} onDelete={handleDelete} canManage={isReviewer} />
-            ))}
-          </ul>
-        )}
+      {/* ── Search ── */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search categories…"
+          className="w-full rounded-md border bg-card py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+        />
       </div>
 
-      {(newOpen || editing) && (
-        <CategoryFormModal
-          initial={editing}
-          isReviewer={isReviewer}
-          defaultScope={defaultScope}
-          userTenantId={user?.tenantId}
-          onClose={() => {
-            setNewOpen(false);
-            setEditing(null);
-          }}
-          onSave={async (input) => {
-            if (editing) {
-              await updateMut.mutateAsync({ id: editing.id, ...input });
-            } else {
-              await createMut.mutateAsync(input as any);
-            }
-            setNewOpen(false);
-            setEditing(null);
-          }}
-        />
-      )}
+      {/* ── Table ── */}
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+        <table className="w-full text-sm">
+          <thead className="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th className="w-14 px-4 py-3 text-left"></th>
+              <th className="px-2 py-3 text-left font-semibold">Category</th>
+              <th className="px-2 py-3 text-left font-semibold">Scope</th>
+              <th className="px-2 py-3 text-left font-semibold">Publications</th>
+              <th className="px-2 py-3 text-left font-semibold">Status</th>
+              <th className="w-32 px-4 py-3 text-right font-semibold">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {tree.isLoading ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
+                  Loading categories…
+                </td>
+              </tr>
+            ) : rows.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-12 text-center">
+                  <FolderTree className="mx-auto mb-2 h-10 w-10 text-muted-foreground/40" />
+                  <p className="text-sm font-medium">No categories yet</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {search
+                      ? 'No categories match your search.'
+                      : isManager
+                      ? 'Create your first category to get started.'
+                      : 'Propose a category to get started.'}
+                  </p>
+                </td>
+              </tr>
+            ) : (
+              rows.map(({ cat, depth, hasChildren }) => {
+                const canEdit = canManageCategory(cat);
+                const isCollapsed = collapsed.has(cat.id);
+                const cannotDelete = (cat.publicationCount ?? 0) > 0 || cat.isSystem;
+                return (
+                  <tr key={cat.id} className="group transition-colors hover:bg-muted/30">
+                    <td className="px-4 py-3">
+                      <CategoryIcon name={cat.icon} color={cat.color} />
+                    </td>
+                    <td className="px-2 py-3">
+                      <div
+                        className="flex items-center gap-2"
+                        style={{ paddingLeft: `${depth * 1.75}rem` }}
+                      >
+                        {depth > 0 && (
+                          <span
+                            className="mr-1 inline-block h-px w-4 bg-border"
+                            aria-hidden
+                          />
+                        )}
+                        {hasChildren ? (
+                          <button
+                            onClick={() => toggleCollapse(cat.id)}
+                            className="rounded p-0.5 text-muted-foreground hover:bg-muted"
+                            aria-label={isCollapsed ? 'Expand' : 'Collapse'}
+                          >
+                            {isCollapsed ? (
+                              <ChevronRight className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </button>
+                        ) : (
+                          <span className="inline-block w-5" />
+                        )}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate font-medium text-foreground">{cat.nameEn}</span>
+                            {cat.isSystem && (
+                              <span title="System category">
+                                <Lock className="h-3 w-3 text-muted-foreground" />
+                              </span>
+                            )}
+                          </div>
+                          <div className="truncate text-xs text-muted-foreground">{cat.slug}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-2 py-3">
+                      <ScopeBadge scope={cat.scope} />
+                    </td>
+                    <td className="px-2 py-3">
+                      <span className="inline-flex items-center gap-1.5 text-sm">
+                        <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="font-medium tabular-nums">{cat.publicationCount ?? 0}</span>
+                      </span>
+                    </td>
+                    <td className="px-2 py-3">
+                      <StatusBadge status={cat.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => openEdit(cat)}
+                          disabled={!canEdit}
+                          title={canEdit ? 'Edit' : 'You cannot edit this category'}
+                          className="rounded-md p-2 text-muted-foreground transition hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(cat)}
+                          disabled={!canEdit || cannotDelete}
+                          title={
+                            !canEdit
+                              ? 'You cannot delete this category'
+                              : cat.isSystem
+                              ? 'System categories cannot be deleted'
+                              : (cat.publicationCount ?? 0) > 0
+                              ? `Cannot delete — ${cat.publicationCount} publication(s) attached`
+                              : 'Delete'
+                          }
+                          className="rounded-md p-2 text-muted-foreground transition hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
-function CategoryNode({
-  cat, depth, onEdit, onDelete, canManage,
-}: {
-  cat: KnowledgeCategory;
-  depth: number;
-  onEdit: (c: KnowledgeCategory) => void;
-  onDelete: (c: KnowledgeCategory) => void;
-  canManage: boolean;
-}) {
-  const [open, setOpen] = useState(true);
-  const hasChildren = (cat.children?.length ?? 0) > 0;
+// ─── Inline Form ────────────────────────────────────────────────────────────
 
-  return (
-    <li>
-      <div
-        className="group flex items-center gap-2 rounded px-2 py-1.5 hover:bg-accent"
-        style={{ paddingLeft: `${depth * 1.5 + 0.5}rem` }}
-      >
-        <button onClick={() => setOpen(!open)} className="text-muted-foreground" disabled={!hasChildren}>
-          {hasChildren ? open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" /> : <span className="inline-block w-4" />}
-        </button>
-        <span className="font-medium">{cat.nameEn}</span>
-        <span className="rounded bg-muted px-1.5 py-0.5 text-xs">{cat.scope}</span>
-        {cat.status === 'PENDING' && (
-          <span className="inline-flex items-center gap-1 rounded bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-700">
-            <Clock className="h-3 w-3" /> Pending
-          </span>
-        )}
-        {cat.status === 'REJECTED' && (
-          <span className="rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">Rejected</span>
-        )}
-        {cat.publicationCount !== undefined && cat.publicationCount > 0 && (
-          <span className="text-xs text-muted-foreground">({cat.publicationCount})</span>
-        )}
-        {cat.isSystem && <Lock className="h-3 w-3 text-muted-foreground" />}
-        {canManage && (
-          <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100">
-            <button onClick={() => onEdit(cat)} className="rounded p-1 hover:bg-muted">
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-            {!cat.isSystem && (
-              <button onClick={() => onDelete(cat)} className="rounded p-1 text-red-600 hover:bg-muted">
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-      {open && hasChildren && (
-        <ul>
-          {cat.children!.map((child) => (
-            <CategoryNode key={child.id} cat={child} depth={depth + 1} onEdit={onEdit} onDelete={onDelete} canManage={canManage} />
-          ))}
-        </ul>
-      )}
-    </li>
-  );
-}
-
-function CategoryFormModal({
-  initial, isReviewer, defaultScope, userTenantId, onClose, onSave,
+function CategoryForm({
+  initial,
+  isManager,
+  defaultScope,
+  userTenantId,
+  allCategories,
+  onCancel,
+  onSave,
 }: {
   initial: KnowledgeCategory | null;
-  isReviewer: boolean;
+  isManager: boolean;
   defaultScope: CategoryScope;
   userTenantId: string | undefined;
-  onClose: () => void;
+  allCategories: KnowledgeCategory[];
+  onCancel: () => void;
   onSave: (input: any) => Promise<void>;
 }) {
   const [slug, setSlug] = useState(initial?.slug ?? '');
@@ -205,63 +519,146 @@ function CategoryFormModal({
   const [nameFr, setNameFr] = useState(initial?.nameFr ?? '');
   const [namePt, setNamePt] = useState(initial?.namePt ?? '');
   const [nameAr, setNameAr] = useState(initial?.nameAr ?? '');
+  const [parentId, setParentId] = useState<string | null>(initial?.parentId ?? null);
   const [scope, setScope] = useState<CategoryScope>(initial?.scope ?? defaultScope);
-  // Reviewers can target any scopeTenantId; non-reviewers are auto-scoped
-  // server-side from their JWT, so we just send the user's own tenant.
-  const [scopeTenantId, setScopeTenantId] = useState(initial?.scopeTenantId ?? (isReviewer ? '' : userTenantId ?? ''));
+  const [scopeTenantId, setScopeTenantId] = useState(
+    initial?.scopeTenantId ?? (isManager ? '' : userTenantId ?? ''),
+  );
   const [recParentTenantId, setRecParentTenantId] = useState(initial?.recParentTenantId ?? '');
   const [icon, setIcon] = useState(initial?.icon ?? '');
-  const [color, setColor] = useState(initial?.color ?? '');
+  const [color, setColor] = useState(initial?.color ?? '#6366f1');
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
 
-  const submit = async () => {
-    setBusy(true); setErr(null);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nameEn.trim()) {
+      toast.error('Name (EN) is required');
+      return;
+    }
+    if (!initial && !slug.trim()) {
+      toast.error('Slug is required');
+      return;
+    }
+    setBusy(true);
     try {
-      await onSave({
-        slug, nameEn, nameFr: nameFr || undefined, namePt: namePt || undefined, nameAr: nameAr || undefined,
-        scope, scopeTenantId: scopeTenantId || undefined, recParentTenantId: recParentTenantId || undefined,
-        icon: icon || undefined, color: color || undefined,
-      });
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Failed');
+      const payload: any = {
+        nameEn: nameEn.trim(),
+        nameFr: nameFr.trim() || undefined,
+        namePt: namePt.trim() || undefined,
+        nameAr: nameAr.trim() || undefined,
+        parentId: parentId ?? undefined,
+        icon: icon.trim() || undefined,
+        color: color.trim() || undefined,
+      };
+      if (!initial) {
+        payload.slug = slug.trim();
+        payload.scope = scope;
+        payload.scopeTenantId = scopeTenantId || undefined;
+        payload.recParentTenantId = recParentTenantId || undefined;
+      }
+      await onSave(payload);
+    } catch {
+      // toast already shown by onSave
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-lg rounded-lg bg-card p-6 shadow-xl">
-        <h2 className="mb-4 text-lg font-bold">
-          {initial ? 'Edit category' : isReviewer ? 'New category' : 'Propose new category'}
-        </h2>
-        {!initial && !isReviewer && (
-          <p className="mb-3 text-xs text-muted-foreground">
-            Your proposal will be sent to the continental knowledge manager for approval.
-          </p>
+    <form
+      onSubmit={submit}
+      className="mx-auto max-w-4xl space-y-6 rounded-xl border bg-card p-6 shadow-sm"
+    >
+      {/* ── Identity ── */}
+      <FormSection title="Identity" description="Slug, multilingual names and visual style">
+        {!initial && (
+          <Field label="Slug" required hint="URL-safe identifier — lowercase letters, digits, dashes">
+            <input
+              value={slug}
+              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+              placeholder="my-new-category"
+              className={INPUT_CLS}
+            />
+          </Field>
         )}
-        {err && <div className="mb-3 rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">{err}</div>}
-        <div className="space-y-3">
-          {!initial && (
-            <div>
-              <label className="mb-1 block text-xs font-medium">Slug</label>
-              <input
-                value={slug}
-                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-                placeholder="my-new-category"
-                className="w-full rounded border px-3 py-2 text-sm"
-              />
-            </div>
-          )}
-          <input value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="Name (EN)" className="w-full rounded border px-3 py-2 text-sm" />
-          <input value={nameFr} onChange={(e) => setNameFr(e.target.value)} placeholder="Name (FR)" className="w-full rounded border px-3 py-2 text-sm" />
-          <input value={namePt} onChange={(e) => setNamePt(e.target.value)} placeholder="Name (PT)" className="w-full rounded border px-3 py-2 text-sm" />
-          <input value={nameAr} onChange={(e) => setNameAr(e.target.value)} placeholder="Name (AR)" className="w-full rounded border px-3 py-2 text-sm" />
-          {!initial && isReviewer && (
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Name (English)" required>
+            <input
+              value={nameEn}
+              onChange={(e) => setNameEn(e.target.value)}
+              placeholder="Animal Health"
+              className={INPUT_CLS}
+            />
+          </Field>
+          <Field label="Name (French)">
+            <input
+              value={nameFr}
+              onChange={(e) => setNameFr(e.target.value)}
+              placeholder="Santé animale"
+              className={INPUT_CLS}
+            />
+          </Field>
+          <Field label="Name (Portuguese)">
+            <input
+              value={namePt}
+              onChange={(e) => setNamePt(e.target.value)}
+              placeholder="Saúde animal"
+              className={INPUT_CLS}
+            />
+          </Field>
+          <Field label="Name (Arabic)">
+            <input
+              value={nameAr}
+              onChange={(e) => setNameAr(e.target.value)}
+              placeholder="الصحة الحيوانية"
+              dir="rtl"
+              className={INPUT_CLS}
+            />
+          </Field>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-[1fr_auto_auto]">
+          <Field label="Icon (Lucide name)" hint="e.g. Heart, Activity, FlaskConical">
+            <input
+              value={icon}
+              onChange={(e) => setIcon(e.target.value)}
+              placeholder="FolderTree"
+              className={INPUT_CLS}
+            />
+          </Field>
+          <Field label="Color">
+            <input
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              className="h-10 w-16 cursor-pointer rounded-md border bg-card"
+            />
+          </Field>
+          <Field label="Preview">
+            <CategoryIcon name={icon || null} color={color || null} />
+          </Field>
+        </div>
+      </FormSection>
+
+      {/* ── Hierarchy ── */}
+      <FormSection title="Hierarchy" description="Optionally nest this category under a parent">
+        <Field label="Parent category" hint="Leave empty for a top-level category">
+          <CategoryTreePicker
+            categories={allCategories}
+            value={parentId}
+            onChange={setParentId}
+            excludeId={initial?.id}
+          />
+        </Field>
+      </FormSection>
+
+      {/* ── Scope ── */}
+      {!initial && (
+        <FormSection title="Scope" description="Who this category applies to">
+          {isManager ? (
             <>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Scope</label>
+              <Field label="Scope">
                 <select
                   value={scope}
                   onChange={(e) => {
@@ -272,13 +669,13 @@ function CategoryFormModal({
                       setRecParentTenantId('');
                     }
                   }}
-                  className="w-full rounded border px-3 py-2 text-sm"
+                  className={INPUT_CLS}
                 >
                   <option value="CONTINENTAL">Continental (AU-IBAR)</option>
                   <option value="REC">Regional (REC)</option>
                   <option value="COUNTRY">National (Country)</option>
                 </select>
-              </div>
+              </Field>
               {scope === 'REC' && (
                 <RecCountryPicker
                   mode="rec"
@@ -299,23 +696,268 @@ function CategoryFormModal({
                 />
               )}
             </>
-          )}
-          {!initial && !isReviewer && (
-            <div className="rounded-md border bg-muted/40 p-3 text-xs">
-              Scope: <strong>{scope}</strong> — automatically set to your{' '}
-              {scope === 'REC' ? 'REC' : 'country'} based on your account.
+          ) : (
+            <div className="rounded-lg border bg-muted/40 p-4 text-sm">
+              <div className="flex items-center gap-2 font-medium">
+                <Shield className="h-4 w-4 text-muted-foreground" />
+                Scope: <ScopeBadge scope={scope} />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Automatically set to your {scope === 'REC' ? 'REC' : 'country'}. Your proposal will
+                be reviewed by the continental knowledge manager.
+              </p>
             </div>
           )}
-          <input value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="Icon name (Lucide)" className="w-full rounded border px-3 py-2 text-sm" />
-          <input value={color} onChange={(e) => setColor(e.target.value)} placeholder="#hex color" className="w-full rounded border px-3 py-2 text-sm" />
-        </div>
-        <div className="mt-4 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded border px-3 py-1.5 text-sm hover:bg-accent">Cancel</button>
-          <button onClick={submit} disabled={busy} className="rounded bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-            {busy ? 'Saving…' : isReviewer ? 'Save' : 'Submit proposal'}
-          </button>
-        </div>
+        </FormSection>
+      )}
+
+      {/* ── Actions ── */}
+      <div className="flex items-center justify-end gap-2 border-t pt-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={busy}
+          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
+        >
+          {busy ? 'Saving…' : initial ? 'Save changes' : isManager ? 'Create category' : 'Submit proposal'}
+        </button>
       </div>
+
+    </form>
+  );
+}
+
+function FormSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-4">
+      <div className="border-b pb-2">
+        <h2 className="text-base font-semibold">{title}</h2>
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
+function Field({
+  label,
+  required,
+  hint,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+        {required && <span className="ml-0.5 text-red-500">*</span>}
+      </label>
+      {children}
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
+  );
+}
+
+// ─── Searchable tree picker for parent category ────────────────────────────
+
+function CategoryTreePicker({
+  categories,
+  value,
+  onChange,
+  excludeId,
+}: {
+  categories: KnowledgeCategory[];
+  value: string | null;
+  onChange: (id: string | null) => void;
+  excludeId?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  // Find selected category in the (possibly nested) tree
+  const findCat = (nodes: KnowledgeCategory[], id: string): KnowledgeCategory | null => {
+    for (const c of nodes) {
+      if (c.id === id) return c;
+      if (c.children?.length) {
+        const f = findCat(c.children, id);
+        if (f) return f;
+      }
+    }
+    return null;
+  };
+
+  const selected = value ? findCat(categories, value) : null;
+
+  // Exclude the editing category and its descendants (cannot be its own parent)
+  const collectDescendantIds = (cat: KnowledgeCategory, acc: Set<string>): Set<string> => {
+    acc.add(cat.id);
+    cat.children?.forEach((c) => collectDescendantIds(c, acc));
+    return acc;
+  };
+  const excludedIds = useMemo(() => {
+    if (!excludeId) return new Set<string>();
+    const target = findCat(categories, excludeId);
+    return target ? collectDescendantIds(target, new Set()) : new Set<string>();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [excludeId, categories]);
+
+  // Filter tree by search query (keep matching nodes + their ancestors)
+  const filteredTree = useMemo(() => {
+    if (!search.trim()) return categories;
+    const q = search.toLowerCase();
+    const filterNodes = (nodes: KnowledgeCategory[]): KnowledgeCategory[] => {
+      const out: KnowledgeCategory[] = [];
+      for (const c of nodes) {
+        const children = c.children ? filterNodes(c.children) : [];
+        const selfMatch = c.nameEn.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q);
+        if (selfMatch || children.length > 0) {
+          out.push({ ...c, children });
+        }
+      }
+      return out;
+    };
+    return filterNodes(categories);
+  }, [categories, search]);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between rounded-lg border bg-card px-3 py-2 text-left text-sm hover:bg-accent"
+      >
+        {selected ? (
+          <span className="flex items-center gap-2">
+            <CategoryIcon name={selected.icon} color={selected.color} className="!h-7 !w-7" />
+            <span className="font-medium">{selected.nameEn}</span>
+            <ScopeBadge scope={selected.scope} />
+          </span>
+        ) : (
+          <span className="text-muted-foreground">— No parent (top-level) —</span>
+        )}
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <>
+          {/* click-outside backdrop */}
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute z-50 mt-2 max-h-96 w-full overflow-hidden rounded-lg border bg-card shadow-xl">
+            <div className="border-b p-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  autoFocus
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search categories…"
+                  className="w-full rounded-md border bg-card py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            </div>
+            <div className="max-h-72 overflow-y-auto p-1">
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(null);
+                  setOpen(false);
+                  setSearch('');
+                }}
+                className={`flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-accent ${
+                  value === null ? 'bg-primary/10 text-primary' : ''
+                }`}
+              >
+                <X className="h-4 w-4 text-muted-foreground" />
+                <em>No parent (top-level)</em>
+              </button>
+              {filteredTree.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">No matches</p>
+              ) : (
+                <TreePickerNodes
+                  nodes={filteredTree}
+                  depth={0}
+                  selectedId={value}
+                  excludedIds={excludedIds}
+                  onPick={(id) => {
+                    onChange(id);
+                    setOpen(false);
+                    setSearch('');
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function TreePickerNodes({
+  nodes,
+  depth,
+  selectedId,
+  excludedIds,
+  onPick,
+}: {
+  nodes: KnowledgeCategory[];
+  depth: number;
+  selectedId: string | null;
+  excludedIds: Set<string>;
+  onPick: (id: string) => void;
+}) {
+  return (
+    <>
+      {nodes.map((cat) => {
+        const disabled = excludedIds.has(cat.id);
+        const isSelected = selectedId === cat.id;
+        return (
+          <div key={cat.id}>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => onPick(cat.id)}
+              className={`flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm transition ${
+                isSelected ? 'bg-primary/10 text-primary' : 'hover:bg-accent'
+              } ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}
+              style={{ paddingLeft: `${depth * 1.25 + 0.75}rem` }}
+            >
+              {depth > 0 && <span className="text-muted-foreground">└</span>}
+              <CategoryIcon name={cat.icon} color={cat.color} className="!h-6 !w-6" />
+              <span className="flex-1 truncate font-medium">{cat.nameEn}</span>
+              <ScopeBadge scope={cat.scope} />
+              {isSelected && <Check className="h-4 w-4 text-primary" />}
+            </button>
+            {cat.children && cat.children.length > 0 && (
+              <TreePickerNodes
+                nodes={cat.children}
+                depth={depth + 1}
+                selectedId={selectedId}
+                excludedIds={excludedIds}
+                onPick={onPick}
+              />
+            )}
+          </div>
+        );
+      })}
+    </>
   );
 }

@@ -22,6 +22,11 @@ export async function registerPublicationRoutes(app: FastifyInstance): Promise<v
   // Public (no auth) — only PUBLISHED + visibility=PUBLIC
   // ─────────────────────────────────────────────────────────────
 
+  // Public KPI counters for the landing page
+  app.get(`${PREFIX}/public/stats`, async () => {
+    return app.publicationService.publicStats();
+  });
+
   // Public list / search (delegates to PublicationService.findAll without user)
   app.get<{ Querystring: PublicSearchInput }>(
     `${PREFIX}/public`,

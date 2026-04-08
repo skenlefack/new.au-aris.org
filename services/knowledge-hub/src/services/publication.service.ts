@@ -389,6 +389,50 @@ export class PublicationService {
     return { data: publication };
   }
 
+  /**
+   * Aggregated counters for the public landing page (no auth required).
+   * Returns headline KPIs scoped to PUBLISHED + PUBLIC content only:
+   *  - publications: total publicly visible publications
+   *  - categories: total active+approved categories
+   *  - contributingTenants: distinct tenants that have at least one
+   *      published+public publication (i.e. RECs + countries actively
+   *      contributing to the knowledge base)
+   *  - totalViews: cumulative view count across public publications
+   */
+  async publicStats(): Promise<ApiResponse<{
+    publications: number;
+    categories: number;
+    contributingTenants: number;
+    totalViews: number;
+  }>> {
+    const [publications, categories, distinctTenants, viewsAgg] = await Promise.all([
+      (this.prisma as any).knowledgePublication.count({
+        where: { status: 'PUBLISHED', visibility: 'PUBLIC' },
+      }),
+      (this.prisma as any).knowledgeCategory.count({
+        where: { isActive: true, status: 'APPROVED' },
+      }),
+      (this.prisma as any).knowledgePublication.findMany({
+        where: { status: 'PUBLISHED', visibility: 'PUBLIC' },
+        distinct: ['tenantId'],
+        select: { tenantId: true },
+      }),
+      (this.prisma as any).knowledgePublication.aggregate({
+        where: { status: 'PUBLISHED', visibility: 'PUBLIC' },
+        _sum: { viewCount: true },
+      }),
+    ]);
+
+    return {
+      data: {
+        publications,
+        categories,
+        contributingTenants: distinctTenants.length,
+        totalViews: viewsAgg._sum?.viewCount ?? 0,
+      },
+    };
+  }
+
   async findAll(
     user: AuthenticatedUser | null,
     query: PublicationFilterInput,

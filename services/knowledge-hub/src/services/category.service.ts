@@ -306,10 +306,9 @@ export class CategoryService {
   }
 
   async update(id: string, dto: UpdateCategoryInput, user: AuthenticatedUser): Promise<ApiResponse<CategoryNode>> {
-    this.assertManager(user);
-
     const existing = await (this.prisma as any).knowledgeCategory.findUnique({ where: { id } });
     if (!existing) throw this.httpError(404, 'Category not found');
+    this.assertCanManageCategory(existing, user);
     if (existing.isSystem && dto.parentId !== undefined) {
       throw this.httpError(400, 'System categories cannot be re-parented');
     }
@@ -338,10 +337,9 @@ export class CategoryService {
   }
 
   async delete(id: string, user: AuthenticatedUser): Promise<ApiResponse<{ deleted: boolean }>> {
-    this.assertManager(user);
-
     const existing = await (this.prisma as any).knowledgeCategory.findUnique({ where: { id } });
     if (!existing) throw this.httpError(404, 'Category not found');
+    this.assertCanManageCategory(existing, user);
     if (existing.isSystem) throw this.httpError(400, 'System categories cannot be deleted');
 
     // Reject if there are publications still attached
@@ -505,6 +503,39 @@ export class CategoryService {
     if (!this.isManager(user)) {
       throw this.httpError(403, 'Only continental knowledge managers can perform this action');
     }
+  }
+
+  /**
+   * Authorize update/delete on a specific category.
+   *  - Continental managers: any category
+   *  - REC users (tenantLevel REC): REC categories scoped to their own REC
+   *  - MEMBER_STATE users: COUNTRY categories scoped to their own country
+   * System categories are always read-only for non-managers (and even managers
+   * cannot delete them — that check stays in delete()).
+   */
+  private assertCanManageCategory(
+    category: { scope: string; scopeTenantId: string | null; isSystem: boolean },
+    user: AuthenticatedUser,
+  ): void {
+    if (this.isManager(user)) return;
+    if (category.isSystem) {
+      throw this.httpError(403, 'System categories can only be modified by continental managers');
+    }
+    if (
+      user.tenantLevel === TenantLevel.REC &&
+      category.scope === 'REC' &&
+      category.scopeTenantId === user.tenantId
+    ) {
+      return;
+    }
+    if (
+      user.tenantLevel === TenantLevel.MEMBER_STATE &&
+      category.scope === 'COUNTRY' &&
+      category.scopeTenantId === user.tenantId
+    ) {
+      return;
+    }
+    throw this.httpError(403, 'You can only modify categories at your own level');
   }
 
   private httpError(statusCode: number, message: string): Error & { statusCode: number } {
