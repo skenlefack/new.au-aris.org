@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Plus,
@@ -157,38 +157,18 @@ export default function AnimalHealthPage() {
         )
       )}
 
-      {/* ── Chart ────────────────────────────────────────── */}
-      {sections.chart && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-          <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">{t('eventOverview')}</h3>
-          {campaigns.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {campaigns.slice(0, 4).map((c: any) => {
-                const progress = c.targetSubmissions > 0
-                  ? Math.round(((c.totalSubmissions ?? 0) / c.targetSubmissions) * 100)
-                  : 0;
-                const name = typeof c.name === 'object' ? (c.name?.en ?? c.name?.fr ?? Object.values(c.name)[0]) : c.name;
-                return (
-                  <div key={c.id} className="rounded-lg border border-gray-100 p-3 dark:border-gray-700">
-                    <p className="text-xs font-medium text-gray-700 line-clamp-1 dark:text-gray-300">{name}</p>
-                    <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{c.totalSubmissions ?? 0}</p>
-                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                      <div className="h-full rounded-full bg-red-500 transition-all" style={{ width: `${progress}%` }} />
-                    </div>
-                    <p className="mt-1 text-[10px] text-gray-400">{progress}% {t('complete')}</p>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="py-8 text-center text-sm text-gray-400">{t('noCampaignData')}</p>
-          )}
+      {/* ── Campaign Overview Carousel ────────────────────── */}
+      {sections.chart && <CampaignCarousel campaigns={campaigns} isLoading={campaignsQuery.isLoading} t={t} />}
+
+      {/* ── Map + Statistics (side by side, or full width if one is off) ── */}
+      {(sections.map || sections.statistics) && (
+        <div className={cn('grid gap-6', sections.map && sections.statistics ? 'lg:grid-cols-2' : 'grid-cols-1')}>
+          {sections.map && <DomainMapSection domain="animal_health" />}
+          {sections.statistics && <DomainStatisticsSection domain="animal_health" />}
         </div>
       )}
 
-      {/* ── Map / Statistics / Curve ─────────────────────── */}
-      {sections.map && <DomainMapSection domain="animal_health" />}
-      {sections.statistics && <DomainStatisticsSection domain="animal_health" />}
+      {/* ── Curve ────────────────────────────────────────── */}
       {sections.curve && <DomainCurveSection domain="animal_health" />}
 
       {/* ── Quick Links ──────────────────────────────────── */}
@@ -411,6 +391,183 @@ function KpiCard({
           {icon}
         </span>
       </div>
+    </div>
+  );
+}
+
+/* ── Campaign Carousel ───────────────────────────────── */
+
+const CAMPAIGN_COLORS = ['#C62828', '#1565C0', '#2E7D32', '#E65100', '#6A1B9A', '#00838F'];
+
+function CampaignCarousel({
+  campaigns,
+  isLoading,
+  t,
+}: {
+  campaigns: any[];
+  isLoading: boolean;
+  t: (key: string) => string;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  const scroll = (dir: 'left' | 'right') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cardWidth = 320;
+    el.scrollBy({ left: dir === 'left' ? -cardWidth : cardWidth, behavior: 'smooth' });
+    setTimeout(updateScrollState, 350);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+        <Skeleton className="mb-4 h-6 w-48" />
+        <div className="flex gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-44 w-72 shrink-0 rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (campaigns.length === 0) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+        <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">{t('eventOverview')}</h3>
+        <p className="py-8 text-center text-sm text-gray-400">{t('noCampaignData')}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('eventOverview')}</h3>
+          <p className="mt-0.5 text-xs text-gray-400">{campaigns.length} {t('activeCampaigns').toLowerCase()}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => scroll('left')}
+            disabled={!canScrollLeft}
+            className="rounded-full border border-gray-200 p-1.5 text-gray-500 transition-colors hover:bg-gray-100 disabled:opacity-30 dark:border-gray-700 dark:hover:bg-gray-700"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => scroll('right')}
+            disabled={!canScrollRight}
+            className="rounded-full border border-gray-200 p-1.5 text-gray-500 transition-colors hover:bg-gray-100 disabled:opacity-30 dark:border-gray-700 dark:hover:bg-gray-700"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div
+        ref={scrollRef}
+        onScroll={updateScrollState}
+        className="scrollbar-hide -mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-2"
+      >
+        {campaigns.map((c: any, idx: number) => {
+          const progress = c.targetSubmissions > 0
+            ? Math.min(100, Math.round(((c.totalSubmissions ?? 0) / c.targetSubmissions) * 100))
+            : 0;
+          const name = typeof c.name === 'object'
+            ? (c.name?.en ?? c.name?.fr ?? Object.values(c.name)[0])
+            : c.name;
+          const color = CAMPAIGN_COLORS[idx % CAMPAIGN_COLORS.length];
+          const statusLabel = c.status === 'ACTIVE' ? 'Active' : c.status === 'COMPLETED' ? 'Completed' : c.status;
+
+          return (
+            <Link
+              key={c.id}
+              href={`/collecte/campaigns/${c.id}`}
+              className="group relative w-72 shrink-0 snap-start overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg dark:border-gray-700 dark:from-gray-800 dark:to-gray-800/80"
+            >
+              {/* Top accent bar */}
+              <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: color }} />
+
+              <div className="flex items-start justify-between">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg text-white"
+                  style={{ backgroundColor: color }}
+                >
+                  <Activity className="h-5 w-5" />
+                </div>
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                    c.status === 'ACTIVE'
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+                  )}
+                >
+                  {statusLabel}
+                </span>
+              </div>
+
+              <h4 className="mt-3 text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-red-600 dark:text-white">
+                {name}
+              </h4>
+
+              <div className="mt-3 flex items-end justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {(c.totalSubmissions ?? 0).toLocaleString()}
+                  </p>
+                  <p className="text-[10px] text-gray-400">
+                    {c.targetSubmissions ? `/ ${c.targetSubmissions.toLocaleString()} target` : 'submissions'}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-bold" style={{ color }}>{progress}%</p>
+                  <p className="text-[10px] text-gray-400">{t('complete')}</p>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%`, backgroundColor: color }}
+                />
+              </div>
+
+              {/* Dates */}
+              {(c.startDate || c.endDate) && (
+                <p className="mt-2 text-[10px] text-gray-400">
+                  {c.startDate ? new Date(c.startDate).toLocaleDateString() : ''}
+                  {c.startDate && c.endDate ? ' → ' : ''}
+                  {c.endDate ? new Date(c.endDate).toLocaleDateString() : ''}
+                </p>
+              )}
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Dot indicators */}
+      {campaigns.length > 3 && (
+        <div className="mt-3 flex justify-center gap-1.5">
+          {campaigns.map((c: any, i: number) => (
+            <div
+              key={c.id}
+              className="h-1.5 w-1.5 rounded-full bg-gray-300 dark:bg-gray-600"
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
