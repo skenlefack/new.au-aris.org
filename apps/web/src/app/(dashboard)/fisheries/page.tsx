@@ -28,6 +28,9 @@ import {
 } from '@/lib/api/hooks';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
+import { DomainMapSection } from '@/components/domain/DomainMapSection';
+import { DomainStatisticsSection } from '@/components/domain/DomainStatisticsSection';
+import { DomainCurveSection } from '@/components/domain/DomainCurveSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
@@ -230,6 +233,10 @@ export default function FisheriesPage() {
           </div>
         )}
       </div>}
+
+      {sections.map && <DomainMapSection domain="fisheries" />}
+      {sections.statistics && <DomainStatisticsSection domain="fisheries" />}
+      {sections.curve && <DomainCurveSection domain="fisheries" />}
 
       {/* Quick links to sub-pages */}
       {sections.quickLinks && <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">

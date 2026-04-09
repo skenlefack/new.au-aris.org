@@ -6,6 +6,9 @@ import { usePublicDomains } from '@/lib/api/settings-hooks';
 export interface DomainSectionConfig {
   kpis: boolean;
   chart: boolean;
+  map: boolean;
+  statistics: boolean;
+  curve: boolean;
   quickLinks: boolean;
   campaigns: boolean;
   alertForm: boolean;
@@ -27,6 +30,9 @@ export interface DomainModuleConfig {
 const DEFAULT_SECTIONS: DomainSectionConfig = {
   kpis: true,
   chart: true,
+  map: true,
+  statistics: true,
+  curve: true,
   quickLinks: true,
   campaigns: true,
   alertForm: true,

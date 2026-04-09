@@ -26,6 +26,9 @@ import {
 import { Skeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
+import { DomainMapSection } from '@/components/domain/DomainMapSection';
+import { DomainStatisticsSection } from '@/components/domain/DomainStatisticsSection';
+import { DomainCurveSection } from '@/components/domain/DomainCurveSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
@@ -247,6 +250,10 @@ export default function TradePage() {
           </div>
         )}
       </div>}
+
+      {sections.map && <DomainMapSection domain="trade_sps" />}
+      {sections.statistics && <DomainStatisticsSection domain="trade_sps" />}
+      {sections.curve && <DomainCurveSection domain="trade_sps" />}
 
       {/* Quick Links */}
       {sections.quickLinks && <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

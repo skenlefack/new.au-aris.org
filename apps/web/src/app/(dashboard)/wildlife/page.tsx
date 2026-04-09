@@ -17,6 +17,9 @@ const InventoryChart = dynamic(() => import('./InventoryChart'), { ssr: false })
 import { useWildlifeKpis } from '@/lib/api/hooks';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
+import { DomainMapSection } from '@/components/domain/DomainMapSection';
+import { DomainStatisticsSection } from '@/components/domain/DomainStatisticsSection';
+import { DomainCurveSection } from '@/components/domain/DomainCurveSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -151,6 +154,10 @@ export default function WildlifePage() {
           <InventoryChart data={inventory} />
         </div>
       </div>}
+
+      {sections.map && <DomainMapSection domain="wildlife" />}
+      {sections.statistics && <DomainStatisticsSection domain="wildlife" />}
+      {sections.curve && <DomainCurveSection domain="wildlife" />}
 
       {/* Quick Links */}
       {sections.quickLinks && <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

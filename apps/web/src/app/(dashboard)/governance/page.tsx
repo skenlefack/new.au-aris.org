@@ -16,6 +16,9 @@ import { useTranslations } from '@/lib/i18n/translations';
 
 const PvsScoresChart = dynamic(() => import('./PvsScoresChart'), { ssr: false });
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
+import { DomainMapSection } from '@/components/domain/DomainMapSection';
+import { DomainStatisticsSection } from '@/components/domain/DomainStatisticsSection';
+import { DomainCurveSection } from '@/components/domain/DomainCurveSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
@@ -140,6 +143,10 @@ export default function GovernancePage() {
           <PvsScoresChart data={pvsScores} />
         </div>
       </div>}
+
+      {sections.map && <DomainMapSection domain="governance" />}
+      {sections.statistics && <DomainStatisticsSection domain="governance" />}
+      {sections.curve && <DomainCurveSection domain="governance" />}
 
       {/* Quick Links */}
       {sections.quickLinks && <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

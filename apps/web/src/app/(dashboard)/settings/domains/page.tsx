@@ -28,6 +28,9 @@ import type { DomainSectionConfig } from '@/lib/hooks/use-domain-config';
 const DEFAULT_SECTIONS: DomainSectionConfig = {
   kpis: true,
   chart: true,
+  map: true,
+  statistics: true,
+  curve: true,
   quickLinks: true,
   campaigns: true,
   alertForm: true,
@@ -472,6 +475,9 @@ function DomainFormPanel({
             [
               ['kpis', t('kpiCards')],
               ['chart', t('chart')],
+              ['map', t('map')],
+              ['statistics', t('statistics')],
+              ['curve', t('curve')],
               ['quickLinks', t('quickLinks')],
               ['campaigns', t('campaigns')],
               ['alertForm', t('alertForm')],

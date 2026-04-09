@@ -22,6 +22,9 @@ import {
 } from '@/lib/api/hooks';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
+import { DomainMapSection } from '@/components/domain/DomainMapSection';
+import { DomainStatisticsSection } from '@/components/domain/DomainStatisticsSection';
+import { DomainCurveSection } from '@/components/domain/DomainCurveSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
@@ -158,6 +161,10 @@ export default function ClimatePage() {
           </div>
         </div>
       )}
+
+      {sections.map && <DomainMapSection domain="climate-env" />}
+      {sections.statistics && <DomainStatisticsSection domain="climate-env" />}
+      {sections.curve && <DomainCurveSection domain="climate-env" />}
 
       {/* Quick links to sub-pages */}
       {sections.quickLinks && (

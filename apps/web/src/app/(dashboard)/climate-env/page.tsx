@@ -18,6 +18,9 @@ import { useTranslations } from '@/lib/i18n/translations';
 
 const WaterStressChart = dynamic(() => import('./WaterStressChart'), { ssr: false });
 import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
+import { DomainMapSection } from '@/components/domain/DomainMapSection';
+import { DomainStatisticsSection } from '@/components/domain/DomainStatisticsSection';
+import { DomainCurveSection } from '@/components/domain/DomainCurveSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
@@ -142,6 +145,10 @@ export default function ClimateEnvPage() {
           <WaterStressChart data={waterTrends} />
         </div>
       </div>}
+
+      {sections.map && <DomainMapSection domain="climate_env" />}
+      {sections.statistics && <DomainStatisticsSection domain="climate_env" />}
+      {sections.curve && <DomainCurveSection domain="climate_env" />}
 
       {/* Quick Links */}
       {sections.quickLinks && <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
