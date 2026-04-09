@@ -155,7 +155,8 @@ export class AuthService {
     }
 
     const safeUser = this.toSafeUser(user);
-    await this.publishEvent(TOPIC_SYS_CREDENTIAL_USER_CREATED, user.id, safeUser, caller.tenantId, caller.userId);
+    // Fire-and-forget — don't block the response on Kafka availability
+    this.publishEvent(TOPIC_SYS_CREDENTIAL_USER_CREATED, user.id, safeUser, caller.tenantId, caller.userId);
     return { data: safeUser };
   }
 
@@ -237,7 +238,8 @@ export class AuthService {
     await this.storeRefreshToken(user.id, tokens.refreshTokenId, user.role, user.tenantId, user.tenant.level, deviceType);
 
     await (this.prisma as any).user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-    await this.publishEvent(TOPIC_SYS_CREDENTIAL_USER_AUTHENTICATED, user.id, { userId: user.id, email: user.email, tenantId: user.tenantId }, user.tenantId, user.id);
+    // Fire-and-forget — never block the login response on Kafka availability
+    this.publishEvent(TOPIC_SYS_CREDENTIAL_USER_AUTHENTICATED, user.id, { userId: user.id, email: user.email, tenantId: user.tenantId }, user.tenantId, user.id);
 
     // Cache permissions in Redis (TTL 15 min)
     await this.cachePermissions(user.id, effectiveRoles, permissions);
@@ -246,7 +248,8 @@ export class AuthService {
     //   • always for a new/unrecognised device
     //   • always when allowMultipleConnections=true (every login is a potential security event)
     if (loginNotificationEmail && (isNewDevice || allowMultipleConnections)) {
-      await this.publishEvent(TOPIC_SYS_CREDENTIAL_NEW_DEVICE_LOGIN, user.id, {
+      // Fire-and-forget — never block the login response on Kafka availability
+      this.publishEvent(TOPIC_SYS_CREDENTIAL_NEW_DEVICE_LOGIN, user.id, {
         userId: user.id,
         email: user.email,
         firstName: user.firstName,

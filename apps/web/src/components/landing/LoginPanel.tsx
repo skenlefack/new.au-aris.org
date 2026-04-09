@@ -58,6 +58,13 @@ export function LoginPanel({ context }: LoginPanelProps) {
 
   const onSubmit = async (data: LoginForm) => {
     setIsLoggingIn(true);
+    // Clear any stale session reason from the URL so it doesn't
+    // persist alongside login-error messages.
+    if (sessionReason) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('reason');
+      window.history.replaceState({}, '', url.toString());
+    }
     try {
       await loginMutation.mutateAsync(data);
       try {
