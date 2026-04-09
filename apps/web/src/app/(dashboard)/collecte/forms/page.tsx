@@ -466,6 +466,7 @@ export default function FormListPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [domainFilter, setDomainFilter] = useState('');
+  const [formTypeFilter, setFormTypeFilter] = useState('');
   const [search, setSearch] = useState('');
 
   const { data, isLoading } = useFormBuilderTemplates({
@@ -473,6 +474,7 @@ export default function FormListPage() {
     limit: 10,
     status: statusFilter || undefined,
     domain: domainFilter || undefined,
+    formType: (formTypeFilter as any) || undefined,
   });
 
   const userRole = useAuthStore((s) => s.user?.role);
@@ -555,6 +557,15 @@ export default function FormListPage() {
             <option value="DRAFT">{t('draft')}</option>
             <option value="PUBLISHED">{t('published')}</option>
             <option value="ARCHIVED">{t('archived')}</option>
+          </select>
+          <select
+            value={formTypeFilter}
+            onChange={(e) => { setFormTypeFilter(e.target.value); setPage(1); }}
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+          >
+            <option value="">{t('allFormTypes')}</option>
+            <option value="CAMPAIGN">{t('formTypeCampaign')}</option>
+            <option value="EVENT_ALERT">{t('formTypeEventAlert')}</option>
           </select>
         </div>
       </div>
@@ -661,9 +672,17 @@ function FormCard({
               {statusCfg.icon}
               {t(statusCfg.tKey)}
             </span>
+            <span className={cn(
+              'rounded-full px-2 py-0.5 text-[10px] font-medium',
+              template.formType === 'EVENT_ALERT'
+                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+            )}>
+              {template.formType === 'EVENT_ALERT' ? t('eventAlert') : t('campaign')}
+            </span>
           </div>
           <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
-            <span className="rounded bg-blue-50 px-1.5 py-0.5 text-blue-600 font-medium dark:bg-blue-900/30 dark:text-blue-400">
+            <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600 font-medium dark:bg-gray-700 dark:text-gray-400">
               {domainLabel}
             </span>
             <span>v{template.version}</span>
