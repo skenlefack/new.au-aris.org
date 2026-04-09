@@ -14,6 +14,8 @@ import {
   Download,
   Upload,
   ArrowUpDown,
+  AlertTriangle,
+  FileText,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
@@ -31,15 +33,7 @@ import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSecti
 import { DomainMapSection } from '@/components/domain/DomainMapSection';
 import { DomainStatisticsSection } from '@/components/domain/DomainStatisticsSection';
 import { DomainCurveSection } from '@/components/domain/DomainCurveSection';
-import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
-
-const FISHERIES_ALERT_FIELDS: AlertField[] = [
-  { name: 'species', label: 'Species', type: 'text', placeholder: 'e.g. Nile Perch', required: true },
-  { name: 'area', label: 'Fishing Area', type: 'text', placeholder: 'e.g. Lake Victoria', required: true },
-  { name: 'issueType', label: 'Issue Type', type: 'select', required: true, options: ['IUU Fishing', 'Stock Depletion', 'Aquatic Disease', 'License Violation', 'Environmental Impact', 'Other'] },
-  { name: 'vessels', label: 'Vessels Involved', type: 'text', placeholder: 'e.g. 5' },
-];
 
 const PLACEHOLDER_KPIS: FisheriesKpis['data'] = {
   totalCaptures: 12_450_000,
@@ -234,8 +228,12 @@ export default function FisheriesPage() {
         )}
       </div>}
 
-      {sections.map && <DomainMapSection domain="fisheries" />}
-      {sections.statistics && <DomainStatisticsSection domain="fisheries" />}
+      {(sections.map || sections.statistics) && (
+        <div className={cn('grid gap-6', sections.map && sections.statistics ? 'lg:grid-cols-2' : 'grid-cols-1')}>
+          {sections.map && <DomainMapSection domain="fisheries" />}
+          {sections.statistics && <DomainStatisticsSection domain="fisheries" />}
+        </div>
+      )}
       {sections.curve && <DomainCurveSection domain="fisheries" />}
 
       {/* Quick links to sub-pages */}
@@ -381,9 +379,34 @@ export default function FisheriesPage() {
 
       {/* Campaigns & Alert */}
       {(sections.campaigns || sections.alertForm) && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className={cn('grid gap-6', sections.campaigns && sections.alertForm ? 'lg:grid-cols-2' : 'grid-cols-1')}>
           {sections.campaigns && <DomainCampaignsSection domain="fisheries" />}
-          {sections.alertForm && <QuickAlertCard domain="fisheries" alertFields={FISHERIES_ALERT_FIELDS} title={t('reportIssue')} />}
+          {sections.alertForm && (
+            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Fisheries Alerts</h3>
+              </div>
+              <p className="mt-1 text-xs text-gray-400">Configure alert forms for fisheries events</p>
+              <div className="mt-4 space-y-2">
+                <Link
+                  href="/collecte/forms?domain=fisheries&formType=EVENT_ALERT"
+                  className="flex items-center justify-between rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Form Builder</p>
+                      <p className="text-[10px] text-gray-400">Create or edit alert form templates</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-gray-300" />
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

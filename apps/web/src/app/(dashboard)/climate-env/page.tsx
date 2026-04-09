@@ -11,6 +11,7 @@ import {
   TrendingDown,
   ArrowRight,
   Sprout,
+  FileText,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
@@ -21,7 +22,6 @@ import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSecti
 import { DomainMapSection } from '@/components/domain/DomainMapSection';
 import { DomainStatisticsSection } from '@/components/domain/DomainStatisticsSection';
 import { DomainCurveSection } from '@/components/domain/DomainCurveSection';
-import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
 const PLACEHOLDER_KPIS = {
@@ -42,13 +42,6 @@ const PLACEHOLDER_WATER_TRENDS = [
   { year: 2024, eastAfrica: 41.3, westAfrica: 47.0, centralAfrica: 30.2, southernAfrica: 55.8, northAfrica: 71.5 },
   { year: 2025, eastAfrica: 42.0, westAfrica: 47.8, centralAfrica: 30.9, southernAfrica: 56.2, northAfrica: 72.3 },
   { year: 2026, eastAfrica: 42.8, westAfrica: 48.5, centralAfrica: 31.4, southernAfrica: 57.1, northAfrica: 73.0 },
-];
-
-const ALERT_FIELDS: AlertField[] = [
-  { name: 'location', label: 'Location', type: 'text', placeholder: 'e.g. Sahel region', required: true },
-  { name: 'hazardType', label: 'Hazard Type', type: 'select', required: true, options: ['Drought', 'Flood', 'Wildfire', 'Desertification', 'Water Contamination', 'Heat Wave', 'Other'] },
-  { name: 'severity', label: 'Severity', type: 'select', required: true, options: ['Low', 'Medium', 'High', 'Critical'] },
-  { name: 'impact', label: 'Impact Description', type: 'textarea', placeholder: 'Describe the environmental impact...' },
 ];
 
 function TrendIndicator({ value, invertColor }: { value: number; invertColor?: boolean }) {
@@ -146,8 +139,12 @@ export default function ClimateEnvPage() {
         </div>
       </div>}
 
-      {sections.map && <DomainMapSection domain="climate_env" />}
-      {sections.statistics && <DomainStatisticsSection domain="climate_env" />}
+      {(sections.map || sections.statistics) && (
+        <div className={cn('grid gap-6', sections.map && sections.statistics ? 'lg:grid-cols-2' : 'grid-cols-1')}>
+          {sections.map && <DomainMapSection domain="climate_env" />}
+          {sections.statistics && <DomainStatisticsSection domain="climate_env" />}
+        </div>
+      )}
       {sections.curve && <DomainCurveSection domain="climate_env" />}
 
       {/* Quick Links */}
@@ -219,9 +216,34 @@ export default function ClimateEnvPage() {
 
       {/* Campaigns & Alert */}
       {(sections.campaigns || sections.alertForm) && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className={cn('grid gap-6', sections.campaigns && sections.alertForm ? 'lg:grid-cols-2' : 'grid-cols-1')}>
           {sections.campaigns && <DomainCampaignsSection domain="climate_env" />}
-          {sections.alertForm && <QuickAlertCard domain="climate_env" alertFields={ALERT_FIELDS} title="Report Environmental Hazard" />}
+          {sections.alertForm && (
+            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Climate & Environment Alerts</h3>
+              </div>
+              <p className="mt-1 text-xs text-gray-400">Configure alert forms for environmental hazards</p>
+              <div className="mt-4 space-y-2">
+                <Link
+                  href="/collecte/forms?domain=climate_env&formType=EVENT_ALERT"
+                  className="flex items-center justify-between rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Form Builder</p>
+                      <p className="text-[10px] text-gray-400">Create or edit alert form templates</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-gray-300" />
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

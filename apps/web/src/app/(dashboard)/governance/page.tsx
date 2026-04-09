@@ -10,8 +10,11 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowRight,
+  AlertTriangle,
+  FileText,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 
 const PvsScoresChart = dynamic(() => import('./PvsScoresChart'), { ssr: false });
@@ -19,7 +22,6 @@ import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSecti
 import { DomainMapSection } from '@/components/domain/DomainMapSection';
 import { DomainStatisticsSection } from '@/components/domain/DomainStatisticsSection';
 import { DomainCurveSection } from '@/components/domain/DomainCurveSection';
-import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
 const PLACEHOLDER_KPIS = {
@@ -42,13 +44,6 @@ const PLACEHOLDER_PVS_SCORES = [
   { competency: 'Disease Control', score: 3.4 },
   { competency: 'Food Safety', score: 2.7 },
   { competency: 'Vet Education', score: 3.0 },
-];
-
-const ALERT_FIELDS: AlertField[] = [
-  { name: 'country', label: 'Country', type: 'text', placeholder: 'e.g. Kenya', required: true },
-  { name: 'frameworkType', label: 'Framework Type', type: 'select', required: true, options: ['Legislation', 'Policy', 'Regulation', 'Standard', 'Guideline'] },
-  { name: 'issue', label: 'Issue', type: 'text', placeholder: 'e.g. Outdated veterinary act', required: true },
-  { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Describe the governance issue...' },
 ];
 
 function TrendIndicator({ value }: { value: number }) {
@@ -144,8 +139,12 @@ export default function GovernancePage() {
         </div>
       </div>}
 
-      {sections.map && <DomainMapSection domain="governance" />}
-      {sections.statistics && <DomainStatisticsSection domain="governance" />}
+      {(sections.map || sections.statistics) && (
+        <div className={cn('grid gap-6', sections.map && sections.statistics ? 'lg:grid-cols-2' : 'grid-cols-1')}>
+          {sections.map && <DomainMapSection domain="governance" />}
+          {sections.statistics && <DomainStatisticsSection domain="governance" />}
+        </div>
+      )}
       {sections.curve && <DomainCurveSection domain="governance" />}
 
       {/* Quick Links */}
@@ -217,9 +216,34 @@ export default function GovernancePage() {
 
       {/* Campaigns & Alert */}
       {(sections.campaigns || sections.alertForm) && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className={cn('grid gap-6', sections.campaigns && sections.alertForm ? 'lg:grid-cols-2' : 'grid-cols-1')}>
           {sections.campaigns && <DomainCampaignsSection domain="governance" />}
-          {sections.alertForm && <QuickAlertCard domain="governance" alertFields={ALERT_FIELDS} title="Report Governance Issue" />}
+          {sections.alertForm && (
+            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Governance Alerts</h3>
+              </div>
+              <p className="mt-1 text-xs text-gray-400">Configure alert forms for governance issues</p>
+              <div className="mt-4 space-y-2">
+                <Link
+                  href="/collecte/forms?domain=governance&formType=EVENT_ALERT"
+                  className="flex items-center justify-between rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Form Builder</p>
+                      <p className="text-[10px] text-gray-400">Create or edit alert form templates</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-gray-300" />
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

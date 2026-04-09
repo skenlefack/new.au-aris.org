@@ -10,8 +10,11 @@ import {
   ArrowRight,
   Droplets,
   HeartPulse,
+  AlertTriangle,
+  FileText,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 
 const ProductionChart = dynamic(() => import('./ProductionChart'), { ssr: false });
@@ -21,7 +24,6 @@ import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSecti
 import { DomainMapSection } from '@/components/domain/DomainMapSection';
 import { DomainStatisticsSection } from '@/components/domain/DomainStatisticsSection';
 import { DomainCurveSection } from '@/components/domain/DomainCurveSection';
-import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
 const PLACEHOLDER_KPIS = {
@@ -42,13 +44,6 @@ const PLACEHOLDER_TRENDS = [
   { year: 2024, honey: 168_000, wax: 21_800, propolis: 4_600 },
   { year: 2025, honey: 176_000, wax: 22_500, propolis: 5_000 },
   { year: 2026, honey: 185_000, wax: 23_400, propolis: 5_400 },
-];
-
-const ALERT_FIELDS: AlertField[] = [
-  { name: 'location', label: 'Location', type: 'text', placeholder: 'e.g. Addis Ababa region', required: true },
-  { name: 'issueType', label: 'Issue Type', type: 'select', required: true, options: ['Colony Collapse', 'Pest Infestation', 'Disease Outbreak', 'Pesticide Exposure', 'Swarming', 'Other'] },
-  { name: 'coloniesAffected', label: 'Colonies Affected', type: 'text', placeholder: 'e.g. 50' },
-  { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Describe the issue...' },
 ];
 
 function TrendIndicator({ value }: { value: number }) {
@@ -155,8 +150,12 @@ export default function ApiculturePage() {
         </div>
       </div>}
 
-      {sections.map && <DomainMapSection domain="apiculture" />}
-      {sections.statistics && <DomainStatisticsSection domain="apiculture" />}
+      {(sections.map || sections.statistics) && (
+        <div className={cn('grid gap-6', sections.map && sections.statistics ? 'lg:grid-cols-2' : 'grid-cols-1')}>
+          {sections.map && <DomainMapSection domain="apiculture" />}
+          {sections.statistics && <DomainStatisticsSection domain="apiculture" />}
+        </div>
+      )}
       {sections.curve && <DomainCurveSection domain="apiculture" />}
 
       {/* Quick Links */}
@@ -212,9 +211,34 @@ export default function ApiculturePage() {
 
       {/* Campaigns & Alert */}
       {(sections.campaigns || sections.alertForm) && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className={cn('grid gap-6', sections.campaigns && sections.alertForm ? 'lg:grid-cols-2' : 'grid-cols-1')}>
           {sections.campaigns && <DomainCampaignsSection domain="apiculture" />}
-          {sections.alertForm && <QuickAlertCard domain="apiculture" alertFields={ALERT_FIELDS} title="Report Colony Issue" />}
+          {sections.alertForm && (
+            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Apiculture Alerts</h3>
+              </div>
+              <p className="mt-1 text-xs text-gray-400">Configure alert forms for colony issues</p>
+              <div className="mt-4 space-y-2">
+                <Link
+                  href="/collecte/forms?domain=apiculture&formType=EVENT_ALERT"
+                  className="flex items-center justify-between rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Form Builder</p>
+                      <p className="text-[10px] text-gray-400">Create or edit alert form templates</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-gray-300" />
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
