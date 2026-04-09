@@ -264,9 +264,9 @@ export default function AnimalHealthPage() {
                         {ev.severity}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right font-medium text-gray-900">{ev.cases.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">{ev.deaths.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-gray-700">{ev.speciesAffected.join(', ')}</td>
+                    <td className="px-4 py-3 text-right font-medium text-gray-900">{(ev.cases ?? 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right text-gray-700">{(ev.deaths ?? 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-gray-700">{(ev.speciesAffected ?? []).join(', ')}</td>
                     <td className="px-4 py-3 text-gray-500">{new Date(ev.reportedAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
