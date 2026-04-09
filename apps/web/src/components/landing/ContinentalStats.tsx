@@ -31,7 +31,11 @@ interface ContinentalStatsProps {
 
 export function ContinentalStats({ domains }: ContinentalStatsProps) {
   const locale = useLocaleStore((s) => s.locale);
-  const list = domains && domains.length > 0 ? domains : FALLBACK_DOMAINS;
+  // Only show domains that come from the API (active domains).
+  // If the API is unavailable or returns nothing, hide the section entirely.
+  const list = domains && domains.length > 0 ? domains : [];
+
+  if (list.length === 0) return null;
 
   // Responsive: max 9 cols on large screens, adapt to actual count
   const colClass =
