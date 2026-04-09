@@ -40,6 +40,7 @@ export class TemplateService {
     dto: {
       name: string;
       domain: string;
+      formType?: string;
       parentTemplateId?: string;
       schema: Record<string, unknown>;
       uiSchema?: Record<string, unknown>;
@@ -73,6 +74,7 @@ export class TemplateService {
         tenant_id: user.tenantId,
         name: dto.name,
         domain: dto.domain,
+        form_type: dto.formType ?? 'CAMPAIGN',
         version: 1,
         parent_template_id: dto.parentTemplateId ?? null,
         schema: dto.schema as Prisma.InputJsonValue,
@@ -97,7 +99,7 @@ export class TemplateService {
 
   async findAll(
     user: AuthenticatedUser,
-    query: PaginationQuery & { domain?: string; status?: string },
+    query: PaginationQuery & { domain?: string; formType?: string; status?: string },
   ): Promise<PaginatedResponse<FormTemplateEntity & { overlayCount?: number; hasOverlay?: boolean }>> {
     const page = query.page ?? DEFAULT_PAGE;
     const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
@@ -123,6 +125,7 @@ export class TemplateService {
     const where: Prisma.FormTemplateWhereInput = {
       ...this.buildTenantFilter(user),
       ...domainFilter,
+      ...(query.formType && { form_type: query.formType }),
       ...(query.status && { status: query.status as Prisma.EnumFormTemplateStatusFilter }),
     };
 
@@ -817,6 +820,7 @@ export class TemplateService {
     tenant_id: string;
     name: string;
     domain: string;
+    form_type?: string;
     version: number;
     parent_template_id: string | null;
     schema: unknown;
@@ -836,6 +840,7 @@ export class TemplateService {
       tenantId: row.tenant_id,
       name: row.name,
       domain: row.domain,
+      formType: (row.form_type as string) ?? 'CAMPAIGN',
       version: row.version,
       parentTemplateId: row.parent_template_id,
       schema: row.schema,

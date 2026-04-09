@@ -88,27 +88,35 @@ export default function CreateEventPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/animal-health"
-          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {t('reportHealthEvent')}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {t('submitNewEvent')}
-          </p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/animal-health"
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {t('reportHealthEvent')}
+            </h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {t('submitNewEvent')}
+            </p>
+          </div>
         </div>
+        <Link
+          href="/collecte/forms?domain=animal_health&formType=EVENT_ALERT"
+          className="text-xs font-medium text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+        >
+          {t('customizeForm')}
+        </Link>
       </div>
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="space-y-6 rounded-card border border-gray-200 bg-white p-6"
+        className="space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
       >
         {createMutation.error && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

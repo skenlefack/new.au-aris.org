@@ -3,6 +3,7 @@ import { Type, Static } from '@sinclair/typebox';
 export const CreateTemplateSchema = Type.Object({
   name: Type.String({ minLength: 2, maxLength: 255 }),
   domain: Type.String({ minLength: 2, maxLength: 50 }),
+  formType: Type.Optional(Type.Union([Type.Literal('CAMPAIGN'), Type.Literal('EVENT_ALERT')])),
   parentTemplateId: Type.Optional(Type.String({ format: 'uuid' })),
   schema: Type.Record(Type.String(), Type.Unknown()),
   uiSchema: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
@@ -41,6 +42,7 @@ export const ListTemplatesQuerySchema = Type.Object({
   sort: Type.Optional(Type.String()),
   order: Type.Optional(Type.Union([Type.Literal('asc'), Type.Literal('desc')])),
   domain: Type.Optional(Type.String()),
+  formType: Type.Optional(Type.String()),
   status: Type.Optional(Type.String()),
 });
 export type ListTemplatesQuery = Static<typeof ListTemplatesQuerySchema>;

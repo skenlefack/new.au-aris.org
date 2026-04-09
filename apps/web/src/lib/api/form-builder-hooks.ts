@@ -61,11 +61,14 @@ const fb = {
 // TYPES
 // ════════════════════════════════════════════════════════════════
 
+export type FormType = 'CAMPAIGN' | 'EVENT_ALERT';
+
 export interface FormTemplateListItem {
   id: string;
   tenantId: string;
   name: string;
   domain: string;
+  formType: FormType;
   version: number;
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   dataClassification: string;
@@ -95,12 +98,14 @@ export function useFormBuilderTemplates(params?: {
   page?: number;
   limit?: number;
   domain?: string;
+  formType?: FormType;
   status?: string;
 }) {
   const queryParams: Record<string, string> = {};
   if (params?.page) queryParams.page = String(params.page);
   if (params?.limit) queryParams.limit = String(params.limit);
   if (params?.domain) queryParams.domain = params.domain;
+  if (params?.formType) queryParams.formType = params.formType;
   if (params?.status) queryParams.status = params.status;
 
   return useQuery({
@@ -128,7 +133,7 @@ export function useFormBuilderTemplate(id: string | undefined) {
 export function useCreateFormTemplate() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { name: string; domain: string; schema: unknown; uiSchema?: unknown }) =>
+    mutationFn: (body: { name: string; domain: string; formType?: FormType; schema: unknown; uiSchema?: unknown }) =>
       fb.post<ApiResponse<FormTemplateListItem>>('/templates', body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['form-builder', 'templates'] });

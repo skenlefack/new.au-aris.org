@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FileText, ArrowLeft, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { createDefaultFormSchema } from '@/components/form-builder/utils/form-schema';
-import { useCreateFormTemplate, useImportExcelTemplate } from '@/lib/api/form-builder-hooks';
+import { useCreateFormTemplate, useImportExcelTemplate, type FormType } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
 export default function NewFormPage() {
@@ -17,6 +17,7 @@ export default function NewFormPage() {
 
   const [name, setName] = useState('');
   const [domain, setDomain] = useState('animal_health');
+  const [formType, setFormType] = useState<FormType>('CAMPAIGN');
   const [description, setDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
@@ -40,6 +41,7 @@ export default function NewFormPage() {
       const result = await createMutation.mutateAsync({
         name: name.trim(),
         domain,
+        formType,
         schema,
       });
       const templateId = result?.data?.id;
@@ -152,6 +154,42 @@ export default function NewFormPage() {
                   <option key={d.value} value={d.value}>{d.label}</option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                {t('formType')} <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFormType('CAMPAIGN')}
+                  className={`rounded-lg border-2 p-3 text-left transition-all ${
+                    formType === 'CAMPAIGN'
+                      ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20'
+                      : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <p className={`text-sm font-semibold ${formType === 'CAMPAIGN' ? 'text-blue-700 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                    {t('formTypeCampaign')}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-gray-400">{t('formTypeCampaignDesc')}</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormType('EVENT_ALERT')}
+                  className={`rounded-lg border-2 p-3 text-left transition-all ${
+                    formType === 'EVENT_ALERT'
+                      ? 'border-amber-500 bg-amber-50 dark:border-amber-400 dark:bg-amber-900/20'
+                      : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <p className={`text-sm font-semibold ${formType === 'EVENT_ALERT' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                    {t('formTypeEventAlert')}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-gray-400">{t('formTypeEventAlertDesc')}</p>
+                </button>
+              </div>
             </div>
 
             <div>

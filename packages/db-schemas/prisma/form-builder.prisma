@@ -9,11 +9,19 @@ enum FormTemplateStatus {
   @@schema("form_builder")
 }
 
+enum FormType {
+  CAMPAIGN
+  EVENT_ALERT
+
+  @@schema("form_builder")
+}
+
 model FormTemplate {
   id                String             @id @default(uuid()) @db.Uuid
   tenant_id         String             @db.Uuid
   name              String             @db.VarChar(255)
   domain            String             @db.VarChar(50)
+  form_type         FormType           @default(CAMPAIGN)
   version           Int                @default(1)
   parent_template_id String?           @db.Uuid
   schema            Json
