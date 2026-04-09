@@ -68,7 +68,7 @@ export interface FormTemplateListItem {
   tenantId: string;
   name: string;
   domain: string;
-  formType: FormType;
+  formType?: FormType;
   version: number;
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   dataClassification: string;
