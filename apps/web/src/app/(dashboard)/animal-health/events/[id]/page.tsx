@@ -448,7 +448,7 @@ export default function EventDetailPage() {
             <div className="mt-3 border-t border-gray-100 pt-3">
               <p className="text-xs text-gray-400">{ta('speciesAffected')}</p>
               <div className="mt-1 flex flex-wrap gap-1">
-                {event.speciesAffected.map((s) => (
+                {(event.speciesAffected ?? []).map((s) => (
                   <span
                     key={s}
                     className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
