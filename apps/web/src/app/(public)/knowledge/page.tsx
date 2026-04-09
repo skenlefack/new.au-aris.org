@@ -102,65 +102,43 @@ export default function PublicKnowledgePortalPage() {
       {/* ── Browse by scope ─────────────────────────────────── */}
       <section className="border-t bg-white px-6 py-12 dark:bg-gray-900">
         <div className="mx-auto max-w-6xl space-y-12">
-          {/* Continental — header card + 3 KPI stats on one row */}
-          <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {/* Continental scope card */}
-              <div
-                className="flex items-center gap-3 rounded-xl border bg-white p-5 shadow-sm dark:bg-gray-800"
-                style={{ borderTop: '3px solid #7c3aed' }}
-              >
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: '#7c3aed20', color: '#7c3aed' }}>
-                  <Globe2 className="h-5 w-5" />
-                </span>
-                <div>
-                  <h2 className="text-lg font-bold">Continental</h2>
-                  <p className="text-xs text-muted-foreground">AU-IBAR publications & policy briefs</p>
-                </div>
-              </div>
-
-              <StatCard
-                icon={<FileText className="h-5 w-5" />}
-                label="Publications"
-                value={stats.data?.data?.publications}
-                hint="Public publications across all scopes"
-                accent="#7c3aed"
-                loading={stats.isLoading}
-              />
-              <StatCard
-                icon={<FolderTree className="h-5 w-5" />}
-                label="Categories"
-                value={stats.data?.data?.categories}
-                hint="Active categories in the taxonomy"
-                accent="#2563eb"
-                loading={stats.isLoading}
-              />
-              <StatCard
-                icon={<Eye className="h-5 w-5" />}
-                label="Total views"
-                value={stats.data?.data?.totalViews}
-                hint="Cumulative reads across the knowledge base"
-                accent="#16a34a"
-                loading={stats.isLoading}
-              />
-            </div>
-
-            {/* Continental categories */}
+          {/* Continental category card + 3 KPI stats on one row */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {/* First continental category (or loading skeleton) */}
             {tree.isLoading ? (
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-24 animate-pulse rounded-lg border bg-gray-100 dark:bg-gray-800" />
-                ))}
-              </div>
+              <div className="h-28 animate-pulse rounded-lg border bg-gray-100 dark:bg-gray-800" />
             ) : grouped.continental.length > 0 ? (
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                {grouped.continental.map((cat) => (
-                  <CategoryRootCard key={cat.id} cat={cat} accent="#7c3aed" />
-                ))}
-              </div>
+              <CategoryRootCard cat={grouped.continental[0]} accent="#7c3aed" />
             ) : (
-              <p className="text-sm text-muted-foreground italic">No continental categories yet.</p>
+              <div className="flex items-center justify-center rounded-lg border bg-white p-4 text-sm text-muted-foreground italic dark:bg-gray-800">
+                No continental category yet.
+              </div>
             )}
+
+            <StatCard
+              icon={<FileText className="h-5 w-5" />}
+              label="Publications"
+              value={stats.data?.data?.publications}
+              hint="Public publications across all scopes"
+              accent="#7c3aed"
+              loading={stats.isLoading}
+            />
+            <StatCard
+              icon={<FolderTree className="h-5 w-5" />}
+              label="Categories"
+              value={stats.data?.data?.categories}
+              hint="Active categories in the taxonomy"
+              accent="#2563eb"
+              loading={stats.isLoading}
+            />
+            <StatCard
+              icon={<Eye className="h-5 w-5" />}
+              label="Total views"
+              value={stats.data?.data?.totalViews}
+              hint="Cumulative reads across the knowledge base"
+              accent="#16a34a"
+              loading={stats.isLoading}
+            />
           </div>
 
           {/* RECs */}
