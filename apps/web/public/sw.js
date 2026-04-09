@@ -1,5 +1,7 @@
-const CACHE_NAME = 'aris-v3';
-const PRECACHE_URLS = ['/', '/login'];
+const CACHE_NAME = 'aris-v4';
+// Don't precache HTML pages — they change on every deploy and ISR revalidation.
+// Only static assets (images, fonts, styles) are cached via the fetch handler below.
+const PRECACHE_URLS = [];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
