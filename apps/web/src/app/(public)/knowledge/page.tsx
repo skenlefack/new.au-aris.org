@@ -101,43 +101,42 @@ export default function PublicKnowledgePortalPage() {
       <section className="border-t bg-white px-6 py-12 dark:bg-gray-900">
         <div className="mx-auto max-w-6xl space-y-12">
           {/* Continental */}
-          <div className="space-y-6">
-            <ScopeBlock
-              icon={<Globe2 className="h-5 w-5" />}
-              label="Continental"
-              tagline="AU-IBAR continental publications and policy briefs"
-              color="#7c3aed"
-              categories={grouped.continental}
-            />
-
-            {/* ── Headline KPIs of the knowledge base ── */}
-            <div className="grid gap-4 md:grid-cols-3">
-              <StatCard
-                icon={<FileText className="h-5 w-5" />}
-                label="Publications"
-                value={stats.data?.data?.publications}
-                hint="Public publications across all scopes"
-                accent="#7c3aed"
-                loading={stats.isLoading}
-              />
-              <StatCard
-                icon={<FolderTree className="h-5 w-5" />}
-                label="Categories"
-                value={stats.data?.data?.categories}
-                hint="Active categories in the taxonomy"
-                accent="#2563eb"
-                loading={stats.isLoading}
-              />
-              <StatCard
-                icon={<Eye className="h-5 w-5" />}
-                label="Total views"
-                value={stats.data?.data?.totalViews}
-                hint="Cumulative reads across the knowledge base"
-                accent="#16a34a"
-                loading={stats.isLoading}
-              />
-            </div>
-          </div>
+          <ScopeBlock
+            icon={<Globe2 className="h-5 w-5" />}
+            label="Continental"
+            tagline="AU-IBAR continental publications and policy briefs"
+            color="#7c3aed"
+            categories={grouped.continental}
+            loading={tree.isLoading}
+            statsSlot={
+              <div className="grid gap-4 md:grid-cols-3">
+                <StatCard
+                  icon={<FileText className="h-5 w-5" />}
+                  label="Publications"
+                  value={stats.data?.data?.publications}
+                  hint="Public publications across all scopes"
+                  accent="#7c3aed"
+                  loading={stats.isLoading}
+                />
+                <StatCard
+                  icon={<FolderTree className="h-5 w-5" />}
+                  label="Categories"
+                  value={stats.data?.data?.categories}
+                  hint="Active categories in the taxonomy"
+                  accent="#2563eb"
+                  loading={stats.isLoading}
+                />
+                <StatCard
+                  icon={<Eye className="h-5 w-5" />}
+                  label="Total views"
+                  value={stats.data?.data?.totalViews}
+                  hint="Cumulative reads across the knowledge base"
+                  accent="#16a34a"
+                  loading={stats.isLoading}
+                />
+              </div>
+            }
+          />
 
           {/* RECs */}
           <ScopeBlock
@@ -147,6 +146,7 @@ export default function PublicKnowledgePortalPage() {
             color="#2563eb"
             categories={grouped.recs}
             twoColumns
+            loading={tree.isLoading}
           />
 
           {/* Countries */}
@@ -158,6 +158,7 @@ export default function PublicKnowledgePortalPage() {
             categories={grouped.countries}
             twoColumns
             collapsed
+            loading={tree.isLoading}
           />
         </div>
       </section>
@@ -193,7 +194,7 @@ export default function PublicKnowledgePortalPage() {
 }
 
 function ScopeBlock({
-  icon, label, tagline, color, categories, twoColumns, collapsed,
+  icon, label, tagline, color, categories, twoColumns, collapsed, loading, statsSlot,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -202,14 +203,14 @@ function ScopeBlock({
   categories: KnowledgeCategory[];
   twoColumns?: boolean;
   collapsed?: boolean;
+  loading?: boolean;
+  statsSlot?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(!collapsed);
 
-  if (categories.length === 0) return null;
-
   return (
-    <div>
-      <header className="mb-4 flex items-center gap-3">
+    <div className="space-y-4">
+      <header className="flex items-center gap-3">
         <span className="rounded-lg p-2" style={{ backgroundColor: color + '20', color }}>
           {icon}
         </span>
@@ -217,7 +218,7 @@ function ScopeBlock({
           <h2 className="text-xl font-bold">{label}</h2>
           <p className="text-sm text-muted-foreground">{tagline}</p>
         </div>
-        {collapsed && (
+        {collapsed && categories.length > 0 && (
           <button
             onClick={() => setOpen(!open)}
             className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
@@ -226,12 +227,25 @@ function ScopeBlock({
           </button>
         )}
       </header>
-      {open && (
+
+      {statsSlot}
+
+      {loading ? (
         <div className={`grid gap-3 ${twoColumns ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
-          {categories.map((cat) => (
-            <CategoryRootCard key={cat.id} cat={cat} accent={color} />
+          {Array.from({ length: twoColumns ? 3 : 4 }).map((_, i) => (
+            <div key={i} className="h-24 animate-pulse rounded-lg border bg-gray-100 dark:bg-gray-800" />
           ))}
         </div>
+      ) : categories.length > 0 ? (
+        open && (
+          <div className={`grid gap-3 ${twoColumns ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
+            {categories.map((cat) => (
+              <CategoryRootCard key={cat.id} cat={cat} accent={color} />
+            ))}
+          </div>
+        )
+      ) : (
+        <p className="text-sm text-muted-foreground italic">No categories available yet.</p>
       )}
     </div>
   );
