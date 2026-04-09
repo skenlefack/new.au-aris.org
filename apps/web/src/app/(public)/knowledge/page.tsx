@@ -53,14 +53,16 @@ export default function PublicKnowledgePortalPage() {
       {/* ── Hero ────────────────────────────────────────────── */}
       <section className="px-6 pt-16 pb-12 text-center">
         <div className="mx-auto flex max-w-3xl flex-col items-center">
-          <Image
-            src="/au-logo.png"
-            alt="African Union"
-            width={96}
-            height={96}
-            className="mb-4 h-24 w-24 object-contain drop-shadow-md"
-            priority
-          />
+          <Link href="/">
+            <Image
+              src="/au-logo.png"
+              alt="African Union"
+              width={96}
+              height={96}
+              className="mb-4 h-24 w-24 object-contain drop-shadow-md"
+              priority
+            />
+          </Link>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white md:text-5xl">
             AU-IBAR Knowledge Hub
           </h1>
@@ -70,7 +72,7 @@ export default function PublicKnowledgePortalPage() {
           </p>
 
           <form onSubmit={onSubmit} className="mt-8 w-full max-w-2xl">
-            <div className="flex items-center rounded-full border border-gray-300 bg-white px-5 py-3 shadow-lg transition-shadow focus-within:border-transparent focus-within:shadow-xl focus-within:ring-0 dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center rounded-full border border-gray-300 bg-white px-5 py-3 shadow-lg transition-shadow focus-within:shadow-xl dark:border-gray-700 dark:bg-gray-800">
               <Search className="mr-3 h-5 w-5 text-gray-400" />
               <input
                 value={q}
@@ -100,43 +102,66 @@ export default function PublicKnowledgePortalPage() {
       {/* ── Browse by scope ─────────────────────────────────── */}
       <section className="border-t bg-white px-6 py-12 dark:bg-gray-900">
         <div className="mx-auto max-w-6xl space-y-12">
-          {/* Continental */}
-          <ScopeBlock
-            icon={<Globe2 className="h-5 w-5" />}
-            label="Continental"
-            tagline="AU-IBAR continental publications and policy briefs"
-            color="#7c3aed"
-            categories={grouped.continental}
-            loading={tree.isLoading}
-            statsSlot={
-              <div className="grid gap-4 md:grid-cols-3">
-                <StatCard
-                  icon={<FileText className="h-5 w-5" />}
-                  label="Publications"
-                  value={stats.data?.data?.publications}
-                  hint="Public publications across all scopes"
-                  accent="#7c3aed"
-                  loading={stats.isLoading}
-                />
-                <StatCard
-                  icon={<FolderTree className="h-5 w-5" />}
-                  label="Categories"
-                  value={stats.data?.data?.categories}
-                  hint="Active categories in the taxonomy"
-                  accent="#2563eb"
-                  loading={stats.isLoading}
-                />
-                <StatCard
-                  icon={<Eye className="h-5 w-5" />}
-                  label="Total views"
-                  value={stats.data?.data?.totalViews}
-                  hint="Cumulative reads across the knowledge base"
-                  accent="#16a34a"
-                  loading={stats.isLoading}
-                />
+          {/* Continental — header card + 3 KPI stats on one row */}
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {/* Continental scope card */}
+              <div
+                className="flex items-center gap-3 rounded-xl border bg-white p-5 shadow-sm dark:bg-gray-800"
+                style={{ borderTop: '3px solid #7c3aed' }}
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: '#7c3aed20', color: '#7c3aed' }}>
+                  <Globe2 className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 className="text-lg font-bold">Continental</h2>
+                  <p className="text-xs text-muted-foreground">AU-IBAR publications & policy briefs</p>
+                </div>
               </div>
-            }
-          />
+
+              <StatCard
+                icon={<FileText className="h-5 w-5" />}
+                label="Publications"
+                value={stats.data?.data?.publications}
+                hint="Public publications across all scopes"
+                accent="#7c3aed"
+                loading={stats.isLoading}
+              />
+              <StatCard
+                icon={<FolderTree className="h-5 w-5" />}
+                label="Categories"
+                value={stats.data?.data?.categories}
+                hint="Active categories in the taxonomy"
+                accent="#2563eb"
+                loading={stats.isLoading}
+              />
+              <StatCard
+                icon={<Eye className="h-5 w-5" />}
+                label="Total views"
+                value={stats.data?.data?.totalViews}
+                hint="Cumulative reads across the knowledge base"
+                accent="#16a34a"
+                loading={stats.isLoading}
+              />
+            </div>
+
+            {/* Continental categories */}
+            {tree.isLoading ? (
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-24 animate-pulse rounded-lg border bg-gray-100 dark:bg-gray-800" />
+                ))}
+              </div>
+            ) : grouped.continental.length > 0 ? (
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                {grouped.continental.map((cat) => (
+                  <CategoryRootCard key={cat.id} cat={cat} accent="#7c3aed" />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">No continental categories yet.</p>
+            )}
+          </div>
 
           {/* RECs */}
           <ScopeBlock
@@ -194,7 +219,7 @@ export default function PublicKnowledgePortalPage() {
 }
 
 function ScopeBlock({
-  icon, label, tagline, color, categories, twoColumns, collapsed, loading, statsSlot,
+  icon, label, tagline, color, categories, twoColumns, collapsed, loading,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -204,7 +229,6 @@ function ScopeBlock({
   twoColumns?: boolean;
   collapsed?: boolean;
   loading?: boolean;
-  statsSlot?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(!collapsed);
 
@@ -227,8 +251,6 @@ function ScopeBlock({
           </button>
         )}
       </header>
-
-      {statsSlot}
 
       {loading ? (
         <div className={`grid gap-3 ${twoColumns ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
