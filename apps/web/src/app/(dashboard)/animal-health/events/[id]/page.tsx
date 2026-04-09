@@ -173,13 +173,13 @@ export default function EventDetailPage() {
   const eventId = params.id as string;
 
   const { data, isLoading, isError, error, refetch } = useHealthEvent(eventId);
-  const event = data?.data ?? PLACEHOLDER_DETAIL;
+  const event = data?.data;
 
   if (isLoading) return <DetailSkeleton />;
-  if (isError) {
+  if (isError || !event) {
     return (
       <QueryError
-        message={error instanceof Error ? error.message : 'Failed to load event'}
+        message={error instanceof Error ? error.message : 'Event not found'}
         onRetry={() => refetch()}
       />
     );
