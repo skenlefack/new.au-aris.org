@@ -184,7 +184,7 @@ export function AdminLocationField({
         <MapPin className="h-4 w-4" />
         <span>{locale === 'fr' ? 'Localisation Administrative' : 'Administrative Location'}</span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className={cn('grid grid-cols-1 gap-3', levels.length <= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4')}>
         {levels.map((level) => {
           const isRequired = requiredLevels.includes(level);
           const disabled = isLevelDisabled(level);
