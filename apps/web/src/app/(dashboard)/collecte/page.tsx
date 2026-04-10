@@ -33,16 +33,18 @@ import { COUNTRIES } from '@/data/countries-config';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { useAuthStore, type AuthUser } from '@/lib/stores/auth-store';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyCampaign = any;
 
-function i18nStr(val: unknown): string {
+function i18nStr(val: unknown, locale?: string): string {
   if (!val) return '';
   if (typeof val === 'string') return val;
   if (typeof val === 'object' && val !== null) {
     const obj = val as Record<string, string>;
-    return obj['en'] ?? obj['fr'] ?? Object.values(obj)[0] ?? '';
+    const lang = locale?.slice(0, 2) ?? 'en';
+    return obj[lang] ?? obj['en'] ?? obj['fr'] ?? obj['pt'] ?? Object.values(obj).find((v) => v) ?? '';
   }
   return String(val);
 }
@@ -164,7 +166,7 @@ function ArchiveModal({
           </div>
           <div>
             <h3 className="text-base font-semibold text-gray-900 dark:text-white">{t('archiveCampaign')}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{i18nStr(campaign.name)}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{i18nStr(campaign.name, locale)}</p>
           </div>
         </div>
         <div className="mb-4">
@@ -230,7 +232,7 @@ function DeleteModal({
           </div>
         </div>
         <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-          {t('confirmDeleteCampaign', { name: i18nStr(campaign.name) })}
+          {t('confirmDeleteCampaign', { name: i18nStr(campaign.name, locale) })}
         </p>
         <div className="flex items-center justify-end gap-2">
           <button
@@ -344,6 +346,7 @@ function CampaignCard({
   onArchive: () => void;
 }) {
   const t = useTranslations('collecte');
+  const locale = useLocaleStore((s) => s.locale);
   const statusCfg = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG.PLANNED;
   const total = campaign.totalSubmissions ?? 0;
   const validated = campaign.validatedSubmissions ?? 0;
@@ -362,10 +365,10 @@ function CampaignCard({
         <div className="flex items-start justify-between">
           <Link href={`/collecte/campaigns/${campaign.id}`} className="min-w-0 flex-1">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate group-hover:text-aris-primary-600 dark:group-hover:text-aris-primary-400 transition-colors">
-              {i18nStr(campaign.name)}
+              {i18nStr(campaign.name, locale)}
             </h3>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-              {i18nStr(campaign.description) || 'No description'}
+              {i18nStr(campaign.description, locale) || 'No description'}
             </p>
           </Link>
           <div className="ml-3 flex items-center gap-1.5">
@@ -498,10 +501,10 @@ function CampaignListRow({
       {/* Name + description */}
       <Link href={`/collecte/campaigns/${campaign.id}`} className="min-w-0 flex-1">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate group-hover:text-aris-primary-600 dark:group-hover:text-aris-primary-400 transition-colors">
-          {i18nStr(campaign.name)}
+          {i18nStr(campaign.name, locale)}
         </h3>
         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-          {getDomainLabel(campaign.domain)} {i18nStr(campaign.description) ? `— ${i18nStr(campaign.description)}` : ''}
+          {getDomainLabel(campaign.domain)} {i18nStr(campaign.description, locale) ? `— ${i18nStr(campaign.description, locale)}` : ''}
         </p>
       </Link>
 
@@ -570,6 +573,7 @@ export default function CollectePage() {
   const router = useRouter();
   const t = useTranslations('collecte');
   const user = useAuthStore((s) => s.user);
+  const locale = useLocaleStore((s) => s.locale);
   const [activeTab, setActiveTab] = useState('planned');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -606,7 +610,7 @@ export default function CollectePage() {
     if (search) {
       const q = search.toLowerCase();
       list = list.filter((c: AnyCampaign) =>
-        i18nStr(c.name).toLowerCase().includes(q) ||
+        i18nStr(c.name, locale).toLowerCase().includes(q) ||
         (c.code && c.code.toLowerCase().includes(q)),
       );
     }

@@ -32,16 +32,18 @@ import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useAuthStore, type AuthUser } from '@/lib/stores/auth-store';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyCampaign = any;
 
-function i18nStr(val: unknown): string {
+function i18nStr(val: unknown, locale?: string): string {
   if (!val) return '';
   if (typeof val === 'string') return val;
   if (typeof val === 'object' && val !== null) {
     const obj = val as Record<string, string>;
-    return obj['en'] ?? obj['fr'] ?? Object.values(obj)[0] ?? '';
+    const lang = locale?.slice(0, 2) ?? 'en';
+    return obj[lang] ?? obj['en'] ?? obj['fr'] ?? obj['pt'] ?? Object.values(obj).find((v) => v) ?? '';
   }
   return String(val);
 }
@@ -110,6 +112,7 @@ export default function CampaignDetailPage() {
   const params = useParams();
   const router = useRouter();
   const t = useTranslations('collecte');
+  const locale = useLocaleStore((s) => s.locale);
   const campaignId = params.id as string;
 
   const { data: campaignRes, isLoading } = useCollectionCampaign(campaignId);
@@ -231,10 +234,10 @@ export default function CampaignDetailPage() {
         <div className="mt-2 flex items-center justify-between">
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
-              {i18nStr(campaign.name)}
+              {i18nStr(campaign.name, locale)}
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {i18nStr(campaign.description) || 'No description provided'}
+              {i18nStr(campaign.description, locale) || 'No description provided'}
             </p>
           </div>
           <div className="ml-4 flex items-center gap-2 shrink-0">
