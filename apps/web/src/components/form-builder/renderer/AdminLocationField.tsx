@@ -122,20 +122,22 @@ export function AdminLocationField({
   const admin1Options = useMemo(() => {
     if (!admin1Data?.data) return [];
     return admin1Data.data
-      .map((e) => ({
-        value: e.id,
-        label: e.name[locale] || e.name.en || e.code,
-      }))
+      .map((e) => {
+        const n = e.name;
+        const label = typeof n === 'string' ? n : (n?.[locale] || n?.en || n?.fr || e.code);
+        return { value: e.id, label };
+      })
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [admin1Data, locale]);
 
   const admin2Options = useMemo(() => {
     if (!admin2Data?.data) return [];
     return admin2Data.data
-      .map((e) => ({
-        value: e.id,
-        label: e.name[locale] || e.name.en || e.code,
-      }))
+      .map((e) => {
+        const n = e.name;
+        const label = typeof n === 'string' ? n : (n?.[locale] || n?.en || n?.fr || e.code);
+        return { value: e.id, label };
+      })
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [admin2Data, locale]);
 
