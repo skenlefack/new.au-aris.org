@@ -203,42 +203,10 @@ export default function NewCampaignPage() {
                 value={description}
                 onChange={setDescription}
                 placeholder={t('descriptionPlaceholder')}
-                rows={2}
+                rows={4}
               />
             </div>
 
-            {/* Multi-domain selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('domains')} <span className="text-red-500">*</span>
-              </label>
-              <p className="mb-1.5 text-xs text-gray-400">{t('selectDomainsDesc')}</p>
-              <div className="flex flex-wrap gap-2">
-                {DOMAIN_OPTIONS.map((d) => {
-                  const isSelected = selectedDomains.includes(d.value);
-                  return (
-                    <button
-                      key={d.value}
-                      type="button"
-                      onClick={() => {
-                        const next = isSelected
-                          ? selectedDomains.filter((v) => v !== d.value)
-                          : [...selectedDomains, d.value];
-                        handleDomainsChange(next);
-                      }}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                        isSelected
-                          ? 'border-aris-primary-500 bg-aris-primary-50 text-aris-primary-700 dark:border-aris-primary-400 dark:bg-aris-primary-900/20 dark:text-aris-primary-400'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600'
-                      }`}
-                    >
-                      {d.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {errors.domains && <p className="mt-1 text-xs text-red-600">{errors.domains}</p>}
-            </div>
           </div>
 
           {/* RIGHT — Scheduling + Options */}
@@ -352,7 +320,41 @@ export default function NewCampaignPage() {
           </div>
         </div>
 
-        {/* ROW 2 — Form Templates */}
+        {/* ROW 2 — Domains */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-gray-400" />
+            {t('domains')} <span className="text-red-500">*</span>
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('selectDomainsDesc')}</p>
+          <div className="flex flex-wrap gap-2">
+            {DOMAIN_OPTIONS.map((d) => {
+              const isSelected = selectedDomains.includes(d.value);
+              return (
+                <button
+                  key={d.value}
+                  type="button"
+                  onClick={() => {
+                    const next = isSelected
+                      ? selectedDomains.filter((v) => v !== d.value)
+                      : [...selectedDomains, d.value];
+                    handleDomainsChange(next);
+                  }}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    isSelected
+                      ? 'border-aris-primary-500 bg-aris-primary-50 text-aris-primary-700 dark:border-aris-primary-400 dark:bg-aris-primary-900/20 dark:text-aris-primary-400'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600'
+                  }`}
+                >
+                  {d.label}
+                </button>
+              );
+            })}
+          </div>
+          {errors.domains && <p className="mt-1 text-xs text-red-600">{errors.domains}</p>}
+        </div>
+
+        {/* ROW 3 — Form Templates */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <FileText className="h-4 w-4 text-gray-400" />
