@@ -486,6 +486,7 @@ function CampaignListRow({
   onArchive: () => void;
 }) {
   const t = useTranslations('collecte');
+  const locale = useLocaleStore((s) => s.locale);
   const statusCfg = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG.PLANNED;
   const total = campaign.totalSubmissions ?? 0;
   const target = campaign.targetSubmissions ?? 0;
