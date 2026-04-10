@@ -20,9 +20,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useHealthEvents, type HealthEvent } from '@/lib/api/hooks';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { DomainMapSection } from '@/components/domain/DomainMapSection';
-import { DomainStatisticsSection } from '@/components/domain/DomainStatisticsSection';
-import { DomainCurveSection } from '@/components/domain/DomainCurveSection';
+import { CampaignDataDashboard } from '@/components/domain/CampaignDataDashboard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 import { useCollectionCampaigns } from '@/lib/api/workflow-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -107,16 +105,15 @@ export default function AnimalHealthPage() {
       {/* ── Campaign Overview Carousel ────────────────────── */}
       {sections.chart && <CampaignCarousel campaigns={campaigns} isLoading={campaignsQuery.isLoading} t={t} />}
 
-      {/* ── Map + Statistics ─────────────────────────────── */}
-      {(sections.map || sections.statistics) && (
-        <div className={cn('grid gap-6', sections.map && sections.statistics ? 'lg:grid-cols-2' : 'grid-cols-1')}>
-          {sections.map && <DomainMapSection domain="animal_health" />}
-          {sections.statistics && <DomainStatisticsSection domain="animal_health" />}
-        </div>
+      {/* ── Campaign Data Dashboard (Map + Statistics + Curve) ── */}
+      {(sections.map || sections.statistics || sections.curve) && (
+        <CampaignDataDashboard
+          domain="animal_health"
+          showMap={sections.map}
+          showStats={sections.statistics}
+          showCurve={sections.curve}
+        />
       )}
-
-      {/* ── Curve ────────────────────────────────────────── */}
-      {sections.curve && <DomainCurveSection domain="animal_health" />}
 
       {/* ── Recent Events (modern card feed) ─────────────── */}
       {sections.table && (

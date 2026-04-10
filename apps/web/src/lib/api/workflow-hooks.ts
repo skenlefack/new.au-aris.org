@@ -385,6 +385,22 @@ export function useCollectionCampaign(id: string | undefined) {
   });
 }
 
+export function useCampaignSubmissions(campaignId: string | undefined, params?: { page?: number; limit?: number; status?: string }) {
+  return useQuery({
+    queryKey: ['campaign-submissions', campaignId, params],
+    queryFn: () => {
+      const qs = new URLSearchParams();
+      if (campaignId) qs.set('campaign', campaignId);
+      if (params?.page) qs.set('page', String(params.page));
+      if (params?.limit) qs.set('limit', String(params.limit));
+      if (params?.status) qs.set('status', params.status);
+      return wfFetch<any>(`/api/v1/collecte/submissions?${qs}`);
+    },
+    enabled: !!campaignId,
+    staleTime: 60_000,
+  });
+}
+
 export function useCreateCollectionCampaign() {
   const qc = useQueryClient();
   return useMutation({
