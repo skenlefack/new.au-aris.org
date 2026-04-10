@@ -11,6 +11,7 @@ const Polygon = dynamic(() => import('react-leaflet').then((m) => m.Polygon), { 
 const Polyline = dynamic(() => import('react-leaflet').then((m) => m.Polyline), { ssr: false });
 const CircleMarker = dynamic(() => import('react-leaflet').then((m) => m.CircleMarker), { ssr: false });
 const ClickHandler = dynamic(() => import('./MapClickHandler').then((m) => m.MapClickHandler), { ssr: false });
+const MapViewUpdater = dynamic(() => import('./MapClickHandler').then((m) => m.MapViewUpdater), { ssr: false });
 
 interface GeoPolygonMapProps {
   value: Array<[number, number]> | null;
@@ -133,6 +134,7 @@ export function GeoPolygonMap({
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             />
             <ClickHandler onClick={handleMapClick} />
+            <MapViewUpdater center={center} zoom={defaultZoom} />
             {mode === 'polygon' && points.length >= 3 && (
               <Polygon
                 positions={points}

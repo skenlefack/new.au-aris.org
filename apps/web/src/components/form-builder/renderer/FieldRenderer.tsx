@@ -374,8 +374,10 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
             defaultMode={(field.properties.defaultMode as 'point' | 'line' | 'polygon') || 'point'}
             countryCode={(() => {
               if (!formValues) return undefined;
-              // Extract country code from any admin-location field in the form
-              for (const v of Object.values(formValues)) {
+              // Extract country code from the first admin-location field
+              // Prefer origin_location, then admin_location, then any
+              for (const key of ['origin_location', 'admin_location', ...Object.keys(formValues)]) {
+                const v = formValues[key];
                 if (v && typeof v === 'object' && 'level_0' in (v as Record<string, unknown>)) {
                   return (v as Record<string, string>).level_0;
                 }

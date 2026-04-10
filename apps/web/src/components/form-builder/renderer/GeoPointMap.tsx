@@ -9,6 +9,7 @@ const MapContainer = dynamic(() => import('react-leaflet').then((m) => m.MapCont
 const TileLayer = dynamic(() => import('react-leaflet').then((m) => m.TileLayer), { ssr: false });
 const Marker = dynamic(() => import('react-leaflet').then((m) => m.Marker), { ssr: false });
 const ClickHandler = dynamic(() => import('./MapClickHandler').then((m) => m.MapClickHandler), { ssr: false });
+const MapViewUpdater = dynamic(() => import('./MapClickHandler').then((m) => m.MapViewUpdater), { ssr: false });
 
 interface GeoPointMapProps {
   value: { lat: number; lng: number } | null;
@@ -143,6 +144,7 @@ export function GeoPointMap({
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             />
             <ClickHandler onClick={handleMapClick} />
+            <MapViewUpdater center={center} zoom={zoom} />
             {value && (
               <Marker position={[value.lat, value.lng]} />
             )}
