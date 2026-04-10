@@ -11,6 +11,7 @@ import {
   Globe,
   Loader2,
   Settings,
+  Building2,
 } from 'lucide-react';
 import { useCreateCollectionCampaign } from '@/lib/api/workflow-hooks';
 import {
@@ -18,57 +19,44 @@ import {
   type FormTemplateListItem,
 } from '@/lib/api/form-builder-hooks';
 import { COUNTRIES, type CountryConfig } from '@/data/countries-config';
+import { getAllRecs, type RecConfig } from '@/data/recs-config';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { MultiSearchCombobox } from '@/components/ui/MultiSearchCombobox';
+import { MultilingualInput } from '@/components/settings/MultilingualInput';
+import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea';
 import { useTranslations } from '@/lib/i18n/translations';
 
 const FREQUENCY_OPTIONS = [
   { value: 'one_time', tKey: 'oneTime' },
+  { value: 'daily', tKey: 'daily' },
+  { value: 'weekly', tKey: 'weekly' },
   { value: 'monthly', tKey: 'monthly' },
   { value: 'quarterly', tKey: 'quarterly' },
+  { value: 'biannual', tKey: 'biannual' },
+  { value: 'annual', tKey: 'annual' },
 ];
 
 const countryList: CountryConfig[] = Object.values(COUNTRIES).sort((a, b) =>
   a.name.localeCompare(b.name),
 );
 
-// ─── Fallback templates when form-builder service is offline ──────────────
-// Matches exactly the 21 seeded templates from services/form-builder/src/seed.ts
-const SEED_TEMPLATES: FormTemplateListItem[] = [
-  // Animal Health (6) — deterministic UUIDs for fallback templates
-  { id: 'a0000001-0001-4000-8000-000000000001', tenantId: '', name: 'AU-IBAR Monthly Animal Health Report', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'a0000001-0002-4000-8000-000000000002', tenantId: '', name: 'Emergency Disease Reporting', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'a0000001-0003-4000-8000-000000000003', tenantId: '', name: 'Mass Vaccination', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'a0000001-0004-4000-8000-000000000004', tenantId: '', name: 'Meat Inspection', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'a0000001-0005-4000-8000-000000000005', tenantId: '', name: 'Monthly Abattoir Report', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'a0000001-0006-4000-8000-000000000006', tenantId: '', name: 'Monthly Vaccination Report', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  // Livestock (7)
-  { id: 'b0000002-0001-4000-8000-000000000007', tenantId: '', name: 'Animal Breeding and Genomics', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'b0000002-0002-4000-8000-000000000008', tenantId: '', name: 'Animal Population (Genetic Diversity)', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'b0000002-0003-4000-8000-000000000009', tenantId: '', name: 'Animal Population and Composition', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'b0000002-0004-4000-8000-00000000000a', tenantId: '', name: 'Breeder Association', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'b0000002-0005-4000-8000-00000000000b', tenantId: '', name: 'Disaster and Risk Management', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'b0000002-0006-4000-8000-00000000000c', tenantId: '', name: 'Legislation', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'b0000002-0007-4000-8000-00000000000d', tenantId: '', name: 'National Animal Genetic Resources Centre', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  // Trade & SPS (8)
-  { id: 'c0000003-0001-4000-8000-00000000000e', tenantId: '', name: 'Cost of Production', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'c0000003-0002-4000-8000-00000000000f', tenantId: '', name: 'Import and Export', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'c0000003-0003-4000-8000-000000000010', tenantId: '', name: 'Market Demand', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'c0000003-0004-4000-8000-000000000011', tenantId: '', name: 'Market Price', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'c0000003-0005-4000-8000-000000000012', tenantId: '', name: 'Market Requirement and Location', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'c0000003-0006-4000-8000-000000000013', tenantId: '', name: 'Quality Standards (Inputs & Services)', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'c0000003-0007-4000-8000-000000000014', tenantId: '', name: 'Quality Standards (Poultry/Hatchery)', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'c0000003-0008-4000-8000-000000000015', tenantId: '', name: 'Volume and Availability of Transport', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-];
+const allRecs = getAllRecs();
 
 export default function NewCampaignPage() {
   const router = useRouter();
   const t = useTranslations('collecte');
   const createCampaign = useCreateCollectionCampaign();
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [domain, setDomain] = useState('');
+  // Multilingual name & description
+  const [name, setName] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
+  const [description, setDescription] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
+
+  // Multi-domain selection
+  const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
+
+  // RECs selection
+  const [selectedRecs, setSelectedRecs] = useState<RecConfig[]>([]);
+
   const [selectedTemplates, setSelectedTemplates] = useState<FormTemplateListItem[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<CountryConfig[]>([]);
   const [startDate, setStartDate] = useState('');
@@ -80,41 +68,54 @@ export default function NewCampaignPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Fetch all templates (no server-side status/domain filter — filter client-side)
+  // Fetch all templates
   const { data: templatesData, isLoading: templatesLoading } = useFormBuilderTemplates({
     page: 1,
     limit: 100,
   });
 
-  // Show only PUBLISHED templates, filtered by domain when selected
-  // Falls back to SEED_TEMPLATES when form-builder service is offline
+  // Filter templates by selected domains
   const publishedTemplates = useMemo(() => {
     const apiData = templatesData?.data ?? [];
-    const all = apiData.length > 0 ? apiData : SEED_TEMPLATES;
-    return all.filter((tmpl) => {
+    return apiData.filter((tmpl) => {
       if (tmpl.status !== 'PUBLISHED') return false;
-      if (domain && tmpl.domain !== domain) return false;
+      if (selectedDomains.length > 0 && !selectedDomains.includes(tmpl.domain)) return false;
       return true;
     });
-  }, [templatesData, domain]);
+  }, [templatesData, selectedDomains]);
 
-  // When domain changes, clear templates that no longer match
-  const handleDomainChange = (newDomain: string) => {
-    setDomain(newDomain);
-    if (newDomain) {
-      setSelectedTemplates((prev) => prev.filter((tmpl) => tmpl.domain === newDomain));
+  // When domains change, clear templates that no longer match
+  const handleDomainsChange = (codes: string[]) => {
+    setSelectedDomains(codes);
+    if (codes.length > 0) {
+      setSelectedTemplates((prev) => prev.filter((tmpl) => codes.includes(tmpl.domain)));
+    }
+  };
+
+  // When RECs change, auto-select corresponding countries
+  const handleRecsChange = (recs: RecConfig[]) => {
+    setSelectedRecs(recs);
+    if (recs.length > 0) {
+      const recCountryCodes = new Set(recs.flatMap((r) => r.countryCodes));
+      const recCountries = countryList.filter((c) => recCountryCodes.has(c.code));
+      // Merge with manually selected countries
+      const existing = new Set(selectedCountries.map((c) => c.code));
+      const toAdd = recCountries.filter((c) => !existing.has(c.code));
+      if (toAdd.length > 0) {
+        setSelectedCountries((prev) => [...prev, ...toAdd]);
+      }
     }
   };
 
   function validate(): boolean {
     const e: Record<string, string> = {};
-    if (!name.trim()) e.name = 'Campaign name is required';
-    if (!domain) e.domain = 'Domain is required';
-    if (selectedTemplates.length === 0) e.templates = 'Select at least one form template';
-    if (selectedCountries.length === 0) e.countries = 'Select at least one country';
-    if (!startDate) e.startDate = 'Start date is required';
-    if (!endDate) e.endDate = 'End date is required';
-    if (startDate && endDate && startDate > endDate) e.endDate = 'End date must be after start date';
+    if (!(name.en?.trim() || name.fr?.trim())) e.name = t('campaignNameRequired');
+    if (selectedDomains.length === 0) e.domains = t('domainRequired');
+    if (selectedTemplates.length === 0) e.templates = t('templateRequired');
+    if (selectedCountries.length === 0) e.countries = t('countriesRequired');
+    if (!startDate) e.startDate = t('startDateRequired');
+    if (!endDate) e.endDate = t('endDateRequired');
+    if (startDate && endDate && startDate > endDate) e.endDate = t('endDateAfterStart');
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -123,22 +124,27 @@ export default function NewCampaignPage() {
     ev.preventDefault();
     if (!validate()) return;
 
-    // Generate a short campaign code from domain + date
-    const code = `${domain.replace(/[^a-zA-Z]/g, '_').toUpperCase().slice(0, 10)}_${startDate.replace(/-/g, '')}`;
+    const primaryDomain = selectedDomains[0];
+    const code = `${primaryDomain.replace(/[^a-zA-Z]/g, '_').toUpperCase().slice(0, 10)}_${startDate.replace(/-/g, '')}`;
 
     const payload = {
       code,
-      name: { en: name.trim() },
-      description: description.trim() ? { en: description.trim() } : undefined,
-      domain,
+      name,
+      description: Object.values(description).some((v) => v.trim()) ? description : undefined,
+      domain: primaryDomain,
       formTemplateId: selectedTemplates[0]?.id ?? '',
       startDate,
       endDate,
       targetCountries: selectedCountries.map((c: CountryConfig) => c.code),
+      targetRecIds: selectedRecs.length > 0 ? selectedRecs.map((r) => r.tenantId) : undefined,
       targetSubmissions: targetSubmissions ? parseInt(targetSubmissions, 10) : undefined,
       frequency,
       sendReminders,
-      reminderDaysBefore: sendReminders ? parseInt(reminderDays, 10) : undefined,
+      reminderDaysBefore: sendReminders ? parseInt(reminderDays, 10) || 3 : undefined,
+      metadata: {
+        domains: selectedDomains,
+        recCodes: selectedRecs.map((r) => r.code),
+      },
     };
 
     try {
@@ -148,10 +154,6 @@ export default function NewCampaignPage() {
       // Error handled by React Query
     }
   }
-
-  const domainLabel = domain
-    ? DOMAIN_OPTIONS.find((d) => d.value === domain)?.label ?? domain
-    : null;
 
   return (
     <div className="space-y-6 pb-12">
@@ -182,50 +184,60 @@ export default function NewCampaignPage() {
               {t('campaignInformation')}
             </h2>
 
+            {/* Multilingual name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('campaignNameLabel')} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
+              <MultilingualInput
+                label={t('campaignNameLabel')}
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={setName}
+                required
                 placeholder={t('campaignNamePlaceholder')}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               />
               {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
             </div>
 
+            {/* Multilingual description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('description')}
-              </label>
-              <textarea
+              <MultilingualTextarea
+                label={t('description')}
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
+                onChange={setDescription}
                 placeholder={t('descriptionPlaceholder')}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                rows={2}
               />
             </div>
 
+            {/* Multi-domain selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('domain')} <span className="text-red-500">*</span>
+                {t('domains')} <span className="text-red-500">*</span>
               </label>
-              <select
-                value={domain}
-                onChange={(e) => handleDomainChange(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              >
-                <option value="">{t('selectDomain')}</option>
-                {DOMAIN_OPTIONS.map((d) => (
-                  <option key={d.value} value={d.value}>
-                    {d.label}
-                  </option>
-                ))}
-              </select>
-              {errors.domain && <p className="mt-1 text-xs text-red-600">{errors.domain}</p>}
+              <p className="mb-1.5 text-xs text-gray-400">{t('selectDomainsDesc')}</p>
+              <div className="flex flex-wrap gap-2">
+                {DOMAIN_OPTIONS.map((d) => {
+                  const isSelected = selectedDomains.includes(d.value);
+                  return (
+                    <button
+                      key={d.value}
+                      type="button"
+                      onClick={() => {
+                        const next = isSelected
+                          ? selectedDomains.filter((v) => v !== d.value)
+                          : [...selectedDomains, d.value];
+                        handleDomainsChange(next);
+                      }}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        isSelected
+                          ? 'border-aris-primary-500 bg-aris-primary-50 text-aris-primary-700 dark:border-aris-primary-400 dark:bg-aris-primary-900/20 dark:text-aris-primary-400'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      {d.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {errors.domains && <p className="mt-1 text-xs text-red-600">{errors.domains}</p>}
             </div>
           </div>
 
@@ -307,12 +319,8 @@ export default function NewCampaignPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('sendReminders')}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {t('notifyAgents')}
-                  </p>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('sendReminders')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('notifyAgents')}</p>
                 </div>
                 <button
                   type="button"
@@ -323,19 +331,13 @@ export default function NewCampaignPage() {
                     sendReminders ? 'bg-aris-primary-600' : 'bg-gray-200 dark:bg-gray-700'
                   }`}
                 >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                      sendReminders ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
+                  <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${sendReminders ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
               </div>
 
               {sendReminders && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('reminderDays')}
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('reminderDays')}</label>
                   <input
                     type="number"
                     min="1"
@@ -350,15 +352,15 @@ export default function NewCampaignPage() {
           </div>
         </div>
 
-        {/* ROW 2 — Full width: Form Templates */}
+        {/* ROW 2 — Form Templates */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <FileText className="h-4 w-4 text-gray-400" />
             {t('formTemplates')} <span className="text-red-500">*</span>
           </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            {domainLabel
-              ? t('showingTemplatesFor', { domain: domainLabel })
+            {selectedDomains.length > 0
+              ? t('showingTemplatesForDomains', { count: String(publishedTemplates.length) })
               : t('selectDomainToFilter')}
           </p>
           <MultiSearchCombobox<FormTemplateListItem>
@@ -371,65 +373,65 @@ export default function NewCampaignPage() {
             placeholder={t('searchFormTemplates')}
             allLabel={t('allTemplates')}
             loading={templatesLoading}
-            renderItem={(t) => (
+            renderItem={(tmpl) => (
               <span className="flex items-center gap-2">
-                <span>{t.name}</span>
+                <span>{tmpl.name}</span>
                 <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-                  {DOMAIN_OPTIONS.find((d) => d.value === t.domain)?.label ?? t.domain}
+                  {DOMAIN_OPTIONS.find((d) => d.value === tmpl.domain)?.label ?? tmpl.domain}
                 </span>
-                <span className="text-[10px] text-gray-400">v{t.version}</span>
               </span>
             )}
-            renderChip={(t) => (
+            renderChip={(tmpl) => (
               <span className="flex items-center gap-1">
-                {t.name}
+                {tmpl.name}
                 <span className="rounded bg-aris-primary-100 px-1 text-[9px] text-aris-primary-600 dark:bg-aris-primary-800/50 dark:text-aris-primary-300">
-                  {DOMAIN_OPTIONS.find((d) => d.value === t.domain)?.label ?? t.domain}
+                  {DOMAIN_OPTIONS.find((d) => d.value === tmpl.domain)?.label ?? tmpl.domain}
                 </span>
               </span>
             )}
           />
           {errors.templates && <p className="text-xs text-red-600">{errors.templates}</p>}
-
-          {/* Selected templates detail list */}
-          {selectedTemplates.length > 0 && (
-            <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                {selectedTemplates.length} {selectedTemplates.length > 1 ? t('templates') : t('template')}
-              </p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {selectedTemplates.map((tmpl) => (
-                  <div
-                    key={tmpl.id}
-                    className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                        {tmpl.name}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {DOMAIN_OPTIONS.find((d) => d.value === tmpl.domain)?.label ?? tmpl.domain} &middot; v{tmpl.version}
-                      </p>
-                    </div>
-                    <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                      {t('published')}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* ROW 3 — Full width: Target Countries */}
+        {/* ROW 3 — RECs */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-gray-400" />
+            {t('targetRecs')}
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('selectRecsDesc')}</p>
+          <MultiSearchCombobox<RecConfig>
+            value={selectedRecs}
+            onChange={handleRecsChange}
+            items={allRecs}
+            labelKey={(r) => r.name}
+            idKey={(r) => r.code}
+            filterKey={(r) => `${r.name} ${r.nameFr} ${r.code}`}
+            placeholder={t('searchRecs')}
+            allLabel={t('allRecs')}
+            renderItem={(r) => (
+              <span className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: r.color }} />
+                <span>{r.name}</span>
+                <span className="text-gray-400 text-[10px]">{r.memberCount} {t('countries')}</span>
+              </span>
+            )}
+            renderChip={(r) => (
+              <span className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: r.color }} />
+                {r.name}
+              </span>
+            )}
+          />
+        </div>
+
+        {/* ROW 4 — Target Countries */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <Globe className="h-4 w-4 text-gray-400" />
             {t('targetCountries')} <span className="text-red-500">*</span>
           </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {t('selectTargetCountries')}
-          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('selectTargetCountries')}</p>
           <MultiSearchCombobox<CountryConfig>
             value={selectedCountries}
             onChange={setSelectedCountries}
@@ -447,15 +449,13 @@ export default function NewCampaignPage() {
               </span>
             )}
             renderChip={(c) => (
-              <span className="flex items-center gap-1">
-                {c.flag} {c.name}
-              </span>
+              <span className="flex items-center gap-1">{c.flag} {c.name}</span>
             )}
           />
           {errors.countries && <p className="text-xs text-red-600">{errors.countries}</p>}
         </div>
 
-        {/* Footer — full width */}
+        {/* Footer */}
         <div className="flex items-center justify-end gap-3 pt-2">
           <Link
             href="/collecte"
@@ -474,9 +474,7 @@ export default function NewCampaignPage() {
         </div>
 
         {createCampaign.isError && (
-          <p className="text-sm text-red-600">
-            {t('failedToCreateCampaign')}
-          </p>
+          <p className="text-sm text-red-600">{t('failedToCreateCampaign')}</p>
         )}
       </form>
     </div>
