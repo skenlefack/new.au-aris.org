@@ -24,6 +24,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { CampaignDataDashboard } from '@/components/domain/CampaignDataDashboard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 import { useCollectionCampaigns } from '@/lib/api/workflow-hooks';
+import { useFormSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
 const LIVESTOCK_ALERT_TEMPLATE_ID = '28f55819-cee4-429a-afa5-505e9966d72b';
@@ -109,48 +110,8 @@ export default function LivestockPage() {
         </div>
       )}
 
-      {/* ── Alert Form (form-builder) ────────────────────── */}
-      {sections.alertForm && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('alertForms')}</h3>
-          </div>
-          <p className="mt-1 text-xs text-gray-400">{t('alertFormsDesc')}</p>
-          <div className="mt-4 space-y-2">
-            <Link
-              href="/collecte/forms?domain=livestock&formType=EVENT_ALERT"
-              className="flex items-center justify-between rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-                  <FileText className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Form Builder</p>
-                  <p className="text-[10px] text-gray-400">Create or edit alert form templates</p>
-                </div>
-              </div>
-              <ArrowRight className="h-4 w-4 text-gray-300" />
-            </Link>
-            <Link
-              href={`/collecte/forms/${LIVESTOCK_ALERT_TEMPLATE_ID}/fill?returnTo=/livestock`}
-              className="flex items-center justify-between rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
-                  <Plus className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('reportEvent')}</p>
-                  <p className="text-[10px] text-gray-400">{t('reportEventDesc')}</p>
-                </div>
-              </div>
-              <ArrowRight className="h-4 w-4 text-gray-300" />
-            </Link>
-          </div>
-        </div>
-      )}
+      {/* ── Recent Events ────────────────────────────────── */}
+      {sections.alertForm && <RecentEventsCard templateId={LIVESTOCK_ALERT_TEMPLATE_ID} t={t} />}
     </div>
   );
 }
@@ -233,6 +194,92 @@ function CampaignCarousel({ campaigns, isLoading, t }: { campaigns: any[]; isLoa
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ── Recent Events Card ──────────────────────────────── */
+
+const SEVERITY_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  low: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400', dot: 'bg-green-500' },
+  medium: { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-400', dot: 'bg-yellow-500' },
+  high: { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-400', dot: 'bg-orange-500' },
+  critical: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400', dot: 'bg-red-500' },
+};
+
+function RecentEventsCard({ templateId, t }: { templateId: string; t: (key: string) => string }) {
+  const { data, isLoading } = useFormSubmissions(templateId, { page: 1, limit: 6, status: 'SUBMITTED' });
+  const submissions: any[] = data?.data ?? [];
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-orange-500" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('recentEvents')}</h3>
+        </div>
+        <Link
+          href={`/collecte/forms/${templateId}/fill?returnTo=/livestock`}
+          className="flex items-center gap-1 text-xs font-medium text-orange-600 hover:text-orange-700 dark:text-orange-400"
+        >
+          <Plus className="h-3 w-3" /> {t('reportEvent')}
+        </Link>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
+        </div>
+      ) : submissions.length === 0 ? (
+        <div className="flex flex-col items-center py-8 text-center">
+          <AlertTriangle className="h-10 w-10 text-gray-200 dark:text-gray-600" />
+          <p className="mt-3 text-sm text-gray-400">{t('noRecentEvents')}</p>
+          <Link
+            href={`/collecte/forms/${templateId}/fill?returnTo=/livestock`}
+            className="mt-3 flex items-center gap-1 text-sm font-medium text-orange-600 hover:text-orange-700"
+          >
+            <Plus className="h-4 w-4" /> {t('reportEvent')}
+          </Link>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {submissions.map((sub: any) => {
+            const d = sub.data ?? {};
+            const severity = SEVERITY_COLORS[d.severity] ?? SEVERITY_COLORS.low;
+            const eventType = d.event_type?.replace(/_/g, ' ') ?? '';
+            return (
+              <div
+                key={sub.id}
+                className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800"
+              >
+                <div className="absolute inset-x-0 top-0 h-1 bg-orange-500" />
+                <div className="flex items-center gap-2">
+                  <span className={cn('h-2 w-2 rounded-full', severity.dot)} />
+                  <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize', severity.bg, severity.text)}>
+                    {d.severity ?? '—'}
+                  </span>
+                  {eventType && (
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium capitalize text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                      {eventType}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-2 text-sm font-medium text-gray-900 line-clamp-2 dark:text-white">
+                  {d.description?.slice(0, 80) ?? '—'}{(d.description?.length ?? 0) > 80 ? '...' : ''}
+                </p>
+                <div className="mt-2 flex items-center gap-3 text-xs text-gray-400">
+                  {d.date_event && (
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(d.date_event).toLocaleDateString()}</span>
+                  )}
+                  {(d.animals_affected ?? 0) > 0 && (
+                    <span>{d.animals_affected} affected</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
