@@ -1,412 +1,250 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import {
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  Activity,
+  AlertTriangle,
+  CheckCircle2,
+  TrendingUp,
+  TrendingDown,
+  MapPin,
+  Clock,
+  FileText,
+  ArrowRight,
+  Fish,
   Anchor,
   Ship,
   Warehouse,
-  TrendingUp,
-  TrendingDown,
-  ArrowRight,
-  Fish,
-  Activity,
   Download,
   Upload,
   ArrowUpDown,
-  AlertTriangle,
-  FileText,
+  ExternalLink,
 } from 'lucide-react';
-import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { CampaignDataDashboard } from '@/components/domain/CampaignDataDashboard';
+import { useDomainConfig } from '@/lib/hooks/use-domain-config';
+import { useCollectionCampaigns } from '@/lib/api/workflow-hooks';
+import { useFormSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-const CaptureTrendsChart = dynamic(() => import('./CaptureTrendsChart'), { ssr: false });
-import {
-  useFisheriesKpis,
-  useCaptureTrends,
-  type FisheriesKpis,
-  type CaptureTrend,
-} from '@/lib/api/hooks';
-import { Skeleton } from '@/components/ui/Skeleton';
-import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
-import { DomainMapSection } from '@/components/domain/DomainMapSection';
-import { DomainStatisticsSection } from '@/components/domain/DomainStatisticsSection';
-import { DomainCurveSection } from '@/components/domain/DomainCurveSection';
-import { useDomainConfig } from '@/lib/hooks/use-domain-config';
-
-const PLACEHOLDER_KPIS: FisheriesKpis['data'] = {
-  totalCaptures: 12_450_000,
-  capturesTrend: 3.2,
-  registeredVessels: 8_740,
-  activeFarms: 1_260,
-  aquacultureProduction: 2_870_000,
-  aquacultureTrend: 7.8,
-  licensesExpiringSoon: 312,
-  countriesReporting: 38,
-};
-
-const PLACEHOLDER_TRENDS: CaptureTrend[] = [
-  { year: 2021, marine: 5_200_000, inland: 3_100_000, aquaculture: 1_800_000 },
-  { year: 2022, marine: 5_400_000, inland: 3_250_000, aquaculture: 2_050_000 },
-  { year: 2023, marine: 5_350_000, inland: 3_300_000, aquaculture: 2_300_000 },
-  { year: 2024, marine: 5_500_000, inland: 3_400_000, aquaculture: 2_520_000 },
-  { year: 2025, marine: 5_600_000, inland: 3_450_000, aquaculture: 2_700_000 },
-  { year: 2026, marine: 5_750_000, inland: 3_500_000, aquaculture: 2_870_000 },
-];
+const FISHERIES_ALERT_TEMPLATE_ID = '80a3b3c9-0b2c-47c6-adb7-55a40bd82668';
 
 export default function FisheriesPage() {
   const t = useTranslations('fisheries');
-  const { data: kpiData, isLoading: kpiLoading } = useFisheriesKpis();
-  const { data: trendData, isLoading: trendLoading } = useCaptureTrends();
   const { sections } = useDomainConfig('fisheries');
 
-  const kpis = { ...PLACEHOLDER_KPIS, ...kpiData?.data };
-  const trends = trendData?.data?.length ? trendData.data : PLACEHOLDER_TRENDS;
+  const campaignsQuery = useCollectionCampaigns({ domain: 'fisheries', limit: 20 });
+  const campaigns: any[] = Array.isArray(campaignsQuery.data?.data) ? campaignsQuery.data.data : [];
+  const activeCampaigns = campaigns.filter((c: any) => c.status === 'ACTIVE');
+
+  const totalSubmissions = campaigns.reduce((s: number, c: any) => s + (c.totalSubmissions ?? 0), 0);
+  const targetSubmissions = campaigns.reduce((s: number, c: any) => s + (c.targetSubmissions ?? 0), 0);
+  const completionRate = targetSubmissions > 0 ? Math.round((totalSubmissions / targetSubmissions) * 100) : 0;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {t('title')}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {t('subtitle')}
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('subtitle')}</p>
         </div>
+        <Link
+          href={`/collecte/forms/${FISHERIES_ALERT_TEMPLATE_ID}/fill?returnTo=/fisheries`}
+          className="flex items-center gap-2 rounded-lg bg-cyan-700 px-3 py-2 text-sm font-semibold text-white hover:bg-cyan-800"
+        >
+          <Plus className="h-4 w-4" /> {t('reportIssue')}
+        </Link>
       </div>
 
-      {/* KPI cards */}
-      {sections.kpis && (kpiLoading ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="rounded-card border border-gray-200 bg-white p-4">
-              <Skeleton className="h-3 w-24" />
-              <Skeleton className="mt-3 h-8 w-16" />
-              <Skeleton className="mt-3 h-4 w-32" />
-            </div>
+      {/* ── KPIs ─────────────────────────────────────────── */}
+      {sections.kpis && (
+        campaignsQuery.isLoading ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <KpiCard label={t('activeCampaigns')} value={activeCampaigns.length} icon={<Activity className="h-5 w-5" />} color="#00838F" />
+            <KpiCard label={t('totalSubmissions')} value={totalSubmissions} icon={<CheckCircle2 className="h-5 w-5" />} color="#2E7D32" />
+            <KpiCard label={t('completionRate')} value={`${completionRate}%`} icon={<TrendingUp className="h-5 w-5" />} color="#1565C0" />
+            <KpiCard label={t('totalCampaigns')} value={campaigns.length} icon={<Fish className="h-5 w-5" />} color="#E65100" />
+          </div>
+        )
+      )}
+
+      {/* ── Campaign Carousel ────────────────────────────── */}
+      {sections.chart && <CampaignCarousel campaigns={campaigns} isLoading={campaignsQuery.isLoading} t={t} />}
+
+      {/* ── Campaign Data Dashboard (Map + Statistics + Curve) ── */}
+      {(sections.map || sections.statistics || sections.curve) && (
+        <CampaignDataDashboard domain="fisheries" showMap={sections.map} showStats={sections.statistics} showCurve={sections.curve} />
+      )}
+
+      {/* ── Quick Links ──────────────────────────────────── */}
+      {sections.quickLinks && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {[
+            { href: '/fisheries/captures', label: t('captures'), desc: t('capturesDesc'), icon: Anchor, color: '#00838F' },
+            { href: '/fisheries/vessels', label: t('vessels'), desc: t('vesselsDesc'), icon: Ship, color: '#1565C0' },
+            { href: '/fisheries/aquaculture', label: t('aquaculture'), desc: t('aquacultureDesc'), icon: Warehouse, color: '#2E7D32' },
+            { href: '/fisheries/efforts', label: t('efforts'), desc: t('effortsDesc'), icon: Activity, color: '#6A1B9A' },
+            { href: '/fisheries/trade', label: t('trade'), desc: t('tradeDesc'), icon: ArrowUpDown, color: '#E65100' },
+            { href: '/fisheries/export', label: t('exportData'), desc: t('exportDataDesc'), icon: Download, color: '#37474F' },
+            { href: '/fisheries/import', label: t('importData'), desc: t('importDataDesc'), icon: Upload, color: '#4E342E' },
+            { href: '/collecte/campaigns?domain=fisheries', label: t('manageCampaigns'), desc: t('manageCampaignsDesc'), icon: FileText, color: '#263238' },
+          ].map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="group flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-110" style={{ backgroundColor: `${link.color}14`, color: link.color }}>
+                <link.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-gray-700 group-hover:text-gray-900 dark:text-gray-300 dark:group-hover:text-white">{link.label}</span>
+                <p className="mt-0.5 text-xs text-gray-400">{link.desc}</p>
+              </div>
+            </Link>
           ))}
         </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="flex items-start justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                {t('totalCaptures')}
-              </p>
-              <Fish className="h-5 w-5 text-teal-600" />
-            </div>
-            <p className="mt-2 text-2xl font-bold text-gray-900">
-              {(kpis.totalCaptures / 1_000_000).toFixed(1)}M
-            </p>
-            <div className="mt-1 flex items-center gap-1 text-xs">
-              {kpis.capturesTrend >= 0 ? (
-                <TrendingUp className="h-3 w-3 text-green-600" />
-              ) : (
-                <TrendingDown className="h-3 w-3 text-red-600" />
-              )}
-              <span
-                className={cn(
-                  'font-medium',
-                  kpis.capturesTrend >= 0 ? 'text-green-600' : 'text-red-600',
-                )}
-              >
-                {kpis.capturesTrend >= 0 ? '+' : ''}
-                {kpis.capturesTrend}%
-              </span>
-              <span className="text-gray-400">vs last year</span>
-            </div>
-          </div>
-
-          <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="flex items-start justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                {t('registeredVessels')}
-              </p>
-              <Ship className="h-5 w-5 text-blue-600" />
-            </div>
-            <p className="mt-2 text-2xl font-bold text-gray-900">
-              {kpis.registeredVessels.toLocaleString()}
-            </p>
-            <p className="mt-1 text-xs text-gray-400">
-              {kpis.licensesExpiringSoon} licenses expiring soon
-            </p>
-          </div>
-
-          <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="flex items-start justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                {t('activeFarms')}
-              </p>
-              <Warehouse className="h-5 w-5 text-green-600" />
-            </div>
-            <p className="mt-2 text-2xl font-bold text-gray-900">
-              {kpis.activeFarms.toLocaleString()}
-            </p>
-            <p className="mt-1 text-xs text-gray-400">
-              {kpis.countriesReporting} countries reporting
-            </p>
-          </div>
-
-          <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="flex items-start justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                {t('aquaProduction')}
-              </p>
-              <Anchor className="h-5 w-5 text-orange-600" />
-            </div>
-            <p className="mt-2 text-2xl font-bold text-gray-900">
-              {(kpis.aquacultureProduction / 1_000_000).toFixed(1)}M
-            </p>
-            <div className="mt-1 flex items-center gap-1 text-xs">
-              {kpis.aquacultureTrend >= 0 ? (
-                <TrendingUp className="h-3 w-3 text-green-600" />
-              ) : (
-                <TrendingDown className="h-3 w-3 text-red-600" />
-              )}
-              <span
-                className={cn(
-                  'font-medium',
-                  kpis.aquacultureTrend >= 0 ? 'text-green-600' : 'text-red-600',
-                )}
-              >
-                {kpis.aquacultureTrend >= 0 ? '+' : ''}
-                {kpis.aquacultureTrend}%
-              </span>
-              <span className="text-gray-400">vs last year</span>
-            </div>
-          </div>
-
-          <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="flex items-start justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                {t('efforts')}
-              </p>
-              <Activity className="h-5 w-5 text-purple-600" />
-            </div>
-            <p className="mt-2 text-2xl font-bold text-gray-900">
-              3,420
-            </p>
-            <p className="mt-1 text-xs text-gray-400">
-              effort records logged
-            </p>
-          </div>
-
-          <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="flex items-start justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                {t('fishTrade')}
-              </p>
-              <ArrowUpDown className="h-5 w-5 text-cyan-600" />
-            </div>
-            <p className="mt-2 text-2xl font-bold text-gray-900">
-              $456.8M
-            </p>
-            <p className="mt-1 text-xs text-gray-400">
-              fish trade volume
-            </p>
-          </div>
-        </div>
-      ))}
-
-      {/* Capture trends chart */}
-      {sections.chart && <div className="rounded-card border border-gray-200 bg-white p-6">
-        <h2 className="text-sm font-semibold text-gray-900">
-          {t('capturesTrend')}
-        </h2>
-        <p className="mt-1 text-xs text-gray-400">
-          {t('trendSubtitle')}
-        </p>
-        {trendLoading ? (
-          <Skeleton className="mt-4 h-64 w-full" />
-        ) : (
-          <div className="mt-4 h-64">
-            <CaptureTrendsChart data={trends} />
-          </div>
-        )}
-      </div>}
-
-      {(sections.map || sections.statistics) && (
-        <div className={cn('grid gap-6', sections.map && sections.statistics ? 'lg:grid-cols-2' : 'grid-cols-1')}>
-          {sections.map && <DomainMapSection domain="fisheries" />}
-          {sections.statistics && <DomainStatisticsSection domain="fisheries" />}
-        </div>
       )}
-      {sections.curve && <DomainCurveSection domain="fisheries" />}
 
-      {/* Quick links to sub-pages */}
-      {sections.quickLinks && <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        <Link
-          href="/fisheries/captures"
-          className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-teal-200 hover:bg-teal-50"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-100 text-teal-700">
-              <Fish className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">{t('captures')}</p>
-              <p className="text-xs text-gray-400">
-                {t('capturesDesc')}
-              </p>
-            </div>
-          </div>
-          <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-teal-600" />
-        </Link>
+      {/* ── Recent Events ────────────────────────────────── */}
+      {sections.alertForm && <RecentEventsCard templateId={FISHERIES_ALERT_TEMPLATE_ID} t={t} />}
+    </div>
+  );
+}
 
-        <Link
-          href="/fisheries/vessels"
-          className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-blue-200 hover:bg-blue-50"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
-              <Ship className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">
-                {t('vesselRegistry')}
-              </p>
-              <p className="text-xs text-gray-400">
-                {t('vesselDesc')}
-              </p>
-            </div>
-          </div>
-          <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-blue-600" />
-        </Link>
+/* ── KPI Card ────────────────────────────────────────── */
 
-        <Link
-          href="/fisheries/aquaculture"
-          className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-orange-200 hover:bg-orange-50"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 text-orange-700">
-              <Warehouse className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">
-                {t('aquaFarms')}
-              </p>
-              <p className="text-xs text-gray-400">
-                {t('aquaDesc')}
-              </p>
-            </div>
-          </div>
-          <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-orange-600" />
-        </Link>
+function KpiCard({ label, value, icon, color }: { label: string; value: number | string; icon: React.ReactNode; color: string }) {
+  const formatted = typeof value === 'number' ? (value >= 1000 ? value.toLocaleString() : String(value)) : value;
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800" style={{ borderTop: `3px solid ${color}` }}>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">{label}</p>
+          <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{formatted}</p>
+        </div>
+        <span className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}15`, color }}>{icon}</span>
+      </div>
+    </div>
+  );
+}
 
-        <Link
-          href="/fisheries/efforts"
-          className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-purple-200 hover:bg-purple-50"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 text-purple-700">
-              <Activity className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">
-                {t('efforts')}
-              </p>
-              <p className="text-xs text-gray-400">
-                {t('effortsDesc')}
-              </p>
-            </div>
-          </div>
-          <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-purple-600" />
-        </Link>
+/* ── Campaign Carousel ───────────────────────────────── */
 
-        <Link
-          href="/fisheries/trade"
-          className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-cyan-200 hover:bg-cyan-50"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700">
-              <ArrowUpDown className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">
-                {t('fishTrade')}
-              </p>
-              <p className="text-xs text-gray-400">
-                {t('fishTradeDesc')}
-              </p>
-            </div>
-          </div>
-          <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-cyan-600" />
-        </Link>
+const CAMPAIGN_COLORS = ['#00838F', '#1565C0', '#2E7D32', '#E65100', '#6A1B9A', '#C62828'];
 
-        <Link
-          href="/fisheries/export"
-          className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-emerald-200 hover:bg-emerald-50"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
-              <Download className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">
-                {t('export')}
-              </p>
-              <p className="text-xs text-gray-400">
-                {t('exportDesc')}
-              </p>
-            </div>
-          </div>
-          <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-emerald-600" />
-        </Link>
+function CampaignCarousel({ campaigns, isLoading, t }: { campaigns: any[]; isLoading: boolean; t: (key: string) => string }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+  const scroll = (dir: 'left' | 'right') => { scrollRef.current?.scrollBy({ left: dir === 'left' ? -320 : 320, behavior: 'smooth' }); setTimeout(updateScrollState, 350); };
+  const analyseName = (name: any) => typeof name === 'object' ? (name?.en ?? name?.fr ?? Object.values(name)[0]) : name;
 
-        <Link
-          href="/fisheries/import"
-          className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-amber-200 hover:bg-amber-50"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-              <Upload className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">
-                {t('import')}
-              </p>
-              <p className="text-xs text-gray-400">
-                {t('importDesc')}
-              </p>
-            </div>
-          </div>
-          <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-amber-600" />
-        </Link>
-      </div>}
+  if (isLoading) return <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"><Skeleton className="mb-4 h-6 w-48" /><div className="flex gap-4">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-44 w-72 shrink-0 rounded-xl" />)}</div></div>;
+  if (campaigns.length === 0) return <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"><h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">{t('campaignOverview')}</h3><p className="py-8 text-center text-sm text-gray-400">{t('noCampaignData')}</p></div>;
 
-      {/* Campaigns & Alert */}
-      {(sections.campaigns || sections.alertForm) && (
-        <div className={cn('grid gap-6', sections.campaigns && sections.alertForm ? 'lg:grid-cols-2' : 'grid-cols-1')}>
-          {sections.campaigns && <DomainCampaignsSection domain="fisheries" />}
-          {sections.alertForm && (
-            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Fisheries Alerts</h3>
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+      <div className="mb-5 flex items-center justify-between">
+        <div><h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('campaignOverview')}</h3><p className="mt-0.5 text-xs text-gray-400">{campaigns.length} {t('activeCampaigns').toLowerCase()}</p></div>
+        <div className="flex items-center gap-1">
+          <button onClick={() => scroll('left')} disabled={!canScrollLeft} className="rounded-full border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:border-gray-700"><ChevronLeft className="h-4 w-4" /></button>
+          <button onClick={() => scroll('right')} disabled={!canScrollRight} className="rounded-full border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:border-gray-700"><ChevronRight className="h-4 w-4" /></button>
+        </div>
+      </div>
+      <div ref={scrollRef} onScroll={updateScrollState} className="scrollbar-hide -mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-2">
+        {campaigns.map((c: any, idx: number) => {
+          const progress = c.targetSubmissions > 0 ? Math.min(100, Math.round(((c.totalSubmissions ?? 0) / c.targetSubmissions) * 100)) : 0;
+          const color = CAMPAIGN_COLORS[idx % CAMPAIGN_COLORS.length];
+          return (
+            <Link key={c.id} href={`/collecte/campaigns/${c.id}`} className="group relative w-72 shrink-0 snap-start overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg dark:border-gray-700 dark:from-gray-800 dark:to-gray-800/80">
+              <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: color }} />
+              <div className="flex items-start justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ backgroundColor: color }}><Activity className="h-5 w-5" /></div>
+                <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold', c.status === 'ACTIVE' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-600')}>{c.status === 'ACTIVE' ? 'Active' : c.status}</span>
               </div>
-              <p className="mt-1 text-xs text-gray-400">Configure alert forms for fisheries events</p>
-              <div className="mt-4 space-y-2">
-                <Link
-                  href="/collecte/forms?domain=fisheries&formType=EVENT_ALERT"
-                  className="flex items-center justify-between rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-                      <FileText className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Form Builder</p>
-                      <p className="text-[10px] text-gray-400">Create or edit alert form templates</p>
-                    </div>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-gray-300" />
-                </Link>
+              <h4 className="mt-3 text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-cyan-700 dark:text-white">{analyseName(c.name)}</h4>
+              <div className="mt-3 flex items-end justify-between">
+                <div><p className="text-2xl font-bold text-gray-900 dark:text-white">{(c.totalSubmissions ?? 0).toLocaleString()}</p><p className="text-[10px] text-gray-400">{c.targetSubmissions ? `/ ${c.targetSubmissions} target` : 'submissions'}</p></div>
+                <div className="text-right"><p className="text-lg font-bold" style={{ color }}>{progress}%</p><p className="text-[10px] text-gray-400">complete</p></div>
               </div>
-            </div>
-          )}
+              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"><div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, backgroundColor: color }} /></div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Recent Events Card ──────────────────────────────── */
+
+const SEVERITY_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  low: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400', dot: 'bg-green-500' },
+  medium: { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-400', dot: 'bg-yellow-500' },
+  high: { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-400', dot: 'bg-orange-500' },
+  critical: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400', dot: 'bg-red-500' },
+};
+
+function RecentEventsCard({ templateId, t }: { templateId: string; t: (key: string) => string }) {
+  const { data, isLoading } = useFormSubmissions(templateId, { page: 1, limit: 6, status: 'SUBMITTED' });
+  const submissions: any[] = data?.data ?? [];
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-cyan-600" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('recentEvents')}</h3>
+        </div>
+        <Link href={`/collecte/forms/${templateId}/fill?returnTo=/fisheries`} className="flex items-center gap-1 text-xs font-medium text-cyan-600 hover:text-cyan-700"><Plus className="h-3 w-3" /> {t('reportIssue')}</Link>
+      </div>
+      {isLoading ? (
+        <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}</div>
+      ) : submissions.length === 0 ? (
+        <div className="flex flex-col items-center py-8 text-center">
+          <Fish className="h-10 w-10 text-gray-200 dark:text-gray-600" />
+          <p className="mt-3 text-sm text-gray-400">{t('noRecentEvents')}</p>
+          <Link href={`/collecte/forms/${templateId}/fill?returnTo=/fisheries`} className="mt-3 flex items-center gap-1 text-sm font-medium text-cyan-600 hover:text-cyan-700"><Plus className="h-4 w-4" /> {t('reportIssue')}</Link>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {submissions.map((sub: any) => {
+            const d = sub.data ?? {};
+            const severity = SEVERITY_COLORS[d.severity] ?? SEVERITY_COLORS.low;
+            const eventType = d.event_type?.replace(/_/g, ' ') ?? '';
+            return (
+              <div key={sub.id} className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                <div className="absolute inset-x-0 top-0 h-1 bg-cyan-600" />
+                <div className="flex items-center gap-2">
+                  <span className={cn('h-2 w-2 rounded-full', severity.dot)} />
+                  <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize', severity.bg, severity.text)}>{d.severity ?? '—'}</span>
+                  {eventType && <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium capitalize text-gray-600 dark:bg-gray-700 dark:text-gray-400">{eventType}</span>}
+                </div>
+                <p className="mt-2 text-sm font-medium text-gray-900 line-clamp-2 dark:text-white">{d.description?.slice(0, 80) ?? '—'}{(d.description?.length ?? 0) > 80 ? '...' : ''}</p>
+                <div className="mt-2 flex items-center gap-3 text-xs text-gray-400">
+                  {d.date_event && <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(d.date_event).toLocaleDateString()}</span>}
+                  {(d.vessels_involved ?? 0) > 0 && <span>{d.vessels_involved} vessels</span>}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
