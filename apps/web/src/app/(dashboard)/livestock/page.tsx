@@ -1,320 +1,237 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import {
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  Activity,
+  AlertTriangle,
+  CheckCircle2,
   TrendingUp,
   TrendingDown,
+  MapPin,
+  Clock,
+  FileText,
+  ArrowRight,
   Globe,
   BarChart3,
   Route,
-  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import {
-  useLivestockKpis,
-  useLivestockCensus,
-  type LivestockKpis,
-  type LivestockCensus,
-} from '@/lib/api/hooks';
-import { TableSkeleton, KpiCardSkeleton } from '@/components/ui/Skeleton';
-import { QueryError } from '@/components/ui/QueryError';
-import { DomainCampaignsSection } from '@/components/domain/DomainCampaignsSection';
-import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { CampaignDataDashboard } from '@/components/domain/CampaignDataDashboard';
+import { useDomainConfig } from '@/lib/hooks/use-domain-config';
+import { useCollectionCampaigns } from '@/lib/api/workflow-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-const LIVESTOCK_ALERT_FIELDS: AlertField[] = [
-  { name: 'species', label: 'Species', type: 'text', placeholder: 'e.g. Cattle', required: true },
-  { name: 'location', label: 'Location', type: 'text', placeholder: 'e.g. Oromia, ET', required: true },
-  { name: 'issueType', label: 'Issue Type', type: 'select', required: true, options: ['Census Discrepancy', 'Movement Restriction', 'Feed Shortage', 'Market Disruption', 'Other'] },
-  { name: 'count', label: 'Estimated Count', type: 'text', placeholder: 'e.g. 1000' },
-];
-
-const STATUS_BADGE: Record<string, string> = {
-  draft: 'bg-blue-100 text-blue-700',
-  validated: 'bg-green-100 text-green-700',
-  published: 'bg-gray-100 text-gray-600',
-};
-
-const PLACEHOLDER_KPIS: LivestockKpis['data'] = {
-  totalPopulation: 456_200_000,
-  populationTrend: 3.2,
-  countriesReporting: 42,
-  speciesTracked: 18,
-  productionVolume: 12_500_000,
-  productionTrend: 5.1,
-  activeCorridors: 37,
-  corridorsTrend: -2,
-};
-
-const PLACEHOLDER_CENSUS: LivestockCensus[] = [
-  {
-    id: 'lc-1', country: 'Ethiopia', countryCode: 'ET', region: 'Oromia',
-    species: 'Cattle', year: 2025, population: 65_400_000,
-    femaleBreeding: 28_200_000, maleBreeding: 15_300_000, young: 21_900_000,
-    source: 'National Census 2025', status: 'validated',
-    createdAt: '2026-01-15T10:00:00Z', updatedAt: '2026-02-10T14:00:00Z',
-  },
-  {
-    id: 'lc-2', country: 'Nigeria', countryCode: 'NG', region: 'Kano',
-    species: 'Cattle', year: 2025, population: 20_700_000,
-    femaleBreeding: 8_900_000, maleBreeding: 4_800_000, young: 7_000_000,
-    source: 'FAOSTAT Estimate', status: 'published',
-    createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-02-05T12:00:00Z',
-  },
-  {
-    id: 'lc-3', country: 'Kenya', countryCode: 'KE', region: 'Rift Valley',
-    species: 'Sheep', year: 2025, population: 17_100_000,
-    femaleBreeding: 7_500_000, maleBreeding: 3_200_000, young: 6_400_000,
-    source: 'National Census 2025', status: 'validated',
-    createdAt: '2026-01-20T09:00:00Z', updatedAt: '2026-02-12T11:00:00Z',
-  },
-  {
-    id: 'lc-4', country: 'Tanzania', countryCode: 'TZ', region: 'Arusha',
-    species: 'Goat', year: 2025, population: 18_300_000,
-    femaleBreeding: 8_100_000, maleBreeding: 3_600_000, young: 6_600_000,
-    source: 'National Census 2025', status: 'draft',
-    createdAt: '2026-02-01T10:00:00Z', updatedAt: '2026-02-18T09:00:00Z',
-  },
-  {
-    id: 'lc-5', country: 'South Africa', countryCode: 'ZA', region: 'KwaZulu-Natal',
-    species: 'Cattle', year: 2025, population: 12_500_000,
-    femaleBreeding: 5_400_000, maleBreeding: 2_900_000, young: 4_200_000,
-    source: 'FAOSTAT Estimate', status: 'published',
-    createdAt: '2025-12-15T10:00:00Z', updatedAt: '2026-01-28T16:00:00Z',
-  },
-];
-
-function TrendIndicator({ value }: { value: number }) {
-  if (value > 0) {
-    return (
-      <span className="flex items-center gap-0.5 text-xs font-medium text-green-600">
-        <TrendingUp className="h-3 w-3" />
-        +{value}%
-      </span>
-    );
-  }
-  if (value < 0) {
-    return (
-      <span className="flex items-center gap-0.5 text-xs font-medium text-red-600">
-        <TrendingDown className="h-3 w-3" />
-        {value}%
-      </span>
-    );
-  }
-  return <span className="text-xs text-gray-400">0%</span>;
-}
+const LIVESTOCK_ALERT_TEMPLATE_ID = '28f55819-cee4-429a-afa5-505e9966d72b';
 
 export default function LivestockPage() {
   const t = useTranslations('livestock');
-  const ts = useTranslations('shared');
-  const { data: kpiData, isLoading: kpisLoading } = useLivestockKpis();
-  const {
-    data: censusData,
-    isLoading: censusLoading,
-    isError: censusError,
-    error: censusErr,
-    refetch: refetchCensus,
-  } = useLivestockCensus({ limit: 5 });
+  const { sections } = useDomainConfig('livestock-prod');
 
-  const kpis = kpiData?.data ?? PLACEHOLDER_KPIS;
-  const censusList = censusData?.data ?? PLACEHOLDER_CENSUS;
+  const campaignsQuery = useCollectionCampaigns({ domain: 'livestock', limit: 20 });
+  const campaigns: any[] = Array.isArray(campaignsQuery.data?.data) ? campaignsQuery.data.data : [];
+  const activeCampaigns = campaigns.filter((c: any) => c.status === 'ACTIVE');
+
+  const totalSubmissions = campaigns.reduce((s: number, c: any) => s + (c.totalSubmissions ?? 0), 0);
+  const targetSubmissions = campaigns.reduce((s: number, c: any) => s + (c.targetSubmissions ?? 0), 0);
+  const completionRate = targetSubmissions > 0 ? Math.round((totalSubmissions / targetSubmissions) * 100) : 0;
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {t('title')}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {t('subtitle')}
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('subtitle')}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/collecte/forms/${LIVESTOCK_ALERT_TEMPLATE_ID}/fill?returnTo=/livestock`}
+            className="flex items-center gap-2 rounded-lg bg-orange-600 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-700"
+          >
+            <Plus className="h-4 w-4" />
+            {t('reportEvent')}
+          </Link>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      {kpisLoading ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <KpiCardSkeleton key={i} />
+      {/* ── KPIs ─────────────────────────────────────────── */}
+      {sections.kpis && (
+        campaignsQuery.isLoading ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <KpiCard label={t('activeCampaigns')} value={activeCampaigns.length} icon={<Activity className="h-5 w-5" />} color="#E65100" />
+            <KpiCard label={t('totalSubmissions')} value={totalSubmissions} icon={<CheckCircle2 className="h-5 w-5" />} color="#2E7D32" />
+            <KpiCard label={t('completionRate')} value={`${completionRate}%`} icon={<TrendingUp className="h-5 w-5" />} color="#1565C0" />
+            <KpiCard label={t('activeCorridors')} value={activeCampaigns.length > 0 ? campaigns.length : 0} icon={<Route className="h-5 w-5" />} color="#6A1B9A" />
+          </div>
+        )
+      )}
+
+      {/* ── Campaign Carousel ────────────────────────────── */}
+      {sections.chart && <CampaignCarousel campaigns={campaigns} isLoading={campaignsQuery.isLoading} t={t} />}
+
+      {/* ── Campaign Data Dashboard (Map + Statistics + Curve) ── */}
+      {(sections.map || sections.statistics || sections.curve) && (
+        <CampaignDataDashboard domain="livestock" showMap={sections.map} showStats={sections.statistics} showCurve={sections.curve} />
+      )}
+
+      {/* ── Quick Links ──────────────────────────────────── */}
+      {sections.quickLinks && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {[
+            { href: '/livestock/census', label: t('censusData'), desc: t('censusDataDesc'), icon: Globe, color: '#1565C0' },
+            { href: '/livestock/production', label: t('production'), desc: t('productionDesc'), icon: BarChart3, color: '#2E7D32' },
+            { href: '/livestock/transhumance', label: t('transhumance'), desc: t('transhumanceDesc'), icon: Route, color: '#E65100' },
+            { href: '/collecte/campaigns?domain=livestock', label: t('manageCampaigns'), desc: t('manageCampaignsDesc'), icon: FileText, color: '#6A1B9A' },
+          ].map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="group flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-110" style={{ backgroundColor: `${link.color}14`, color: link.color }}>
+                <link.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-gray-700 group-hover:text-gray-900 dark:text-gray-300 dark:group-hover:text-white">{link.label}</span>
+                <p className="mt-0.5 text-xs text-gray-400">{link.desc}</p>
+              </div>
+            </Link>
           ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-card border border-gray-200 bg-white p-card shadow-sm">
-            <div className="flex items-start justify-between">
-              <p className="text-xs text-gray-400">{t('totalPopulation')}</p>
-              <Globe className="h-4 w-4 text-gray-300" />
-            </div>
-            <p className="mt-2 text-2xl font-bold text-gray-900">
-              {(kpis.totalPopulation / 1_000_000).toFixed(1)}M
-            </p>
-            <TrendIndicator value={kpis.populationTrend} />
-          </div>
-          <div className="rounded-card border border-gray-200 bg-white p-card shadow-sm">
-            <div className="flex items-start justify-between">
-              <p className="text-xs text-gray-400">{t('countriesReporting')}</p>
-              <Globe className="h-4 w-4 text-gray-300" />
-            </div>
-            <p className="mt-2 text-2xl font-bold text-gray-900">
-              {kpis.countriesReporting}
-            </p>
-            <p className="text-xs text-gray-400">
-              {kpis.speciesTracked} species tracked
-            </p>
-          </div>
-          <div className="rounded-card border border-aris-primary-200 bg-aris-primary-50 p-card shadow-sm">
-            <div className="flex items-start justify-between">
-              <p className="text-xs text-aris-primary-600">{t('productionVolume')}</p>
-              <BarChart3 className="h-4 w-4 text-aris-primary-300" />
-            </div>
-            <p className="mt-2 text-2xl font-bold text-aris-primary-700">
-              {(kpis.productionVolume / 1_000_000).toFixed(1)}M t
-            </p>
-            <TrendIndicator value={kpis.productionTrend} />
-          </div>
-          <div className="rounded-card border border-orange-200 bg-orange-50 p-card shadow-sm">
-            <div className="flex items-start justify-between">
-              <p className="text-xs text-orange-600">{t('activeCorridors')}</p>
-              <Route className="h-4 w-4 text-orange-300" />
-            </div>
-            <p className="mt-2 text-2xl font-bold text-orange-700">
-              {kpis.activeCorridors}
-            </p>
-            <TrendIndicator value={kpis.corridorsTrend} />
-          </div>
         </div>
       )}
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Link
-          href="/livestock/census"
-          className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-aris-primary-300 hover:bg-aris-primary-50"
-        >
-          <div>
-            <p className="font-semibold text-gray-900 group-hover:text-aris-primary-700">
-              {t('censusData')}
-            </p>
-            <p className="mt-1 text-xs text-gray-400">
-              {t('censusDataDesc')}
-            </p>
+      {/* ── Alert Form (form-builder) ────────────────────── */}
+      {sections.alertForm && (
+        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('alertForms')}</h3>
           </div>
-          <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-aris-primary-500" />
-        </Link>
-        <Link
-          href="/livestock/production"
-          className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-aris-primary-300 hover:bg-aris-primary-50"
-        >
-          <div>
-            <p className="font-semibold text-gray-900 group-hover:text-aris-primary-700">
-              {t('production')}
-            </p>
-            <p className="mt-1 text-xs text-gray-400">
-              {t('productionDesc')}
-            </p>
+          <p className="mt-1 text-xs text-gray-400">{t('alertFormsDesc')}</p>
+          <div className="mt-4 space-y-2">
+            <Link
+              href="/collecte/forms?domain=livestock&formType=EVENT_ALERT"
+              className="flex items-center justify-between rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                  <FileText className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Form Builder</p>
+                  <p className="text-[10px] text-gray-400">Create or edit alert form templates</p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-gray-300" />
+            </Link>
+            <Link
+              href={`/collecte/forms/${LIVESTOCK_ALERT_TEMPLATE_ID}/fill?returnTo=/livestock`}
+              className="flex items-center justify-between rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+                  <Plus className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('reportEvent')}</p>
+                  <p className="text-[10px] text-gray-400">{t('reportEventDesc')}</p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-gray-300" />
+            </Link>
           </div>
-          <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-aris-primary-500" />
-        </Link>
-        <Link
-          href="/livestock/transhumance"
-          className="group flex items-center justify-between rounded-card border border-gray-200 bg-white p-4 transition-colors hover:border-aris-primary-300 hover:bg-aris-primary-50"
-        >
-          <div>
-            <p className="font-semibold text-gray-900 group-hover:text-aris-primary-700">
-              {t('transhumance')}
-            </p>
-            <p className="mt-1 text-xs text-gray-400">
-              {t('transhumanceDesc')}
-            </p>
-          </div>
-          <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-aris-primary-500" />
-        </Link>
-      </div>
-
-      {/* Recent Census Entries */}
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-900">
-            {t('recentCensus')}
-          </h2>
-          <Link
-            href="/livestock/census"
-            className="text-xs font-medium text-aris-primary-600 hover:text-aris-primary-700"
-          >
-            {ts('viewAll')}
-          </Link>
         </div>
+      )}
+    </div>
+  );
+}
 
-        {censusLoading ? (
-          <TableSkeleton rows={5} cols={6} />
-        ) : censusError ? (
-          <QueryError
-            message={
-              censusErr instanceof Error
-                ? censusErr.message
-                : 'Failed to load census data'
-            }
-            onRetry={() => refetchCensus()}
-          />
-        ) : (
-          <div className="overflow-hidden rounded-card border border-gray-200 bg-white">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">{t('country')}</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">{t('species')}</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">{t('year')}</th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-500">{t('population')}</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">{t('source')}</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">{t('status')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {censusList.map((entry) => (
-                    <tr key={entry.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-gray-900">{entry.country}</p>
-                        <p className="text-xs text-gray-400">{entry.region}</p>
-                      </td>
-                      <td className="px-4 py-3 text-gray-700">{entry.species}</td>
-                      <td className="px-4 py-3 text-gray-700">{entry.year}</td>
-                      <td className="px-4 py-3 text-right font-medium text-gray-900">
-                        {entry.population.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-500">{entry.source}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={cn(
-                            'inline-block rounded-full px-2 py-0.5 text-xs font-medium capitalize',
-                            STATUS_BADGE[entry.status],
-                          )}
-                        >
-                          {entry.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {censusList.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
-                        {t('noDataFound')}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+/* ── KPI Card ────────────────────────────────────────── */
+
+function KpiCard({ label, value, icon, color }: { label: string; value: number | string; icon: React.ReactNode; color: string }) {
+  const formatted = typeof value === 'number' ? (value >= 1000 ? value.toLocaleString() : String(value)) : value;
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800" style={{ borderTop: `3px solid ${color}` }}>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">{label}</p>
+          <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{formatted}</p>
+        </div>
+        <span className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}15`, color }}>{icon}</span>
       </div>
+    </div>
+  );
+}
 
-      {/* Campaigns & Alert */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <DomainCampaignsSection domain="livestock" />
-        <QuickAlertCard domain="livestock" alertFields={LIVESTOCK_ALERT_FIELDS} title={t('title')} />
+/* ── Campaign Carousel ───────────────────────────────── */
+
+const CAMPAIGN_COLORS = ['#E65100', '#1565C0', '#2E7D32', '#6A1B9A', '#C62828', '#00838F'];
+
+function CampaignCarousel({ campaigns, isLoading, t }: { campaigns: any[]; isLoading: boolean; t: (key: string) => string }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  const scroll = (dir: 'left' | 'right') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === 'left' ? -320 : 320, behavior: 'smooth' });
+    setTimeout(updateScrollState, 350);
+  };
+
+  if (isLoading) return <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"><Skeleton className="mb-4 h-6 w-48" /><div className="flex gap-4">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-44 w-72 shrink-0 rounded-xl" />)}</div></div>;
+  if (campaigns.length === 0) return <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"><h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">{t('campaignOverview')}</h3><p className="py-8 text-center text-sm text-gray-400">{t('noCampaignData')}</p></div>;
+
+  const analyseName = (name: any) => typeof name === 'object' ? (name?.en ?? name?.fr ?? Object.values(name)[0]) : name;
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('campaignOverview')}</h3>
+          <p className="mt-0.5 text-xs text-gray-400">{campaigns.length} {t('activeCampaigns').toLowerCase()}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <button onClick={() => scroll('left')} disabled={!canScrollLeft} className="rounded-full border border-gray-200 p-1.5 text-gray-500 transition-colors hover:bg-gray-100 disabled:opacity-30 dark:border-gray-700 dark:hover:bg-gray-700"><ChevronLeft className="h-4 w-4" /></button>
+          <button onClick={() => scroll('right')} disabled={!canScrollRight} className="rounded-full border border-gray-200 p-1.5 text-gray-500 transition-colors hover:bg-gray-100 disabled:opacity-30 dark:border-gray-700 dark:hover:bg-gray-700"><ChevronRight className="h-4 w-4" /></button>
+        </div>
+      </div>
+      <div ref={scrollRef} onScroll={updateScrollState} className="scrollbar-hide -mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-2">
+        {campaigns.map((c: any, idx: number) => {
+          const progress = c.targetSubmissions > 0 ? Math.min(100, Math.round(((c.totalSubmissions ?? 0) / c.targetSubmissions) * 100)) : 0;
+          const color = CAMPAIGN_COLORS[idx % CAMPAIGN_COLORS.length];
+          return (
+            <Link key={c.id} href={`/collecte/campaigns/${c.id}`} className="group relative w-72 shrink-0 snap-start overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg dark:border-gray-700 dark:from-gray-800 dark:to-gray-800/80">
+              <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: color }} />
+              <div className="flex items-start justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ backgroundColor: color }}><Activity className="h-5 w-5" /></div>
+                <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold', c.status === 'ACTIVE' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400')}>{c.status === 'ACTIVE' ? 'Active' : c.status}</span>
+              </div>
+              <h4 className="mt-3 text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-orange-600 dark:text-white">{analyseName(c.name)}</h4>
+              <div className="mt-3 flex items-end justify-between">
+                <div><p className="text-2xl font-bold text-gray-900 dark:text-white">{(c.totalSubmissions ?? 0).toLocaleString()}</p><p className="text-[10px] text-gray-400">{c.targetSubmissions ? `/ ${c.targetSubmissions.toLocaleString()} target` : 'submissions'}</p></div>
+                <div className="text-right"><p className="text-lg font-bold" style={{ color }}>{progress}%</p><p className="text-[10px] text-gray-400">complete</p></div>
+              </div>
+              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"><div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, backgroundColor: color }} /></div>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
