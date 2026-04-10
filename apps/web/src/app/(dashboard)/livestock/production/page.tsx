@@ -1,346 +1,206 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
+  Search,
   Filter,
-  ChevronLeft,
-  ChevronRight,
+  Plus,
+  FileText,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  BarChart3,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
 import { cn } from '@/lib/utils';
-import {
-  useProductionByType,
-  useLivestockProduction,
-  type ProductionChartPoint,
-  type ProductionRecord,
-} from '@/lib/api/hooks';
-import { TableSkeleton, Skeleton } from '@/components/ui/Skeleton';
-import { QueryError } from '@/components/ui/QueryError';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { useFormSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-const PLACEHOLDER_CHART_DATA: ProductionChartPoint[] = [
-  { productType: 'Milk', value: 4_800_000, unit: 'tonnes' },
-  { productType: 'Meat', value: 3_200_000, unit: 'tonnes' },
-  { productType: 'Eggs', value: 1_900_000, unit: 'tonnes' },
-  { productType: 'Wool', value: 320_000, unit: 'tonnes' },
-  { productType: 'Hides', value: 580_000, unit: 'tonnes' },
-  { productType: 'Honey', value: 210_000, unit: 'tonnes' },
-];
+const PRODUCTION_TEMPLATE_ID = '2fedaa4f-3f43-4ad3-a383-7c895c1d536e';
 
-const PLACEHOLDER_PRODUCTION: ProductionRecord[] = [
-  {
-    id: 'pr-1', country: 'Kenya', countryCode: 'KE', species: 'Cattle',
-    productType: 'milk', quantity: 5_200_000, unit: 'litres',
-    year: 2025, quarter: 4,
-    createdAt: '2026-01-10T10:00:00Z', updatedAt: '2026-02-15T14:00:00Z',
-  },
-  {
-    id: 'pr-2', country: 'Ethiopia', countryCode: 'ET', species: 'Cattle',
-    productType: 'meat', quantity: 980_000, unit: 'tonnes',
-    year: 2025, quarter: 4,
-    createdAt: '2026-01-12T08:00:00Z', updatedAt: '2026-02-10T12:00:00Z',
-  },
-  {
-    id: 'pr-3', country: 'Nigeria', countryCode: 'NG', species: 'Poultry',
-    productType: 'eggs', quantity: 620_000, unit: 'tonnes',
-    year: 2025, quarter: 4,
-    createdAt: '2026-01-08T09:00:00Z', updatedAt: '2026-02-08T11:00:00Z',
-  },
-  {
-    id: 'pr-4', country: 'South Africa', countryCode: 'ZA', species: 'Sheep',
-    productType: 'wool', quantity: 42_000, unit: 'tonnes',
-    year: 2025,
-    createdAt: '2026-01-15T10:00:00Z', updatedAt: '2026-02-12T16:00:00Z',
-  },
-  {
-    id: 'pr-5', country: 'Tanzania', countryCode: 'TZ', species: 'Cattle',
-    productType: 'hides', quantity: 78_000, unit: 'tonnes',
-    year: 2025,
-    createdAt: '2026-01-20T10:00:00Z', updatedAt: '2026-02-18T09:00:00Z',
-  },
-  {
-    id: 'pr-6', country: 'Ethiopia', countryCode: 'ET', species: 'Bee',
-    productType: 'honey', quantity: 54_000, unit: 'tonnes',
-    year: 2025,
-    createdAt: '2026-02-01T10:00:00Z', updatedAt: '2026-02-19T08:00:00Z',
-  },
-];
+const STATUS_CONFIG: Record<string, { badge: string; icon: React.ReactNode }> = {
+  DRAFT: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: <FileText className="h-3 w-3" /> },
+  SUBMITTED: { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', icon: <Clock className="h-3 w-3" /> },
+  VALIDATED: { badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle2 className="h-3 w-3" /> },
+  REJECTED: { badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', icon: <XCircle className="h-3 w-3" /> },
+};
 
-const PRODUCT_TYPE_LABEL: Record<string, string> = {
-  milk: 'Milk',
-  meat: 'Meat',
-  eggs: 'Eggs',
-  wool: 'Wool',
-  hides: 'Hides',
-  honey: 'Honey',
+const PRODUCT_COLORS: Record<string, string> = {
+  milk: '#1565C0', meat: '#C62828', eggs: '#F9A825', wool: '#6A1B9A',
+  hides: '#E65100', honey: '#2E7D32', other: '#546E7A',
+};
+
+const PRODUCT_LABELS: Record<string, string> = {
+  milk: 'Milk', meat: 'Meat', eggs: 'Eggs', wool: 'Wool',
+  hides: 'Hides', honey: 'Honey', other: 'Other',
 };
 
 export default function LivestockProductionPage() {
   const t = useTranslations('livestock');
-  const [page, setPage] = useState(1);
-  const [productTypeFilter, setProductTypeFilter] = useState('');
-  const [countryFilter, setCountryFilter] = useState('');
-  const [yearFilter, setYearFilter] = useState('');
-  const limit = 10;
+  const [search, setSearch] = useState('');
+  const [productFilter, setProductFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
-  const {
-    data: chartData,
-    isLoading: chartLoading,
-  } = useProductionByType({
-    country: countryFilter || undefined,
-    year: yearFilter ? Number(yearFilter) : undefined,
-  });
+  const { data, isLoading } = useFormSubmissions(PRODUCTION_TEMPLATE_ID, { page: 1, limit: 100, status: statusFilter || undefined });
+  const submissions: any[] = data?.data ?? [];
 
-  const {
-    data: tableData,
-    isLoading: tableLoading,
-    isError: tableError,
-    error: tableErr,
-    refetch: refetchTable,
-  } = useLivestockProduction({
-    page,
-    limit,
-    productType: productTypeFilter || undefined,
-    country: countryFilter || undefined,
-    year: yearFilter ? Number(yearFilter) : undefined,
-  });
+  const filtered = useMemo(() => {
+    let list = submissions;
+    if (productFilter) {
+      list = list.filter((s: any) => (s.data?.product_type ?? '') === productFilter);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((s: any) => JSON.stringify(s.data ?? {}).toLowerCase().includes(q));
+    }
+    return list;
+  }, [submissions, productFilter, search]);
 
-  const chartPoints = chartData?.data ?? PLACEHOLDER_CHART_DATA;
-  const records = tableData?.data ?? PLACEHOLDER_PRODUCTION;
-  const meta = tableData?.meta ?? {
-    total: PLACEHOLDER_PRODUCTION.length,
-    page: 1,
-    limit: 10,
-  };
-  const totalPages = Math.ceil(meta.total / meta.limit);
+  // Aggregate by product type for chart
+  const productAggregates = useMemo(() => {
+    const agg: Record<string, { total: number; count: number }> = {};
+    for (const s of submissions) {
+      const pt = s.data?.product_type ?? 'other';
+      const qty = Number(s.data?.quantity ?? 0);
+      if (!agg[pt]) agg[pt] = { total: 0, count: 0 };
+      agg[pt].total += qty;
+      agg[pt].count += 1;
+    }
+    return Object.entries(agg).sort(([, a], [, b]) => b.total - a.total);
+  }, [submissions]);
+
+  const maxTotal = Math.max(...productAggregates.map(([, v]) => v.total), 1);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/livestock"
-          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {t('productionTitle')}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {t('productionSubtitle')}
-          </p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/livestock" className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('productionTitle')}</h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('productionSubtitle')}</p>
+          </div>
         </div>
+        <Link
+          href={`/collecte/forms/${PRODUCTION_TEMPLATE_ID}/fill?returnTo=/livestock/production`}
+          className="flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-700"
+        >
+          <Plus className="h-4 w-4" /> {t('addProduction')}
+        </Link>
       </div>
 
-      {/* Bar Chart */}
-      <div className="rounded-card border border-gray-200 bg-white p-6">
-        <h2 className="text-sm font-semibold text-gray-900">
-          {t('productionByProduct')}
-        </h2>
-        <p className="mt-1 text-xs text-gray-400">
-          {t('productionAggregateDesc')}
-        </p>
-        {chartLoading ? (
-          <Skeleton className="mt-4 h-72 w-full" />
-        ) : (
-          <div className="mt-4 h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartPoints}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="productType"
-                  tick={{ fontSize: 11, fill: '#9CA3AF' }}
-                  axisLine={{ stroke: '#E5E7EB' }}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: '#9CA3AF' }}
-                  axisLine={{ stroke: '#E5E7EB' }}
-                  tickFormatter={(v) =>
-                    v >= 1_000_000
-                      ? `${(v / 1_000_000).toFixed(1)}M`
-                      : v >= 1_000
-                        ? `${(v / 1_000).toFixed(0)}K`
-                        : String(v)
-                  }
-                />
-                <Tooltip
-                  formatter={(value: number) => [
-                    value.toLocaleString(),
-                    'Tonnes',
-                  ]}
-                  contentStyle={{
-                    fontSize: 12,
-                    borderRadius: 8,
-                    border: '1px solid #E5E7EB',
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar
-                  dataKey="value"
-                  name="Production"
-                  fill="#1B5E20"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={60}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+      {/* Production by product chart */}
+      {!isLoading && productAggregates.length > 0 && (
+        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+          <div className="mb-4 flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-green-500" />
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{t('productionByProduct')}</h2>
+            <span className="ml-auto text-xs text-gray-400">{submissions.length} {t('entries')}</span>
           </div>
-        )}
-      </div>
+          <div className="space-y-3">
+            {productAggregates.map(([pt, { total, count }]) => {
+              const color = PRODUCT_COLORS[pt] ?? PRODUCT_COLORS.other;
+              const label = PRODUCT_LABELS[pt] ?? pt;
+              const pct = Math.round((total / maxTotal) * 100);
+              return (
+                <div key={pt} className="flex items-center gap-3">
+                  <span className="w-16 text-xs font-medium text-gray-600 dark:text-gray-400">{label}</span>
+                  <div className="h-6 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                    <div className="flex h-full items-center rounded-full px-2 text-[10px] font-bold text-white transition-all" style={{ width: `${Math.max(pct, 8)}%`, backgroundColor: color }}>
+                      {total.toLocaleString()}
+                    </div>
+                  </div>
+                  <span className="w-10 text-right text-[10px] text-gray-400">{count}x</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input type="text" placeholder={t('searchProduction')} value={search} onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+        </div>
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-gray-400" />
-          <select
-            value={productTypeFilter}
-            onChange={(e) => {
-              setProductTypeFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
-          >
-            <option value="">{t('productType')}</option>
-            <option value="milk">{t('milk')}</option>
-            <option value="meat">{t('meat')}</option>
-            <option value="eggs">{t('eggs')}</option>
-            <option value="wool">{t('wool')}</option>
-            <option value="hides">{t('hides')}</option>
-            <option value="honey">{t('honey')}</option>
+          <select value={productFilter} onChange={(e) => setProductFilter(e.target.value)}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-green-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+            <option value="">{t('allProducts')}</option>
+            {Object.entries(PRODUCT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
-          <select
-            value={countryFilter}
-            onChange={(e) => {
-              setCountryFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
-          >
-            <option value="">{t('allCountries')}</option>
-            <option value="ET">Ethiopia</option>
-            <option value="KE">Kenya</option>
-            <option value="NG">Nigeria</option>
-            <option value="TZ">Tanzania</option>
-            <option value="ZA">South Africa</option>
-          </select>
-          <select
-            value={yearFilter}
-            onChange={(e) => {
-              setYearFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
-          >
-            <option value="">{t('allYears')}</option>
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
-            <option value="2023">2023</option>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-green-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+            <option value="">{t('allStatus')}</option>
+            <option value="SUBMITTED">Submitted</option>
+            <option value="VALIDATED">Validated</option>
+            <option value="REJECTED">Rejected</option>
           </select>
         </div>
+        <span className="text-xs text-gray-400">{filtered.length} {t('entries')}</span>
       </div>
 
-      {/* Table */}
-      {tableLoading ? (
-        <TableSkeleton rows={6} cols={8} />
-      ) : tableError ? (
-        <QueryError
-          message={
-            tableErr instanceof Error
-              ? tableErr.message
-              : 'Failed to load production data'
-          }
-          onRetry={() => refetchTable()}
-        />
+      {/* Cards */}
+      {isLoading ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center py-16 text-center">
+          <BarChart3 className="h-12 w-12 text-gray-200 dark:text-gray-600" />
+          <p className="mt-4 text-sm text-gray-400">{t('noProdRecords')}</p>
+          <Link href={`/collecte/forms/${PRODUCTION_TEMPLATE_ID}/fill?returnTo=/livestock/production`}
+            className="mt-3 flex items-center gap-1 text-sm font-medium text-green-600 hover:text-green-700">
+            <Plus className="h-4 w-4" /> {t('addProduction')}
+          </Link>
+        </div>
       ) : (
-        <div className="overflow-hidden rounded-card border border-gray-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('country')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('species')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('productType')}</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('quantity')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('unit')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('year')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('quarter')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('updated')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {records.map((rec) => (
-                  <tr key={rec.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900">{rec.country}</p>
-                      <p className="text-xs text-gray-400">{rec.countryCode}</p>
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">{rec.species}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-block rounded-full bg-aris-primary-50 px-2 py-0.5 text-xs font-medium capitalize text-aris-primary-700">
-                        {PRODUCT_TYPE_LABEL[rec.productType] ?? rec.productType}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium text-gray-900">
-                      {rec.quantity.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">{rec.unit}</td>
-                    <td className="px-4 py-3 text-gray-700">{rec.year}</td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {rec.quarter ? `Q${rec.quarter}` : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {new Date(rec.updatedAt).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-                {records.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
-                      {t('noProdRecords')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
-            <p className="text-xs text-gray-500">
-              {t('showingOf', { count: records.length.toString(), total: meta.total.toString() })}
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="px-2 text-xs text-gray-600">
-                Page {page} of {totalPages || 1}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((sub: any) => {
+            const d = sub.data ?? {};
+            const statusCfg = STATUS_CONFIG[sub.status] ?? STATUS_CONFIG.DRAFT;
+            const pt = d.product_type ?? 'other';
+            const color = PRODUCT_COLORS[pt] ?? PRODUCT_COLORS.other;
+            const loc = d.admin_location ?? {};
+            return (
+              <div key={sub.id} className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: color }} />
+                <div className="flex items-center justify-between">
+                  <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', statusCfg.badge)}>
+                    {statusCfg.icon} {sub.status}
+                  </span>
+                  <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ backgroundColor: color }}>
+                    {PRODUCT_LABELS[pt] ?? pt}
+                  </span>
+                </div>
+                <div className="mt-3 flex items-end justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{d.quantity ? Number(d.quantity).toLocaleString() : '—'}</p>
+                    <p className="text-[10px] text-gray-400">{d.unit ?? 'tonnes'}</p>
+                  </div>
+                  {d.market_value && (
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">${Number(d.market_value).toLocaleString()}</p>
+                      <p className="text-[10px] text-gray-400">USD</p>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  {loc.level_0 && <span className="rounded bg-gray-100 px-1.5 py-0.5 font-medium dark:bg-gray-700">{loc.level_0}</span>}
+                  {d.year && <span>{d.year}{d.reporting_period ? ` ${d.reporting_period}` : ''}</span>}
+                  {d.data_source && <span className="truncate">{d.data_source}</span>}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
