@@ -1817,6 +1817,12 @@
     "importing": "Importing...",
     "importAndOpenEditor": "Import & Open Editor",
 
+    "fillFormDesc": "Fill out the form and submit for validation",
+    "submissionSuccess": "Submission Successful",
+    "submissionSuccessDesc": "Your submission has been recorded and is pending validation.",
+    "submitAnother": "Submit Another",
+    "backToDomain": "Back to Domain",
+
     "backToForms": "Back to forms",
     "untitledForm": "Untitled Form",
     "undoCtrlZ": "Undo (Ctrl+Z)",

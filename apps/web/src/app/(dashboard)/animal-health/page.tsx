@@ -75,7 +75,7 @@ export default function AnimalHealthPage() {
             {t('mapView')}
           </Link>
           <Link
-            href="/animal-health/events/new"
+            href="/collecte/forms/705560ce-f57c-484f-bb56-7d0b15ad9128/fill?returnTo=/animal-health"
             className="flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700"
           >
             <Plus className="h-4 w-4" />
@@ -139,7 +139,7 @@ export default function AnimalHealthPage() {
               <AlertTriangle className="h-10 w-10 text-gray-200 dark:text-gray-600" />
               <p className="mt-3 text-sm text-gray-400">{t('noEventsFound')}</p>
               <Link
-                href="/animal-health/events/new"
+                href="/collecte/forms/705560ce-f57c-484f-bb56-7d0b15ad9128/fill?returnTo=/animal-health"
                 className="mt-3 flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-700"
               >
                 <Plus className="h-4 w-4" /> {t('reportEvent')}
@@ -226,7 +226,7 @@ export default function AnimalHealthPage() {
       {sections.quickLinks && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
-            { href: '/animal-health/events/new', label: t('reportEvent'), desc: t('reportEventDesc'), icon: AlertTriangle, color: '#C62828' },
+            { href: '/collecte/forms/705560ce-f57c-484f-bb56-7d0b15ad9128/fill?returnTo=/animal-health', label: t('reportEvent'), desc: t('reportEventDesc'), icon: AlertTriangle, color: '#C62828' },
             { href: '/animal-health/map', label: t('mapView'), desc: t('mapViewDesc'), icon: MapPin, color: '#1565C0' },
             { href: '/collecte/campaigns?domain=animal_health', label: t('manageCampaigns'), desc: t('manageCampaignsDesc'), icon: FileText, color: '#E65100' },
           ].map((link) => (
