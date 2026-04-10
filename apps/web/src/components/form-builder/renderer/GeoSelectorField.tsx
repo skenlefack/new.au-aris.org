@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, lazy, Suspense } from 'react';
-import { MapPin, Navigation, Hexagon, Maximize2, Minimize2 } from 'lucide-react';
+import { MapPin, Navigation, Hexagon, Maximize2, Minimize2, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const GeoPointMap = lazy(() => import('./GeoPointMap').then((m) => ({ default: m.GeoPointMap })));
@@ -50,7 +50,8 @@ export function GeoSelectorField({
     onChange(null);
   };
 
-  const mapHeight = expanded ? 'h-[70vh]' : 'h-48';
+  const [mapSize, setMapSize] = useState<'normal' | 'large' | 'xlarge'>('normal');
+  const mapHeightClass = expanded ? 'h-[80vh]' : mapSize === 'xlarge' ? 'h-[600px]' : mapSize === 'large' ? 'h-[450px]' : 'h-[350px]';
 
   return (
     <div className={cn('space-y-2', expanded && 'fixed inset-4 z-50 rounded-2xl border border-gray-300 bg-white p-4 shadow-2xl dark:border-gray-600 dark:bg-gray-900')}>
@@ -79,11 +80,23 @@ export function GeoSelectorField({
             );
           })}
         </div>
+        {!expanded && (
+          <div className="flex items-center rounded-lg border border-gray-200 overflow-hidden dark:border-gray-700">
+            <button
+              type="button"
+              onClick={() => setMapSize((s) => s === 'normal' ? 'large' : s === 'large' ? 'xlarge' : 'normal')}
+              className="px-2 py-2 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700"
+              title="Resize map"
+            >
+              {mapSize === 'xlarge' ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </button>
+          </div>
+        )}
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
           className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700"
-          title={expanded ? 'Reduce' : 'Expand map'}
+          title={expanded ? 'Reduce' : 'Fullscreen'}
         >
           {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
         </button>
@@ -101,7 +114,7 @@ export function GeoSelectorField({
             onChange={(v) => onChange(v)}
             showManualEntry={true}
             autoDetect={true}
-            mapClassName={expanded ? 'h-full' : 'h-48'}
+            mapClassName={expanded ? 'h-full' : mapHeightClass}
             className={expanded ? 'flex-1 min-h-0' : undefined}
             initialCenter={countryCode ? COUNTRY_CENTERS[countryCode] : undefined}
           />
@@ -111,7 +124,7 @@ export function GeoSelectorField({
             onChange={(v) => onChange(v)}
             mode={activeMode}
             maxPoints={50}
-            mapClassName={expanded ? 'h-full' : 'h-48'}
+            mapClassName={expanded ? 'h-full' : mapHeightClass}
             initialCenter={countryCode ? COUNTRY_CENTERS[countryCode] : undefined}
           />
         )}

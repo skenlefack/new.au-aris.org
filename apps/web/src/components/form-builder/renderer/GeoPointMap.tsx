@@ -128,7 +128,7 @@ export function GeoPointMap({
       </p>
 
       {isClient && (
-        <div className={cn('rounded-lg overflow-hidden', mapClassName === 'h-full' ? 'flex-1 min-h-0' : (mapClassName || 'h-48'))}>
+        <div className={cn('rounded-lg overflow-hidden', mapClassName || 'h-[350px]', mapClassName === 'h-full' && 'flex-1 min-h-0')}>
           <link
             rel="stylesheet"
             href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
