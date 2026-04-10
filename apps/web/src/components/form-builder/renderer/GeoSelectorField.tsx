@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, lazy, Suspense } from 'react';
-import { MapPin, Navigation, Hexagon, Maximize2, Minimize2, ChevronUp, ChevronDown } from 'lucide-react';
+import { MapPin, Navigation, Hexagon, Maximize2, Minimize2, Plus, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const GeoPointMap = lazy(() => import('./GeoPointMap').then((m) => ({ default: m.GeoPointMap })));
@@ -81,14 +81,24 @@ export function GeoSelectorField({
           })}
         </div>
         {!expanded && (
-          <div className="flex items-center rounded-lg border border-gray-200 overflow-hidden dark:border-gray-700">
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setMapSize((s) => s === 'normal' ? 'large' : s === 'large' ? 'xlarge' : 'normal')}
-              className="px-2 py-2 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700"
-              title="Resize map"
+              disabled={mapSize === 'xlarge'}
+              onClick={() => setMapSize((s) => s === 'normal' ? 'large' : 'xlarge')}
+              className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-30 dark:border-gray-700 dark:hover:bg-gray-700"
+              title="Increase height"
             >
-              {mapSize === 'xlarge' ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+              <Plus className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              disabled={mapSize === 'normal'}
+              onClick={() => setMapSize((s) => s === 'xlarge' ? 'large' : 'normal')}
+              className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-30 dark:border-gray-700 dark:hover:bg-gray-700"
+              title="Decrease height"
+            >
+              <Minus className="h-4 w-4" />
             </button>
           </div>
         )}
