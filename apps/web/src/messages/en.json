@@ -1761,6 +1761,7 @@
     "searchCountries": "Search countries...",
     "allCountries": "All Countries",
     "failedToCreateCampaign": "Failed to create campaign. Please try again.",
+    "failedToUpdateCampaign": "Failed to update campaign. Please try again.",
 
     "campaignNotFound": "Campaign not found",
     "campaignNotFoundDesc": "The campaign you're looking for doesn't exist or has been deleted.",

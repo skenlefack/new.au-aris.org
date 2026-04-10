@@ -10,148 +10,152 @@ import {
   FileText,
   Globe,
   Loader2,
+  Settings,
+  Building2,
 } from 'lucide-react';
 import {
   useCollectionCampaign,
   useUpdateCollectionCampaign,
 } from '@/lib/api/workflow-hooks';
-
-/* eslint-disable no-console */
 import {
   useFormBuilderTemplates,
   type FormTemplateListItem,
 } from '@/lib/api/form-builder-hooks';
 import { COUNTRIES, type CountryConfig } from '@/data/countries-config';
+import { getAllRecs, type RecConfig } from '@/data/recs-config';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { MultiSearchCombobox } from '@/components/ui/MultiSearchCombobox';
+import { MultilingualInput } from '@/components/settings/MultilingualInput';
+import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n/translations';
+
+const FREQUENCY_OPTIONS = [
+  { value: 'one_time', tKey: 'oneTime' },
+  { value: 'daily', tKey: 'daily' },
+  { value: 'weekly', tKey: 'weekly' },
+  { value: 'monthly', tKey: 'monthly' },
+  { value: 'quarterly', tKey: 'quarterly' },
+  { value: 'biannual', tKey: 'biannual' },
+  { value: 'annual', tKey: 'annual' },
+];
 
 const countryList: CountryConfig[] = Object.values(COUNTRIES).sort((a, b) =>
   a.name.localeCompare(b.name),
 );
+const allRecs = getAllRecs();
 
-// Fallback templates (same as new page)
-const SEED_TEMPLATES: FormTemplateListItem[] = [
-  // Animal Health (6) — deterministic UUIDs for fallback templates
-  { id: 'a0000001-0001-4000-8000-000000000001', tenantId: '', name: 'AU-IBAR Monthly Animal Health Report', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'a0000001-0002-4000-8000-000000000002', tenantId: '', name: 'Emergency Disease Reporting', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'a0000001-0003-4000-8000-000000000003', tenantId: '', name: 'Mass Vaccination', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'a0000001-0004-4000-8000-000000000004', tenantId: '', name: 'Meat Inspection', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'a0000001-0005-4000-8000-000000000005', tenantId: '', name: 'Monthly Abattoir Report', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'a0000001-0006-4000-8000-000000000006', tenantId: '', name: 'Monthly Vaccination Report', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  // Livestock (7)
-  { id: 'b0000002-0001-4000-8000-000000000007', tenantId: '', name: 'Animal Breeding and Genomics', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'b0000002-0002-4000-8000-000000000008', tenantId: '', name: 'Animal Population (Genetic Diversity)', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'b0000002-0003-4000-8000-000000000009', tenantId: '', name: 'Animal Population and Composition', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'b0000002-0004-4000-8000-00000000000a', tenantId: '', name: 'Breeder Association', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'b0000002-0005-4000-8000-00000000000b', tenantId: '', name: 'Disaster and Risk Management', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'b0000002-0006-4000-8000-00000000000c', tenantId: '', name: 'Legislation', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'b0000002-0007-4000-8000-00000000000d', tenantId: '', name: 'National Animal Genetic Resources Centre', domain: 'livestock', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  // Trade & SPS (8)
-  { id: 'c0000003-0001-4000-8000-00000000000e', tenantId: '', name: 'Cost of Production', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'c0000003-0002-4000-8000-00000000000f', tenantId: '', name: 'Import and Export', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'c0000003-0003-4000-8000-000000000010', tenantId: '', name: 'Market Demand', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'c0000003-0004-4000-8000-000000000011', tenantId: '', name: 'Market Price', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'c0000003-0005-4000-8000-000000000012', tenantId: '', name: 'Market Requirement and Location', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'c0000003-0006-4000-8000-000000000013', tenantId: '', name: 'Quality Standards (Inputs & Services)', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'c0000003-0007-4000-8000-000000000014', tenantId: '', name: 'Quality Standards (Poultry/Hatchery)', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-  { id: 'c0000003-0008-4000-8000-000000000015', tenantId: '', name: 'Volume and Availability of Transport', domain: 'trade_sps', version: 1, status: 'PUBLISHED', dataClassification: 'PARTNER', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
-];
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyCampaign = any;
 
-function i18nStr(val: unknown): string {
-  if (!val) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'object' && val !== null) {
-    const obj = val as Record<string, string>;
-    return obj['en'] ?? obj['fr'] ?? Object.values(obj)[0] ?? '';
-  }
-  return String(val);
+function toMultilingual(val: unknown): Record<string, string> {
+  if (!val) return { en: '', fr: '', pt: '', ar: '', es: '' };
+  if (typeof val === 'string') return { en: val, fr: '', pt: '', ar: '', es: '' };
+  if (typeof val === 'object') return { en: '', fr: '', pt: '', ar: '', es: '', ...(val as Record<string, string>) };
+  return { en: String(val), fr: '', pt: '', ar: '', es: '' };
 }
 
 function toDateInputValue(dateStr: string | undefined): string {
   if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toISOString().split('T')[0];
-  } catch {
-    return '';
-  }
+  try { return new Date(dateStr).toISOString().split('T')[0]; } catch { return ''; }
 }
 
 export default function EditCampaignPage() {
   const router = useRouter();
   const params = useParams();
+  const t = useTranslations('collecte');
   const campaignId = params.id as string;
 
   const { data: campaignRes, isLoading: campaignLoading } = useCollectionCampaign(campaignId);
   const updateCampaign = useUpdateCollectionCampaign();
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [domain, setDomain] = useState('');
+  const [name, setName] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
+  const [description, setDescription] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
+  const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
+  const [selectedRecs, setSelectedRecs] = useState<RecConfig[]>([]);
   const [selectedTemplates, setSelectedTemplates] = useState<FormTemplateListItem[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<CountryConfig[]>([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [targetSubmissions, setTargetSubmissions] = useState<string>('');
+  const [frequency, setFrequency] = useState('one_time');
+  const [sendReminders, setSendReminders] = useState(false);
+  const [reminderDays, setReminderDays] = useState('3');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
 
-  const { data: templatesData, isLoading: templatesLoading } = useFormBuilderTemplates({
-    page: 1,
-    limit: 100,
-  });
-
-  const allTemplates = useMemo(() => {
-    const apiData = templatesData?.data ?? [];
-    return apiData.length > 0 ? apiData : SEED_TEMPLATES;
-  }, [templatesData]);
+  const { data: templatesData, isLoading: templatesLoading } = useFormBuilderTemplates({ page: 1, limit: 100 });
 
   const publishedTemplates = useMemo(() => {
-    return allTemplates.filter((t) => t.status === 'PUBLISHED');
-  }, [allTemplates]);
+    const apiData = templatesData?.data ?? [];
+    return apiData.filter((tmpl) => {
+      if (tmpl.status !== 'PUBLISHED') return false;
+      if (selectedDomains.length > 0 && !selectedDomains.includes(tmpl.domain)) return false;
+      return true;
+    });
+  }, [templatesData, selectedDomains]);
 
-  // Initialize form from campaign data once loaded
   const campaign = (campaignRes as AnyCampaign)?.data as AnyCampaign | undefined;
 
   useEffect(() => {
-    if (campaign && !initialized) {
-      setName(i18nStr(campaign.name));
-      setDescription(i18nStr(campaign.description));
-      setDomain(campaign.domain ?? '');
+    if (campaign && !initialized && (templatesData?.data?.length ?? 0) > 0) {
+      setName(toMultilingual(campaign.name));
+      setDescription(toMultilingual(campaign.description));
+
+      const domains = campaign.metadata?.domains ?? (campaign.domain ? [campaign.domain] : []);
+      setSelectedDomains(domains);
+
       setStartDate(toDateInputValue(campaign.startDate));
       setEndDate(toDateInputValue(campaign.endDate));
       setTargetSubmissions(campaign.targetSubmissions != null ? String(campaign.targetSubmissions) : '');
+      setFrequency(campaign.frequency ?? 'one_time');
+      setSendReminders(campaign.sendReminders ?? false);
+      setReminderDays(String(campaign.reminderDaysBefore ?? 3));
 
-      // Restore selected template (CollectionCampaign has a single formTemplateId)
+      // Restore template
       const tplId = campaign.formTemplateId ?? campaign.templateId;
       if (tplId) {
-        const matched = allTemplates.find((t: FormTemplateListItem) => t.id === tplId);
+        const matched = (templatesData?.data ?? []).find((t: FormTemplateListItem) => t.id === tplId);
         if (matched) setSelectedTemplates([matched]);
       }
 
-      // Restore selected countries
+      // Restore countries
       const countryCodes: string[] = campaign.targetCountries ?? [];
-      const matchedCountries = countryCodes
-        .map((code: string) => COUNTRIES[code.toUpperCase()])
-        .filter(Boolean) as CountryConfig[];
-      if (matchedCountries.length > 0) {
-        setSelectedCountries(matchedCountries);
+      setSelectedCountries(countryCodes.map((code: string) => COUNTRIES[code.toUpperCase()]).filter(Boolean) as CountryConfig[]);
+
+      // Restore RECs
+      const recCodes: string[] = campaign.metadata?.recCodes ?? [];
+      if (recCodes.length > 0) {
+        setSelectedRecs(allRecs.filter((r) => recCodes.includes(r.code)));
       }
 
       setInitialized(true);
     }
-  }, [campaign, initialized, allTemplates]);
+  }, [campaign, initialized, templatesData]);
+
+  const handleDomainsChange = (codes: string[]) => {
+    setSelectedDomains(codes);
+    if (codes.length > 0) {
+      setSelectedTemplates((prev) => prev.filter((tmpl) => codes.includes(tmpl.domain)));
+    }
+  };
+
+  const handleRecsChange = (recs: RecConfig[]) => {
+    setSelectedRecs(recs);
+    if (recs.length > 0) {
+      const recCountryCodes = new Set(recs.flatMap((r) => r.countryCodes));
+      const existing = new Set(selectedCountries.map((c) => c.code));
+      const toAdd = countryList.filter((c) => recCountryCodes.has(c.code) && !existing.has(c.code));
+      if (toAdd.length > 0) setSelectedCountries((prev) => [...prev, ...toAdd]);
+    }
+  };
 
   function validate(): boolean {
     const e: Record<string, string> = {};
-    if (!name.trim()) e.name = 'Campaign name is required';
-    if (!startDate) e.startDate = 'Start date is required';
-    if (!endDate) e.endDate = 'End date is required';
-    if (startDate && endDate && startDate > endDate) e.endDate = 'End date must be after start date';
+    if (!(name.en?.trim() || name.fr?.trim())) e.name = t('campaignNameRequired');
+    if (!startDate) e.startDate = t('startDateRequired');
+    if (!endDate) e.endDate = t('endDateRequired');
+    if (startDate && endDate && startDate > endDate) e.endDate = t('endDateAfterStart');
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -159,27 +163,31 @@ export default function EditCampaignPage() {
   async function handleSubmit(ev: React.FormEvent) {
     ev.preventDefault();
     if (!validate()) return;
-
     setSubmitError(null);
+
     const payload = {
       id: campaignId,
-      name: { en: name.trim() },
-      description: { en: description.trim() },
+      name,
+      description,
       startDate,
       endDate,
       targetSubmissions: targetSubmissions ? parseInt(targetSubmissions, 10) : undefined,
       targetCountries: selectedCountries.map((c: CountryConfig) => c.code),
+      frequency,
+      sendReminders,
+      reminderDaysBefore: sendReminders ? parseInt(reminderDays, 10) || 3 : undefined,
+      metadata: {
+        ...(campaign?.metadata ?? {}),
+        domains: selectedDomains,
+        recCodes: selectedRecs.map((r) => r.code),
+      },
     };
-    console.log('[EditCampaign] Submitting PATCH:', JSON.stringify(payload, null, 2));
 
     try {
-      const result = await updateCampaign.mutateAsync(payload);
-      console.log('[EditCampaign] PATCH success:', result);
+      await updateCampaign.mutateAsync(payload);
       router.push('/collecte');
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error('[EditCampaign] PATCH failed:', err);
-      setSubmitError(msg);
+      setSubmitError(err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -187,14 +195,10 @@ export default function EditCampaignPage() {
     return (
       <div className="space-y-6 pb-12">
         <div>
-          <Link
-            href="/collecte"
-            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Campaigns
+          <Link href="/collecte" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400">
+            <ArrowLeft className="h-4 w-4" /> {t('backToCampaigns')}
           </Link>
-          <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">Edit Campaign</h1>
+          <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{t('editCampaign')}</h1>
         </div>
         <TableSkeleton rows={6} cols={2} />
       </div>
@@ -205,35 +209,10 @@ export default function EditCampaignPage() {
     return (
       <div className="space-y-6 pb-12">
         <div>
-          <Link
-            href="/collecte"
-            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Campaigns
+          <Link href="/collecte" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+            <ArrowLeft className="h-4 w-4" /> {t('backToCampaigns')}
           </Link>
-          <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">Campaign not found</h1>
-        </div>
-      </div>
-    );
-  }
-
-  if (campaign.status !== 'PLANNED') {
-    return (
-      <div className="space-y-6 pb-12">
-        <div>
-          <Link
-            href="/collecte"
-            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Campaigns
-          </Link>
-          <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">Cannot Edit</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Only campaigns with status &quot;Planned&quot; can be edited. This campaign is{' '}
-            <strong>{campaign.status}</strong>.
-          </p>
+          <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{t('campaignNotFound')}</h1>
         </div>
       </div>
     );
@@ -243,220 +222,163 @@ export default function EditCampaignPage() {
     <div className="space-y-6 pb-12">
       {/* Header */}
       <div>
-        <Link
-          href="/collecte"
-          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Campaigns
+        <Link href="/collecte" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+          <ArrowLeft className="h-4 w-4" /> {t('backToCampaigns')}
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-          Edit Campaign
-        </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Editing &ldquo;{i18nStr(campaign.name)}&rdquo;
-        </p>
+        <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{t('editCampaign')}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* ROW 1 — Two columns */}
+        {/* ROW 1 — Two columns: Info + Scheduling */}
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          {/* Campaign Information */}
+          {/* LEFT — Campaign Information */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
             <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-gray-400" />
-              Campaign Information
+              <ClipboardList className="h-4 w-4 text-gray-400" /> {t('campaignInformation')}
             </h2>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Campaign Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              />
+              <MultilingualInput label={t('campaignNameLabel')} value={name} onChange={setName} required placeholder={t('campaignNamePlaceholder')} />
               {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Domain
-              </label>
-              <select
-                value={domain}
-                disabled
-                className="mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500 cursor-not-allowed dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400"
-              >
-                <option value="">—</option>
-                {DOMAIN_OPTIONS.map((d) => (
-                  <option key={d.value} value={d.value}>
-                    {d.label}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-                Domain cannot be changed after creation.
-              </p>
+              <MultilingualTextarea label={t('description')} value={description} onChange={setDescription} placeholder={t('descriptionPlaceholder')} rows={4} />
             </div>
           </div>
 
-          {/* Scheduling */}
-          <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              Scheduling
-            </h2>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Start Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                />
-                {errors.startDate && <p className="mt-1 text-xs text-red-600">{errors.startDate}</p>}
+          {/* RIGHT — Scheduling + Options */}
+          <div className="space-y-6">
+            <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-gray-400" /> {t('scheduling')}
+              </h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('startDate')} <span className="text-red-500">*</span></label>
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white" />
+                  {errors.startDate && <p className="mt-1 text-xs text-red-600">{errors.startDate}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('endDate')} <span className="text-red-500">*</span></label>
+                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white" />
+                  {errors.endDate && <p className="mt-1 text-xs text-red-600">{errors.endDate}</p>}
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  End Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                />
-                {errors.endDate && <p className="mt-1 text-xs text-red-600">{errors.endDate}</p>}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('targetSubmissionsLabel')}</label>
+                  <input type="number" min="0" value={targetSubmissions} onChange={(e) => setTargetSubmissions(e.target.value)} placeholder="e.g. 500" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('frequency')}</label>
+                  <select value={frequency} onChange={(e) => setFrequency(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white">
+                    {FREQUENCY_OPTIONS.map((f) => <option key={f.value} value={f.value}>{t(f.tKey)}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Target Submissions
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={targetSubmissions}
-                onChange={(e) => setTargetSubmissions(e.target.value)}
-                placeholder="e.g. 500"
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              />
+            {/* Options */}
+            <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Settings className="h-4 w-4 text-gray-400" /> {t('options')}
+              </h2>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('sendReminders')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('notifyAgents')}</p>
+                </div>
+                <button type="button" role="switch" aria-checked={sendReminders} onClick={() => setSendReminders(!sendReminders)} className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${sendReminders ? 'bg-aris-primary-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                  <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${sendReminders ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+              {sendReminders && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('reminderDays')}</label>
+                  <input type="number" min="1" max="30" value={reminderDays} onChange={(e) => setReminderDays(e.target.value)} className="mt-1 w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white" />
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* ROW 2 — Form Templates */}
+        {/* ROW 2 — Domains (full width) */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <FileText className="h-4 w-4 text-gray-400" />
-            Form Templates
+            <ClipboardList className="h-4 w-4 text-gray-400" /> {t('domains')}
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('selectDomainsDesc')}</p>
+          <div className="flex flex-wrap gap-2">
+            {DOMAIN_OPTIONS.map((d) => {
+              const isSelected = selectedDomains.includes(d.value);
+              return (
+                <button key={d.value} type="button" onClick={() => handleDomainsChange(isSelected ? selectedDomains.filter((v) => v !== d.value) : [...selectedDomains, d.value])}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${isSelected ? 'border-aris-primary-500 bg-aris-primary-50 text-aris-primary-700 dark:border-aris-primary-400 dark:bg-aris-primary-900/20 dark:text-aris-primary-400' : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600'}`}>
+                  {d.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ROW 3 — Form Templates */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <FileText className="h-4 w-4 text-gray-400" /> {t('formTemplates')}
           </h2>
           <MultiSearchCombobox<FormTemplateListItem>
-            value={selectedTemplates}
-            onChange={setSelectedTemplates}
-            items={publishedTemplates}
-            labelKey={(t) => t.name}
-            idKey={(t) => t.id}
-            filterKey={(t) => `${t.name} ${t.domain}`}
-            placeholder="Search form templates..."
-            allLabel="All Templates"
-            loading={templatesLoading}
-            renderItem={(t) => (
-              <span className="flex items-center gap-2">
-                <span>{t.name}</span>
-                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-                  {DOMAIN_OPTIONS.find((d) => d.value === t.domain)?.label ?? t.domain}
-                </span>
-              </span>
-            )}
-            renderChip={(t) => (
-              <span className="flex items-center gap-1">
-                {t.name}
-                <span className="rounded bg-aris-primary-100 px-1 text-[9px] text-aris-primary-600 dark:bg-aris-primary-800/50 dark:text-aris-primary-300">
-                  {DOMAIN_OPTIONS.find((d) => d.value === t.domain)?.label ?? t.domain}
-                </span>
-              </span>
-            )}
+            value={selectedTemplates} onChange={setSelectedTemplates} items={publishedTemplates}
+            labelKey={(tpl) => tpl.name} idKey={(tpl) => tpl.id} filterKey={(tpl) => `${tpl.name} ${tpl.domain}`}
+            placeholder={t('searchFormTemplates')} allLabel={t('allTemplates')} loading={templatesLoading}
+            renderItem={(tmpl) => (<span className="flex items-center gap-2"><span>{tmpl.name}</span><span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-400">{DOMAIN_OPTIONS.find((d) => d.value === tmpl.domain)?.label ?? tmpl.domain}</span></span>)}
+            renderChip={(tmpl) => (<span className="flex items-center gap-1">{tmpl.name}<span className="rounded bg-aris-primary-100 px-1 text-[9px] text-aris-primary-600 dark:bg-aris-primary-800/50 dark:text-aris-primary-300">{DOMAIN_OPTIONS.find((d) => d.value === tmpl.domain)?.label ?? tmpl.domain}</span></span>)}
           />
-          {selectedTemplates.length > 0 && (
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {selectedTemplates.length} template{selectedTemplates.length > 1 ? 's' : ''} selected
-            </p>
-          )}
         </div>
 
-        {/* ROW 3 — Target Countries */}
+        {/* ROW 4 — RECs */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Globe className="h-4 w-4 text-gray-400" />
-            Target Countries
+            <Building2 className="h-4 w-4 text-gray-400" /> {t('targetRecs')}
           </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('selectRecsDesc')}</p>
+          <MultiSearchCombobox<RecConfig>
+            value={selectedRecs} onChange={handleRecsChange} items={allRecs}
+            labelKey={(r) => r.name} idKey={(r) => r.code} filterKey={(r) => `${r.name} ${r.nameFr} ${r.code}`}
+            placeholder={t('searchRecs')} allLabel={t('allRecs')}
+            renderItem={(r) => (<span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: r.color }} /><span>{r.name}</span><span className="text-gray-400 text-[10px]">{r.memberCount} {t('countries')}</span></span>)}
+            renderChip={(r) => (<span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: r.color }} />{r.name}</span>)}
+          />
+        </div>
+
+        {/* ROW 5 — Target Countries */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Globe className="h-4 w-4 text-gray-400" /> {t('targetCountries')}
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('selectTargetCountries')}</p>
           <MultiSearchCombobox<CountryConfig>
-            value={selectedCountries}
-            onChange={setSelectedCountries}
-            items={countryList}
-            labelKey={(c) => `${c.flag} ${c.name}`}
-            idKey={(c) => c.code}
-            filterKey={(c) => `${c.name} ${c.code} ${c.nameFr}`}
-            placeholder="Search countries..."
-            allLabel="All Countries"
-            renderItem={(c) => (
-              <span className="flex items-center gap-2">
-                <span>{c.flag}</span>
-                <span>{c.name}</span>
-                <span className="text-gray-400">{c.code}</span>
-              </span>
-            )}
-            renderChip={(c) => (
-              <span className="flex items-center gap-1">
-                {c.flag} {c.name}
-              </span>
-            )}
+            value={selectedCountries} onChange={setSelectedCountries} items={countryList}
+            labelKey={(c) => `${c.flag} ${c.name}`} idKey={(c) => c.code} filterKey={(c) => `${c.name} ${c.code} ${c.nameFr}`}
+            placeholder={t('searchCountries')} allLabel={t('allCountries')}
+            renderItem={(c) => (<span className="flex items-center gap-2"><span>{c.flag}</span><span>{c.name}</span><span className="text-gray-400">{c.code}</span></span>)}
+            renderChip={(c) => (<span className="flex items-center gap-1">{c.flag} {c.name}</span>)}
           />
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 pt-2">
-          <Link
-            href="/collecte"
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            Cancel
+          <Link href="/collecte" className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+            {t('cancel')}
           </Link>
-          <button
-            type="submit"
-            disabled={updateCampaign.isPending}
-            className="inline-flex items-center gap-2 rounded-lg bg-aris-primary-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50"
-          >
+          <button type="submit" disabled={updateCampaign.isPending} className="inline-flex items-center gap-2 rounded-lg bg-aris-primary-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-aris-primary-700 disabled:opacity-50">
             {updateCampaign.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            Save Changes
+            {t('saveChanges')}
           </button>
         </div>
 
         {(updateCampaign.isError || submitError) && (
           <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-900/20">
             <p className="text-sm text-red-700 dark:text-red-400">
-              {submitError ?? 'Failed to update campaign. Please try again.'}
+              {submitError ?? t('failedToUpdateCampaign')}
             </p>
           </div>
         )}
