@@ -21,6 +21,8 @@ interface GeoPolygonMapProps {
   mapClassName?: string;
   /** Additional CSS class for the outer wrapper */
   className?: string;
+  /** Initial center from country selection [lat, lng] */
+  initialCenter?: [number, number];
 }
 
 export function GeoPolygonMap({
@@ -30,6 +32,7 @@ export function GeoPolygonMap({
   maxPoints = 50,
   mapClassName,
   className,
+  initialCenter,
 }: GeoPolygonMapProps) {
   const [isClient, setIsClient] = useState(false);
   const [points, setPoints] = useState<Array<[number, number]>>(value || []);
@@ -47,7 +50,8 @@ export function GeoPolygonMap({
         points.reduce((sum, p) => sum + p[0], 0) / points.length,
         points.reduce((sum, p) => sum + p[1], 0) / points.length,
       ]
-    : [0, 20];
+    : initialCenter ?? [0, 20];
+  const defaultZoom = points.length > 0 ? 10 : initialCenter ? 6 : 3;
 
   const handleMapClick = useCallback(
     (lat: number, lng: number) => {
@@ -120,7 +124,7 @@ export function GeoPolygonMap({
           />
           <MapContainer
             center={center}
-            zoom={points.length > 0 ? 10 : 3}
+            zoom={defaultZoom}
             style={{ height: '100%', width: '100%' }}
             scrollWheelZoom
           >

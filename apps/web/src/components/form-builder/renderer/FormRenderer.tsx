@@ -218,6 +218,7 @@ function SectionRenderer({
                     value={values[field.code]}
                     onChange={(v) => onChange(field.code, v)}
                     error={fieldErrors[field.code]}
+                    formValues={field.type === 'geo-selector' ? values : undefined}
                   />
                 </div>
               ))}

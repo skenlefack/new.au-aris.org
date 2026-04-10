@@ -19,6 +19,8 @@ interface GeoPointMapProps {
   mapClassName?: string;
   /** Additional CSS class for the outer wrapper */
   className?: string;
+  /** Initial center from country selection [lat, lng] */
+  initialCenter?: [number, number];
 }
 
 export function GeoPointMap({
@@ -28,6 +30,7 @@ export function GeoPointMap({
   autoDetect = true,
   mapClassName,
   className,
+  initialCenter,
 }: GeoPointMapProps) {
   const [lat, setLat] = useState(value?.lat?.toString() || '');
   const [lng, setLng] = useState(value?.lng?.toString() || '');
@@ -78,7 +81,8 @@ export function GeoPointMap({
 
   const center = value
     ? [value.lat, value.lng] as [number, number]
-    : [0, 20] as [number, number];
+    : initialCenter ?? [0, 20] as [number, number];
+  const zoom = value ? 12 : initialCenter ? 6 : 3;
 
   return (
     <div className={cn('flex flex-col space-y-2 rounded-lg border border-gray-200 p-3 dark:border-gray-700', className)}>
@@ -130,7 +134,7 @@ export function GeoPointMap({
           />
           <MapContainer
             center={center}
-            zoom={value ? 12 : 3}
+            zoom={zoom}
             style={{ height: '100%', width: '100%' }}
             scrollWheelZoom
           >

@@ -30,11 +30,13 @@ interface FieldRendererProps {
   onChange: (value: unknown) => void;
   /** Cross-field validation error message */
   error?: string;
+  /** All form values — used by geo-selector to center on selected country */
+  formValues?: Record<string, unknown>;
 }
 
 const ml = (text?: MultilingualText) => text?.en || text?.fr || '';
 
-export function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
+export function FieldRenderer({ field, value, onChange, error, formValues }: FieldRendererProps) {
   const label = ml(field.label);
   const placeholder = ml(field.placeholder);
   const helpText = ml(field.helpText);
@@ -370,6 +372,16 @@ export function FieldRenderer({ field, value, onChange, error }: FieldRendererPr
             onChange={onChange}
             modes={(field.properties.modes as Array<'point' | 'line' | 'polygon'>) || ['point', 'line', 'polygon']}
             defaultMode={(field.properties.defaultMode as 'point' | 'line' | 'polygon') || 'point'}
+            countryCode={(() => {
+              if (!formValues) return undefined;
+              // Extract country code from any admin-location field in the form
+              for (const v of Object.values(formValues)) {
+                if (v && typeof v === 'object' && 'level_0' in (v as Record<string, unknown>)) {
+                  return (v as Record<string, string>).level_0;
+                }
+              }
+              return undefined;
+            })()}
           />
         </Suspense>
       )}
