@@ -156,6 +156,7 @@ function ArchiveModal({
 }) {
   const [reason, setReason] = useState('');
   const t = useTranslations('collecte');
+  const locale = useLocaleStore((s) => s.locale);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -218,6 +219,7 @@ function DeleteModal({
   isPending: boolean;
 }) {
   const t = useTranslations('collecte');
+  const locale = useLocaleStore((s) => s.locale);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
