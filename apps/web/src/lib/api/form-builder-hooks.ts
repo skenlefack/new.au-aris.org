@@ -274,6 +274,36 @@ export function useFormSubmissions(templateId: string | undefined, params?: {
   });
 }
 
+// ---- List submissions from MULTIPLE templates (merged) ----
+export function useMultiTemplateSubmissions(
+  templateIds: string[],
+  params?: { limit?: number; status?: string },
+) {
+  const queryParams: Record<string, string> = {};
+  if (params?.limit) queryParams.limit = String(params.limit);
+  if (params?.status) queryParams.status = params.status;
+
+  return useQuery({
+    queryKey: ['form-builder', 'multi-submissions', templateIds, params],
+    queryFn: async () => {
+      const results = await Promise.all(
+        templateIds.map((tid) =>
+          fb.get<PaginatedResponse<FormSubmissionListItem>>(
+            `/templates/${tid}/submissions`,
+            { ...queryParams, limit: String(params?.limit ?? 50) },
+          ).catch(() => ({ data: [], meta: { total: 0, page: 1, limit: 50 } }) as PaginatedResponse<FormSubmissionListItem>),
+        ),
+      );
+      const allData = results.flatMap((r) => r.data);
+      allData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const total = results.reduce((s, r) => s + r.meta.total, 0);
+      return { data: allData, meta: { total, page: 1, limit: allData.length } };
+    },
+    enabled: templateIds.length > 0,
+    staleTime: 10_000,
+  });
+}
+
 // ---- Create submission ----
 export function useCreateSubmission() {
   const qc = useQueryClient();

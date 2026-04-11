@@ -16,11 +16,15 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { useFormSubmissions } from '@/lib/api/form-builder-hooks';
+import { useMultiTemplateSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-// Template: "Monthly Captures Report" (form-builder)
-const CAPTURES_TEMPLATE_ID = '85e8dfac-bd69-4107-b166-7906c3360a99';
+// AFADATA — All capture-related templates (old + new)
+const CAPTURES_TEMPLATES = [
+  '85e8dfac-bd69-4107-b166-7906c3360a99', // Monthly Captures Report (new)
+  '7de1ef69-e845-4767-8af6-25038fa86514', // Capture Fisheries Report (legacy)
+];
+const PRIMARY_TEMPLATE_ID = CAPTURES_TEMPLATES[0];
 
 const STATUS_CONFIG: Record<string, { badge: string; icon: React.ReactNode }> = {
   DRAFT: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: <FileText className="h-3 w-3" /> },
@@ -34,8 +38,7 @@ export default function CapturesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  const { data, isLoading } = useFormSubmissions(CAPTURES_TEMPLATE_ID, {
-    page: 1,
+  const { data, isLoading } = useMultiTemplateSubmissions(CAPTURES_TEMPLATES, {
     limit: 50,
     status: statusFilter || undefined,
   });
@@ -71,7 +74,7 @@ export default function CapturesPage() {
           </div>
         </div>
         <Link
-          href={`/collecte/forms/${CAPTURES_TEMPLATE_ID}/fill?returnTo=/fisheries/captures`}
+          href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/fisheries/captures`}
           className="flex items-center gap-2 rounded-lg bg-cyan-700 px-3 py-2 text-sm font-semibold text-white hover:bg-cyan-800"
         >
           <Plus className="h-4 w-4" />
@@ -123,7 +126,7 @@ export default function CapturesPage() {
           <p className="mt-4 text-sm text-gray-400">{t('noCapturesFound')}</p>
           <p className="mt-1 text-xs text-gray-300">{t('noCapturesDesc') || t('capturesDesc')}</p>
           <Link
-            href={`/collecte/forms/${CAPTURES_TEMPLATE_ID}/fill?returnTo=/fisheries/captures`}
+            href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/fisheries/captures`}
             className="mt-4 flex items-center gap-1 text-sm font-medium text-cyan-600 hover:text-cyan-700"
           >
             <Plus className="h-4 w-4" /> {t('addCapture')}

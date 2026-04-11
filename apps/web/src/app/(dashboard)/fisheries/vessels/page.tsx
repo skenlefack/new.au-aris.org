@@ -15,11 +15,15 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { useFormSubmissions } from '@/lib/api/form-builder-hooks';
+import { useMultiTemplateSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-// Template: "Vessel Registry" (form-builder)
-const VESSELS_TEMPLATE_ID = '1c5a9949-9a73-4b4f-a8da-0914a112e35a';
+// AFADATA — All vessel-related templates (old + new)
+const VESSELS_TEMPLATES = [
+  '1c5a9949-9a73-4b4f-a8da-0914a112e35a', // Vessel Registry (new)
+  'bd1bcea3-42ad-4930-9b64-faf4a869597f', // Fishing Vessel Registration (legacy)
+];
+const PRIMARY_TEMPLATE_ID = VESSELS_TEMPLATES[0];
 
 const STATUS_CONFIG: Record<string, { badge: string; icon: React.ReactNode }> = {
   DRAFT: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: <FileText className="h-3 w-3" /> },
@@ -40,8 +44,7 @@ export default function VesselsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  const { data, isLoading } = useFormSubmissions(VESSELS_TEMPLATE_ID, {
-    page: 1,
+  const { data, isLoading } = useMultiTemplateSubmissions(VESSELS_TEMPLATES, {
     limit: 50,
     status: statusFilter || undefined,
   });
@@ -77,7 +80,7 @@ export default function VesselsPage() {
           </div>
         </div>
         <Link
-          href={`/collecte/forms/${VESSELS_TEMPLATE_ID}/fill?returnTo=/fisheries/vessels`}
+          href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/fisheries/vessels`}
           className="flex items-center gap-2 rounded-lg bg-cyan-700 px-3 py-2 text-sm font-semibold text-white hover:bg-cyan-800"
         >
           <Plus className="h-4 w-4" />
@@ -128,7 +131,7 @@ export default function VesselsPage() {
           <Ship className="h-12 w-12 text-gray-200 dark:text-gray-600" />
           <p className="mt-4 text-sm text-gray-400">{t('noVesselsFound')}</p>
           <Link
-            href={`/collecte/forms/${VESSELS_TEMPLATE_ID}/fill?returnTo=/fisheries/vessels`}
+            href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/fisheries/vessels`}
             className="mt-4 flex items-center gap-1 text-sm font-medium text-cyan-600 hover:text-cyan-700"
           >
             <Plus className="h-4 w-4" /> {t('addVessel')}

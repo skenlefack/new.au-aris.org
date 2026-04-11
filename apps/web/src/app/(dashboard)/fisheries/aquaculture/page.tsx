@@ -15,11 +15,16 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { useFormSubmissions } from '@/lib/api/form-builder-hooks';
+import { useMultiTemplateSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-// Template: "Aquaculture Farm Report" (form-builder)
-const AQUACULTURE_TEMPLATE_ID = '7bada615-c0c6-4b47-9e78-1a8af94b8cd9';
+// AFADATA — All aquaculture-related templates (old + new)
+const AQUACULTURE_TEMPLATES = [
+  '7bada615-c0c6-4b47-9e78-1a8af94b8cd9', // Aquaculture Farm Report (new)
+  '89a7aa9a-0740-4470-97fd-3a91709df5d9', // Aquaculture Farm Registration (legacy)
+  '25a65b38-6404-4d5c-84bf-a81ccb964a02', // Aquaculture Production Report (legacy)
+];
+const PRIMARY_TEMPLATE_ID = AQUACULTURE_TEMPLATES[0];
 
 const STATUS_CONFIG: Record<string, { badge: string; icon: React.ReactNode }> = {
   DRAFT: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: <FileText className="h-3 w-3" /> },
@@ -41,8 +46,7 @@ export default function AquaculturePage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  const { data, isLoading } = useFormSubmissions(AQUACULTURE_TEMPLATE_ID, {
-    page: 1,
+  const { data, isLoading } = useMultiTemplateSubmissions(AQUACULTURE_TEMPLATES, {
     limit: 50,
     status: statusFilter || undefined,
   });
@@ -93,7 +97,7 @@ export default function AquaculturePage() {
           </div>
         </div>
         <Link
-          href={`/collecte/forms/${AQUACULTURE_TEMPLATE_ID}/fill?returnTo=/fisheries/aquaculture`}
+          href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/fisheries/aquaculture`}
           className="flex items-center gap-2 rounded-lg bg-green-700 px-3 py-2 text-sm font-semibold text-white hover:bg-green-800"
         >
           <Plus className="h-4 w-4" />
@@ -168,7 +172,7 @@ export default function AquaculturePage() {
           <Warehouse className="h-12 w-12 text-gray-200 dark:text-gray-600" />
           <p className="mt-4 text-sm text-gray-400">{t('noFarmsFound')}</p>
           <Link
-            href={`/collecte/forms/${AQUACULTURE_TEMPLATE_ID}/fill?returnTo=/fisheries/aquaculture`}
+            href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/fisheries/aquaculture`}
             className="mt-4 flex items-center gap-1 text-sm font-medium text-green-600 hover:text-green-700"
           >
             <Plus className="h-4 w-4" /> {t('addFarm')}

@@ -17,11 +17,14 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { useFormSubmissions } from '@/lib/api/form-builder-hooks';
+import { useMultiTemplateSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-// Template: "Fish Trade Report" (form-builder)
-const TRADE_TEMPLATE_ID = 'c1533f8a-bb8b-42e0-b666-dac5263b4a53';
+// AFADATA — Fish trade template(s)
+const TRADE_TEMPLATES = [
+  'c1533f8a-bb8b-42e0-b666-dac5263b4a53', // Fish Trade Report
+];
+const PRIMARY_TEMPLATE_ID = TRADE_TEMPLATES[0];
 
 const STATUS_CONFIG: Record<string, { badge: string; icon: React.ReactNode }> = {
   DRAFT: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: <FileText className="h-3 w-3" /> },
@@ -40,8 +43,7 @@ export default function FishTradePage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  const { data, isLoading } = useFormSubmissions(TRADE_TEMPLATE_ID, {
-    page: 1,
+  const { data, isLoading } = useMultiTemplateSubmissions(TRADE_TEMPLATES, {
     limit: 50,
     status: statusFilter || undefined,
   });
@@ -94,7 +96,7 @@ export default function FishTradePage() {
           </div>
         </div>
         <Link
-          href={`/collecte/forms/${TRADE_TEMPLATE_ID}/fill?returnTo=/fisheries/trade`}
+          href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/fisheries/trade`}
           className="flex items-center gap-2 rounded-lg bg-orange-600 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-700"
         >
           <Plus className="h-4 w-4" />
@@ -178,7 +180,7 @@ export default function FishTradePage() {
           <ArrowUpDown className="h-12 w-12 text-gray-200 dark:text-gray-600" />
           <p className="mt-4 text-sm text-gray-400">{t('noTradeFound')}</p>
           <Link
-            href={`/collecte/forms/${TRADE_TEMPLATE_ID}/fill?returnTo=/fisheries/trade`}
+            href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/fisheries/trade`}
             className="mt-4 flex items-center gap-1 text-sm font-medium text-orange-600 hover:text-orange-700"
           >
             <Plus className="h-4 w-4" /> {t('addTradeFlow')}

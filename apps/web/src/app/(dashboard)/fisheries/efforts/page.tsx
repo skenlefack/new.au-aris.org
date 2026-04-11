@@ -15,11 +15,15 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { useFormSubmissions } from '@/lib/api/form-builder-hooks';
+import { useMultiTemplateSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-// Template: "Fishing Effort Quarterly" (form-builder)
-const EFFORTS_TEMPLATE_ID = '74fa068c-230b-49bb-87d7-fc7845ee8736';
+// AFADATA — All effort-related templates (old + new)
+const EFFORTS_TEMPLATES = [
+  '74fa068c-230b-49bb-87d7-fc7845ee8736', // Fishing Effort Quarterly (new)
+  'd0184b73-de13-4c51-bae9-ea427bdcab03', // Fishing Effort Report (legacy)
+];
+const PRIMARY_TEMPLATE_ID = EFFORTS_TEMPLATES[0];
 
 const STATUS_CONFIG: Record<string, { badge: string; icon: React.ReactNode }> = {
   DRAFT: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: <FileText className="h-3 w-3" /> },
@@ -33,8 +37,7 @@ export default function EffortsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  const { data, isLoading } = useFormSubmissions(EFFORTS_TEMPLATE_ID, {
-    page: 1,
+  const { data, isLoading } = useMultiTemplateSubmissions(EFFORTS_TEMPLATES, {
     limit: 50,
     status: statusFilter || undefined,
   });
@@ -70,7 +73,7 @@ export default function EffortsPage() {
           </div>
         </div>
         <Link
-          href={`/collecte/forms/${EFFORTS_TEMPLATE_ID}/fill?returnTo=/fisheries/efforts`}
+          href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/fisheries/efforts`}
           className="flex items-center gap-2 rounded-lg bg-purple-700 px-3 py-2 text-sm font-semibold text-white hover:bg-purple-800"
         >
           <Plus className="h-4 w-4" />
@@ -121,7 +124,7 @@ export default function EffortsPage() {
           <Activity className="h-12 w-12 text-gray-200 dark:text-gray-600" />
           <p className="mt-4 text-sm text-gray-400">{t('noEffortsFound')}</p>
           <Link
-            href={`/collecte/forms/${EFFORTS_TEMPLATE_ID}/fill?returnTo=/fisheries/efforts`}
+            href={`/collecte/forms/${PRIMARY_TEMPLATE_ID}/fill?returnTo=/fisheries/efforts`}
             className="mt-4 flex items-center gap-1 text-sm font-medium text-purple-600 hover:text-purple-700"
           >
             <Plus className="h-4 w-4" /> {t('addEffort')}
