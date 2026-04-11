@@ -2,7 +2,7 @@
 
 export type ConnectorType = 'WAHIS' | 'EMPRES' | 'FAOSTAT' | 'FISHSTATJ' | 'CITES';
 export type InteropStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
-export type ExportFormat = 'WOAH_JSON' | 'WOAH_XML' | 'EMPRES_JSON' | 'FAOSTAT_CSV' | 'FAOSTAT_JSON';
+export type ExportFormat = 'WOAH_JSON' | 'WOAH_XML' | 'EMPRES_JSON' | 'FAOSTAT_CSV' | 'FAOSTAT_JSON' | 'FISHSTATJ_CSV' | 'CITES_CSV';
 
 // ── Entity interfaces ──
 
@@ -146,4 +146,56 @@ export interface FaostatDiscrepancy {
   existingValue: number;
   faostatValue: number;
   percentDiff: number;
+}
+
+// ── FishStatJ export types ──
+
+export interface FishStatJRow {
+  country: string;
+  countryCode: string;
+  isscaapGroup: string;
+  speciesScientific: string;
+  speciesFaoCode: string;
+  faoArea: string;
+  productionSource: 'C' | 'A'; // C = Capture, A = Aquaculture
+  unit: string;
+  year: number;
+  quantity: number;
+}
+
+export interface FishStatJPackage {
+  exportId: string;
+  countryCode: string;
+  year: number;
+  generatedAt: string;
+  format: string;
+  rows: FishStatJRow[];
+  totalRows: number;
+}
+
+// ── CITES export types ──
+
+export interface CitesPermitRow {
+  year: number;
+  countryCode: string;
+  speciesName: string;
+  speciesCode: string;
+  appendix: 'I' | 'II' | 'III';
+  purpose: string; // T = Trade, S = Scientific, H = Hunting, P = Personal, etc.
+  source: string;  // W = Wild, C = Captive-bred, R = Ranched, etc.
+  originCountry: string;
+  importCountry: string;
+  quantity: number;
+  unit: string;
+  permitNumber: string;
+}
+
+export interface CitesPackage {
+  exportId: string;
+  countryCode: string;
+  year: number;
+  generatedAt: string;
+  format: string;
+  permits: CitesPermitRow[];
+  totalPermits: number;
 }

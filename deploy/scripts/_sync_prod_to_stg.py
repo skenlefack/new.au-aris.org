@@ -281,6 +281,7 @@ sql_extensions = """
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 """
 upload_sql(STG_DB, STG_CONTAINER, sql_extensions, "extensions")
 
@@ -297,6 +298,11 @@ UNION ALL SELECT 'users', count(*)::text FROM public.users
 UNION ALL SELECT 'functions', count(*)::text FROM governance.functions
 UNION ALL SELECT 'species', count(*)::text FROM public.species
 UNION ALL SELECT 'diseases', count(*)::text FROM animal_health.ref_diseases
+UNION ALL SELECT 'form_templates', count(*)::text FROM form_builder.form_templates
+UNION ALL SELECT 'campaigns', count(*)::text FROM public.collection_campaigns
+UNION ALL SELECT 'fishery_refs', count(*)::text FROM public.fishery_referentials
+UNION ALL SELECT 'fish_captures', count(*)::text FROM fisheries.fish_captures
+UNION ALL SELECT 'trade_flows', count(*)::text FROM trade_sps.trade_flows
 ORDER BY 1;
 """
 code, out, _ = upload_sql(STG_DB, STG_CONTAINER, sql_verify, "verify")
@@ -316,7 +322,13 @@ code, _, _ = run_sudo(STG_DB, "docker start aris-stg-pgbouncer 2>&1", timeout=30
 safe_print("  Waiting 5s...")
 time.sleep(5)
 
-safe_print("  Restarting key services on APP VM...")
+safe_print("  Flushing staging Redis cache...")
+STG_CACHE = "10.202.101.149"
+REDIS_PASS = "R3d1s_Stg_2024!vN7wQ"
+code, out, _ = run_sudo(STG_CACHE, f"docker exec aris-stg-redis redis-cli -a '{REDIS_PASS}' --no-auth-warning FLUSHALL 2>&1", timeout=15)
+safe_print(f"  Redis FLUSHALL: {out.strip()}")
+
+safe_print("  Restarting ALL staging services...")
 services_to_restart = [
     "aris-stg-credential",
     "aris-stg-tenant",
@@ -324,6 +336,22 @@ services_to_restart = [
     "aris-stg-workflow",
     "aris-stg-animal-health",
     "aris-stg-message",
+    "aris-stg-fisheries",
+    "aris-stg-trade-sps",
+    "aris-stg-governance",
+    "aris-stg-livestock-prod",
+    "aris-stg-form-builder",
+    "aris-stg-collecte",
+    "aris-stg-data-quality",
+    "aris-stg-data-contract",
+    "aris-stg-analytics",
+    "aris-stg-knowledge-hub",
+    "aris-stg-interop-hub",
+    "aris-stg-geo-services",
+    "aris-stg-data-sharing",
+    "aris-stg-drive",
+    "aris-stg-realtime",
+    "aris-stg-web",
 ]
 for svc in services_to_restart:
     code, out, _ = run_sudo(STG_APP, f"docker restart {svc} 2>&1", timeout=30)
@@ -338,7 +366,7 @@ step("Step 6: Verify login")
 # Upload login test script
 login_script = """#!/bin/bash
 cat > /tmp/login_body.json << 'JSONEOF'
-{"email":"admin@au-aris.org","password":"Aris2024!"}
+{"email":"admin@au-aris.org","password":"Aris2026@@4!0"}
 JSONEOF
 curl -s --max-time 10 -X POST http://localhost:3002/api/v1/credential/auth/login \
   -H 'Content-Type: application/json' \
@@ -368,5 +396,5 @@ else:
 safe_print("\n" + "=" * 60)
 safe_print("  SYNC COMPLETE!")
 safe_print("  Production data is now on staging.")
-safe_print("  Login: admin@au-aris.org / Aris2024!")
+safe_print("  Login: admin@au-aris.org / Aris2026@@4!0")
 safe_print("=" * 60)

@@ -90,10 +90,11 @@ object RoleConfig {
 
     fun visibleDomains(role: String?): List<DomainInfo> {
         val allowed = roleDomainAccess[role]
+        val base = arisDomains.filter { DomainActivation.isActive(it.key) }
         return if (allowed == null) {
-            arisDomains
+            base
         } else {
-            arisDomains.filter { it.key in allowed }
+            base.filter { it.key in allowed }
         }
     }
 
@@ -110,12 +111,13 @@ object RoleConfig {
         }
         // Map backend codes to mobile keys (e.g. "animal-health" → "health")
         val mappedCodes = userDomainCodes.map { backendToMobileKey(it) }.toSet()
+        val base = arisDomains.filter { DomainActivation.isActive(it.key) }
         return if (roleAllowed == null) {
             // Role sees all → restrict to assigned domains
-            arisDomains.filter { it.key in mappedCodes }
+            base.filter { it.key in mappedCodes }
         } else {
             // Role has restrictions → intersect with assigned domains
-            arisDomains.filter { it.key in roleAllowed && it.key in mappedCodes }
+            base.filter { it.key in roleAllowed && it.key in mappedCodes }
         }
     }
 

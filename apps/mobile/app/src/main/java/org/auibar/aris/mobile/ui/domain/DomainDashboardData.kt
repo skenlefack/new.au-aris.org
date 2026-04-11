@@ -188,6 +188,23 @@ object DomainDashboards {
             alertTypes = listOf("Drought", "Flood", "Desertification", "Heat wave"),
         )
 
+        "paid" -> DomainDashboardConfig(
+            subtitle = "Pan-African Animal Identification & Documentation",
+            kpis = listOf(
+                DomainKpi("Active Campaigns", "18", "ongoing", "up", "+3", Icons.Default.Assessment),
+                DomainKpi("Submissions", "4,250", "total collected", "up", "+320", Icons.Default.Inventory),
+                DomainKpi("Completion", "76%", "avg rate", "up", "+5%", Icons.Default.Assessment),
+                DomainKpi("Countries", "32", "participating", "up", "+4", Icons.Default.Map),
+            ),
+            quickLinks = listOf(
+                DomainQuickLink("New Collection", Icons.Default.Assessment, "campaigns"),
+                DomainQuickLink("Templates", Icons.Default.Inventory, "campaigns"),
+                DomainQuickLink("Map View", Icons.Default.Map, "map"),
+                DomainQuickLink("Reports", Icons.Default.Assessment, "reports"),
+            ),
+            alertTypes = listOf("Data gap", "Quality issue", "Deadline approaching"),
+        )
+
         "knowledge" -> DomainDashboardConfig(
             subtitle = "Portal, E-Learning & Publications",
             kpis = listOf(

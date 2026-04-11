@@ -8,10 +8,12 @@ import type { AuthHookOptions } from '@aris/auth-middleware';
 import { CategoryService } from './services/category.service';
 import { PublicationService } from './services/publication.service';
 import { SearchService } from './services/search.service';
+import { ElearningService } from './services/elearning.service';
 import { registerHealthRoutes } from './routes/health.routes';
 import { registerCategoryRoutes } from './routes/category.routes';
 import { registerPublicationRoutes } from './routes/publication.routes';
 import { registerSearchRoutes } from './routes/search.routes';
+import { registerElearningRoutes } from './routes/elearning.routes';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -90,16 +92,19 @@ export async function buildApp(): Promise<FastifyInstance> {
   );
   const categoryService = new CategoryService(prisma, kafka);
   const publicationService = new PublicationService(prisma, kafka, categoryService, searchService);
+  const elearningService = new ElearningService(prisma, kafka);
 
   app.decorate('categoryService', categoryService);
   app.decorate('publicationService', publicationService);
   app.decorate('searchService', searchService);
+  app.decorate('elearningService', elearningService);
 
   // --- Routes ---
   await app.register(registerHealthRoutes);
   await app.register(registerCategoryRoutes);
   await app.register(registerPublicationRoutes);
   await app.register(registerSearchRoutes);
+  await app.register(registerElearningRoutes);
 
   return app;
 }

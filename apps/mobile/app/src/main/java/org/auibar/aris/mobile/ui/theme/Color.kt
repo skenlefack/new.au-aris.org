@@ -43,6 +43,7 @@ val DomainApiculture   = Color(0xFFF9A825)  // Yellow 800
 val DomainGovernance   = Color(0xFF37474F)  // Blue Grey 800
 val DomainClimate      = Color(0xFF00695C)  // Teal 800
 val DomainKnowledge    = Color(0xFF4527A0)  // Deep Purple 800
+val DomainPaid         = Color(0xFF6A1B9A)  // Purple 800
 
 // ── Gradient colors ─────────────────────────────────────────────────
 val GradientDarkGreen  = Color(0xFF0A2E14)

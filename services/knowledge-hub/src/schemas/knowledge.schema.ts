@@ -209,6 +209,76 @@ export const ReviewPublicationSchema = Type.Object({
 });
 export type ReviewPublicationInput = Static<typeof ReviewPublicationSchema>;
 
+// ── E-Learning ──
+
+const CourseStatusEnum = Type.Union([
+  Type.Literal('DRAFT'),
+  Type.Literal('PUBLISHED'),
+  Type.Literal('ARCHIVED'),
+]);
+
+export const CreateCourseSchema = Type.Object({
+  title: MultilingualText,
+  description: Type.Optional(MultilingualText),
+  coverImageId: Type.Optional(Type.String({ format: 'uuid' })),
+  domain: Type.Optional(Type.String({ maxLength: 50 })),
+  tags: Type.Optional(Type.Array(Type.String())),
+  estimatedHours: Type.Optional(Type.Number({ minimum: 0 })),
+  modules: Type.Optional(Type.Array(Type.Object({
+    title: MultilingualText,
+    content: MultilingualText,
+    sortOrder: Type.Optional(Type.Integer({ minimum: 0 })),
+    durationMinutes: Type.Optional(Type.Integer({ minimum: 0 })),
+  }))),
+});
+export type CreateCourseInput = Static<typeof CreateCourseSchema>;
+
+export const UpdateCourseSchema = Type.Object({
+  title: Type.Optional(MultilingualText),
+  description: Type.Optional(MultilingualText),
+  coverImageId: Type.Optional(Type.Union([Type.String({ format: 'uuid' }), Type.Null()])),
+  domain: Type.Optional(Type.String({ maxLength: 50 })),
+  tags: Type.Optional(Type.Array(Type.String())),
+  estimatedHours: Type.Optional(Type.Number({ minimum: 0 })),
+});
+export type UpdateCourseInput = Static<typeof UpdateCourseSchema>;
+
+export const CourseFilterSchema = Type.Object({
+  page: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 20 })),
+  status: Type.Optional(CourseStatusEnum),
+  domain: Type.Optional(Type.String()),
+  search: Type.Optional(Type.String()),
+});
+export type CourseFilterInput = Static<typeof CourseFilterSchema>;
+
+export const AddModuleSchema = Type.Object({
+  title: MultilingualText,
+  content: MultilingualText,
+  sortOrder: Type.Optional(Type.Integer({ minimum: 0 })),
+  durationMinutes: Type.Optional(Type.Integer({ minimum: 0 })),
+});
+export type AddModuleInput = Static<typeof AddModuleSchema>;
+
+export const UpdateModuleSchema = Type.Object({
+  title: Type.Optional(MultilingualText),
+  content: Type.Optional(MultilingualText),
+  sortOrder: Type.Optional(Type.Integer({ minimum: 0 })),
+  durationMinutes: Type.Optional(Type.Integer({ minimum: 0 })),
+});
+export type UpdateModuleInput = Static<typeof UpdateModuleSchema>;
+
+export const ReorderModulesSchema = Type.Object({
+  moduleIds: Type.Array(Type.String({ format: 'uuid' })),
+});
+export type ReorderModulesInput = Static<typeof ReorderModulesSchema>;
+
+export const ModuleIdParamSchema = Type.Object({
+  id: Type.String({ format: 'uuid' }),
+  moduleId: Type.String({ format: 'uuid' }),
+});
+export type ModuleIdParamInput = Static<typeof ModuleIdParamSchema>;
+
 // ── Public search ──
 
 export const PublicSearchSchema = Type.Object({

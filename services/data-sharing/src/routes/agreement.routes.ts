@@ -120,7 +120,10 @@ export async function registerAgreementRoutes(app: FastifyInstance): Promise<voi
     { preHandler: [auth, tenant] },
     async (request) => {
       const user = request.user as AuthenticatedUser;
-      const filters = (request.query as Record<string, unknown>) ?? {};
+      const filters = { ...(request.query as Record<string, unknown>) };
+      // Pass auth token for domain service proxy
+      const authHeader = request.headers['authorization'] ?? '';
+      filters['_authToken'] = authHeader.replace(/^Bearer\s+/i, '');
       return app.agreementService.previewData(request.params.id, user, filters);
     },
   );
@@ -133,7 +136,9 @@ export async function registerAgreementRoutes(app: FastifyInstance): Promise<voi
       const user = request.user as AuthenticatedUser;
       const q = request.query as Record<string, string>;
       const format = (q.format === 'csv' ? 'csv' : 'json') as 'json' | 'csv';
-      return app.agreementService.exportData(request.params.id, user, format);
+      const authHeader = request.headers['authorization'] ?? '';
+      const authToken = authHeader.replace(/^Bearer\s+/i, '');
+      return app.agreementService.exportData(request.params.id, user, format, authToken);
     },
   );
 

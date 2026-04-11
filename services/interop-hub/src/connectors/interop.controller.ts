@@ -22,10 +22,14 @@ import type {
 import { WahisService } from './wahis.service';
 import { EmpresService } from './empres.service';
 import { FaostatService } from './faostat.service';
+import { FishstatjService } from './fishstatj.service';
+import { CitesService } from './cites.service';
 import { ConnectorService } from './connector.service';
 import { CreateWahisExportDto } from '../dto/wahis-export.dto';
 import { CreateEmpresFeedDto } from '../dto/empres-feed.dto';
 import { CreateFaostatSyncDto } from '../dto/faostat-sync.dto';
+import { CreateFishstatjExportDto } from '../dto/fishstatj-export.dto';
+import { CreateCitesExportDto } from '../dto/cites-export.dto';
 import type {
   ExportRecordEntity,
   FeedRecordEntity,
@@ -41,6 +45,8 @@ export class InteropController {
     private readonly wahisService: WahisService,
     private readonly empresService: EmpresService,
     private readonly faostatService: FaostatService,
+    private readonly fishstatjService: FishstatjService,
+    private readonly citesService: CitesService,
     private readonly connectorService: ConnectorService,
   ) {}
 
@@ -116,6 +122,66 @@ export class InteropController {
   ): Promise<PaginatedResponse<SyncRecordEntity>> {
     const query: PaginationQuery = { page, limit, sort, order };
     return this.faostatService.findAll(user, query);
+  }
+
+  // ── FishStatJ ──
+
+  @Post('fishstatj/export')
+  async createFishstatjExport(
+    @Body() dto: CreateFishstatjExportDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<ApiResponse<ExportRecordEntity>> {
+    return this.fishstatjService.createExport(dto, user);
+  }
+
+  @Get('fishstatj/exports')
+  async listFishstatjExports(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('sort') sort?: string,
+    @Query('order') order?: 'asc' | 'desc',
+  ): Promise<PaginatedResponse<ExportRecordEntity>> {
+    const query: PaginationQuery = { page, limit, sort, order };
+    return this.fishstatjService.findAll(user, query);
+  }
+
+  @Get('fishstatj/exports/:id')
+  async getFishstatjExport(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<ApiResponse<ExportRecordEntity>> {
+    return this.fishstatjService.findOne(id, user);
+  }
+
+  // ── CITES ──
+
+  @Post('cites/export')
+  async createCitesExport(
+    @Body() dto: CreateCitesExportDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<ApiResponse<ExportRecordEntity>> {
+    return this.citesService.createExport(dto, user);
+  }
+
+  @Get('cites/exports')
+  async listCitesExports(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('sort') sort?: string,
+    @Query('order') order?: 'asc' | 'desc',
+  ): Promise<PaginatedResponse<ExportRecordEntity>> {
+    const query: PaginationQuery = { page, limit, sort, order };
+    return this.citesService.findAll(user, query);
+  }
+
+  @Get('cites/exports/:id')
+  async getCitesExport(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<ApiResponse<ExportRecordEntity>> {
+    return this.citesService.findOne(id, user);
   }
 
   // ── Connector management ──

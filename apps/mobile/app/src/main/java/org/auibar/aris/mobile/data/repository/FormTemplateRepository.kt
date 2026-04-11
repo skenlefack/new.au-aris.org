@@ -1,5 +1,6 @@
 package org.auibar.aris.mobile.data.repository
 
+import kotlinx.coroutines.flow.Flow
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
 import org.auibar.aris.mobile.data.local.entity.FormTemplateEntity
 import javax.inject.Inject
@@ -22,6 +23,10 @@ class FormTemplateRepository @Inject constructor(
 
     suspend fun getAll(): List<FormTemplate> {
         return formTemplateDao.getAll().map { it.toDomain() }
+    }
+
+    fun getTemplatesByDomain(domain: String): Flow<List<FormTemplateEntity>> {
+        return formTemplateDao.getByDomain(domain)
     }
 
     private fun FormTemplateEntity.toDomain() = FormTemplate(

@@ -76,6 +76,34 @@ export async function registerCategoryRoutes(app: FastifyInstance): Promise<void
     },
   );
 
+  // ── Individual workflow actions (convenience routes) ─────────────────────
+  app.post<{ Params: UuidParamInput }>(
+    `${PREFIX}/:id/submit`,
+    { schema: { params: UuidParamSchema }, preHandler: [app.authHookFn] },
+    async (request) => {
+      const user = request.user as AuthenticatedUser;
+      return app.categoryService.submitCategory(request.params.id, user);
+    },
+  );
+
+  app.post<{ Params: UuidParamInput }>(
+    `${PREFIX}/:id/approve`,
+    { schema: { params: UuidParamSchema }, preHandler: [app.authHookFn] },
+    async (request) => {
+      const user = request.user as AuthenticatedUser;
+      return app.categoryService.approveCategory(request.params.id, user);
+    },
+  );
+
+  app.post<{ Params: UuidParamInput; Body: { reason?: string } }>(
+    `${PREFIX}/:id/reject`,
+    { schema: { params: UuidParamSchema }, preHandler: [app.authHookFn] },
+    async (request) => {
+      const user = request.user as AuthenticatedUser;
+      return app.categoryService.rejectCategory(request.params.id, (request.body as any)?.reason, user);
+    },
+  );
+
   app.get<{ Params: UuidParamInput }>(
     `${PREFIX}/:id`,
     { schema: { params: UuidParamSchema }, preHandler: [app.authHookFn] },

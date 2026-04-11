@@ -305,6 +305,49 @@ export class CategoryService {
     return { data };
   }
 
+  /**
+   * Submit a PENDING category for review.
+   * Non-continental users can re-submit a REJECTED category.
+   */
+  async submitCategory(id: string, user: AuthenticatedUser): Promise<ApiResponse<CategoryNode>> {
+    const existing = await (this.prisma as any).knowledgeCategory.findUnique({ where: { id } });
+    if (!existing) throw this.httpError(404, 'Category not found');
+    this.assertCanManageCategory(existing, user);
+
+    if (existing.status !== 'REJECTED') {
+      throw this.httpError(409, `Category status is ${existing.status}, only REJECTED categories can be re-submitted`);
+    }
+
+    const category = await (this.prisma as any).knowledgeCategory.update({
+      where: { id },
+      data: {
+        status: 'PENDING',
+        submittedBy: user.userId,
+        submittedAt: new Date(),
+        rejectionReason: null,
+      },
+    });
+
+    await this.publishEvent(TOPIC_AU_KNOWLEDGE_CATEGORY_SUBMITTED, category, user);
+    return { data: category };
+  }
+
+  /**
+   * Approve a PENDING category. Convenience wrapper around review().
+   * Reserved to continental managers.
+   */
+  async approveCategory(id: string, user: AuthenticatedUser): Promise<ApiResponse<CategoryNode>> {
+    return this.review(id, 'APPROVED', undefined, user);
+  }
+
+  /**
+   * Reject a PENDING category with a reason. Convenience wrapper around review().
+   * Reserved to continental managers.
+   */
+  async rejectCategory(id: string, reason: string | undefined, user: AuthenticatedUser): Promise<ApiResponse<CategoryNode>> {
+    return this.review(id, 'REJECTED', reason, user);
+  }
+
   async update(id: string, dto: UpdateCategoryInput, user: AuthenticatedUser): Promise<ApiResponse<CategoryNode>> {
     const existing = await (this.prisma as any).knowledgeCategory.findUnique({ where: { id } });
     if (!existing) throw this.httpError(404, 'Category not found');

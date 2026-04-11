@@ -109,7 +109,7 @@ export class WahisService {
 
   /**
    * Generate the WAHIS package by querying wahis-ready workflow instances
-   * and transforming them to WOAH format.
+   * and transforming them to WOAH format with full enrichment from master data.
    */
   async generateWahisPackage(
     exportId: string,
@@ -117,9 +117,8 @@ export class WahisService {
     periodStart: Date,
     periodEnd: Date,
   ): Promise<WahisPackage> {
-    // Query workflow instances that are WAHIS-ready for this country/period.
-    // In production this would query the animal-health service or a shared view.
-    // Here we query workflow instances marked wahis_ready = true.
+    // Query workflow instances that are WAHIS-ready for this country/period,
+    // joined with animal_health events + master_data for enrichment.
     const wahisInstances = await this.prisma.$queryRaw<
       Array<{
         id: string;
@@ -127,10 +126,22 @@ export class WahisService {
         entity_id: string;
         domain: string;
         created_at: Date;
+        disease_id: string | null;
+        onset_date: Date | null;
+        cases: number | null;
+        deaths: number | null;
+        latitude: number | null;
+        longitude: number | null;
+        confidence_level: string | null;
+        control_measures: string | null;
       }>
     >`
-      SELECT wi.id, wi.entity_type, wi.entity_id, wi.domain, wi.created_at
+      SELECT wi.id, wi.entity_type, wi.entity_id, wi.domain, wi.created_at,
+             he.disease_id, he.onset_date, he.cases, he.deaths,
+             he.latitude, he.longitude, he.confidence_level,
+             he.control_measures
       FROM workflow.workflow_instances wi
+      LEFT JOIN animal_health.health_events he ON he.id = wi.entity_id
       WHERE wi.wahis_ready = true
         AND wi.domain = 'health'
         AND wi.created_at >= ${periodStart}
@@ -138,21 +149,45 @@ export class WahisService {
       ORDER BY wi.created_at ASC
     `;
 
-    // Transform to WAHIS event format
-    const events: WahisEvent[] = wahisInstances.map((wi) => ({
-      eventId: wi.entity_id,
-      diseaseCode: 'PENDING', // Would be enriched from health event data
-      diseaseName: 'PENDING',
-      countryCode,
-      reportDate: wi.created_at.toISOString(),
-      onsetDate: null,
-      species: [],
-      cases: 0,
-      deaths: 0,
-      controlMeasures: [],
-      coordinates: null,
-      confidenceLevel: 'CONFIRMED',
-    }));
+    // Collect unique disease IDs and entity IDs for batch enrichment
+    const diseaseIds = [...new Set(
+      wahisInstances.map((wi) => wi.disease_id).filter(Boolean) as string[]
+    )];
+    const entityIds = wahisInstances.map((wi) => wi.entity_id);
+
+    // Batch-fetch disease codes from master_data.ref_diseases
+    const diseaseMap = await this.fetchDiseaseMap(diseaseIds);
+
+    // Batch-fetch species per event from animal_health.event_species
+    const speciesMap = await this.fetchSpeciesMap(entityIds);
+
+    // Fetch geo enrichment for country
+    const geoInfo = await this.fetchGeoInfo(countryCode);
+
+    // Transform to WAHIS event format with full enrichment
+    const events: WahisEvent[] = wahisInstances.map((wi) => {
+      const disease = wi.disease_id ? diseaseMap.get(wi.disease_id) : null;
+      const eventSpecies = speciesMap.get(wi.entity_id) ?? [];
+
+      return {
+        eventId: wi.entity_id,
+        diseaseCode: disease?.woahCode ?? 'UNKNOWN',
+        diseaseName: disease?.name ?? 'Unknown Disease',
+        countryCode: geoInfo?.iso3 ?? countryCode,
+        reportDate: wi.created_at.toISOString(),
+        onsetDate: wi.onset_date?.toISOString() ?? null,
+        species: eventSpecies,
+        cases: wi.cases ?? 0,
+        deaths: wi.deaths ?? 0,
+        controlMeasures: wi.control_measures
+          ? (wi.control_measures as string).split(',').map((s) => s.trim())
+          : [],
+        coordinates: wi.latitude != null && wi.longitude != null
+          ? { lat: wi.latitude, lng: wi.longitude }
+          : null,
+        confidenceLevel: wi.confidence_level ?? 'CONFIRMED',
+      };
+    });
 
     return {
       exportId,
@@ -164,6 +199,94 @@ export class WahisService {
       events,
       totalEvents: events.length,
     };
+  }
+
+  /**
+   * Fetch WOAH disease codes from master_data.ref_diseases for a set of disease IDs.
+   */
+  private async fetchDiseaseMap(
+    diseaseIds: string[],
+  ): Promise<Map<string, { woahCode: string; name: string }>> {
+    const map = new Map<string, { woahCode: string; name: string }>();
+    if (diseaseIds.length === 0) return map;
+
+    try {
+      const diseases = await this.prisma.$queryRaw<
+        Array<{ id: string; woah_code: string; name: string }>
+      >`
+        SELECT id, COALESCE(woah_code, code) AS woah_code, name
+        FROM master_data.ref_diseases
+        WHERE id = ANY(${diseaseIds}::uuid[])
+      `;
+
+      for (const d of diseases) {
+        map.set(d.id, { woahCode: d.woah_code, name: d.name });
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to fetch disease enrichment (${diseaseIds.length} IDs): ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    return map;
+  }
+
+  /**
+   * Fetch species names per health event from animal_health.event_species + master_data.ref_species.
+   */
+  private async fetchSpeciesMap(
+    entityIds: string[],
+  ): Promise<Map<string, string[]>> {
+    const map = new Map<string, string[]>();
+    if (entityIds.length === 0) return map;
+
+    try {
+      const rows = await this.prisma.$queryRaw<
+        Array<{ event_id: string; species_name: string }>
+      >`
+        SELECT es.health_event_id AS event_id,
+               COALESCE(rs.scientific_name, rs.common_name, rs.code) AS species_name
+        FROM animal_health.event_species es
+        LEFT JOIN master_data.ref_species rs ON rs.id = es.species_id
+        WHERE es.health_event_id = ANY(${entityIds}::uuid[])
+      `;
+
+      for (const row of rows) {
+        const existing = map.get(row.event_id) ?? [];
+        existing.push(row.species_name);
+        map.set(row.event_id, existing);
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to fetch species enrichment (${entityIds.length} events): ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    return map;
+  }
+
+  /**
+   * Fetch ISO3 code and country name from master_data.ref_geo_entities.
+   */
+  private async fetchGeoInfo(
+    countryCode: string,
+  ): Promise<{ iso3: string; name: string } | null> {
+    try {
+      const rows = await this.prisma.$queryRaw<
+        Array<{ iso3: string; name: string }>
+      >`
+        SELECT COALESCE(iso3_code, code) AS iso3, name
+        FROM master_data.ref_geo_entities
+        WHERE code = ${countryCode} OR iso3_code = ${countryCode}
+        LIMIT 1
+      `;
+      return rows[0] ?? null;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to fetch geo info for ${countryCode}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return null;
+    }
   }
 
   async findAll(

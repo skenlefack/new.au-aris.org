@@ -57,6 +57,8 @@ import org.auibar.aris.mobile.ui.message.MessageListScreen
 import org.auibar.aris.mobile.ui.message.MessageThreadScreen
 import org.auibar.aris.mobile.ui.components.UserTopBanner
 import org.auibar.aris.mobile.ui.domain.DomainDashboardScreen
+import org.auibar.aris.mobile.ui.paid.PaidDashboardScreen
+import org.auibar.aris.mobile.ui.paid.PaidCollecteScreen
 import org.auibar.aris.mobile.ui.health.OutbreakReportScreen
 import org.auibar.aris.mobile.ui.health.SurveillanceEventScreen
 import org.auibar.aris.mobile.ui.fisheries.CaptureRecordScreen
@@ -117,6 +119,8 @@ object ArisRoutes {
     const val VET_CAPACITY = "vet-capacity/{campaignId}"
     const val WATER_STRESS = "water-stress/{campaignId}"
     const val RANGELAND = "rangeland/{campaignId}"
+    const val PAID_DASHBOARD = "paid-dashboard"
+    const val PAID_COLLECTE = "paid-collecte"
     const val MESSAGES = "messages"
     const val COMPOSE_MESSAGE = "compose-message"
     const val MESSAGE_THREAD = "messages/{threadId}/{recipientId}/{recipientName}"
@@ -275,7 +279,11 @@ fun ArisNavGraph(
                         }
                     },
                     onDomainClick = { domainKey ->
-                        navController.navigate(ArisRoutes.domainDashboard(domainKey))
+                        if (domainKey == "paid") {
+                            navController.navigate(ArisRoutes.PAID_DASHBOARD)
+                        } else {
+                            navController.navigate(ArisRoutes.domainDashboard(domainKey))
+                        }
                     },
                 )
             }
@@ -654,6 +662,28 @@ fun ArisNavGraph(
                             else -> return@DomainDashboardScreen
                         }
                         navController.navigate(route)
+                    },
+                )
+            }
+
+            // ── PAID ──
+            composable(ArisRoutes.PAID_DASHBOARD) {
+                PaidDashboardScreen(
+                    onBack = { navController.popBackStack() },
+                    onCampaignClick = { campaignId ->
+                        navController.navigate(ArisRoutes.campaignDetail(campaignId))
+                    },
+                    onCollecte = {
+                        navController.navigate(ArisRoutes.PAID_COLLECTE)
+                    },
+                )
+            }
+
+            composable(ArisRoutes.PAID_COLLECTE) {
+                PaidCollecteScreen(
+                    onBack = { navController.popBackStack() },
+                    onTemplateClick = { campaignId, templateId ->
+                        navController.navigate(ArisRoutes.formFill(campaignId, templateId))
                     },
                 )
             }

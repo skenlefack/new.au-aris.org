@@ -97,6 +97,8 @@ export const TOPIC_AU_INTEROP_EMPRES_FED = 'au.interop.empres.fed.v1' as const;
 export const TOPIC_AU_INTEROP_FAOSTAT_SYNCED = 'au.interop.faostat.synced.v1' as const;
 export const TOPIC_AU_INTEROP_EXPORT_COMPLETED = 'au.interop.export.completed.v1' as const;
 export const TOPIC_AU_INTEROP_EXPORT_FAILED = 'au.interop.export.failed.v1' as const;
+export const TOPIC_AU_INTEROP_FISHSTATJ_EXPORTED = 'au.interop.fishstatj.exported.v1' as const;
+export const TOPIC_AU_INTEROP_CITES_EXPORTED = 'au.interop.cites.exported.v1' as const;
 
 // ── Knowledge Hub Topics ──
 export const TOPIC_AU_KNOWLEDGE_PUBLICATION_CREATED = 'au.knowledge.publication.created.v1' as const;
@@ -249,6 +251,8 @@ export const ALL_TOPICS = [
   TOPIC_AU_INTEROP_FAOSTAT_SYNCED,
   TOPIC_AU_INTEROP_EXPORT_COMPLETED,
   TOPIC_AU_INTEROP_EXPORT_FAILED,
+  TOPIC_AU_INTEROP_FISHSTATJ_EXPORTED,
+  TOPIC_AU_INTEROP_CITES_EXPORTED,
   TOPIC_AU_KNOWLEDGE_PUBLICATION_CREATED,
   TOPIC_AU_KNOWLEDGE_PUBLICATION_UPDATED,
   TOPIC_AU_KNOWLEDGE_PUBLICATION_DELETED,

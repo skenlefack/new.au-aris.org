@@ -28,6 +28,8 @@ import type {
 } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import type { AccessLogService } from './access-log.service';
+import { DomainProxyService } from './domain-proxy.service';
+import type { DomainQueryParams } from './domain-proxy.service';
 
 const SERVICE_NAME = 'data-sharing-service';
 
@@ -44,11 +46,15 @@ export interface AgreementListQuery extends PaginationQuery {
 }
 
 export class AgreementService {
+  private readonly domainProxy: DomainProxyService;
+
   constructor(
     private readonly prisma: PrismaClient,
     private readonly kafkaProducer: StandaloneKafkaProducer,
     private readonly accessLogService: AccessLogService,
-  ) {}
+  ) {
+    this.domainProxy = new DomainProxyService();
+  }
 
   // ---------- CREATE ----------
 
@@ -373,28 +379,101 @@ export class AgreementService {
       throw new HttpError(403, 'Agreement does not allow consultation');
     }
 
-    const maxRecords = agreement.max_records_per_query ?? null;
+    const maxRecords = agreement.max_records_per_query ?? 100;
+    const scope = agreement.data_scope as DataShareScope | null;
+    const domain = agreement.data_domain as string;
 
-    // Phase 2 will proxy to source domain service. For now, return an empty placeholder.
-    await this.accessLogService.log({
-      agreementId: agreement.id,
-      userId: user.userId,
-      tenantId: user.tenantId,
-      action: 'CONSULT',
-      recordCount: 0,
-      queryFilters,
-      success: true,
-    });
+    // Determine which entity to query (first from queryFilters, then first in scope)
+    const entityFilter = queryFilters['entity'] as string | undefined;
+    const entity = entityFilter ?? scope?.entities?.[0];
+    const endpoint = this.domainProxy.resolveEndpoint(domain, entity);
+
+    // Build query params from scope + user-provided filters
+    const params: DomainQueryParams = {
+      page: queryFilters['page'] ? Number(queryFilters['page']) : 1,
+      limit: Math.min(
+        queryFilters['limit'] ? Number(queryFilters['limit']) : maxRecords,
+        maxRecords,
+      ),
+    };
+
+    // Apply geographic filters from scope
+    if (scope?.geoFilter?.countries?.length) {
+      params.countries = scope.geoFilter.countries;
+    }
+    if (scope?.geoFilter?.admin1?.length) {
+      params.admin1 = scope.geoFilter.admin1;
+    }
+
+    // Apply time range from scope
+    if (scope?.timeRange?.from) {
+      params.dateFrom = scope.timeRange.from;
+    }
+    if (scope?.timeRange?.to) {
+      params.dateTo = scope.timeRange.to;
+    }
+
+    // Apply additional scope filters
+    if (scope?.filters) {
+      for (const [key, value] of Object.entries(scope.filters)) {
+        if (value !== undefined && value !== null) {
+          params[key] = value;
+        }
+      }
+    }
+
+    // Apply user-provided query filters (override scope where applicable)
+    for (const [key, value] of Object.entries(queryFilters)) {
+      if (['entity', 'page', 'limit'].includes(key)) continue;
+      if (value !== undefined && value !== null) {
+        params[key] = value;
+      }
+    }
+
+    // Extract auth token for proxying (the route passes request.headers.authorization)
+    const authToken = (queryFilters['_authToken'] as string) ?? '';
+
+    let data: Record<string, unknown>[] = [];
+    let meta: Record<string, unknown> = {};
+    let success = true;
+    let errorMessage: string | undefined;
+
+    try {
+      const result = await this.domainProxy.queryDomainData(domain, endpoint, params, authToken);
+      data = result.data;
+      meta = result.meta;
+
+      // Apply field-level filtering if scope defines allowed fields for this entity
+      if (scope?.fields && entity && scope.fields[entity]?.length) {
+        data = this.filterFields(data, scope.fields[entity]);
+      }
+    } catch (err) {
+      success = false;
+      errorMessage = err instanceof Error ? err.message : String(err);
+      throw new HttpError(502, `Failed to retrieve data from ${domain} service: ${errorMessage}`);
+    } finally {
+      await this.accessLogService.log({
+        agreementId: agreement.id,
+        userId: user.userId,
+        tenantId: user.tenantId,
+        action: 'CONSULT',
+        recordCount: data.length,
+        queryFilters,
+        success,
+        errorMessage,
+      });
+    }
 
     return {
-      data: [],
+      data,
       meta: {
-        recordCount: 0,
+        ...meta,
+        recordCount: data.length,
         maxRecordsPerQuery: maxRecords,
         agreement: {
           id: agreement.id,
-          dataDomain: agreement.data_domain,
-          dataScope: agreement.data_scope,
+          dataDomain: domain,
+          dataScope: scope,
         },
       },
     };
@@ -404,7 +483,8 @@ export class AgreementService {
     id: string,
     user: AuthenticatedUser,
     format: 'json' | 'csv',
-  ): Promise<{ data: unknown[]; meta: Record<string, unknown> }> {
+    authToken?: string,
+  ): Promise<{ data: unknown[] | string; meta: Record<string, unknown> }> {
     const agreement = await this.getOrFail(id, user);
 
     if (agreement.recipient_tenant_id !== user.tenantId) {
@@ -417,29 +497,162 @@ export class AgreementService {
       throw new HttpError(403, 'Agreement does not allow export');
     }
 
-    // Phase 2 will proxy to source domain service. For now, return an empty placeholder.
-    await this.accessLogService.log({
-      agreementId: agreement.id,
-      userId: user.userId,
-      tenantId: user.tenantId,
-      action: 'EXPORT',
-      recordCount: 0,
-      queryFilters: { format },
-      success: true,
-    });
+    // Check monthly export limit
+    const maxExportsPerMonth = agreement.max_exports_per_month as number | null;
+    if (maxExportsPerMonth !== null && maxExportsPerMonth !== undefined) {
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+
+      const exportCount = await (this.prisma as any).dataShareAccessLog.count({
+        where: {
+          agreement_id: agreement.id,
+          action: 'EXPORT',
+          success: true,
+          created_at: { gte: monthStart },
+        },
+      });
+
+      if (exportCount >= maxExportsPerMonth) {
+        throw new HttpError(429, 'Monthly export limit exceeded');
+      }
+    }
+
+    const scope = agreement.data_scope as DataShareScope | null;
+    const domain = agreement.data_domain as string;
+
+    // Resolve endpoint for the first entity in scope
+    const entity = scope?.entities?.[0];
+    const endpoint = this.domainProxy.resolveEndpoint(domain, entity);
+
+    // Build query params from scope
+    const params: DomainQueryParams = {
+      page: 1,
+      limit: 10000, // Export retrieves all matching records
+    };
+
+    if (scope?.geoFilter?.countries?.length) {
+      params.countries = scope.geoFilter.countries;
+    }
+    if (scope?.geoFilter?.admin1?.length) {
+      params.admin1 = scope.geoFilter.admin1;
+    }
+    if (scope?.timeRange?.from) {
+      params.dateFrom = scope.timeRange.from;
+    }
+    if (scope?.timeRange?.to) {
+      params.dateTo = scope.timeRange.to;
+    }
+    if (scope?.filters) {
+      for (const [key, value] of Object.entries(scope.filters)) {
+        if (value !== undefined && value !== null) {
+          params[key] = value;
+        }
+      }
+    }
+
+    const token = authToken ?? '';
+    let data: Record<string, unknown>[] = [];
+    let success = true;
+    let errorMessage: string | undefined;
+
+    try {
+      const result = await this.domainProxy.exportDomainData(domain, endpoint, format, params, token);
+      data = result.data;
+
+      // Apply field-level redaction: only include allowed fields
+      if (scope?.fields && entity && scope.fields[entity]?.length) {
+        data = this.filterFields(data, scope.fields[entity]);
+      }
+    } catch (err) {
+      success = false;
+      errorMessage = err instanceof Error ? err.message : String(err);
+      throw new HttpError(502, `Failed to export data from ${domain} service: ${errorMessage}`);
+    } finally {
+      await this.accessLogService.log({
+        agreementId: agreement.id,
+        userId: user.userId,
+        tenantId: user.tenantId,
+        action: 'EXPORT',
+        recordCount: data.length,
+        queryFilters: { format },
+        success,
+        errorMessage,
+      });
+    }
+
+    // Format output
+    const output: unknown[] | string = format === 'csv'
+      ? this.toCsv(data, scope?.fields && entity ? scope.fields[entity] : undefined)
+      : data;
 
     return {
-      data: [],
+      data: output,
       meta: {
-        recordCount: 0,
+        recordCount: data.length,
         format,
+        exportedAt: new Date().toISOString(),
         agreement: {
           id: agreement.id,
-          dataDomain: agreement.data_domain,
-          dataScope: agreement.data_scope,
+          dataDomain: domain,
+          dataScope: scope,
         },
       },
     };
+  }
+
+  // ---------- DATA HELPERS ----------
+
+  /**
+   * Filter record fields to only include those in the allowedFields list.
+   */
+  private filterFields(
+    records: Record<string, unknown>[],
+    allowedFields: string[],
+  ): Record<string, unknown>[] {
+    if (!allowedFields.length) return records;
+    const allowed = new Set(allowedFields);
+    return records.map((record) => {
+      const filtered: Record<string, unknown> = {};
+      for (const key of Object.keys(record)) {
+        if (allowed.has(key)) {
+          filtered[key] = record[key];
+        }
+      }
+      return filtered;
+    });
+  }
+
+  /**
+   * Convert records to CSV string.
+   */
+  private toCsv(
+    records: Record<string, unknown>[],
+    allowedFields?: string[],
+  ): string {
+    if (records.length === 0) return '';
+
+    // Determine headers: use allowedFields if provided, otherwise derive from first record
+    const headers = allowedFields?.length
+      ? allowedFields
+      : Object.keys(records[0]);
+
+    const escapeCsvValue = (value: unknown): string => {
+      if (value === null || value === undefined) return '';
+      const str = typeof value === 'object' ? JSON.stringify(value) : String(value);
+      // Escape quotes and wrap in quotes if contains comma, quote, or newline
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const lines: string[] = [headers.join(',')];
+    for (const record of records) {
+      const row = headers.map((h) => escapeCsvValue(record[h]));
+      lines.push(row.join(','));
+    }
+    return lines.join('\n');
   }
 
   // ---------- HELPERS ----------

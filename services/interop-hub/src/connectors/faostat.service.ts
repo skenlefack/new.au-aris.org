@@ -147,15 +147,61 @@ export class FaostatService {
   }
 
   /**
-   * Look up existing denominator. In production, queries master-data service.
-   * Returns null if not found (mock implementation).
+   * Look up existing denominator from master_data.ref_denominators table.
+   * Falls back to FAOSTAT API if configured and not found locally.
    */
   async findExistingDenominator(
-    _countryCode: string,
-    _speciesCode: string,
-    _year: number,
+    countryCode: string,
+    speciesCode: string,
+    year: number,
   ): Promise<{ population: number } | null> {
-    // Mock: in production this calls master-data's denominator endpoint
+    // Query the master_data denominator table
+    try {
+      const rows = await this.prisma.$queryRaw<
+        Array<{ population: number }>
+      >`
+        SELECT population
+        FROM master_data.ref_denominators
+        WHERE country_code = ${countryCode}
+          AND species_code = ${speciesCode}
+          AND year = ${year}
+        LIMIT 1
+      `;
+
+      if (rows.length > 0) {
+        return { population: Number(rows[0].population) };
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to query local denominators for ${countryCode}/${speciesCode}/${year}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    // Optionally fetch from FAOSTAT API if configured
+    const faostatUrl = process.env['FAOSTAT_API_URL'];
+    if (faostatUrl) {
+      try {
+        const url = `${faostatUrl}/data/QCL?area=${countryCode}&item=${speciesCode}&year=${year}&format=json`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15_000);
+
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeout);
+
+        if (response.ok) {
+          const data = await response.json() as { data?: Array<{ Value?: number }> };
+          const value = data?.data?.[0]?.Value;
+          if (value != null) {
+            return { population: value };
+          }
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Failed to fetch from FAOSTAT API for ${countryCode}/${speciesCode}/${year}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+
     return null;
   }
 

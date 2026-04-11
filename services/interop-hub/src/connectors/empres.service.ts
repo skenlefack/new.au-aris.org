@@ -110,18 +110,101 @@ export class EmpresService {
   }
 
   /**
-   * Mock HTTP adapter for EMPRES endpoint.
-   * In production, this sends an actual HTTP POST.
+   * HTTP adapter for EMPRES endpoint.
+   * Sends an actual HTTP POST when EMPRES_API_URL is configured.
+   * Falls back to mock response with a warning when not configured.
    */
   async sendToEmpres(
     signal: EmpresSignal,
   ): Promise<{ statusCode: number; body: string }> {
-    // Adapter pattern: replace with real HTTP call in production
-    this.logger.log(`Sending EMPRES signal: ${signal.signalId} → ${signal.countryCode}`);
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ accepted: true, signalId: signal.signalId }),
-    };
+    const empresUrl = process.env['EMPRES_API_URL'];
+
+    if (!empresUrl) {
+      this.logger.warn(
+        'EMPRES_API_URL not configured — returning mock response. Set EMPRES_API_URL to enable real EMPRES integration.',
+      );
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ accepted: true, signalId: signal.signalId, mock: true }),
+      };
+    }
+
+    const url = `${empresUrl}/signals`;
+    const MAX_RETRIES = 3;
+    const TIMEOUT_MS = 30_000;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        this.logger.log(
+          `Sending EMPRES signal: ${signal.signalId} → ${url} (attempt ${attempt}/${MAX_RETRIES})`,
+        );
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(process.env['EMPRES_API_KEY']
+              ? { 'Authorization': `Bearer ${process.env['EMPRES_API_KEY']}` }
+              : {}),
+          },
+          body: JSON.stringify({
+            signalId: signal.signalId,
+            eventId: signal.eventId,
+            diseaseCode: signal.diseaseCode,
+            country: signal.countryCode,
+            reportDate: signal.reportDate,
+            confidenceLevel: signal.confidence,
+            description: signal.context,
+            location: signal.coordinates
+              ? { latitude: signal.coordinates.lat, longitude: signal.coordinates.lng }
+              : null,
+            affectedSpecies: signal.species,
+            casesReported: signal.cases,
+            deathsReported: signal.deaths,
+            source: 'ARIS',
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeout);
+
+        const body = await response.text();
+
+        if (response.ok) {
+          return { statusCode: response.status, body };
+        }
+
+        // Retry on 5xx server errors
+        if (response.status >= 500 && attempt < MAX_RETRIES) {
+          this.logger.warn(
+            `EMPRES returned ${response.status}, retrying in ${attempt * 2}s...`,
+          );
+          await new Promise((r) => setTimeout(r, attempt * 2000));
+          continue;
+        }
+
+        // 4xx or final 5xx — return as-is
+        return { statusCode: response.status, body };
+      } catch (error) {
+        if (attempt < MAX_RETRIES) {
+          this.logger.warn(
+            `EMPRES request failed (attempt ${attempt}): ${error instanceof Error ? error.message : String(error)}`,
+          );
+          await new Promise((r) => setTimeout(r, attempt * 2000));
+          continue;
+        }
+
+        throw new Error(
+          `EMPRES request failed after ${MAX_RETRIES} attempts: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+
+    // Should not reach here, but satisfy TypeScript
+    throw new Error('EMPRES request failed: max retries exhausted');
   }
 
   async findAll(

@@ -21,6 +21,7 @@ import org.auibar.aris.mobile.ui.theme.DomainGovernance
 import org.auibar.aris.mobile.ui.theme.DomainKnowledge
 import org.auibar.aris.mobile.ui.theme.DomainLivestock
 import org.auibar.aris.mobile.ui.theme.DomainTrade
+import org.auibar.aris.mobile.ui.theme.DomainPaid
 import org.auibar.aris.mobile.ui.theme.DomainWildlife
 
 data class DomainInfo(
@@ -40,11 +41,42 @@ val arisDomains = listOf(
     DomainInfo("governance", "Governance",        Icons.Default.Inventory,         DomainGovernance),
     DomainInfo("climate",    "Climate",          Icons.Default.Thermostat,        DomainClimate),
     DomainInfo("knowledge",  "Knowledge",        Icons.Default.School,            DomainKnowledge),
+    DomainInfo("paid",       "PAID",             Icons.Default.Inventory,         DomainPaid),
 )
 
-/** Returns only server-active domains, falling back to the full list if unavailable. */
+/**
+ * Hardcoded domain activation config.
+ * Active domains are shown in the UI; disabled domains are hidden from navigation.
+ * All domain screens remain intact — only their visibility is toggled here.
+ */
+object DomainActivation {
+    /** Domain keys that are currently active and visible in the app. */
+    val ACTIVE_DOMAINS: Set<String> = setOf(
+        "health",
+        "livestock",
+        "fisheries",
+        "trade",
+        "governance",
+        "paid",
+    )
+
+    /** Domain keys that are currently disabled and hidden from navigation. */
+    val DISABLED_DOMAINS: Set<String> = setOf(
+        "wildlife",
+        "apiculture",
+        "climate",
+    )
+
+    fun isActive(domainKey: String): Boolean = domainKey in ACTIVE_DOMAINS
+}
+
+/**
+ * Returns only active domains, combining server-active codes with the local
+ * [DomainActivation] config. Disabled domains are always hidden regardless
+ * of server settings.
+ */
 fun getActiveDomains(tokenManager: TokenManager): List<DomainInfo> {
     val activeCodes = tokenManager.getActiveDomainCodes()
-    if (activeCodes.isEmpty()) return arisDomains
-    return arisDomains.filter { it.key in activeCodes }
+    val base = if (activeCodes.isEmpty()) arisDomains else arisDomains.filter { it.key in activeCodes }
+    return base.filter { DomainActivation.isActive(it.key) }
 }
