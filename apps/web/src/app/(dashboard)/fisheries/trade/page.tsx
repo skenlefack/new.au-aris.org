@@ -20,9 +20,10 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useMultiTemplateSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-// AFADATA — Fish trade template(s)
+// AFADATA — Fish trade templates (v2 corrected + v1 legacy)
 const TRADE_TEMPLATES = [
-  'c1533f8a-bb8b-42e0-b666-dac5263b4a53', // Fish Trade Report
+  '64b40e3b-e571-4c63-b586-933747c416de', // Fish Trade Report v2 (species=AQUATIC)
+  'c1533f8a-bb8b-42e0-b666-dac5263b4a53', // Fish Trade Report v1
 ];
 const PRIMARY_TEMPLATE_ID = TRADE_TEMPLATES[0];
 

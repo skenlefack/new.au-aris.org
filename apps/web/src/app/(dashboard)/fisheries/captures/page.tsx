@@ -19,10 +19,12 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useMultiTemplateSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-// AFADATA — All capture-related templates (old + new)
+// AFADATA — All capture-related templates (v2 corrected + v1 legacy)
 const CAPTURES_TEMPLATES = [
-  '85e8dfac-bd69-4107-b166-7906c3360a99', // Monthly Captures Report (new)
-  '7de1ef69-e845-4767-8af6-25038fa86514', // Capture Fisheries Report (legacy)
+  'a97bf9e6-1fc3-4e5a-a749-20e8d8686c12', // Monthly Captures Report v2 (species=AQUATIC, gear=ref)
+  '2db13740-340f-4595-8742-2abcdce985a4', // Capture Fisheries Report v2
+  '85e8dfac-bd69-4107-b166-7906c3360a99', // Monthly Captures Report v1
+  '7de1ef69-e845-4767-8af6-25038fa86514', // Capture Fisheries Report v1
 ];
 const PRIMARY_TEMPLATE_ID = CAPTURES_TEMPLATES[0];
 

@@ -18,11 +18,14 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useMultiTemplateSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-// AFADATA — All aquaculture-related templates (old + new)
+// AFADATA — All aquaculture-related templates (v2 corrected + v1 legacy)
 const AQUACULTURE_TEMPLATES = [
-  '7bada615-c0c6-4b47-9e78-1a8af94b8cd9', // Aquaculture Farm Report (new)
-  '89a7aa9a-0740-4470-97fd-3a91709df5d9', // Aquaculture Farm Registration (legacy)
-  '25a65b38-6404-4d5c-84bf-a81ccb964a02', // Aquaculture Production Report (legacy)
+  '64ce74db-7275-4b94-ac77-138386bce03b', // Aquaculture Farm Report v2 (species=AQUATIC, farm_type=ref)
+  'a768466b-aab1-42cf-b5f3-a9c6e653d30c', // Aquaculture Farm Registration v2
+  '642d8057-c47a-40ca-9646-3ef068f7de0b', // Aquaculture Production Report v2
+  '7bada615-c0c6-4b47-9e78-1a8af94b8cd9', // Aquaculture Farm Report v1
+  '89a7aa9a-0740-4470-97fd-3a91709df5d9', // Aquaculture Farm Registration v1
+  '25a65b38-6404-4d5c-84bf-a81ccb964a02', // Aquaculture Production Report v1
 ];
 const PRIMARY_TEMPLATE_ID = AQUACULTURE_TEMPLATES[0];
 

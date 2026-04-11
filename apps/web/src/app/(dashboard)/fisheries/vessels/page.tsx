@@ -18,10 +18,12 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useMultiTemplateSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-// AFADATA — All vessel-related templates (old + new)
+// AFADATA — All vessel-related templates (v2 corrected + v1 legacy)
 const VESSELS_TEMPLATES = [
-  '1c5a9949-9a73-4b4f-a8da-0914a112e35a', // Vessel Registry (new)
-  'bd1bcea3-42ad-4930-9b64-faf4a869597f', // Fishing Vessel Registration (legacy)
+  'f1644df2-b43d-4d83-8162-543b3c13c0b6', // Vessel Registry v2 (vessel_type=ref)
+  '6c764800-66cd-4012-9b21-6f3071fc4de1', // Fishing Vessel Registration v2
+  '1c5a9949-9a73-4b4f-a8da-0914a112e35a', // Vessel Registry v1
+  'bd1bcea3-42ad-4930-9b64-faf4a869597f', // Fishing Vessel Registration v1
 ];
 const PRIMARY_TEMPLATE_ID = VESSELS_TEMPLATES[0];
 
