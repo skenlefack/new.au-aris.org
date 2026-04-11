@@ -67,32 +67,32 @@ def run(cmd, label, timeout=120):
     return exit_code == 0, out_clean
 
 def api_post(path, body):
-    """POST JSON via SSH curl with stdin pipe."""
+    """POST JSON via SSH: write to /tmp file, then curl @file."""
+    import hashlib
     data = json.dumps(body)
-    chan = ssh.get_transport().open_session()
-    chan.settimeout(30)
-    chan.exec_command(
+    fname = f"/tmp/paid_{hashlib.md5(data.encode()).hexdigest()[:8]}.json"
+    # Write JSON file via sftp
+    sftp = ssh.open_sftp()
+    with sftp.open(fname, "w") as f:
+        f.write(data)
+    sftp.close()
+    # Curl from file
+    _, stdout, _ = ssh.exec_command(
         f'curl -sk -X POST "https://localhost{path}" '
         f'-H "Authorization: Bearer {TOKEN}" '
         f'-H "Content-Type: application/json" '
-        f'--data-binary @- 2>/dev/null'
-    )
-    chan.sendall(data.encode())
-    chan.shutdown_write()
-    time.sleep(2)
-    resp = b''
-    for _ in range(15):
-        if chan.recv_ready():
-            resp += chan.recv(65536)
-        elif chan.exit_status_ready():
-            while chan.recv_ready():
-                resp += chan.recv(65536)
-            break
-        time.sleep(0.5)
+        f'-d @{fname} 2>/dev/null',
+        timeout=30)
+    resp = stdout.read().decode()
+    # Cleanup
     try:
-        return json.loads(resp.decode())
+        ssh.exec_command(f"rm -f {fname}", timeout=5)
     except:
-        return {"error": resp.decode()[:300]}
+        pass
+    try:
+        return json.loads(resp)
+    except:
+        return {"error": resp[:300]}
 
 # ══════════════════════════════════════════════════════════════════════
 #  PAID Template definition
