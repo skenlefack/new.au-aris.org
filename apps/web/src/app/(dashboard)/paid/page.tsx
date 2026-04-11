@@ -133,7 +133,7 @@ export default function PaidDashboardPage() {
         <div className="flex items-center justify-between bg-[#003366] px-4 py-[6px]">
           <div className="flex items-center gap-2">
             <Globe2 className="h-4 w-4 text-white/60" />
-            <span className="text-[11px] font-bold tracking-wide text-white lg:text-xs">LIVESTOCK INTERVENTIONS* — AU-IBAR PAID OVERVIEW</span>
+            <span className="text-[11px] font-bold tracking-wide text-white lg:text-xs">AU-IBAR PAID OVERVIEW</span>
           </div>
           {hasF && (
             <button onClick={() => setFilters({})} className="rounded bg-white/20 px-2 py-0.5 text-[8px] font-bold text-white hover:bg-white/30">
@@ -253,10 +253,13 @@ export default function PaidDashboardPage() {
               </Panel>
             </div>
 
-            {/* ROW 2 — 3 panels */}
-            <div className="grid grid-cols-1 gap-[1px] bg-gray-300 lg:grid-cols-3 dark:bg-gray-700">
-              {/* 5: Africa MAP — Leaflet */}
-              <Panel title="Beneficiaries per country" noPad>
+            {/* ROW 2 — 4 columns (symmetric with row 1), map spans 2 */}
+            <div className="grid grid-cols-2 gap-[1px] bg-gray-300 lg:grid-cols-4 dark:bg-gray-700">
+              {/* 5: Africa MAP — Leaflet (spans 2 columns) */}
+              <div className="col-span-2 bg-white dark:bg-gray-800">
+                <h4 className="border-b border-gray-100 px-2 py-1 text-[8px] font-bold text-[#003366] dark:border-gray-700 dark:text-blue-300">
+                  &#9679; Beneficiaries per country
+                </h4>
                 <div className="h-[220px] w-full">
                   <ChoroplethMap
                     title=""
@@ -266,12 +269,12 @@ export default function PaidDashboardPage() {
                     bare
                   />
                 </div>
-              </Panel>
+              </div>
 
               {/* 6: Beneficiaries by country — BAR */}
               <Panel title="Beneficiaries by country">
                 <div className="space-y-[2px]">
-                  {countryArr.slice(0, 18).map((e) => {
+                  {countryArr.slice(0, 14).map((e) => {
                     const pct = Math.round((e.beneficiaries / maxCB) * 100);
                     return (
                       <div key={e.country} className="flex items-center gap-[3px]">
@@ -289,7 +292,7 @@ export default function PaidDashboardPage() {
               {/* 7: Beneficiaries by type of activity — PIE */}
               <Panel title="Beneficiaries by type of activity">
                 <div className="flex items-start gap-2">
-                  <div className="h-[100px] w-[100px] shrink-0 rounded-full shadow-inner" style={{
+                  <div className="h-[90px] w-[90px] shrink-0 rounded-full shadow-inner" style={{
                     background: activityArr.length > 0
                       ? conicGradient(activityArr, PIE_COLORS)
                       : '#e5e7eb'
