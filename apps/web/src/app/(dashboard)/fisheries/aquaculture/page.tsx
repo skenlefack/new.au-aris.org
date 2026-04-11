@@ -18,16 +18,13 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useMultiTemplateSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-// AFADATA — All aquaculture-related templates (latest v3 + legacy v1)
+// AFADATA — Aquaculture templates
 const AQUACULTURE_TEMPLATES = [
-  '3de22cf6-7275-4b94-ac77-138386bce03b', // Aquaculture Farm Report v3
-  'fb89abc3-aab1-42cf-b5f3-a9c6e653d30c', // Aquaculture Farm Registration v3
-  'fa9c5e5d-c47a-40ca-9646-3ef068f7de0b', // Aquaculture Production Report v3
-  '7bada615-c0c6-4b47-9e78-1a8af94b8cd9', // Aquaculture Farm Report v1
-  '89a7aa9a-0740-4470-97fd-3a91709df5d9', // Aquaculture Farm Registration v1
-  '25a65b38-6404-4d5c-84bf-a81ccb964a02', // Aquaculture Production Report v1
+  '3de22cf6-e4e0-4a89-9834-34abc578c809', // Aquaculture Farm Report
+  'fb89abc3-4a73-4d05-8968-47084f8e646d', // Aquaculture Farm Registration
+  'fa9c5e5d-f166-4ba0-9815-5027e1e149bf', // Aquaculture Production Report
 ];
-const PRIMARY_TEMPLATE_ID = '3de22cf6-7275-4b94-ac77-138386bce03b'; // v3 Aquaculture Farm Report
+const PRIMARY_TEMPLATE_ID = AQUACULTURE_TEMPLATES[0];
 
 const STATUS_CONFIG: Record<string, { badge: string; icon: React.ReactNode }> = {
   DRAFT: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: <FileText className="h-3 w-3" /> },

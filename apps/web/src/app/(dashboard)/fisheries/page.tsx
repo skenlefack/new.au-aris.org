@@ -32,7 +32,7 @@ import { useCollectionCampaigns } from '@/lib/api/workflow-hooks';
 import { useFormSubmissions, useFormBuilderTemplates } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-const FISHERIES_ALERT_TEMPLATE_ID = '278a6036-9b06-4391-9a05-7a3e6047d095'; // v3 (species=AQUATIC via groupId)
+const FISHERIES_ALERT_TEMPLATE_ID = '278a6036-2561-40c8-88d1-1560fa28e821'; // Event Alert (species=AQUATIC)
 
 export default function FisheriesPage() {
   const t = useTranslations('fisheries');

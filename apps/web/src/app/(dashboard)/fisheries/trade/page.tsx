@@ -20,12 +20,11 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useMultiTemplateSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-// AFADATA — Fish trade templates (latest v3 + legacy v1)
+// AFADATA — Trade template
 const TRADE_TEMPLATES = [
-  '3d434ed8-e571-4c63-b586-933747c416de', // Fish Trade Report v3
-  'c1533f8a-bb8b-42e0-b666-dac5263b4a53', // Fish Trade Report v1
+  '3d434ed8-8032-4294-a8bc-557ecc23798a', // Fish Trade Report
 ];
-const PRIMARY_TEMPLATE_ID = '3d434ed8-e571-4c63-b586-933747c416de'; // v3 Fish Trade Report
+const PRIMARY_TEMPLATE_ID = TRADE_TEMPLATES[0];
 
 const STATUS_CONFIG: Record<string, { badge: string; icon: React.ReactNode }> = {
   DRAFT: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: <FileText className="h-3 w-3" /> },

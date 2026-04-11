@@ -19,14 +19,12 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useMultiTemplateSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-// AFADATA — All capture-related templates (latest v3 + legacy v1)
+// AFADATA — Capture templates
 const CAPTURES_TEMPLATES = [
-  '71b563eb-bd69-4107-b166-7906c3360a99', // Monthly Captures Report v3
-  'b3c54357-340f-4595-8742-2abcdce985a4', // Capture Fisheries Report v3
-  '85e8dfac-bd69-4107-b166-7906c3360a99', // Monthly Captures Report v1
-  '7de1ef69-e845-4767-8af6-25038fa86514', // Capture Fisheries Report v1
+  '71b563eb-9991-4440-badc-c78bac694f2d', // Monthly Captures Report
+  'b3c54357-65bd-42e1-8e8d-47c29c34cd39', // Capture Fisheries Report
 ];
-const PRIMARY_TEMPLATE_ID = '71b563eb-bd69-4107-b166-7906c3360a99'; // v3 Monthly Captures
+const PRIMARY_TEMPLATE_ID = CAPTURES_TEMPLATES[0];
 
 const STATUS_CONFIG: Record<string, { badge: string; icon: React.ReactNode }> = {
   DRAFT: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: <FileText className="h-3 w-3" /> },
