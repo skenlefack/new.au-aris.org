@@ -18,14 +18,14 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useMultiTemplateSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-// AFADATA — All effort-related templates (v2 corrected + v1 legacy)
+// AFADATA — All effort-related templates (latest v3/v2 + legacy v1)
 const EFFORTS_TEMPLATES = [
-  'dc0c6abe-7df3-40cb-8d7b-2bf71ce5b021', // Fishing Effort Quarterly v2 (gear=ref, species=AQUATIC)
+  'f4b37cec-7df3-40cb-8d7b-2bf71ce5b021', // Fishing Effort Quarterly v3
   '5dbcb31a-3c4b-478c-bbe7-ca81e3ff9f94', // Fishing Effort Report v2
   '74fa068c-230b-49bb-87d7-fc7845ee8736', // Fishing Effort Quarterly v1
   'd0184b73-de13-4c51-bae9-ea427bdcab03', // Fishing Effort Report v1
 ];
-const PRIMARY_TEMPLATE_ID = EFFORTS_TEMPLATES[0];
+const PRIMARY_TEMPLATE_ID = 'f4b37cec-7df3-40cb-8d7b-2bf71ce5b021'; // v3 Fishing Effort Quarterly
 
 const STATUS_CONFIG: Record<string, { badge: string; icon: React.ReactNode }> = {
   DRAFT: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: <FileText className="h-3 w-3" /> },

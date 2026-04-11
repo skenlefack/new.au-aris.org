@@ -18,14 +18,14 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useMultiTemplateSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 
-// AFADATA — All vessel-related templates (v2 corrected + v1 legacy)
+// AFADATA — All vessel-related templates (latest v2 + legacy v1)
 const VESSELS_TEMPLATES = [
-  'f1644df2-b43d-4d83-8162-543b3c13c0b6', // Vessel Registry v2 (vessel_type=ref)
+  'f1644df2-b43d-4d83-8162-543b3c13c0b6', // Vessel Registry v2
   '6c764800-66cd-4012-9b21-6f3071fc4de1', // Fishing Vessel Registration v2
   '1c5a9949-9a73-4b4f-a8da-0914a112e35a', // Vessel Registry v1
   'bd1bcea3-42ad-4930-9b64-faf4a869597f', // Fishing Vessel Registration v1
 ];
-const PRIMARY_TEMPLATE_ID = VESSELS_TEMPLATES[0];
+const PRIMARY_TEMPLATE_ID = 'f1644df2-b43d-4d83-8162-543b3c13c0b6'; // v2 Vessel Registry
 
 const STATUS_CONFIG: Record<string, { badge: string; icon: React.ReactNode }> = {
   DRAFT: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: <FileText className="h-3 w-3" /> },
