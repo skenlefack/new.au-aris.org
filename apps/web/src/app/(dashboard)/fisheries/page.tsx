@@ -213,8 +213,18 @@ const AFADATA_FORM_MAP: Record<string, { href: string; color: string }> = {
 };
 
 function AfaDataCatalog({ t }: { t: (key: string) => string }) {
-  const { data, isLoading } = useFormBuilderTemplates({ domain: 'fisheries', limit: 20, status: 'PUBLISHED' });
-  const templates: any[] = data?.data ?? [];
+  const { data, isLoading } = useFormBuilderTemplates({ domain: 'fisheries', limit: 50, status: 'PUBLISHED' });
+  const allTemplates: any[] = data?.data ?? [];
+
+  // Keep only the latest version of each template (by name)
+  const latestByName = new Map<string, any>();
+  for (const tmpl of allTemplates) {
+    const existing = latestByName.get(tmpl.name);
+    if (!existing || (tmpl.version ?? 0) > (existing.version ?? 0)) {
+      latestByName.set(tmpl.name, tmpl);
+    }
+  }
+  const templates = Array.from(latestByName.values());
 
   if (isLoading) return (
     <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
