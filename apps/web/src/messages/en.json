@@ -838,7 +838,17 @@
     "showingOf": "Showing {count} of {total}",
     "totalTradeValue": "Total Trade Value",
     "activeCertificates": "Active Certificates",
-    "monitoredMarkets": "Monitored Markets"
+    "monitoredMarkets": "Monitored Markets",
+    "activeCampaigns": "Active Campaigns",
+    "totalSubmissions": "Total Submissions",
+    "completionRate": "Completion Rate",
+    "totalCampaigns": "Total Campaigns",
+    "campaignOverview": "Campaign Overview",
+    "noCampaignData": "No campaign data available yet",
+    "manageCampaigns": "Manage Campaigns",
+    "manageCampaignsDesc": "Create and manage trade data collection campaigns",
+    "reportIssue": "Report Event",
+    "addFlow": "New Trade Flow"
   },
   "knowledge": {
     "title": "Knowledge Hub",

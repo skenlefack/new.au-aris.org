@@ -838,7 +838,17 @@
     "showingOf": "Affichage de {count} sur {total}",
     "totalTradeValue": "Valeur commerciale totale",
     "activeCertificates": "Certificats actifs",
-    "monitoredMarkets": "Marchés surveillés"
+    "monitoredMarkets": "March\u00e9s surveill\u00e9s",
+    "activeCampaigns": "Campagnes actives",
+    "totalSubmissions": "Soumissions totales",
+    "completionRate": "Taux de compl\u00e9tion",
+    "totalCampaigns": "Total campagnes",
+    "campaignOverview": "Aper\u00e7u des campagnes",
+    "noCampaignData": "Aucune donn\u00e9e de campagne disponible",
+    "manageCampaigns": "G\u00e9rer les campagnes",
+    "manageCampaignsDesc": "Cr\u00e9er et g\u00e9rer les campagnes de collecte commerciale",
+    "reportIssue": "Signaler un \u00e9v\u00e9nement",
+    "addFlow": "Nouveau flux commercial"
   },
   "knowledge": {
     "title": "Centre de connaissances",
