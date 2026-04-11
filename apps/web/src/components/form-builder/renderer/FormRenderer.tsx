@@ -3,8 +3,9 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { FormSchema, FormSection, FormField } from '../utils/form-schema';
+import type { FormSchema, FormSection, FormField, FieldCondition } from '../utils/form-schema';
 import { FieldRenderer } from './FieldRenderer';
+import { evaluateFieldCondition } from './ConditionEvaluator';
 
 /** Context to propagate mobile flag to all nested renderers (repeaters, etc.) */
 export const FormMobileContext = createContext(false);
@@ -140,6 +141,51 @@ export function FormRenderer({ schema, formName, mobile = false, onSubmit }: For
   );
 }
 
+/* ── Condition evaluation helper ─────────────────────────────────────────── */
+
+interface ConditionResult {
+  hidden: boolean;
+  readOnly?: boolean;
+  required?: boolean;
+}
+
+function applyFieldConditions(
+  conditions: FieldCondition[] | undefined,
+  formValues: Record<string, unknown>,
+): ConditionResult {
+  const result: ConditionResult = { hidden: false };
+  if (!conditions || conditions.length === 0) return result;
+
+  for (const condition of conditions) {
+    const met = evaluateFieldCondition(condition, formValues);
+
+    switch (condition.action) {
+      case 'show':
+        // If condition is NOT met, hide the field
+        if (!met) result.hidden = true;
+        break;
+      case 'hide':
+        // If condition IS met, hide the field
+        if (met) result.hidden = true;
+        break;
+      case 'enable':
+        // If condition is NOT met, field is readOnly
+        result.readOnly = !met;
+        break;
+      case 'disable':
+        // If condition IS met, field is readOnly
+        result.readOnly = met;
+        break;
+      case 'setRequired':
+        // If condition is met, field becomes required
+        result.required = met;
+        break;
+    }
+  }
+
+  return result;
+}
+
 function SectionRenderer({
   section,
   values,
@@ -203,25 +249,37 @@ function SectionRenderer({
                 if (aComment !== bComment) return aComment - bComment;
                 return a.order - b.order;
               })
-              .map((field) => (
-                <div
-                  key={field.id}
-                  className={cn(
-                    !mobile && field.columnSpan === 2 && 'md:col-span-2',
-                    !mobile && field.columnSpan === 3 && 'md:col-span-3',
-                    !mobile && field.columnSpan === 4 && 'md:col-span-4',
-                    !mobile && isCommentField(field) && 'md:col-span-full',
-                  )}
-                >
-                  <FieldRenderer
-                    field={field}
-                    value={values[field.code]}
-                    onChange={(v) => onChange(field.code, v)}
-                    error={fieldErrors[field.code]}
-                    formValues={field.type === 'geo-selector' ? values : undefined}
-                  />
-                </div>
-              ))}
+              .map((field) => {
+                // Apply field-level conditions
+                const condResult = applyFieldConditions(field.conditions, values);
+                if (condResult.hidden) return null;
+
+                const effectiveField = {
+                  ...field,
+                  readOnly: condResult.readOnly ?? field.readOnly,
+                  required: condResult.required ?? field.required,
+                };
+
+                return (
+                  <div
+                    key={field.id}
+                    className={cn(
+                      !mobile && field.columnSpan === 2 && 'md:col-span-2',
+                      !mobile && field.columnSpan === 3 && 'md:col-span-3',
+                      !mobile && field.columnSpan === 4 && 'md:col-span-4',
+                      !mobile && isCommentField(field) && 'md:col-span-full',
+                    )}
+                  >
+                    <FieldRenderer
+                      field={effectiveField}
+                      value={values[field.code]}
+                      onChange={(v) => onChange(field.code, v)}
+                      error={fieldErrors[field.code]}
+                      formValues={values}
+                    />
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}

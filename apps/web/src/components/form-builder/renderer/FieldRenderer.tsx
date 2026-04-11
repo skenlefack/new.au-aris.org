@@ -2,7 +2,8 @@
 
 import React, { lazy, Suspense } from 'react';
 import { cn } from '@/lib/utils';
-import type { FormField, MultilingualText, SelectOption } from '../utils/form-schema';
+import type { FormField, MultilingualText, SelectOption, FieldCondition } from '../utils/form-schema';
+import { evaluateFieldCondition } from './ConditionEvaluator';
 import {
   MapPin,
   Navigation,
@@ -23,6 +24,8 @@ const AdminLocationField = lazy(() => import('./AdminLocationField').then((m) =>
 const MasterDataSelectField = lazy(() => import('./MasterDataSelectField').then((m) => ({ default: m.MasterDataSelectField })));
 const RepeaterField = lazy(() => import('./RepeaterField').then((m) => ({ default: m.RepeaterField })));
 const GeoSelectorField = lazy(() => import('./GeoSelectorField').then((m) => ({ default: m.GeoSelectorField })));
+const MatrixField = lazy(() => import('./MatrixField').then((m) => ({ default: m.MatrixField })));
+const CascadeSelectField = lazy(() => import('./CascadeSelectField').then((m) => ({ default: m.CascadeSelectField })));
 
 interface FieldRendererProps {
   field: FormField;
@@ -450,26 +453,23 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
       )}
 
       {field.type === 'matrix' && (
-        <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700 overflow-x-auto">
-          <p className="text-xs text-gray-400 mb-2">Matrix / Grid input</p>
-          <div className="h-20 rounded bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-xs text-gray-400">
-            Matrix cells appear here
-          </div>
-        </div>
+        <Suspense fallback={
+          <div className="h-24 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">Loading...</div>
+        }>
+          <MatrixField field={field} value={value} onChange={onChange} />
+        </Suspense>
       )}
 
       {field.type === 'cascade-select' && (
-        <div className="space-y-2">
-          <p className="text-xs text-gray-400">Cascade chain</p>
-          <select className={inputClass}><option>Level 1...</option></select>
-          <select className={inputClass}><option>Level 2...</option></select>
-        </div>
+        <Suspense fallback={
+          <div className="h-20 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">Loading...</div>
+        }>
+          <CascadeSelectField field={field} value={value} onChange={onChange} />
+        </Suspense>
       )}
 
       {field.type === 'conditional-group' && (
-        <div className="rounded-lg border border-dashed border-gray-300 p-3 dark:border-gray-600">
-          <p className="text-xs text-gray-400">Conditional fields appear here when condition is met</p>
-        </div>
+        <ConditionalGroupRenderer field={field} formValues={formValues || {}} onChange={onChange} />
       )}
 
       {field.type === 'lookup' && (
@@ -522,6 +522,83 @@ function FieldError({ message }: { message: string }) {
         </svg>
         {message}
       </div>
+    </div>
+  );
+}
+
+/* ── Conditional Group Renderer ──────────────────────────────────────────── */
+
+function normalizeChildField(raw: Record<string, unknown>, index: number): FormField {
+  return {
+    id: (raw.id as string) || `child-${index}`,
+    type: (raw.type as string) || 'text',
+    code: (raw.code as string) || `field_${index}`,
+    label: (raw.label as MultilingualText) || { en: `Field ${index}` },
+    placeholder: (raw.placeholder as MultilingualText) || undefined,
+    helpText: (raw.helpText as MultilingualText) || undefined,
+    column: (raw.column as number) || 1,
+    columnSpan: (raw.columnSpan as number) || 1,
+    order: (raw.order as number) ?? index,
+    required: (raw.required as boolean) ?? false,
+    readOnly: (raw.readOnly as boolean) ?? false,
+    hidden: (raw.hidden as boolean) ?? false,
+    defaultValue: raw.defaultValue ?? null,
+    validation: (raw.validation as FormField['validation']) || {},
+    conditions: (raw.conditions as FormField['conditions']) || [],
+    properties: (raw.properties as Record<string, unknown>) || {},
+  };
+}
+
+function ConditionalGroupRenderer({
+  field,
+  formValues,
+  onChange,
+}: {
+  field: FormField;
+  formValues: Record<string, unknown>;
+  onChange: (value: unknown) => void;
+}) {
+  // Evaluate the group's own conditions to decide whether to show children
+  const conditions = field.conditions || [];
+  const shouldShow = conditions.length === 0 || conditions.every((c) => {
+    const result = evaluateFieldCondition(c, formValues);
+    if (c.action === 'show') return result;
+    if (c.action === 'hide') return !result;
+    return true;
+  });
+
+  if (!shouldShow) return null;
+
+  const children = (field.properties.children || []) as Array<Record<string, unknown>>;
+  if (children.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-gray-300 p-3 dark:border-gray-600">
+        <p className="text-xs text-gray-400">No child fields configured</p>
+      </div>
+    );
+  }
+
+  const childFields = children.map((c, i) => normalizeChildField(c, i));
+  // Value for a conditional group is Record<childCode, childValue>
+  const groupValue = (typeof field.properties._groupValue === 'object' ? field.properties._groupValue : formValues) as Record<string, unknown>;
+
+  return (
+    <div className="space-y-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+      {childFields
+        .sort((a, b) => a.order - b.order)
+        .map((child) => (
+          <FieldRenderer
+            key={child.id}
+            field={child}
+            value={groupValue[child.code]}
+            onChange={(v) => {
+              // Propagate to parent via a merged object
+              const updated = { ...(typeof formValues === 'object' ? formValues : {}), [child.code]: v };
+              onChange(updated);
+            }}
+            formValues={formValues}
+          />
+        ))}
     </div>
   );
 }
