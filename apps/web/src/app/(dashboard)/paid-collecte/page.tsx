@@ -25,7 +25,6 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import {
   aggregatePaidSubmissions,
   filterPaidSubmissions,
-  PAID_DASHBOARD_TABS,
   type PaidFilters,
   type PaidSubmissionData,
 } from '@/lib/paid';
@@ -47,15 +46,25 @@ export default function PaidPage() {
   const t = useTranslations('paid');
   const { user } = useAuthStore();
 
-  // Active tab
-  const [activeTab, setActiveTab] = useState('overview');
-
   // Filters
   const [filters, setFilters] = useState<PaidFilters>({});
 
   // Fetch all PAID campaigns (domain = 'paid' or cross-domain)
   const campaignsQuery = useCollectionCampaigns({ domain: 'paid', limit: 50 });
-  const campaigns: any[] = Array.isArray(campaignsQuery.data?.data) ? campaignsQuery.data.data : [];
+  const rawCampaigns: any[] = Array.isArray(campaignsQuery.data?.data) ? campaignsQuery.data.data : [];
+  // Sort: Q1, Q2, Q3, Q4, Annual (by code alphabetically, Q before Annual)
+  const campaigns = useMemo(() => {
+    return [...rawCampaigns].sort((a, b) => {
+      const codeA = a.code || '';
+      const codeB = b.code || '';
+      // Q1-Q4 first (sorted), then Annual last
+      const isQA = /Q\d/.test(codeA);
+      const isQB = /Q\d/.test(codeB);
+      if (isQA && !isQB) return -1;
+      if (!isQA && isQB) return 1;
+      return codeA.localeCompare(codeB);
+    });
+  }, [rawCampaigns]);
   const activeCampaigns = campaigns.filter((c: any) => c.status === 'ACTIVE');
 
   // Select first active campaign for submission data
@@ -135,25 +144,6 @@ export default function PaidPage() {
             ))}
           </select>
         )}
-      </div>
-
-      {/* ── Dashboard Tabs ─────────────────────────────── */}
-      <div className="flex items-center gap-1 overflow-x-auto rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-gray-800/50">
-        {PAID_DASHBOARD_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              'rounded-md px-4 py-1.5 text-xs font-semibold transition-all',
-              activeTab === tab.key
-                ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
-                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
-            )}
-            style={activeTab === tab.key ? { borderBottom: `2px solid ${tab.color}` } : undefined}
-          >
-            {t(`tab${tab.key.charAt(0).toUpperCase() + tab.key.slice(1)}`)}
-          </button>
-        ))}
       </div>
 
       {/* ── KPI Cards (8 metrics like the FAO dashboard) ─ */}
@@ -264,7 +254,7 @@ function CampaignCarousel({ campaigns, isLoading, t }: { campaigns: any[]; isLoa
   if (campaigns.length === 0) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-        <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">{t('campaignOverview')}</h3>
+        <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">{t('planificationOverview')}</h3>
         <p className="py-8 text-center text-sm text-gray-400">{t('noCampaignData')}</p>
       </div>
     );
@@ -274,7 +264,7 @@ function CampaignCarousel({ campaigns, isLoading, t }: { campaigns: any[]; isLoa
     <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('campaignOverview')}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('planificationOverview')}</h3>
           <p className="mt-0.5 text-xs text-gray-400">{campaigns.length} {t('totalCampaigns').toLowerCase()}</p>
         </div>
         <div className="flex items-center gap-1">

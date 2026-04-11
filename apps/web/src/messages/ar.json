@@ -2432,6 +2432,7 @@
     "benefByCountry": "المستفيدون حسب البلد",
     "benefByActivity": "المستفيدون حسب نوع النشاط",
     "campaignOverview": "نظرة عامة على الحملات",
+    "planificationOverview": "نظرة عامة على التخطيطات",
     "noCampaignData": "لا توجد بيانات حملات متاحة",
     "dataEntry": "إدخال البيانات",
     "importExcel": "استيراد Excel",

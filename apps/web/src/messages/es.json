@@ -2432,6 +2432,7 @@
     "benefByCountry": "Beneficiarios por país",
     "benefByActivity": "Beneficiarios por tipo de actividad",
     "campaignOverview": "Resumen de campañas",
+    "planificationOverview": "Resumen de planificaciones",
     "noCampaignData": "Sin datos de campaña disponibles",
     "dataEntry": "Ingreso de datos",
     "dataEntryDesc": "Enviar informes de actividades PAID",

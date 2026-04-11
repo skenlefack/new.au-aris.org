@@ -15,7 +15,6 @@ import {
   Filter,
   NotebookPen,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useCollectionCampaigns, useCampaignSubmissions } from '@/lib/api/workflow-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -23,7 +22,6 @@ import {
   aggregatePaidSubmissions,
   filterPaidSubmissions,
   PAID_SECTORS,
-  PAID_DASHBOARD_TABS,
   SECTOR_COLORS,
   PAID_QUARTERS,
   type PaidFilters,
@@ -48,7 +46,6 @@ export default function PaidDashboardPage() {
 
   // ── Filters state ──
   const [filters, setFilters] = useState<PaidFilters>({});
-  const [activeTab, setActiveTab] = useState('overview');
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // ── Data: fetch all PAID campaigns + submissions ──
@@ -168,27 +165,6 @@ export default function PaidDashboardPage() {
             ))}
           </div>
         )}
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/*  DASHBOARD TABS                                            */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <div className="mt-4 flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-800">
-        {PAID_DASHBOARD_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              'rounded-md px-3 py-1.5 text-[11px] font-semibold transition-all',
-              activeTab === tab.key
-                ? 'text-white shadow-sm'
-                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400',
-            )}
-            style={activeTab === tab.key ? { backgroundColor: tab.color } : undefined}
-          >
-            {t(`tab${tab.key.charAt(0).toUpperCase() + tab.key.slice(1)}`)}
-          </button>
-        ))}
       </div>
 
       {/* ═══════════════════════════════════════════════════════════ */}
