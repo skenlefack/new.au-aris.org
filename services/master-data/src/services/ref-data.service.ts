@@ -265,6 +265,11 @@ export class RefDataService {
       where[parentField] = query[parentField];
     }
 
+    // Category filter (e.g. species category=AQUATIC)
+    if (query.category) {
+      where['category'] = query.category;
+    }
+
     // Disease by species
     if (type === 'diseases' && query.speciesId) {
       where['diseaseSpecies'] = { some: { speciesId: query.speciesId } };

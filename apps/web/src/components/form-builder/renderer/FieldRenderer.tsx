@@ -182,6 +182,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
             value={(value as string) || ''}
             onChange={(v) => onChange(v)}
             placeholder={placeholder}
+            parentFilter={field.properties.parentFilter as Record<string, string> | undefined}
             className={inputClass}
           />
         </Suspense>
