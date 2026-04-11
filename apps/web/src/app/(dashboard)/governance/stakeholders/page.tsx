@@ -1,225 +1,68 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  Search,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react';
+import { ArrowLeft, Search, Filter, Plus, FileText, Clock, CheckCircle2, XCircle, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { useMultiTemplateSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
-import { useGovernanceStakeholders, type GovernanceStakeholder } from '@/lib/api/hooks';
-import { TableSkeleton } from '@/components/ui/Skeleton';
-import { QueryError } from '@/components/ui/QueryError';
 
-const PARTNERSHIP_BADGE: Record<string, string> = {
-  active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  inactive: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
-  pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+const TEMPLATES = ['98842f48-94b4-4b00-ba5d-3f31cb785e79'];
+const PRIMARY = TEMPLATES[0];
+
+const STATUS_CFG: Record<string, { badge: string; icon: React.ReactNode }> = {
+  DRAFT: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: <FileText className="h-3 w-3" /> },
+  SUBMITTED: { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', icon: <Clock className="h-3 w-3" /> },
+  VALIDATED: { badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle2 className="h-3 w-3" /> },
+  REJECTED: { badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', icon: <XCircle className="h-3 w-3" /> },
 };
-
-const PLACEHOLDER_STAKEHOLDERS: GovernanceStakeholder[] = [
-  {
-    id: 'sh-1', name: 'World Organisation for Animal Health (WOAH)', type: 'International Organization',
-    country: 'France', countryCode: 'FR', sector: 'Animal Health',
-    contactEmail: 'liaison@woah.org', partnershipStatus: 'active',
-    createdAt: '2023-01-15T10:00:00Z', updatedAt: '2026-02-10T08:00:00Z',
-  },
-  {
-    id: 'sh-2', name: 'FAO Regional Office for Africa', type: 'UN Agency',
-    country: 'Ghana', countryCode: 'GH', sector: 'Multi-domain',
-    contactEmail: 'raf@fao.org', partnershipStatus: 'active',
-    createdAt: '2023-03-20T09:00:00Z', updatedAt: '2026-01-05T12:00:00Z',
-  },
-  {
-    id: 'sh-3', name: 'Kenya Veterinary Board', type: 'National Authority',
-    country: 'Kenya', countryCode: 'KE', sector: 'Veterinary Services',
-    contactEmail: 'info@kvb.go.ke', partnershipStatus: 'active',
-    createdAt: '2024-06-10T08:00:00Z', updatedAt: '2026-02-01T14:00:00Z',
-  },
-  {
-    id: 'sh-4', name: 'IGAD Centre for Pastoral Areas', type: 'REC Body',
-    country: 'Kenya', countryCode: 'KE', sector: 'Livestock & Pastoralism',
-    contactEmail: 'icpac@igad.int', partnershipStatus: 'active',
-    createdAt: '2023-11-12T11:00:00Z', updatedAt: '2025-10-22T16:00:00Z',
-  },
-  {
-    id: 'sh-5', name: 'Nigeria Federal Veterinary Service', type: 'National Authority',
-    country: 'Nigeria', countryCode: 'NG', sector: 'Veterinary Services',
-    contactEmail: 'dg@fedvet.gov.ng', partnershipStatus: 'pending',
-    createdAt: '2025-09-05T10:00:00Z', updatedAt: '2026-02-18T09:00:00Z',
-  },
-  {
-    id: 'sh-6', name: 'African Development Bank', type: 'Development Partner',
-    country: 'Cote d\'Ivoire', countryCode: 'CI', sector: 'Finance & Development',
-    contactEmail: 'agri@afdb.org', partnershipStatus: 'active',
-    createdAt: '2024-01-08T07:00:00Z', updatedAt: '2026-01-30T11:00:00Z',
-  },
-  {
-    id: 'sh-7', name: 'Institut Pasteur de Dakar', type: 'Research Institution',
-    country: 'Senegal', countryCode: 'SN', sector: 'Diagnostics & Research',
-    contactEmail: 'direction@pasteur.sn', partnershipStatus: 'inactive',
-    createdAt: '2022-07-20T09:00:00Z', updatedAt: '2025-12-15T14:00:00Z',
-  },
-];
+const PARTNER_COLORS: Record<string, string> = { active: 'bg-green-100 text-green-700', inactive: 'bg-gray-100 text-gray-600', pending: 'bg-amber-100 text-amber-700' };
 
 export default function StakeholdersPage() {
   const t = useTranslations('governance');
-  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const limit = 10;
-
-  const { data, isLoading, isError, error, refetch } = useGovernanceStakeholders({
-    page,
-    limit,
-    type: typeFilter || undefined,
-    partnershipStatus: statusFilter || undefined,
-    search: search || undefined,
-  });
-
-  const stakeholders = data?.data ?? PLACEHOLDER_STAKEHOLDERS;
-  const meta = data?.meta ?? { total: PLACEHOLDER_STAKEHOLDERS.length, page: 1, limit: 10 };
-  const totalPages = Math.ceil(meta.total / meta.limit);
+  const { data, isLoading } = useMultiTemplateSubmissions(TEMPLATES, { limit: 50, status: statusFilter || undefined });
+  const submissions: any[] = data?.data ?? [];
+  const filtered = useMemo(() => { if (!search.trim()) return submissions; const q = search.toLowerCase(); return submissions.filter((s: any) => JSON.stringify(s.data ?? {}).toLowerCase().includes(q)); }, [submissions, search]);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/governance"
-          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('stakeholders')}</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t('stakeholdersDesc')}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/governance" className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"><ArrowLeft className="h-5 w-5" /></Link>
+          <div><h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('stakeholders')}</h1><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('stakeholdersDesc')}</p></div>
         </div>
+        <Link href={`/collecte/forms/${PRIMARY}/fill?returnTo=/governance/stakeholders`} className="flex items-center gap-2 rounded-lg bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-800"><Plus className="h-4 w-4" /> New Stakeholder</Link>
       </div>
-
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder={t('searchStakeholders')}
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-gray-400" />
-          <select
-            value={typeFilter}
-            onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-          >
-            <option value="">{t('allTypes')}</option>
-            <option value="International Organization">International Organization</option>
-            <option value="UN Agency">UN Agency</option>
-            <option value="National Authority">National Authority</option>
-            <option value="REC Body">REC Body</option>
-            <option value="Development Partner">Development Partner</option>
-            <option value="Research Institution">Research Institution</option>
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-          >
-            <option value="">{t('allPartnership')}</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="pending">Pending</option>
-          </select>
-        </div>
+        <div className="relative flex-1 sm:max-w-xs"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" /><input type="text" placeholder="Search stakeholders..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white" /></div>
+        <div className="flex items-center gap-2"><Filter className="h-4 w-4 text-gray-400" /><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-teal-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"><option value="">{t('allStatus')}</option><option value="SUBMITTED">Submitted</option><option value="VALIDATED">Validated</option><option value="REJECTED">Rejected</option><option value="DRAFT">Draft</option></select></div>
+        <span className="text-xs text-gray-400">{filtered.length} entries</span>
       </div>
-
-      {isLoading ? (
-        <TableSkeleton rows={7} cols={6} />
-      ) : isError ? (
-        <QueryError
-          message={error instanceof Error ? error.message : 'Failed to load stakeholders'}
-          onRetry={() => refetch()}
-        />
-      ) : (
-        <div className="overflow-hidden rounded-card border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('organization')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('type')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('country')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('sector')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('contact')}</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500 dark:text-gray-400">{t('partnershipStatus')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                {stakeholders.map((sh) => (
-                  <tr key={sh.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900 dark:text-gray-100">{sh.name}</p>
-                    </td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{sh.type}</td>
-                    <td className="px-4 py-3">
-                      <p className="text-gray-700 dark:text-gray-300">{sh.country}</p>
-                      <p className="text-xs text-gray-400">{sh.countryCode}</p>
-                    </td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{sh.sector}</td>
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{sh.contactEmail}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={cn('inline-block rounded-full px-2 py-0.5 text-xs font-medium capitalize', PARTNERSHIP_BADGE[sh.partnershipStatus])}>
-                        {sh.partnershipStatus}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {stakeholders.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
-                      {t('noStakeholdersFound')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 dark:border-gray-700">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {t('showing', { count: stakeholders.length, total: meta.total })}
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-700"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="px-2 text-xs text-gray-600 dark:text-gray-400">
-                Page {page} of {totalPages || 1}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-700"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {isLoading ? <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>
+      : !filtered.length ? <div className="flex flex-col items-center py-16 text-center"><Users className="h-12 w-12 text-gray-200 dark:text-gray-600" /><p className="mt-4 text-sm text-gray-400">{t('noStakeholdersFound')}</p><Link href={`/collecte/forms/${PRIMARY}/fill?returnTo=/governance/stakeholders`} className="mt-4 flex items-center gap-1 text-sm font-medium text-teal-600 hover:text-teal-700"><Plus className="h-4 w-4" /> New Stakeholder</Link></div>
+      : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{filtered.map((sub: any) => {
+          const d = sub.data ?? {}; const sc = STATUS_CFG[sub.status] ?? STATUS_CFG.DRAFT;
+          const pStatus = d.partnership_status ?? '';
+          const loc = d.admin_location ?? {}; const cc = loc.level_0 ?? '';
+          return (
+            <div key={sub.id} className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800">
+              <div className="absolute inset-x-0 top-0 h-1 bg-teal-600" />
+              <div className="flex items-center justify-between">
+                <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', sc.badge)}>{sc.icon}{sub.status}</span>
+                {pStatus && <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize', PARTNER_COLORS[pStatus] ?? 'bg-gray-100 text-gray-600')}>{pStatus}</span>}
+              </div>
+              <p className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">{d.organization_name || '—'}</p>
+              {d.organization_type && <p className="mt-0.5 text-xs text-gray-500 capitalize dark:text-gray-400">{d.organization_type.replace(/_/g, ' ').toLowerCase()}</p>}
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                {cc && <span className="rounded bg-gray-100 px-1.5 py-0.5 font-medium dark:bg-gray-700">{cc}</span>}
+                {d.sector && <span>{d.sector}</span>}
+                {d.contact_email && <span className="truncate text-blue-500">{d.contact_email}</span>}
+              </div>
+            </div>);
+        })}</div>}
     </div>
   );
 }
