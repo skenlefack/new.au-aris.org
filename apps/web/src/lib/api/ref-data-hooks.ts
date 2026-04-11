@@ -339,3 +339,46 @@ export function useDeleteRefData(type: RefDataType) {
     },
   });
 }
+
+// ─── PAID Referentials (uses generic FisheryReferential with PAID_* categories) ──
+
+export type PaidRefCategory =
+  | 'PAID_SECTOR' | 'PAID_ACTIVITY' | 'PAID_SPECIES'
+  | 'PAID_DISEASE' | 'PAID_PROD_SYSTEM' | 'PAID_CVA_TYPE'
+  | 'PAID_CASH_MECHANISM' | 'PAID_COUNTRY_META' | 'PAID_PROJECT';
+
+export interface PaidReferentialItem {
+  id: string;
+  category: string;
+  code: string;
+  name: Record<string, string>;
+  parentCode?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Fetch PAID referentials by category.
+ * Optionally filter by parentCode for cascading dropdowns.
+ */
+export function usePaidReferentials(
+  category: PaidRefCategory,
+  parentCode?: string,
+) {
+  return useQuery({
+    queryKey: ['paid-ref', category, parentCode ?? ''],
+    queryFn: () =>
+      mdGet<{ data: PaidReferentialItem[] }>(
+        '/api/v1/master-data/fishery-referentials',
+        {
+          category,
+          limit: '500',
+          isActive: 'true',
+          ...(parentCode ? { search: parentCode } : {}),
+        },
+      ),
+    staleTime: 10 * 60_000, // 10 min cache
+    enabled: !!category,
+  });
+}
