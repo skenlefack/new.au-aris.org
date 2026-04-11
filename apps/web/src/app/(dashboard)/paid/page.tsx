@@ -96,7 +96,7 @@ export default function PaidDashboardPage() {
     <div className="flex min-h-[calc(100vh-56px)] bg-[#f0f2f5] dark:bg-gray-950">
       {/* ══════════ LEFT SIDEBAR ══════════ */}
       <aside className="hidden w-[150px] shrink-0 flex-col border-r border-gray-300 bg-white lg:flex dark:border-gray-700 dark:bg-gray-900">
-        <div className="bg-[#003366] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest text-white">
+        <div className="bg-[#4CAF50] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest text-white">
           Filters
         </div>
 
@@ -121,7 +121,7 @@ export default function PaidDashboardPage() {
         )}
 
         <div className="mt-auto border-t border-gray-200 px-2 py-2 dark:border-gray-700">
-          <Link href="/paid-collecte" className="flex items-center gap-1 rounded bg-[#003366] px-2 py-1 text-[8px] font-bold text-white hover:bg-[#004488]">
+          <Link href="/paid-collecte" className="flex items-center gap-1 rounded bg-[#4CAF50] px-2 py-1 text-[8px] font-bold text-white hover:bg-[#388E3C]">
             <NotebookPen className="h-2.5 w-2.5" /> Collecte PAID
           </Link>
         </div>
@@ -130,9 +130,9 @@ export default function PaidDashboardPage() {
       {/* ══════════ MAIN ══════════ */}
       <main className="min-w-0 flex-1 flex flex-col">
         {/* ── HEADER ── */}
-        <div className="flex items-center justify-between bg-[#003366] px-4 py-[6px]">
+        <div className="flex items-center justify-between bg-[#4CAF50] px-4 py-[6px]">
           <div className="flex items-center gap-2">
-            <Globe2 className="h-4 w-4 text-white/60" />
+            <Globe2 className="h-4 w-4 text-white/80" />
             <span className="text-[11px] font-bold tracking-wide text-white lg:text-xs">AU-IBAR PAID OVERVIEW</span>
           </div>
           {hasF && (
@@ -257,7 +257,7 @@ export default function PaidDashboardPage() {
             <div className="grid grid-cols-2 gap-[1px] bg-gray-300 lg:grid-cols-4 dark:bg-gray-700">
               {/* 5: Africa MAP — Leaflet (spans 2 columns) */}
               <div className="col-span-2 bg-white dark:bg-gray-800">
-                <h4 className="border-b border-gray-100 px-2 py-1 text-[8px] font-bold text-[#003366] dark:border-gray-700 dark:text-blue-300">
+                <h4 className="border-b border-gray-100 px-2 py-1.5 text-[11px] font-bold text-[#003366] dark:border-gray-700 dark:text-blue-300">
                   &#9679; Beneficiaries per country
                 </h4>
                 <div className="h-[220px] w-full">
@@ -327,7 +327,7 @@ export default function PaidDashboardPage() {
 function Panel({ title, children, noPad }: { title: string; children: React.ReactNode; noPad?: boolean }) {
   return (
     <div className="bg-white dark:bg-gray-800">
-      <h4 className="border-b border-gray-100 px-2 py-1 text-[8px] font-bold text-[#003366] dark:border-gray-700 dark:text-blue-300">
+      <h4 className="border-b border-gray-100 px-2 py-1.5 text-[11px] font-bold text-[#003366] dark:border-gray-700 dark:text-blue-300">
         &#9679; {title}
       </h4>
       <div className={noPad ? '' : 'p-2'}>{children}</div>
