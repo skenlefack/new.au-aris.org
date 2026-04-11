@@ -784,7 +784,17 @@
     "totalExports": "Total Fish Exports",
     "totalImports": "Total Fish Imports",
     "searchTrade": "Search trade flows...",
-    "noTradeFound": "No fish trade records found"
+    "noTradeFound": "No fish trade records found",
+    "addCapture": "New Capture",
+    "addVessel": "Register Vessel",
+    "addFarm": "Register Farm",
+    "addEffort": "New Effort Report",
+    "addTradeFlow": "New Trade Flow",
+    "noCapturesDesc": "Submit capture data via the form-builder",
+    "entries": "entries",
+    "noDataFound": "No data found",
+    "exporter": "Exporter",
+    "importer": "Importer"
   },
   "trade": {
     "title": "Trade & SPS",

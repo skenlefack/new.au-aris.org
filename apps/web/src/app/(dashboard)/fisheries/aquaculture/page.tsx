@@ -1,194 +1,129 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
   Search,
   Filter,
-  ChevronLeft,
-  ChevronRight,
+  Plus,
+  FileText,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Warehouse,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { useFormSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
-import { useFisheriesAquaculture, type AquacultureFarm } from '@/lib/api/hooks';
-import { TableSkeleton } from '@/components/ui/Skeleton';
-import { QueryError } from '@/components/ui/QueryError';
 
-const STATUS_BADGE: Record<string, string> = {
-  active: 'bg-green-100 text-green-700',
-  inactive: 'bg-gray-100 text-gray-600',
-  under_construction: 'bg-blue-100 text-blue-700',
+// Template: "Aquaculture Farm Report" (form-builder)
+const AQUACULTURE_TEMPLATE_ID = '7bada615-c0c6-4b47-9e78-1a8af94b8cd9';
+
+const STATUS_CONFIG: Record<string, { badge: string; icon: React.ReactNode }> = {
+  DRAFT: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: <FileText className="h-3 w-3" /> },
+  SUBMITTED: { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', icon: <Clock className="h-3 w-3" /> },
+  VALIDATED: { badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle2 className="h-3 w-3" /> },
+  REJECTED: { badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', icon: <XCircle className="h-3 w-3" /> },
 };
 
-const FARM_TYPE_BADGE: Record<string, string> = {
-  pond: 'bg-teal-100 text-teal-700',
-  cage: 'bg-blue-100 text-blue-700',
-  raceway: 'bg-indigo-100 text-indigo-700',
-  recirculating: 'bg-purple-100 text-purple-700',
-  other: 'bg-gray-100 text-gray-600',
+const FARM_TYPE_COLORS: Record<string, string> = {
+  pond: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+  cage: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  raceway: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+  recirculating: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  tank: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
 };
-
-const PLACEHOLDER_FARMS: AquacultureFarm[] = [
-  {
-    id: 'af-1',
-    name: 'Lake Volta Tilapia Farm',
-    country: 'Ghana',
-    countryCode: 'GH',
-    species: 'Oreochromis niloticus',
-    farmType: 'cage',
-    productionTonnes: 3_200,
-    areaHectares: 45,
-    status: 'active',
-    createdAt: '2022-06-15T10:00:00Z',
-    updatedAt: '2026-01-20T08:00:00Z',
-  },
-  {
-    id: 'af-2',
-    name: 'Kafue Floodplain Ponds',
-    country: 'Zambia',
-    countryCode: 'ZM',
-    species: 'Oreochromis andersonii',
-    farmType: 'pond',
-    productionTonnes: 850,
-    areaHectares: 120,
-    status: 'active',
-    createdAt: '2020-03-10T09:00:00Z',
-    updatedAt: '2025-12-05T14:00:00Z',
-  },
-  {
-    id: 'af-3',
-    name: 'Sharm Aquaculture Centre',
-    country: 'Egypt',
-    countryCode: 'EG',
-    species: 'Dicentrarchus labrax',
-    farmType: 'raceway',
-    productionTonnes: 5_400,
-    areaHectares: 30,
-    status: 'active',
-    createdAt: '2019-11-22T07:00:00Z',
-    updatedAt: '2026-02-10T11:00:00Z',
-  },
-  {
-    id: 'af-4',
-    name: 'Kigali Recirculation Facility',
-    country: 'Rwanda',
-    countryCode: 'RW',
-    species: 'Clarias gariepinus',
-    farmType: 'recirculating',
-    productionTonnes: 420,
-    areaHectares: 2.5,
-    status: 'active',
-    createdAt: '2024-01-08T10:00:00Z',
-    updatedAt: '2026-02-01T09:00:00Z',
-  },
-  {
-    id: 'af-5',
-    name: 'Mwanza Bay Expansion',
-    country: 'Tanzania',
-    countryCode: 'TZ',
-    species: 'Oreochromis niloticus',
-    farmType: 'cage',
-    productionTonnes: 0,
-    areaHectares: 60,
-    status: 'under_construction',
-    createdAt: '2025-09-15T08:00:00Z',
-    updatedAt: '2026-02-18T16:00:00Z',
-  },
-  {
-    id: 'af-6',
-    name: 'Oshakati Fish Farm',
-    country: 'Namibia',
-    countryCode: 'NA',
-    species: 'Oreochromis mossambicus',
-    farmType: 'pond',
-    productionTonnes: 180,
-    areaHectares: 35,
-    status: 'inactive',
-    createdAt: '2018-04-20T11:00:00Z',
-    updatedAt: '2025-06-30T10:00:00Z',
-  },
-];
 
 export default function AquaculturePage() {
   const t = useTranslations('fisheries');
-  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [countryFilter, setCountryFilter] = useState('');
-  const [farmTypeFilter, setFarmTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const limit = 10;
 
-  const { data, isLoading, isError, error, refetch } = useFisheriesAquaculture({
-    page,
-    limit,
-    country: countryFilter || undefined,
-    farmType: farmTypeFilter || undefined,
+  const { data, isLoading } = useFormSubmissions(AQUACULTURE_TEMPLATE_ID, {
+    page: 1,
+    limit: 50,
     status: statusFilter || undefined,
-    search: search || undefined,
   });
 
-  const farms = data?.data ?? PLACEHOLDER_FARMS;
-  const meta = data?.meta ?? {
-    total: PLACEHOLDER_FARMS.length,
-    page: 1,
-    limit: 10,
-  };
-  const totalPages = Math.ceil(meta.total / meta.limit);
+  const submissions: any[] = data?.data ?? [];
 
-  // Summary computations
-  const activeFarms = farms.filter((f) => f.status === 'active');
-  const totalProduction = activeFarms.reduce((sum, f) => sum + f.productionTonnes, 0);
-  const totalArea = farms.reduce((sum, f) => sum + f.areaHectares, 0);
-  const avgArea = farms.length > 0 ? totalArea / farms.length : 0;
+  const filtered = useMemo(() => {
+    if (!search.trim()) return submissions;
+    const q = search.toLowerCase();
+    return submissions.filter((s: any) => {
+      const d = s.data ?? {};
+      return (
+        JSON.stringify(d).toLowerCase().includes(q) ||
+        (s.status ?? '').toLowerCase().includes(q)
+      );
+    });
+  }, [submissions, search]);
+
+  // Compute summary KPIs from real data
+  const activeFarms = filtered.filter((s: any) => {
+    const status = s.data?.farm_status ?? s.data?.status ?? '';
+    return status === 'active' || s.status === 'VALIDATED';
+  });
+  const totalProduction = filtered.reduce((sum: number, s: any) => {
+    const prod = Number(s.data?.production_tonnes ?? s.data?.production ?? 0);
+    return sum + prod;
+  }, 0);
+  const totalArea = filtered.reduce((sum: number, s: any) => {
+    const area = Number(s.data?.area_hectares ?? s.data?.area ?? 0);
+    return sum + area;
+  }, 0);
+  const avgArea = filtered.length > 0 ? totalArea / filtered.length : 0;
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/fisheries"
-          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {t('aquaTitle')}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {t('aquaSubtitle')}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/fisheries"
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('aquaTitle')}</h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('aquaSubtitle')}</p>
+          </div>
         </div>
+        <Link
+          href={`/collecte/forms/${AQUACULTURE_TEMPLATE_ID}/fill?returnTo=/fisheries/aquaculture`}
+          className="flex items-center gap-2 rounded-lg bg-green-700 px-3 py-2 text-sm font-semibold text-white hover:bg-green-800"
+        >
+          <Plus className="h-4 w-4" />
+          {t('addFarm')}
+        </Link>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className="rounded-card border border-green-200 bg-green-50 p-4">
-          <p className="text-xs text-green-600">{t('activeFarms')}</p>
-          <p className="text-xl font-bold text-green-700">
-            {activeFarms.length}
-          </p>
+      {filtered.length > 0 && (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+            <p className="text-xs text-green-600 dark:text-green-400">{t('activeFarms')}</p>
+            <p className="text-xl font-bold text-green-700 dark:text-green-300">{activeFarms.length}</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <p className="text-xs text-gray-400">Total Production</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white">
+              {totalProduction.toLocaleString()}
+              <span className="ml-1 text-sm font-normal text-gray-400">tonnes</span>
+            </p>
+          </div>
+          <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4 dark:border-cyan-800 dark:bg-cyan-900/20">
+            <p className="text-xs text-cyan-600 dark:text-cyan-400">Average Area</p>
+            <p className="text-xl font-bold text-cyan-700 dark:text-cyan-300">
+              {avgArea.toFixed(1)}
+              <span className="ml-1 text-sm font-normal text-cyan-400">ha</span>
+            </p>
+          </div>
         </div>
-        <div className="rounded-card border border-gray-200 bg-white p-4">
-          <p className="text-xs text-gray-400">Total Production</p>
-          <p className="text-xl font-bold text-gray-900">
-            {totalProduction.toLocaleString()}
-            <span className="ml-1 text-sm font-normal text-gray-400">
-              tonnes
-            </span>
-          </p>
-        </div>
-        <div className="rounded-card border border-aris-primary-200 bg-aris-primary-50 p-4">
-          <p className="text-xs text-aris-primary-600">Average Area</p>
-          <p className="text-xl font-bold text-aris-primary-700">
-            {avgArea.toFixed(1)}
-            <span className="ml-1 text-sm font-normal text-aris-primary-400">
-              ha
-            </span>
-          </p>
-        </div>
-      </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
@@ -198,164 +133,120 @@ export default function AquaculturePage() {
             type="text"
             placeholder={t('searchFarms')}
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200"
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-gray-400" />
           <select
-            value={countryFilter}
-            onChange={(e) => {
-              setCountryFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
-          >
-            <option value="">{t('allCountries')}</option>
-            <option value="GH">Ghana</option>
-            <option value="ZM">Zambia</option>
-            <option value="EG">Egypt</option>
-            <option value="RW">Rwanda</option>
-            <option value="TZ">Tanzania</option>
-            <option value="NA">Namibia</option>
-          </select>
-          <select
-            value={farmTypeFilter}
-            onChange={(e) => {
-              setFarmTypeFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
-          >
-            <option value="">{t('allFarmTypes')}</option>
-            <option value="pond">{t('pond')}</option>
-            <option value="cage">{t('cage')}</option>
-            <option value="raceway">{t('raceway')}</option>
-            <option value="recirculating">{t('recirculating')}</option>
-            <option value="other">{t('other')}</option>
-          </select>
-          <select
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-green-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
           >
             <option value="">{t('allStatus')}</option>
-            <option value="active">{t('active')}</option>
-            <option value="inactive">{t('inactive')}</option>
-            <option value="under_construction">{t('underConstruction')}</option>
+            <option value="SUBMITTED">Submitted</option>
+            <option value="VALIDATED">Validated</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="DRAFT">Draft</option>
           </select>
         </div>
+        <span className="text-xs text-gray-400">
+          {filtered.length} {t('entries')}
+        </span>
       </div>
 
-      {/* Table */}
+      {/* Content */}
       {isLoading ? (
-        <TableSkeleton rows={6} cols={7} />
-      ) : isError ? (
-        <QueryError
-          message={error instanceof Error ? error.message : 'Failed to load farms'}
-          onRetry={() => refetch()}
-        />
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 rounded-xl" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center py-16 text-center">
+          <Warehouse className="h-12 w-12 text-gray-200 dark:text-gray-600" />
+          <p className="mt-4 text-sm text-gray-400">{t('noFarmsFound')}</p>
+          <Link
+            href={`/collecte/forms/${AQUACULTURE_TEMPLATE_ID}/fill?returnTo=/fisheries/aquaculture`}
+            className="mt-4 flex items-center gap-1 text-sm font-medium text-green-600 hover:text-green-700"
+          >
+            <Plus className="h-4 w-4" /> {t('addFarm')}
+          </Link>
+        </div>
       ) : (
-        <div className="overflow-hidden rounded-card border border-gray-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('farmName')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('farmCountry')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('farmSpecies')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('farmType')}</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('prodTonnes')}</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('areaHa')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('farmStatus')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {farms.map((farm) => (
-                  <tr key={farm.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900">{farm.name}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="text-gray-700">{farm.country}</p>
-                      <p className="text-xs text-gray-400">{farm.countryCode}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="text-gray-700 italic">{farm.species}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          'inline-block rounded-full px-2 py-0.5 text-xs font-medium capitalize',
-                          FARM_TYPE_BADGE[farm.farmType],
-                        )}
-                      >
-                        {farm.farmType}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium text-gray-900">
-                      {farm.productionTonnes.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-right text-gray-700">
-                      {farm.areaHectares.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          'inline-block rounded-full px-2 py-0.5 text-xs font-medium',
-                          STATUS_BADGE[farm.status],
-                        )}
-                      >
-                        {farm.status === 'under_construction'
-                          ? t('underConstruction')
-                          : farm.status === 'active' ? t('active') : t('inactive')}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {farms.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                      {t('noFarmsFound')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((sub: any) => {
+            const d = sub.data ?? {};
+            const statusCfg = STATUS_CONFIG[sub.status] ?? STATUS_CONFIG.DRAFT;
+            const farmName = d.farm_name ?? d.name ?? '';
+            const species = d.species ?? d.species_name ?? '';
+            const farmType = d.farm_type ?? '';
+            const production = d.production_tonnes ?? d.production ?? 0;
+            const area = d.area_hectares ?? d.area ?? 0;
+            const farmStatus = d.farm_status ?? d.operational_status ?? '';
+            const loc = d.admin_location ?? {};
+            const countryCode = loc.level_0 ?? d.country_code ?? '';
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
-            <p className="text-xs text-gray-500">
-              {t('showingOf', { count: String(farms.length), total: String(meta.total) })}
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50"
+            return (
+              <div
+                key={sub.id}
+                className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800"
               >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="px-2 text-xs text-gray-600">
-                Page {page} of {totalPages || 1}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+                <div className="absolute inset-x-0 top-0 h-1 bg-green-600" />
+
+                <div className="flex items-center justify-between">
+                  <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', statusCfg.badge)}>
+                    {statusCfg.icon}
+                    {sub.status}
+                  </span>
+                  {farmType && (
+                    <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize', FARM_TYPE_COLORS[farmType] ?? 'bg-gray-100 text-gray-600')}>
+                      {farmType}
+                    </span>
+                  )}
+                </div>
+
+                {/* Farm name */}
+                <p className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">{farmName || '—'}</p>
+                {species && (
+                  <p className="mt-0.5 text-xs italic text-gray-500 dark:text-gray-400">{species}</p>
+                )}
+
+                {/* Key metrics */}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      {production ? Number(production).toLocaleString() : '—'}
+                    </p>
+                    <p className="text-[10px] text-gray-400">{t('prodTonnes')}</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      {area ? Number(area).toLocaleString() : '—'}
+                    </p>
+                    <p className="text-[10px] text-gray-400">{t('areaHa')}</p>
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  {countryCode && (
+                    <span className="rounded bg-gray-100 px-1.5 py-0.5 font-medium dark:bg-gray-700">{countryCode}</span>
+                  )}
+                  {farmStatus && farmStatus !== farmType && (
+                    <span className="capitalize">{farmStatus}</span>
+                  )}
+                  {sub.submittedAt && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {new Date(sub.submittedAt).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

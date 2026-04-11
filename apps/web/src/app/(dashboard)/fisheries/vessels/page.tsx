@@ -1,154 +1,88 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
   Search,
   Filter,
-  ChevronLeft,
-  ChevronRight,
+  Plus,
+  FileText,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Ship,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { useFormSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
-import { useFisheriesVessels, type Vessel } from '@/lib/api/hooks';
-import { TableSkeleton } from '@/components/ui/Skeleton';
-import { QueryError } from '@/components/ui/QueryError';
 
-const LICENSE_BADGE: Record<string, string> = {
-  valid: 'bg-green-100 text-green-700',
-  expired: 'bg-red-100 text-red-700',
-  suspended: 'bg-amber-100 text-amber-700',
-  pending: 'bg-blue-100 text-blue-700',
+// Template: "Vessel Registry" (form-builder)
+const VESSELS_TEMPLATE_ID = '1c5a9949-9a73-4b4f-a8da-0914a112e35a';
+
+const STATUS_CONFIG: Record<string, { badge: string; icon: React.ReactNode }> = {
+  DRAFT: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: <FileText className="h-3 w-3" /> },
+  SUBMITTED: { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', icon: <Clock className="h-3 w-3" /> },
+  VALIDATED: { badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle2 className="h-3 w-3" /> },
+  REJECTED: { badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', icon: <XCircle className="h-3 w-3" /> },
 };
 
-const PLACEHOLDER_VESSELS: Vessel[] = [
-  {
-    id: 'vs-1',
-    name: 'Atlantic Star',
-    registrationNumber: 'MA-FSH-2021-0042',
-    flag: 'Morocco',
-    flagCode: 'MA',
-    vesselType: 'Trawler',
-    lengthMeters: 34.5,
-    tonnage: 280,
-    licenseStatus: 'valid',
-    homePort: 'Agadir',
-    createdAt: '2021-03-15T10:00:00Z',
-    updatedAt: '2026-01-20T08:00:00Z',
-  },
-  {
-    id: 'vs-2',
-    name: 'Dakar Queen',
-    registrationNumber: 'SN-FSH-2019-0118',
-    flag: 'Senegal',
-    flagCode: 'SN',
-    vesselType: 'Purse seiner',
-    lengthMeters: 28.2,
-    tonnage: 195,
-    licenseStatus: 'valid',
-    homePort: 'Dakar',
-    createdAt: '2019-07-22T09:00:00Z',
-    updatedAt: '2025-12-10T14:00:00Z',
-  },
-  {
-    id: 'vs-3',
-    name: 'Cape Fisher',
-    registrationNumber: 'ZA-FSH-2020-0256',
-    flag: 'South Africa',
-    flagCode: 'ZA',
-    vesselType: 'Longliner',
-    lengthMeters: 42.0,
-    tonnage: 385,
-    licenseStatus: 'expired',
-    homePort: 'Cape Town',
-    createdAt: '2020-01-10T07:00:00Z',
-    updatedAt: '2025-11-30T16:00:00Z',
-  },
-  {
-    id: 'vs-4',
-    name: 'Nile Harvest',
-    registrationNumber: 'UG-FSH-2023-0034',
-    flag: 'Uganda',
-    flagCode: 'UG',
-    vesselType: 'Gillnetter',
-    lengthMeters: 12.5,
-    tonnage: 25,
-    licenseStatus: 'valid',
-    homePort: 'Entebbe',
-    createdAt: '2023-05-08T10:00:00Z',
-    updatedAt: '2026-02-01T09:00:00Z',
-  },
-  {
-    id: 'vs-5',
-    name: 'Mombasa Pride',
-    registrationNumber: 'KE-FSH-2022-0087',
-    flag: 'Kenya',
-    flagCode: 'KE',
-    vesselType: 'Trawler',
-    lengthMeters: 22.8,
-    tonnage: 150,
-    licenseStatus: 'suspended',
-    homePort: 'Mombasa',
-    createdAt: '2022-09-18T11:00:00Z',
-    updatedAt: '2026-01-15T10:00:00Z',
-  },
-  {
-    id: 'vs-6',
-    name: 'Lagos Breeze',
-    registrationNumber: 'NG-FSH-2024-0015',
-    flag: 'Nigeria',
-    flagCode: 'NG',
-    vesselType: 'Purse seiner',
-    lengthMeters: 18.3,
-    tonnage: 85,
-    licenseStatus: 'pending',
-    homePort: 'Lagos',
-    createdAt: '2024-11-20T08:00:00Z',
-    updatedAt: '2026-02-12T14:00:00Z',
-  },
-];
+const LICENSE_COLORS: Record<string, string> = {
+  valid: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  expired: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  suspended: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  pending: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+};
 
 export default function VesselsPage() {
   const t = useTranslations('fisheries');
-  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [vesselTypeFilter, setVesselTypeFilter] = useState('');
-  const [licenseStatusFilter, setLicenseStatusFilter] = useState('');
-  const limit = 10;
+  const [statusFilter, setStatusFilter] = useState('');
 
-  const { data, isLoading, isError, error, refetch } = useFisheriesVessels({
-    page,
-    limit,
-    vesselType: vesselTypeFilter || undefined,
-    licenseStatus: licenseStatusFilter || undefined,
-    search: search || undefined,
+  const { data, isLoading } = useFormSubmissions(VESSELS_TEMPLATE_ID, {
+    page: 1,
+    limit: 50,
+    status: statusFilter || undefined,
   });
 
-  const vessels = data?.data ?? PLACEHOLDER_VESSELS;
-  const meta = data?.meta ?? {
-    total: PLACEHOLDER_VESSELS.length,
-    page: 1,
-    limit: 10,
-  };
-  const totalPages = Math.ceil(meta.total / meta.limit);
+  const submissions: any[] = data?.data ?? [];
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return submissions;
+    const q = search.toLowerCase();
+    return submissions.filter((s: any) => {
+      const d = s.data ?? {};
+      return (
+        JSON.stringify(d).toLowerCase().includes(q) ||
+        (s.status ?? '').toLowerCase().includes(q)
+      );
+    });
+  }, [submissions, search]);
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/fisheries"
-          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('vesselTitle')}</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {t('vesselSubtitle')}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/fisheries"
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('vesselTitle')}</h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('vesselSubtitle')}</p>
+          </div>
         </div>
+        <Link
+          href={`/collecte/forms/${VESSELS_TEMPLATE_ID}/fill?returnTo=/fisheries/vessels`}
+          className="flex items-center gap-2 rounded-lg bg-cyan-700 px-3 py-2 text-sm font-semibold text-white hover:bg-cyan-800"
+        >
+          <Plus className="h-4 w-4" />
+          {t('addVessel')}
+        </Link>
       </div>
 
       {/* Filters */}
@@ -159,141 +93,124 @@ export default function VesselsPage() {
             type="text"
             placeholder={t('searchVessels')}
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200"
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-gray-400" />
           <select
-            value={vesselTypeFilter}
-            onChange={(e) => {
-              setVesselTypeFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-cyan-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
           >
-            <option value="">{t('allTypes')}</option>
-            <option value="Trawler">{t('trawler')}</option>
-            <option value="Purse seiner">{t('purseSeine')}</option>
-            <option value="Longliner">{t('longliner')}</option>
-            <option value="Gillnetter">{t('gillnetter')}</option>
-          </select>
-          <select
-            value={licenseStatusFilter}
-            onChange={(e) => {
-              setLicenseStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
-          >
-            <option value="">{t('allLicenseStatus')}</option>
-            <option value="valid">{t('valid')}</option>
-            <option value="expired">{t('expired')}</option>
-            <option value="suspended">{t('suspended')}</option>
-            <option value="pending">{t('pending')}</option>
+            <option value="">{t('allStatus')}</option>
+            <option value="SUBMITTED">Submitted</option>
+            <option value="VALIDATED">Validated</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="DRAFT">Draft</option>
           </select>
         </div>
+        <span className="text-xs text-gray-400">
+          {filtered.length} {t('entries')}
+        </span>
       </div>
 
-      {/* Table */}
+      {/* Content */}
       {isLoading ? (
-        <TableSkeleton rows={6} cols={8} />
-      ) : isError ? (
-        <QueryError
-          message={error instanceof Error ? error.message : 'Failed to load vessels'}
-          onRetry={() => refetch()}
-        />
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 rounded-xl" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center py-16 text-center">
+          <Ship className="h-12 w-12 text-gray-200 dark:text-gray-600" />
+          <p className="mt-4 text-sm text-gray-400">{t('noVesselsFound')}</p>
+          <Link
+            href={`/collecte/forms/${VESSELS_TEMPLATE_ID}/fill?returnTo=/fisheries/vessels`}
+            className="mt-4 flex items-center gap-1 text-sm font-medium text-cyan-600 hover:text-cyan-700"
+          >
+            <Plus className="h-4 w-4" /> {t('addVessel')}
+          </Link>
+        </div>
       ) : (
-        <div className="overflow-hidden rounded-card border border-gray-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('vesselName')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('registration')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('flag')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('type')}</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('length')}</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('tonnage')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('licenseStatus')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('homePort')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {vessels.map((v) => (
-                  <tr key={v.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900">{v.name}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="font-mono text-xs text-gray-700">
-                        {v.registrationNumber}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="text-gray-700">{v.flag}</p>
-                      <p className="text-xs text-gray-400">{v.flagCode}</p>
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">{v.vesselType}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">
-                      {v.lengthMeters.toFixed(1)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium text-gray-900">
-                      {v.tonnage.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          'inline-block rounded-full px-2 py-0.5 text-xs font-medium capitalize',
-                          LICENSE_BADGE[v.licenseStatus],
-                        )}
-                      >
-                        {v.licenseStatus}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">{v.homePort}</td>
-                  </tr>
-                ))}
-                {vessels.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
-                      {t('noVesselsFound')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((sub: any) => {
+            const d = sub.data ?? {};
+            const statusCfg = STATUS_CONFIG[sub.status] ?? STATUS_CONFIG.DRAFT;
+            const vesselName = d.vessel_name ?? d.name ?? '';
+            const registration = d.registration_number ?? d.reg_number ?? '';
+            const flag = d.flag ?? d.flag_country ?? '';
+            const flagCode = d.flag_code ?? d.country_code ?? '';
+            const vesselType = d.vessel_type ?? '';
+            const length = d.length_meters ?? d.length ?? 0;
+            const tonnage = d.tonnage ?? d.gross_tonnage ?? 0;
+            const licenseStatus = d.license_status ?? '';
+            const homePort = d.home_port ?? '';
+            const loc = d.admin_location ?? {};
+            const country = loc.level_0 ?? flagCode;
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
-            <p className="text-xs text-gray-500">
-              {t('showingOf', { count: String(vessels.length), total: String(meta.total) })}
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50"
+            return (
+              <div
+                key={sub.id}
+                className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800"
               >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="px-2 text-xs text-gray-600">
-                Page {page} of {totalPages || 1}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+                <div className="absolute inset-x-0 top-0 h-1 bg-blue-600" />
+
+                <div className="flex items-center justify-between">
+                  <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', statusCfg.badge)}>
+                    {statusCfg.icon}
+                    {sub.status}
+                  </span>
+                  {licenseStatus && (
+                    <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize', LICENSE_COLORS[licenseStatus] ?? 'bg-gray-100 text-gray-600')}>
+                      {licenseStatus}
+                    </span>
+                  )}
+                </div>
+
+                {/* Vessel name */}
+                <p className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">{vesselName || '—'}</p>
+                {registration && (
+                  <p className="mt-0.5 font-mono text-[11px] text-gray-400">{registration}</p>
+                )}
+
+                {/* Key metrics */}
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <div>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">{vesselType || '—'}</p>
+                    <p className="text-[10px] text-gray-400">{t('type')}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">
+                      {length ? `${Number(length).toFixed(1)}m` : '—'}
+                    </p>
+                    <p className="text-[10px] text-gray-400">{t('length')}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">
+                      {tonnage ? Number(tonnage).toLocaleString() : '—'}
+                    </p>
+                    <p className="text-[10px] text-gray-400">{t('tonnage')}</p>
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  {country && (
+                    <span className="rounded bg-gray-100 px-1.5 py-0.5 font-medium dark:bg-gray-700">{country}</span>
+                  )}
+                  {flag && flag !== country && (
+                    <span>{flag}</span>
+                  )}
+                  {homePort && (
+                    <span className="truncate">{homePort}</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

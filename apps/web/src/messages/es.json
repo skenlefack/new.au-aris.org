@@ -684,7 +684,17 @@
     "totalExports": "Exportaciones de Pescado",
     "totalImports": "Importaciones de Pescado",
     "searchTrade": "Buscar flujos comerciales...",
-    "noTradeFound": "No se encontraron registros de comercio de pescado"
+    "noTradeFound": "No se encontraron registros de comercio de pescado",
+    "addCapture": "Nueva captura",
+    "addVessel": "Registrar embarcaci\u00f3n",
+    "addFarm": "Registrar granja",
+    "addEffort": "Nuevo informe de esfuerzo",
+    "addTradeFlow": "Nuevo flujo comercial",
+    "noCapturesDesc": "Env\u00ede datos de capturas a trav\u00e9s del formulario",
+    "entries": "entradas",
+    "noDataFound": "No se encontraron datos",
+    "exporter": "Exportador",
+    "importer": "Importador"
   },
   "trade": {
     "title": "Comercio y MSF",

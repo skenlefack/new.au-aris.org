@@ -712,7 +712,17 @@
     "totalExports": "Exporta\u00e7\u00f5es de Peixe",
     "totalImports": "Importa\u00e7\u00f5es de Peixe",
     "searchTrade": "Pesquisar fluxos comerciais...",
-    "noTradeFound": "Nenhum registo de com\u00e9rcio de peixe encontrado"
+    "noTradeFound": "Nenhum registo de com\u00e9rcio de peixe encontrado",
+    "addCapture": "Nova captura",
+    "addVessel": "Registar embarca\u00e7\u00e3o",
+    "addFarm": "Registar fazenda",
+    "addEffort": "Novo relat\u00f3rio de esfor\u00e7o",
+    "addTradeFlow": "Novo fluxo comercial",
+    "noCapturesDesc": "Submeta dados de capturas atrav\u00e9s do formul\u00e1rio",
+    "entries": "entradas",
+    "noDataFound": "Nenhum dado encontrado",
+    "exporter": "Exportador",
+    "importer": "Importador"
   },
   "trade": {
     "title": "Comércio & SPS",

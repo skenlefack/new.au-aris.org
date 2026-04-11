@@ -1,215 +1,139 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
   Search,
   Filter,
-  ChevronLeft,
-  ChevronRight,
+  Plus,
+  FileText,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  ArrowUpDown,
   TrendingUp,
   TrendingDown,
-  ArrowUpDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { useFormSubmissions } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
-import { useFishTrade, type TradeFlow } from '@/lib/api/hooks';
-import { TableSkeleton } from '@/components/ui/Skeleton';
-import { QueryError } from '@/components/ui/QueryError';
 
-const PLACEHOLDER_TRADES: TradeFlow[] = [
-  {
-    id: 'ft-1',
-    exportCountry: 'Morocco',
-    exportCountryCode: 'MA',
-    importCountry: 'Spain',
-    importCountryCode: 'ES',
-    commodity: 'Sardina pilchardus (frozen)',
-    hsCode: '030354',
-    flowDirection: 'EXPORT',
-    quantity: 125_000,
-    unit: 'tonnes',
-    valueFob: 187_500_000,
-    currency: 'USD',
-    periodStart: '2025-01-01',
-    periodEnd: '2025-12-31',
-    spsStatus: 'COMPLIANT',
-    createdAt: '2026-01-15T10:00:00Z',
-    updatedAt: '2026-02-10T08:00:00Z',
-  },
-  {
-    id: 'ft-2',
-    exportCountry: 'Senegal',
-    exportCountryCode: 'SN',
-    importCountry: 'Nigeria',
-    importCountryCode: 'NG',
-    commodity: 'Sardinella aurita (dried)',
-    hsCode: '030559',
-    flowDirection: 'EXPORT',
-    quantity: 42_000,
-    unit: 'tonnes',
-    valueFob: 31_500_000,
-    currency: 'USD',
-    periodStart: '2025-01-01',
-    periodEnd: '2025-12-31',
-    spsStatus: 'COMPLIANT',
-    createdAt: '2026-01-10T09:00:00Z',
-    updatedAt: '2026-02-01T14:00:00Z',
-  },
-  {
-    id: 'ft-3',
-    exportCountry: 'China',
-    exportCountryCode: 'CN',
-    importCountry: 'Nigeria',
-    importCountryCode: 'NG',
-    commodity: 'Mackerel (frozen)',
-    hsCode: '030354',
-    flowDirection: 'IMPORT',
-    quantity: 280_000,
-    unit: 'tonnes',
-    valueFob: 210_000_000,
-    currency: 'USD',
-    periodStart: '2025-01-01',
-    periodEnd: '2025-12-31',
-    spsStatus: 'COMPLIANT',
-    createdAt: '2026-01-08T07:00:00Z',
-    updatedAt: '2026-01-30T11:00:00Z',
-  },
-  {
-    id: 'ft-4',
-    exportCountry: 'Uganda',
-    exportCountryCode: 'UG',
-    importCountry: 'Democratic Republic of Congo',
-    importCountryCode: 'CD',
-    commodity: 'Lates niloticus (fresh)',
-    hsCode: '030214',
-    flowDirection: 'EXPORT',
-    quantity: 18_500,
-    unit: 'tonnes',
-    valueFob: 27_750_000,
-    currency: 'USD',
-    periodStart: '2025-01-01',
-    periodEnd: '2025-12-31',
-    spsStatus: 'COMPLIANT',
-    createdAt: '2025-12-20T10:00:00Z',
-    updatedAt: '2026-01-15T09:00:00Z',
-  },
-  {
-    id: 'ft-5',
-    exportCountry: 'South Africa',
-    exportCountryCode: 'ZA',
-    importCountry: 'Japan',
-    importCountryCode: 'JP',
-    commodity: 'Merluccius capensis (filleted)',
-    hsCode: '030489',
-    flowDirection: 'EXPORT',
-    quantity: 35_000,
-    unit: 'tonnes',
-    valueFob: 105_000_000,
-    currency: 'USD',
-    periodStart: '2025-01-01',
-    periodEnd: '2025-12-31',
-    spsStatus: 'COMPLIANT',
-    createdAt: '2026-01-12T08:00:00Z',
-    updatedAt: '2026-02-05T12:00:00Z',
-  },
-];
+// Template: "Fish Trade Report" (form-builder)
+const TRADE_TEMPLATE_ID = 'c1533f8a-bb8b-42e0-b666-dac5263b4a53';
 
-const PLACEHOLDER_KPIS = {
-  totalExports: 456_750_000,
-  totalImports: 310_000_000,
-  tradeBalance: 146_750_000,
+const STATUS_CONFIG: Record<string, { badge: string; icon: React.ReactNode }> = {
+  DRAFT: { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: <FileText className="h-3 w-3" /> },
+  SUBMITTED: { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', icon: <Clock className="h-3 w-3" /> },
+  VALIDATED: { badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle2 className="h-3 w-3" /> },
+  REJECTED: { badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', icon: <XCircle className="h-3 w-3" /> },
+};
+
+const DIRECTION_COLORS: Record<string, string> = {
+  EXPORT: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  IMPORT: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
 };
 
 export default function FishTradePage() {
   const t = useTranslations('fisheries');
-  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [countryFilter, setCountryFilter] = useState('');
-  const [productStateFilter, setProductStateFilter] = useState('');
-  const [directionFilter, setDirectionFilter] = useState('');
-  const limit = 10;
+  const [statusFilter, setStatusFilter] = useState('');
 
-  const { data, isLoading, isError, error, refetch } = useFishTrade({
-    page,
-    limit,
-    country: countryFilter || undefined,
-    productState: productStateFilter || undefined,
-    flowDirection: directionFilter || undefined,
-    search: search || undefined,
+  const { data, isLoading } = useFormSubmissions(TRADE_TEMPLATE_ID, {
+    page: 1,
+    limit: 50,
+    status: statusFilter || undefined,
   });
 
-  const trades = data?.data?.length ? data.data : PLACEHOLDER_TRADES;
-  const meta = data?.meta ?? {
-    total: PLACEHOLDER_TRADES.length,
-    page: 1,
-    limit: 10,
-  };
-  const totalPages = Math.ceil(meta.total / meta.limit);
+  const submissions: any[] = data?.data ?? [];
 
-  // Calculate KPIs from data or use placeholders
-  const kpis = PLACEHOLDER_KPIS;
+  const filtered = useMemo(() => {
+    if (!search.trim()) return submissions;
+    const q = search.toLowerCase();
+    return submissions.filter((s: any) => {
+      const d = s.data ?? {};
+      return (
+        JSON.stringify(d).toLowerCase().includes(q) ||
+        (s.status ?? '').toLowerCase().includes(q)
+      );
+    });
+  }, [submissions, search]);
+
+  // Compute KPIs from real submission data
+  const totalExports = filtered.reduce((sum: number, s: any) => {
+    const d = s.data ?? {};
+    if ((d.flow_direction ?? d.direction ?? '').toUpperCase() === 'EXPORT') {
+      return sum + Number(d.value_fob ?? d.value ?? d.amount ?? 0);
+    }
+    return sum;
+  }, 0);
+  const totalImports = filtered.reduce((sum: number, s: any) => {
+    const d = s.data ?? {};
+    if ((d.flow_direction ?? d.direction ?? '').toUpperCase() === 'IMPORT') {
+      return sum + Number(d.value_fob ?? d.value ?? d.amount ?? 0);
+    }
+    return sum;
+  }, 0);
+  const tradeBalance = totalExports - totalImports;
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/fisheries"
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('fishTrade')}</h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('fishTradeDesc')}</p>
+          </div>
+        </div>
         <Link
-          href="/fisheries"
-          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          href={`/collecte/forms/${TRADE_TEMPLATE_ID}/fill?returnTo=/fisheries/trade`}
+          className="flex items-center gap-2 rounded-lg bg-orange-600 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-700"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <Plus className="h-4 w-4" />
+          {t('addTradeFlow')}
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('fishTrade')}</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {t('fishTradeDesc')}
-          </p>
-        </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-              {t('totalExports')}
+      {/* KPI Cards — computed from submissions */}
+      {filtered.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-start justify-between">
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">{t('totalExports')}</p>
+              <TrendingUp className="h-5 w-5 text-green-600" />
+            </div>
+            <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+              ${totalExports > 0 ? (totalExports / 1_000_000).toFixed(1) + 'M' : '0'}
             </p>
-            <TrendingUp className="h-5 w-5 text-green-600" />
           </div>
-          <p className="mt-2 text-2xl font-bold text-gray-900">
-            ${(kpis.totalExports / 1_000_000).toFixed(1)}M
-          </p>
-        </div>
-
-        <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-              {t('totalImports')}
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-start justify-between">
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">{t('totalImports')}</p>
+              <TrendingDown className="h-5 w-5 text-red-600" />
+            </div>
+            <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+              ${totalImports > 0 ? (totalImports / 1_000_000).toFixed(1) + 'M' : '0'}
             </p>
-            <TrendingDown className="h-5 w-5 text-red-600" />
           </div>
-          <p className="mt-2 text-2xl font-bold text-gray-900">
-            ${(kpis.totalImports / 1_000_000).toFixed(1)}M
-          </p>
-        </div>
-
-        <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-              {t('tradeBalance')}
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-start justify-between">
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">{t('tradeBalance')}</p>
+              <ArrowUpDown className="h-5 w-5 text-teal-600" />
+            </div>
+            <p className={cn('mt-2 text-2xl font-bold', tradeBalance >= 0 ? 'text-green-700' : 'text-red-700')}>
+              {tradeBalance >= 0 ? '+' : ''}${tradeBalance !== 0 ? (tradeBalance / 1_000_000).toFixed(1) + 'M' : '0'}
             </p>
-            <ArrowUpDown className="h-5 w-5 text-teal-600" />
           </div>
-          <p className={cn(
-            'mt-2 text-2xl font-bold',
-            kpis.tradeBalance >= 0 ? 'text-green-700' : 'text-red-700',
-          )}>
-            {kpis.tradeBalance >= 0 ? '+' : ''}${(kpis.tradeBalance / 1_000_000).toFixed(1)}M
-          </p>
         </div>
-      </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
@@ -219,157 +143,134 @@ export default function FishTradePage() {
             type="text"
             placeholder={t('searchTrade')}
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-2 focus:ring-aris-primary-200"
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-gray-400" />
           <select
-            value={countryFilter}
-            onChange={(e) => {
-              setCountryFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-orange-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
           >
-            <option value="">{t('allCountries')}</option>
-            <option value="MA">Morocco</option>
-            <option value="SN">Senegal</option>
-            <option value="NG">Nigeria</option>
-            <option value="UG">Uganda</option>
-            <option value="ZA">South Africa</option>
-          </select>
-          <select
-            value={productStateFilter}
-            onChange={(e) => {
-              setProductStateFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
-          >
-            <option value="">{t('allProductStates')}</option>
-            <option value="fresh">{t('fresh')}</option>
-            <option value="frozen">{t('frozen')}</option>
-            <option value="dried">{t('dried')}</option>
-            <option value="smoked">{t('smoked')}</option>
-            <option value="canned">{t('canned')}</option>
-            <option value="salted">{t('salted')}</option>
-            <option value="filleted">{t('filleted')}</option>
-            <option value="live">{t('live')}</option>
-          </select>
-          <select
-            value={directionFilter}
-            onChange={(e) => {
-              setDirectionFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none"
-          >
-            <option value="">{t('allDirections')}</option>
-            <option value="EXPORT">Export</option>
-            <option value="IMPORT">Import</option>
+            <option value="">{t('allStatus')}</option>
+            <option value="SUBMITTED">Submitted</option>
+            <option value="VALIDATED">Validated</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="DRAFT">Draft</option>
           </select>
         </div>
+        <span className="text-xs text-gray-400">
+          {filtered.length} {t('entries')}
+        </span>
       </div>
 
-      {/* Table */}
+      {/* Content */}
       {isLoading ? (
-        <TableSkeleton rows={5} cols={7} />
-      ) : isError ? (
-        <QueryError
-          message={error instanceof Error ? error.message : 'Failed to load trade data'}
-          onRetry={() => refetch()}
-        />
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 rounded-xl" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center py-16 text-center">
+          <ArrowUpDown className="h-12 w-12 text-gray-200 dark:text-gray-600" />
+          <p className="mt-4 text-sm text-gray-400">{t('noTradeFound')}</p>
+          <Link
+            href={`/collecte/forms/${TRADE_TEMPLATE_ID}/fill?returnTo=/fisheries/trade`}
+            className="mt-4 flex items-center gap-1 text-sm font-medium text-orange-600 hover:text-orange-700"
+          >
+            <Plus className="h-4 w-4" /> {t('addTradeFlow')}
+          </Link>
+        </div>
       ) : (
-        <div className="overflow-hidden rounded-card border border-gray-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('exporter') || 'Exporter'}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('importer') || 'Importer'}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('species')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('productState')}</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('quantity')}</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('value')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('period')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {trades.map((flow) => {
-                  // Extract product state from commodity name
-                  const productStateMatch = flow.commodity.match(/\(([^)]+)\)/);
-                  const productState = productStateMatch?.[1] ?? '-';
-                  const speciesName = flow.commodity.replace(/\s*\([^)]*\)/, '');
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((sub: any) => {
+            const d = sub.data ?? {};
+            const statusCfg = STATUS_CONFIG[sub.status] ?? STATUS_CONFIG.DRAFT;
+            const direction = (d.flow_direction ?? d.direction ?? '').toUpperCase();
+            const exportCountry = d.export_country ?? d.exporter ?? '';
+            const importCountry = d.import_country ?? d.importer ?? '';
+            const commodity = d.commodity ?? d.product ?? d.species ?? '';
+            const productState = d.product_state ?? '';
+            const quantity = d.quantity ?? d.weight ?? 0;
+            const unit = d.unit ?? 'tonnes';
+            const valueFob = d.value_fob ?? d.value ?? d.amount ?? 0;
+            const currency = d.currency ?? 'USD';
+            const periodStart = d.period_start ?? '';
+            const periodEnd = d.period_end ?? '';
+            const loc = d.admin_location ?? {};
+            const countryCode = loc.level_0 ?? d.country_code ?? '';
 
-                  return (
-                    <tr key={flow.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-gray-900">{flow.exportCountry}</p>
-                        <p className="text-xs text-gray-400">{flow.exportCountryCode}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-gray-900">{flow.importCountry}</p>
-                        <p className="text-xs text-gray-400">{flow.importCountryCode}</p>
-                      </td>
-                      <td className="px-4 py-3 text-gray-700 italic">{speciesName}</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-                          {productState}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium text-gray-900">
-                        {flow.quantity.toLocaleString()} {flow.unit}
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium text-gray-900">
-                        ${flow.valueFob.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-gray-700 text-xs">
-                        {flow.periodStart} &mdash; {flow.periodEnd}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {trades.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                      {t('noTradeFound')}
-                    </td>
-                  </tr>
+            return (
+              <div
+                key={sub.id}
+                className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800"
+              >
+                <div className={cn('absolute inset-x-0 top-0 h-1', direction === 'EXPORT' ? 'bg-green-600' : 'bg-orange-600')} />
+
+                <div className="flex items-center justify-between">
+                  <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', statusCfg.badge)}>
+                    {statusCfg.icon}
+                    {sub.status}
+                  </span>
+                  {direction && (
+                    <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold', DIRECTION_COLORS[direction] ?? 'bg-gray-100 text-gray-600')}>
+                      {direction}
+                    </span>
+                  )}
+                </div>
+
+                {/* Commodity */}
+                <p className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">{commodity || '—'}</p>
+                {productState && (
+                  <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium capitalize text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                    {productState}
+                  </span>
                 )}
-              </tbody>
-            </table>
-          </div>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
-            <p className="text-xs text-gray-500">
-              {t('showingOf', { count: String(trades.length), total: String(meta.total) })}
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="px-2 text-xs text-gray-600">
-                Page {page} of {totalPages || 1}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+                {/* Trade flow */}
+                <div className="mt-3 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                  <span className="font-medium">{exportCountry || countryCode || '—'}</span>
+                  <span className="text-gray-300">→</span>
+                  <span className="font-medium">{importCountry || '—'}</span>
+                </div>
+
+                {/* Key metrics */}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      {quantity ? Number(quantity).toLocaleString() : '—'}
+                    </p>
+                    <p className="text-[10px] text-gray-400">{unit}</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      {valueFob ? `${currency === 'USD' ? '$' : currency}${Number(valueFob).toLocaleString()}` : '—'}
+                    </p>
+                    <p className="text-[10px] text-gray-400">FOB value</p>
+                  </div>
+                </div>
+
+                {/* Period */}
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  {countryCode && (
+                    <span className="rounded bg-gray-100 px-1.5 py-0.5 font-medium dark:bg-gray-700">{countryCode}</span>
+                  )}
+                  {periodStart && periodEnd && (
+                    <span>{periodStart} — {periodEnd}</span>
+                  )}
+                  {sub.submittedAt && !periodStart && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {new Date(sub.submittedAt).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
