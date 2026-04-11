@@ -1,319 +1,368 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  Activity,
-  ClipboardCheck,
-  Download,
-  Upload,
-  FileText,
-  ArrowRight,
+  FolderKanban,
+  MapPin,
+  Users,
+  Home,
+  GraduationCap,
+  UserCheck,
+  Accessibility,
+  DollarSign,
   Globe2,
-  BarChart3,
-  ExternalLink,
+  Filter,
+  NotebookPen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { CampaignDataDashboard } from '@/components/domain/CampaignDataDashboard';
 import { useCollectionCampaigns, useCampaignSubmissions } from '@/lib/api/workflow-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
-import { useAuthStore } from '@/lib/stores/auth-store';
 import {
   aggregatePaidSubmissions,
   filterPaidSubmissions,
+  PAID_SECTORS,
   PAID_DASHBOARD_TABS,
+  SECTOR_COLORS,
+  PAID_QUARTERS,
   type PaidFilters,
-  type PaidSubmissionData,
 } from '@/lib/paid';
-import { PAIDKpiCards } from './components/PAIDKpiCards';
-import { PAIDFilters } from './components/PAIDFilters';
-import {
-  PAIDProjectsPie,
-  PAIDBenefByCountry,
-  PAIDBenefByActivity,
-  PAIDActivitiesBar,
-  PAIDSectorSummary,
-} from './components/PAIDCharts';
+
+/* ── Format large numbers ── */
+const fmt = (n: number) => {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toLocaleString();
+};
+
+const ACTIVITY_COLORS = ['#1565C0', '#2E7D32', '#E65100', '#6A1B9A', '#00838F', '#C62828', '#4E342E', '#37474F', '#AD1457', '#33691E'];
 
 /* ================================================================== */
-/*  PAID Dashboard — Main Page                                         */
+/*  PAID Dashboard — FAO-style Visualization                           */
 /* ================================================================== */
 
-export default function PaidPage() {
+export default function PaidDashboardPage() {
   const t = useTranslations('paid');
-  const { user } = useAuthStore();
 
-  // Active tab
-  const [activeTab, setActiveTab] = useState('overview');
-
-  // Filters
+  // ── Filters state ──
   const [filters, setFilters] = useState<PaidFilters>({});
+  const [activeTab, setActiveTab] = useState('overview');
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // Fetch all PAID campaigns (domain = 'paid' or cross-domain)
+  // ── Data: fetch all PAID campaigns + submissions ──
   const campaignsQuery = useCollectionCampaigns({ domain: 'paid', limit: 50 });
   const campaigns: any[] = Array.isArray(campaignsQuery.data?.data) ? campaignsQuery.data.data : [];
-  const activeCampaigns = campaigns.filter((c: any) => c.status === 'ACTIVE');
+  const activeCampaignIds = campaigns.filter((c: any) => c.status === 'ACTIVE').map((c: any) => c.id);
 
-  // Select first active campaign for submission data
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string | undefined>();
-  const effectiveCampaignId = selectedCampaignId ?? activeCampaigns[0]?.id;
-  const subsQuery = useCampaignSubmissions(effectiveCampaignId, { limit: 5000 });
+  // Fetch submissions from first active campaign
+  const subsQuery = useCampaignSubmissions(activeCampaignIds[0], { limit: 5000 });
   const rawSubmissions: any[] = Array.isArray(subsQuery.data?.data) ? subsQuery.data.data : [];
 
-  // Apply filters and compute aggregates
-  const filteredSubs = useMemo(
-    () => filterPaidSubmissions(rawSubmissions, filters),
-    [rawSubmissions, filters],
-  );
-  const agg = useMemo(
-    () => aggregatePaidSubmissions(filteredSubs),
-    [filteredSubs],
-  );
+  // ── Filter + Aggregate ──
+  const filtered = useMemo(() => filterPaidSubmissions(rawSubmissions, filters), [rawSubmissions, filters]);
+  const agg = useMemo(() => aggregatePaidSubmissions(filtered), [filtered]);
 
-  // Extract unique values for filter dropdowns
-  const countries = useMemo(() =>
-    [...new Set(rawSubmissions.map((s: any) => s.data?.adm0_name).filter(Boolean))].sort(),
-    [rawSubmissions],
-  );
-  const projects = useMemo(() =>
-    [...new Set(rawSubmissions.map((s: any) => s.data?.prj_symbol).filter(Boolean))].sort(),
-    [rawSubmissions],
-  );
+  // Extract unique values for filters
+  const countries = useMemo(() => [...new Set(rawSubmissions.map((s: any) => s.data?.adm0_name).filter(Boolean))].sort(), [rawSubmissions]);
+  const projects = useMemo(() => [...new Set(rawSubmissions.map((s: any) => s.data?.prj_symbol).filter(Boolean))].sort(), [rawSubmissions]);
 
   const isLoading = campaignsQuery.isLoading || subsQuery.isLoading;
 
-  // Tenant level display
-  const tenantLevel = user?.tenantLevel;
-  const tenantLabel =
-    tenantLevel === 'CONTINENTAL' ? t('continentalView')
-    : tenantLevel === 'REC' ? t('recView')
-    : t('countryView');
+  // Chart data
+  const sectorEntries = useMemo(() => Array.from(agg.bySector.values()).sort((a, b) => b.projects.size - a.projects.size), [agg]);
+  const countryEntries = useMemo(() => Array.from(agg.byCountry.values()).sort((a, b) => b.beneficiaries - a.beneficiaries).slice(0, 15), [agg]);
+  const activityEntries = useMemo(() => Array.from(agg.byActivity.entries()).sort(([, a], [, b]) => b - a).slice(0, 10), [agg]);
+  const totalSectorProjects = sectorEntries.reduce((s, e) => s + e.projects.size, 0) || 1;
+  const maxCountryBenef = countryEntries[0]?.beneficiaries || 1;
+  const totalActivityBenef = activityEntries.reduce((s, [, v]) => s + v, 0) || 1;
 
   return (
-    <div className="space-y-6">
-      {/* ── Header ─────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white">
-            <ClipboardCheck className="h-6 w-6" />
+    <div className="space-y-0">
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/*  HEADER BAR — AU-IBAR branding                             */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <div className="rounded-t-xl bg-gradient-to-r from-[#003366] to-[#005599] px-6 py-4 text-white">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
+              <Globe2 className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold tracking-tight">LIVESTOCK INTERVENTIONS — AU-IBAR PAID OVERVIEW</h1>
+              <p className="text-xs text-blue-200">Programme Activity Information Database — Continental Dashboard</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
-            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{t('subtitle')}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-blue-100 px-3 py-1 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-            <Globe2 className="mr-1 inline h-3 w-3" />{tenantLabel}
-          </span>
+          <Link
+            href="/paid-collecte"
+            className="flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/25"
+          >
+            <NotebookPen className="h-3.5 w-3.5" /> {t('paidCollecte') || 'Data Collection'}
+          </Link>
         </div>
       </div>
 
-      {/* ── Filters ────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <PAIDFilters
-          filters={filters}
-          onChange={setFilters}
-          countries={countries}
-          projects={projects}
-          t={t}
-        />
-        {activeCampaigns.length > 1 && (
-          <select
-            value={effectiveCampaignId ?? ''}
-            onChange={(e) => setSelectedCampaignId(e.target.value || undefined)}
-            className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-          >
-            {activeCampaigns.map((c: any) => (
-              <option key={c.id} value={c.id}>
-                {typeof c.name === 'object' ? c.name?.en ?? c.name?.fr : c.name}
-              </option>
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/*  FILTERS BAR + 8 KPI CARDS                                 */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <div className="rounded-b-xl border border-t-0 border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+        {/* Filters toggle + inline filter chips */}
+        <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-2 dark:border-gray-700">
+          <button onClick={() => setFiltersOpen(!filtersOpen)} className="flex items-center gap-1 rounded-md bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">
+            <Filter className="h-3 w-3" /> Filters
+          </button>
+          {filters.quarter && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{filters.quarter}</span>}
+          {filters.country && <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400">{filters.country}</span>}
+          {filters.sector && <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">{filters.sector}</span>}
+          {filters.project && <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">{filters.project}</span>}
+          {(filters.quarter || filters.country || filters.sector || filters.project) && (
+            <button onClick={() => setFilters({})} className="text-[10px] text-red-500 hover:underline">Clear</button>
+          )}
+        </div>
+
+        {/* Collapsible filter panel */}
+        {filtersOpen && (
+          <div className="flex flex-wrap gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-700">
+            <select value={filters.quarter ?? ''} onChange={(e) => setFilters({ ...filters, quarter: e.target.value || undefined })} className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-700">
+              <option value="">{t('allQuarters')}</option>
+              {PAID_QUARTERS.map((q) => <option key={q} value={q}>{q}</option>)}
+            </select>
+            <select value={filters.country ?? ''} onChange={(e) => setFilters({ ...filters, country: e.target.value || undefined })} className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-700">
+              <option value="">{t('allCountries')}</option>
+              {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select value={filters.sector ?? ''} onChange={(e) => setFilters({ ...filters, sector: e.target.value || undefined })} className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-700">
+              <option value="">{t('allSectors')}</option>
+              {PAID_SECTORS.map((s) => <option key={s.id} value={s.name.en}>{s.name.en}</option>)}
+            </select>
+            <select value={filters.project ?? ''} onChange={(e) => setFilters({ ...filters, project: e.target.value || undefined })} className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-700">
+              <option value="">{t('allProjects')}</option>
+              {projects.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+        )}
+
+        {/* 8 KPI Cards */}
+        {isLoading ? (
+          <div className="grid grid-cols-4 gap-0 divide-x divide-gray-100 px-0 lg:grid-cols-8 dark:divide-gray-700">
+            {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-20" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 divide-x divide-gray-100 lg:grid-cols-8 dark:divide-gray-700">
+            {[
+              { label: t('totalProjects'), value: agg.totalProjects, icon: FolderKanban, color: '#1565C0' },
+              { label: t('totalRegions'), value: agg.totalRegions, icon: MapPin, color: '#00838F' },
+              { label: t('beneficiariesReached'), value: fmt(agg.totalBeneficiaries), icon: Users, color: '#2E7D32' },
+              { label: t('householdsReached'), value: fmt(agg.totalHouseholds), icon: Home, color: '#6A1B9A' },
+              { label: t('individualsTrained'), value: fmt(agg.totalTrained), icon: GraduationCap, color: '#E65100' },
+              { label: t('femaleTrained'), value: fmt(agg.totalFemale), icon: UserCheck, color: '#AD1457' },
+              { label: t('disabledBenef'), value: fmt(agg.totalDisabled), icon: Accessibility, color: '#4E342E' },
+              { label: t('budgetDelivery'), value: `${agg.completionRate}%`, icon: DollarSign, color: '#37474F' },
+            ].map((c) => (
+              <div key={c.label} className="px-3 py-3 text-center">
+                <c.icon className="mx-auto h-4 w-4 mb-1" style={{ color: c.color }} />
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{c.value}</p>
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-gray-400">{c.label}</p>
+              </div>
             ))}
-          </select>
+          </div>
         )}
       </div>
 
-      {/* ── Dashboard Tabs ─────────────────────────────── */}
-      <div className="flex items-center gap-1 overflow-x-auto rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-gray-800/50">
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/*  DASHBOARD TABS                                            */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <div className="mt-4 flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-800">
         {PAID_DASHBOARD_TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={cn(
-              'rounded-md px-4 py-1.5 text-xs font-semibold transition-all',
+              'rounded-md px-3 py-1.5 text-[11px] font-semibold transition-all',
               activeTab === tab.key
-                ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
-                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
+                ? 'text-white shadow-sm'
+                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400',
             )}
-            style={activeTab === tab.key ? { borderBottom: `2px solid ${tab.color}` } : undefined}
+            style={activeTab === tab.key ? { backgroundColor: tab.color } : undefined}
           >
             {t(`tab${tab.key.charAt(0).toUpperCase() + tab.key.slice(1)}`)}
           </button>
         ))}
       </div>
 
-      {/* ── KPI Cards (8 metrics like the FAO dashboard) ─ */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/*  CHARTS ROW 1 — 3 columns                                  */}
+      {/* ═══════════════════════════════════════════════════════════ */}
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-          {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-72 rounded-xl" />)}
         </div>
       ) : (
-        <PAIDKpiCards agg={agg} t={t} />
-      )}
-
-      {/* ── Campaign Carousel ──────────────────────────── */}
-      <CampaignCarousel campaigns={campaigns} isLoading={campaignsQuery.isLoading} t={t} />
-
-      {/* ── Charts Grid ────────────────────────────────── */}
-      {isLoading ? (
-        <div className="grid gap-4 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-64 rounded-xl" />)}
-        </div>
-      ) : rawSubmissions.length > 0 ? (
-        <>
-          <div className="grid gap-4 lg:grid-cols-3">
-            <PAIDProjectsPie agg={agg} t={t} />
-            <PAIDBenefByActivity agg={agg} t={t} />
-            <PAIDActivitiesBar agg={agg} t={t} />
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          {/* ── % Projects by Category (Sector pie) ── */}
+          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <h4 className="mb-3 flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-500" /> {t('projectsByCategory')}
+            </h4>
+            {sectorEntries.length === 0 ? (
+              <p className="py-12 text-center text-xs text-gray-400">{t('noCampaignData')}</p>
+            ) : (
+              <div className="space-y-2.5">
+                {sectorEntries.slice(0, 9).map((e) => {
+                  const pct = Math.round((e.projects.size / totalSectorProjects) * 100);
+                  const color = SECTOR_COLORS[e.sector] ?? '#9E9E9E';
+                  return (
+                    <div key={e.sector}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                          <span className="text-[11px] text-gray-600 dark:text-gray-400">{e.sector}</span>
+                        </div>
+                        <span className="text-[11px] font-bold text-gray-800 dark:text-gray-200">{pct}%</span>
+                      </div>
+                      <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                      </div>
+                    </div>
+                  );
+                })}
+                <p className="pt-1 text-center text-[10px] text-gray-400">{totalSectorProjects} total projects</p>
+              </div>
+            )}
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <PAIDBenefByCountry agg={agg} t={t} />
-            <PAIDSectorSummary agg={agg} t={t} />
+          {/* ── Beneficiaries by Country (bar chart) ── */}
+          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <h4 className="mb-3 flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500" /> {t('benefByCountry')}
+            </h4>
+            {countryEntries.length === 0 ? (
+              <p className="py-12 text-center text-xs text-gray-400">{t('noCampaignData')}</p>
+            ) : (
+              <div className="space-y-1.5">
+                {countryEntries.map((e) => {
+                  const pct = Math.round((e.beneficiaries / maxCountryBenef) * 100);
+                  return (
+                    <div key={e.country} className="flex items-center gap-1.5">
+                      <span className="w-16 shrink-0 truncate text-right text-[10px] font-medium text-gray-500">{e.country}</span>
+                      <div className="h-3.5 flex-1 overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
+                        <div className="h-full rounded bg-gradient-to-r from-blue-500 to-blue-700" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="w-12 shrink-0 text-right text-[10px] font-bold text-gray-700 dark:text-gray-300">{fmt(e.beneficiaries)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </>
-      ) : (
-        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center dark:border-gray-700 dark:bg-gray-800">
-          <ClipboardCheck className="mx-auto h-12 w-12 text-gray-200 dark:text-gray-600" />
-          <h3 className="mt-4 text-lg font-semibold text-gray-700 dark:text-gray-300">{t('noCampaignData')}</h3>
-          <p className="mt-1 text-sm text-gray-400">
-            Create a PAID campaign and start collecting activity data to see the dashboard.
-          </p>
+
+          {/* ── Beneficiaries by Activity type (donut-style) ── */}
+          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <h4 className="mb-3 flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-orange-500" /> {t('benefByActivity')}
+            </h4>
+            {activityEntries.length === 0 ? (
+              <p className="py-12 text-center text-xs text-gray-400">{t('noCampaignData')}</p>
+            ) : (
+              <div className="space-y-2">
+                {activityEntries.map(([activity, count], idx) => {
+                  const pct = Math.round((count / totalActivityBenef) * 100);
+                  const color = ACTIVITY_COLORS[idx % ACTIVITY_COLORS.length];
+                  return (
+                    <div key={activity}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                          <span className="truncate text-[10px] text-gray-600 dark:text-gray-400" title={activity}>{activity}</span>
+                        </div>
+                        <span className="shrink-0 text-[10px] font-bold text-gray-800 dark:text-gray-200">{pct}%</span>
+                      </div>
+                      <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* ── CampaignDataDashboard (generic — Map + Stats + Curve) ── */}
-      <CampaignDataDashboard domain="paid" showMap showStats showCurve />
-
-      {/* ── Quick Links ────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {[
-          { href: '/paid/by-country', label: t('byCountry'), desc: t('byCountryDesc'), icon: Globe2, color: '#1565C0' },
-          { href: '/paid/by-sector', label: t('bySector'), desc: t('bySectorDesc'), icon: BarChart3, color: '#2E7D32' },
-          { href: '/collecte/campaigns?domain=paid', label: t('manageCampaigns'), desc: t('manageCampaignsDesc'), icon: FileText, color: '#6A1B9A' },
-          { href: '/paid/import', label: t('importExcel'), desc: t('importExcelDesc'), icon: Upload, color: '#E65100' },
-          { href: '/paid/export', label: t('exportData'), desc: t('exportDataDesc'), icon: Download, color: '#37474F' },
-        ].map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="group flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
-          >
-            <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-110"
-              style={{ backgroundColor: `${link.color}14`, color: link.color }}
-            >
-              <link.icon className="h-5 w-5" />
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/*  CHARTS ROW 2 — Activities included + Sector table         */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {!isLoading && (
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          {/* ── Projects that include the following activities ── */}
+          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <h4 className="mb-3 flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-purple-500" /> {t('activitiesIncluded')}
+            </h4>
+            <div className="space-y-1.5">
+              {activityEntries.map(([activity, count], idx) => {
+                const maxAct = activityEntries[0]?.[1] || 1;
+                const pct = Math.round((count / maxAct) * 100);
+                const color = ACTIVITY_COLORS[idx % ACTIVITY_COLORS.length];
+                return (
+                  <div key={activity} className="flex items-center gap-1.5">
+                    <span className="w-44 shrink-0 truncate text-right text-[10px] font-medium text-gray-500" title={activity}>{activity}</span>
+                    <div className="h-3.5 flex-1 overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
+                      <div className="h-full rounded" style={{ width: `${pct}%`, backgroundColor: color }} />
+                    </div>
+                    <span className="w-10 shrink-0 text-right text-[10px] font-bold text-gray-700 dark:text-gray-300">{count.toLocaleString()}</span>
+                  </div>
+                );
+              })}
             </div>
-            <div>
-              <span className="text-sm font-semibold text-gray-700 group-hover:text-gray-900 dark:text-gray-300 dark:group-hover:text-white">
-                {link.label}
-              </span>
-              <p className="mt-0.5 text-xs text-gray-400">{link.desc}</p>
+          </div>
+
+          {/* ── Sector summary table ── */}
+          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <h4 className="mb-3 flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-teal-500" /> {t('bySector')}
+            </h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[11px]">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="pb-1.5 text-left font-semibold text-gray-500">{t('filterSector')}</th>
+                    <th className="pb-1.5 text-right font-semibold text-gray-500">{t('beneficiariesReached')}</th>
+                    <th className="pb-1.5 text-right font-semibold text-gray-500">{t('individualsTrained')}</th>
+                    <th className="pb-1.5 text-right font-semibold text-gray-500">{t('totalProjects')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sectorEntries.map((e) => (
+                    <tr key={e.sector} className="border-b border-gray-50 dark:border-gray-800">
+                      <td className="py-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: SECTOR_COLORS[e.sector] ?? '#9E9E9E' }} />
+                          <span className="text-gray-700 dark:text-gray-300">{e.sector}</span>
+                        </div>
+                      </td>
+                      <td className="py-1.5 text-right font-semibold text-gray-900 dark:text-white">{fmt(e.beneficiaries)}</td>
+                      <td className="py-1.5 text-right text-gray-500">{fmt(e.trained)}</td>
+                      <td className="py-1.5 text-right text-gray-500">{e.projects.size}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ── Campaign Carousel ───────────────────────────────── */
-
-const CAMPAIGN_COLORS = ['#1565C0', '#2E7D32', '#00838F', '#E65100', '#6A1B9A', '#C62828'];
-
-function CampaignCarousel({ campaigns, isLoading, t }: { campaigns: any[]; isLoading: boolean; t: (key: string) => string }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-  const updateScrollState = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 4);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
-  }, []);
-  const scroll = (dir: 'left' | 'right') => {
-    scrollRef.current?.scrollBy({ left: dir === 'left' ? -320 : 320, behavior: 'smooth' });
-    setTimeout(updateScrollState, 350);
-  };
-  const analyseName = (name: any) => typeof name === 'object' ? (name?.en ?? name?.fr ?? Object.values(name)[0]) : name;
-
-  if (isLoading) {
-    return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-        <Skeleton className="mb-4 h-6 w-48" />
-        <div className="flex gap-4">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-44 w-72 shrink-0 rounded-xl" />)}</div>
-      </div>
-    );
-  }
-
-  if (campaigns.length === 0) {
-    return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-        <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">{t('campaignOverview')}</h3>
-        <p className="py-8 text-center text-sm text-gray-400">{t('noCampaignData')}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-      <div className="mb-5 flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('campaignOverview')}</h3>
-          <p className="mt-0.5 text-xs text-gray-400">{campaigns.length} {t('totalCampaigns').toLowerCase()}</p>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <button onClick={() => scroll('left')} disabled={!canScrollLeft} className="rounded-full border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:border-gray-700"><ChevronLeft className="h-4 w-4" /></button>
-          <button onClick={() => scroll('right')} disabled={!canScrollRight} className="rounded-full border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:border-gray-700"><ChevronRight className="h-4 w-4" /></button>
-        </div>
-      </div>
-      <div ref={scrollRef} onScroll={updateScrollState} className="scrollbar-hide -mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-2">
-        {campaigns.map((c: any, idx: number) => {
-          const progress = c.targetSubmissions > 0 ? Math.min(100, Math.round(((c.totalSubmissions ?? 0) / c.targetSubmissions) * 100)) : 0;
-          const color = CAMPAIGN_COLORS[idx % CAMPAIGN_COLORS.length];
-          return (
-            <Link key={c.id} href={`/collecte/campaigns/${c.id}`} className="group relative w-72 shrink-0 snap-start overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg dark:border-gray-700 dark:from-gray-800 dark:to-gray-800/80">
-              <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: color }} />
-              <div className="flex items-start justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white" style={{ backgroundColor: color }}>
-                  <Activity className="h-5 w-5" />
-                </div>
-                <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold', c.status === 'ACTIVE' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-600')}>
-                  {c.status === 'ACTIVE' ? 'Active' : c.status}
-                </span>
-              </div>
-              <h4 className="mt-3 text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-700 dark:text-white">{analyseName(c.name)}</h4>
-              <div className="mt-3 flex items-end justify-between">
-                <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{(c.totalSubmissions ?? 0).toLocaleString()}</p>
-                  <p className="text-[10px] text-gray-400">{c.targetSubmissions ? `/ ${c.targetSubmissions} target` : 'submissions'}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold" style={{ color }}>{progress}%</p>
-                  <p className="text-[10px] text-gray-400">complete</p>
-                </div>
-              </div>
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, backgroundColor: color }} />
-              </div>
-            </Link>
-          );
-        })}
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/*  FOOTER BAR                                                */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-[10px] text-gray-400 dark:border-gray-700 dark:bg-gray-800/50">
+        <p>
+          <strong>Disclaimer:</strong> The beneficiary numbers are screen-level and the intergrated data of all
+          country projects are a sum that may reflect enhanced contributions to the beneficiary totals. Data
+          source: PAID quarterly submissions, AU-IBAR. Livestock interventions data cover all 55 AU member states.
+        </p>
       </div>
     </div>
   );

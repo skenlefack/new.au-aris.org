@@ -38,6 +38,7 @@ import {
   CloudSun,
   Share2,
   ClipboardCheck,
+  NotebookPen,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -81,7 +82,8 @@ const STATIC_GROUPS: NavGroup[] = [
   {
     tKey: 'sectionPaid',
     items: [
-      { tKey: 'paidDashboard', href: '/paid', icon: ClipboardCheck, matchPrefix: '/paid' },
+      { tKey: 'paidDashboard', href: '/paid', icon: BarChart3, matchPrefix: '/paid' },
+      { tKey: 'paidCollecte', href: '/paid-collecte', icon: NotebookPen, matchPrefix: '/paid-collecte' },
     ],
   },
   {
@@ -206,24 +208,24 @@ function buildDomainGroup(
 const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
   FIELD_AGENT: new Set(['/home', '/collecte', '/workflow', '/data-sharing']),
   ANALYST: new Set([
-    '/home', '/paid', '/analytics', '/historical', '/reports', '/data-sharing',
+    '/home', '/paid', '/paid-collecte', '/analytics', '/historical', '/reports', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   WAHIS_FOCAL_POINT: new Set([
-    '/home', '/paid', '/collecte', '/analytics', '/historical', '/reports', '/interop', '/data-sharing',
+    '/home', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/interop', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   DATA_STEWARD: new Set([
-    '/home', '/paid', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow', '/data-sharing',
+    '/home', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   NATIONAL_ADMIN: new Set([
-    '/home', '/paid', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
+    '/home', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
     '/master-data', '/settings', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   REC_ADMIN: new Set([
-    '/home', '/paid', '/collecte', '/workflow', '/master-data', '/quality',
+    '/home', '/paid', '/paid-collecte', '/collecte', '/workflow', '/master-data', '/quality',
     '/interop', '/analytics', '/historical', '/reports', '/settings', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),

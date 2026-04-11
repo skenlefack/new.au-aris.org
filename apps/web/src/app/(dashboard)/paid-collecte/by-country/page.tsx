@@ -29,7 +29,7 @@ export default function PaidByCountryPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/paid" className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
+        <Link href="/paid-collecte" className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
           <ArrowLeft className="h-4 w-4 text-gray-500" />
         </Link>
         <div>

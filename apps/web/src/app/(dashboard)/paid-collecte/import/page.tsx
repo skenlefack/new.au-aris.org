@@ -219,7 +219,7 @@ export default function PaidImportPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/paid" className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
+        <Link href="/paid-collecte" className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
           <ArrowLeft className="h-4 w-4 text-gray-500" />
         </Link>
         <div>
@@ -379,7 +379,7 @@ export default function PaidImportPage() {
             {importResult.errors > 0 && `, ${importResult.errors} failed`}
           </p>
           <div className="mt-4 flex gap-3">
-            <Link href="/paid" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+            <Link href="/paid-collecte" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
               Back to Dashboard
             </Link>
             <button onClick={reset} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">
