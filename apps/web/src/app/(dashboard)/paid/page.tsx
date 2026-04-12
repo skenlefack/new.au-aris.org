@@ -157,9 +157,9 @@ export default function PaidDashboardPage() {
               { val: fmt(agg.totalDisabled), sub: 'people w/ disability' },
               { val: `USD ${fmt(agg.totalQuantityImplemented)}`, sub: 'beneficiaries' },
             ].map((k, i) => (
-              <div key={i} className="px-1 py-1.5 text-center">
-                <p className="text-[13px] font-black text-[#003366] lg:text-[15px] dark:text-blue-300">{k.val}</p>
-                <p className="text-[7px] text-gray-400 leading-tight">{k.sub}</p>
+              <div key={i} className="px-1.5 py-2.5 text-center">
+                <p className="text-base font-black text-[#003366] lg:text-xl dark:text-blue-300">{k.val}</p>
+                <p className="text-[9px] text-gray-400 leading-tight">{k.sub}</p>
               </div>
             ))
           )}
@@ -177,19 +177,19 @@ export default function PaidDashboardPage() {
               {/* 1: % Projects by Category — PIE */}
               <Panel title="% Projects by Category">
                 <div className="flex items-start gap-2">
-                  <div className="h-[90px] w-[90px] shrink-0 rounded-full shadow-inner" style={{
+                  <div className="h-[120px] w-[120px] shrink-0 rounded-full shadow-inner" style={{
                     background: sectorArr.length > 0
                       ? conicGradient(sectorArr.map((e) => [e.sector, e.projects.size]), sectorArr.map((e) => SECTOR_COLORS[e.sector] ?? '#9E9E9E'))
                       : '#e5e7eb'
                   }} />
-                  <div className="min-w-0 space-y-[2px] pt-0.5">
+                  <div className="min-w-0 space-y-[4px] pt-0.5">
                     {sectorArr.slice(0, 7).map((e) => (
                       <div key={e.sector} className="flex items-center gap-1">
-                        <span className="h-[6px] w-[6px] shrink-0 rounded-full" style={{ backgroundColor: SECTOR_COLORS[e.sector] ?? '#9E9E9E' }} />
-                        <span className="truncate text-[7px] leading-tight text-gray-500">{e.sector}</span>
+                        <span className="h-[8px] w-[8px] shrink-0 rounded-full" style={{ backgroundColor: SECTOR_COLORS[e.sector] ?? '#9E9E9E' }} />
+                        <span className="truncate text-[9px] leading-tight text-gray-500">{e.sector}</span>
                       </div>
                     ))}
-                    <p className="pt-0.5 text-[7px] text-gray-400">{totalSP} Total projects</p>
+                    <p className="pt-0.5 text-[9px] text-gray-400">{totalSP} Total projects</p>
                   </div>
                 </div>
               </Panel>
@@ -197,18 +197,18 @@ export default function PaidDashboardPage() {
               {/* 2: Beneficiaries reached by donor — DONUT */}
               <Panel title="Beneficiaries reached by donor">
                 <div className="flex items-start gap-2">
-                  <div className="relative h-[90px] w-[90px] shrink-0 rounded-full shadow-inner" style={{
+                  <div className="relative h-[120px] w-[120px] shrink-0 rounded-full shadow-inner" style={{
                     background: projectArr.length > 0
                       ? conicGradient(projectArr.map((e) => [e.symbol, e.beneficiaries]), PIE_COLORS)
                       : '#e5e7eb'
                   }}>
-                    <div className="absolute inset-[14px] rounded-full bg-white dark:bg-gray-800" />
+                    <div className="absolute inset-[18px] rounded-full bg-white dark:bg-gray-800" />
                   </div>
-                  <div className="min-w-0 space-y-[2px] pt-0.5">
+                  <div className="min-w-0 space-y-[4px] pt-0.5">
                     {projectArr.slice(0, 6).map((e, i) => (
                       <div key={e.symbol} className="flex items-center gap-1">
-                        <span className="h-[6px] w-[6px] shrink-0 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                        <span className="truncate text-[7px] leading-tight text-gray-500">{e.symbol.split('/').pop()}</span>
+                        <span className="h-[8px] w-[8px] shrink-0 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                        <span className="truncate text-[9px] leading-tight text-gray-500">{e.symbol.split('/').pop()}</span>
                       </div>
                     ))}
                   </div>
@@ -217,13 +217,13 @@ export default function PaidDashboardPage() {
 
               {/* 3: Livestock restocking — BARS */}
               <Panel title="Livestock restocking and distribution">
-                <div className="space-y-[2px]">
+                <div className="space-y-[4px]">
                   {countryArr.slice(0, 12).map((e) => {
                     const pct = Math.round((e.beneficiaries / maxCB) * 100);
                     return (
                       <div key={e.country} className="flex items-center gap-[3px]">
-                        <span className="w-[30px] shrink-0 text-right text-[7px] font-medium text-gray-500">{e.code || e.country.slice(0, 3)}</span>
-                        <div className="h-[8px] flex-1 overflow-hidden rounded-[2px] bg-gray-100 dark:bg-gray-700">
+                        <span className="w-[36px] shrink-0 text-right text-[9px] font-medium text-gray-500">{e.code || e.country.slice(0, 3)}</span>
+                        <div className="h-[12px] flex-1 overflow-hidden rounded-[2px] bg-gray-100 dark:bg-gray-700">
                           <div className="h-full rounded-[2px] bg-teal-600" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
@@ -234,21 +234,21 @@ export default function PaidDashboardPage() {
 
               {/* 4: Activities included — BARS */}
               <Panel title="Projects that include the following activities">
-                <div className="space-y-[2px]">
+                <div className="space-y-[4px]">
                   {activityArr.slice(0, 12).map(([act, count], idx) => {
                     const max = activityArr[0]?.[1] || 1;
                     const pct = Math.round((count / max) * 100);
                     return (
                       <div key={act} className="flex items-center gap-[3px]">
-                        <span className="w-[70px] shrink-0 truncate text-right text-[6px] text-gray-500" title={act}>{act}</span>
-                        <div className="h-[8px] flex-1 overflow-hidden rounded-[2px] bg-gray-100 dark:bg-gray-700">
+                        <span className="w-[80px] shrink-0 truncate text-right text-[8px] text-gray-500" title={act}>{act}</span>
+                        <div className="h-[12px] flex-1 overflow-hidden rounded-[2px] bg-gray-100 dark:bg-gray-700">
                           <div className="h-full rounded-[2px]" style={{ width: `${pct}%`, backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
                         </div>
-                        <span className="w-[14px] text-right text-[6px] font-bold text-gray-600">{count}</span>
+                        <span className="w-[14px] text-right text-[8px] font-bold text-gray-600">{count}</span>
                       </div>
                     );
                   })}
-                  <p className="text-right text-[6px] text-gray-400">{activityArr.reduce((s, [, v]) => s + v, 0)} Total projects</p>
+                  <p className="text-right text-[8px] text-gray-400">{activityArr.reduce((s, [, v]) => s + v, 0)} Total projects</p>
                 </div>
               </Panel>
             </div>
@@ -260,7 +260,7 @@ export default function PaidDashboardPage() {
                 <h4 className="border-b border-gray-100 px-2 py-1.5 text-[11px] font-bold text-[#003366] dark:border-gray-700 dark:text-blue-300">
                   &#9679; Beneficiaries per country
                 </h4>
-                <div className="h-[220px] w-full">
+                <div className="h-[300px] w-full">
                   <ChoroplethMap
                     title=""
                     data={mapData}
@@ -273,16 +273,16 @@ export default function PaidDashboardPage() {
 
               {/* 6: Beneficiaries by country — BAR */}
               <Panel title="Beneficiaries by country">
-                <div className="space-y-[2px]">
+                <div className="space-y-[4px]">
                   {countryArr.slice(0, 14).map((e) => {
                     const pct = Math.round((e.beneficiaries / maxCB) * 100);
                     return (
                       <div key={e.country} className="flex items-center gap-[3px]">
-                        <span className="w-[42px] shrink-0 truncate text-right text-[7px] font-medium text-gray-500">{e.country}</span>
-                        <div className="h-[8px] flex-1 overflow-hidden rounded-[2px] bg-gray-100 dark:bg-gray-700">
+                        <span className="w-[50px] shrink-0 truncate text-right text-[9px] font-medium text-gray-500">{e.country}</span>
+                        <div className="h-[12px] flex-1 overflow-hidden rounded-[2px] bg-gray-100 dark:bg-gray-700">
                           <div className="h-full rounded-[2px] bg-[#1565C0]" style={{ width: `${pct}%` }} />
                         </div>
-                        <span className="w-[24px] text-right text-[7px] font-bold text-gray-600 dark:text-gray-300">{fmt(e.beneficiaries)}</span>
+                        <span className="w-[24px] text-right text-[9px] font-bold text-gray-600 dark:text-gray-300">{fmt(e.beneficiaries)}</span>
                       </div>
                     );
                   })}
@@ -292,19 +292,19 @@ export default function PaidDashboardPage() {
               {/* 7: Beneficiaries by type of activity — PIE */}
               <Panel title="Beneficiaries by type of activity">
                 <div className="flex items-start gap-2">
-                  <div className="h-[90px] w-[90px] shrink-0 rounded-full shadow-inner" style={{
+                  <div className="h-[120px] w-[120px] shrink-0 rounded-full shadow-inner" style={{
                     background: activityArr.length > 0
                       ? conicGradient(activityArr, PIE_COLORS)
                       : '#e5e7eb'
                   }} />
-                  <div className="min-w-0 space-y-[2px] pt-0.5">
+                  <div className="min-w-0 space-y-[4px] pt-0.5">
                     {activityArr.slice(0, 10).map(([act], idx) => (
                       <div key={act} className="flex items-center gap-1">
-                        <span className="h-[6px] w-[6px] shrink-0 rounded-[1px]" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
-                        <span className="truncate text-[6px] leading-tight text-gray-500" title={act}>{act}</span>
+                        <span className="h-[8px] w-[8px] shrink-0 rounded-[1px]" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
+                        <span className="truncate text-[8px] leading-tight text-gray-500" title={act}>{act}</span>
                       </div>
                     ))}
-                    <p className="pt-0.5 text-[6px] italic text-gray-400">% annual target by species-level interventions</p>
+                    <p className="pt-0.5 text-[8px] italic text-gray-400">% annual target by species-level interventions</p>
                   </div>
                 </div>
               </Panel>
@@ -313,7 +313,7 @@ export default function PaidDashboardPage() {
         )}
 
         {/* ── RED FOOTER ── */}
-        <div className="bg-[#c0392b] px-3 py-1 text-[7px] leading-snug text-white/90">
+        <div className="bg-[#c0392b] px-3 py-1 text-[9px] leading-snug text-white/90">
           <strong>Disclaimer:</strong> The beneficiary numbers are screen-level and the integrated data of all
           country projects are a sum that may reflect enhanced contributions to the beneficiary totals.
           Data source: PAID quarterly submissions, FPMIS. Livestock interventions data cover all 55 AU member state distributions.
@@ -330,7 +330,7 @@ function Panel({ title, children, noPad }: { title: string; children: React.Reac
       <h4 className="border-b border-gray-100 px-2 py-1.5 text-[11px] font-bold text-[#003366] dark:border-gray-700 dark:text-blue-300">
         &#9679; {title}
       </h4>
-      <div className={noPad ? '' : 'p-2'}>{children}</div>
+      <div className={noPad ? '' : 'p-3'}>{children}</div>
     </div>
   );
 }
