@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Map
@@ -88,6 +89,7 @@ import java.util.Locale
 @Composable
 fun OfflineMapScreen(
     onBack: () -> Unit = {},
+    onTileDownload: () -> Unit = {},
     viewModel: OfflineMapViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -159,6 +161,9 @@ fun OfflineMapScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onTileDownload) {
+                        Icon(Icons.Default.Download, contentDescription = "Tile Download Manager")
+                    }
                     IconButton(onClick = { showLayersSheet = true }) {
                         Icon(Icons.Default.Layers, contentDescription = stringResource(R.string.map_layers))
                     }

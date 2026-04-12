@@ -17,3 +17,21 @@ data class KpiResponse(
     val kpis: List<KpiCard>,
     val asOf: String,
 )
+
+@Serializable
+data class DomainSubmissionCount(val domain: String, val count: Int)
+
+@Serializable
+data class SubmissionsByDomainResponse(val items: List<DomainSubmissionCount>)
+
+@Serializable
+data class TimelinePoint(val date: String, val count: Int)
+
+@Serializable
+data class SubmissionsTimelineResponse(val points: List<TimelinePoint>)
+
+@Serializable
+data class CountryBeneficiaries(val country: String, val code: String, val count: Int)
+
+@Serializable
+data class BeneficiariesByCountryResponse(val items: List<CountryBeneficiaries>)

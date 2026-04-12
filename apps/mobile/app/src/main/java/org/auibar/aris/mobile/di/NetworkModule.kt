@@ -24,6 +24,7 @@ import org.auibar.aris.mobile.BuildConfig
 import org.auibar.aris.mobile.data.remote.api.AnalyticsApi
 import org.auibar.aris.mobile.data.remote.api.AuthApi
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
+import org.auibar.aris.mobile.data.remote.api.KnowledgeApi
 import org.auibar.aris.mobile.data.remote.api.MessageApi
 import org.auibar.aris.mobile.data.remote.api.SyncApi
 import org.auibar.aris.mobile.util.ServerEnvironment
@@ -129,4 +130,8 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideAnalyticsApi(client: HttpClient): AnalyticsApi = AnalyticsApi(client)
+
+    @Provides
+    @Singleton
+    fun provideKnowledgeApi(client: HttpClient): KnowledgeApi = KnowledgeApi(client)
 }

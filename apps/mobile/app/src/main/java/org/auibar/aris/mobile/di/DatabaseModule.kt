@@ -17,6 +17,7 @@ import org.auibar.aris.mobile.data.local.dao.MessageDao
 import org.auibar.aris.mobile.data.local.dao.NotificationDao
 import org.auibar.aris.mobile.data.local.dao.PhotoDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
+import org.auibar.aris.mobile.data.local.dao.KnowledgeDao
 import org.auibar.aris.mobile.data.local.dao.SubmissionDao
 import javax.inject.Singleton
 
@@ -65,4 +66,7 @@ object DatabaseModule {
 
     @Provides
     fun provideMessageDao(db: ArisDatabase): MessageDao = db.messageDao()
+
+    @Provides
+    fun provideKnowledgeDao(db: ArisDatabase): KnowledgeDao = db.knowledgeDao()
 }

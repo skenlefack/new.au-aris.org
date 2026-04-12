@@ -57,6 +57,7 @@ object DomainActivation {
         "fisheries",
         "trade",
         "governance",
+        "knowledge",
         "paid",
     )
 

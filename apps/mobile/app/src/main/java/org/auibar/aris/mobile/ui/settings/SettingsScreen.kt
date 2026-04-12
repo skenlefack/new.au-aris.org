@@ -27,7 +27,9 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
@@ -77,6 +79,8 @@ fun SettingsScreen(
     onTenantHierarchy: () -> Unit = {},
     onMessages: () -> Unit = {},
     onSetPin: () -> Unit = {},
+    onAnalytics: () -> Unit = {},
+    onTileDownload: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -145,6 +149,22 @@ fun SettingsScreen(
                 title = stringResource(R.string.tenant_hierarchy),
                 subtitle = stringResource(R.string.switch_context),
                 onClick = onTenantHierarchy,
+            )
+
+            // Analytics Dashboard
+            SettingsItem(
+                icon = Icons.Default.BarChart,
+                title = "Analytics Dashboard",
+                subtitle = "View KPIs, submissions, and trends",
+                onClick = onAnalytics,
+            )
+
+            // Offline Maps
+            SettingsItem(
+                icon = Icons.Default.Map,
+                title = "Offline Maps",
+                subtitle = "Download and manage map tiles",
+                onClick = onTileDownload,
             )
 
             // ── Assigned Domains ───────────────────

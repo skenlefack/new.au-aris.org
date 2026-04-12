@@ -35,6 +35,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import org.auibar.aris.mobile.R
+import org.auibar.aris.mobile.ui.analytics.AnalyticsDashboardScreen
 import org.auibar.aris.mobile.ui.conflict.ConflictResolutionScreen
 import org.auibar.aris.mobile.ui.campaign.CampaignDetailScreen
 import org.auibar.aris.mobile.ui.campaign.CampaignListScreen
@@ -43,6 +44,7 @@ import org.auibar.aris.mobile.ui.form.FormFillScreen
 import org.auibar.aris.mobile.ui.gpstrack.GpsTrackScreen
 import org.auibar.aris.mobile.ui.home.HomeDashboardScreen
 import org.auibar.aris.mobile.ui.map.OfflineMapScreen
+import org.auibar.aris.mobile.ui.map.TileDownloadScreen
 import org.auibar.aris.mobile.ui.livestock.LivestockCensusScreen
 import org.auibar.aris.mobile.ui.livestock.ProductionRecordScreen
 import org.auibar.aris.mobile.ui.login.LoginScreen
@@ -63,16 +65,15 @@ import org.auibar.aris.mobile.ui.health.OutbreakReportScreen
 import org.auibar.aris.mobile.ui.health.SurveillanceEventScreen
 import org.auibar.aris.mobile.ui.fisheries.CaptureRecordScreen
 import org.auibar.aris.mobile.ui.fisheries.AquacultureRecordScreen
-import org.auibar.aris.mobile.ui.wildlife.WildlifeObservationScreen
-import org.auibar.aris.mobile.ui.wildlife.HumanWildlifeConflictScreen
-import org.auibar.aris.mobile.ui.apiculture.ApiaryRecordScreen
-import org.auibar.aris.mobile.ui.apiculture.ColonyHealthScreen
 import org.auibar.aris.mobile.ui.trade.TradeFlowScreen
 import org.auibar.aris.mobile.ui.trade.SPSCertificateScreen
 import org.auibar.aris.mobile.ui.governance.LegalFrameworkScreen
 import org.auibar.aris.mobile.ui.governance.VetCapacityScreen
-import org.auibar.aris.mobile.ui.climate.WaterStressScreen
-import org.auibar.aris.mobile.ui.climate.RangelandScreen
+import org.auibar.aris.mobile.ui.knowledge.KnowledgeHubScreen
+import org.auibar.aris.mobile.ui.knowledge.KnowledgeSearchScreen
+import org.auibar.aris.mobile.ui.knowledge.KnowledgeArticleScreen
+import org.auibar.aris.mobile.ui.knowledge.KnowledgeCourseListScreen
+import org.auibar.aris.mobile.ui.knowledge.KnowledgeCourseDetailScreen
 import org.auibar.aris.mobile.ui.lock.AppLockScreen
 import org.auibar.aris.mobile.ui.lock.SetPinScreen
 import org.auibar.aris.mobile.ui.navigation.AppLockViewModel
@@ -109,18 +110,19 @@ object ArisRoutes {
     const val SURVEILLANCE_EVENT = "surveillance-event/{campaignId}"
     const val CAPTURE_RECORD = "capture-record/{campaignId}"
     const val AQUACULTURE_RECORD = "aquaculture-record/{campaignId}"
-    const val WILDLIFE_OBSERVATION = "wildlife-observation/{campaignId}"
-    const val HWC_REPORT = "hwc-report/{campaignId}"
-    const val APIARY_RECORD = "apiary-record/{campaignId}"
-    const val COLONY_HEALTH = "colony-health/{campaignId}"
     const val TRADE_FLOW = "trade-flow/{campaignId}"
     const val SPS_CERTIFICATE = "sps-certificate/{campaignId}"
     const val LEGAL_FRAMEWORK = "legal-framework/{campaignId}"
     const val VET_CAPACITY = "vet-capacity/{campaignId}"
-    const val WATER_STRESS = "water-stress/{campaignId}"
-    const val RANGELAND = "rangeland/{campaignId}"
     const val PAID_DASHBOARD = "paid-dashboard"
     const val PAID_COLLECTE = "paid-collecte"
+    const val KNOWLEDGE_HUB = "knowledge-hub"
+    const val KNOWLEDGE_SEARCH = "knowledge-search"
+    const val KNOWLEDGE_ARTICLE = "knowledge-article/{articleId}"
+    const val KNOWLEDGE_COURSES = "knowledge-courses"
+    const val KNOWLEDGE_COURSE_DETAIL = "knowledge-course/{courseId}"
+    const val ANALYTICS_DASHBOARD = "analytics-dashboard"
+    const val TILE_DOWNLOAD = "tile-download"
     const val MESSAGES = "messages"
     const val COMPOSE_MESSAGE = "compose-message"
     const val MESSAGE_THREAD = "messages/{threadId}/{recipientId}/{recipientName}"
@@ -136,21 +138,17 @@ object ArisRoutes {
     fun surveillanceEvent(campaignId: String) = "surveillance-event/$campaignId"
     fun captureRecord(campaignId: String) = "capture-record/$campaignId"
     fun aquacultureRecord(campaignId: String) = "aquaculture-record/$campaignId"
-    fun wildlifeObservation(campaignId: String) = "wildlife-observation/$campaignId"
-    fun hwcReport(campaignId: String) = "hwc-report/$campaignId"
-    fun apiaryRecord(campaignId: String) = "apiary-record/$campaignId"
-    fun colonyHealth(campaignId: String) = "colony-health/$campaignId"
     fun tradeFlow(campaignId: String) = "trade-flow/$campaignId"
     fun spsCertificate(campaignId: String) = "sps-certificate/$campaignId"
     fun legalFramework(campaignId: String) = "legal-framework/$campaignId"
     fun vetCapacity(campaignId: String) = "vet-capacity/$campaignId"
-    fun waterStress(campaignId: String) = "water-stress/$campaignId"
-    fun rangeland(campaignId: String) = "rangeland/$campaignId"
     fun photoGallery(submissionId: String) = "photo-gallery/$submissionId"
     fun submissionDetail(submissionId: String) = "submission/$submissionId"
     fun conflictResolution(submissionId: String) = "conflict/$submissionId"
     fun offlineMap(domainKey: String? = null) =
         if (domainKey != null) "offline-map?domainKey=$domainKey" else "offline-map"
+    fun knowledgeArticle(articleId: String) = "knowledge-article/$articleId"
+    fun knowledgeCourseDetail(courseId: String) = "knowledge-course/$courseId"
     fun messageThread(threadId: String, recipientId: String, recipientName: String) =
         "messages/$threadId/$recipientId/$recipientName"
 }
@@ -279,10 +277,10 @@ fun ArisNavGraph(
                         }
                     },
                     onDomainClick = { domainKey ->
-                        if (domainKey == "paid") {
-                            navController.navigate(ArisRoutes.PAID_DASHBOARD)
-                        } else {
-                            navController.navigate(ArisRoutes.domainDashboard(domainKey))
+                        when (domainKey) {
+                            "paid" -> navController.navigate(ArisRoutes.PAID_DASHBOARD)
+                            "knowledge" -> navController.navigate(ArisRoutes.KNOWLEDGE_HUB)
+                            else -> navController.navigate(ArisRoutes.domainDashboard(domainKey))
                         }
                     },
                 )
@@ -397,6 +395,12 @@ fun ArisNavGraph(
                     onSetPin = {
                         navController.navigate(ArisRoutes.SET_PIN)
                     },
+                    onAnalytics = {
+                        navController.navigate(ArisRoutes.ANALYTICS_DASHBOARD)
+                    },
+                    onTileDownload = {
+                        navController.navigate(ArisRoutes.TILE_DOWNLOAD)
+                    },
                 )
             }
 
@@ -468,52 +472,6 @@ fun ArisNavGraph(
                 )
             }
 
-            // ── Wildlife ──
-            composable(
-                route = ArisRoutes.WILDLIFE_OBSERVATION,
-                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
-            ) { backStackEntry ->
-                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
-                WildlifeObservationScreen(
-                    campaignId = campaignId,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-
-            composable(
-                route = ArisRoutes.HWC_REPORT,
-                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
-            ) { backStackEntry ->
-                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
-                HumanWildlifeConflictScreen(
-                    campaignId = campaignId,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-
-            // ── Apiculture ──
-            composable(
-                route = ArisRoutes.APIARY_RECORD,
-                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
-            ) { backStackEntry ->
-                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
-                ApiaryRecordScreen(
-                    campaignId = campaignId,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-
-            composable(
-                route = ArisRoutes.COLONY_HEALTH,
-                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
-            ) { backStackEntry ->
-                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
-                ColonyHealthScreen(
-                    campaignId = campaignId,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-
             // ── Trade & SPS ──
             composable(
                 route = ArisRoutes.TRADE_FLOW,
@@ -560,29 +518,6 @@ fun ArisNavGraph(
                 )
             }
 
-            // ── Climate & Environment ──
-            composable(
-                route = ArisRoutes.WATER_STRESS,
-                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
-            ) { backStackEntry ->
-                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
-                WaterStressScreen(
-                    campaignId = campaignId,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-
-            composable(
-                route = ArisRoutes.RANGELAND,
-                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
-            ) { backStackEntry ->
-                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
-                RangelandScreen(
-                    campaignId = campaignId,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-
             composable(
                 route = ArisRoutes.PHOTO_GALLERY,
                 arguments = listOf(navArgument("submissionId") { type = NavType.StringType }),
@@ -612,6 +547,9 @@ fun ArisNavGraph(
             ) {
                 OfflineMapScreen(
                     onBack = { navController.popBackStack() },
+                    onTileDownload = {
+                        navController.navigate(ArisRoutes.TILE_DOWNLOAD)
+                    },
                 )
             }
 
@@ -649,20 +587,84 @@ fun ArisNavGraph(
                             "surveillance_event" -> ArisRoutes.surveillanceEvent("new")
                             "capture_record" -> ArisRoutes.captureRecord("new")
                             "aquaculture_record" -> ArisRoutes.aquacultureRecord("new")
-                            "wildlife_observation" -> ArisRoutes.wildlifeObservation("new")
-                            "hwc_report" -> ArisRoutes.hwcReport("new")
-                            "apiary_record" -> ArisRoutes.apiaryRecord("new")
-                            "colony_health" -> ArisRoutes.colonyHealth("new")
                             "trade_flow" -> ArisRoutes.tradeFlow("new")
                             "sps_certificate" -> ArisRoutes.spsCertificate("new")
                             "legal_framework" -> ArisRoutes.legalFramework("new")
                             "vet_capacity" -> ArisRoutes.vetCapacity("new")
-                            "water_stress" -> ArisRoutes.waterStress("new")
-                            "rangeland" -> ArisRoutes.rangeland("new")
                             else -> return@DomainDashboardScreen
                         }
                         navController.navigate(route)
                     },
+                )
+            }
+
+            // ── Knowledge Hub ──
+            composable(ArisRoutes.KNOWLEDGE_HUB) {
+                KnowledgeHubScreen(
+                    onArticleClick = { articleId ->
+                        navController.navigate(ArisRoutes.knowledgeArticle(articleId))
+                    },
+                    onSearch = {
+                        navController.navigate(ArisRoutes.KNOWLEDGE_SEARCH)
+                    },
+                    onCourseList = {
+                        navController.navigate(ArisRoutes.KNOWLEDGE_COURSES)
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(ArisRoutes.KNOWLEDGE_SEARCH) {
+                KnowledgeSearchScreen(
+                    onArticleClick = { articleId ->
+                        navController.navigate(ArisRoutes.knowledgeArticle(articleId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.KNOWLEDGE_ARTICLE,
+                arguments = listOf(navArgument("articleId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val articleId = backStackEntry.arguments?.getString("articleId") ?: ""
+                KnowledgeArticleScreen(
+                    articleId = articleId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(ArisRoutes.KNOWLEDGE_COURSES) {
+                KnowledgeCourseListScreen(
+                    onCourseClick = { courseId ->
+                        navController.navigate(ArisRoutes.knowledgeCourseDetail(courseId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.KNOWLEDGE_COURSE_DETAIL,
+                arguments = listOf(navArgument("courseId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val courseId = backStackEntry.arguments?.getString("courseId") ?: ""
+                KnowledgeCourseDetailScreen(
+                    courseId = courseId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // ── Analytics Dashboard ──
+            composable(ArisRoutes.ANALYTICS_DASHBOARD) {
+                AnalyticsDashboardScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // ── Tile Download ──
+            composable(ArisRoutes.TILE_DOWNLOAD) {
+                TileDownloadScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
 

@@ -14,9 +14,11 @@ import org.auibar.aris.mobile.data.local.dao.PhotoDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
 import org.auibar.aris.mobile.data.local.dao.SubmissionDao
 import org.auibar.aris.mobile.data.cache.CachePolicy
+import org.auibar.aris.mobile.data.local.dao.KnowledgeDao
 import org.auibar.aris.mobile.data.remote.api.AnalyticsApi
 import org.auibar.aris.mobile.data.remote.api.AuthApi
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
+import org.auibar.aris.mobile.data.remote.api.KnowledgeApi
 import org.auibar.aris.mobile.data.remote.api.MessageApi
 import org.auibar.aris.mobile.data.remote.api.SyncApi
 import org.auibar.aris.mobile.data.repository.AuthRepository
@@ -24,6 +26,7 @@ import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.DashboardRepository
 import org.auibar.aris.mobile.data.repository.FormTemplateRepository
 import org.auibar.aris.mobile.data.repository.GpsTrackRepository
+import org.auibar.aris.mobile.data.repository.KnowledgeRepository
 import org.auibar.aris.mobile.data.repository.NotificationRepository
 import org.auibar.aris.mobile.data.repository.PhotoRepository
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
@@ -108,4 +111,12 @@ object AppModule {
     fun provideGpsTrackRepository(
         gpsTrackDao: GpsTrackDao,
     ): GpsTrackRepository = GpsTrackRepository(gpsTrackDao)
+
+    @Provides
+    @Singleton
+    fun provideKnowledgeRepository(
+        knowledgeApi: KnowledgeApi,
+        knowledgeDao: KnowledgeDao,
+        cachePolicy: CachePolicy,
+    ): KnowledgeRepository = KnowledgeRepository(knowledgeApi, knowledgeDao, cachePolicy)
 }

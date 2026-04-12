@@ -21,6 +21,9 @@ import org.auibar.aris.mobile.data.local.entity.MessageEntity
 import org.auibar.aris.mobile.data.local.entity.NotificationEntity
 import org.auibar.aris.mobile.data.local.entity.PhotoEntity
 import org.auibar.aris.mobile.data.local.entity.SpeciesEntity
+import org.auibar.aris.mobile.data.local.dao.KnowledgeDao
+import org.auibar.aris.mobile.data.local.entity.KnowledgeCategoryEntity
+import org.auibar.aris.mobile.data.local.entity.KnowledgePublicationEntity
 import org.auibar.aris.mobile.data.local.entity.SubmissionEntity
 
 @Database(
@@ -35,8 +38,10 @@ import org.auibar.aris.mobile.data.local.entity.SubmissionEntity
         PhotoEntity::class,
         GpsTrackEntity::class,
         MessageEntity::class,
+        KnowledgePublicationEntity::class,
+        KnowledgeCategoryEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class ArisDatabase : RoomDatabase() {
@@ -50,4 +55,5 @@ abstract class ArisDatabase : RoomDatabase() {
     abstract fun photoDao(): PhotoDao
     abstract fun gpsTrackDao(): GpsTrackDao
     abstract fun messageDao(): MessageDao
+    abstract fun knowledgeDao(): KnowledgeDao
 }
