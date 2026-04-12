@@ -1529,6 +1529,8 @@
     "moduleReports": "Rapports",
     "moduleBiTools": "Outils BI",
     "moduleSettings": "Paramètres",
+    "moduleDataSharing": "Partage de données",
+    "modulePaid": "PAID",
     "actionView": "Voir",
     "actionCreate": "Créer",
     "actionEdit": "Modifier",

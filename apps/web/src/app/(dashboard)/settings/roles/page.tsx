@@ -78,6 +78,8 @@ const MODULE_KEY_MAP: Record<string, string> = {
   reports: 'moduleReports',
   'bi-tools': 'moduleBiTools',
   settings: 'moduleSettings',
+  'data-sharing': 'moduleDataSharing',
+  paid: 'modulePaid',
 };
 
 /* ── Form type ── */

@@ -1590,6 +1590,8 @@
     "moduleReports": "Reports",
     "moduleBiTools": "BI Tools",
     "moduleSettings": "Settings",
+    "moduleDataSharing": "Data Sharing",
+    "modulePaid": "PAID",
     "actionView": "View",
     "actionCreate": "Create",
     "actionEdit": "Edit",
