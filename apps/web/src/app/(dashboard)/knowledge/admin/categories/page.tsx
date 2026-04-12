@@ -152,6 +152,8 @@ export default function CategoriesAdminPage() {
   const [editing, setEditing] = useState<KnowledgeCategory | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Default scope for the proposal form, derived from the user's tenant level
   const defaultScope: CategoryScope = useMemo(() => {
@@ -249,10 +251,20 @@ export default function CategoriesAdminPage() {
     return filterTree(allRoots);
   }, [allRoots, search]);
 
-  const rows = useMemo(
+  const allRows = useMemo(
     () => flattenTree(filteredRoots, collapsed),
     [filteredRoots, collapsed],
   );
+
+  // Reset page when search or data changes
+  const totalRows = allRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginatedRows = useMemo(
+    () => allRows.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [allRows, safePage, pageSize],
+  );
+  const rows = paginatedRows;
 
   const toggleCollapse = (id: string) => {
     setCollapsed((prev) => {
@@ -355,7 +367,7 @@ export default function CategoriesAdminPage() {
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           placeholder="Search categories…"
           className="w-full rounded-md border bg-card py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
@@ -490,6 +502,86 @@ export default function CategoriesAdminPage() {
             )}
           </tbody>
         </table>
+
+        {/* ── Pagination ── */}
+        {totalRows > 0 && (
+          <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 sm:flex-row">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>Show</span>
+              <select
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                className="rounded-md border bg-card px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                {[5, 10, 20, 50, 100].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <span>per page</span>
+              <span className="ml-2 text-xs">
+                ({(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, totalRows)} of {totalRows})
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage(1)}
+                disabled={safePage <= 1}
+                className="rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                First
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronRight className="h-3.5 w-3.5 rotate-180" />
+              </button>
+
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum: number;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (safePage <= 3) {
+                  pageNum = i + 1;
+                } else if (safePage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = safePage - 2 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setPage(pageNum)}
+                    className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                      pageNum === safePage
+                        ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                        : 'hover:bg-muted'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => setPage(totalPages)}
+                disabled={safePage >= totalPages}
+                className="rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Last
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
