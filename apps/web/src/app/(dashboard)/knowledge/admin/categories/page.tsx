@@ -659,7 +659,7 @@ function CategoryForm({
   return (
     <form
       onSubmit={submit}
-      className="mx-auto max-w-4xl space-y-6 rounded-xl border bg-card p-6 shadow-sm"
+      className="space-y-6 rounded-xl border bg-card p-6 shadow-sm"
     >
       {/* ── Identity ── */}
       <FormSection title="Identity" description="Slug, multilingual names and visual style">
@@ -734,7 +734,12 @@ function CategoryForm({
       </FormSection>
 
       {/* ── Hierarchy ── */}
-      <FormSection title="Hierarchy" description="Optionally nest this category under a parent">
+      <section className="space-y-4" style={{ overflow: 'visible' }}>
+        <div className="border-b pb-2">
+          <h2 className="text-base font-semibold">Hierarchy</h2>
+          <p className="text-xs text-muted-foreground">Optionally nest this category under a parent</p>
+        </div>
+        <div className="space-y-4">
         <Field label="Parent category" hint="Leave empty for a top-level category">
           <CategoryTreePicker
             categories={allCategories}
@@ -743,7 +748,8 @@ function CategoryForm({
             excludeId={initial?.id}
           />
         </Field>
-      </FormSection>
+        </div>
+      </section>
 
       {/* ── Scope ── */}
       {!initial && (
@@ -951,9 +957,9 @@ function CategoryTreePicker({
       {open && (
         <>
           {/* click-outside backdrop */}
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute z-50 mt-2 max-h-96 w-full overflow-hidden rounded-lg border bg-card shadow-xl">
-            <div className="border-b p-2">
+          <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 right-0 z-[70] mt-2 max-h-96 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
+            <div className="border-b bg-white p-2 dark:bg-gray-900">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -961,11 +967,11 @@ function CategoryTreePicker({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search categories…"
-                  className="w-full rounded-md border bg-card py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-md border bg-white py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 dark:bg-gray-900"
                 />
               </div>
             </div>
-            <div className="max-h-72 overflow-y-auto p-1">
+            <div className="max-h-72 overflow-y-auto bg-white p-1 dark:bg-gray-900">
               <button
                 type="button"
                 onClick={() => {
