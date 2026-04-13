@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Save, Send, Trash2, Paperclip, Upload, X } from 'lucide-react';
+import Image from 'next/image';
+import { Save, Send, Trash2, Paperclip, Upload, X, ImagePlus } from 'lucide-react';
 import { TinyMCEEditor } from '@/components/knowledge/TinyMCEEditor';
 import {
   usePublishableCategories,
@@ -50,6 +51,9 @@ export default function NewPublicationPage() {
   const [visibility, setVisibility] = useState<Visibility>('PUBLIC');
   const [tags, setTags] = useState('');
   const [authors, setAuthors] = useState('');
+  const [coverImageId, setCoverImageId] = useState<string | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverUploading, setCoverUploading] = useState(false);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +75,23 @@ export default function NewPublicationPage() {
   const handleImageUpload = async (file: File): Promise<string> => {
     const uploaded = await uploadFile(file, { classification: 'PUBLIC' });
     return `/api/v1/drive/files/${uploaded.id}/download`;
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverUploading(true);
+    setError(null);
+    try {
+      const uploaded = await uploadFile(file, { classification: 'PUBLIC' });
+      setCoverImageId(uploaded.id);
+      setCoverPreview(`/api/v1/drive/files/${uploaded.id}/download`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Cover upload failed');
+    } finally {
+      setCoverUploading(false);
+      e.target.value = '';
+    }
   };
 
   const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,6 +124,7 @@ export default function NewPublicationPage() {
     contentHtml: stripEmpty(content),
     authors: authors.split(',').map((s) => s.trim()).filter(Boolean),
     tags: tags.split(',').map((s) => s.trim()).filter(Boolean),
+    ...(coverImageId && { coverImageId }),
     attachments: attachments.map((a, i) => ({
       fileId: a.id,
       caption: a.caption || undefined,
@@ -198,7 +220,7 @@ export default function NewPublicationPage() {
               onChange={(html) => setContent({ ...content, [activeLocale]: html })}
               language={activeLocale}
               onImageUpload={handleImageUpload}
-              height={500}
+              height={800}
             />
           </div>
         </div>
@@ -221,6 +243,54 @@ export default function NewPublicationPage() {
             >
               <Send className="h-4 w-4" /> Submit
             </button>
+          </div>
+
+          {/* Featured image */}
+          <div className="rounded-lg border bg-card p-5">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              <ImagePlus className="mr-1 inline h-3.5 w-3.5" /> Featured image
+            </h2>
+            {coverPreview ? (
+              <div className="group relative">
+                <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
+                  <Image
+                    src={coverPreview}
+                    alt="Cover preview"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <label className="inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">
+                    <Upload className="h-3 w-3" /> Replace
+                    <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={coverUploading} />
+                  </label>
+                  <button
+                    onClick={() => { setCoverImageId(null); setCoverPreview(null); }}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-3 w-3" /> Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50/50 py-8 transition-colors hover:border-emerald-400 hover:bg-emerald-50/50 dark:border-gray-600 dark:bg-gray-800/50 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/20">
+                {coverUploading ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+                    <span className="text-xs text-muted-foreground">Uploading...</span>
+                  </div>
+                ) : (
+                  <>
+                    <ImagePlus className="mb-2 h-10 w-10 text-gray-400" strokeWidth={1.2} />
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Click to upload</span>
+                    <span className="mt-1 text-xs text-muted-foreground">JPG, PNG or WebP (recommended 1200x630)</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={coverUploading} />
+              </label>
+            )}
           </div>
 
           {/* Settings card */}
