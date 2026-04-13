@@ -27,6 +27,12 @@ export async function registerPublicationRoutes(app: FastifyInstance): Promise<v
     return app.publicationService.publicStats();
   });
 
+  // Popular tags (public, for search suggestions)
+  app.get(`${PREFIX}/public/tags`, async (request) => {
+    const limit = Number((request.query as any).limit) || 10;
+    return app.publicationService.publicPopularTags(Math.min(limit, 50));
+  });
+
   // Public list / search (delegates to PublicationService.findAll without user)
   app.get<{ Querystring: PublicSearchInput }>(
     `${PREFIX}/public`,
@@ -53,6 +59,11 @@ export async function registerPublicationRoutes(app: FastifyInstance): Promise<v
   // ─────────────────────────────────────────────────────────────
   // Authenticated
   // ─────────────────────────────────────────────────────────────
+
+  // All distinct tags (authenticated, for editor autocomplete)
+  app.get(`${PREFIX}/tags`, { preHandler: [app.authHookFn] }, async () => {
+    return app.publicationService.allTags();
+  });
 
   // Reviewer queue (must precede /:id)
   app.get(`${PREFIX}/review-queue`, { preHandler: [app.authHookFn] }, async (request) => {

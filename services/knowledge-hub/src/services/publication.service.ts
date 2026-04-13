@@ -433,6 +433,33 @@ export class PublicationService {
     };
   }
 
+  /**
+   * Return the most-used tags across published public publications.
+   * Uses raw SQL to unnest the tags array and count occurrences.
+   */
+  async publicPopularTags(limit = 10): Promise<ApiResponse<{ tag: string; count: number }[]>> {
+    const rows: { tag: string; count: bigint }[] = await (this.prisma as any).$queryRaw`
+      SELECT t AS tag, COUNT(*)::bigint AS count
+      FROM knowledge_hub."KnowledgePublication", unnest(tags) AS t
+      WHERE status = 'PUBLISHED' AND visibility = 'PUBLIC' AND array_length(tags, 1) > 0
+      GROUP BY t
+      ORDER BY count DESC, t ASC
+      LIMIT ${limit}
+    `;
+    return { data: rows.map((r) => ({ tag: r.tag, count: Number(r.count) })) };
+  }
+
+  /** All distinct tags used in any publication (for autocomplete in the editor). */
+  async allTags(): Promise<ApiResponse<string[]>> {
+    const rows: { tag: string }[] = await (this.prisma as any).$queryRaw`
+      SELECT DISTINCT t AS tag
+      FROM knowledge_hub."KnowledgePublication", unnest(tags) AS t
+      WHERE array_length(tags, 1) > 0
+      ORDER BY t ASC
+    `;
+    return { data: rows.map((r) => r.tag) };
+  }
+
   async findAll(
     user: AuthenticatedUser | null,
     query: PublicationFilterInput,

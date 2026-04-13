@@ -380,6 +380,27 @@ export interface PublicKnowledgeStats {
   totalViews: number;
 }
 
+export function usePublicPopularTags(limit = 6) {
+  return useQuery({
+    queryKey: ['knowledge', 'public-tags', limit],
+    queryFn: () =>
+      knowledgeHubClient.get<{ data: { tag: string; count: number }[] }>(
+        '/knowledge/publications/public/tags',
+        { limit: String(limit) },
+      ),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useAllTags() {
+  return useQuery({
+    queryKey: ['knowledge', 'all-tags'],
+    queryFn: () =>
+      knowledgeHubClient.get<{ data: string[] }>('/knowledge/publications/tags'),
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function usePublicKnowledgeStats() {
   return useQuery({
     queryKey: ['knowledge', 'public-stats'],

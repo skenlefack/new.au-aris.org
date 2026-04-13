@@ -7,12 +7,13 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Save, Send, Trash2, Paperclip, Upload, ArrowLeft, Settings as SettingsIcon } from 'lucide-react';
+import { Save, Send, Trash2, Paperclip, Upload, ArrowLeft, Settings as SettingsIcon, X } from 'lucide-react';
 import { TinyMCEEditor } from '@/components/knowledge/TinyMCEEditor';
 import {
   usePublishableCategories,
   useCreatePublication,
   useSubmitPublication,
+  useAllTags,
   type PublicationType,
   type Visibility,
   type KnowledgeCategory,
@@ -26,6 +27,14 @@ type Locale = (typeof LOCALES)[number];
 const PUBLICATION_TYPES: PublicationType[] = [
   'ARTICLE', 'NEWS', 'REPORT', 'BRIEF', 'GUIDELINE', 'EVENT',
   'ANNOUNCEMENT', 'FAQ', 'DATASET', 'INFOGRAPHIC', 'VIDEO',
+];
+
+/** Default tag suggestions until enough tags exist in the database */
+const SUGGESTED_TAGS = [
+  'animal health', 'livestock', 'fisheries', 'trade', 'governance',
+  'surveillance', 'vaccination', 'AMR', 'transhumance', 'aquaculture',
+  'food safety', 'One Health', 'climate adaptation', 'pastoralism',
+  'disease outbreak', 'SPS', 'AfCFTA', 'biodiversity',
 ];
 
 interface PendingAttachment extends UploadedFile {
@@ -54,6 +63,7 @@ export default function NewPublicationFullScreenPage() {
   const cats = usePublishableCategories();
   const createMut = useCreatePublication();
   const submitMut = useSubmitPublication();
+  const allTags = useAllTags();
 
   const groupedCats = useMemo(() => {
     const groups: Record<string, KnowledgeCategory[]> = {};
@@ -289,12 +299,65 @@ export default function NewPublicationFullScreenPage() {
 
               <div>
                 <label className="mb-1 block text-xs font-medium">Tags</label>
-                <input
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                  placeholder="surveillance, kenya, fmd"
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                />
+                <div className="flex flex-wrap gap-1.5 rounded-md border p-2">
+                  {tags.split(',').map((s) => s.trim()).filter(Boolean).map((tag) => (
+                    <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const list = tags.split(',').map((s) => s.trim()).filter(Boolean).filter((t) => t !== tag);
+                          setTags(list.join(', '));
+                        }}
+                        className="text-emerald-600 hover:text-emerald-900"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    value={tags.endsWith(',') || tags === '' ? '' : tags.split(',').pop()?.trim() ?? ''}
+                    onChange={(e) => {
+                      const existing = tags.split(',').map((s) => s.trim()).filter(Boolean);
+                      // If user is typing, replace the last segment
+                      if (tags === '' || tags.endsWith(',') || tags.endsWith(', ')) {
+                        setTags(existing.length > 0 ? existing.join(', ') + ', ' + e.target.value : e.target.value);
+                      } else {
+                        setTags([...existing.slice(0, -1), e.target.value].join(', '));
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        const val = (tags.split(',').pop()?.trim() ?? '');
+                        if (val) setTags(tags.endsWith(',') ? tags + ' ' : tags + ', ');
+                      }
+                    }}
+                    placeholder={tags ? 'Add more…' : 'Type or pick below…'}
+                    className="min-w-[80px] flex-1 bg-transparent text-sm outline-none"
+                  />
+                </div>
+                {/* Suggestions */}
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {(allTags.data?.data ?? SUGGESTED_TAGS).filter((t) => {
+                    const current = tags.split(',').map((s) => s.trim().toLowerCase());
+                    return !current.includes(t.toLowerCase());
+                  }).slice(0, 12).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        const list = tags.split(',').map((s) => s.trim()).filter(Boolean);
+                        if (!list.map((s) => s.toLowerCase()).includes(t.toLowerCase())) {
+                          setTags([...list, t].join(', '));
+                        }
+                      }}
+                      className="rounded-full border border-dashed border-gray-300 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700"
+                    >
+                      + {t}
+                    </button>
+                  ))}
+                </div>
               </div>
             </section>
 

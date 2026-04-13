@@ -17,6 +17,7 @@ import {
   usePublicCategoryTree,
   useKnowledgeSearch,
   usePublicKnowledgeStats,
+  usePublicPopularTags,
   pickLocale,
   type KnowledgeCategory,
 } from '@/lib/api/knowledge-hub-hooks';
@@ -27,6 +28,7 @@ export default function PublicKnowledgePortalPage() {
 
   const tree = usePublicCategoryTree();
   const stats = usePublicKnowledgeStats();
+  const popularTags = usePublicPopularTags(6);
   // Latest 6 published items (search with empty query bypass via space)
   const featured = useKnowledgeSearch({ limit: 6, page: 1, q: ' ' });
 
@@ -90,12 +92,20 @@ export default function PublicKnowledgePortalPage() {
             </div>
           </form>
 
-          <div className="mt-3 text-xs text-gray-500">
-            Try:{' '}
-            <button onClick={() => router.push('/knowledge/search?q=outbreak')} className="underline hover:text-emerald-700">outbreak</button>{' · '}
-            <button onClick={() => router.push('/knowledge/search?q=PVS')} className="underline hover:text-emerald-700">PVS</button>{' · '}
-            <button onClick={() => router.push('/knowledge/search?q=transhumance')} className="underline hover:text-emerald-700">transhumance</button>
-          </div>
+          {(popularTags.data?.data?.length ?? 0) > 0 && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 text-xs text-gray-500">
+              <span>Popular:</span>
+              {popularTags.data!.data.map((t, i) => (
+                <button
+                  key={t.tag}
+                  onClick={() => router.push(`/knowledge/search?q=${encodeURIComponent(t.tag)}`)}
+                  className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-emerald-700 transition-colors hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                >
+                  {t.tag}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
