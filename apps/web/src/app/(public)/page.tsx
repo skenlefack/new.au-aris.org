@@ -5,7 +5,7 @@ import { ContinentalContent } from '@/components/landing/ContinentalContent';
 import { getAllRecs, type RecConfig } from '@/data/recs-config';
 import { getPublicRecs, getPublicDomains } from '@/lib/api/public-data';
 
-export const revalidate = 300; // ISR: refresh every 5 min
+export const dynamic = 'force-dynamic'; // Always fetch from API at request time
 
 export default async function ContinentalPage() {
   const staticRecs = getAllRecs();
