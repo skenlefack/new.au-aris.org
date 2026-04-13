@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { Save, Send, Trash2, Paperclip, Upload, X, ImagePlus } from 'lucide-react';
 import { TinyMCEEditor } from '@/components/knowledge/TinyMCEEditor';
 import {
@@ -83,10 +82,12 @@ export default function NewPublicationPage() {
     setCoverUploading(true);
     setError(null);
     try {
+      // Show local preview immediately (no auth needed)
+      setCoverPreview(URL.createObjectURL(file));
       const uploaded = await uploadFile(file, { classification: 'PUBLIC' });
       setCoverImageId(uploaded.id);
-      setCoverPreview(`/api/v1/drive/files/${uploaded.id}/download`);
     } catch (err) {
+      setCoverPreview(null);
       setError(err instanceof Error ? err.message : 'Cover upload failed');
     } finally {
       setCoverUploading(false);
@@ -253,12 +254,11 @@ export default function NewPublicationPage() {
             {coverPreview ? (
               <div className="group relative">
                 <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
-                  <Image
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
                     src={coverPreview}
                     alt="Cover preview"
-                    fill
-                    className="object-cover"
-                    unoptimized
+                    className="h-full w-full object-cover"
                   />
                 </div>
                 <div className="mt-2 flex gap-2">
