@@ -146,6 +146,19 @@ export async function getPublicStats() {
   };
 }
 
+/** Fallback domains shown when the API is unreachable (e.g. during Docker build) */
+const FALLBACK_DOMAINS = [
+  { code: 'animal-health', name: { en: 'Animal Health', fr: 'Santé animale', pt: 'Saúde Animal' }, icon: 'HeartPulse', color: '#C62828', sortOrder: 1, description: { en: 'Disease surveillance, outbreak management, laboratory results, vaccination campaigns, and antimicrobial resistance monitoring.', fr: 'Surveillance des maladies, gestion des foyers, résultats de laboratoire, campagnes de vaccination et surveillance de la résistance aux antimicrobiens.', pt: 'Vigilância de doenças, gestão de surtos, resultados laboratoriais, campanhas de vacinação e monitorização da resistência antimicrobiana.' } },
+  { code: 'livestock-prod', name: { en: 'Livestock & Production', fr: 'Élevage & Production', pt: 'Pecuária & Produção' }, icon: 'Wheat', color: '#E65100', sortOrder: 2, description: { en: 'Livestock census, production systems, slaughterhouse data, and transhumance corridor management.', fr: "Recensement du bétail, systèmes de production, données d'abattage et gestion des corridors de transhumance.", pt: 'Recenseamento pecuário, sistemas de produção, dados de abate e gestão de corredores de transumância.' } },
+  { code: 'fisheries', name: { en: 'Fisheries & Aquaculture', fr: 'Pêches & Aquaculture', pt: 'Pescas & Aquicultura' }, icon: 'Fish', color: '#00838F', sortOrder: 3, description: { en: 'Capture fisheries, fishing fleet management, aquaculture farms, and aquatic animal health.', fr: 'Pêche de capture, gestion de la flotte de pêche, fermes aquacoles et santé des animaux aquatiques.', pt: 'Pesca de captura, gestão de frotas pesqueiras, fazendas de aquicultura e saúde de animais aquáticos.' } },
+  { code: 'trade-sps', name: { en: 'Trade & SPS', fr: 'Commerce & SPS', pt: 'Comércio & SPS' }, icon: 'TrendingUp', color: '#1565C0', sortOrder: 4, description: { en: 'Trade flows, SPS certification, market price intelligence, and AfCFTA integration support.', fr: "Flux commerciaux, certification SPS, intelligence des prix de marché et soutien à l'intégration ZLECAf.", pt: 'Fluxos comerciais, certificação SPS, inteligência de preços de mercado e suporte à integração ZLECAf.' } },
+  { code: 'governance', name: { en: 'Governance', fr: 'Gouvernance', pt: 'Governança' }, icon: 'Building2', color: '#6B21A8', sortOrder: 5, description: { en: 'Legal frameworks, veterinary services evaluation, PVS metrics, and institutional capacity building.', fr: 'Cadres juridiques, évaluation des services vétérinaires, indicateurs PVS et renforcement des capacités institutionnelles.', pt: 'Quadros legais, avaliação de serviços veterinários, métricas PVS e capacitação institucional.' } },
+  { code: 'wildlife', name: { en: 'Wildlife', fr: 'Faune sauvage', pt: 'Vida Selvagem' }, icon: 'TreePine', color: '#2E7D32', sortOrder: 6, description: { en: 'Wildlife inventories, protected area management, CITES permits, and human-wildlife conflict resolution.', fr: 'Inventaires de la faune, gestion des aires protégées, permis CITES et résolution des conflits homme-faune.', pt: 'Inventários de vida selvagem, gestão de áreas protegidas, licenças CITES e resolução de conflitos homem-fauna.' } },
+  { code: 'apiculture', name: { en: 'Apiculture', fr: 'Apiculture', pt: 'Apicultura' }, icon: 'Bug', color: '#F9A825', sortOrder: 7, description: { en: 'Apiary management, honey and hive product production, colony health monitoring, and beekeeper training.', fr: 'Gestion des ruchers, production de miel et produits de la ruche, suivi de la santé des colonies et formation des apiculteurs.', pt: 'Gestão de apiários, produção de mel e produtos da colmeia, monitorização da saúde das colónias e formação de apicultores.' } },
+  { code: 'climate-env', name: { en: 'Climate & Environment', fr: 'Climat & Environnement', pt: 'Clima & Ambiente' }, icon: 'Cloud', color: '#00695C', sortOrder: 8, description: { en: 'Water stress monitoring, rangeland condition assessment, GHG tracking, and vulnerability hotspot mapping.', fr: "Suivi du stress hydrique, évaluation de l'état des parcours, suivi des GES et cartographie des zones vulnérables.", pt: 'Monitorização do estresse hídrico, avaliação da condição das pastagens, rastreamento de GEE e mapeamento de pontos de vulnerabilidade.' } },
+  { code: 'knowledge-hub', name: { en: 'Knowledge', fr: 'Connaissances', pt: 'Conhecimento' }, icon: 'BookOpen', color: '#4527A0', sortOrder: 9, description: { en: 'Knowledge base, e-repository, e-learning platform, policy briefs, and monitoring/evaluation/learning.', fr: 'Base de connaissances, e-référentiel, plateforme e-learning, notes de politique et suivi/évaluation/apprentissage.', pt: 'Base de conhecimento, e-repositório, plataforma de e-learning, notas de política e monitorização/avaliação/aprendizagem.' } },
+];
+
 export async function getPublicDomains() {
   try {
     const res = await fetch(`${API_BASE}/api/v1/public/domains`, {
@@ -153,7 +166,7 @@ export async function getPublicDomains() {
     });
     if (res.ok) return res.json();
   } catch {
-    // API unavailable — return empty so only active domains from DB are shown
+    // API unavailable (e.g. during Docker build)
   }
-  return { data: [] };
+  return { data: FALLBACK_DOMAINS };
 }
