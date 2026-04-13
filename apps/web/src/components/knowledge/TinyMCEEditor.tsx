@@ -51,6 +51,7 @@ export function TinyMCEEditor({
       disabled={disabled}
       init={{
         height,
+        min_height: 500,
         menubar: 'file edit view insert format tools table help',
         language: LANGUAGE_MAP[language] ?? 'en',
         directionality: language === 'ar' ? 'rtl' : 'ltr',
