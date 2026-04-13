@@ -60,23 +60,13 @@ export function Footer() {
         <div className="grid gap-8 md:grid-cols-4">
           {/* Brand */}
           <div className="md:col-span-2">
-            <div className="flex items-center gap-3">
-              <Image
-                src="/au-logo.png"
-                alt="African Union"
-                width={40}
-                height={40}
-                className="h-10 w-10 object-contain drop-shadow-md"
-              />
-              <div>
-                <p className="text-sm font-bold text-[#3E2100]">
-                  AU-IBAR
-                </p>
-                <p className="text-xs text-[#5C3A00]/70">
-                  {t('auIbarFull')}
-                </p>
-              </div>
-            </div>
+            <Image
+              src="/au-ibar-logo-white.png"
+              alt="AU-IBAR — Inter-African Bureau for Animal Resources"
+              width={280}
+              height={70}
+              className="h-14 w-auto object-contain drop-shadow-md"
+            />
             <p className="mt-3 max-w-md text-sm leading-relaxed text-[#5C3A00]/80">
               {t('footerDescription')}
             </p>
