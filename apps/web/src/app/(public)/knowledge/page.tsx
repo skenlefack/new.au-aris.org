@@ -3,16 +3,22 @@
 // Public Knowledge Portal landing page.
 //
 // Layout:
-//   1. Hero with the African Union logo + central Google-style search bar
-//   2. Browse-by-scope sections: Continental → RECs → Countries (each grouping
-//      its own categories so the user can drill down geographically)
-//   3. Latest published publications row
+//   1. Hero with search bar + popular tags
+//   2. Main grid: Browse-by-scope (left) + Right sidebar with widgets
+//      - Most viewed publications
+//      - Latest publications
+//      - Popular categories
+//      - Popular tags cloud
+//      - Newsletter CTA
 
 import { useState, useMemo, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, Folder, Globe2, Building2, Flag, ChevronRight, FileText, FolderTree, Eye } from 'lucide-react';
+import {
+  Search, Folder, Building2, Flag, ChevronRight, FileText,
+  FolderTree, Eye, TrendingUp, Clock, Tag, ArrowRight, Flame, BookOpen,
+} from 'lucide-react';
 import {
   usePublicCategoryTree,
   useKnowledgeSearch,
@@ -28,9 +34,16 @@ export default function PublicKnowledgePortalPage() {
 
   const tree = usePublicCategoryTree();
   const stats = usePublicKnowledgeStats();
-  const popularTags = usePublicPopularTags(6);
-  // Latest 6 published items (search with empty query bypass via space)
-  const featured = useKnowledgeSearch({ limit: 6, page: 1, q: ' ' });
+  const popularTags = usePublicPopularTags(12);
+  const latest = useKnowledgeSearch({ limit: 5, page: 1, q: ' ' });
+  // Most viewed — sort by viewCount (the search returns by publishedAt desc by default,
+  // but we can reuse latest data sorted client-side for now)
+  const allHits = latest.data?.data?.hits ?? [];
+
+  const mostViewed = useMemo(
+    () => [...allHits].sort((a, b) => (b as any).viewCount - (a as any).viewCount).slice(0, 5),
+    [allHits],
+  );
 
   // Group root categories by scope
   const grouped = useMemo(() => {
@@ -43,6 +56,21 @@ export default function PublicKnowledgePortalPage() {
       else if (cat.scope === 'COUNTRY') countries.push(cat);
     }
     return { continental, recs, countries };
+  }, [tree.data]);
+
+  // Top categories by publication count
+  const topCategories = useMemo(() => {
+    const all = tree.data?.data ?? [];
+    const withCount = all.map((cat) => {
+      let n = cat.publicationCount ?? 0;
+      const visit = (cs?: KnowledgeCategory[]) => {
+        if (!cs) return;
+        for (const c of cs) { n += c.publicationCount ?? 0; visit(c.children); }
+      };
+      visit(cat.children);
+      return { ...cat, totalPubs: n };
+    });
+    return withCount.sort((a, b) => b.totalPubs - a.totalPubs).slice(0, 6);
   }, [tree.data]);
 
   const onSubmit = (e: FormEvent) => {
@@ -79,7 +107,7 @@ export default function PublicKnowledgePortalPage() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search the knowledge base…"
+                placeholder="Search the knowledge base..."
                 className="flex-1 bg-transparent text-base outline-none"
                 autoFocus
               />
@@ -95,7 +123,7 @@ export default function PublicKnowledgePortalPage() {
           {(popularTags.data?.data?.length ?? 0) > 0 && (
             <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 text-xs text-gray-500">
               <span>Popular:</span>
-              {popularTags.data!.data.map((t, i) => (
+              {popularTags.data!.data.slice(0, 6).map((t) => (
                 <button
                   key={t.tag}
                   onClick={() => router.push(`/knowledge/search?q=${encodeURIComponent(t.tag)}`)}
@@ -109,99 +137,213 @@ export default function PublicKnowledgePortalPage() {
         </div>
       </section>
 
-      {/* ── Browse by scope ─────────────────────────────────── */}
-      <section className="border-t bg-white px-6 py-12 dark:bg-gray-900">
-        <div className="mx-auto max-w-6xl space-y-12">
-          {/* Continental category card + 3 KPI stats on one row */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {/* First continental category (or loading skeleton) */}
-            {tree.isLoading ? (
-              <div className="h-28 animate-pulse rounded-lg border bg-gray-100 dark:bg-gray-800" />
-            ) : grouped.continental.length > 0 ? (
-              <CategoryRootCard cat={grouped.continental[0]} accent="#7c3aed" />
-            ) : (
-              <div className="flex items-center justify-center rounded-lg border bg-white p-4 text-sm text-muted-foreground italic dark:bg-gray-800">
-                No continental category yet.
-              </div>
-            )}
-
-            <StatCard
-              icon={<FileText className="h-5 w-5" />}
-              label="Publications"
-              value={stats.data?.data?.publications}
-              hint="Public publications across all scopes"
-              accent="#7c3aed"
-              loading={stats.isLoading}
-            />
-            <StatCard
-              icon={<FolderTree className="h-5 w-5" />}
-              label="Categories"
-              value={stats.data?.data?.categories}
-              hint="Active categories in the taxonomy"
-              accent="#2563eb"
-              loading={stats.isLoading}
-            />
-            <StatCard
-              icon={<Eye className="h-5 w-5" />}
-              label="Total views"
-              value={stats.data?.data?.totalViews}
-              hint="Cumulative reads across the knowledge base"
-              accent="#16a34a"
-              loading={stats.isLoading}
-            />
-          </div>
-
-          {/* RECs */}
-          <ScopeBlock
-            icon={<Building2 className="h-5 w-5" />}
-            label="Regional Economic Communities"
-            tagline="Content published by ECOWAS, SADC, EAC, IGAD, ECCAS, UMA, COMESA, CEN-SAD"
-            color="#2563eb"
-            categories={grouped.recs}
-            twoColumns
-            loading={tree.isLoading}
-          />
-
-          {/* Countries */}
-          <ScopeBlock
-            icon={<Flag className="h-5 w-5" />}
-            label="Member States"
-            tagline="National publications and announcements from all 55 AU member states"
-            color="#16a34a"
-            categories={grouped.countries}
-            twoColumns
-            collapsed
-            loading={tree.isLoading}
-          />
+      {/* ── KPI Stats row ──────────────────────────────────── */}
+      <section className="border-t bg-white px-6 py-8 dark:bg-gray-900">
+        <div className="mx-auto grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard icon={<FileText className="h-5 w-5" />} label="Publications" value={stats.data?.data?.publications} accent="#7c3aed" loading={stats.isLoading} />
+          <StatCard icon={<FolderTree className="h-5 w-5" />} label="Categories" value={stats.data?.data?.categories} accent="#2563eb" loading={stats.isLoading} />
+          <StatCard icon={<Eye className="h-5 w-5" />} label="Total views" value={stats.data?.data?.totalViews} accent="#16a34a" loading={stats.isLoading} />
+          <StatCard icon={<Building2 className="h-5 w-5" />} label="Contributors" value={stats.data?.data?.contributingTenants} accent="#ea580c" loading={stats.isLoading} />
         </div>
       </section>
 
-      {/* ── Featured publications ───────────────────────────── */}
-      {(featured.data?.data?.hits?.length ?? 0) > 0 && (
-        <section className="border-t bg-emerald-50/60 px-6 py-12 dark:bg-gray-800/50">
-          <div className="mx-auto max-w-6xl">
-            <h2 className="mb-6 text-2xl font-bold">Latest publications</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {featured.data!.data.hits.map((hit) => (
-                <Link
-                  key={hit.id}
-                  href={`/knowledge/p/${hit.slug}`}
-                  className="group rounded-lg border bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-800"
-                >
-                  <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">{hit.type}</span>
-                  <h3 className="mt-2 font-semibold group-hover:text-emerald-700">{pickLocale(hit.title, 'en')}</h3>
-                  {hit.summary && (
-                    <p className="mt-1 line-clamp-2 text-sm text-gray-500">{pickLocale(hit.summary, 'en')}</p>
-                  )}
-                  {hit.publishedAt && (
-                    <p className="mt-3 text-xs text-gray-400">{new Date(hit.publishedAt).toLocaleDateString()}</p>
-                  )}
-                </Link>
-              ))}
-            </div>
+      {/* ── Main grid: Content + Sidebar ───────────────────── */}
+      <section className="border-t bg-gray-50/50 px-6 py-12 dark:bg-gray-900/50">
+        <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1fr_340px]">
+
+          {/* ─── Left: Browse by scope ─────────────────────── */}
+          <div className="space-y-12">
+            {/* Continental */}
+            {grouped.continental.length > 0 && (
+              <ScopeBlock
+                icon={<BookOpen className="h-5 w-5" />}
+                label="Continental Resources"
+                tagline="AU-IBAR continental publications, policies and guidelines"
+                color="#7c3aed"
+                categories={grouped.continental}
+                loading={tree.isLoading}
+              />
+            )}
+
+            {/* RECs */}
+            <ScopeBlock
+              icon={<Building2 className="h-5 w-5" />}
+              label="Regional Economic Communities"
+              tagline="Content published by ECOWAS, SADC, EAC, IGAD, ECCAS, UMA, COMESA, CEN-SAD"
+              color="#2563eb"
+              categories={grouped.recs}
+              twoColumns
+              loading={tree.isLoading}
+            />
+
+            {/* Countries */}
+            <ScopeBlock
+              icon={<Flag className="h-5 w-5" />}
+              label="Member States"
+              tagline="National publications and announcements from all 55 AU member states"
+              color="#16a34a"
+              categories={grouped.countries}
+              twoColumns
+              collapsed
+              loading={tree.isLoading}
+            />
           </div>
-        </section>
-      )}
+
+          {/* ─── Right: Sidebar widgets ────────────────────── */}
+          <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+
+            {/* Most viewed */}
+            <SidebarWidget title="Most viewed" icon={<TrendingUp className="h-4 w-4" />} accent="#dc2626">
+              {latest.isLoading ? (
+                <WidgetSkeleton count={3} />
+              ) : mostViewed.length > 0 ? (
+                <ul className="space-y-3">
+                  {mostViewed.map((hit, i) => (
+                    <li key={hit.id}>
+                      <Link href={`/knowledge/p/${hit.slug}`} className="group flex gap-3">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-50 text-xs font-bold text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                          {i + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium group-hover:text-emerald-700">{pickLocale(hit.title, 'en')}</p>
+                          <p className="text-xs text-gray-400">{hit.type}</p>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs italic text-gray-400">No publications yet.</p>
+              )}
+            </SidebarWidget>
+
+            {/* Latest publications */}
+            <SidebarWidget title="Latest publications" icon={<Clock className="h-4 w-4" />} accent="#2563eb">
+              {latest.isLoading ? (
+                <WidgetSkeleton count={4} />
+              ) : allHits.length > 0 ? (
+                <ul className="space-y-3">
+                  {allHits.slice(0, 5).map((hit) => (
+                    <li key={hit.id}>
+                      <Link href={`/knowledge/p/${hit.slug}`} className="group block">
+                        <p className="truncate text-sm font-medium group-hover:text-emerald-700">{pickLocale(hit.title, 'en')}</p>
+                        <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
+                          <span className="rounded bg-blue-50 px-1.5 py-0.5 font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">{hit.type}</span>
+                          {hit.publishedAt && <span>{new Date(hit.publishedAt).toLocaleDateString()}</span>}
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs italic text-gray-400">No publications yet.</p>
+              )}
+              {allHits.length > 0 && (
+                <Link href="/knowledge/search?q= " className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700">
+                  View all <ArrowRight className="h-3 w-3" />
+                </Link>
+              )}
+            </SidebarWidget>
+
+            {/* Popular categories */}
+            <SidebarWidget title="Popular categories" icon={<Flame className="h-4 w-4" />} accent="#ea580c">
+              {tree.isLoading ? (
+                <WidgetSkeleton count={4} />
+              ) : topCategories.length > 0 ? (
+                <ul className="space-y-2">
+                  {topCategories.map((cat) => (
+                    <li key={cat.id}>
+                      <Link
+                        href={`/knowledge/c/${cat.slug}`}
+                        className="group flex items-center justify-between rounded-lg px-2 py-1.5 transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                      >
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <Folder className="h-3.5 w-3.5 shrink-0 text-orange-500" />
+                          <span className="truncate text-sm group-hover:text-emerald-700">{cat.nameEn}</span>
+                        </div>
+                        <span className="ml-2 shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                          {cat.totalPubs}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs italic text-gray-400">No categories yet.</p>
+              )}
+            </SidebarWidget>
+
+            {/* Tags cloud */}
+            {(popularTags.data?.data?.length ?? 0) > 0 && (
+              <SidebarWidget title="Tags" icon={<Tag className="h-4 w-4" />} accent="#7c3aed">
+                <div className="flex flex-wrap gap-1.5">
+                  {popularTags.data!.data.map((t) => (
+                    <button
+                      key={t.tag}
+                      onClick={() => router.push(`/knowledge/search?q=${encodeURIComponent(t.tag)}`)}
+                      className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-600 transition-all hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-emerald-700"
+                    >
+                      {t.tag}
+                      <span className="ml-1 text-gray-400">({t.count})</span>
+                    </button>
+                  ))}
+                </div>
+              </SidebarWidget>
+            )}
+
+            {/* Newsletter / Subscribe CTA */}
+            <div className="overflow-hidden rounded-xl border bg-gradient-to-br from-emerald-600 to-emerald-700 p-5 text-white shadow-lg">
+              <h3 className="text-sm font-bold">Stay informed</h3>
+              <p className="mt-1 text-xs leading-relaxed text-emerald-100">
+                Get the latest AU-IBAR publications, policy briefs and research updates delivered to your inbox.
+              </p>
+              <Link
+                href="mailto:ibar.office@au-ibar.org?subject=Knowledge Hub Subscription"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-white/20 px-4 py-2 text-xs font-semibold backdrop-blur transition-colors hover:bg-white/30"
+              >
+                Subscribe <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ─── Reusable components ─────────────────────────────────────────────────────
+
+function SidebarWidget({ title, icon, accent, children }: {
+  title: string;
+  icon: React.ReactNode;
+  accent: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border bg-white p-5 shadow-sm dark:bg-gray-800">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ backgroundColor: accent + '15', color: accent }}>
+          {icon}
+        </span>
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white">{title}</h3>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function WidgetSkeleton({ count }: { count: number }) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="flex gap-3">
+          <div className="h-7 w-7 shrink-0 animate-pulse rounded-full bg-gray-100 dark:bg-gray-700" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3.5 w-3/4 animate-pulse rounded bg-gray-100 dark:bg-gray-700" />
+            <div className="h-2.5 w-1/2 animate-pulse rounded bg-gray-100 dark:bg-gray-700" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -228,12 +370,12 @@ function ScopeBlock({
         </span>
         <div className="flex-1">
           <h2 className="text-xl font-bold">{label}</h2>
-          <p className="text-sm text-muted-foreground">{tagline}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{tagline}</p>
         </div>
         {collapsed && categories.length > 0 && (
           <button
             onClick={() => setOpen(!open)}
-            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
+            className="rounded-md border px-3 py-1.5 text-sm hover:bg-white dark:hover:bg-gray-800"
           >
             {open ? 'Collapse' : `Show all ${categories.length}`}
           </button>
@@ -241,79 +383,47 @@ function ScopeBlock({
       </header>
 
       {loading ? (
-        <div className={`grid gap-3 ${twoColumns ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
-          {Array.from({ length: twoColumns ? 3 : 4 }).map((_, i) => (
+        <div className={`grid gap-3 ${twoColumns ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
+          {Array.from({ length: twoColumns ? 2 : 3 }).map((_, i) => (
             <div key={i} className="h-24 animate-pulse rounded-lg border bg-gray-100 dark:bg-gray-800" />
           ))}
         </div>
       ) : categories.length > 0 ? (
         open && (
-          <div className={`grid gap-3 ${twoColumns ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
+          <div className={`grid gap-3 ${twoColumns ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
             {categories.map((cat) => (
               <CategoryRootCard key={cat.id} cat={cat} accent={color} />
             ))}
           </div>
         )
       ) : (
-        <p className="text-sm text-muted-foreground italic">No categories available yet.</p>
+        <p className="text-sm italic text-gray-400">No categories available yet.</p>
       )}
     </div>
   );
 }
 
-function StatCard({
-  icon,
-  label,
-  value,
-  hint,
-  accent,
-  loading,
-}: {
+function StatCard({ icon, label, value, accent, loading }: {
   icon: React.ReactNode;
   label: string;
   value: number | undefined;
-  hint: string;
   accent: string;
   loading?: boolean;
 }) {
-  const formatted =
-    value === undefined
-      ? '—'
-      : value >= 1000
-      ? value.toLocaleString()
-      : String(value);
+  const formatted = value === undefined ? '\u2014' : value >= 1000 ? value.toLocaleString() : String(value);
   return (
-    <div
-      className="group relative overflow-hidden rounded-xl border bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-800"
-      style={{ borderTop: `3px solid ${accent}` }}
-    >
+    <div className="group relative overflow-hidden rounded-xl border bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-800" style={{ borderTop: `3px solid ${accent}` }}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">{label}</p>
-          <p
-            className="mt-2 text-3xl font-bold tabular-nums text-gray-900 dark:text-white"
-            aria-busy={loading}
-          >
-            {loading ? (
-              <span className="inline-block h-8 w-20 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-            ) : (
-              formatted
-            )}
+          <p className="mt-2 text-3xl font-bold tabular-nums text-gray-900 dark:text-white">
+            {loading ? <span className="inline-block h-8 w-20 animate-pulse rounded bg-gray-200 dark:bg-gray-700" /> : formatted}
           </p>
-          <p className="mt-1 text-xs text-gray-500">{hint}</p>
         </div>
-        <span
-          className="flex h-10 w-10 items-center justify-center rounded-lg"
-          style={{ backgroundColor: accent + '15', color: accent }}
-        >
+        <span className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: accent + '15', color: accent }}>
           {icon}
         </span>
       </div>
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-5 transition-opacity group-hover:opacity-10"
-        style={{ backgroundColor: accent }}
-      />
     </div>
   );
 }
@@ -323,10 +433,7 @@ function CategoryRootCard({ cat, accent }: { cat: KnowledgeCategory; accent: str
     let n = cat.publicationCount ?? 0;
     const visit = (cs?: KnowledgeCategory[]) => {
       if (!cs) return;
-      for (const c of cs) {
-        n += c.publicationCount ?? 0;
-        visit(c.children);
-      }
+      for (const c of cs) { n += c.publicationCount ?? 0; visit(c.children); }
     };
     visit(cat.children);
     return n;
@@ -342,9 +449,9 @@ function CategoryRootCard({ cat, accent }: { cat: KnowledgeCategory; accent: str
       <div className="flex-1 overflow-hidden">
         <div className="font-semibold group-hover:text-emerald-700">{cat.nameEn}</div>
         {(cat.children?.length ?? 0) > 0 && (
-          <div className="mt-1 truncate text-xs text-muted-foreground">
-            {cat.children!.map((c) => c.nameEn).slice(0, 4).join(' · ')}
-            {(cat.children!.length ?? 0) > 4 ? ' …' : ''}
+          <div className="mt-1 truncate text-xs text-gray-400">
+            {cat.children!.map((c) => c.nameEn).slice(0, 4).join(' \u00B7 ')}
+            {(cat.children!.length ?? 0) > 4 ? ' \u2026' : ''}
           </div>
         )}
         <div className="mt-2 text-xs font-medium text-gray-400">{totalPubs} publication{totalPubs !== 1 ? 's' : ''}</div>
