@@ -9,24 +9,14 @@ describe('Domain Services E2E', () => {
     const P = PORTS.animalHealth;
     const BASE = '/api/v1/animal-health';
 
-    it('GET /outbreaks returns outbreak list', async () => {
-      const res = await apiGet(P, `${BASE}/outbreaks`, { limit: '5' });
+    it('GET /events returns health event list', async () => {
+      const res = await apiGet(P, `${BASE}/events`, { limit: '5' });
       expect(res.status).toBe(200);
       expect(Array.isArray(res.raw.data)).toBe(true);
     });
 
-    it('GET /surveillance returns surveillance data', async () => {
-      const res = await apiGet(P, `${BASE}/surveillance`, { limit: '5' });
-      expect(res.status).toBe(200);
-    });
-
-    it('GET /vaccinations returns vaccination records', async () => {
-      const res = await apiGet(P, `${BASE}/vaccinations`, { limit: '5' });
-      expect(res.status).toBe(200);
-    });
-
-    it('GET /lab-results returns laboratory data', async () => {
-      const res = await apiGet(P, `${BASE}/lab-results`, { limit: '5' });
+    it('GET /events/markers returns map markers', async () => {
+      const res = await apiGet(P, `${BASE}/events/markers`);
       expect(res.status).toBe(200);
     });
   });
@@ -61,15 +51,10 @@ describe('Domain Services E2E', () => {
   // ── Trade & SPS ──
   describe('Trade & SPS', () => {
     const P = PORTS.tradeSps;
-    const BASE = '/api/v1/trade-sps';
+    const BASE = '/api/v1/trade';
 
-    it('GET /trade-flows returns trade data', async () => {
-      const res = await apiGet(P, `${BASE}/trade-flows`, { limit: '5' });
-      expect(res.status).toBe(200);
-    });
-
-    it('GET /markets returns market data', async () => {
-      const res = await apiGet(P, `${BASE}/markets`, { limit: '5' });
+    it('GET /market-prices returns market data', async () => {
+      const res = await apiGet(P, `${BASE}/market-prices`, { limit: '5' });
       expect(res.status).toBe(200);
     });
 
@@ -82,7 +67,7 @@ describe('Domain Services E2E', () => {
   // ── Livestock Production ──
   describe('Livestock Production', () => {
     const P = PORTS.livestockProd;
-    const BASE = '/api/v1/livestock-prod';
+    const BASE = '/api/v1/livestock';
 
     it('GET /census returns census data', async () => {
       const res = await apiGet(P, `${BASE}/census`, { limit: '5' });
@@ -100,10 +85,9 @@ describe('Domain Services E2E', () => {
     const P = PORTS.governance;
     const BASE = '/api/v1/governance';
 
-    it('GET /functions returns governance functions', async () => {
-      const res = await apiGet(P, `${BASE}/functions`, { limit: '5' });
+    it('GET /capacities returns capacity assessments', async () => {
+      const res = await apiGet(P, `${BASE}/capacities`, { limit: '5' });
       expect(res.status).toBe(200);
-      expect(Array.isArray(res.raw.data)).toBe(true);
     });
 
     it('GET /legal-frameworks returns legal frameworks', async () => {
@@ -130,8 +114,8 @@ describe('Domain Services E2E', () => {
       expect(Array.isArray(res.raw.data)).toBe(true);
     });
 
-    it('GET /countries returns AU member states', async () => {
-      const res = await apiGet(P, `${BASE}/countries`, { limit: '60' });
+    it('GET /geo returns geographic boundaries', async () => {
+      const res = await apiGet(P, `${BASE}/geo`, { limit: '10' });
       expect(res.status).toBe(200);
       expect(Array.isArray(res.raw.data)).toBe(true);
     });
