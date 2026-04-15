@@ -54,6 +54,82 @@ class RoleConfigTest {
         assertEquals("governance", RoleConfig.backendToMobileKey("governance"))
     }
 
+    // ── mobileToBackendKey ─────────────────────────────────────────
+
+    @Test
+    fun `mobileToBackendKey maps health to animal-health`() {
+        assertEquals("animal-health", RoleConfig.mobileToBackendKey("health"))
+    }
+
+    @Test
+    fun `mobileToBackendKey maps livestock to livestock-prod`() {
+        assertEquals("livestock-prod", RoleConfig.mobileToBackendKey("livestock"))
+    }
+
+    @Test
+    fun `mobileToBackendKey maps trade to trade-sps`() {
+        assertEquals("trade-sps", RoleConfig.mobileToBackendKey("trade"))
+    }
+
+    @Test
+    fun `mobileToBackendKey maps climate to climate-env`() {
+        assertEquals("climate-env", RoleConfig.mobileToBackendKey("climate"))
+    }
+
+    @Test
+    fun `mobileToBackendKey maps knowledge to knowledge-hub`() {
+        assertEquals("knowledge-hub", RoleConfig.mobileToBackendKey("knowledge"))
+    }
+
+    @Test
+    fun `mobileToBackendKey passes through fisheries unchanged`() {
+        assertEquals("fisheries", RoleConfig.mobileToBackendKey("fisheries"))
+    }
+
+    @Test
+    fun `mobileToBackendKey passes through wildlife unchanged`() {
+        assertEquals("wildlife", RoleConfig.mobileToBackendKey("wildlife"))
+    }
+
+    @Test
+    fun `mobileToBackendKey passes through apiculture unchanged`() {
+        assertEquals("apiculture", RoleConfig.mobileToBackendKey("apiculture"))
+    }
+
+    @Test
+    fun `mobileToBackendKey passes through governance unchanged`() {
+        assertEquals("governance", RoleConfig.mobileToBackendKey("governance"))
+    }
+
+    // ── bidirectional round-trip ────────────────────────────────────
+
+    @Test
+    fun `backendToMobile then mobileToBackend round-trips correctly`() {
+        val backendCodes = listOf(
+            "animal-health", "livestock-prod", "trade-sps",
+            "climate-env", "knowledge-hub",
+            "fisheries", "wildlife", "apiculture", "governance",
+        )
+        for (code in backendCodes) {
+            val mobile = RoleConfig.backendToMobileKey(code)
+            val backAgain = RoleConfig.mobileToBackendKey(mobile)
+            assertEquals("Round-trip failed for $code", code, backAgain)
+        }
+    }
+
+    @Test
+    fun `mobileToBackend then backendToMobile round-trips correctly`() {
+        val mobileCodes = listOf(
+            "health", "livestock", "trade", "climate", "knowledge",
+            "fisheries", "wildlife", "apiculture", "governance",
+        )
+        for (key in mobileCodes) {
+            val backend = RoleConfig.mobileToBackendKey(key)
+            val backAgain = RoleConfig.backendToMobileKey(backend)
+            assertEquals("Round-trip failed for $key", key, backAgain)
+        }
+    }
+
     // ── labelFor ────────────────────────────────────────────────────
 
     @Test

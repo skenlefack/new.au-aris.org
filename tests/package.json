@@ -5,7 +5,9 @@
   "description": "ARIS 4.0 — Cross-service integration and E2E tests",
   "scripts": {
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:api": "vitest run --config vitest.e2e.config.ts",
+    "test:e2e:api:watch": "vitest watch --config vitest.e2e.config.ts"
   },
   "devDependencies": {
     "@aris/test-utils": "workspace:*",
