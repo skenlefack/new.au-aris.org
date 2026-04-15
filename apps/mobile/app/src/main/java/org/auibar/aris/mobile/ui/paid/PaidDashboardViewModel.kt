@@ -55,39 +55,34 @@ class PaidDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
+                // Try server KPIs first, fall back to computing from local campaigns
                 val result = dashboardRepository.getDomainKpis("paid")
                 val serverKpis = result.getOrDefault(emptyList())
 
-                // Build stats from server data or use defaults
+                val campaignList = campaigns.value
+
                 val activeCampaigns = serverKpis.find {
                     it.label.lowercase().contains("campaign")
-                }?.value?.toInt() ?: 18
+                }?.value?.toInt() ?: campaignList.count { it.status.equals("ACTIVE", ignoreCase = true) }
+
                 val totalSubmissions = serverKpis.find {
                     it.label.lowercase().contains("submission")
-                }?.value?.toInt() ?: 4250
+                }?.value?.toInt() ?: campaignList.sumOf { it.totalSubmissions }
+
                 val completionRate = serverKpis.find {
                     it.label.lowercase().contains("completion")
-                }?.value?.let { it.toFloat() / 100f } ?: 0.76f
+                }?.value?.let { it.toFloat() / 100f }
+                    ?: if (campaignList.isNotEmpty()) {
+                        (campaignList.sumOf { it.completionRate } / campaignList.size / 100.0).toFloat()
+                    } else 0f
 
-                // Generate mock campaign stats from actual campaigns or defaults
-                val campaignList = campaigns.value
-                val stats = if (campaignList.isNotEmpty()) {
-                    campaignList.map { c ->
-                        PaidCampaignStat(
-                            id = c.id,
-                            name = c.name,
-                            target = 100,
-                            completed = (100 * completionRate).toInt(),
-                            status = c.status,
-                        )
-                    }
-                } else {
-                    // Fallback sample data
-                    listOf(
-                        PaidCampaignStat("p1", "PAID - Kenya Livestock Census 2026", 500, 380, "Active"),
-                        PaidCampaignStat("p2", "PAID - Ethiopia Animal ID", 300, 245, "Active"),
-                        PaidCampaignStat("p3", "PAID - Nigeria Poultry Registration", 400, 400, "Completed"),
-                        PaidCampaignStat("p4", "PAID - Senegal Cattle Tagging", 250, 120, "Active"),
+                val stats = campaignList.map { c ->
+                    PaidCampaignStat(
+                        id = c.id,
+                        name = c.name,
+                        target = c.targetSubmissions ?: c.totalSubmissions.coerceAtLeast(1),
+                        completed = c.validatedSubmissions,
+                        status = c.status,
                     )
                 }
 

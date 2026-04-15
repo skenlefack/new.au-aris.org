@@ -3,10 +3,9 @@ package org.auibar.aris.mobile.data.cache
 import android.util.Log
 import org.auibar.aris.mobile.data.local.dao.CampaignDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
-import org.auibar.aris.mobile.data.local.entity.CampaignEntity
 import org.auibar.aris.mobile.data.local.entity.FormTemplateEntity
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
-import org.auibar.aris.mobile.ui.components.RoleConfig
+import org.auibar.aris.mobile.data.repository.toEntity
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -63,19 +62,7 @@ class CampaignRefresher @Inject constructor(
         try {
             val response = campaignApi.getActiveCampaigns()
             val now = System.currentTimeMillis()
-            val entities = response.data.map { dto ->
-                CampaignEntity(
-                    id = dto.id,
-                    tenantId = dto.tenantId,
-                    name = dto.name,
-                    domain = RoleConfig.backendToMobileKey(dto.domain),
-                    templateId = dto.templateId,
-                    startDate = dto.startDate,
-                    endDate = dto.endDate,
-                    status = dto.status,
-                    syncedAt = now,
-                )
-            }
+            val entities = response.data.map { it.toEntity(now) }
             campaignDao.upsertAll(entities)
             cachePolicy.markRefreshed(CachePolicy.KEY_CAMPAIGNS)
             Log.d(TAG, "Campaigns refreshed: ${entities.size} items")

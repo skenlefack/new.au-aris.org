@@ -22,12 +22,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,12 +51,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.auibar.aris.mobile.data.remote.dto.FormTemplateSummaryDto
 import org.auibar.aris.mobile.data.repository.Campaign
 import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.ui.components.DomainIcon
 import org.auibar.aris.mobile.ui.components.arisDomains
-import org.auibar.aris.mobile.ui.theme.QualityFail
-import org.auibar.aris.mobile.ui.theme.QualityPass
 
 @Composable
 fun DomainDashboardScreen(
@@ -60,21 +66,21 @@ fun DomainDashboardScreen(
     onReports: () -> Unit,
     onMap: () -> Unit,
     onDomainForm: (String) -> Unit = {},
+    onFillTemplate: (String) -> Unit = {},
     viewModel: DomainDashboardViewModel = hiltViewModel(),
 ) {
     val campaigns by viewModel.campaigns.collectAsStateWithLifecycle()
-    val serverKpis by viewModel.kpis.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val domainInfo = remember(domainKey) { arisDomains.find { it.key == domainKey } }
     val config = viewModel.config
     val domainColor = domainInfo?.color ?: MaterialTheme.colorScheme.primary
-    val displayKpis = if (serverKpis.isNotEmpty()) serverKpis else config.kpis
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 80.dp),
         ) {
-            // ── Compact Domain Header ──────────────────────────────
+            // ── Domain Header ─────────────────────────────────────
             item {
                 Row(
                     modifier = Modifier
@@ -121,45 +127,81 @@ fun DomainDashboardScreen(
                 }
             }
 
-            // ── KPI Cards (2x2 grid) ────────────────────────────────
-            if (displayKpis.isNotEmpty()) {
+            // ── KPI Cards (from real data) ────────────────────────
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = stringResource(R.string.key_indicators),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+
+            if (uiState.isLoading) {
                 item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = stringResource(R.string.key_indicators),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    )
-                }
-                item {
-                    val rows = displayKpis.chunked(2)
-                    Column(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        rows.forEach { rowKpis ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                rowKpis.forEach { kpi ->
-                                    KpiStatCard(
-                                        kpi = kpi,
-                                        domainColor = domainColor,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                }
-                                if (rowKpis.size < 2) {
-                                    Spacer(modifier = Modifier.weight(1f))
-                                }
-                            }
-                        }
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp,
+                            color = domainColor,
+                        )
+                    }
+                }
+            } else {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        KpiCard(
+                            label = stringResource(R.string.active_campaigns),
+                            value = uiState.activeCampaigns.toString(),
+                            icon = Icons.Default.Campaign,
+                            color = domainColor,
+                            modifier = Modifier.weight(1f),
+                        )
+                        KpiCard(
+                            label = stringResource(R.string.total_submissions_label),
+                            value = uiState.totalSubmissions.toString(),
+                            icon = Icons.Default.CheckCircle,
+                            color = Color(0xFF2E7D32),
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        KpiCard(
+                            label = stringResource(R.string.completion_rate),
+                            value = "${uiState.completionRate}%",
+                            icon = Icons.Default.Assessment,
+                            color = Color(0xFF1565C0),
+                            modifier = Modifier.weight(1f),
+                        )
+                        KpiCard(
+                            label = stringResource(R.string.total_campaigns),
+                            value = uiState.totalCampaigns.toString(),
+                            icon = Icons.Default.Description,
+                            color = Color(0xFFE65100),
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                 }
             }
 
-            // ── Quick Links ─────────────────────────────────────────
+            // ── Quick Links ────────────────────────────────────────
             if (config.quickLinks.isNotEmpty()) {
                 item {
                     Spacer(modifier = Modifier.height(20.dp))
@@ -184,14 +226,7 @@ fun DomainDashboardScreen(
                                         "campaigns" -> onNewSubmission()
                                         "reports" -> onReports()
                                         "map" -> onMap()
-                                        "outbreak_report", "surveillance_event",
-                                        "capture_record", "aquaculture_record",
-                                        "wildlife_observation", "hwc_report",
-                                        "apiary_record", "colony_health",
-                                        "trade_flow", "sps_certificate",
-                                        "legal_framework", "vet_capacity",
-                                        "water_stress", "rangeland" -> onDomainForm(link.action)
-                                        else -> onNewSubmission()
+                                        else -> onDomainForm(link.action)
                                     }
                                 },
                             )
@@ -200,34 +235,7 @@ fun DomainDashboardScreen(
                 }
             }
 
-            // ── Alert Types ─────────────────────────────────────────
-            if (config.alertTypes.isNotEmpty()) {
-                item {
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Text(
-                        text = stringResource(R.string.quick_report),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    )
-                }
-                item {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(config.alertTypes) { alertType ->
-                            AlertTypeChip(
-                                label = alertType,
-                                domainColor = domainColor,
-                                onClick = onNewSubmission,
-                            )
-                        }
-                    }
-                }
-            }
-
-            // ── Domain Campaigns ────────────────────────────────────
+            // ── Active Campaigns (with progress) ──────────────────
             item {
                 Spacer(modifier = Modifier.height(20.dp))
                 Text(
@@ -238,7 +246,21 @@ fun DomainDashboardScreen(
                 )
             }
 
-            if (campaigns.isEmpty()) {
+            if (uiState.isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    }
+                }
+            } else if (campaigns.isEmpty()) {
                 item {
                     Text(
                         text = stringResource(R.string.no_domain_campaigns),
@@ -263,7 +285,47 @@ fun DomainDashboardScreen(
                     }
                 }
             }
+
+            // ── Form Templates Catalog ─────────────────────────────
+            if (uiState.formTemplates.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text(
+                        text = stringResource(R.string.form_catalog),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                }
+                item {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        uiState.formTemplates.forEach { template ->
+                            FormTemplateCard(
+                                template = template,
+                                domainColor = domainColor,
+                                onFill = { onFillTemplate(template.id) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ── Error message ──────────────────────────────────────
+            if (uiState.error != null) {
+                item {
+                    Text(
+                        text = uiState.error!!,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
+            }
         }
+
         FloatingActionButton(
             onClick = onNewSubmission,
             containerColor = domainColor,
@@ -277,19 +339,19 @@ fun DomainDashboardScreen(
     }
 }
 
-// ── KPI Stat Card ───────────────────────────────────────────────────
+// ── KPI Card ───────────────────────────────────────────────────────
 @Composable
-private fun KpiStatCard(
-    kpi: DomainKpi,
-    domainColor: Color,
+private fun KpiCard(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    color: Color,
     modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -300,7 +362,7 @@ private fun KpiStatCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = kpi.label,
+                        text = label,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -308,53 +370,26 @@ private fun KpiStatCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = kpi.value,
+                        text = value,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(domainColor.copy(alpha = 0.12f)),
+                        .background(color.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector = kpi.icon,
-                        contentDescription = null,
-                        tint = domainColor,
-                        modifier = Modifier.size(20.dp),
-                    )
+                    Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
                 }
-            }
-            if (kpi.subtitle.isNotEmpty()) {
-                Text(
-                    text = kpi.subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
-            if (kpi.trendValue.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = kpi.trendValue,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = when (kpi.trend) {
-                        "up" -> QualityPass
-                        "down" -> QualityFail
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
             }
         }
     }
 }
 
-// ── Quick Link Card ─────────────────────────────────────────────────
+// ── Quick Link Card ────────────────────────────────────────────────
 @Composable
 private fun QuickLinkCard(
     link: DomainQuickLink,
@@ -366,9 +401,7 @@ private fun QuickLinkCard(
             .width(130.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
@@ -384,12 +417,7 @@ private fun QuickLinkCard(
                     .background(domainColor.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = link.icon,
-                    contentDescription = null,
-                    tint = domainColor,
-                    modifier = Modifier.size(24.dp),
-                )
+                Icon(link.icon, contentDescription = null, tint = domainColor, modifier = Modifier.size(24.dp))
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -403,31 +431,7 @@ private fun QuickLinkCard(
     }
 }
 
-// ── Alert Type Chip ─────────────────────────────────────────────────
-@Composable
-private fun AlertTypeChip(
-    label: String,
-    domainColor: Color,
-    onClick: () -> Unit,
-) {
-    Card(
-        modifier = Modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = domainColor.copy(alpha = 0.1f),
-        ),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = domainColor,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        )
-    }
-}
-
-// ── Domain Campaign Card ────────────────────────────────────────────
+// ── Domain Campaign Card (with progress) ───────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DomainCampaignCard(
@@ -437,11 +441,9 @@ private fun DomainCampaignCard(
 ) {
     Card(
         onClick = onClick,
-        modifier = Modifier.width(200.dp),
+        modifier = Modifier.width(220.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -460,12 +462,121 @@ private fun DomainCampaignCard(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = campaign.status,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+
+            if (!campaign.description.isNullOrBlank()) {
+                Text(
+                    text = campaign.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+
+            if (campaign.totalSubmissions > 0) {
+                Spacer(modifier = Modifier.height(8.dp))
+                val progress = (campaign.completionRate / 100.0).coerceIn(0.0, 1.0).toFloat()
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = domainColor,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "${campaign.validatedSubmissions}/${campaign.totalSubmissions} submissions",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = campaign.status,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+// ── Form Template Card ─────────────────────────────────────────────
+@Composable
+private fun FormTemplateCard(
+    template: FormTemplateSummaryDto,
+    domainColor: Color,
+    onFill: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(domainColor.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Default.Description,
+                    contentDescription = null,
+                    tint = domainColor,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = template.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "v${template.version} \u2022 ${template.formType.lowercase().replace("_", " ")}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Card(
+                modifier = Modifier.clickable(onClick = onFill),
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = domainColor),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = stringResource(R.string.fill),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                    )
+                }
+            }
         }
     }
 }

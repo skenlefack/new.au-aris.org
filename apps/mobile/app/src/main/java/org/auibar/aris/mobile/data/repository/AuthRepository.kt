@@ -3,7 +3,10 @@ package org.auibar.aris.mobile.data.repository
 import android.util.Log
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.tasks.await
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.auibar.aris.mobile.data.remote.api.AuthApi
+import org.auibar.aris.mobile.data.remote.dto.AppDomainDto
 import org.auibar.aris.mobile.data.remote.websocket.WebSocketManager
 import org.auibar.aris.mobile.ui.components.RoleConfig
 import org.auibar.aris.mobile.util.TokenManager
@@ -85,11 +88,13 @@ class AuthRepository @Inject constructor(
     private suspend fun fetchServerConfig() {
         try {
             val domainsResponse = authApi.fetchActiveDomains()
-            val mobileCodes = domainsResponse.data
+            val activeDomains = domainsResponse.data
                 .filter { it.isActive }
                 .sortedBy { it.sortOrder }
-                .map { RoleConfig.backendToMobileKey(it.code) }
+            val mobileCodes = activeDomains.map { RoleConfig.backendToMobileKey(it.code) }
             tokenManager.activeDomains = mobileCodes.joinToString(",")
+            // Store full domain data for dynamic UI rendering
+            tokenManager.activeDomainsJson = Json.encodeToString(activeDomains)
         } catch (e: Exception) {
             Log.w("AuthRepository", "Failed to fetch active domains: ${e.message}")
         }

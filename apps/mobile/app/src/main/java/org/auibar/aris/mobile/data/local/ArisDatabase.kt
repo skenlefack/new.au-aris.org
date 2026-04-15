@@ -41,7 +41,7 @@ import org.auibar.aris.mobile.data.local.entity.SubmissionEntity
         KnowledgePublicationEntity::class,
         KnowledgeCategoryEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class ArisDatabase : RoomDatabase() {

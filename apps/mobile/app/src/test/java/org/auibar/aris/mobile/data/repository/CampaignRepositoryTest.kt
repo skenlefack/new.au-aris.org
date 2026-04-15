@@ -63,8 +63,8 @@ class CampaignRepositoryTest {
                 name = "PPR Campaign",
                 domain = "animal-health",
                 templateId = "tmpl-2",
-                startDate = 1700000000000,
-                endDate = 1710000000000,
+                startDate = "2023-11-14T22:13:20.000Z",
+                endDate = "2024-03-09T17:46:40.000Z",
                 status = "ACTIVE",
             ),
         )

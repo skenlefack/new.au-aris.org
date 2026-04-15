@@ -506,6 +506,11 @@
     <string name="quick_access">Quick Access</string>
     <string name="quick_report">Quick Report</string>
     <string name="active_campaigns">Active Campaigns</string>
+    <string name="total_submissions_label">Submissions</string>
+    <string name="completion_rate">Completion Rate</string>
+    <string name="total_campaigns">Total Campaigns</string>
+    <string name="form_catalog">Form Catalog</string>
+    <string name="fill">Fill</string>
     <string name="no_domain_campaigns">No active campaigns for this domain</string>
     <string name="cd_offline_banner">You are offline. Data will be saved locally and synced when connection is restored.</string>
     <string name="cd_no_internet">No internet connection</string>

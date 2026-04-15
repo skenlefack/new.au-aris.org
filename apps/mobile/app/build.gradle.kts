@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -9,8 +11,9 @@ plugins {
 
 // Load keystore.properties if present (gitignored, for local builds)
 val keystorePropsFile = rootProject.file("keystore.properties")
-val keystoreProps = java.util.Properties().apply {
-    if (keystorePropsFile.exists()) load(keystorePropsFile.inputStream())
+val keystoreProps = Properties()
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.inputStream().use { keystoreProps.load(it) }
 }
 
 android {
@@ -82,6 +85,10 @@ android {
 
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
+    }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 }
 

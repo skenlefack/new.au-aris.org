@@ -48,7 +48,7 @@ class ArisFirebaseMessagingService : FirebaseMessagingService() {
                 type = type,
                 title = title,
                 body = body,
-                entityId = entityId,
+                payload = data.filterKeys { it != "type" && it != "title" && it != "body" },
             )
         )
 
@@ -59,11 +59,9 @@ class ArisFirebaseMessagingService : FirebaseMessagingService() {
                     id = data["notificationId"] ?: UUID.randomUUID().toString(),
                     tenantId = tokenManager.tenantId ?: "",
                     type = type,
-                    channel = "push",
                     title = title,
                     body = body,
                     isRead = false,
-                    readAt = null,
                     createdAt = System.currentTimeMillis(),
                 )
             )

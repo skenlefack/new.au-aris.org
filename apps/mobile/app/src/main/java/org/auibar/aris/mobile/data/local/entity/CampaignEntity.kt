@@ -21,5 +21,10 @@ data class CampaignEntity(
     val startDate: Long,
     val endDate: Long,
     val status: String,
-    val syncedAt: Long?
+    val description: String? = null,
+    val targetSubmissions: Int? = null,
+    val totalSubmissions: Int = 0,
+    val validatedSubmissions: Int = 0,
+    val rejectedSubmissions: Int = 0,
+    val syncedAt: Long? = null,
 )

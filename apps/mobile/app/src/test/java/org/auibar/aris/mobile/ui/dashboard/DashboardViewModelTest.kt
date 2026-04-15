@@ -17,6 +17,7 @@ import org.auibar.aris.mobile.data.cache.CampaignRefresher
 import org.auibar.aris.mobile.data.cache.MasterDataRefresher
 import org.auibar.aris.mobile.data.remote.dto.KpiCard
 import org.auibar.aris.mobile.data.repository.AuthRepository
+import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.DashboardRepository
 import org.auibar.aris.mobile.util.TokenManager
 import org.junit.After
@@ -34,6 +35,7 @@ class DashboardViewModelTest {
     private lateinit var dashboardRepository: DashboardRepository
     private lateinit var masterDataRefresher: MasterDataRefresher
     private lateinit var campaignRefresher: CampaignRefresher
+    private lateinit var campaignRepository: CampaignRepository
     private lateinit var tokenManager: TokenManager
     private lateinit var authRepository: AuthRepository
 
@@ -43,6 +45,7 @@ class DashboardViewModelTest {
         dashboardRepository = mockk(relaxed = true)
         masterDataRefresher = mockk(relaxed = true)
         campaignRefresher = mockk(relaxed = true)
+        campaignRepository = mockk(relaxed = true)
         tokenManager = mockk(relaxed = true)
         authRepository = mockk(relaxed = true)
 
@@ -64,6 +67,7 @@ class DashboardViewModelTest {
             dashboardRepository,
             masterDataRefresher,
             campaignRefresher,
+            campaignRepository,
             tokenManager,
             authRepository,
         )
@@ -91,7 +95,8 @@ class DashboardViewModelTest {
         advanceUntilIdle()
 
         coVerify { masterDataRefresher.refreshIfNeeded() }
-        coVerify { campaignRefresher.refreshIfNeeded() }
+        coVerify { campaignRefresher.forceRefresh() }
+        coVerify { campaignRepository.refreshCampaigns() }
     }
 
     @Test

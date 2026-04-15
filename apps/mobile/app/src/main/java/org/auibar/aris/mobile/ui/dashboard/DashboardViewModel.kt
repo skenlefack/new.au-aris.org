@@ -14,6 +14,7 @@ import org.auibar.aris.mobile.data.cache.MasterDataRefresher
 import org.auibar.aris.mobile.data.remote.dto.KpiCard
 import org.auibar.aris.mobile.data.repository.Campaign
 import org.auibar.aris.mobile.data.repository.AuthRepository
+import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.DashboardRepository
 import org.auibar.aris.mobile.ui.components.DomainInfo
 import org.auibar.aris.mobile.ui.components.getActiveDomains
@@ -23,6 +24,7 @@ import javax.inject.Inject
 data class DashboardUiState(
     val kpis: List<KpiCard> = emptyList(),
     val isLoading: Boolean = false,
+    val campaignsLoading: Boolean = false,
     val error: String? = null,
     val userName: String = "",
     val userEmail: String = "",
@@ -37,6 +39,7 @@ class DashboardViewModel @Inject constructor(
     private val dashboardRepository: DashboardRepository,
     private val masterDataRefresher: MasterDataRefresher,
     private val campaignRefresher: CampaignRefresher,
+    private val campaignRepository: CampaignRepository,
     private val tokenManager: TokenManager,
     private val authRepository: AuthRepository,
 ) : ViewModel() {
@@ -64,9 +67,9 @@ class DashboardViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             masterDataRefresher.refreshIfNeeded()
-            campaignRefresher.refreshIfNeeded()
         }
         loadKpis()
+        refreshCampaigns()
     }
 
     fun logout() {
@@ -88,6 +91,19 @@ class DashboardViewModel @Inject constructor(
                     error = result.exceptionOrNull()?.message,
                 )
             }
+        }
+    }
+
+    /** Force-fetch campaigns from the backend and update Room DB. */
+    fun refreshCampaigns() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(campaignsLoading = true)
+            campaignRefresher.forceRefresh()
+            val result = campaignRepository.refreshCampaigns()
+            _uiState.value = _uiState.value.copy(
+                campaignsLoading = false,
+                error = if (result.isFailure) result.exceptionOrNull()?.message else _uiState.value.error,
+            )
         }
     }
 }

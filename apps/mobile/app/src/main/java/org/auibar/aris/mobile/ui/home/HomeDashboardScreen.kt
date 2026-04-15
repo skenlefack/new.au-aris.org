@@ -108,6 +108,7 @@ fun HomeDashboardScreen(
 
     val userDomains = viewModel.userDomains
     val activeDomains = viewModel.activeDomains
+    val windowType = LocalWindowType.current
 
     LazyColumn(
         modifier = Modifier
@@ -149,7 +150,7 @@ fun HomeDashboardScreen(
         }
 
         // ── Chart widgets — paired side-by-side on tablets ─────────
-        if (LocalWindowType.current != WindowType.COMPACT) {
+        if (windowType != WindowType.COMPACT) {
             // Tablet: 2 charts per row
             item {
                 Row(Modifier.fillMaxWidth()) {

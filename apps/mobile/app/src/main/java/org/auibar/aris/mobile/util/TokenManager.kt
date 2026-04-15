@@ -88,6 +88,11 @@ class TokenManager @Inject constructor(
     fun getActiveDomainCodes(): List<String> =
         activeDomains?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
 
+    /** Full domain JSON from GET /api/v1/public/domains (serialized AppDomainDto list) */
+    var activeDomainsJson: String?
+        get() = prefs.getString(KEY_ACTIVE_DOMAINS_JSON, null)
+        set(value) = prefs.edit().putString(KEY_ACTIVE_DOMAINS_JSON, value).apply()
+
     /** Comma-separated active locale codes from server (e.g. "en,fr") */
     var activeLocales: String?
         get() = prefs.getString(KEY_ACTIVE_LOCALES, null)
@@ -144,6 +149,7 @@ class TokenManager @Inject constructor(
         private const val KEY_LANGUAGE = "language"
         private const val KEY_SYNC_FREQUENCY = "sync_frequency_minutes"
         private const val KEY_FCM_TOKEN = "fcm_token"
+        private const val KEY_ACTIVE_DOMAINS_JSON = "active_domains_json"
         private const val KEY_SERVER_ENV = "server_environment"
     }
 }

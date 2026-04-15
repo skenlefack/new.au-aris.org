@@ -6,14 +6,12 @@ import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
 import org.auibar.aris.mobile.data.local.dao.SubmissionDao
-import org.auibar.aris.mobile.data.local.entity.CampaignEntity
 import org.auibar.aris.mobile.data.local.entity.DiseaseEntity
 import org.auibar.aris.mobile.data.local.entity.FormTemplateEntity
 import org.auibar.aris.mobile.data.local.entity.GeoEntity
 import org.auibar.aris.mobile.data.local.entity.SpeciesEntity
 import org.auibar.aris.mobile.BuildConfig
 import org.auibar.aris.mobile.data.remote.api.SyncApi
-import org.auibar.aris.mobile.ui.components.RoleConfig
 import org.auibar.aris.mobile.data.remote.dto.SubmissionDto
 import org.auibar.aris.mobile.data.remote.dto.SyncRequest
 import org.auibar.aris.mobile.util.TokenManager
@@ -80,19 +78,7 @@ class SyncRepository @Inject constructor(
 
             // Update campaigns
             if (syncData.updatedCampaigns.isNotEmpty()) {
-                val entities = syncData.updatedCampaigns.map { dto ->
-                    CampaignEntity(
-                        id = dto.id,
-                        tenantId = dto.tenantId,
-                        name = dto.name,
-                        domain = RoleConfig.backendToMobileKey(dto.domain),
-                        templateId = dto.templateId,
-                        startDate = dto.startDate,
-                        endDate = dto.endDate,
-                        status = dto.status,
-                        syncedAt = now,
-                    )
-                }
+                val entities = syncData.updatedCampaigns.map { it.toEntity(now) }
                 campaignDao.upsertAll(entities)
             }
 

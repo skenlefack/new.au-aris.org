@@ -33,9 +33,17 @@ data class CampaignDto(
     val name: String,
     val domain: String,
     val templateId: String,
-    val startDate: Long,
-    val endDate: Long,
+    val templateIds: List<String> = emptyList(),
+    val targetCountries: List<String> = emptyList(),
+    val startDate: String,
+    val endDate: String,
     val status: String,
+    val description: String? = null,
+    val targetSubmissions: Int? = null,
+    val assignedAgents: List<String> = emptyList(),
+    val createdBy: String? = null,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
 )
 
 @Serializable
@@ -73,6 +81,19 @@ data class TemplateInfoDto(
     val domain: String? = null,
     val version: Int = 1,
     val status: String? = null,
+)
+
+/** Summary DTO for template list (without schema/uiSchema). */
+@Serializable
+data class FormTemplateSummaryDto(
+    val id: String,
+    val name: String,
+    val domain: String = "",
+    val formType: String = "CAMPAIGN",
+    val version: Int = 1,
+    val status: String = "PUBLISHED",
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
 )
 
 @Serializable

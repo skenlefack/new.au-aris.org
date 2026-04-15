@@ -28,8 +28,10 @@ import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -178,7 +180,21 @@ fun DashboardScreen(
             )
         }
 
-        if (campaigns.isEmpty()) {
+        if (uiState.campaignsLoading) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                    )
+                }
+            }
+        } else if (campaigns.isEmpty()) {
             item {
                 Text(
                     text = stringResource(R.string.no_campaigns),
@@ -399,12 +415,34 @@ private fun CampaignCard(
                 style = MaterialTheme.typography.labelSmall,
                 color = domainColor,
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = campaign.status,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+
+            // Progress section
+            if (campaign.totalSubmissions > 0) {
+                Spacer(modifier = Modifier.height(8.dp))
+                val progress = (campaign.completionRate / 100.0).coerceIn(0.0, 1.0).toFloat()
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = domainColor,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "${campaign.validatedSubmissions}/${campaign.totalSubmissions} · ${String.format("%.0f", campaign.completionRate)}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = campaign.status,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

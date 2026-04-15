@@ -90,11 +90,10 @@ object RoleConfig {
 
     fun visibleDomains(role: String?): List<DomainInfo> {
         val allowed = roleDomainAccess[role]
-        val base = arisDomains.filter { DomainActivation.isActive(it.key) }
         return if (allowed == null) {
-            base
+            arisDomains
         } else {
-            base.filter { it.key in allowed }
+            arisDomains.filter { it.key in allowed }
         }
     }
 
@@ -105,19 +104,14 @@ object RoleConfig {
      */
     fun visibleDomains(role: String?, userDomainCodes: List<String>): List<DomainInfo> {
         val roleAllowed = roleDomainAccess[role]
-        // If user has no assigned domains (legacy or SUPER_ADMIN), fall back to role-only
         if (userDomainCodes.isEmpty()) {
             return visibleDomains(role)
         }
-        // Map backend codes to mobile keys (e.g. "animal-health" → "health")
         val mappedCodes = userDomainCodes.map { backendToMobileKey(it) }.toSet()
-        val base = arisDomains.filter { DomainActivation.isActive(it.key) }
         return if (roleAllowed == null) {
-            // Role sees all → restrict to assigned domains
-            base.filter { it.key in mappedCodes }
+            arisDomains.filter { it.key in mappedCodes }
         } else {
-            // Role has restrictions → intersect with assigned domains
-            base.filter { it.key in roleAllowed && it.key in mappedCodes }
+            arisDomains.filter { it.key in roleAllowed && it.key in mappedCodes }
         }
     }
 
@@ -155,6 +149,16 @@ object RoleConfig {
         "climate-env" -> "climate"
         "knowledge-hub" -> "knowledge"
         else -> code // fisheries, wildlife, apiculture, governance — same
+    }
+
+    /** Map mobile DomainConfig keys to backend domain codes */
+    fun mobileToBackendKey(key: String): String = when (key) {
+        "health" -> "animal-health"
+        "livestock" -> "livestock-prod"
+        "trade" -> "trade-sps"
+        "climate" -> "climate-env"
+        "knowledge" -> "knowledge-hub"
+        else -> key
     }
 
     // ── Quick actions per role ───────────────────────────────────────
