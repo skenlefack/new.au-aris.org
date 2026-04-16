@@ -8,6 +8,7 @@ const mockUser: AuthUser = {
   firstName: 'Jean',
   lastName: 'Dupont',
   role: 'NATIONAL_ADMIN',
+  roles: ['NATIONAL_ADMIN'],
   tenantId: 'tenant-ke',
   tenantLevel: 'MEMBER_STATE',
 };

@@ -8,11 +8,13 @@ import {
   UpdateLocaleSchema,
   PaginationQuerySchema,
   UuidParamSchema,
+  ChangePasswordSchema,
   type UpdateUserInput,
   type UpdateProfileInput,
   type UpdateLocaleInput,
   type PaginationQueryInput,
   type UuidParamInput,
+  type ChangePasswordInput,
 } from '../schemas/user.schemas.js';
 
 export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
@@ -59,6 +61,17 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.userService.updateLocale(user.userId, request.body.locale);
+  });
+
+  // PUT /api/v1/credential/users/me/password — self-service password change.
+  // Used both for routine rotations and for the forced first-login change
+  // (frontend ForcePasswordChangeModal). Sets mustChangePassword=false.
+  app.put<{ Body: ChangePasswordInput }>('/api/v1/credential/users/me/password', {
+    schema: { body: ChangePasswordSchema },
+    preHandler: authAndTenant,
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.userService.changeMyPassword(user, request.body);
   });
 
   // PATCH /api/v1/credential/users/:id

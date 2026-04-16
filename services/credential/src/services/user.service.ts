@@ -9,7 +9,7 @@ import type { DomainService } from './domain.service.js';
 const USER_SELECT = {
   id: true, tenantId: true, email: true, firstName: true, lastName: true,
   phone: true, role: true, locale: true, mfaEnabled: true, avatarUrl: true, lastLoginAt: true,
-  isActive: true, createdAt: true, updatedAt: true,
+  isActive: true, mustChangePassword: true, passwordChangedAt: true, createdAt: true, updatedAt: true,
   userDomains: {
     where: { isActive: true },
     include: { domain: { select: { id: true, code: true, name: true, icon: true, color: true } } },
@@ -167,6 +167,9 @@ export class UserService {
     if (dto.email !== undefined) updateData.email = dto.email;
     if (dto.password !== undefined && typeof dto.password === 'string') {
       updateData.passwordHash = await bcrypt.hash(dto.password, 10);
+      // Admin changed the password → treat as a temporary password: force
+      // the user to change it again on their next login.
+      updateData.mustChangePassword = true;
     }
     if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
     if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
@@ -212,6 +215,56 @@ export class UserService {
       try { await this.redis.del(`aris:credential:user:${caller.userId}`); } catch { /* non-blocking */ }
     }
     return { data: this.transformUser(user) };
+  }
+
+  /**
+   * Self-service password change. Requires the current password for
+   * verification, enforces strength rules on the new password, then
+   * clears the mustChangePassword flag and bumps passwordChangedAt.
+   */
+  async changeMyPassword(
+    caller: AuthenticatedUser,
+    dto: { currentPassword: string; newPassword: string },
+  ): Promise<ApiResponse<{ changed: true; mustChangePassword: false }>> {
+    const { currentPassword, newPassword } = dto;
+
+    if (newPassword === currentPassword) {
+      throw new HttpError(400, 'New password must be different from the current password');
+    }
+
+    // Strength check: min length already enforced by schema (>=8); add
+    // a basic complexity requirement (letters + digits).
+    const hasLetter = /[A-Za-z]/.test(newPassword);
+    const hasDigit = /\d/.test(newPassword);
+    if (!hasLetter || !hasDigit) {
+      throw new HttpError(400, 'Password must contain at least one letter and one digit');
+    }
+
+    const user = await (this.prisma as any).user.findUnique({
+      where: { id: caller.userId },
+      select: { id: true, passwordHash: true, isActive: true },
+    });
+    if (!user || !user.isActive) throw new HttpError(401, 'User not found or inactive');
+
+    const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!ok) throw new HttpError(401, 'Current password is incorrect');
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await (this.prisma as any).user.update({
+      where: { id: caller.userId },
+      data: {
+        passwordHash: newHash,
+        mustChangePassword: false,
+        passwordChangedAt: new Date(),
+      },
+    });
+
+    // Invalidate cached profile so the next /users/me call reflects the flag
+    if (this.redis) {
+      try { await this.redis.del(`aris:credential:user:${caller.userId}`); } catch { /* non-blocking */ }
+    }
+
+    return { data: { changed: true, mustChangePassword: false } };
   }
 
   async updateLocale(userId: string, locale: string): Promise<ApiResponse<any>> {

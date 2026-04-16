@@ -71,6 +71,7 @@ export interface TokenResponse {
     tenantId: string;
     tenantLevel: string;
     domains: Array<{ id: string; code: string; name: Record<string, string>; icon: string; color: string }>;
+    mustChangePassword: boolean;
   };
   permissions?: Array<{ module: string; feature: string; action: string }>;
 }
@@ -93,6 +94,8 @@ export interface SafeUser {
   mfaEnabled: boolean;
   lastLoginAt: Date | null;
   isActive: boolean;
+  mustChangePassword: boolean;
+  passwordChangedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -146,6 +149,10 @@ export class AuthService {
         lastName: dto.lastName,
         phone: dto.phone || null,
         role: dto.role,
+        // Admin-created users receive a temporary password and must change it
+        // on their first login. The ForcePasswordChangeModal on the frontend
+        // blocks all navigation until this flag is cleared.
+        mustChangePassword: true,
       },
     });
 
@@ -270,7 +277,7 @@ export class AuthService {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresIn: 900,
-        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, roles: effectiveRoles, tenantId: user.tenantId, tenantLevel: user.tenant.level, domains: userDomainsResult.data },
+        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, roles: effectiveRoles, tenantId: user.tenantId, tenantLevel: user.tenant.level, domains: userDomainsResult.data, mustChangePassword: user.mustChangePassword ?? false },
         permissions,
       },
     };
@@ -452,6 +459,8 @@ export class AuthService {
       firstName: user.firstName, lastName: user.lastName, role: user.role,
       locale: user.locale ?? 'en', mfaEnabled: user.mfaEnabled,
       lastLoginAt: user.lastLoginAt, isActive: user.isActive,
+      mustChangePassword: user.mustChangePassword ?? false,
+      passwordChangedAt: user.passwordChangedAt ?? null,
       createdAt: user.createdAt, updatedAt: user.updatedAt,
     };
   }

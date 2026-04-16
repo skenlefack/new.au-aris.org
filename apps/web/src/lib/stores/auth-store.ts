@@ -25,6 +25,13 @@ export interface AuthUser {
   tenantLevel?: string;
   avatarUrl?: string;
   locale?: string;
+  /**
+   * True when the user must change their password before they can access
+   * the app. Set on admin-created accounts and when an admin resets a
+   * password. The ForcePasswordChangeModal blocks the UI until this is
+   * cleared via PUT /api/v1/credential/users/me/password.
+   */
+  mustChangePassword?: boolean;
 }
 
 interface AuthState {
@@ -35,6 +42,7 @@ interface AuthState {
   setAuth: (user: AuthUser, accessToken: string, refreshToken: string) => void;
   updateToken: (accessToken: string) => void;
   updateTokens: (accessToken: string, refreshToken: string) => void;
+  clearMustChangePassword: () => void;
   logout: () => void;
 }
 
@@ -49,6 +57,12 @@ export const useAuthStore = create<AuthState>()(
         set({ user, accessToken, refreshToken, isAuthenticated: true }),
       updateToken: (accessToken) => set({ accessToken }),
       updateTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
+      clearMustChangePassword: () =>
+        set((state) =>
+          state.user
+            ? { user: { ...state.user, mustChangePassword: false } }
+            : state,
+        ),
       logout: () =>
         set({
           user: null,

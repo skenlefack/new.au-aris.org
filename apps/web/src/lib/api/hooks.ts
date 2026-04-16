@@ -74,6 +74,7 @@ interface LoginResponse {
       tenantId: string;
       tenantLevel?: string;
       locale?: string;
+      mustChangePassword?: boolean;
       domains?: Array<{
         id: string;
         code: string;
@@ -285,6 +286,7 @@ export function useLogin() {
           tenantId: user.tenantId,
           tenantLevel: user.tenantLevel,
           locale: user.locale,
+          mustChangePassword: user.mustChangePassword ?? false,
         },
         accessToken,
         refreshToken,
@@ -334,6 +336,25 @@ export function useUpdateLocale() {
   return useMutation({
     mutationFn: async (locale: string) =>
       apiClient.put<{ data: { locale: string } }>('/credential/users/me/locale', { locale }),
+  });
+}
+
+/**
+ * Self-service password change (forced or routine). On success, clears
+ * the mustChangePassword flag in the auth store so the blocking modal
+ * unmounts.
+ */
+export function useChangeMyPassword() {
+  const clearFlag = useAuthStore((s) => s.clearMustChangePassword);
+  return useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) =>
+      apiClient.put<{ data: { changed: true; mustChangePassword: false } }>(
+        '/credential/users/me/password',
+        data,
+      ),
+    onSuccess: () => {
+      clearFlag();
+    },
   });
 }
 

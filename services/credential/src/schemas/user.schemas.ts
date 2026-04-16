@@ -50,8 +50,14 @@ export const UuidParamSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
 });
 
+export const ChangePasswordSchema = Type.Object({
+  currentPassword: Type.String({ minLength: 1, maxLength: 128 }),
+  newPassword: Type.String({ minLength: 8, maxLength: 128 }),
+});
+
 export type UpdateUserInput = Static<typeof UpdateUserSchema>;
 export type UpdateProfileInput = Static<typeof UpdateProfileSchema>;
 export type UpdateLocaleInput = Static<typeof UpdateLocaleSchema>;
 export type PaginationQueryInput = Static<typeof PaginationQuerySchema>;
 export type UuidParamInput = Static<typeof UuidParamSchema>;
+export type ChangePasswordInput = Static<typeof ChangePasswordSchema>;

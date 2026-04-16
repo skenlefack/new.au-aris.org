@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/Header';
 import { ToastContainer } from '@/components/realtime/ToastContainer';
 import { RouteChangeLoader } from '@/components/ui/PageLoader';
 import { AuthGuard } from '@/components/auth/AuthGuard';
+import { ForcePasswordChangeModal } from '@/components/auth/ForcePasswordChangeModal';
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { useI18nOverridesStore } from '@/lib/stores/i18n-overrides-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
@@ -149,6 +150,10 @@ export default function DashboardLayout({
           </main>
         </div>
         <ToastContainer />
+        {/* Blocking modal: shown when the authenticated user has
+            mustChangePassword=true. Sits above the ToastContainer and
+            locks the app until the password has been updated. */}
+        <ForcePasswordChangeModal />
       </div>
     </AuthGuard>
   );
