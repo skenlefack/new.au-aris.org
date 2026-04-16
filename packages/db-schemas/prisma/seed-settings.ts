@@ -1262,6 +1262,39 @@ const SYSTEM_CONFIGS: SystemConfigSeedData[] = [
     description: { en: 'Sender address for SMTP', fr: "Adresse d'exp\u00e9diteur SMTP", pt: 'Endere\u00e7o do remetente SMTP' },
     type: 'string', isEditable: true, scope: 'global',
   },
+  {
+    category: 'email', key: 'email.smtp.secure',
+    value: false,
+    label: { en: 'SMTP Use TLS', fr: 'SMTP Utiliser TLS', pt: 'SMTP Usar TLS' },
+    description: {
+      en: 'Enable for implicit TLS (port 465). Leave disabled for STARTTLS (port 587) or plain localhost relays.',
+      fr: 'Activer pour TLS implicite (port 465). D\u00e9sactiv\u00e9 pour STARTTLS (port 587) ou relais localhost.',
+      pt: 'Ative para TLS impl\u00edcito (porta 465). Desative para STARTTLS (porta 587) ou relays locais.',
+    },
+    type: 'boolean', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'email', key: 'email.smtp.user',
+    value: '',
+    label: { en: 'SMTP Username', fr: 'Utilisateur SMTP', pt: 'Usu\u00e1rio SMTP' },
+    description: {
+      en: 'Username for SMTP authentication. Leave empty for unauthenticated relays (mailpit, local postfix).',
+      fr: "Nom d'utilisateur pour l'authentification SMTP. Laisser vide pour les relais sans authentification (mailpit, postfix local).",
+      pt: 'Nome de usu\u00e1rio para autentica\u00e7\u00e3o SMTP. Deixe vazio para relays sem autentica\u00e7\u00e3o.',
+    },
+    type: 'string', isEditable: true, scope: 'global',
+  },
+  {
+    category: 'email', key: 'email.smtp.pass',
+    value: '',
+    label: { en: 'SMTP Password', fr: 'Mot de passe SMTP', pt: 'Senha SMTP' },
+    description: {
+      en: 'Password or app-password for SMTP authentication. Stored as a secret.',
+      fr: "Mot de passe ou mot de passe d'application pour l'authentification SMTP. Stock\u00e9 comme secret.",
+      pt: 'Senha ou senha de aplicativo para autentica\u00e7\u00e3o SMTP. Armazenada como segredo.',
+    },
+    type: 'secret', isEditable: true, scope: 'global',
+  },
 ];
 
 // ─── 9 Business Domains ──────────────────────────────────────────────────────

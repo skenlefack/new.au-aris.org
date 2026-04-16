@@ -7,6 +7,7 @@ import {
   DEFAULT_PAGE,
   DEFAULT_LIMIT,
   MAX_LIMIT,
+  TOPIC_SYS_CREDENTIAL_USER_CREATED,
 } from '@aris/shared-types';
 import type { KafkaHeaders } from '@aris/shared-types';
 
@@ -1651,7 +1652,8 @@ export class SettingsService {
     const existing = await (this.prisma as any).user.findUnique({ where: { email } });
     if (existing) throw new HttpError(409, `User with email "${email}" already exists`);
 
-    const passwordHash = await hash(dto.password as string, BCRYPT_ROUNDS);
+    const plainPassword = dto.password as string;
+    const passwordHash = await hash(plainPassword, BCRYPT_ROUNDS);
 
     const user = await (this.prisma as any).user.create({
       data: {
@@ -1663,6 +1665,9 @@ export class SettingsService {
         role: dto.role as string,
         tenantId: dto.tenantId as string,
         locale: (dto.locale as string) ?? 'en',
+        // Admin-created users receive a temporary password; ForcePasswordChangeModal
+        // will block the UI on first login until they pick a new one.
+        mustChangePassword: true,
       },
       select: {
         id: true, email: true, firstName: true, lastName: true,
@@ -1712,6 +1717,32 @@ export class SettingsService {
     }
 
     await this.publishEvent(TOPIC_SETTINGS_USER_UPDATED, { ...user, action: 'created' }, caller);
+
+    // Also publish the canonical credential-user-created event so the
+    // welcome-email consumer in the message service delivers the
+    // temporary-password email. The plain-text password only travels on
+    // this single Kafka message — it is never persisted outside bcrypt.
+    try {
+      const tenant = await (this.prisma as any).tenant.findUnique({
+        where: { id: user.tenantId },
+        select: { name: true, code: true },
+      });
+      const publicBase = process.env['PUBLIC_WEB_URL'] ?? 'https://au-aris.org';
+      await this.publishEvent(
+        TOPIC_SYS_CREDENTIAL_USER_CREATED,
+        {
+          ...user,
+          tenantName: tenant?.name ?? tenant?.code ?? null,
+          temporaryPassword: plainPassword,
+          loginUrl: `${publicBase}/login`,
+        },
+        caller,
+      );
+    } catch (err) {
+      // Never block user creation on Kafka/tenant lookup failures
+      console.error('[settings.createUser] Failed to publish welcome event:', err);
+    }
+
     await this.invalidateUserCache();
     return { data: user };
   }
