@@ -84,9 +84,13 @@ export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {
     attempt = 1,
     maxRetries = 3,
     baseDelay = 300,
+    perAttemptTimeoutMs = 8000,
   ): Promise<RecordMetadata[]> {
     try {
-      const result = await this.producer.send({
+      // Guard each attempt with a hard timeout. KafkaJS will otherwise
+      // refresh metadata forever when the topic is missing or brokers are
+      // unreachable, blocking domain API responses indefinitely.
+      const sendPromise = this.producer.send({
         topic,
         messages: [
           {
@@ -96,6 +100,13 @@ export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {
           },
         ],
       });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`Kafka send timeout after ${perAttemptTimeoutMs}ms (topic=${topic})`)),
+          perAttemptTimeoutMs,
+        ),
+      );
+      const result = await Promise.race([sendPromise, timeoutPromise]);
       this.logger.debug(`Published to ${topic} [key=${key}]`);
       return result;
     } catch (error) {
@@ -119,6 +130,7 @@ export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {
         attempt + 1,
         maxRetries,
         baseDelay,
+        perAttemptTimeoutMs,
       );
     }
   }

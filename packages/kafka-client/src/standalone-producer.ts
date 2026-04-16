@@ -98,9 +98,14 @@ export class StandaloneKafkaProducer {
     attempt = 1,
     maxRetries = 3,
     baseDelay = 300,
+    perAttemptTimeoutMs = 8000,
   ): Promise<RecordMetadata[]> {
     try {
-      const result = await this.producer.send({
+      // Guard each attempt with a hard timeout so producer.send cannot hang
+      // indefinitely when a topic is missing or brokers are unreachable.
+      // KafkaJS otherwise keeps refreshing metadata forever for idempotent
+      // producers. 8s per attempt × 3 attempts = max ~24s in the worst case.
+      const sendPromise = this.producer.send({
         topic,
         messages: [
           {
@@ -110,6 +115,13 @@ export class StandaloneKafkaProducer {
           },
         ],
       });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`Kafka send timeout after ${perAttemptTimeoutMs}ms (topic=${topic})`)),
+          perAttemptTimeoutMs,
+        ),
+      );
+      const result = await Promise.race([sendPromise, timeoutPromise]);
       return result;
     } catch (error) {
       if (attempt >= maxRetries) {
@@ -125,6 +137,7 @@ export class StandaloneKafkaProducer {
         attempt + 1,
         maxRetries,
         baseDelay,
+        perAttemptTimeoutMs,
       );
     }
   }

@@ -160,39 +160,41 @@ describe('StandaloneKafkaProducer', () => {
 
   // Test 7: sendWithRetry throws after maxRetries
   it('should throw after max retries exceeded', async () => {
+    // Use fake timers so our per-attempt 8s timeout doesn't fire
+    // before the mocked producer.send promise rejects.
+    vi.useFakeTimers();
     await producer.connect();
-
-    // Mock setTimeout to execute immediately to avoid waiting for real delays
-    const origSetTimeout = globalThis.setTimeout;
-    vi.spyOn(globalThis, 'setTimeout').mockImplementation((cb: any) => {
-      cb();
-      return 0 as any;
-    });
 
     mockProducerSend
       .mockRejectedValueOnce(new Error('persistent failure'))
       .mockRejectedValueOnce(new Error('persistent failure'))
       .mockRejectedValueOnce(new Error('persistent failure'));
 
-    await expect(
-      producer.send(
-        'test.topic.v1',
-        'k1',
-        {},
-        {
-          correlationId: 'c1',
-          sourceService: 'svc',
-          tenantId: 't1',
-          schemaVersion: '1',
-          timestamp: '2024-01-01T00:00:00Z',
-        },
-      ),
-    ).rejects.toThrow('persistent failure');
+    const promise = producer.send(
+      'test.topic.v1',
+      'k1',
+      {},
+      {
+        correlationId: 'c1',
+        sourceService: 'svc',
+        tenantId: 't1',
+        schemaVersion: '1',
+        timestamp: '2024-01-01T00:00:00Z',
+      },
+    );
+    // Attach early to prevent unhandled rejection warnings
+    const assertion = expect(promise).rejects.toThrow('persistent failure');
+
+    // Advance enough for retry delays (300ms + 600ms) but not for the
+    // 8s per-attempt timeout.
+    await vi.advanceTimersByTimeAsync(1000);
+
+    await assertion;
 
     // 3 attempts total (initial + 2 retries, maxRetries defaults to 3)
     expect(mockProducerSend).toHaveBeenCalledTimes(3);
 
-    vi.mocked(globalThis.setTimeout).mockRestore();
+    vi.useRealTimers();
   });
 
   // Test 8: constructor merges DEFAULT_KAFKA_CONFIG
