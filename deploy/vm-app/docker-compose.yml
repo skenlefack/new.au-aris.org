@@ -373,6 +373,16 @@ services:
       - "traefik.http.routers.web.priority=1"
       - "traefik.http.services.web.loadbalancer.server.port=3000"
 
+      # Catch-all for REC / country subdomains (e.g. igad.au-aris.org, ke.au-aris.org).
+      # Lower priority so BI subdomain routers (superset/metabase/grafana) still win.
+      # Next.js middleware (apps/web/src/middleware.ts) rewrites root requests
+      # to /rec/{code} or /country/{code} based on the Host header.
+      - "traefik.http.routers.web-subdomain.rule=HostRegexp(`^[a-z0-9-]+\\.au-aris\\.org$`)"
+      - "traefik.http.routers.web-subdomain.entrypoints=websecure"
+      - "traefik.http.routers.web-subdomain.middlewares=security-headers@file"
+      - "traefik.http.routers.web-subdomain.priority=1"
+      - "traefik.http.routers.web-subdomain.service=web"
+
   # ═══════════════════════════════════════════════════
   #  PLATFORM TIER (CC-1)
   # ═══════════════════════════════════════════════════
