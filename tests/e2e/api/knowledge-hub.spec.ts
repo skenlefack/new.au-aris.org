@@ -29,7 +29,7 @@ describe('Knowledge Hub E2E', () => {
         // May fail if slug conflicts or schema mismatch — still allow test to continue
         console.log('Category create status:', res.status, JSON.stringify(res.raw).slice(0, 200));
       }
-    }, 120_000);
+    }, 30_000);
 
     it('GET /categories lists categories', async () => {
       const res = await apiGet(P, `${BASE}/categories`);

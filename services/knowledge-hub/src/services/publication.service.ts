@@ -604,8 +604,15 @@ export class PublicationService {
       timestamp: new Date().toISOString(),
     };
     try {
-      await this.kafka.send(topic, payload.id as string, payload, headers);
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Kafka send timeout')), 5000),
+      );
+      await Promise.race([
+        this.kafka.send(topic, payload.id as string, payload, headers),
+        timeout,
+      ]);
     } catch (err) {
+      // Kafka publish failures must not block the API response
       console.error(`[PublicationService] Failed to publish ${topic}:`, err instanceof Error ? err.message : err);
     }
   }

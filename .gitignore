@@ -19,11 +19,36 @@ apps/web/public/tinymce/
 # Build info
 *.tsbuildinfo
 
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+
+# Temporary / local debug artifacts
+/logcat.txt
+/nul
+/tmp/
+/tmp-*.json
+/tmp_*.ps1
+
 # Deploy secrets
 deploy/.env.production
 deploy/.env.staging
 deploy/*.pem
 deploy/*.key
+
+# SSL certificates (sensitive)
+certificat/
+
+# Sensitive credentials documents
+ARIS_User_Credentials.docx
+
+# Local reference / documentation artifacts (not part of code)
+/References-data.txt
+/AU-IBAR-Logo_ENG_White.png
+/apps/mobile/animals.png
+/apps/mobile/au-logo.png
+/apps/mobile/captures-dashboard.png
 
 # Claude Code local settings
 .claude/
