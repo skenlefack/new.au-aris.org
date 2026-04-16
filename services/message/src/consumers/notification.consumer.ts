@@ -194,8 +194,11 @@ export class NotificationConsumer {
       return;
     }
     const channel = this.emailChannel;
+    // Each transactional topic gets its own consumer group so KafkaJS's
+    // partition assigner does not mistakenly hand off partitions of this
+    // topic to a consumer subscribed to a different topic.
     await this.kafkaConsumer.subscribe(
-      { topic: TOPIC_SYS_CREDENTIAL_USER_CREATED, groupId: 'message-service-transactional' },
+      { topic: TOPIC_SYS_CREDENTIAL_USER_CREATED, groupId: 'message-service-welcome' },
       async (payload) => {
         const data = payload as any;
         // Only send the welcome email when a temporary password is present —
