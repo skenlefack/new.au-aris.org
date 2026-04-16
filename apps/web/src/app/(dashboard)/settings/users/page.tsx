@@ -45,6 +45,8 @@ import {
 } from '@/lib/api/settings-hooks';
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useLocaleStore } from '@/lib/stores/locale-store';
+import * as LucideIcons from 'lucide-react';
 
 /* ================================================================ */
 /*  Types & Constants                                                */
@@ -173,6 +175,7 @@ function UserForm({
 }) {
   const currentUser = useAuthStore((s) => s.user);
   const allDomains = useDomainStore((s) => s.allDomains);
+  const locale = useLocaleStore((s) => s.locale);
   const createMut = useCreateUser();
   const updateMut = useUpdateUser();
   const [showPassword, setShowPassword] = useState(false);
@@ -704,11 +707,22 @@ function UserForm({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {allDomains.map((d) => {
                   const selected = form.domainIds.includes(d.id);
+                  // Use the user's current locale with a cascading fallback so
+                  // Kenyan/French/Portuguese/Arabic users see the localized name
+                  // instead of always reading the English one.
+                  const label = d.name?.[locale] || d.name?.en || d.code;
+                  // Render the real domain icon (lucide-react name stored in
+                  // domain.icon) falling back to a colored dot for unknown names.
+                  const IconComp = d.icon
+                    ? (LucideIcons as any)[d.icon] as React.ComponentType<{ className?: string }> | undefined
+                    : undefined;
                   return (
                     <button
                       key={d.id}
                       type="button"
                       onClick={() => toggleDomain(d.id)}
+                      aria-pressed={selected}
+                      title={`${label} (${d.code})`}
                       className={cn(
                         'flex items-center gap-3 rounded-lg border px-3.5 py-3 text-left transition-all',
                         selected
@@ -727,11 +741,15 @@ function UserForm({
                           color: selected ? d.color : '#9ca3af',
                         }}
                       >
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: selected ? d.color : '#d1d5db' }} />
+                        {IconComp ? (
+                          <IconComp className="h-4 w-4" />
+                        ) : (
+                          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: selected ? d.color : '#d1d5db' }} />
+                        )}
                       </span>
                       <div className="min-w-0">
                         <p className={cn('text-xs font-medium truncate', selected ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400')}>
-                          {d.name?.en || d.code}
+                          {label}
                         </p>
                         <p className="text-[10px] text-gray-400 dark:text-gray-500">{d.code}</p>
                       </div>

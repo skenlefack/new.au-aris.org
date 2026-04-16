@@ -162,8 +162,26 @@ export class AuthService {
     }
 
     const safeUser = this.toSafeUser(user);
+
+    // Enriched payload for the welcome email consumer in the message service.
+    // Includes the plain-text temporary password (only ever transmitted here,
+    // inside a one-off Kafka event that is consumed by the email worker) so
+    // the user can perform their very first login. The password is never
+    // persisted outside of the user record's bcrypt hash, and the user is
+    // forced to change it immediately by the ForcePasswordChangeModal.
+    const publicBase = process.env['PUBLIC_WEB_URL'] ?? 'https://au-aris.org';
+    const eventPayload = {
+      ...safeUser,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      tenantName: tenant.name ?? tenant.code ?? null,
+      temporaryPassword: dto.password,
+      loginUrl: `${publicBase}/login`,
+    };
     // Fire-and-forget — don't block the response on Kafka availability
-    this.publishEvent(TOPIC_SYS_CREDENTIAL_USER_CREATED, user.id, safeUser, caller.tenantId, caller.userId);
+    this.publishEvent(TOPIC_SYS_CREDENTIAL_USER_CREATED, user.id, eventPayload, caller.tenantId, caller.userId);
     return { data: safeUser };
   }
 

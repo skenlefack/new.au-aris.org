@@ -6,6 +6,7 @@ import {
   TOPIC_AU_QUALITY_RECORD_REJECTED,
   TOPIC_AU_QUALITY_CORRECTION_OVERDUE,
   TOPIC_MS_COLLECTE_FORM_SUBMITTED,
+  TOPIC_SYS_CREDENTIAL_USER_CREATED,
   TOPIC_SYS_CREDENTIAL_PASSWORD_RESET,
   TOPIC_SYS_CREDENTIAL_NEW_DEVICE_LOGIN,
   TOPIC_AU_KNOWLEDGE_PUBLICATION_SUBMITTED,
@@ -41,6 +42,7 @@ export class NotificationConsumer {
       this.subscribeQualityRejected(),
       this.subscribeCorrectionOverdue(),
       this.subscribeFormSubmitted(),
+      this.subscribeUserCreated(),
       this.subscribePasswordReset(),
       this.subscribeNewDeviceLogin(),
       this.subscribeKnowledgeSubmitted(),
@@ -173,6 +175,61 @@ export class NotificationConsumer {
       await this.sendToPreferredChannels(data.supervisorId, data.tenantId, 'CAMPAIGN_ASSIGNED', templateData,
         `A new ${data.templateName} form (${data.formId}) has been submitted and requires your review.`);
     });
+  }
+
+  /**
+   * Welcome email on user creation. Triggered by TOPIC_SYS_CREDENTIAL_USER_CREATED
+   * (published by services/credential AuthService.register). Renders the
+   * WELCOME template with the temp password, role, tenant, and login URL so
+   * the new user can perform their first sign-in. The ForcePasswordChangeModal
+   * then forces them to rotate the password.
+   *
+   * Uses a dedicated transactional group so this is processed independently
+   * of the preference-driven notification flow — password/welcome emails
+   * must always be sent regardless of user opt-out preferences.
+   */
+  private async subscribeUserCreated(): Promise<void> {
+    if (!this.emailChannel) {
+      console.warn('[NotificationConsumer] No email channel — welcome emails will not be sent');
+      return;
+    }
+    const channel = this.emailChannel;
+    await this.kafkaConsumer.subscribe(
+      { topic: TOPIC_SYS_CREDENTIAL_USER_CREATED, groupId: 'message-service-transactional' },
+      async (payload) => {
+        const data = payload as any;
+        // Only send the welcome email when a temporary password is present —
+        // that is, the user was created with an admin-supplied password. This
+        // filter avoids sending the welcome email to future service accounts
+        // or imports that don't follow the register() path.
+        if (!data.email || !data.temporaryPassword) {
+          return;
+        }
+        const userName = [data.firstName, data.lastName].filter(Boolean).join(' ') || data.email;
+        const roleName = String(data.role ?? '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+        const templateData = {
+          userName,
+          firstName: data.firstName ?? '',
+          lastName: data.lastName ?? '',
+          email: data.email,
+          roleName,
+          tenantName: data.tenantName ?? 'ARIS',
+          temporaryPassword: data.temporaryPassword,
+          loginUrl: data.loginUrl ?? process.env['PUBLIC_WEB_URL'] ?? 'https://au-aris.org/login',
+        };
+        const rendered = this.templateEngine.renderEmail('WELCOME', templateData);
+        const result = await channel.send({
+          to: data.email,
+          subject: rendered.subject,
+          body: rendered.html,
+        });
+        if (result.success) {
+          console.log(`[WELCOME] Email sent to ${data.email}`);
+        } else {
+          console.error(`[WELCOME] Failed to send email to ${data.email}: ${result.error}`);
+        }
+      },
+    );
   }
 
   private async subscribePasswordReset(): Promise<void> {
