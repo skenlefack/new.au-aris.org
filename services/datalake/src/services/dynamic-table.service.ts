@@ -71,12 +71,29 @@ export class DynamicTableService {
       case 'xlsx':
       case 'xls': {
         const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
-        const sheetName = workbook.SheetNames[0];
+        // Prefer "Data" sheet (ARIS templates have Info + Data sheets)
+        const sheetName = workbook.SheetNames.includes('Data')
+          ? 'Data'
+          : workbook.SheetNames[0];
         if (!sheetName) throw new Error('No sheets in workbook');
         rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]!, {
           defval: null,
           raw: false,
         });
+
+        // Skip template metadata rows (labels/types in rows 2-3)
+        if (rows.length > 2) {
+          const secondRow = rows[1];
+          if (secondRow) {
+            const vals = Object.values(secondRow).filter(Boolean).map(String);
+            const looksLikeTypeDef = vals.some(v =>
+              /^(text|number|date|select|master-data|admin-location|repeater|geo|textarea|phone)\s*—/.test(v),
+            );
+            if (looksLikeTypeDef) {
+              rows = rows.slice(2);
+            }
+          }
+        }
         break;
       }
       case 'csv':

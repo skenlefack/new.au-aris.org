@@ -50,14 +50,33 @@ export class FileAnalyzerService {
 
   private analyzeExcel(buffer: Buffer): AnalysisResult {
     const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
-    const sheetName = workbook.SheetNames[0];
+    // Prefer "Data" sheet if it exists (ARIS historical templates have Info + Data sheets)
+    const sheetName = workbook.SheetNames.includes('Data')
+      ? 'Data'
+      : workbook.SheetNames[0];
     if (!sheetName) throw new Error('Excel file has no sheets');
 
     const sheet = workbook.Sheets[sheetName]!;
-    const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, {
+    let rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, {
       defval: null,
       raw: false,
     });
+
+    // Skip template metadata rows (labels/types in rows 2-3 of ARIS templates)
+    // Detected by checking if row values look like type definitions ("text — required", "date — ...")
+    if (rows.length > 2) {
+      const secondRow = rows[1];
+      if (secondRow) {
+        const vals = Object.values(secondRow).filter(Boolean).map(String);
+        const looksLikeTypeDef = vals.some(v =>
+          /^(text|number|date|select|master-data|admin-location|repeater|geo|textarea|phone)\s*—/.test(v),
+        );
+        if (looksLikeTypeDef) {
+          // Rows 0 = labels, 1 = types → skip both
+          rows = rows.slice(2);
+        }
+      }
+    }
 
     return this.analyzeRows(rows.slice(0, MAX_ROWS_ANALYSIS), rows.length, 'xlsx');
   }

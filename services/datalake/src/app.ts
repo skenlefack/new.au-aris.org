@@ -36,10 +36,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   // CORS
   await app.register(cors, { origin: true, credentials: true });
 
-  // Multipart file upload (50 MB limit)
+  // Multipart file upload (100 MB limit)
   await app.register(multipart, {
     limits: {
-      fileSize: 50 * 1024 * 1024,
+      fileSize: 100 * 1024 * 1024,
       files: 1,
     },
   });
