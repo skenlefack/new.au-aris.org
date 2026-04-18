@@ -22,6 +22,8 @@ import { cn } from '@/lib/utils';
 import {
   useCollectionCampaign,
   useUpdateCollectionCampaign,
+  useActivateCampaign,
+  useCompleteCampaign,
 } from '@/lib/api/workflow-hooks';
 import {
   useFormBuilderTemplates,
@@ -117,6 +119,8 @@ export default function CampaignDetailPage() {
 
   const { data: campaignRes, isLoading } = useCollectionCampaign(campaignId);
   const updateCampaign = useUpdateCollectionCampaign();
+  const activateMut = useActivateCampaign();
+  const completeMut = useCompleteCampaign();
 
   const { data: templatesData } = useFormBuilderTemplates({ page: 1, limit: 100 });
   const apiTemplates = useMemo(() => templatesData?.data ?? [], [templatesData]);
@@ -214,7 +218,13 @@ export default function CampaignDetailPage() {
 
   const handleStatusChange = async (newStatus: 'ACTIVE' | 'COMPLETED' | 'CANCELLED') => {
     try {
-      await updateCampaign.mutateAsync({ id: campaignId, status: newStatus } as AnyCampaign);
+      if (newStatus === 'ACTIVE') {
+        await activateMut.mutateAsync(campaignId);
+      } else if (newStatus === 'COMPLETED') {
+        await completeMut.mutateAsync(campaignId);
+      } else {
+        await updateCampaign.mutateAsync({ id: campaignId, status: newStatus } as AnyCampaign);
+      }
     } catch (err) {
       console.error('[CampaignDetail] Status change failed:', err);
     }
@@ -257,7 +267,7 @@ export default function CampaignDetailPage() {
               <>
                 <button
                   onClick={() => handleStatusChange('ACTIVE')}
-                  disabled={updateCampaign.isPending}
+                  disabled={activateMut.isPending}
                   className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
                 >
                   <Play className="h-3 w-3" /> {t('activate')}
@@ -273,7 +283,7 @@ export default function CampaignDetailPage() {
             {editable && campaign.status === 'ACTIVE' && (
               <button
                 onClick={() => handleStatusChange('COMPLETED')}
-                disabled={updateCampaign.isPending}
+                disabled={completeMut.isPending}
                 className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
                 <CheckCircle2 className="h-3 w-3" /> {t('complete')}
@@ -489,11 +499,11 @@ export default function CampaignDetailPage() {
                   </Link>
                   <button
                     onClick={() => handleStatusChange('ACTIVE')}
-                    disabled={updateCampaign.isPending}
+                    disabled={activateMut.isPending}
                     className="flex w-full items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 disabled:opacity-50"
                   >
                     <Play className="h-4 w-4" />
-                    {updateCampaign.isPending ? t('activating') : t('activateCampaign')}
+                    {activateMut.isPending ? t('activating') : t('activateCampaign')}
                   </button>
                 </>
               )}
@@ -501,11 +511,11 @@ export default function CampaignDetailPage() {
                 <>
                   <button
                     onClick={() => handleStatusChange('COMPLETED')}
-                    disabled={updateCampaign.isPending}
+                    disabled={completeMut.isPending}
                     className="flex w-full items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 disabled:opacity-50"
                   >
                     <CheckCircle2 className="h-4 w-4" />
-                    {updateCampaign.isPending ? t('completing') : t('markAsComplete')}
+                    {completeMut.isPending ? t('completing') : t('markAsComplete')}
                   </button>
                   <button
                     onClick={() => handleStatusChange('CANCELLED')}

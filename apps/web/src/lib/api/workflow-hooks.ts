@@ -427,7 +427,10 @@ export function useActivateCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => wfFetch(`/api/v1/workflow/campaigns/${id}/activate`, { method: 'POST' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['collection-campaigns'] }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ['collection-campaigns'] });
+      qc.invalidateQueries({ queryKey: ['collection-campaign', id] });
+    },
   });
 }
 
@@ -435,7 +438,10 @@ export function usePauseCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => wfFetch(`/api/v1/workflow/campaigns/${id}/pause`, { method: 'POST' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['collection-campaigns'] }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ['collection-campaigns'] });
+      qc.invalidateQueries({ queryKey: ['collection-campaign', id] });
+    },
   });
 }
 
@@ -443,7 +449,10 @@ export function useCompleteCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => wfFetch(`/api/v1/workflow/campaigns/${id}/complete`, { method: 'POST' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['collection-campaigns'] }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ['collection-campaigns'] });
+      qc.invalidateQueries({ queryKey: ['collection-campaign', id] });
+    },
   });
 }
 
