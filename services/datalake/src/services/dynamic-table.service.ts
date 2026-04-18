@@ -385,6 +385,7 @@ export class DynamicTableService {
         ${valueExpr} as value
       FROM unified
       WHERE "${safeDate}" IS NOT NULL AND "${safeDate}" != ''
+        AND "${safeDate}" ~ '^[12]\\d{3}'
       ${where ? `AND ${where.replace('WHERE ', '')}` : ''}
       GROUP BY period${groupByCol ? `, ${groupByCol}` : ''}
       ORDER BY period ASC
@@ -475,9 +476,9 @@ export class DynamicTableService {
       yearly AS (
         SELECT
           EXTRACT(YEAR FROM "date_of_report"::timestamp)::int as yr,
-          COUNT(*) FILTER (WHERE "disease" IS NOT NULL AND "disease" != '') as outbreak_rows,
-          COUNT(DISTINCT "disease") FILTER (WHERE "disease" IS NOT NULL AND "disease" != '') as unique_diseases,
-          COUNT(DISTINCT "admin_location") FILTER (WHERE "admin_location" IS NOT NULL AND "admin_location" != '') as unique_locations,
+          COUNT(*) FILTER (WHERE "disease" IS NOT NULL AND "disease" != '')::int as outbreak_rows,
+          COUNT(DISTINCT "disease") FILTER (WHERE "disease" IS NOT NULL AND "disease" != '')::int as unique_diseases,
+          COUNT(DISTINCT "admin_location") FILTER (WHERE "admin_location" IS NOT NULL AND "admin_location" != '')::int as unique_locations,
           SUM(CASE WHEN "num_new_outbreaks" ~ '^[0-9.]+$' THEN "num_new_outbreaks"::numeric ELSE 0 END)::float as total_outbreaks
         FROM unified
         WHERE "date_of_report" IS NOT NULL AND "date_of_report" != ''
