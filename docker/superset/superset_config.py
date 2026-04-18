@@ -114,13 +114,11 @@ DATA_CACHE_CONFIG = {
 HTTP_HEADERS = {}
 
 # ── CSRF protection ──
-# Enabled with exemptions for API endpoints used by the embedded SDK
-WTF_CSRF_ENABLED = True
-WTF_CSRF_EXEMPT_LIST = [
-    "superset.views.api",
-    "superset.views.core",
-]
-WTF_CSRF_TIME_LIMIT = 3600
+# Disabled for API-first architecture: all BI tool access is through
+# guest tokens (Superset), signed JWTs (Metabase), or auth proxy (Grafana).
+# The ARIS backend validates auth via its own JWT RS256 tokens.
+# Re-enabling CSRF breaks the admin login API used by guest token generation.
+WTF_CSRF_ENABLED = False
 
 # ── Public role ──
 PUBLIC_ROLE_LIKE = "Gamma"
