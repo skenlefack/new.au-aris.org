@@ -1718,6 +1718,11 @@
     "biFilterContinental": "No filter (full access to all data)",
     "biFilterRegional": "Automatic (filtered by REC countries)",
     "biFilterNational": "Automatic (filtered by country)",
+    "biEnforcementTitle": "Data access enforcement",
+    "biEnforcementSuperset": "Guest token RLS enforces tenant_id filtering. SQL Lab and dashboard creation are blocked for guest users.",
+    "biEnforcementMetabase": "Signed embedding locks tenant_id filter on dashboards. Users see pre-built dashboards only.",
+    "biEnforcementGrafana": "Dashboard SQL queries filter by tenant_id variable. Viewers cannot edit queries.",
+    "biEnforcementNote": "Schema/table rules below are advisory — the primary security boundary is tenant-level filtering and role-based tool access.",
 
     "infraTitle": "Infrastructure Type Configuration",
     "infraSubtitle": "Configure infrastructure categories and sub-types available across the platform",
@@ -2600,7 +2605,9 @@
     "retryConnection": "Retry connection",
     "embedFailed": "Failed to embed dashboard",
     "allData": "All data",
-    "regionalData": "Regional data"
+    "regionalData": "Regional data",
+    "noDashboards": "No dashboards available",
+    "noDashboardsDesc": "No dashboards have been registered for this tool yet. An administrator needs to create and register dashboards first."
   },
   "paid": {
     "title": "PAID Dashboard",

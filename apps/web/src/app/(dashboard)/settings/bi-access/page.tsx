@@ -221,6 +221,24 @@ export default function BiAccessPage() {
         )}
       </div>
 
+      {/* Enforcement info */}
+      <div className="rounded-xl border border-amber-200 bg-amber-50/50 px-5 py-4 dark:border-amber-900/40 dark:bg-amber-900/10">
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div className="text-sm text-amber-800 dark:text-amber-200 space-y-1">
+            <p className="font-semibold">{t('biEnforcementTitle') ?? 'Data access enforcement'}</p>
+            <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-0.5 list-disc ml-4">
+              <li><strong>Superset</strong>: {t('biEnforcementSuperset') ?? 'Guest token RLS enforces tenant_id filtering. SQL Lab and dashboard creation are blocked for guest users.'}</li>
+              <li><strong>Metabase</strong>: {t('biEnforcementMetabase') ?? 'Signed embedding locks tenant_id filter on dashboards. Users see pre-built dashboards only.'}</li>
+              <li><strong>Grafana</strong>: {t('biEnforcementGrafana') ?? 'Dashboard SQL queries filter by tenant_id variable. Viewers cannot edit queries.'}</li>
+            </ul>
+            <p className="text-xs text-amber-600 dark:text-amber-400 italic">
+              {t('biEnforcementNote') ?? 'Schema/table rules below are advisory — the primary security boundary is tenant-level filtering and role-based tool access.'}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Tool selector */}
       <div className="flex gap-2">
         {(tools.length > 0 ? tools : []).filter((t) => t.status === 'active').map((tool) => {
@@ -433,10 +451,22 @@ export default function BiAccessPage() {
                       </label>
                       <div className="flex flex-wrap gap-4">
                         {([
-                          { key: 'canCreateDashboard' as const, label: t('createDashboards') },
-                          { key: 'canExportData' as const, label: t('exportData') },
-                          { key: 'canUseSqlLab' as const, label: t('sqlLabSuperset') },
-                        ]).map(({ key, label }) => (
+                          {
+                            key: 'canCreateDashboard' as const,
+                            label: t('createDashboards'),
+                            enforced: selectedTool === 'superset' || selectedTool === 'metabase',
+                          },
+                          {
+                            key: 'canExportData' as const,
+                            label: t('exportData'),
+                            enforced: selectedTool === 'metabase',
+                          },
+                          {
+                            key: 'canUseSqlLab' as const,
+                            label: t('sqlLabSuperset'),
+                            enforced: selectedTool === 'superset',
+                          },
+                        ]).map(({ key, label, enforced }) => (
                           <label
                             key={key}
                             className="flex items-center gap-2 cursor-pointer"
@@ -457,6 +487,13 @@ export default function BiAccessPage() {
                               />
                             </button>
                             <span className="text-sm text-slate-600 dark:text-slate-300">{label}</span>
+                            <span className={`ml-1 rounded px-1 py-0.5 text-[9px] font-medium ${
+                              enforced
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
+                            }`}>
+                              {enforced ? 'Enforced' : 'Advisory'}
+                            </span>
                           </label>
                         ))}
                       </div>

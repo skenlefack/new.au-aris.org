@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { ExternalLink, RefreshCw, Maximize2, Minimize2, Loader2, ChevronLeft, CheckCircle2, Lock } from 'lucide-react';
 import Link from 'next/link';
-import { useBiDashboards, useBiAccessRulesForRole } from '@/lib/api/bi-hooks';
+import { useBiDashboards, useBiAccessRulesForRole, useGrafanaEmbedUrl } from '@/lib/api/bi-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTranslations } from '@/lib/i18n/translations';
 
@@ -24,7 +24,7 @@ export default function GrafanaEmbedPage() {
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
-  const [selectedUid, setSelectedUid] = useState<string>('aris-overview');
+  const [selectedUid, setSelectedUid] = useState<string>('');
   const [authReady, setAuthReady] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -33,10 +33,24 @@ export default function GrafanaEmbedPage() {
   const { data: dashboardsData } = useBiDashboards('grafana');
   const apiDashboards = dashboardsData?.data ?? [];
 
+  // Operational dashboards — only visible to SUPER_ADMIN and CONTINENTAL_ADMIN
+  const OPS_DASHBOARDS = new Set(['aris-overview', 'aris-api', 'aris-kafka', 'aris-distributed-traces']);
+  const isAdmin = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN'].includes(user?.role ?? '');
+
   // Use API dashboards if available, otherwise fall back to provisioned list
-  const dashboardList = apiDashboards.length > 0
+  const allDashboards = apiDashboards.length > 0
     ? apiDashboards.map((d) => ({ uid: d.externalId, label: d.name.en ?? d.name.fr ?? d.externalId }))
     : PROVISIONED_DASHBOARDS;
+  const dashboardList = isAdmin
+    ? allDashboards
+    : allDashboards.filter((d) => !OPS_DASHBOARDS.has(d.uid));
+
+  // Auto-select first available dashboard
+  useEffect(() => {
+    if (dashboardList.length > 0 && (!selectedUid || !dashboardList.some((d) => d.uid === selectedUid))) {
+      setSelectedUid(dashboardList[0].uid);
+    }
+  }, [dashboardList, selectedUid]);
 
   // Access check — allow by default when no rules are configured
   const { data: rulesData, isLoading: rulesLoading } = useBiAccessRulesForRole(user?.role ?? '', 'grafana');
@@ -56,8 +70,11 @@ export default function GrafanaEmbedPage() {
   }, [accessToken, hasAccess]);
 
   const grafanaBaseUrl = process.env.NEXT_PUBLIC_GRAFANA_URL ?? '/api/bi-proxy/grafana';
+
+  // Use backend hook to build embed URL with tenant_id variables (var-tenant_id=...)
+  const { data: embedData } = useGrafanaEmbedUrl(authReady ? selectedUid : undefined);
   const embedUrl = authReady
-    ? `${grafanaBaseUrl}/d/${selectedUid}?kiosk`
+    ? (embedData?.data?.url ?? `${grafanaBaseUrl}/d/${selectedUid}?kiosk`)
     : '';
 
   const handleLoad = useCallback(() => {

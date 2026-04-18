@@ -237,6 +237,7 @@ services:
     volumes:
       - /opt/aris/docker/superset/superset_config.py:/app/pythonpath/superset_config.py
       - /opt/aris/docker/superset/bootstrap_datasource.py:/app/pythonpath/bootstrap_datasource.py
+      - /opt/aris/docker/superset/bootstrap_dashboards.py:/app/pythonpath/bootstrap_dashboards.py
       - superset_home:/app/superset_home
     command: >
       bash -c "
@@ -244,6 +245,7 @@ services:
         superset fab create-admin --username admin --firstname ARIS --lastname Admin --email admin@au-aris.org --password '${SUPERSET_ADMIN_PASSWORD}' || true &&
         superset init &&
         python /app/pythonpath/bootstrap_datasource.py &&
+        python /app/pythonpath/bootstrap_dashboards.py &&
         superset run -h 0.0.0.0 -p 8088 --with-threads
       "
     labels:

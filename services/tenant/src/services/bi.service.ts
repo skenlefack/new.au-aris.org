@@ -362,6 +362,56 @@ export class BiService {
   }
 
   /* ═══════════════════════════════════════════
+     Metabase — Signed Embedding (tenant-scoped)
+     ═══════════════════════════════════════════ */
+
+  async getMetabaseEmbedUrl(user: BiUser, dashboardId: number): Promise<string> {
+    const tenantIds = await this.resolveTenantIds(user);
+
+    // Resolve public URL from DB config
+    let baseUrl = process.env['NEXT_PUBLIC_METABASE_URL'] ?? 'https://metabase.au-aris.org';
+    try {
+      const rows = await this.prisma.$queryRawUnsafe<{ baseUrl: string }[]>(`
+        SELECT base_url as "baseUrl" FROM governance.bi_tool_configs
+        WHERE tool = 'metabase' AND is_active = true LIMIT 1
+      `);
+      if (rows.length > 0 && rows[0].baseUrl) {
+        baseUrl = rows[0].baseUrl;
+      }
+    } catch { /* fallback to env */ }
+
+    const secret = process.env['METABASE_EMBEDDING_SECRET']
+      ?? process.env['MB_EMBEDDING_SECRET_KEY']
+      ?? 'M3tab4se_Emb3d_Pr0d_2024!uI2oP';
+
+    // Build JWT payload for signed embedding
+    // tenant_id param is "locked" — user cannot change it
+    const now = Math.floor(Date.now() / 1000);
+    const payload = {
+      resource: { dashboard: dashboardId },
+      params: {
+        // Continental (empty tenantIds) → no filter, sees everything
+        // REC/MS → locked to resolved tenant IDs
+        tenant_id: tenantIds.length > 0 ? tenantIds : null,
+      },
+      exp: now + 600, // 10 minutes
+      iat: now,
+    };
+
+    // Sign with HMAC-SHA256 (Metabase's expected algorithm)
+    const { createHmac } = await import('crypto');
+
+    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+    const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const signature = createHmac('sha256', secret)
+      .update(`${header}.${body}`)
+      .digest('base64url');
+
+    const token = `${header}.${body}.${signature}`;
+    return `${baseUrl}/embed/dashboard/${token}#bordered=false&titled=true`;
+  }
+
+  /* ═══════════════════════════════════════════
      Access Rules
      ═══════════════════════════════════════════ */
 

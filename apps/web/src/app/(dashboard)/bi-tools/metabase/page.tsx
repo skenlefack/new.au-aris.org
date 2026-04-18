@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { ExternalLink, RefreshCw, Maximize2, Minimize2, Loader2, ChevronLeft, CheckCircle2, AlertTriangle, Lock } from 'lucide-react';
 import Link from 'next/link';
-import { useRequestMetabaseSession, useBiAccessRulesForRole } from '@/lib/api/bi-hooks';
+import { useBiDashboards, useBiAccessRulesForRole, useRequestMetabaseEmbedUrl } from '@/lib/api/bi-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTranslations } from '@/lib/i18n/translations';
 
@@ -12,49 +12,58 @@ export default function MetabaseEmbedPage() {
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
-  const [sessionReady, setSessionReady] = useState(false);
+  const [embedUrl, setEmbedUrl] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [selectedDashboardId, setSelectedDashboardId] = useState<number | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const user = useAuthStore((s) => s.user);
-  const requestSession = useRequestMetabaseSession();
+  const requestEmbedUrl = useRequestMetabaseEmbedUrl();
+
+  // Fetch registered Metabase dashboards
+  const { data: dashboardsData, isLoading: dashboardsLoading } = useBiDashboards('metabase');
+  const dashboards = dashboardsData?.data ?? [];
 
   // Access check — allow by default when no rules are configured
   const { data: rulesData, isLoading: rulesLoading } = useBiAccessRulesForRole(user?.role ?? '', 'metabase');
   const accessRule = rulesData?.data?.[0];
   const hasAccess = rulesLoading ? true : accessRule ? accessRule.allowedSchemas.length > 0 : true;
 
-  const metabaseUrl = process.env.NEXT_PUBLIC_METABASE_URL ?? '/bi-metabase';
-  const embedUrl = sessionReady ? `${metabaseUrl}/` : '';
+  const metabaseUrl = process.env.NEXT_PUBLIC_METABASE_URL ?? 'https://metabase.au-aris.org';
 
-  // Auto-login: get Metabase session token and set cookie
+  // Auto-select first dashboard
   useEffect(() => {
-    if (!hasAccess) return;
+    if (dashboards.length > 0 && selectedDashboardId === null) {
+      const id = parseInt(dashboards[0].externalId, 10);
+      if (!isNaN(id)) setSelectedDashboardId(id);
+    }
+  }, [dashboards, selectedDashboardId]);
+
+  // Request signed embed URL when dashboard changes
+  useEffect(() => {
+    if (!hasAccess || selectedDashboardId === null) return;
     let cancelled = false;
 
-    async function autoLogin() {
+    async function fetchEmbedUrl() {
       try {
         setError(null);
-        const result = await requestSession.mutateAsync();
-        if (cancelled) return;
-
-        const token = result.data.sessionToken;
-        // Cookie must have domain=.au-aris.org to be sent to metabase.au-aris.org iframe
-        const isProduction = typeof window !== 'undefined' && window.location.hostname.endsWith('au-aris.org');
-        const domainSuffix = isProduction ? '; domain=.au-aris.org' : '';
-        document.cookie = `metabase.SESSION=${token}; path=/; SameSite=Lax; Secure${domainSuffix}`;
-        setSessionReady(true);
-      } catch {
+        setLoading(true);
+        const result = await requestEmbedUrl.mutateAsync({ dashboardId: selectedDashboardId! });
         if (!cancelled) {
-          setSessionReady(true);
+          setEmbedUrl(result.data.embedUrl);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : t('connectionFailed'));
+          setLoading(false);
         }
       }
     }
 
-    autoLogin();
+    fetchEmbedUrl();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasAccess]);
+  }, [selectedDashboardId, hasAccess]);
 
   const handleLoad = useCallback(() => {
     setLoading(false);
@@ -62,7 +71,20 @@ export default function MetabaseEmbedPage() {
 
   const handleRefresh = () => {
     setLoading(true);
-    setIframeKey((prev) => prev + 1);
+    setEmbedUrl('');
+    // Re-trigger embed URL fetch
+    const id = selectedDashboardId;
+    setSelectedDashboardId(null);
+    setTimeout(() => setSelectedDashboardId(id), 50);
+  };
+
+  const handleDashboardChange = (externalId: string) => {
+    const id = parseInt(externalId, 10);
+    if (!isNaN(id)) {
+      setSelectedDashboardId(id);
+      setLoading(true);
+      setIframeKey((prev) => prev + 1);
+    }
   };
 
   const tenantLabel = user?.tenantLevel === 'CONTINENTAL'
@@ -121,7 +143,7 @@ export default function MetabaseEmbedPage() {
             <p className="text-xs text-slate-500 dark:text-slate-400">{t('metabaseSubtitle')}</p>
           </div>
 
-          {sessionReady && (
+          {embedUrl && (
             <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400">
               <CheckCircle2 className="h-3 w-3" />
               {t('autoConnected')}
@@ -135,12 +157,26 @@ export default function MetabaseEmbedPage() {
           {loading && !error && (
             <div className="ml-2 flex items-center gap-1.5 text-xs text-slate-400">
               <Loader2 className="h-3 w-3 animate-spin" />
-              {sessionReady ? t('loading') : t('connecting')}
+              {t('loading')}
             </div>
           )}
         </div>
 
         <div className="flex items-center gap-1">
+          {dashboards.length > 1 && (
+            <select
+              value={selectedDashboardId?.toString() ?? ''}
+              onChange={(e) => handleDashboardChange(e.target.value)}
+              className="mr-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+            >
+              {dashboards.map((d) => (
+                <option key={d.externalId} value={d.externalId}>
+                  {d.name.en ?? d.name.fr ?? d.externalId}
+                </option>
+              ))}
+            </select>
+          )}
+
           <button
             onClick={handleRefresh}
             className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -177,34 +213,33 @@ export default function MetabaseEmbedPage() {
                 {t('connectionFailed')}
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{error}</p>
-              <div className="flex flex-col gap-3 items-center">
-                <a
-                  href={metabaseUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-white hover:opacity-90"
-                  style={{ backgroundColor: '#509EE3' }}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  {t('openMetabaseNewTab')}
-                </a>
-                <button
-                  onClick={() => {
-                    setError(null);
-                    setLoading(true);
-                    setSessionReady(false);
-                    setIframeKey((prev) => prev + 1);
-                  }}
-                  className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                >
-                  {t('retryConnection')}
-                </button>
-              </div>
+              <button
+                onClick={handleRefresh}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white"
+                style={{ backgroundColor: '#509EE3' }}
+              >
+                <RefreshCw className="h-4 w-4" />
+                {t('retry')}
+              </button>
             </div>
           </div>
         )}
 
-        {sessionReady && (
+        {!dashboardsLoading && dashboards.length === 0 && !error && (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center max-w-md px-6">
+              <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-amber-400" />
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                {t('noDashboards')}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {t('noDashboardsDesc')}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {embedUrl && (
           <iframe
             ref={iframeRef}
             key={iframeKey}

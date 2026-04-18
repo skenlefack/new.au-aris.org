@@ -1657,6 +1657,11 @@
     "biFilterContinental": "Aucun filtre (accès complet à toutes les données)",
     "biFilterRegional": "Automatique (filtré par pays de la CER)",
     "biFilterNational": "Automatique (filtré par pays)",
+    "biEnforcementTitle": "Application du contrôle d'accès aux données",
+    "biEnforcementSuperset": "Le RLS du guest token applique le filtrage par tenant_id. SQL Lab et la création de tableaux de bord sont bloqués pour les utilisateurs invités.",
+    "biEnforcementMetabase": "L'embedding signé verrouille le filtre tenant_id sur les tableaux de bord. Les utilisateurs voient uniquement les tableaux de bord pré-construits.",
+    "biEnforcementGrafana": "Les requêtes SQL des tableaux de bord filtrent par la variable tenant_id. Les Viewers ne peuvent pas modifier les requêtes.",
+    "biEnforcementNote": "Les règles de schéma/table ci-dessous sont indicatives — la protection principale est le filtrage par tenant et le contrôle d'accès par rôle.",
 
     "infraTitle": "Configuration des types d'infrastructure",
     "infraSubtitle": "Configurer les catégories et sous-types d'infrastructure disponibles sur la plateforme",
@@ -2595,7 +2600,9 @@
     "retryConnection": "Réessayer la connexion",
     "embedFailed": "Échec de l'intégration du tableau de bord",
     "allData": "Toutes les données",
-    "regionalData": "Données régionales"
+    "regionalData": "Données régionales",
+    "noDashboards": "Aucun tableau de bord disponible",
+    "noDashboardsDesc": "Aucun tableau de bord n'a été enregistré pour cet outil. Un administrateur doit d'abord créer et enregistrer des tableaux de bord."
   },
   "paid": {
     "title": "Tableau de bord PAID",

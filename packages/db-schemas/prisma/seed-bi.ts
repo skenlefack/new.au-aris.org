@@ -170,7 +170,9 @@ async function seedBiTools() {
   console.log('Seeding default BI dashboards...');
 
   const dashboards = [
-    // Grafana dashboards (provisioned via JSON files)
+    // ─── Grafana dashboards (provisioned via JSON files) ───────────────
+
+    // Business dashboards (scope: global — visible to all BI users)
     {
       biToolConfigId: BI_TOOL_IDS.GRAFANA,
       externalId: 'aris-continental',
@@ -224,6 +226,181 @@ async function seedBiTools() {
       },
       category: 'trade',
       embedUrl: '/d/aris-trade-production',
+      scope: 'global',
+      sortOrder: 3,
+      isFeatured: false,
+    },
+    {
+      biToolConfigId: BI_TOOL_IDS.GRAFANA,
+      externalId: 'aris-business',
+      name: {
+        en: 'Business Metrics',
+        fr: 'Indicateurs metier',
+        pt: 'Metricas de negocio',
+        ar: 'مقاييس الأعمال',
+      },
+      description: {
+        en: 'Cross-domain business KPIs and trends',
+        fr: 'KPI metier transversaux et tendances',
+      },
+      category: 'overview',
+      embedUrl: '/d/aris-business',
+      scope: 'global',
+      sortOrder: 4,
+      isFeatured: false,
+    },
+
+    // Operational dashboards (scope: admin — only SUPER_ADMIN / CONTINENTAL_ADMIN)
+    {
+      biToolConfigId: BI_TOOL_IDS.GRAFANA,
+      externalId: 'aris-overview',
+      name: { en: 'ARIS Overview', fr: 'Vue d\'ensemble ARIS' },
+      description: { en: 'System-wide overview', fr: 'Vue d\'ensemble systeme' },
+      category: 'ops',
+      embedUrl: '/d/aris-overview',
+      scope: 'admin',
+      sortOrder: 10,
+      isFeatured: false,
+    },
+    {
+      biToolConfigId: BI_TOOL_IDS.GRAFANA,
+      externalId: 'aris-api',
+      name: { en: 'API Performance', fr: 'Performance API' },
+      description: { en: 'HTTP latency, error rates, throughput', fr: 'Latence HTTP, taux d\'erreur, debit' },
+      category: 'ops',
+      embedUrl: '/d/aris-api',
+      scope: 'admin',
+      sortOrder: 11,
+      isFeatured: false,
+    },
+    {
+      biToolConfigId: BI_TOOL_IDS.GRAFANA,
+      externalId: 'aris-kafka',
+      name: { en: 'Kafka', fr: 'Kafka' },
+      description: { en: 'Broker health, topic lag, throughput', fr: 'Sante brokers, lag topics, debit' },
+      category: 'ops',
+      embedUrl: '/d/aris-kafka',
+      scope: 'admin',
+      sortOrder: 12,
+      isFeatured: false,
+    },
+    {
+      biToolConfigId: BI_TOOL_IDS.GRAFANA,
+      externalId: 'aris-traces',
+      name: { en: 'Distributed Traces', fr: 'Traces distribuees' },
+      description: { en: 'Jaeger traces and spans', fr: 'Traces et spans Jaeger' },
+      category: 'ops',
+      embedUrl: '/d/aris-traces',
+      scope: 'admin',
+      sortOrder: 13,
+      isFeatured: false,
+    },
+
+    // ─── Superset dashboards (created by bootstrap, UUIDs set later) ──
+
+    {
+      biToolConfigId: BI_TOOL_IDS.SUPERSET,
+      externalId: 'superset-continental',
+      name: {
+        en: 'Continental Overview',
+        fr: 'Vue continentale',
+        pt: 'Visao continental',
+        ar: 'نظرة عامة قارية',
+      },
+      description: {
+        en: 'Continental KPIs and cross-domain analytics',
+        fr: 'KPI continentaux et analyses transversales',
+      },
+      category: 'overview',
+      embedUrl: '/superset/dashboard/1/',
+      scope: 'global',
+      sortOrder: 1,
+      isFeatured: true,
+    },
+    {
+      biToolConfigId: BI_TOOL_IDS.SUPERSET,
+      externalId: 'superset-animal-health',
+      name: {
+        en: 'Animal Health',
+        fr: 'Sante animale',
+      },
+      description: {
+        en: 'Outbreaks, surveillance and vaccination analytics',
+        fr: 'Analyses foyers, surveillance et vaccination',
+      },
+      category: 'health',
+      embedUrl: '/superset/dashboard/2/',
+      scope: 'global',
+      sortOrder: 2,
+      isFeatured: true,
+    },
+    {
+      biToolConfigId: BI_TOOL_IDS.SUPERSET,
+      externalId: 'superset-trade-production',
+      name: {
+        en: 'Trade & Production',
+        fr: 'Commerce et production',
+      },
+      description: {
+        en: 'Trade flows and livestock production analytics',
+        fr: 'Analyses flux commerciaux et production animale',
+      },
+      category: 'trade',
+      embedUrl: '/superset/dashboard/3/',
+      scope: 'global',
+      sortOrder: 3,
+      isFeatured: false,
+    },
+
+    // ─── Metabase dashboards (created by bootstrap, IDs set later) ────
+
+    {
+      biToolConfigId: BI_TOOL_IDS.METABASE,
+      externalId: '1',
+      name: {
+        en: 'Continental Overview',
+        fr: 'Vue continentale',
+      },
+      description: {
+        en: 'High-level metrics across Member States',
+        fr: 'Indicateurs de haut niveau par Etat membre',
+      },
+      category: 'overview',
+      embedUrl: '/embed/dashboard/',
+      scope: 'global',
+      sortOrder: 1,
+      isFeatured: true,
+    },
+    {
+      biToolConfigId: BI_TOOL_IDS.METABASE,
+      externalId: '2',
+      name: {
+        en: 'Animal Health',
+        fr: 'Sante animale',
+      },
+      description: {
+        en: 'Outbreak and surveillance summaries',
+        fr: 'Syntheses foyers et surveillance',
+      },
+      category: 'health',
+      embedUrl: '/embed/dashboard/',
+      scope: 'global',
+      sortOrder: 2,
+      isFeatured: true,
+    },
+    {
+      biToolConfigId: BI_TOOL_IDS.METABASE,
+      externalId: '3',
+      name: {
+        en: 'Trade & Production',
+        fr: 'Commerce et production',
+      },
+      description: {
+        en: 'Trade flow summaries and production trends',
+        fr: 'Syntheses flux commerciaux et tendances production',
+      },
+      category: 'trade',
+      embedUrl: '/embed/dashboard/',
       scope: 'global',
       sortOrder: 3,
       isFeatured: false,

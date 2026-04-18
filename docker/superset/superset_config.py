@@ -113,9 +113,14 @@ DATA_CACHE_CONFIG = {
 # and Chrome treats unknown values as DENY, blocking the iframe.
 HTTP_HEADERS = {}
 
-# ── Disable CSRF for dev (cross-origin iframe login forms) ──
-# In production with HTTPS + same domain, re-enable this.
-WTF_CSRF_ENABLED = False
+# ── CSRF protection ──
+# Enabled with exemptions for API endpoints used by the embedded SDK
+WTF_CSRF_ENABLED = True
+WTF_CSRF_EXEMPT_LIST = [
+    "superset.views.api",
+    "superset.views.core",
+]
+WTF_CSRF_TIME_LIMIT = 3600
 
 # ── Public role ──
 PUBLIC_ROLE_LIKE = "Gamma"

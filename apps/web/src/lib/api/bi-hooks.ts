@@ -271,7 +271,7 @@ export function useRequestSupersetGuestToken() {
   });
 }
 
-/* ── Hooks — Metabase Session ── */
+/* ── Hooks — Metabase Session (legacy) ── */
 
 export function useRequestMetabaseSession() {
   return useMutation({
@@ -279,6 +279,19 @@ export function useRequestMetabaseSession() {
       return apiFetch<{ data: { sessionToken: string } }>('/bi/metabase/session', {
         method: 'POST',
         body: JSON.stringify({}),
+      });
+    },
+  });
+}
+
+/* ── Hooks — Metabase Signed Embedding ── */
+
+export function useRequestMetabaseEmbedUrl() {
+  return useMutation({
+    mutationFn: async (params: { dashboardId: number }) => {
+      return apiFetch<{ data: { embedUrl: string } }>('/bi/metabase/embed-url', {
+        method: 'POST',
+        body: JSON.stringify(params),
       });
     },
   });

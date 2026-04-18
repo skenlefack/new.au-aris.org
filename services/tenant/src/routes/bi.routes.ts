@@ -79,6 +79,24 @@ export async function registerBiRoutes(app: FastifyInstance): Promise<void> {
     return { data: { sessionToken } };
   });
 
+  // POST /api/v1/bi/metabase/embed-url — generate signed embed URL with tenant filtering
+  app.post<{ Body: { dashboardId: number } }>('/api/v1/bi/metabase/embed-url', {
+    preHandler: auth,
+  }, async (request) => {
+    const user = (request as any).user;
+    const biUser = {
+      userId: user.sub ?? user.userId,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      tenantId: user.tenantId,
+      tenantLevel: user.tenantLevel,
+    };
+    const embedUrl = await app.biService.getMetabaseEmbedUrl(biUser, request.body.dashboardId);
+    return { data: { embedUrl } };
+  });
+
   // ───────────────────── Grafana Embed URL ─────────────────────
 
   // GET /api/v1/bi/grafana/embed-url — get Grafana embed URL with tenant variables
