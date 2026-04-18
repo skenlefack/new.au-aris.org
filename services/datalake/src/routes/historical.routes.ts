@@ -100,6 +100,76 @@ export async function registerHistoricalRoutes(app: FastifyInstance): Promise<vo
   });
 
   /* ------------------------------------------------------------------ */
+  /*  Cross-dataset analytics (dashboard)                                 */
+  /* ------------------------------------------------------------------ */
+
+  // POST /api/v1/historical/cross-query — Time series across multiple datasets
+  app.post(`${PREFIX}/cross-query`, {
+    preHandler: [app.authHookFn],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as AuthenticatedUser;
+    const body = request.body as {
+      datasetIds: string[];
+      dateColumn: string;
+      valueColumn: string;
+      interval: 'day' | 'week' | 'month' | 'year';
+      operation?: 'count' | 'sum' | 'avg';
+      groupBy?: string;
+      filters?: Record<string, string>;
+    };
+    if (!body.datasetIds?.length || !body.dateColumn || !body.valueColumn) {
+      return reply.code(400).send({ statusCode: 400, message: 'datasetIds, dateColumn and valueColumn are required' });
+    }
+    const result = await app.historicalDataService.crossTimeSeries(
+      body.datasetIds, body.dateColumn, body.valueColumn,
+      body.interval ?? 'month', body.operation ?? 'count',
+      body.groupBy, body.filters,
+      user.tenantId, user.tenantLevel,
+    );
+    return reply.code(200).send(result);
+  });
+
+  // POST /api/v1/historical/cross-aggregate — Aggregate across multiple datasets
+  app.post(`${PREFIX}/cross-aggregate`, {
+    preHandler: [app.authHookFn],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as AuthenticatedUser;
+    const body = request.body as {
+      datasetIds: string[];
+      column: string;
+      operation: 'count' | 'sum' | 'avg' | 'distribution';
+      groupBy?: string;
+      filters?: Record<string, string>;
+    };
+    if (!body.datasetIds?.length || !body.column || !body.operation) {
+      return reply.code(400).send({ statusCode: 400, message: 'datasetIds, column and operation are required' });
+    }
+    const result = await app.historicalDataService.crossAggregate(
+      body.datasetIds, body.column, body.operation,
+      body.groupBy, body.filters,
+      user.tenantId, user.tenantLevel,
+    );
+    return reply.code(200).send(result);
+  });
+
+  // GET /api/v1/historical/dashboard-kpis — Pre-computed KPIs
+  app.get(`${PREFIX}/dashboard-kpis`, {
+    preHandler: [app.authHookFn],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as AuthenticatedUser;
+    const query = request.query as { year?: string; datasetIds?: string };
+    const datasetIds = query.datasetIds?.split(',').filter(Boolean) ?? [];
+    const year = query.year ? parseInt(query.year, 10) : undefined;
+    if (datasetIds.length === 0) {
+      return reply.code(400).send({ statusCode: 400, message: 'datasetIds query param required' });
+    }
+    const result = await app.historicalDataService.dashboardKpis(
+      datasetIds, year, user.tenantId, user.tenantLevel,
+    );
+    return reply.code(200).send(result);
+  });
+
+  /* ------------------------------------------------------------------ */
   /*  CRUD                                                                */
   /* ------------------------------------------------------------------ */
 

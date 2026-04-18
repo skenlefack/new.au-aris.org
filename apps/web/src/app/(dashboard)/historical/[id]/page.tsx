@@ -10,6 +10,7 @@ import {
   useDeleteDataset,
   useAggregateData,
   useUpdateDatasetRow,
+  useTimeSeriesData,
   type DatasetColumn,
 } from '@/lib/api/historical-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -35,7 +36,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
-type Tab = 'data' | 'columns' | 'charts' | 'analyses';
+type Tab = 'data' | 'columns' | 'charts' | 'timeseries' | 'analyses';
 
 export default function DatasetDetailPage() {
   const t = useTranslations('historical');
@@ -58,6 +59,12 @@ export default function DatasetDetailPage() {
   const deleteDataset = useDeleteDataset();
   const aggregate = useAggregateData();
   const updateRow = useUpdateDatasetRow();
+  const timeSeries = useTimeSeriesData();
+
+  const [tsDateCol, setTsDateCol] = useState('');
+  const [tsValueCol, setTsValueCol] = useState('');
+  const [tsInterval, setTsInterval] = useState<string>('month');
+  const [tsOperation, setTsOperation] = useState<string>('count');
 
   const [editingRowId, setEditingRowId] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
@@ -156,6 +163,7 @@ export default function DatasetDetailPage() {
           { key: 'data', label: t('tabData') },
           { key: 'columns', label: t('tabColumns', { count: columns.length }) },
           { key: 'charts', label: t('tabCharts') },
+          { key: 'timeseries', label: 'Time Series' },
           { key: 'analyses', label: t('tabAnalyses', { count: analyses.length }) },
         ] as const).map((tabItem) => (
           <button
@@ -377,6 +385,104 @@ export default function DatasetDetailPage() {
         </div>
       )}
 
+      {/* Tab content: Time Series */}
+      {tab === 'timeseries' && (
+        <div className="space-y-5">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800/50">
+            <h3 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">Configure Time Series</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Date column selector */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Date Column</label>
+                <select
+                  value={tsDateCol}
+                  onChange={(e) => setTsDateCol(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+                >
+                  <option value="">-- Select date column --</option>
+                  {columns
+                    .filter((c) => c.name.toLowerCase().includes('date') || c.dataType === 'DATE')
+                    .map((c) => (
+                      <option key={c.id} value={c.pgColumnName}>{c.name}</option>
+                    ))}
+                </select>
+              </div>
+              {/* Value column selector */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Value Column</label>
+                <select
+                  value={tsValueCol}
+                  onChange={(e) => setTsValueCol(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+                >
+                  <option value="">-- Select value column --</option>
+                  {columns
+                    .filter((c) => ['INTEGER', 'FLOAT', 'TEXT'].includes(c.dataType) && !c.name.toLowerCase().includes('date'))
+                    .map((c) => (
+                      <option key={c.id} value={c.pgColumnName}>{c.name} ({c.dataType})</option>
+                    ))}
+                </select>
+              </div>
+              {/* Interval */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Interval</label>
+                <select
+                  value={tsInterval}
+                  onChange={(e) => setTsInterval(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+                >
+                  <option value="day">Day</option>
+                  <option value="week">Week</option>
+                  <option value="month">Month</option>
+                  <option value="year">Year</option>
+                </select>
+              </div>
+              {/* Operation */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Operation</label>
+                <select
+                  value={tsOperation}
+                  onChange={(e) => setTsOperation(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+                >
+                  <option value="count">Count</option>
+                  <option value="sum">Sum</option>
+                  <option value="avg">Average</option>
+                </select>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                if (!tsDateCol || !tsValueCol) return;
+                timeSeries.mutate({ datasetId: id, dateColumn: tsDateCol, valueColumn: tsValueCol, interval: tsInterval, operation: tsOperation });
+              }}
+              disabled={!tsDateCol || !tsValueCol || timeSeries.isPending}
+              className="mt-4 rounded-lg bg-[var(--color-accent)] px-5 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
+            >
+              {timeSeries.isPending ? 'Generating...' : 'Generate Chart'}
+            </button>
+          </div>
+
+          {/* Time Series Chart */}
+          {timeSeries.data && (
+            <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800/50">
+              <h3 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">
+                {tsOperation.charAt(0).toUpperCase() + tsOperation.slice(1)} of {tsValueCol} by {tsInterval}
+              </h3>
+              <div className="h-[400px]">
+                <TimeSeriesChart data={timeSeries.data.data as any[]} />
+              </div>
+            </div>
+          )}
+
+          {timeSeries.isError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/10 dark:text-red-400">
+              Error: {timeSeries.error?.message}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tab content: Analyses */}
       {tab === 'analyses' && (
         <div className="space-y-4">
@@ -405,6 +511,73 @@ export default function DatasetDetailPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Time Series Chart (Recharts)                                        */
+/* ------------------------------------------------------------------ */
+
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts';
+
+function TimeSeriesChart({ data }: { data: Array<{ period: string; value: number }> }) {
+  const chartData = data
+    .filter((d) => d.period)
+    .map((d) => ({
+      period: new Date(d.period).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
+      value: Number(d.value) || 0,
+    }));
+
+  if (chartData.length === 0) {
+    return <div className="flex h-full items-center justify-center text-slate-400">No data for the selected parameters</div>;
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="tsGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#2e75b6" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#2e75b6" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+        <XAxis
+          dataKey="period"
+          tick={{ fontSize: 11, fill: '#94a3b8' }}
+          tickLine={false}
+          interval="preserveStartEnd"
+        />
+        <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} />
+        <Tooltip
+          contentStyle={{
+            backgroundColor: '#1e293b',
+            border: 'none',
+            borderRadius: '8px',
+            color: '#f1f5f9',
+            fontSize: 12,
+          }}
+          formatter={(value: number) => [value.toLocaleString(), 'Value']}
+        />
+        <Area
+          type="monotone"
+          dataKey="value"
+          stroke="#2e75b6"
+          strokeWidth={2}
+          fill="url(#tsGrad)"
+          dot={chartData.length < 50}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }
 

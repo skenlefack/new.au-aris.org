@@ -377,6 +377,83 @@ export function useCreateAnalysis() {
   });
 }
 
+/* ------------------------------------------------------------------ */
+/*  Cross-dataset analytics hooks (dashboard)                           */
+/* ------------------------------------------------------------------ */
+
+export interface DashboardKpis {
+  year: number;
+  totalReports: number;
+  totalOutbreaks: number;
+  uniqueDiseases: number;
+  uniqueLocations: number;
+  pctChangeReports: number;
+  pctChangeOutbreaks: number;
+  pctChangeDiseases: number;
+  pctChangeLocations: number;
+  yearlyBreakdown: Array<{
+    yr: number;
+    outbreak_rows: number;
+    unique_diseases: number;
+    unique_locations: number;
+    total_outbreaks: number;
+  }>;
+}
+
+export interface CrossTimeSeriesParams {
+  datasetIds: string[];
+  dateColumn: string;
+  valueColumn: string;
+  interval: 'day' | 'week' | 'month' | 'year';
+  operation?: 'count' | 'sum' | 'avg';
+  groupBy?: string;
+  filters?: Record<string, string>;
+}
+
+export interface CrossAggregateParams {
+  datasetIds: string[];
+  column: string;
+  operation: 'count' | 'sum' | 'avg' | 'distribution';
+  groupBy?: string;
+  filters?: Record<string, string>;
+}
+
+export function useCrossTimeSeries() {
+  return useMutation<{ data: unknown[] }, Error, CrossTimeSeriesParams>({
+    mutationFn: (body) =>
+      histFetch(`${HIST_API_BASE}/cross-query`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+  });
+}
+
+export function useCrossAggregate() {
+  return useMutation<{ data: unknown[] }, Error, CrossAggregateParams>({
+    mutationFn: (body) =>
+      histFetch(`${HIST_API_BASE}/cross-aggregate`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+  });
+}
+
+export function useDashboardKpis(params?: {
+  year?: number;
+  datasetIds?: string[];
+}) {
+  const qs = new URLSearchParams();
+  if (params?.year) qs.set('year', String(params.year));
+  if (params?.datasetIds?.length) qs.set('datasetIds', params.datasetIds.join(','));
+  const suffix = qs.toString() ? `?${qs}` : '';
+
+  return useQuery<{ data: DashboardKpis }>({
+    queryKey: ['historical-dashboard-kpis', params],
+    queryFn: () => histFetch(`${HIST_API_BASE}/dashboard-kpis${suffix}`),
+    enabled: (params?.datasetIds?.length ?? 0) > 0,
+  });
+}
+
 export function useDeleteAnalysis() {
   const queryClient = useQueryClient();
 

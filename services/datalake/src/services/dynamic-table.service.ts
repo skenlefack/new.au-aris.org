@@ -307,6 +307,222 @@ export class DynamicTableService {
     await this.prisma.$executeRawUnsafe(sql);
   }
 
+  /* ------------------------------------------------------------------ */
+  /*  Cross-dataset queries (UNION ALL)                                   */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Builds a UNION ALL CTE from multiple table names, selecting only shared columns.
+   */
+  private buildUnionCTE(
+    tableNames: string[],
+    columns: string[],
+  ): string {
+    const safeCols = columns.map((c) => `"${this.toPgName(c)}"`).join(', ');
+    const parts = tableNames.map((t) => {
+      const safe = this.sanitizeTableName(t);
+      return `SELECT ${safeCols} FROM "${HISTORICAL_SCHEMA}"."${safe}"`;
+    });
+    return `WITH unified AS (\n  ${parts.join('\n  UNION ALL\n  ')}\n)`;
+  }
+
+  private buildWhereClause(filters?: Record<string, string>): string {
+    if (!filters || Object.keys(filters).length === 0) return '';
+    const clauses: string[] = [];
+    for (const [col, val] of Object.entries(filters)) {
+      if (!val) continue;
+      const safeCol = this.toPgName(col);
+      if (col === 'dateFrom') {
+        clauses.push(`"date_of_report"::text >= ${this.escapeString(val)}`);
+      } else if (col === 'dateTo') {
+        clauses.push(`"date_of_report"::text <= ${this.escapeString(val)}`);
+      } else {
+        clauses.push(`"${safeCol}"::text ILIKE ${this.escapeString(`%${val}%`)}`);
+      }
+    }
+    return clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+  }
+
+  /**
+   * Time-series across multiple tables.
+   */
+  async crossTimeSeries(
+    tableNames: string[],
+    dateColumn: string,
+    valueColumn: string,
+    interval: 'day' | 'week' | 'month' | 'year',
+    operation: 'count' | 'sum' | 'avg' = 'count',
+    groupBy?: string,
+    filters?: Record<string, string>,
+  ): Promise<unknown[]> {
+    const safeDate = this.toPgName(dateColumn);
+    const safeValue = this.toPgName(valueColumn);
+    const aggFn = operation.toUpperCase();
+    const truncFn = interval === 'week' ? 'week' : interval;
+
+    const cols = [dateColumn, valueColumn];
+    if (groupBy) cols.push(groupBy);
+    // Include filter columns
+    if (filters) {
+      for (const k of Object.keys(filters)) {
+        if (!['dateFrom', 'dateTo'].includes(k) && !cols.includes(k)) cols.push(k);
+      }
+    }
+
+    const cte = this.buildUnionCTE(tableNames, cols);
+    const where = this.buildWhereClause(filters);
+    const groupByCol = groupBy ? `"${this.toPgName(groupBy)}"` : null;
+
+    const valueExpr = operation === 'count'
+      ? `COUNT(*)::float`
+      : `${aggFn}(CASE WHEN "${safeValue}" ~ '^[0-9.]+$' THEN "${safeValue}"::numeric ELSE NULL END)::float`;
+
+    const sql = `
+      ${cte}
+      SELECT
+        DATE_TRUNC('${truncFn}', "${safeDate}"::timestamp) as period,
+        ${groupByCol ? `${groupByCol} as group_key,` : ''}
+        ${valueExpr} as value
+      FROM unified
+      WHERE "${safeDate}" IS NOT NULL AND "${safeDate}" != ''
+      ${where ? `AND ${where.replace('WHERE ', '')}` : ''}
+      GROUP BY period${groupByCol ? `, ${groupByCol}` : ''}
+      ORDER BY period ASC
+      LIMIT 5000
+    `;
+
+    return this.prisma.$queryRawUnsafe(sql);
+  }
+
+  /**
+   * Aggregate across multiple tables.
+   */
+  async crossAggregate(
+    tableNames: string[],
+    column: string,
+    operation: 'count' | 'sum' | 'avg' | 'distribution',
+    groupBy?: string,
+    filters?: Record<string, string>,
+  ): Promise<unknown[]> {
+    const safeCol = this.toPgName(column);
+
+    const cols = [column];
+    if (groupBy && groupBy !== column) cols.push(groupBy);
+    if (filters) {
+      for (const k of Object.keys(filters)) {
+        if (!['dateFrom', 'dateTo'].includes(k) && !cols.includes(k)) cols.push(k);
+      }
+    }
+
+    const cte = this.buildUnionCTE(tableNames, cols);
+    const where = this.buildWhereClause(filters);
+
+    if (operation === 'distribution') {
+      const targetCol = groupBy ? this.toPgName(groupBy) : safeCol;
+      const sql = `
+        ${cte}
+        SELECT "${targetCol}"::text as label, COUNT(*)::int as value
+        FROM unified
+        ${where}
+        ${where ? 'AND' : 'WHERE'} "${targetCol}" IS NOT NULL AND "${targetCol}" != ''
+        GROUP BY "${targetCol}"
+        ORDER BY value DESC
+        LIMIT 100
+      `;
+      return this.prisma.$queryRawUnsafe(sql);
+    }
+
+    const aggFn = operation.toUpperCase();
+    if (groupBy) {
+      const safeGroup = this.toPgName(groupBy);
+      const sql = `
+        ${cte}
+        SELECT "${safeGroup}"::text as label,
+               ${aggFn}(CASE WHEN "${safeCol}" ~ '^[0-9.]+$' THEN "${safeCol}"::numeric ELSE NULL END)::float as value
+        FROM unified
+        ${where}
+        GROUP BY "${safeGroup}"
+        ORDER BY value DESC NULLS LAST
+        LIMIT 100
+      `;
+      return this.prisma.$queryRawUnsafe(sql);
+    }
+
+    const sql = `
+      ${cte}
+      SELECT ${aggFn}(CASE WHEN "${safeCol}" ~ '^[0-9.]+$' THEN "${safeCol}"::numeric ELSE NULL END)::float as value
+      FROM unified
+      ${where}
+    `;
+    return this.prisma.$queryRawUnsafe(sql);
+  }
+
+  /**
+   * Dashboard KPIs across multiple tables with year-over-year comparison.
+   */
+  async dashboardKpis(
+    tableNames: string[],
+    year?: number,
+  ): Promise<Record<string, unknown>> {
+    const targetYear = year ?? new Date().getFullYear();
+    const prevYear = targetYear - 1;
+
+    const cols = ['date_of_report', 'disease', 'num_new_outbreaks', 'admin_location'];
+    const cte = this.buildUnionCTE(tableNames, cols);
+
+    const sql = `
+      ${cte},
+      yearly AS (
+        SELECT
+          EXTRACT(YEAR FROM "date_of_report"::timestamp)::int as yr,
+          COUNT(*) FILTER (WHERE "disease" IS NOT NULL AND "disease" != '') as outbreak_rows,
+          COUNT(DISTINCT "disease") FILTER (WHERE "disease" IS NOT NULL AND "disease" != '') as unique_diseases,
+          COUNT(DISTINCT "admin_location") FILTER (WHERE "admin_location" IS NOT NULL AND "admin_location" != '') as unique_locations,
+          SUM(CASE WHEN "num_new_outbreaks" ~ '^[0-9.]+$' THEN "num_new_outbreaks"::numeric ELSE 0 END)::float as total_outbreaks
+        FROM unified
+        WHERE "date_of_report" IS NOT NULL AND "date_of_report" != ''
+        GROUP BY yr
+      )
+      SELECT
+        yr,
+        outbreak_rows,
+        unique_diseases,
+        unique_locations,
+        total_outbreaks
+      FROM yearly
+      WHERE yr IN (${targetYear}, ${prevYear})
+      ORDER BY yr
+    `;
+
+    const rows: Array<{
+      yr: number;
+      outbreak_rows: number;
+      unique_diseases: number;
+      unique_locations: number;
+      total_outbreaks: number;
+    }> = await this.prisma.$queryRawUnsafe(sql);
+
+    const current = rows.find((r) => r.yr === targetYear);
+    const previous = rows.find((r) => r.yr === prevYear);
+
+    const pctChange = (cur: number, prev: number) =>
+      prev > 0 ? Math.round(((cur - prev) / prev) * 1000) / 10 : 0;
+
+    return {
+      year: targetYear,
+      totalReports: current?.outbreak_rows ?? 0,
+      totalOutbreaks: current?.total_outbreaks ?? 0,
+      uniqueDiseases: current?.unique_diseases ?? 0,
+      uniqueLocations: current?.unique_locations ?? 0,
+      pctChangeReports: pctChange(current?.outbreak_rows ?? 0, previous?.outbreak_rows ?? 0),
+      pctChangeOutbreaks: pctChange(current?.total_outbreaks ?? 0, previous?.total_outbreaks ?? 0),
+      pctChangeDiseases: pctChange(current?.unique_diseases ?? 0, previous?.unique_diseases ?? 0),
+      pctChangeLocations: pctChange(current?.unique_locations ?? 0, previous?.unique_locations ?? 0),
+      // Yearly breakdown for sparklines
+      yearlyBreakdown: rows,
+    };
+  }
+
   /**
    * Drops a dynamic table.
    */

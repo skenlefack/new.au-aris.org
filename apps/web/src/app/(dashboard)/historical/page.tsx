@@ -83,13 +83,22 @@ export default function HistoricalDataPage() {
             Imported datasets, time series and versioned records across all domains
           </p>
         </div>
-        <Link
-          href="/historical/import"
-          className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
-        >
-          <Upload className="h-4 w-4" />
-          Import Dataset
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/historical/dashboard"
+            className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-accent)] hover:bg-[var(--color-accent)]/5"
+          >
+            <BarChart3 className="h-4 w-4" />
+            Analytics Dashboard
+          </Link>
+          <Link
+            href="/historical/import"
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+          >
+            <Upload className="h-4 w-4" />
+            Import Dataset
+          </Link>
+        </div>
       </div>
 
       {/* KPI Cards */}

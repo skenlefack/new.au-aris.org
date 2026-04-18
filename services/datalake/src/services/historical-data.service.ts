@@ -525,6 +525,79 @@ export class HistoricalDataService {
   }
 
   /* ------------------------------------------------------------------ */
+  /*  Cross-dataset analytics (dashboard)                                 */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Resolves dataset IDs to table names, with tenant check.
+   */
+  private async resolveTableNames(
+    datasetIds: string[],
+    tenantId: string,
+    tenantLevel: string,
+  ): Promise<string[]> {
+    const datasets = await this.prisma.historicalDataset.findMany({
+      where: { id: { in: datasetIds }, status: 'READY' },
+      select: { id: true, tableName: true, tenantId: true },
+    });
+    if (tenantLevel !== 'CONTINENTAL') {
+      const unauthorized = datasets.filter((d: any) => d.tenantId !== tenantId);
+      if (unauthorized.length > 0) throw new HttpError(403, 'Access denied to some datasets');
+    }
+    return datasets.map((d: any) => d.tableName);
+  }
+
+  async crossTimeSeries(
+    datasetIds: string[],
+    dateColumn: string,
+    valueColumn: string,
+    interval: 'day' | 'week' | 'month' | 'year',
+    operation: 'count' | 'sum' | 'avg',
+    groupBy: string | undefined,
+    filters: Record<string, string> | undefined,
+    tenantId: string,
+    tenantLevel: string,
+  ): Promise<{ data: unknown[] }> {
+    const tableNames = await this.resolveTableNames(datasetIds, tenantId, tenantLevel);
+    if (tableNames.length === 0) throw new HttpError(400, 'No valid datasets found');
+    const data = await this.dynamicTable.crossTimeSeries(
+      tableNames, dateColumn, valueColumn, interval, operation, groupBy, filters,
+    );
+    return { data };
+  }
+
+  async crossAggregate(
+    datasetIds: string[],
+    column: string,
+    operation: 'count' | 'sum' | 'avg' | 'distribution',
+    groupBy: string | undefined,
+    filters: Record<string, string> | undefined,
+    tenantId: string,
+    tenantLevel: string,
+  ): Promise<{ data: unknown[] }> {
+    const tableNames = await this.resolveTableNames(datasetIds, tenantId, tenantLevel);
+    if (tableNames.length === 0) throw new HttpError(400, 'No valid datasets found');
+    const data = await this.dynamicTable.crossAggregate(
+      tableNames, column, operation, groupBy, filters,
+    );
+    return { data };
+  }
+
+  async dashboardKpis(
+    datasetIds: string[],
+    year: number | undefined,
+    tenantId: string,
+    tenantLevel: string,
+  ): Promise<{ data: Record<string, unknown> }> {
+    const tableNames = await this.resolveTableNames(datasetIds, tenantId, tenantLevel);
+    if (tableNames.length === 0) {
+      return { data: { year: year ?? new Date().getFullYear(), totalReports: 0, totalOutbreaks: 0, uniqueDiseases: 0, uniqueLocations: 0, pctChangeReports: 0, pctChangeOutbreaks: 0, pctChangeDiseases: 0, pctChangeLocations: 0, yearlyBreakdown: [] } };
+    }
+    const data = await this.dynamicTable.dashboardKpis(tableNames, year);
+    return { data };
+  }
+
+  /* ------------------------------------------------------------------ */
   /*  Helpers                                                             */
   /* ------------------------------------------------------------------ */
 
