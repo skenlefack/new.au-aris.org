@@ -478,7 +478,7 @@ function CountryBarChart({ data }: { data: any[] }) {
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 60 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-        <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#94a3b8', angle: -45, textAnchor: 'end' }} interval={0} height={80} />
+        <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#94a3b8' }} interval={0} height={80} angle={-45} textAnchor="end" />
         <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
         <Tooltip
           contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: 8, color: '#f1f5f9', fontSize: 12 }}
