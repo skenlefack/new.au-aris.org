@@ -525,6 +525,69 @@ export class HistoricalDataService {
   }
 
   /* ------------------------------------------------------------------ */
+  /*  Pivot table                                                         */
+  /* ------------------------------------------------------------------ */
+
+  async pivotData(
+    datasetId: string,
+    rowField: string,
+    colField: string,
+    valueField: string,
+    operation: 'count' | 'sum' | 'avg',
+    tenantId: string,
+    tenantLevel: string,
+  ): Promise<{ data: Record<string, unknown> }> {
+    const dataset = await this.getDatasetChecked(datasetId, tenantId, tenantLevel);
+    const result = await this.dynamicTable.pivot(
+      dataset.tableName, rowField, colField, valueField, operation,
+    );
+    return { data: result as unknown as Record<string, unknown> };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Export CSV                                                           */
+  /* ------------------------------------------------------------------ */
+
+  async exportCsv(
+    datasetId: string,
+    tenantId: string,
+    tenantLevel: string,
+    search?: string,
+  ): Promise<string> {
+    const dataset = await this.getDatasetChecked(datasetId, tenantId, tenantLevel);
+    const columns = await this.prisma.datasetColumn.findMany({
+      where: { datasetId },
+      orderBy: { ordinal: 'asc' },
+    });
+    const colNames = columns.map((c: any) => c.pgColumnName);
+    const safeTable = dataset.tableName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+
+    let whereSql = '';
+    if (search) {
+      const searchClauses = colNames.slice(0, 5).map(
+        (c: string) => `"${c}"::text ILIKE '%${search.replace(/'/g, "''")}'`,
+      );
+      whereSql = `WHERE ${searchClauses.join(' OR ')}`;
+    }
+
+    const sql = `SELECT ${colNames.map((c: string) => `"${c}"`).join(', ')} FROM "historical"."${safeTable}" ${whereSql} ORDER BY "_row_id" LIMIT 100000`;
+    const rows: Record<string, unknown>[] = await this.prisma.$queryRawUnsafe(sql);
+
+    // Build CSV
+    const header = colNames.join(',');
+    const csvRows = rows.map((r: any) =>
+      colNames.map((c: string) => {
+        const v = r[c];
+        if (v === null || v === undefined) return '';
+        const s = String(v);
+        return s.includes(',') || s.includes('"') || s.includes('\n')
+          ? `"${s.replace(/"/g, '""')}"` : s;
+      }).join(','),
+    );
+    return `${header}\n${csvRows.join('\n')}`;
+  }
+
+  /* ------------------------------------------------------------------ */
   /*  Cross-dataset analytics (dashboard)                                 */
   /* ------------------------------------------------------------------ */
 

@@ -11,7 +11,10 @@ import {
   useAggregateData,
   useUpdateDatasetRow,
   useTimeSeriesData,
+  usePivotData,
+  useExportCsvUrl,
   type DatasetColumn,
+  type PivotResult,
 } from '@/lib/api/historical-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -55,7 +58,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
-type Tab = 'data' | 'columns' | 'charts' | 'timeseries' | 'analyses';
+type Tab = 'data' | 'columns' | 'charts' | 'timeseries' | 'pivot' | 'analyses';
 
 export default function DatasetDetailPage() {
   const t = useTranslations('historical');
@@ -86,6 +89,14 @@ export default function DatasetDetailPage() {
   const [tsOperation, setTsOperation] = useState<string>('count');
   const [chartType, setChartType] = useState<'bar' | 'pie' | 'line' | 'scatter'>('bar');
   const [chartGroupBy, setChartGroupBy] = useState('');
+  const [pivotRow, setPivotRow] = useState('');
+  const [pivotCol, setPivotCol] = useState('');
+  const [pivotVal, setPivotVal] = useState('');
+  const [pivotOp, setPivotOp] = useState<'count' | 'sum' | 'avg'>('count');
+  const pivot = usePivotData();
+  const exportUrl = useExportCsvUrl(id, search || undefined);
+  const chartRef = React.useRef<HTMLDivElement>(null);
+  const tsChartRef = React.useRef<HTMLDivElement>(null);
 
   const [editingRowId, setEditingRowId] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
@@ -185,6 +196,7 @@ export default function DatasetDetailPage() {
           { key: 'columns', label: t('tabColumns', { count: columns.length }) },
           { key: 'charts', label: t('tabCharts') },
           { key: 'timeseries', label: 'Time Series' },
+          { key: 'pivot', label: 'Pivot Table' },
           { key: 'analyses', label: t('tabAnalyses', { count: analyses.length }) },
         ] as const).map((tabItem) => (
           <button
@@ -210,8 +222,36 @@ export default function DatasetDetailPage() {
               placeholder={t('searchData')}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setDataPage(1); }}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+              className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
             />
+            {exportUrl && (
+              <a
+                href={exportUrl}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                onClick={(e) => {
+                  e.preventDefault();
+                  const token = JSON.parse(localStorage.getItem('aris-auth') || '{}')?.state?.accessToken;
+                  if (!token) return;
+                  fetch(exportUrl, { headers: { Authorization: `Bearer ${token}` } })
+                    .then(r => r.blob())
+                    .then(blob => {
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${dataset.name.replace(/[^a-zA-Z0-9]/g, '_')}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    });
+                }}
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export CSV
+              </a>
+            )}
           </div>
 
           {dataLoading ? (
@@ -432,11 +472,14 @@ export default function DatasetDetailPage() {
 
           {aggregate.data && (
             <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800/50">
-              <h3 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">
-                {aggregate.variables?.column} — {aggregate.variables?.operation}
-                {chartGroupBy && ` (grouped by ${chartGroupBy})`}
-              </h3>
-              <div className="h-[400px]">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {aggregate.variables?.column} — {aggregate.variables?.operation}
+                  {chartGroupBy && ` (grouped by ${chartGroupBy})`}
+                </h3>
+                <ExportPngButton chartRef={chartRef} filename={`chart-${aggregate.variables?.column}`} />
+              </div>
+              <div className="h-[400px]" ref={chartRef}>
                 <AggregateChart data={(aggregate.data.data as any[]).slice(0, 25)} type={chartType} />
               </div>
             </div>
@@ -525,10 +568,13 @@ export default function DatasetDetailPage() {
           {/* Time Series Chart */}
           {timeSeries.data && (
             <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800/50">
-              <h3 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">
-                {tsOperation.charAt(0).toUpperCase() + tsOperation.slice(1)} of {tsValueCol} by {tsInterval}
-              </h3>
-              <div className="h-[400px]">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {tsOperation.charAt(0).toUpperCase() + tsOperation.slice(1)} of {tsValueCol} by {tsInterval}
+                </h3>
+                <ExportPngButton chartRef={tsChartRef} filename={`timeseries-${tsValueCol}`} />
+              </div>
+              <div className="h-[400px]" ref={tsChartRef}>
                 <TimeSeriesChart data={timeSeries.data.data as any[]} />
               </div>
             </div>
@@ -537,6 +583,74 @@ export default function DatasetDetailPage() {
           {timeSeries.isError && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/10 dark:text-red-400">
               Error: {timeSeries.error?.message}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab content: Pivot Table */}
+      {tab === 'pivot' && (
+        <div className="space-y-5">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800/50">
+            <h3 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">Configure Pivot Table</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Row Field</label>
+                <select value={pivotRow} onChange={(e) => setPivotRow(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                  <option value="">-- Select --</option>
+                  {columns.filter(c => !c.name.startsWith('__')).map(c => (
+                    <option key={c.id} value={c.pgColumnName}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Column Field</label>
+                <select value={pivotCol} onChange={(e) => setPivotCol(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                  <option value="">-- Select --</option>
+                  {columns.filter(c => !c.name.startsWith('__') && c.pgColumnName !== pivotRow).map(c => (
+                    <option key={c.id} value={c.pgColumnName}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Value Field</label>
+                <select value={pivotVal} onChange={(e) => setPivotVal(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                  <option value="">-- Select --</option>
+                  {columns.filter(c => !c.name.startsWith('__')).map(c => (
+                    <option key={c.id} value={c.pgColumnName}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Operation</label>
+                <select value={pivotOp} onChange={(e) => setPivotOp(e.target.value as any)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                  <option value="count">Count</option>
+                  <option value="sum">Sum</option>
+                  <option value="avg">Average</option>
+                </select>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                if (!pivotRow || !pivotCol || !pivotVal) return;
+                pivot.mutate({ datasetId: id, rowField: pivotRow, colField: pivotCol, valueField: pivotVal, operation: pivotOp });
+              }}
+              disabled={!pivotRow || !pivotCol || !pivotVal || pivot.isPending}
+              className="mt-4 rounded-lg bg-[var(--color-accent)] px-5 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
+            >
+              {pivot.isPending ? 'Generating...' : 'Generate Pivot Table'}
+            </button>
+          </div>
+
+          {pivot.data && <PivotTableView pivot={pivot.data.data as unknown as PivotResult} />}
+
+          {pivot.isError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/10 dark:text-red-400">
+              Error: {pivot.error?.message}
             </div>
           )}
         </div>
@@ -714,6 +828,124 @@ function AggregateChart({ data, type }: { data: any[]; type: 'bar' | 'pie' | 'li
         </Bar>
       </BarChart>
     </ResponsiveContainer>
+  );
+}
+
+/* ── Pivot Table View ─────────────────────────────────── */
+
+function PivotTableView({ pivot }: { pivot: PivotResult }) {
+  const { rows, columns: cols, matrix } = pivot;
+
+  if (rows.length === 0 || cols.length === 0) {
+    return <div className="py-8 text-center text-sm text-slate-400">No pivot data for the selected fields</div>;
+  }
+
+  const exportPivotCsv = () => {
+    const header = ['', ...cols].join(',');
+    const csvRows = rows.map((r) =>
+      [r, ...cols.map((c) => matrix[r]?.[c] ?? 0)].join(','),
+    );
+    const csv = `${header}\n${csvRows.join('\n')}`;
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pivot-table.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const maxVal = Math.max(1, ...rows.flatMap((r) => cols.map((c) => matrix[r]?.[c] ?? 0)));
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800/50">
+      <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3 dark:border-slate-700">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+          Pivot Table — {rows.length} rows x {cols.length} columns
+        </h3>
+        <button onClick={exportPivotCsv} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400">
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+          Export CSV
+        </button>
+      </div>
+      <div className="overflow-auto max-h-[500px]">
+        <table className="w-full text-xs">
+          <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
+            <tr>
+              <th className="sticky left-0 z-10 bg-slate-100 px-3 py-2 text-left font-semibold text-slate-500 dark:bg-slate-800" />
+              {cols.map((c) => (
+                <th key={c} className="whitespace-nowrap px-3 py-2 text-center font-medium text-slate-500">
+                  {String(c).slice(0, 20)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+            {rows.map((r) => (
+              <tr key={r} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                <td className="sticky left-0 bg-white px-3 py-1.5 font-medium text-slate-700 whitespace-nowrap dark:bg-slate-900/50 dark:text-slate-300">
+                  {String(r).slice(0, 25)}
+                </td>
+                {cols.map((c) => {
+                  const v = matrix[r]?.[c] ?? 0;
+                  const intensity = v > 0 ? Math.min(1, v / maxVal) : 0;
+                  return (
+                    <td key={c} className="px-3 py-1.5 text-center tabular-nums"
+                      style={{
+                        backgroundColor: intensity > 0
+                          ? `rgba(46, 117, 182, ${intensity * 0.3})`
+                          : 'transparent',
+                      }}>
+                      {v > 0 ? (Number.isInteger(v) ? v.toLocaleString() : v.toFixed(1)) : ''}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ── Export chart as PNG utility ───────────────────────── */
+
+function ExportPngButton({ chartRef, filename }: { chartRef: React.RefObject<HTMLDivElement | null>; filename: string }) {
+  const handleExport = async () => {
+    const el = chartRef.current;
+    if (!el) return;
+    const svg = el.querySelector('svg');
+    if (!svg) return;
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const bbox = svg.getBoundingClientRect();
+    canvas.width = bbox.width * 2;
+    canvas.height = bbox.height * 2;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.scale(2, 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, bbox.width, bbox.height);
+
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0);
+      const pngUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = pngUrl;
+      a.download = `${filename}.png`;
+      a.click();
+    };
+    img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgData)))}`;
+  };
+
+  return (
+    <button onClick={handleExport} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400">
+      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+      Export PNG
+    </button>
   );
 }
 

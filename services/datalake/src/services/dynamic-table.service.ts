@@ -529,6 +529,60 @@ export class DynamicTableService {
   }
 
   /**
+   * Pivot table: rows × columns × aggregated value.
+   */
+  async pivot(
+    tableName: string,
+    rowField: string,
+    colField: string,
+    valueField: string,
+    operation: 'count' | 'sum' | 'avg' = 'count',
+  ): Promise<{ rows: string[]; columns: string[]; matrix: Record<string, Record<string, number>> }> {
+    const safeTable = this.sanitizeTableName(tableName);
+    const safeRow = this.toPgName(rowField);
+    const safeCol = this.toPgName(colField);
+    const safeVal = this.toPgName(valueField);
+    const aggFn = operation.toUpperCase();
+
+    const valueExpr = operation === 'count'
+      ? 'COUNT(*)::int'
+      : `${aggFn}(CASE WHEN "${safeVal}" ~ '^[0-9.]+$' THEN "${safeVal}"::numeric ELSE NULL END)::float`;
+
+    const sql = `
+      SELECT
+        "${safeRow}"::text as row_key,
+        "${safeCol}"::text as col_key,
+        ${valueExpr} as value
+      FROM "${HISTORICAL_SCHEMA}"."${safeTable}"
+      WHERE "${safeRow}" IS NOT NULL AND "${safeRow}" != ''
+        AND "${safeCol}" IS NOT NULL AND "${safeCol}" != ''
+      GROUP BY row_key, col_key
+      ORDER BY row_key, col_key
+      LIMIT 10000
+    `;
+
+    const rawRows: Array<{ row_key: string; col_key: string; value: number }> =
+      await this.prisma.$queryRawUnsafe(sql);
+
+    const rowSet = new Set<string>();
+    const colSet = new Set<string>();
+    const matrix: Record<string, Record<string, number>> = {};
+
+    for (const r of rawRows) {
+      rowSet.add(r.row_key);
+      colSet.add(r.col_key);
+      if (!matrix[r.row_key]) matrix[r.row_key] = {};
+      matrix[r.row_key][r.col_key] = Number(r.value) || 0;
+    }
+
+    return {
+      rows: [...rowSet].slice(0, 50),
+      columns: [...colSet].slice(0, 30),
+      matrix,
+    };
+  }
+
+  /**
    * Drops a dynamic table.
    */
   async dropTable(tableName: string): Promise<void> {

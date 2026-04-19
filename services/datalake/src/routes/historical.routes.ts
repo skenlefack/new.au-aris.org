@@ -331,6 +331,46 @@ export async function registerHistoricalRoutes(app: FastifyInstance): Promise<vo
     return reply.code(200).send(result);
   });
 
+  // POST /api/v1/historical/:id/pivot — Pivot table
+  app.post(`${PREFIX}/:id/pivot`, {
+    preHandler: [app.authHookFn],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as AuthenticatedUser;
+    const { id } = request.params as { id: string };
+    const body = request.body as {
+      rowField: string;
+      colField: string;
+      valueField: string;
+      operation?: 'count' | 'sum' | 'avg';
+    };
+    if (!body.rowField || !body.colField || !body.valueField) {
+      return reply.code(400).send({ statusCode: 400, message: 'rowField, colField, and valueField are required' });
+    }
+    const result = await app.historicalDataService.pivotData(
+      id, body.rowField, body.colField, body.valueField,
+      body.operation ?? 'count',
+      user.tenantId, user.tenantLevel,
+    );
+    return reply.code(200).send(result);
+  });
+
+  // GET /api/v1/historical/:id/export — Export CSV
+  app.get(`${PREFIX}/:id/export`, {
+    preHandler: [app.authHookFn],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as AuthenticatedUser;
+    const { id } = request.params as { id: string };
+    const query = request.query as { search?: string };
+    const csv = await app.historicalDataService.exportCsv(
+      id, user.tenantId, user.tenantLevel, query.search,
+    );
+    return reply
+      .header('Content-Type', 'text/csv; charset=utf-8')
+      .header('Content-Disposition', `attachment; filename="dataset-${id}.csv"`)
+      .code(200)
+      .send(csv);
+  });
+
   /* ------------------------------------------------------------------ */
   /*  Analyses (saved queries)                                            */
   /* ------------------------------------------------------------------ */

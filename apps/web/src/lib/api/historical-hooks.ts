@@ -454,6 +454,40 @@ export function useDashboardKpis(params?: {
   });
 }
 
+/* ------------------------------------------------------------------ */
+/*  Pivot + Export hooks                                                */
+/* ------------------------------------------------------------------ */
+
+export interface PivotResult {
+  rows: string[];
+  columns: string[];
+  matrix: Record<string, Record<string, number>>;
+}
+
+export function usePivotData() {
+  return useMutation<{ data: PivotResult }, Error, {
+    datasetId: string;
+    rowField: string;
+    colField: string;
+    valueField: string;
+    operation?: 'count' | 'sum' | 'avg';
+  }>({
+    mutationFn: ({ datasetId, ...body }) =>
+      histFetch(`${HIST_API_BASE}/${datasetId}/pivot`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+  });
+}
+
+export function useExportCsvUrl(datasetId: string | undefined, search?: string): string {
+  if (!datasetId) return '';
+  const qs = new URLSearchParams();
+  if (search) qs.set('search', search);
+  const suffix = qs.toString() ? `?${qs}` : '';
+  return `${HIST_API_BASE}/${datasetId}/export${suffix}`;
+}
+
 export function useDeleteAnalysis() {
   const queryClient = useQueryClient();
 
