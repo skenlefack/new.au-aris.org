@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import { HistoricalDataSection } from '@/components/historical/HistoricalDataSection';
 import {
   Plus,
   ChevronLeft,
@@ -116,6 +117,9 @@ export default function TradePage() {
       {sections.alertForm && TRADE_ALERT_TEMPLATE_ID && (
         <RecentEventsCard templateId={TRADE_ALERT_TEMPLATE_ID} t={t} />
       )}
+
+      {/* Historical Data */}
+      <HistoricalDataSection domain="trade_sps" />
     </div>
   );
 }

@@ -19,10 +19,20 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  ScatterChart,
+  Scatter,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
 } from 'recharts';
 
 const DOMAIN_LABELS: Record<string, string> = {
@@ -74,6 +84,8 @@ export default function DatasetDetailPage() {
   const [tsValueCol, setTsValueCol] = useState('');
   const [tsInterval, setTsInterval] = useState<string>('month');
   const [tsOperation, setTsOperation] = useState<string>('count');
+  const [chartType, setChartType] = useState<'bar' | 'pie' | 'line' | 'scatter'>('bar');
+  const [chartGroupBy, setChartGroupBy] = useState('');
 
   const [editingRowId, setEditingRowId] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
@@ -347,47 +359,85 @@ export default function DatasetDetailPage() {
 
       {/* Tab content: Charts */}
       {tab === 'charts' && (
-        <div className="space-y-4">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {t('aggregationInstructions')}
-          </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {columns.map((col) => (
-              <button
-                key={col.id}
-                onClick={() => handleAggregateColumn(col)}
-                className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left hover:border-[var(--color-accent)] dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-[var(--color-accent)]"
-              >
-                <span className="rounded bg-slate-100 px-2 py-1 text-xs font-mono dark:bg-slate-700">{col.dataType}</span>
-                <div>
-                  <p className="text-sm font-medium text-slate-900 dark:text-white">{col.name}</p>
-                  <p className="text-xs text-slate-400">{col.stats?.uniqueCount ?? 0} unique values</p>
+        <div className="space-y-5">
+          {/* Controls */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50">
+            <div className="flex flex-wrap items-end gap-4">
+              {/* Column selector */}
+              <div className="flex-1 min-w-[180px]">
+                <label className="mb-1 block text-xs font-medium text-slate-500">Column to analyze</label>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                  {columns.filter(c => !c.name.startsWith('__')).map((col) => (
+                    <button
+                      key={col.id}
+                      onClick={() => {
+                        const op = col.dataType === 'INTEGER' || col.dataType === 'FLOAT' ? 'sum' : 'distribution';
+                        aggregate.mutate({ datasetId: id, column: col.pgColumnName, operation: op, groupBy: chartGroupBy || undefined });
+                      }}
+                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
+                        aggregate.variables?.column === col.pgColumnName
+                          ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5 text-[var(--color-accent)]'
+                          : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/50'
+                      }`}
+                    >
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] dark:bg-slate-700">{col.dataType}</span>
+                      <span className="truncate font-medium text-slate-700 dark:text-slate-300">{col.name}</span>
+                    </button>
+                  ))}
                 </div>
-              </button>
-            ))}
+              </div>
+            </div>
+            {/* Chart type + GroupBy */}
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Chart type</label>
+                <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                  {(['bar', 'pie', 'line', 'scatter'] as const).map((ct) => (
+                    <button
+                      key={ct}
+                      onClick={() => setChartType(ct)}
+                      className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                        chartType === ct
+                          ? 'bg-[var(--color-accent)] text-white'
+                          : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-400'
+                      }`}
+                    >
+                      {ct === 'bar' ? 'Bar' : ct === 'pie' ? 'Pie' : ct === 'line' ? 'Line' : 'Scatter'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="min-w-[150px]">
+                <label className="mb-1 block text-xs font-medium text-slate-500">Group by (optional)</label>
+                <select
+                  value={chartGroupBy}
+                  onChange={(e) => setChartGroupBy(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                >
+                  <option value="">None</option>
+                  {columns.filter(c => !c.name.startsWith('__') && c.dataType === 'TEXT').map((c) => (
+                    <option key={c.id} value={c.pgColumnName}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
 
-          {/* Aggregate results */}
+          {/* Chart Result */}
+          {aggregate.isPending && (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-[var(--color-accent)]" />
+            </div>
+          )}
+
           {aggregate.data && (
-            <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50">
-              <h3 className="mb-3 font-medium text-slate-900 dark:text-white">{t('aggregationResult')}</h3>
-              <div className="space-y-1.5">
-                {(aggregate.data.data as any[]).slice(0, 20).map((item: any, i: number) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <span className="min-w-[120px] text-sm text-slate-600 dark:text-slate-300 truncate">{item.label ?? `Row ${i + 1}`}</span>
-                    <div className="flex-1 rounded-full bg-slate-100 dark:bg-slate-700 h-5 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-[var(--color-accent)]"
-                        style={{
-                          width: `${Math.min(100, (Number(item.value) / Math.max(...(aggregate.data!.data as any[]).map((r: any) => Number(r.value) || 1))) * 100)}%`,
-                        }}
-                      />
-                    </div>
-                    <span className="min-w-[60px] text-right text-sm font-medium text-slate-700 dark:text-slate-300">
-                      {Number(item.value).toLocaleString()}
-                    </span>
-                  </div>
-                ))}
+            <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800/50">
+              <h3 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">
+                {aggregate.variables?.column} — {aggregate.variables?.operation}
+                {chartGroupBy && ` (grouped by ${chartGroupBy})`}
+              </h3>
+              <div className="h-[400px]">
+                <AggregateChart data={(aggregate.data.data as any[]).slice(0, 25)} type={chartType} />
               </div>
             </div>
           )}
@@ -571,6 +621,98 @@ function TimeSeriesChart({ data }: { data: Array<{ period: string; value: number
           dot={chartData.length < 50}
         />
       </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+/* ── Multi-type Aggregate Chart ────────────────────────── */
+
+const CHART_COLORS = ['#2e75b6', '#e67e22', '#27ae60', '#c0392b', '#8e44ad', '#16a085', '#d35400', '#f39c12', '#1abc9c', '#2c3e50'];
+
+function AggregateChart({ data, type }: { data: any[]; type: 'bar' | 'pie' | 'line' | 'scatter' }) {
+  const chartData = data.map((d: any, i: number) => ({
+    name: String(d.label ?? `#${i + 1}`).slice(0, 25),
+    value: Number(d.value) || 0,
+    fill: CHART_COLORS[i % CHART_COLORS.length],
+  }));
+
+  if (chartData.length === 0) {
+    return <div className="flex h-full items-center justify-center text-sm text-slate-400">No results</div>;
+  }
+
+  const tooltipStyle = { backgroundColor: '#1e293b', border: 'none', borderRadius: 8, color: '#f1f5f9', fontSize: 12 };
+  const formatter = (v: number) => [v.toLocaleString(), 'Value'];
+
+  if (type === 'pie') {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={chartData}
+            cx="50%"
+            cy="50%"
+            outerRadius={140}
+            innerRadius={70}
+            paddingAngle={2}
+            dataKey="value"
+            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+          >
+            {chartData.map((entry, i) => (
+              <Cell key={i} fill={entry.fill} />
+            ))}
+          </Pie>
+          <Tooltip contentStyle={tooltipStyle} formatter={formatter} />
+        </PieChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  if (type === 'line') {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 60 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#94a3b8' }} interval={0} angle={-45} textAnchor="end" height={80} />
+          <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
+          <Tooltip contentStyle={tooltipStyle} formatter={formatter} />
+          <Line type="monotone" dataKey="value" stroke="#2e75b6" strokeWidth={2} dot={{ r: 4, fill: '#2e75b6' }} />
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  if (type === 'scatter') {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <ScatterChart margin={{ top: 10, right: 20, left: 0, bottom: 60 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis dataKey="name" type="category" tick={{ fontSize: 10, fill: '#94a3b8' }} interval={0} angle={-45} textAnchor="end" height={80} />
+          <YAxis dataKey="value" tick={{ fontSize: 10, fill: '#94a3b8' }} />
+          <Tooltip contentStyle={tooltipStyle} />
+          <Scatter data={chartData} fill="#2e75b6">
+            {chartData.map((entry, i) => (
+              <Cell key={i} fill={entry.fill} />
+            ))}
+          </Scatter>
+        </ScatterChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  // Default: Bar chart (horizontal)
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 0, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+        <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} />
+        <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+        <Tooltip contentStyle={tooltipStyle} formatter={formatter} />
+        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+          {chartData.map((entry, i) => (
+            <Cell key={i} fill={entry.fill} />
+          ))}
+        </Bar>
+      </BarChart>
     </ResponsiveContainer>
   );
 }

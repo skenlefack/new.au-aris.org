@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import { HistoricalDataSection } from '@/components/historical/HistoricalDataSection';
 import {
   Plus,
   MapPin,
@@ -251,6 +252,9 @@ export default function AnimalHealthPage() {
       )}
 
       {/* Campaigns & Alert Form removed — already accessible via Quick Links and Campaign Carousel */}
+
+      {/* Historical Data Section */}
+      <HistoricalDataSection domain="animal_health" />
     </div>
   );
 }

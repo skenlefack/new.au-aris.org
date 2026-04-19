@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import { HistoricalDataSection } from '@/components/historical/HistoricalDataSection';
 import {
   Plus,
   ChevronLeft,
@@ -112,6 +113,9 @@ export default function LivestockPage() {
 
       {/* ── Recent Events ────────────────────────────────── */}
       {sections.alertForm && <RecentEventsCard templateId={LIVESTOCK_ALERT_TEMPLATE_ID} t={t} />}
+
+      {/* Historical Data */}
+      <HistoricalDataSection domain="livestock" />
     </div>
   );
 }
