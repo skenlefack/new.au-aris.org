@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { ExternalLink, RefreshCw, Maximize2, Minimize2, Loader2, ChevronLeft, CheckCircle2, AlertTriangle, Lock } from 'lucide-react';
 import Link from 'next/link';
-import { useBiDashboards, useBiAccessRulesForRole, useRequestMetabaseEmbedUrl } from '@/lib/api/bi-hooks';
+import { useBiDashboards, useBiAccessRulesForRole, useRequestMetabaseSession, useRequestMetabaseEmbedUrl } from '@/lib/api/bi-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTranslations } from '@/lib/i18n/translations';
 
@@ -15,14 +15,20 @@ export default function MetabaseEmbedPage() {
   const [embedUrl, setEmbedUrl] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [selectedDashboardId, setSelectedDashboardId] = useState<number | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const user = useAuthStore((s) => s.user);
   const requestEmbedUrl = useRequestMetabaseEmbedUrl();
+  const requestSession = useRequestMetabaseSession();
 
   // Fetch registered Metabase dashboards
   const { data: dashboardsData, isLoading: dashboardsLoading } = useBiDashboards('metabase');
   const dashboards = dashboardsData?.data ?? [];
+
+  // Determine mode: signed embed (dashboards registered) or session fallback
+  const useSignedEmbed = !dashboardsLoading && dashboards.length > 0;
+  const useFallbackSession = !dashboardsLoading && dashboards.length === 0;
 
   // Access check — allow by default when no rules are configured
   const { data: rulesData, isLoading: rulesLoading } = useBiAccessRulesForRole(user?.role ?? '', 'metabase');
@@ -31,17 +37,19 @@ export default function MetabaseEmbedPage() {
 
   const metabaseUrl = process.env.NEXT_PUBLIC_METABASE_URL ?? 'https://metabase.au-aris.org';
 
+  // === MODE 1: Signed Embed (when dashboards are registered) ===
+
   // Auto-select first dashboard
   useEffect(() => {
-    if (dashboards.length > 0 && selectedDashboardId === null) {
+    if (useSignedEmbed && dashboards.length > 0 && selectedDashboardId === null) {
       const id = parseInt(dashboards[0].externalId, 10);
       if (!isNaN(id)) setSelectedDashboardId(id);
     }
-  }, [dashboards, selectedDashboardId]);
+  }, [dashboards, selectedDashboardId, useSignedEmbed]);
 
   // Request signed embed URL when dashboard changes
   useEffect(() => {
-    if (!hasAccess || selectedDashboardId === null) return;
+    if (!useSignedEmbed || !hasAccess || selectedDashboardId === null) return;
     let cancelled = false;
 
     async function fetchEmbedUrl() {
@@ -63,7 +71,38 @@ export default function MetabaseEmbedPage() {
     fetchEmbedUrl();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDashboardId, hasAccess]);
+  }, [selectedDashboardId, hasAccess, useSignedEmbed]);
+
+  // === MODE 2: Session fallback (when no dashboards registered) ===
+
+  useEffect(() => {
+    if (!useFallbackSession || !hasAccess) return;
+    let cancelled = false;
+
+    async function autoLogin() {
+      try {
+        setError(null);
+        const result = await requestSession.mutateAsync();
+        if (cancelled) return;
+        const token = result.data.sessionToken;
+        const isProduction = typeof window !== 'undefined' && window.location.hostname.endsWith('au-aris.org');
+        const domainSuffix = isProduction ? '; domain=.au-aris.org' : '';
+        document.cookie = `metabase.SESSION=${token}; path=/; SameSite=Lax; Secure${domainSuffix}`;
+        setSessionReady(true);
+        setEmbedUrl(`${metabaseUrl}/`);
+      } catch {
+        if (!cancelled) {
+          // Even if session fails, try loading the iframe
+          setSessionReady(true);
+          setEmbedUrl(`${metabaseUrl}/`);
+        }
+      }
+    }
+
+    autoLogin();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useFallbackSession, hasAccess]);
 
   const handleLoad = useCallback(() => {
     setLoading(false);
@@ -71,11 +110,13 @@ export default function MetabaseEmbedPage() {
 
   const handleRefresh = () => {
     setLoading(true);
-    setEmbedUrl('');
-    // Re-trigger embed URL fetch
-    const id = selectedDashboardId;
-    setSelectedDashboardId(null);
-    setTimeout(() => setSelectedDashboardId(id), 50);
+    setIframeKey((prev) => prev + 1);
+    if (useSignedEmbed) {
+      setEmbedUrl('');
+      const id = selectedDashboardId;
+      setSelectedDashboardId(null);
+      setTimeout(() => setSelectedDashboardId(id), 50);
+    }
   };
 
   const handleDashboardChange = (externalId: string) => {
@@ -143,7 +184,7 @@ export default function MetabaseEmbedPage() {
             <p className="text-xs text-slate-500 dark:text-slate-400">{t('metabaseSubtitle')}</p>
           </div>
 
-          {embedUrl && (
+          {(embedUrl || sessionReady) && (
             <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400">
               <CheckCircle2 className="h-3 w-3" />
               {t('autoConnected')}
@@ -157,13 +198,13 @@ export default function MetabaseEmbedPage() {
           {loading && !error && (
             <div className="ml-2 flex items-center gap-1.5 text-xs text-slate-400">
               <Loader2 className="h-3 w-3 animate-spin" />
-              {t('loading')}
+              {sessionReady ? t('loading') : t('connecting')}
             </div>
           )}
         </div>
 
         <div className="flex items-center gap-1">
-          {dashboards.length > 1 && (
+          {useSignedEmbed && dashboards.length > 1 && (
             <select
               value={selectedDashboardId?.toString() ?? ''}
               onChange={(e) => handleDashboardChange(e.target.value)}
@@ -221,20 +262,6 @@ export default function MetabaseEmbedPage() {
                 <RefreshCw className="h-4 w-4" />
                 {t('retry')}
               </button>
-            </div>
-          </div>
-        )}
-
-        {!dashboardsLoading && dashboards.length === 0 && !error && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center max-w-md px-6">
-              <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-amber-400" />
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                {t('noDashboards')}
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t('noDashboardsDesc')}
-              </p>
             </div>
           </div>
         )}

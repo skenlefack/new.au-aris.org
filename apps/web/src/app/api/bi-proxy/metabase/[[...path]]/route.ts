@@ -7,8 +7,8 @@ const METABASE_URL = process.env.METABASE_INTERNAL_URL ?? 'http://metabase:3000'
  * (Content-Security-Policy: frame-ancestors 'none' and X-Frame-Options)
  * so Metabase can be embedded in an iframe within ARIS.
  */
-// Paths allowed through the proxy (signed embeds + static assets)
-const ALLOWED_PREFIXES = ['/embed/', '/app/', '/public/', '/api/util/'];
+// Paths allowed through the proxy
+const ALLOWED_PREFIXES = ['/embed/', '/app/', '/public/', '/api/', '/dashboard/', '/collection/', '/question/'];
 const ALLOWED_EXTENSIONS = /\.(js|css|map|woff2?|ttf|svg|png|jpg|gif|ico)(\?|$)/i;
 
 async function proxyToMetabase(request: NextRequest, params: { path?: string[] }) {
