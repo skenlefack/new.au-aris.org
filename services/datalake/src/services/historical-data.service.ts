@@ -530,20 +530,32 @@ export class HistoricalDataService {
 
   /**
    * Resolves dataset IDs to table names, with tenant check.
+   * When requiredColumns is provided, only returns tables that have ALL those columns.
    */
   private async resolveTableNames(
     datasetIds: string[],
     tenantId: string,
     tenantLevel: string,
+    requiredColumns?: string[],
   ): Promise<string[]> {
     const datasets = await this.prisma.historicalDataset.findMany({
       where: { id: { in: datasetIds }, status: 'READY' },
-      select: { id: true, tableName: true, tenantId: true },
+      select: { id: true, tableName: true, tenantId: true, columns: { select: { pgColumnName: true } } },
     });
     if (tenantLevel !== 'CONTINENTAL') {
       const unauthorized = datasets.filter((d: any) => d.tenantId !== tenantId);
       if (unauthorized.length > 0) throw new HttpError(403, 'Access denied to some datasets');
     }
+
+    if (requiredColumns && requiredColumns.length > 0) {
+      return datasets
+        .filter((d: any) => {
+          const colNames = new Set((d.columns as any[]).map((c: any) => c.pgColumnName));
+          return requiredColumns.every((rc) => colNames.has(rc));
+        })
+        .map((d: any) => d.tableName);
+    }
+
     return datasets.map((d: any) => d.tableName);
   }
 
@@ -558,8 +570,17 @@ export class HistoricalDataService {
     tenantId: string,
     tenantLevel: string,
   ): Promise<{ data: unknown[] }> {
-    const tableNames = await this.resolveTableNames(datasetIds, tenantId, tenantLevel);
-    if (tableNames.length === 0) throw new HttpError(400, 'No valid datasets found');
+    const requiredCols = [dateColumn, valueColumn];
+    if (groupBy) requiredCols.push(groupBy);
+    if (filters) {
+      for (const k of Object.keys(filters)) {
+        if (['dateFrom', 'dateTo'].includes(k)) {
+          if (!requiredCols.includes('date_of_report')) requiredCols.push('date_of_report');
+        } else if (!requiredCols.includes(k)) requiredCols.push(k);
+      }
+    }
+    const tableNames = await this.resolveTableNames(datasetIds, tenantId, tenantLevel, requiredCols);
+    if (tableNames.length === 0) return { data: [] };
     const data = await this.dynamicTable.crossTimeSeries(
       tableNames, dateColumn, valueColumn, interval, operation, groupBy, filters,
     );
@@ -575,8 +596,19 @@ export class HistoricalDataService {
     tenantId: string,
     tenantLevel: string,
   ): Promise<{ data: unknown[] }> {
-    const tableNames = await this.resolveTableNames(datasetIds, tenantId, tenantLevel);
-    if (tableNames.length === 0) throw new HttpError(400, 'No valid datasets found');
+    const requiredCols = [column];
+    if (groupBy && groupBy !== column) requiredCols.push(groupBy);
+    if (filters) {
+      for (const k of Object.keys(filters)) {
+        if (['dateFrom', 'dateTo'].includes(k)) {
+          if (!requiredCols.includes('date_of_report')) requiredCols.push('date_of_report');
+        } else if (!requiredCols.includes(k)) {
+          requiredCols.push(k);
+        }
+      }
+    }
+    const tableNames = await this.resolveTableNames(datasetIds, tenantId, tenantLevel, requiredCols);
+    if (tableNames.length === 0) return { data: [] };
     const data = await this.dynamicTable.crossAggregate(
       tableNames, column, operation, groupBy, filters,
     );
@@ -589,7 +621,8 @@ export class HistoricalDataService {
     tenantId: string,
     tenantLevel: string,
   ): Promise<{ data: Record<string, unknown> }> {
-    const tableNames = await this.resolveTableNames(datasetIds, tenantId, tenantLevel);
+    const requiredCols = ['date_of_report', 'disease', 'num_new_outbreaks', 'admin_location'];
+    const tableNames = await this.resolveTableNames(datasetIds, tenantId, tenantLevel, requiredCols);
     if (tableNames.length === 0) {
       return { data: { year: year ?? new Date().getFullYear(), totalReports: 0, totalOutbreaks: 0, uniqueDiseases: 0, uniqueLocations: 0, pctChangeReports: 0, pctChangeOutbreaks: 0, pctChangeDiseases: 0, pctChangeLocations: 0, yearlyBreakdown: [] } };
     }

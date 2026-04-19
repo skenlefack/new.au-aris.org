@@ -411,7 +411,11 @@ export class DynamicTableService {
     if (groupBy && groupBy !== column) cols.push(groupBy);
     if (filters) {
       for (const k of Object.keys(filters)) {
-        if (!['dateFrom', 'dateTo'].includes(k) && !cols.includes(k)) cols.push(k);
+        if (['dateFrom', 'dateTo'].includes(k)) {
+          if (!cols.includes('date_of_report')) cols.push('date_of_report');
+        } else if (!cols.includes(k)) {
+          cols.push(k);
+        }
       }
     }
 
