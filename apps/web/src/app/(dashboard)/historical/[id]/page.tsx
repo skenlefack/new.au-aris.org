@@ -15,6 +15,15 @@ import {
 } from '@/lib/api/historical-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTranslations } from '@/lib/i18n/translations';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from 'recharts';
 
 const DOMAIN_LABELS: Record<string, string> = {
   animal_health: 'Animal Health',
@@ -513,21 +522,6 @@ export default function DatasetDetailPage() {
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Time Series Chart (Recharts)                                        */
-/* ------------------------------------------------------------------ */
-
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
 
 function TimeSeriesChart({ data }: { data: Array<{ period: string; value: number }> }) {
   const chartData = data
