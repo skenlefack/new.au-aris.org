@@ -501,3 +501,65 @@ export function useDeleteAnalysis() {
     },
   });
 }
+
+/* ------------------------------------------------------------------ */
+/*  Disease UUID → Name resolver                                        */
+/* ------------------------------------------------------------------ */
+
+const DISEASE_UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MASTER_DATA_API =
+  process.env['NEXT_PUBLIC_MASTER_DATA_API_URL'] ?? '';
+
+/**
+ * Fetches all diseases from master-data ref API and builds a UUID→name map.
+ * Cached for 10 minutes via react-query.
+ */
+export function useDiseaseNameMap() {
+  return useQuery<Record<string, string>>({
+    queryKey: ['disease-name-map'],
+    queryFn: async () => {
+      const map: Record<string, string> = {};
+      try {
+        const res = await fetch(`${MASTER_DATA_API}/api/v1/master-data/ref/diseases?limit=500`, {
+          headers: getAuthHeaders(),
+        });
+        if (!res.ok) return map;
+        const body = await res.json();
+        const items = body?.data ?? [];
+        // Detect locale from localStorage or default to 'en'
+        let locale = 'en';
+        try {
+          const stored = localStorage.getItem('aris-locale');
+          if (stored) locale = JSON.parse(stored)?.state?.locale ?? 'en';
+        } catch { /* ignore */ }
+        for (const item of items) {
+          if (item.id && item.name) {
+            const name = typeof item.name === 'string'
+              ? item.name
+              : item.name[locale] ?? item.name['en'] ?? item.code ?? item.id;
+            map[item.id] = name;
+          }
+        }
+      } catch { /* fallback: empty map, UUIDs will show as-is */ }
+      return map;
+    },
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+/**
+ * Resolves a disease value: if it's a UUID, returns the name from the map.
+ * Otherwise returns the original value as-is.
+ */
+export function resolveDiseaseLabel(
+  value: string | null | undefined,
+  diseaseMap: Record<string, string> | undefined,
+): string {
+  if (!value) return '';
+  if (!diseaseMap) return value;
+  if (DISEASE_UUID_REGEX.test(value)) {
+    return diseaseMap[value] ?? value;
+  }
+  return value;
+}

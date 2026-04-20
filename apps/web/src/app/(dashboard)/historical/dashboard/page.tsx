@@ -7,6 +7,8 @@ import {
   useDashboardKpis,
   useCrossTimeSeries,
   useCrossAggregate,
+  useDiseaseNameMap,
+  resolveDiseaseLabel,
   type HistoricalDataset,
   type DashboardKpis,
 } from '@/lib/api/historical-hooks';
@@ -54,6 +56,9 @@ export default function HistoricalDashboardPage() {
     [allDatasets],
   );
   const allIds = useMemo(() => allDatasets.map((d) => d.id), [allDatasets]);
+
+  // Disease name resolver
+  const { data: diseaseMap } = useDiseaseNameMap();
 
   // Filters
   const [selectedYear, setSelectedYear] = useState(2024);
@@ -126,12 +131,15 @@ export default function HistoricalDashboardPage() {
 
   // Extract unique diseases and countries from aggregate results
   const diseaseOptions = useMemo(() => {
-    if (!topDiseases.data?.data) return [];
+    if (!topDiseases.data?.data) return [] as { value: string; label: string }[];
     return (topDiseases.data.data as any[])
       .filter((d: any) => d.label && d.value > 50)
       .slice(0, 50)
-      .map((d: any) => d.label);
-  }, [topDiseases.data]);
+      .map((d: any) => ({
+        value: String(d.label),
+        label: resolveDiseaseLabel(String(d.label), diseaseMap),
+      }));
+  }, [topDiseases.data, diseaseMap]);
 
   const countryOptions = useMemo(() => {
     if (!countryDistribution.data?.data) return [];
@@ -159,7 +167,7 @@ export default function HistoricalDashboardPage() {
             </h1>
           </div>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Continental disease surveillance trends from ARIS 3 data (2008-2025) — {allDatasets.length} datasets, {allDatasets.reduce((s, d) => s + d.rowCount, 0).toLocaleString()} records
+            Continental disease surveillance trends (2008-2025) — {allDatasets.length} datasets, {allDatasets.reduce((s, d) => s + d.rowCount, 0).toLocaleString()} records
           </p>
         </div>
 
@@ -215,7 +223,7 @@ export default function HistoricalDashboardPage() {
         <div className="xl:col-span-2 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/50">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-              Epidemic Curve {selectedDisease && `— ${selectedDisease}`}
+              Epidemic Curve {selectedDisease && `— ${resolveDiseaseLabel(selectedDisease, diseaseMap)}`}
             </h2>
             <select
               value={selectedDisease}
@@ -224,7 +232,7 @@ export default function HistoricalDashboardPage() {
             >
               <option value="">All Diseases</option>
               {diseaseOptions.map((d) => (
-                <option key={d} value={d}>{d}</option>
+                <option key={d.value} value={d.value}>{d.label}</option>
               ))}
             </select>
           </div>
@@ -248,7 +256,7 @@ export default function HistoricalDashboardPage() {
             {topDiseases.isPending ? (
               <LoadingChart />
             ) : topDiseases.data ? (
-              <TopDiseasesChart data={(topDiseases.data.data as any[]).slice(0, 15)} />
+              <TopDiseasesChart data={(topDiseases.data.data as any[]).slice(0, 15)} diseaseMap={diseaseMap} />
             ) : (
               <EmptyChart />
             )}
@@ -283,7 +291,7 @@ export default function HistoricalDashboardPage() {
             {topDiseases.isPending ? (
               <LoadingChart />
             ) : topDiseases.data ? (
-              <DiseasePieChart data={(topDiseases.data.data as any[]).slice(0, 10)} />
+              <DiseasePieChart data={(topDiseases.data.data as any[]).slice(0, 10)} diseaseMap={diseaseMap} />
             ) : (
               <EmptyChart />
             )}
@@ -441,9 +449,9 @@ function EpidemicCurveChart({ data }: { data: any[] }) {
   );
 }
 
-function TopDiseasesChart({ data }: { data: any[] }) {
+function TopDiseasesChart({ data, diseaseMap }: { data: any[]; diseaseMap?: Record<string, string> }) {
   const chartData = data.map((d, i) => ({
-    name: String(d.label || '').slice(0, 25),
+    name: resolveDiseaseLabel(String(d.label || ''), diseaseMap).slice(0, 25),
     value: Number(d.value) || 0,
     fill: ACCENT_COLORS[i % ACCENT_COLORS.length],
   }));
@@ -490,9 +498,9 @@ function CountryBarChart({ data }: { data: any[] }) {
   );
 }
 
-function DiseasePieChart({ data }: { data: any[] }) {
+function DiseasePieChart({ data, diseaseMap }: { data: any[]; diseaseMap?: Record<string, string> }) {
   const chartData = data.map((d, i) => ({
-    name: String(d.label || '').slice(0, 20),
+    name: resolveDiseaseLabel(String(d.label || ''), diseaseMap).slice(0, 20),
     value: Number(d.value) || 0,
     fill: ACCENT_COLORS[i % ACCENT_COLORS.length],
   }));

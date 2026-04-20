@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { HistoricalDataSection } from '@/components/historical/HistoricalDataSection';
+
 import {
   Plus,
   MapPin,
@@ -254,7 +254,18 @@ export default function AnimalHealthPage() {
       {/* Campaigns & Alert Form removed — already accessible via Quick Links and Campaign Carousel */}
 
       {/* Historical Data Section */}
-      <HistoricalDataSection domain="animal_health" />
+      <div className="mt-8 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 p-6 dark:border-blue-700 dark:bg-blue-900/20">
+        <h2 className="text-lg font-bold text-blue-800 dark:text-blue-300">Historical Data (2008-2025)</h2>
+        <p className="mt-1 text-sm text-blue-600 dark:text-blue-400">809,460 records across 46 countries</p>
+        <div className="mt-4 flex gap-3">
+          <a href="/historical/dashboard" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+            Analytics Dashboard
+          </a>
+          <a href="/historical" className="rounded-lg border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300">
+            Browse Datasets
+          </a>
+        </div>
+      </div>
     </div>
   );
 }

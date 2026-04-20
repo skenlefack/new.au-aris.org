@@ -7,7 +7,10 @@ import {
   useCrossTimeSeries,
   useCrossAggregate,
   useDashboardKpis,
+  useDiseaseNameMap,
+  resolveDiseaseLabel,
 } from '@/lib/api/historical-hooks';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -39,12 +42,14 @@ interface Props {
 }
 
 export function HistoricalDataSection({ domain, maxDiseases = 8 }: Props) {
-  const { data: dsRes } = useHistoricalDatasets({ limit: 100, domain, status: 'READY' });
+  const { accessToken } = useAuthStore();
+  const { data: dsRes, isLoading: dsLoading, isError: dsError } = useHistoricalDatasets({ limit: 100, domain, status: 'READY' });
   const datasets = dsRes?.data ?? [];
   const datasetIds = useMemo(() => datasets.map((d) => d.id), [datasets]);
   const totalRows = datasets.reduce((s, d) => s + d.rowCount, 0);
 
   const kpis = useDashboardKpis({ year: new Date().getFullYear() - 1, datasetIds });
+  const { data: diseaseMap } = useDiseaseNameMap();
   const epiCurve = useCrossTimeSeries();
   const topItems = useCrossAggregate();
 
@@ -68,7 +73,21 @@ export function HistoricalDataSection({ domain, maxDiseases = 8 }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datasetIds.length]);
 
-  if (datasets.length === 0) return null;
+  if (!accessToken) return null;
+  if (dsLoading) {
+    return (
+      <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800/50">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700" />
+          <div>
+            <div className="h-4 w-32 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+            <div className="mt-1 h-3 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (dsError || datasets.length === 0) return null;
 
   const kpiData = kpis.data?.data;
   const curveData = (epiCurve.data?.data as any[] ?? [])
@@ -76,11 +95,11 @@ export function HistoricalDataSection({ domain, maxDiseases = 8 }: Props) {
     .map((d: any) => ({ year: new Date(d.period).getFullYear(), value: Number(d.value) || 0 }));
 
   const topData = (topItems.data?.data as any[] ?? [])
-    .filter((d: any) => d.label && d.value > 0 && !d.label.startsWith('3000'))
+    .filter((d: any) => d.label && d.value > 0)
     .slice(0, maxDiseases);
 
   const pieData = topData.map((d: any, i: number) => ({
-    name: String(d.label).slice(0, 18),
+    name: resolveDiseaseLabel(String(d.label), diseaseMap).slice(0, 22),
     value: Number(d.value),
     fill: COLORS[i % COLORS.length],
   }));
@@ -100,7 +119,7 @@ export function HistoricalDataSection({ domain, maxDiseases = 8 }: Props) {
               Historical Data
             </h2>
             <p className="text-xs text-slate-500">
-              {datasets.length} datasets, {totalRows.toLocaleString()} records (ARIS 3, 2008-2025)
+              {datasets.length} datasets, {totalRows.toLocaleString()} records (2008-2025)
             </p>
           </div>
         </div>
@@ -220,7 +239,7 @@ export function HistoricalDataSection({ domain, maxDiseases = 8 }: Props) {
             href={`/historical/${ds.id}`}
             className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
           >
-            {ds.name.replace('ARIS 3 — ', '').slice(0, 40)}
+            {ds.name.slice(0, 40)}
             <span className="ml-1 text-slate-400">({ds.rowCount.toLocaleString()})</span>
           </Link>
         ))}

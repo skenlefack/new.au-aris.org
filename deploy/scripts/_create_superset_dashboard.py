@@ -146,7 +146,7 @@ CREATE INDEX IF NOT EXISTS idx_vds_disease ON historical.v_disease_summary (dise
     print("\n[4] Registering datasets in Superset...")
 
     for view_name, description in [
-        ("v_disease_reports", "All disease reports from ARIS 3 historical data (2008-2025)"),
+        ("v_disease_reports", "All disease reports from historical data (2008-2025)"),
         ("v_disease_summary", "Disease reports aggregated by disease, country, year"),
     ]:
         # Check if already exists

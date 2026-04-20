@@ -2329,7 +2329,7 @@
     "importDatasetBtn": "Import Dataset",
     "tabTimeSeries": "Time Series",
     "analyticsDashboard": "Analytics Dashboard",
-    "dashboardSubtitle": "Continental disease surveillance trends from ARIS 3 data (2008-2025)",
+    "dashboardSubtitle": "Continental disease surveillance trends (2008-2025)",
     "epidemicCurve": "Epidemic Curve",
     "topDiseases": "Top Diseases",
     "countryComparator": "Country Comparator",

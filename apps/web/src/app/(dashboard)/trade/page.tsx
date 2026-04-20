@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { HistoricalDataSection } from '@/components/historical/HistoricalDataSection';
+
 import {
   Plus,
   ChevronLeft,
@@ -119,7 +119,14 @@ export default function TradePage() {
       )}
 
       {/* Historical Data */}
-      <HistoricalDataSection domain="trade_sps" />
+      <div className="mt-8 rounded-xl border-2 border-dashed border-purple-300 bg-purple-50 p-6 dark:border-purple-700 dark:bg-purple-900/20">
+        <h2 className="text-lg font-bold text-purple-800 dark:text-purple-300">Historical Data (2008-2025)</h2>
+        <p className="mt-1 text-sm text-purple-600 dark:text-purple-400">Trade and SPS import/export records</p>
+        <div className="mt-4 flex gap-3">
+          <a href="/historical/dashboard" className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700">Analytics Dashboard</a>
+          <a href="/historical" className="rounded-lg border border-purple-300 px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-100 dark:border-purple-700 dark:text-purple-300">Browse Datasets</a>
+        </div>
+      </div>
     </div>
   );
 }

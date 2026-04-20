@@ -13,6 +13,8 @@ import {
   useTimeSeriesData,
   usePivotData,
   useExportCsvUrl,
+  useDiseaseNameMap,
+  resolveDiseaseLabel,
   type DatasetColumn,
   type PivotResult,
 } from '@/lib/api/historical-hooks';
@@ -82,6 +84,7 @@ export default function DatasetDetailPage() {
   const aggregate = useAggregateData();
   const updateRow = useUpdateDatasetRow();
   const timeSeries = useTimeSeriesData();
+  const { data: diseaseMap } = useDiseaseNameMap();
 
   const [tsDateCol, setTsDateCol] = useState('');
   const [tsValueCol, setTsValueCol] = useState('');
@@ -289,7 +292,9 @@ export default function DatasetDetailPage() {
                               />
                             ) : (
                               <span className="text-slate-600 dark:text-slate-300 whitespace-nowrap max-w-[200px] truncate block">
-                                {String(row[col.pgColumnName] ?? '')}
+                                {col.pgColumnName === 'disease'
+                                  ? resolveDiseaseLabel(String(row[col.pgColumnName] ?? ''), diseaseMap)
+                                  : String(row[col.pgColumnName] ?? '')}
                               </span>
                             )}
                           </td>
@@ -480,7 +485,7 @@ export default function DatasetDetailPage() {
                 <ExportPngButton chartRef={chartRef} filename={`chart-${aggregate.variables?.column}`} />
               </div>
               <div className="h-[400px]" ref={chartRef}>
-                <AggregateChart data={(aggregate.data.data as any[]).slice(0, 25)} type={chartType} />
+                <AggregateChart data={(aggregate.data.data as any[]).slice(0, 25)} type={chartType} diseaseMap={diseaseMap} />
               </div>
             </div>
           )}
@@ -646,7 +651,7 @@ export default function DatasetDetailPage() {
             </button>
           </div>
 
-          {pivot.data && <PivotTableView pivot={pivot.data.data as unknown as PivotResult} />}
+          {pivot.data && <PivotTableView pivot={pivot.data.data as unknown as PivotResult} diseaseMap={diseaseMap} />}
 
           {pivot.isError && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/10 dark:text-red-400">
@@ -743,9 +748,9 @@ function TimeSeriesChart({ data }: { data: Array<{ period: string; value: number
 
 const CHART_COLORS = ['#2e75b6', '#e67e22', '#27ae60', '#c0392b', '#8e44ad', '#16a085', '#d35400', '#f39c12', '#1abc9c', '#2c3e50'];
 
-function AggregateChart({ data, type }: { data: any[]; type: 'bar' | 'pie' | 'line' | 'scatter' }) {
+function AggregateChart({ data, type, diseaseMap }: { data: any[]; type: 'bar' | 'pie' | 'line' | 'scatter'; diseaseMap?: Record<string, string> }) {
   const chartData = data.map((d: any, i: number) => ({
-    name: String(d.label ?? `#${i + 1}`).slice(0, 25),
+    name: resolveDiseaseLabel(String(d.label ?? `#${i + 1}`), diseaseMap).slice(0, 25),
     value: Number(d.value) || 0,
     fill: CHART_COLORS[i % CHART_COLORS.length],
   }));
@@ -833,7 +838,7 @@ function AggregateChart({ data, type }: { data: any[]; type: 'bar' | 'pie' | 'li
 
 /* ── Pivot Table View ─────────────────────────────────── */
 
-function PivotTableView({ pivot }: { pivot: PivotResult }) {
+function PivotTableView({ pivot, diseaseMap }: { pivot: PivotResult; diseaseMap?: Record<string, string> }) {
   const { rows, columns: cols, matrix } = pivot;
 
   if (rows.length === 0 || cols.length === 0) {
@@ -875,7 +880,7 @@ function PivotTableView({ pivot }: { pivot: PivotResult }) {
               <th className="sticky left-0 z-10 bg-slate-100 px-3 py-2 text-left font-semibold text-slate-500 dark:bg-slate-800" />
               {cols.map((c) => (
                 <th key={c} className="whitespace-nowrap px-3 py-2 text-center font-medium text-slate-500">
-                  {String(c).slice(0, 20)}
+                  {resolveDiseaseLabel(String(c), diseaseMap).slice(0, 20)}
                 </th>
               ))}
             </tr>
@@ -884,7 +889,7 @@ function PivotTableView({ pivot }: { pivot: PivotResult }) {
             {rows.map((r) => (
               <tr key={r} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                 <td className="sticky left-0 bg-white px-3 py-1.5 font-medium text-slate-700 whitespace-nowrap dark:bg-slate-900/50 dark:text-slate-300">
-                  {String(r).slice(0, 25)}
+                  {resolveDiseaseLabel(String(r), diseaseMap).slice(0, 25)}
                 </td>
                 {cols.map((c) => {
                   const v = matrix[r]?.[c] ?? 0;

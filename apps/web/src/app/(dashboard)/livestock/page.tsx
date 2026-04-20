@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { HistoricalDataSection } from '@/components/historical/HistoricalDataSection';
+
 import {
   Plus,
   ChevronLeft,
@@ -115,7 +115,14 @@ export default function LivestockPage() {
       {sections.alertForm && <RecentEventsCard templateId={LIVESTOCK_ALERT_TEMPLATE_ID} t={t} />}
 
       {/* Historical Data */}
-      <HistoricalDataSection domain="livestock" />
+      <div className="mt-8 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50 p-6 dark:border-amber-700 dark:bg-amber-900/20">
+        <h2 className="text-lg font-bold text-amber-800 dark:text-amber-300">Historical Data (2008-2025)</h2>
+        <p className="mt-1 text-sm text-amber-600 dark:text-amber-400">Livestock population and composition records</p>
+        <div className="mt-4 flex gap-3">
+          <a href="/historical/dashboard" className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">Analytics Dashboard</a>
+          <a href="/historical" className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300">Browse Datasets</a>
+        </div>
+      </div>
     </div>
   );
 }

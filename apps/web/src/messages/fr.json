@@ -2324,7 +2324,7 @@
     "importDatasetBtn": "Importer le jeu de données",
     "tabTimeSeries": "Séries temporelles",
     "analyticsDashboard": "Tableau de bord analytique",
-    "dashboardSubtitle": "Tendances continentales de surveillance des maladies à partir des données ARIS 3 (2008-2025)",
+    "dashboardSubtitle": "Tendances continentales de surveillance des maladies (2008-2025)",
     "epidemicCurve": "Courbe épidémique",
     "topDiseases": "Top des maladies",
     "countryComparator": "Comparateur de pays",

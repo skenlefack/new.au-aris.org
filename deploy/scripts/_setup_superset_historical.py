@@ -204,7 +204,7 @@ FROM (
 WHERE date_of_report IS NOT NULL AND date_of_report != ''
   AND date_of_report ~ '^[12]'
 """,
-            "description": "Monthly animal health reports from ARIS 3 (2008-2025)",
+            "description": "Monthly animal health reports (2008-2025)",
         },
         "Historical — Disease Summary": {
             "sql": """
