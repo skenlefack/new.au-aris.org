@@ -19,15 +19,36 @@ import {
 import {
   useCreateDataShareAgreement,
   useSubmitDataShareAgreement,
-  DATA_DOMAINS,
   DATA_CLASSIFICATIONS,
   type CreateDataShareAgreementDto,
   type DataShareScope,
 } from '@/lib/api/data-sharing';
-import { useTenantTree, useCampaigns, useFormTemplates } from '@/lib/api/hooks';
+import { useTenantTree, useCampaigns } from '@/lib/api/hooks';
+import { useFormBuilderTemplates, useFormBuilderTemplate, type FormTemplateListItem } from '@/lib/api/form-builder-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTranslations } from '@/lib/i18n/translations';
 import { SearchCombobox } from '@/components/ui/SearchCombobox';
+import { ChevronDown, ChevronRight, CheckSquare, Square } from 'lucide-react';
+
+// Domain options matching DB values (underscore format)
+const DOMAIN_OPTIONS = [
+  { value: 'animal_health', label: 'Animal Health' },
+  { value: 'livestock', label: 'Livestock & Production' },
+  { value: 'fisheries', label: 'Fisheries & Aquaculture' },
+  { value: 'trade_sps', label: 'Trade & SPS' },
+  { value: 'governance', label: 'Governance & Capacities' },
+  { value: 'wildlife', label: 'Wildlife & Biodiversity' },
+  { value: 'apiculture', label: 'Apiculture & Pollination' },
+  { value: 'climate_env', label: 'Climate & Environment' },
+  { value: 'paid', label: 'PAID' },
+] as const;
+
+interface FormField {
+  id: string;
+  code: string;
+  label: string;
+  type: string;
+}
 
 interface FormState {
   // Step 1
@@ -39,6 +60,7 @@ interface FormState {
   dataDomain: string;
   campaignId: string;
   selectedFormIds: string[]; // form templates checked for sharing
+  selectedFields: Record<string, string[]>; // formId → field ids
   dataClassification: string;
   // Step 3
   canConsult: boolean;
@@ -59,7 +81,6 @@ interface FieldErrors {
   sourceTenantId?: string;
   recipientTenantId?: string;
   title?: string;
-  campaignId?: string;
   selectedFormIds?: string;
   validFrom?: string;
   purpose?: string;
@@ -113,9 +134,10 @@ export default function NewDataSharingPage() {
     recipientTenantId: '',
     title: '',
     description: '',
-    dataDomain: 'animal-health',
+    dataDomain: 'animal_health',
     campaignId: '',
     selectedFormIds: [],
+    selectedFields: {},
     dataClassification: 'PARTNER',
     canConsult: true,
     canExport: false,
@@ -131,64 +153,120 @@ export default function NewDataSharingPage() {
     legalBasis: '',
   });
 
-  // ── Step 2 data: campaigns + form templates ─────────────────────────────────
+  // ── Step 2 data: campaigns + form templates by domain ────────────────────────
   const { data: campaignsRes, isLoading: campaignsLoading } = useCampaigns({
     domain: form.dataDomain,
     limit: 100,
   });
   const allCampaigns = (campaignsRes as any)?.data ?? [];
-  // "campagnes en cours ou archivées" → ACTIVE + COMPLETED
   const campaigns = useMemo(
-    () => allCampaigns.filter((c: any) => c.status === 'ACTIVE' || c.status === 'COMPLETED'),
+    () => allCampaigns.filter((c: any) => c.status === 'ACTIVE' || c.status === 'COMPLETED' || c.status === 'PLANNED'),
     [allCampaigns],
   );
 
-  const { data: templatesRes } = useFormTemplates();
-  const allTemplates: any[] = (templatesRes as any)?.data ?? [];
+  // Form templates filtered by domain
+  const { data: templatesRes, isLoading: templatesLoading } = useFormBuilderTemplates({
+    domain: form.dataDomain,
+    status: 'PUBLISHED',
+    limit: 100,
+  });
+  const domainTemplates: FormTemplateListItem[] = (templatesRes as any)?.data ?? [];
+
   const templatesById = useMemo(() => {
-    const m: Record<string, any> = {};
-    for (const tpl of allTemplates) m[tpl.id] = tpl;
+    const m: Record<string, FormTemplateListItem> = {};
+    for (const tpl of domainTemplates) m[tpl.id] = tpl;
     return m;
-  }, [allTemplates]);
+  }, [domainTemplates]);
 
   const selectedCampaign = useMemo(
     () => campaigns.find((c: any) => c.id === form.campaignId),
     [campaigns, form.campaignId],
   );
 
-  const campaignTemplateIds: string[] = useMemo(() => {
-    if (!selectedCampaign) return [];
-    if (Array.isArray(selectedCampaign.templateIds) && selectedCampaign.templateIds.length > 0) {
-      return selectedCampaign.templateIds;
-    }
-    if (selectedCampaign.templateId) return [selectedCampaign.templateId];
-    return [];
-  }, [selectedCampaign]);
+  // Expanded form templates (to show fields)
+  const [expandedForms, setExpandedForms] = useState<Set<string>>(new Set());
 
-  // When campaign changes, default-check all forms
+  // Extract fields from a template schema
+  function extractFields(schema: any): FormField[] {
+    if (!schema?.sections) return [];
+    const fields: FormField[] = [];
+    for (const section of schema.sections) {
+      if (!section?.fields) continue;
+      for (const f of section.fields) {
+        const label = typeof f.label === 'object'
+          ? (f.label?.en ?? f.label?.fr ?? f.code ?? f.id)
+          : (f.label ?? f.code ?? f.id);
+        fields.push({ id: f.id, code: f.code ?? f.id, label, type: f.type ?? 'text' });
+      }
+    }
+    return fields;
+  }
+
+  // When domain changes, reset all selections
+  function changeDomain(d: string) {
+    setForm((s) => ({ ...s, dataDomain: d, campaignId: '', selectedFormIds: [], selectedFields: {} }));
+    setExpandedForms(new Set());
+    setFieldErrors((e) => ({ ...e, campaignId: undefined, selectedFormIds: undefined }));
+  }
+
+  // When campaign changes, auto-select its template
   useEffect(() => {
-    if (campaignTemplateIds.length > 0) {
-      setForm((s) => ({ ...s, selectedFormIds: [...campaignTemplateIds] }));
-    } else {
-      setForm((s) => ({ ...s, selectedFormIds: [] }));
+    if (!form.campaignId) return;
+    const camp = campaigns.find((c: any) => c.id === form.campaignId);
+    if (camp?.templateId && !form.selectedFormIds.includes(camp.templateId)) {
+      setForm((s) => ({
+        ...s,
+        selectedFormIds: [...new Set([...s.selectedFormIds, camp.templateId])],
+      }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.campaignId]);
 
-  // When domain changes, reset campaign + forms
-  function changeDomain(d: string) {
-    setForm((s) => ({ ...s, dataDomain: d, campaignId: '', selectedFormIds: [] }));
-    setFieldErrors((e) => ({ ...e, campaignId: undefined, selectedFormIds: undefined }));
+  function toggleForm(id: string) {
+    setForm((s) => {
+      const isSelected = s.selectedFormIds.includes(id);
+      const newIds = isSelected
+        ? s.selectedFormIds.filter((x) => x !== id)
+        : [...s.selectedFormIds, id];
+      const newFields = { ...s.selectedFields };
+      if (isSelected) delete newFields[id];
+      return { ...s, selectedFormIds: newIds, selectedFields: newFields };
+    });
+    setFieldErrors((e) => ({ ...e, selectedFormIds: undefined }));
   }
 
-  function toggleForm(id: string) {
+  function toggleAllForms(select: boolean) {
+    if (select) {
+      setForm((s) => ({ ...s, selectedFormIds: domainTemplates.map((t) => t.id) }));
+    } else {
+      setForm((s) => ({ ...s, selectedFormIds: [], selectedFields: {} }));
+    }
+  }
+
+  function toggleField(formId: string, fieldId: string) {
+    setForm((s) => {
+      const current = s.selectedFields[formId] ?? [];
+      const newFields = current.includes(fieldId)
+        ? current.filter((x) => x !== fieldId)
+        : [...current, fieldId];
+      return { ...s, selectedFields: { ...s.selectedFields, [formId]: newFields } };
+    });
+  }
+
+  function toggleAllFields(formId: string, allFieldIds: string[], select: boolean) {
     setForm((s) => ({
       ...s,
-      selectedFormIds: s.selectedFormIds.includes(id)
-        ? s.selectedFormIds.filter((x) => x !== id)
-        : [...s.selectedFormIds, id],
+      selectedFields: { ...s.selectedFields, [formId]: select ? [...allFieldIds] : [] },
     }));
-    setFieldErrors((e) => ({ ...e, selectedFormIds: undefined }));
+  }
+
+  function toggleExpanded(formId: string) {
+    setExpandedForms((s) => {
+      const next = new Set(s);
+      if (next.has(formId)) next.delete(formId);
+      else next.add(formId);
+      return next;
+    });
   }
 
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) => {
@@ -222,8 +300,7 @@ export default function NewDataSharingPage() {
       else if (form.title.trim().length < 3) errors.title = t('errors.titleTooShort');
     }
     if (s === 2) {
-      if (!form.campaignId) errors.campaignId = t('errors.campaignRequired');
-      else if (form.selectedFormIds.length === 0)
+      if (form.selectedFormIds.length === 0)
         errors.selectedFormIds = t('errors.formsRequired');
     }
     if (s === 3) {
@@ -256,14 +333,15 @@ export default function NewDataSharingPage() {
   }
 
   function buildPayload(): CreateDataShareAgreementDto {
+    const campName = selectedCampaign
+      ? (typeof selectedCampaign.name === 'object' ? (selectedCampaign.name as any)?.en : selectedCampaign.name)
+      : undefined;
     const scope: DataShareScope = {
-      // We send formIds as the primary entity selector. Backend stores
-      // dataScope as opaque JSON; the future preview/export proxy will use
-      // these fields to filter the source domain service queries.
       entities: form.selectedFormIds,
-      campaignId: form.campaignId,
-      campaignName: selectedCampaign?.name,
+      campaignId: form.campaignId || undefined,
+      campaignName: campName,
       formIds: form.selectedFormIds,
+      fields: form.selectedFields,
     } as any;
     return {
       title: form.title.trim(),
@@ -476,127 +554,162 @@ export default function NewDataSharingPage() {
 
         {step === 2 && (
           <div className="space-y-5">
+            {/* Domain */}
             <Field label={t('wizard.domainLabel')} required>
               <select
                 value={form.dataDomain}
                 onChange={(e) => changeDomain(e.target.value)}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
-                {DATA_DOMAINS.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
+                {DOMAIN_OPTIONS.map((d) => (
+                  <option key={d.value} value={d.value}>{d.label}</option>
                 ))}
               </select>
             </Field>
 
+            {/* Campaign (optional) */}
             <Field
               label={t('wizard.campaignLabel')}
-              required
-              error={fieldErrors.campaignId}
-              hint={t('wizard.campaignHint')}
+              hint={campaignsLoading ? '' : campaigns.length > 0 ? t('wizard.campaignHint') : t('wizard.noCampaigns')}
             >
               {campaignsLoading ? (
                 <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {tCommon('loading')}
-                </div>
-              ) : campaigns.length === 0 ? (
-                <div className="rounded-md border border-amber-300/40 bg-amber-50 px-3 py-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-                  {t('wizard.noCampaigns')}
+                  <Loader2 className="h-4 w-4 animate-spin" /> {tCommon('loading')}
                 </div>
               ) : (
                 <select
                   value={form.campaignId}
                   onChange={(e) => update('campaignId', e.target.value)}
-                  className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
-                    fieldErrors.campaignId ? 'border-destructive' : 'border-input'
-                  }`}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="">— {t('wizard.campaignPlaceholder')} —</option>
-                  {campaigns.map((c: any) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} · {c.status === 'ACTIVE' ? t('campaign.active') : t('campaign.completed')}
-                    </option>
-                  ))}
+                  {campaigns.map((c: any) => {
+                    const cName = typeof c.name === 'object' ? (c.name?.en ?? c.name?.fr ?? c.id) : c.name;
+                    return (
+                      <option key={c.id} value={c.id}>
+                        {cName} ({c.status})
+                      </option>
+                    );
+                  })}
                 </select>
               )}
             </Field>
 
-            {form.campaignId && (
-              <Field
-                label={t('wizard.formsLabel')}
-                hint={t('wizard.formsHint')}
-                error={fieldErrors.selectedFormIds}
-              >
-                <div
-                  className={`divide-y rounded-md border ${
-                    fieldErrors.selectedFormIds ? 'border-destructive' : 'border-input'
-                  }`}
-                >
-                  {campaignTemplateIds.length === 0 ? (
-                    <div className="px-3 py-4 text-sm text-muted-foreground">
-                      {t('wizard.noFormsInCampaign')}
-                    </div>
-                  ) : (
-                    campaignTemplateIds.map((tplId) => {
-                      const tpl = templatesById[tplId];
-                      const checked = form.selectedFormIds.includes(tplId);
-                      const tplName = tpl?.name ?? tplId;
-                      return (
-                        <label
-                          key={tplId}
-                          className="flex cursor-pointer items-start gap-3 px-3 py-2.5 hover:bg-accent/30"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleForm(tplId)}
-                            className="mt-0.5 h-4 w-4 cursor-pointer"
-                          />
-                          <div className="flex min-w-0 flex-1 items-start gap-2">
-                            <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium">{tplName}</p>
-                              {tpl && (
-                                <p className="truncate text-xs text-muted-foreground">
-                                  v{tpl.version} · {tpl.status}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </label>
-                      );
-                    })
-                  )}
+            {/* Form Templates */}
+            <Field
+              label={t('wizard.formsLabel')}
+              hint={t('wizard.formsHint')}
+              error={fieldErrors.selectedFormIds}
+            >
+              {templatesLoading ? (
+                <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> {tCommon('loading')}
                 </div>
-                {campaignTemplateIds.length > 0 && (
-                  <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>
-                      {form.selectedFormIds.length} / {campaignTemplateIds.length} {t('wizard.formsSelected')}
-                    </span>
+              ) : domainTemplates.length === 0 ? (
+                <div className="rounded-md border border-amber-300/40 bg-amber-50 px-3 py-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+                  No published form templates found for this domain.
+                </div>
+              ) : (
+                <>
+                  {/* Select All / Deselect All forms */}
+                  <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{form.selectedFormIds.length} / {domainTemplates.length} forms selected</span>
                     <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => update('selectedFormIds', [...campaignTemplateIds])}
-                        className="hover:text-foreground"
-                      >
-                        {t('wizard.selectAll')}
+                      <button type="button" onClick={() => toggleAllForms(true)} className="hover:text-foreground font-medium">
+                        Select all
                       </button>
                       <span>·</span>
-                      <button
-                        type="button"
-                        onClick={() => update('selectedFormIds', [])}
-                        className="hover:text-foreground"
-                      >
-                        {t('wizard.deselectAll')}
+                      <button type="button" onClick={() => toggleAllForms(false)} className="hover:text-foreground font-medium">
+                        Deselect all
                       </button>
                     </div>
                   </div>
-                )}
-              </Field>
-            )}
+                  <div className={`divide-y rounded-md border ${fieldErrors.selectedFormIds ? 'border-destructive' : 'border-input'}`}>
+                    {domainTemplates.map((tpl) => {
+                      const checked = form.selectedFormIds.includes(tpl.id);
+                      const isExpanded = expandedForms.has(tpl.id);
+                      const fields = extractFields(tpl.schema);
+                      const selectedFieldIds = form.selectedFields[tpl.id] ?? [];
+                      return (
+                        <div key={tpl.id}>
+                          <div className="flex items-center gap-2 px-3 py-2.5 hover:bg-accent/30">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleForm(tpl.id)}
+                              className="h-4 w-4 cursor-pointer shrink-0"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => toggleExpanded(tpl.id)}
+                              className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                            >
+                              {isExpanded
+                                ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                              <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium">{tpl.name}</p>
+                                <p className="truncate text-xs text-muted-foreground">
+                                  v{tpl.version} · {fields.length} fields
+                                  {selectedFieldIds.length > 0 && ` · ${selectedFieldIds.length} selected`}
+                                </p>
+                              </div>
+                            </button>
+                          </div>
+                          {/* Expanded: show fields */}
+                          {isExpanded && fields.length > 0 && (
+                            <div className="border-t bg-muted/20 px-3 py-2">
+                              <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                                <span>{selectedFieldIds.length} / {fields.length} fields</span>
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleAllFields(tpl.id, fields.map((f) => f.id), true)}
+                                    className="hover:text-foreground font-medium"
+                                  >
+                                    Select all
+                                  </button>
+                                  <span>·</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleAllFields(tpl.id, fields.map((f) => f.id), false)}
+                                    className="hover:text-foreground font-medium"
+                                  >
+                                    Deselect all
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="grid gap-1 sm:grid-cols-2">
+                                {fields.map((f) => (
+                                  <label key={f.id} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-accent/30 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedFieldIds.includes(f.id)}
+                                      onChange={() => toggleField(tpl.id, f.id)}
+                                      className="h-3.5 w-3.5"
+                                    />
+                                    <span className="truncate">{f.label}</span>
+                                    <span className="ml-auto shrink-0 rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground">{f.type}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {isExpanded && fields.length === 0 && (
+                            <div className="border-t bg-muted/20 px-3 py-3 text-xs text-muted-foreground">
+                              No fields defined in this template schema.
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </Field>
 
+            {/* Data Classification */}
             <Field label={t('wizard.classificationLabel')} required>
               <select
                 value={form.dataClassification}
@@ -604,9 +717,7 @@ export default function NewDataSharingPage() {
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 {DATA_CLASSIFICATIONS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
+                  <option key={c} value={c}>{c}</option>
                 ))}
               </select>
             </Field>
@@ -711,8 +822,12 @@ export default function NewDataSharingPage() {
             />
             <SummaryRow label={t('wizard.titleLabel')} value={form.title} />
             {form.description && <SummaryRow label={t('wizard.descriptionLabel')} value={form.description} />}
-            <SummaryRow label={t('wizard.domainLabel')} value={form.dataDomain} />
-            <SummaryRow label={t('wizard.campaignLabel')} value={selectedCampaign?.name ?? '—'} />
+            <SummaryRow label={t('wizard.domainLabel')} value={DOMAIN_OPTIONS.find((d) => d.value === form.dataDomain)?.label ?? form.dataDomain} />
+            <SummaryRow label={t('wizard.campaignLabel')} value={
+              selectedCampaign
+                ? (typeof selectedCampaign.name === 'object' ? (selectedCampaign.name as any)?.en : selectedCampaign.name) ?? '—'
+                : '—'
+            } />
             <SummaryRow
               label={t('wizard.formsLabel')}
               value={
