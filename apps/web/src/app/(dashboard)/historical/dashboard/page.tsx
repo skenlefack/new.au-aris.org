@@ -60,15 +60,15 @@ export default function HistoricalDashboardPage() {
   // Disease name resolver
   const { data: diseaseMap } = useDiseaseNameMap();
 
-  // Filters
-  const [selectedYear, setSelectedYear] = useState(2024);
+  // Filters — null means "all years"
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedDisease, setSelectedDisease] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('');
   const [compareCountries, setCompareCountries] = useState<string[]>([]);
 
-  // KPIs
+  // KPIs — when "All Years", show latest available year (2025)
   const { data: kpisRes, isLoading: kpisLoading } = useDashboardKpis({
-    year: selectedYear,
+    year: selectedYear ?? 2025,
     datasetIds: animalHealthIds,
   });
   const kpis = kpisRes?.data;
@@ -83,6 +83,11 @@ export default function HistoricalDashboardPage() {
   useEffect(() => {
     if (animalHealthIds.length === 0) return;
 
+    // Build date filter (only when a specific year is selected)
+    const yearFilter: Record<string, string> | undefined = selectedYear
+      ? { dateFrom: `${selectedYear}-01-01`, dateTo: `${selectedYear}-12-31` }
+      : undefined;
+
     // Epidemic curve
     epiCurve.mutate({
       datasetIds: animalHealthIds,
@@ -90,7 +95,7 @@ export default function HistoricalDashboardPage() {
       valueColumn: 'num_new_outbreaks',
       interval: 'year',
       operation: 'count',
-      filters: selectedDisease ? { disease: selectedDisease } : undefined,
+      filters: selectedDisease ? { ...yearFilter, disease: selectedDisease } : yearFilter,
     });
 
     // Top diseases
@@ -98,7 +103,7 @@ export default function HistoricalDashboardPage() {
       datasetIds: animalHealthIds,
       column: 'disease',
       operation: 'distribution',
-      filters: selectedYear ? { dateFrom: `${selectedYear}-01-01`, dateTo: `${selectedYear}-12-31` } : undefined,
+      filters: yearFilter,
     });
 
     // Country distribution
@@ -106,7 +111,7 @@ export default function HistoricalDashboardPage() {
       datasetIds: animalHealthIds,
       column: 'country',
       operation: 'distribution',
-      filters: selectedYear ? { dateFrom: `${selectedYear}-01-01`, dateTo: `${selectedYear}-12-31` } : undefined,
+      filters: yearFilter,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animalHealthIds.length, selectedYear, selectedDisease]);
@@ -173,10 +178,11 @@ export default function HistoricalDashboardPage() {
 
         {/* Year filter */}
         <select
-          value={selectedYear}
-          onChange={(e) => setSelectedYear(Number(e.target.value))}
+          value={selectedYear ?? ''}
+          onChange={(e) => setSelectedYear(e.target.value === '' ? null : Number(e.target.value))}
           className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
         >
+          <option value="">All Years (2008-2025)</option>
           {YEAR_OPTIONS.map((y) => (
             <option key={y} value={y}>{y}</option>
           ))}
@@ -250,7 +256,7 @@ export default function HistoricalDashboardPage() {
         {/* Top 10 Diseases */}
         <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/50">
           <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">
-            Top 15 Diseases ({selectedYear})
+            Top 15 Diseases ({selectedYear ?? '2008-2025'})
           </h2>
           <div className="h-[320px]">
             {topDiseases.isPending ? (
@@ -269,7 +275,7 @@ export default function HistoricalDashboardPage() {
         {/* Country Distribution */}
         <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/50">
           <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">
-            Reports by Country/Location ({selectedYear})
+            Reports by Country/Location ({selectedYear ?? '2008-2025'})
           </h2>
           <div className="h-[350px]">
             {countryDistribution.isPending ? (
@@ -285,7 +291,7 @@ export default function HistoricalDashboardPage() {
         {/* Disease Pie Chart */}
         <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/50">
           <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">
-            Disease Distribution ({selectedYear})
+            Disease Distribution ({selectedYear ?? '2008-2025'})
           </h2>
           <div className="h-[350px]">
             {topDiseases.isPending ? (
