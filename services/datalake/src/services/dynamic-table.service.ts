@@ -472,7 +472,7 @@ export class DynamicTableService {
     const targetYear = year ?? new Date().getFullYear();
     const prevYear = targetYear - 1;
 
-    const cols = ['date_of_report', 'disease', 'num_new_outbreaks', 'admin_location'];
+    const cols = ['date_of_report', 'disease', 'num_new_outbreaks', 'country'];
     const cte = this.buildUnionCTE(tableNames, cols);
 
     const sql = `
@@ -481,11 +481,13 @@ export class DynamicTableService {
         SELECT
           EXTRACT(YEAR FROM "date_of_report"::timestamp)::int as yr,
           COUNT(*) FILTER (WHERE "disease" IS NOT NULL AND "disease" != '')::int as outbreak_rows,
-          COUNT(DISTINCT "disease") FILTER (WHERE "disease" IS NOT NULL AND "disease" != '')::int as unique_diseases,
-          COUNT(DISTINCT "admin_location") FILTER (WHERE "admin_location" IS NOT NULL AND "admin_location" != '')::int as unique_locations,
-          SUM(CASE WHEN "num_new_outbreaks" ~ '^[0-9.]+$' THEN "num_new_outbreaks"::numeric ELSE 0 END)::float as total_outbreaks
+          COUNT(DISTINCT "disease") FILTER (WHERE "disease" ~ '^[0-9a-f]{8}-')::int as unique_diseases,
+          COUNT(DISTINCT "country") FILTER (WHERE "country" IS NOT NULL AND "country" != '' AND "country" != 'Unknown')::int as unique_locations,
+          SUM(CASE WHEN "num_new_outbreaks" ~ '^[0-9.]+$' THEN LEAST("num_new_outbreaks"::numeric, 1000) ELSE 0 END)::float as total_outbreaks
         FROM unified
         WHERE "date_of_report" IS NOT NULL AND "date_of_report" != ''
+          AND "date_of_report" ~ '^[12]\\d{3}'
+          AND EXTRACT(YEAR FROM "date_of_report"::timestamp)::int BETWEEN 2000 AND 2025
         GROUP BY yr
       )
       SELECT
