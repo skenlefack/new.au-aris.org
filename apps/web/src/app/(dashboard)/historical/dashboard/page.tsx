@@ -104,7 +104,7 @@ export default function HistoricalDashboardPage() {
     // Country distribution
     countryDistribution.mutate({
       datasetIds: animalHealthIds,
-      column: 'admin_location',
+      column: 'country',
       operation: 'distribution',
       filters: selectedYear ? { dateFrom: `${selectedYear}-01-01`, dateTo: `${selectedYear}-12-31` } : undefined,
     });
@@ -122,8 +122,8 @@ export default function HistoricalDashboardPage() {
         valueColumn: 'num_new_outbreaks',
         interval: 'year',
         operation: 'count',
-        groupBy: 'admin_location',
-        filters: { admin_location: country },
+        groupBy: 'country',
+        filters: { country: country },
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
