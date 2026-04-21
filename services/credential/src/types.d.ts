@@ -6,6 +6,7 @@ import type { AuthService } from './services/auth.service.js';
 import type { UserService } from './services/user.service.js';
 import type { MfaService } from './services/mfa.service.js';
 import type { DomainService } from './services/domain.service.js';
+import type { AuditService } from './services/audit.service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -15,6 +16,7 @@ declare module 'fastify' {
     userService: UserService;
     mfaService: MfaService;
     domainService: DomainService;
+    auditService: AuditService;
     i18n: I18nService;
     authHookFn: ReturnType<typeof authHook>;
   }

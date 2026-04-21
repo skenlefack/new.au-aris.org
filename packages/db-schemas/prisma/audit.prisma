@@ -1,0 +1,28 @@
+// ARIS 4.0 — Audit Log Schema
+// Shared audit trail for all administrative and configuration changes
+
+model AuditLog {
+  id                 String   @id @default(uuid()) @db.Uuid
+  entityType         String   @map("entity_type") @db.VarChar(100)
+  entityId           String   @map("entity_id") @db.Uuid
+  action             String   @db.VarChar(50) // CREATE, UPDATE, DELETE, VALIDATE, REJECT, EXPORT
+  actorUserId        String?  @map("actor_user_id") @db.Uuid
+  actorRole          String?  @map("actor_role") @db.VarChar(50)
+  actorTenantId      String?  @map("actor_tenant_id") @db.Uuid
+  timestamp          DateTime @default(now()) @db.Timestamptz
+  reason             String?  @db.Text
+  previousVersion    Json?    @map("previous_version")
+  newVersion         Json?    @map("new_version")
+  dataClassification String   @default("RESTRICTED") @map("data_classification") @db.VarChar(20)
+  serviceName        String   @map("service_name") @db.VarChar(50)
+  ipAddress          String?  @map("ip_address") @db.VarChar(45)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([entityType, entityId], map: "idx_audit_entity")
+  @@index([actorUserId], map: "idx_audit_actor")
+  @@index([actorTenantId], map: "idx_audit_tenant")
+  @@index([timestamp], map: "idx_audit_timestamp")
+  @@index([action], map: "idx_audit_action")
+  @@map("audit_log")
+  @@schema("audit")
+}

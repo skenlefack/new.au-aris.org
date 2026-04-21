@@ -12,11 +12,13 @@ import { UserService } from './services/user.service.js';
 import { MfaService } from './services/mfa.service.js';
 import { DomainService } from './services/domain.service.js';
 import { AccountLockoutService } from './services/account-lockout.service.js';
+import { AuditService } from './services/audit.service.js';
 import { registerAuthRoutes } from './routes/auth.routes.js';
 import { registerUserRoutes } from './routes/user.routes.js';
 import { registerMfaRoutes } from './routes/mfa.routes.js';
 import { registerDomainRoutes } from './routes/domain.routes.js';
 import { registerI18nRoutes } from './routes/i18n.routes.js';
+import { registerAuditRoutes } from './routes/audit.routes.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -94,10 +96,13 @@ export async function buildApp(): Promise<FastifyInstance> {
   const mfaService = new MfaService(app.prisma);
   const i18n = new I18nService();
 
+  const auditService = new AuditService(app.prisma);
+
   app.decorate('authService', authService);
   app.decorate('userService', userService);
   app.decorate('mfaService', mfaService);
   app.decorate('domainService', domainService);
+  app.decorate('auditService', auditService);
   app.decorate('i18n', i18n);
 
   // Routes
@@ -107,6 +112,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerDomainRoutes);
   await app.register(registerMfaRoutes);
   await app.register(registerI18nRoutes);
+  await app.register(registerAuditRoutes);
 
   return app;
 }

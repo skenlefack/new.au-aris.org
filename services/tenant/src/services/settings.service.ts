@@ -270,6 +270,7 @@ export class SettingsService {
     });
 
     await this.publishEvent(TOPIC_SETTINGS_REC_UPDATED, { ...rec, action: 'created' }, user);
+    await this.writeAudit('rec', rec.id, 'CREATE', user, { newVersion: { code: dto.code }, classification: 'PUBLIC' });
     await this.invalidateRecCache();
     return { data: rec };
   }
@@ -298,6 +299,7 @@ export class SettingsService {
       });
 
       await this.publishEvent(TOPIC_SETTINGS_REC_UPDATED, { ...rec, action: 'updated' }, user);
+      await this.writeAudit('rec', id, 'UPDATE', user, { newVersion: updateData, classification: 'PUBLIC' });
       await this.invalidateRecCache();
       return { data: rec };
     } catch (err: any) {
@@ -318,6 +320,7 @@ export class SettingsService {
 
     await (this.prisma as any).rec.delete({ where: { id } });
     await this.publishEvent(TOPIC_SETTINGS_REC_UPDATED, { id, action: 'deleted' }, user);
+    await this.writeAudit('rec', id, 'DELETE', user, { previousVersion: { code: existing.code }, classification: 'PUBLIC' });
     await this.invalidateRecCache();
     return { data: { id, deleted: true } };
   }
@@ -482,6 +485,7 @@ export class SettingsService {
     });
 
     await this.publishEvent(TOPIC_SETTINGS_COUNTRY_UPDATED, { ...country, action: 'created' }, user);
+    await this.writeAudit('country', country.id, 'CREATE', user, { newVersion: { code: dto.code }, classification: 'PUBLIC' });
     await this.invalidateCountryCache();
     return { data: country };
   }
@@ -514,6 +518,7 @@ export class SettingsService {
         data: updateData,
       });
       await this.publishEvent(TOPIC_SETTINGS_COUNTRY_UPDATED, { ...country, action: 'updated' }, user);
+      await this.writeAudit('country', id, 'UPDATE', user, { newVersion: updateData, classification: 'PUBLIC' });
       await this.invalidateCountryCache();
       return { data: country };
     } catch (err: any) {
@@ -526,6 +531,7 @@ export class SettingsService {
     try {
       await (this.prisma as any).country.delete({ where: { id } });
       await this.publishEvent(TOPIC_SETTINGS_COUNTRY_UPDATED, { id, action: 'deleted' }, user);
+      await this.writeAudit('country', id, 'DELETE', user, { classification: 'PUBLIC' });
       await this.invalidateCountryCache();
       return { data: { id, deleted: true } };
     } catch (err: any) {
@@ -719,6 +725,7 @@ export class SettingsService {
     });
 
     await this.publishEvent(TOPIC_SETTINGS_CONFIG_UPDATED, { category, key, value, action: 'updated' }, user);
+    await this.writeAudit('config', randomUUID(), 'UPDATE', user, { newVersion: { category, key }, classification: 'RESTRICTED' });
     await this.cacheInvalidate('aris:settings:config:*');
     if (category === 'i18n') await this.cacheInvalidate('aris:public:i18n');
     return { data: config };
@@ -832,6 +839,7 @@ export class SettingsService {
     });
 
     await this.publishEvent(TOPIC_SETTINGS_DOMAIN_UPDATED, { ...domain, action: 'created' }, user);
+    await this.writeAudit('domain', domain.id, 'CREATE', user, { newVersion: { code: dto.code }, classification: 'PUBLIC' });
     await this.cacheInvalidate('aris:settings:domains:*');
     await this.cacheInvalidate('aris:public:domains');
     return { data: domain };
@@ -843,6 +851,7 @@ export class SettingsService {
 
     await (this.prisma as any).domain.delete({ where: { id } });
     await this.publishEvent(TOPIC_SETTINGS_DOMAIN_UPDATED, { id, code: existing.code, action: 'deleted' }, user);
+    await this.writeAudit('domain', id, 'DELETE', user, { previousVersion: { code: existing.code }, classification: 'PUBLIC' });
     await this.cacheInvalidate('aris:settings:domains:*');
     await this.cacheInvalidate('aris:public:domains');
     return { data: { id, deleted: true } };
@@ -1373,6 +1382,7 @@ export class SettingsService {
     }
 
     await this.publishEvent(TOPIC_SETTINGS_FUNCTION_UPDATED, { ...fn, action: 'created' }, user);
+    await this.writeAudit('function', fn.id, 'CREATE', user, { newVersion: { code: dto.code }, classification: 'PUBLIC' });
     await this.invalidateFunctionCache();
 
     // Re-fetch with roles included
@@ -1428,6 +1438,7 @@ export class SettingsService {
         },
       });
       await this.publishEvent(TOPIC_SETTINGS_FUNCTION_UPDATED, { ...fn, action: 'updated' }, user);
+      await this.writeAudit('function', id, 'UPDATE', user, { newVersion: updateData, classification: 'PUBLIC' });
       await this.invalidateFunctionCache();
       return { data: fn };
     } catch (err: any) {
@@ -1451,6 +1462,7 @@ export class SettingsService {
 
     await (this.prisma as any).function.delete({ where: { id } });
     await this.publishEvent(TOPIC_SETTINGS_FUNCTION_UPDATED, { id, action: 'deleted' }, user);
+    await this.writeAudit('function', id, 'DELETE', user, { previousVersion: { code: existing.code }, classification: 'PUBLIC' });
     await this.invalidateFunctionCache();
     return { data: { id, deleted: true } };
   }
@@ -1717,6 +1729,7 @@ export class SettingsService {
     }
 
     await this.publishEvent(TOPIC_SETTINGS_USER_UPDATED, { ...user, action: 'created' }, caller);
+    await this.writeAudit('user', user.id, 'CREATE', caller, { newVersion: user, classification: 'RESTRICTED' });
 
     // Also publish the canonical credential-user-created event so the
     // welcome-email consumer in the message service delivers the
@@ -1842,6 +1855,11 @@ export class SettingsService {
     }
 
     await this.publishEvent(TOPIC_SETTINGS_USER_UPDATED, { ...user, action: 'updated' }, caller);
+    await this.writeAudit('user', id, 'UPDATE', caller, {
+      previousVersion: { email: existing.email, role: existing.role, isActive: existing.isActive },
+      newVersion: updateData,
+      classification: 'RESTRICTED',
+    });
     await this.invalidateUserCache();
     return { data: user };
   }
@@ -1857,6 +1875,7 @@ export class SettingsService {
     });
 
     await this.publishEvent(TOPIC_SETTINGS_USER_UPDATED, { userId: id, action: 'password_reset' }, caller);
+    await this.writeAudit('user', id, 'UPDATE', caller, { reason: 'Password reset by admin', classification: 'CONFIDENTIAL' });
     return { data: { id, passwordReset: true } };
   }
 
@@ -1877,6 +1896,10 @@ export class SettingsService {
     ]);
 
     await this.publishEvent(TOPIC_SETTINGS_USER_UPDATED, { id, action: 'deleted' }, caller);
+    await this.writeAudit('user', id, 'DELETE', caller, {
+      previousVersion: { email: existing.email, role: existing.role, tenantId: existing.tenantId },
+      classification: 'RESTRICTED',
+    });
     await this.invalidateUserCache();
     return { data: { id, deleted: true } };
   }
@@ -2272,6 +2295,35 @@ export class SettingsService {
       await Promise.race([this.kafka.send(topic, key, payload, headers), timeout]);
     } catch {
       // Kafka publish failures are non-blocking
+    }
+  }
+
+  /** Write an audit log entry (non-blocking) */
+  async writeAudit(
+    entityType: string,
+    entityId: string,
+    action: string,
+    user: AuthenticatedUser,
+    opts?: { reason?: string; previousVersion?: object; newVersion?: object; classification?: string },
+  ): Promise<void> {
+    try {
+      await (this.prisma as any).auditLog.create({
+        data: {
+          entityType,
+          entityId,
+          action,
+          actorUserId: user.userId,
+          actorRole: user.role,
+          actorTenantId: user.tenantId,
+          reason: opts?.reason,
+          previousVersion: opts?.previousVersion ?? undefined,
+          newVersion: opts?.newVersion ?? undefined,
+          dataClassification: opts?.classification ?? 'RESTRICTED',
+          serviceName: SERVICE_NAME,
+        },
+      });
+    } catch {
+      // Audit writes are best-effort, never block the main operation
     }
   }
 }
