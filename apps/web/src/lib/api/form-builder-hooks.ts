@@ -26,9 +26,11 @@ function getAuthHeaders(): Record<string, string> {
 }
 
 async function fbFetch<T>(url: string, init?: RequestInit): Promise<T> {
+  const base: Record<string, string> = { ...getAuthHeaders(), ...((init?.headers ?? {}) as Record<string, string>) };
+  if ((init?.method ?? 'GET').toUpperCase() === 'DELETE') delete base['Content-Type'];
   const res = await fetch(url, {
     ...init,
-    headers: { ...getAuthHeaders(), ...(init?.headers || {}) },
+    headers: base,
   });
   if (!res.ok) {
     let body: { message?: string } | undefined;

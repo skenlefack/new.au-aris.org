@@ -61,8 +61,9 @@ async function mdPut<T = any>(path: string, body: unknown): Promise<T> {
 }
 
 async function mdDelete<T = any>(path: string): Promise<T> {
+  const { 'Content-Type': _, ...headers } = getAuthHeaders();
   const res = await fetch(`${MASTER_DATA_API}${path}`, {
-    method: 'DELETE', headers: getAuthHeaders(),
+    method: 'DELETE', headers,
   });
   return handleRes<T>(res);
 }

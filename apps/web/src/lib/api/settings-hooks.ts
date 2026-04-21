@@ -74,8 +74,9 @@ async function tenantPatch<T = any>(path: string, body: unknown): Promise<T> {
 }
 
 async function tenantDelete<T = any>(path: string): Promise<T> {
+  const { 'Content-Type': _, ...headers } = getAuthHeaders();
   const res = await fetch(`${TENANT_API}${path}`, {
-    method: 'DELETE', headers: getAuthHeaders(),
+    method: 'DELETE', headers,
   });
   return handleTenantResponse<T>(res);
 }

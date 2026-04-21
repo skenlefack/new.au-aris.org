@@ -22,9 +22,11 @@ function getHeaders(): Record<string, string> {
 
 async function wfFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   const url = `${COLLECTE_BASE}${path}`;
+  const base: Record<string, string> = { ...getHeaders(), ...((opts?.headers ?? {}) as Record<string, string>) };
+  if ((opts?.method ?? 'GET').toUpperCase() === 'DELETE') delete base['Content-Type'];
   const res = await fetch(url, {
     ...opts,
-    headers: { ...getHeaders(), ...opts?.headers },
+    headers: base,
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

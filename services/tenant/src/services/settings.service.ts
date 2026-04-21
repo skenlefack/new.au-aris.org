@@ -1867,7 +1867,15 @@ export class SettingsService {
     // Prevent deleting yourself
     if (id === caller.userId) throw new HttpError(400, 'Cannot delete your own account');
 
-    await (this.prisma as any).user.delete({ where: { id } });
+    // Delete related records that lack onDelete: Cascade, then the user
+    await (this.prisma as any).$transaction([
+      (this.prisma as any).collecteValidationChain.deleteMany({
+        where: { OR: [{ userId: id }, { validatorId: id }, { backupValidatorId: id }] },
+      }),
+      (this.prisma as any).campaignAssignment.deleteMany({ where: { userId: id } }),
+      (this.prisma as any).user.delete({ where: { id } }),
+    ]);
+
     await this.publishEvent(TOPIC_SETTINGS_USER_UPDATED, { id, action: 'deleted' }, caller);
     await this.invalidateUserCache();
     return { data: { id, deleted: true } };

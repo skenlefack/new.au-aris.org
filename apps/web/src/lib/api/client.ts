@@ -239,8 +239,10 @@ function buildServiceClient(baseUrl: string) {
       fetchWithRefresh<T>(`${baseUrl}${path}`, { method: 'PUT', headers: buildHeaders(), body: body ? JSON.stringify(body) : undefined }),
     patch: async <T>(path: string, body?: unknown): Promise<T> =>
       fetchWithRefresh<T>(`${baseUrl}${path}`, { method: 'PATCH', headers: buildHeaders(), body: body ? JSON.stringify(body) : undefined }),
-    delete: async <T>(path: string): Promise<T> =>
-      fetchWithRefresh<T>(`${baseUrl}${path}`, { method: 'DELETE', headers: buildHeaders() }),
+    delete: async <T>(path: string): Promise<T> => {
+      const { 'Content-Type': _, ...h } = buildHeaders();
+      return fetchWithRefresh<T>(`${baseUrl}${path}`, { method: 'DELETE', headers: h });
+    },
   };
 }
 
@@ -299,9 +301,10 @@ export const apiClient = {
   },
 
   delete: async <T>(path: string): Promise<T> => {
+    const { 'Content-Type': _, ...h } = buildHeaders();
     return fetchWithRefresh<T>(`${API_BASE_URL}${path}`, {
       method: 'DELETE',
-      headers: buildHeaders(),
+      headers: h,
     });
   },
 };
