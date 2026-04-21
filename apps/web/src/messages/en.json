@@ -1325,6 +1325,10 @@
     "rejected": "rejected",
     "exported": "exported",
 
+    "sessions": "Sessions",
+    "sessionsTitle": "Session Management",
+    "sessionsSubtitle": "Monitor login activity, active sessions, and connection locations",
+
     "version": "Version",
     "services": "Services",
     "servicesActive": "{count} Active",

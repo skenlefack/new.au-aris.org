@@ -1325,6 +1325,10 @@
     "rejected": "rejeté",
     "exported": "exporté",
 
+    "sessions": "Sessions",
+    "sessionsTitle": "Gestion des sessions",
+    "sessionsSubtitle": "Surveillez l'activité de connexion, les sessions actives et les lieux de connexion",
+
     "version": "Version",
     "services": "Services",
     "servicesActive": "{count} actif(s)",

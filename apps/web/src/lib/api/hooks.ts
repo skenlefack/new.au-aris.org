@@ -2742,6 +2742,100 @@ export function useAuditLog(params?: {
   });
 }
 
+// ─── Session Management Hooks ─────────────────────────────────────────────────
+
+export interface SessionLogEntry {
+  id: string;
+  user: { userId: string; email: string; firstName: string; lastName: string };
+  status: 'ACTIVE' | 'EXPIRED' | 'LOGGED_OUT' | 'REVOKED';
+  deviceName: string;
+  deviceType: 'web' | 'mobile';
+  ipAddress: string;
+  country: string | null;
+  countryCode: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  loginAt: string;
+  lastActivityAt: string;
+  logoutAt: string | null;
+  expiresAt: string;
+  duration: number | null;
+}
+
+export interface SessionStats {
+  totalSessions: number;
+  activeSessions: number;
+  uniqueCountries: number;
+  uniqueUsers: number;
+  avgDurationMinutes: number;
+  peakHour: number;
+  loginsByDay: Array<{ date: string; count: number }>;
+  loginsByCountry: Array<{ country: string; countryCode: string; count: number }>;
+  loginsByDeviceType: Array<{ deviceType: string; count: number }>;
+  loginsByHour: Array<{ hour: number; count: number }>;
+  topUsers: Array<{ userId: string; email: string; count: number }>;
+}
+
+const EMPTY_SESSION_STATS: SessionStats = {
+  totalSessions: 0, activeSessions: 0, uniqueCountries: 0, uniqueUsers: 0,
+  avgDurationMinutes: 0, peakHour: 0,
+  loginsByDay: [], loginsByCountry: [], loginsByDeviceType: [], loginsByHour: [], topUsers: [],
+};
+
+export function useSessionLog(params?: {
+  page?: number; limit?: number; status?: string; deviceType?: string;
+  country?: string; userId?: string; search?: string;
+  dateFrom?: string; dateTo?: string;
+}) {
+  const selectedTenantId = useTenantId();
+  const searchParams: Record<string, string> = {};
+  if (params?.page) searchParams.page = String(params.page);
+  if (params?.limit) searchParams.limit = String(params.limit);
+  if (params?.status) searchParams.status = params.status;
+  if (params?.deviceType) searchParams.deviceType = params.deviceType;
+  if (params?.country) searchParams.country = params.country;
+  if (params?.userId) searchParams.userId = params.userId;
+  if (params?.search) searchParams.search = params.search;
+  if (params?.dateFrom) searchParams.dateFrom = params.dateFrom;
+  if (params?.dateTo) searchParams.dateTo = params.dateTo;
+
+  const fallback: PaginatedResponse<SessionLogEntry> = { data: [], meta: { total: 0, page: 1, limit: 20 } };
+
+  return useQuery({
+    queryKey: ['sessions', 'log', selectedTenantId, params],
+    queryFn: withFallback(
+      () => apiClient.get<PaginatedResponse<SessionLogEntry>>('/credential/sessions', searchParams),
+      fallback,
+    ),
+    placeholderData: fallback,
+  });
+}
+
+export function useSessionStats(days = 30) {
+  const selectedTenantId = useTenantId();
+  return useQuery({
+    queryKey: ['sessions', 'stats', selectedTenantId, days],
+    queryFn: withFallback(
+      () => apiClient.get<{ data: SessionStats }>('/credential/sessions/stats', { days: String(days) }),
+      { data: EMPTY_SESSION_STATS },
+    ),
+    placeholderData: { data: EMPTY_SESSION_STATS },
+    staleTime: 60_000,
+  });
+}
+
+export function useRevokeSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) =>
+      apiClient.post(`/credential/sessions/${sessionId}/revoke`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sessions'] });
+    },
+  });
+}
+
 // ─── Dashboard Expanded KPIs Hook (time-range aware) ─────────────────────────
 
 export type TimeRange = '7d' | '30d' | '90d' | '1y';

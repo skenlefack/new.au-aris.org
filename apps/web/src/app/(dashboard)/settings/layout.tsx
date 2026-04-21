@@ -28,6 +28,7 @@ import {
   TrendingUp,
   Activity,
   Wand2,
+  Monitor,
 } from 'lucide-react';
 
 interface SettingsNavItem {
@@ -67,6 +68,7 @@ export default function SettingsLayout({
     { href: '/settings/infrastructures', label: t('infraTypes'), icon: <Building2 className="h-4 w-4" />, section: 'infrastructures' },
     { href: '/settings/bi-access', label: t('biDataAccess'), icon: <BarChart3 className="h-4 w-4" />, section: 'bi-access' },
     { href: '/settings/audit', label: t('auditLog'), icon: <ClipboardList className="h-4 w-4" />, section: 'audit' },
+    { href: '/settings/sessions', label: t('sessions') !== 'sessions' ? t('sessions') : 'Sessions', icon: <Monitor className="h-4 w-4" />, section: 'sessions' },
     { href: '/settings/system', label: t('systemInfo'), icon: <Server className="h-4 w-4" />, section: 'system' },
   ];
 

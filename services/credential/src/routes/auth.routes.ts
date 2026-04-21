@@ -14,6 +14,7 @@ import {
   type ForgotPasswordInput,
   type ResetPasswordInput,
 } from '../schemas/auth.schemas.js';
+import { parseDeviceInfo, computeFingerprint } from '../utils/device.utils.js';
 
 export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
   // POST /api/v1/credential/auth/login — rate limited, public
@@ -26,6 +27,26 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
       : request.ip;
     const userAgent = request.headers['user-agent'] ?? '';
     const result = await app.authService.login(request.body, { ipAddress, userAgent });
+
+    // Record session log (fire-and-forget)
+    const loginUser = (result as any).data?.user;
+    const refreshToken = (result as any).data?.refreshToken;
+    if (loginUser?.id && refreshToken) {
+      try {
+        const decoded = Buffer.from(refreshToken, 'base64url').toString('utf-8');
+        const refreshTokenId = decoded.split(':')[1];
+        const { deviceName, deviceType } = parseDeviceInfo(userAgent);
+        app.sessionService.recordLogin({
+          userId: loginUser.id,
+          tenantId: loginUser.tenantId,
+          refreshTokenId,
+          deviceName, deviceType,
+          fingerprint: computeFingerprint(userAgent),
+          userAgent, ipAddress,
+        }).catch(() => {});
+      } catch { /* non-blocking */ }
+    }
+
     return reply.code(200).send(result);
   });
 
@@ -48,6 +69,12 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     preHandler: [rateLimitHook(app, 10, 60)],
   }, async (request, reply) => {
     const result = await app.authService.refresh(request.body.refreshToken);
+    // Touch session activity (fire-and-forget)
+    try {
+      const decoded = Buffer.from(request.body.refreshToken, 'base64url').toString('utf-8');
+      const [uid, tokenId] = decoded.split(':');
+      if (uid && tokenId) app.sessionService.touchActivity(uid, tokenId).catch(() => {});
+    } catch { /* non-blocking */ }
     return reply.code(200).send(result);
   });
 
@@ -80,6 +107,7 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     const authHeader = request.headers['authorization'];
     const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
     const result = await app.authService.logout(user.userId, accessToken);
+    app.sessionService.recordLogout(user.userId).catch(() => {});
     return reply.code(200).send(result);
   });
 }

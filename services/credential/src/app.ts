@@ -13,12 +13,15 @@ import { MfaService } from './services/mfa.service.js';
 import { DomainService } from './services/domain.service.js';
 import { AccountLockoutService } from './services/account-lockout.service.js';
 import { AuditService } from './services/audit.service.js';
+import { GeolocationService } from './services/geolocation.service.js';
+import { SessionService } from './services/session.service.js';
 import { registerAuthRoutes } from './routes/auth.routes.js';
 import { registerUserRoutes } from './routes/user.routes.js';
 import { registerMfaRoutes } from './routes/mfa.routes.js';
 import { registerDomainRoutes } from './routes/domain.routes.js';
 import { registerI18nRoutes } from './routes/i18n.routes.js';
 import { registerAuditRoutes } from './routes/audit.routes.js';
+import { registerSessionRoutes } from './routes/session.routes.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -97,12 +100,15 @@ export async function buildApp(): Promise<FastifyInstance> {
   const i18n = new I18nService();
 
   const auditService = new AuditService(app.prisma);
+  const geoService = new GeolocationService(app.redis);
+  const sessionService = new SessionService(app.prisma, app.redis, geoService);
 
   app.decorate('authService', authService);
   app.decorate('userService', userService);
   app.decorate('mfaService', mfaService);
   app.decorate('domainService', domainService);
   app.decorate('auditService', auditService);
+  app.decorate('sessionService', sessionService);
   app.decorate('i18n', i18n);
 
   // Routes
@@ -113,6 +119,11 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerMfaRoutes);
   await app.register(registerI18nRoutes);
   await app.register(registerAuditRoutes);
+  await app.register(registerSessionRoutes);
+
+  // Expire stale sessions every 30 minutes
+  const cleanupInterval = setInterval(() => { sessionService.expireStale().catch(() => {}); }, 30 * 60 * 1000);
+  app.addHook('onClose', async () => { clearInterval(cleanupInterval); });
 
   return app;
 }
