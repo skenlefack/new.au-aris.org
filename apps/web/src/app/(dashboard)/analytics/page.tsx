@@ -132,8 +132,8 @@ export default function AnalyticsDashboardPage() {
   // Quality trend line: from API or fallback
   const qualityTrendLine = kpis?.qualityTrendLine ?? [];
 
-  // Derive display values
-  const totalRecords = domainBreakdown.reduce((sum, d) => sum + d.records, 0) || 52_250;
+  // Derive display values — sum from domain breakdown (real DB counts)
+  const totalRecords = domainBreakdown.reduce((sum, d) => sum + d.records, 0);
   const activeCountries = kpis?.countriesReporting ?? 47;
   const qualityScore = kpis?.dataQualityScore ?? 94.1;
   const pendingValidations = kpis?.pendingValidations ?? 156;
@@ -198,7 +198,7 @@ export default function AnalyticsDashboardPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard
             label="Total Records"
-            value={Number.isFinite(totalRecords) ? totalRecords.toLocaleString() : '52,250'}
+            value={totalRecords.toLocaleString()}
             icon={<Database className="h-5 w-5 text-[#1B5E20]" />}
             trend={formatTrend(recordsTrend)}
             accentBorder="border-[#1B5E20]/20"

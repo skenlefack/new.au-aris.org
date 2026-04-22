@@ -10,57 +10,20 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
   app.get(`${PREFIX}/dashboard/kpis`, {
     preHandler: [app.authHookFn, tenantHook()],
   }, async (_request: FastifyRequest, reply: FastifyReply) => {
-    const continental = await app.crossDomainService.getContinentalKpis();
-    const quality = await app.healthKpiService.getQualityDashboard();
-
-    // Extract values from continental kpis array
-    const kpiMap = new Map(continental.kpis.map(k => [k.key, k]));
-    const outbreaks = kpiMap.get('active_outbreaks')?.value ?? 0;
-    const vaccCoverage = kpiMap.get('vaccination_coverage')?.value ?? 0;
-    const livestockPop = kpiMap.get('livestock_population')?.value ?? 0;
-    const tradeExports = kpiMap.get('trade_exports')?.value ?? 0;
-    const countriesReporting = kpiMap.get('countries_reporting')?.value ?? 0;
-    const qualityPassRate = kpiMap.get('quality_pass_rate')?.value ?? 0;
-    const fisheriesCatches = kpiMap.get('fisheries_catches')?.value ?? 0;
-    const wildlifeCrimes = kpiMap.get('wildlife_crimes')?.value ?? 0;
-    const climateHotspots = kpiMap.get('climate_hotspots')?.value ?? 0;
-
-    // Domain breakdown: record counts + quality per domain
-    const domainBreakdown = [
-      { domain: 'Animal Health', records: outbreaks, quality: qualityPassRate || 94.1 },
-      { domain: 'Livestock & Production', records: livestockPop, quality: 92.5 },
-      { domain: 'Fisheries & Aquaculture', records: fisheriesCatches, quality: 90.3 },
-      { domain: 'Trade & SPS', records: Math.round(tradeExports / 1000), quality: 96.0 },
-      { domain: 'Wildlife & Biodiversity', records: wildlifeCrimes, quality: 88.7 },
-      { domain: 'Governance & Capacities', records: 0, quality: 97.2 },
-      { domain: 'Apiculture', records: 0, quality: 91.4 },
-      { domain: 'Climate & Environment', records: climateHotspots, quality: 89.0 },
-    ];
-
-    // Quality trend from Redis (last 12 months)
-    const qualityTrend: { date: string; score: number }[] = [];
-    const now = new Date();
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      qualityTrend.push({ date: ym, score: qualityPassRate > 0 ? qualityPassRate + (Math.random() * 4 - 2) : 0 });
-    }
-    // Last entry is always the real value
-    if (qualityTrend.length > 0 && qualityPassRate > 0) {
-      qualityTrend[qualityTrend.length - 1]!.score = qualityPassRate;
-    }
+    // Query real record counts from PostgreSQL (cached 2 min in Redis)
+    const stats = await app.dbStatsService.getDashboardStats();
 
     return reply.code(200).send({
       data: {
-        activeOutbreaks: outbreaks,
-        vaccinationCoverage: vaccCoverage,
-        pendingValidations: quality.totalRecords - quality.passCount,
-        dataQualityScore: qualityPassRate || quality.passRate,
-        labTurnaround: 3.2,
-        tradeVolume: tradeExports,
-        livestockPopulation: livestockPop,
+        activeOutbreaks: 0,
+        vaccinationCoverage: 0,
+        pendingValidations: stats.pendingValidations,
+        dataQualityScore: stats.qualityScore,
+        labTurnaround: 0,
+        tradeVolume: 0,
+        livestockPopulation: 0,
         activeCampaigns: 0,
-        countriesReporting,
+        countriesReporting: stats.activeCountries,
         outbreaksTrend: 0,
         vaccinationTrend: 0,
         validationsTrend: 0,
@@ -69,8 +32,8 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
         tradeVolumeTrend: 0,
         livestockTrend: 0,
         campaignsTrend: 0,
-        domainBreakdown,
-        qualityTrendLine: qualityTrend,
+        domainBreakdown: stats.domainBreakdown,
+        qualityTrendLine: stats.qualityTrendLine,
       },
     });
   });

@@ -9,6 +9,7 @@ import { AggregationService } from './services/aggregation.service';
 import { DomainAggregationService } from './services/domain-aggregation.service';
 import { HealthKpiService } from './services/health-kpi.service';
 import { CrossDomainService } from './services/cross-domain.service';
+import { DbStatsService } from './services/db-stats.service';
 import { registerConsumers } from './consumers/consumer-registry';
 import { registerHealthRoutes } from './routes/health.routes';
 import { registerAnalyticsRoutes } from './routes/analytics.routes';
@@ -73,10 +74,13 @@ export async function buildApp(): Promise<FastifyInstance> {
   const healthKpiService = new HealthKpiService(redisClient);
   const crossDomainService = new CrossDomainService(redisClient);
 
+  const dbStatsService = new DbStatsService(redisClient);
+
   app.decorate('aggregationService', aggregationService);
   app.decorate('domainAggregationService', domainAggregationService);
   app.decorate('healthKpiService', healthKpiService);
   app.decorate('crossDomainService', crossDomainService);
+  app.decorate('dbStatsService', dbStatsService);
 
   // --- Kafka Consumers (12 subscriptions) ---
   await registerConsumers(app, aggregationService, domainAggregationService);

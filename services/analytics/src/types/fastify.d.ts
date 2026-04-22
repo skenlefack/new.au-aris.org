@@ -3,6 +3,7 @@ import type { HealthKpiService } from '../services/health-kpi.service';
 import type { CrossDomainService } from '../services/cross-domain.service';
 import type { AggregationService } from '../services/aggregation.service';
 import type { DomainAggregationService } from '../services/domain-aggregation.service';
+import type { DbStatsService } from '../services/db-stats.service';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -11,5 +12,6 @@ declare module 'fastify' {
     crossDomainService: CrossDomainService;
     aggregationService: AggregationService;
     domainAggregationService: DomainAggregationService;
+    dbStatsService: DbStatsService;
   }
 }
