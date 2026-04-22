@@ -121,6 +121,7 @@ interface DashboardKpis {
     tradeVolume: number;
     livestockPopulation: number;
     activeCampaigns: number;
+    countriesReporting?: number;
     outbreaksTrend: number;
     vaccinationTrend: number;
     validationsTrend: number;
@@ -129,6 +130,8 @@ interface DashboardKpis {
     tradeVolumeTrend: number;
     livestockTrend: number;
     campaignsTrend: number;
+    domainBreakdown?: { domain: string; records: number; quality: number }[];
+    qualityTrendLine?: { date: string; score: number }[];
   };
 }
 
