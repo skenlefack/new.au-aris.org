@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<html lang="{{locale}}" dir="{{dir}}" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -32,11 +32,11 @@
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f7; font-family: Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased; font-size: 16px; line-height: 1.6; color: #333333;">
+<body style="margin: 0; padding: 0; background-color: #f4f4f7; font-family: Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased; font-size: 16px; line-height: 1.6; color: #333333; direction: {{dir}};">
 
   <!-- Preheader (hidden text for email preview) -->
   <span style="display: none !important; visibility: hidden; mso-hide: all; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden;">
-    ARIS Notification — African Union Inter-African Bureau for Animal Resources
+    {{t "layout.preheader"}}
   </span>
 
   <!-- Full-width wrapper -->
@@ -54,10 +54,10 @@
                 <tr>
                   <td style="text-align: center;">
                     <h1 style="margin: 0 0 8px 0; font-size: 24px; font-weight: bold; color: #ffffff; font-family: Arial, Helvetica, sans-serif;">
-                      ARIS &mdash; Animal Resources Information System
+                      {{t "layout.title"}}
                     </h1>
                     <p style="margin: 0; font-size: 13px; color: #b0c4de; font-family: Arial, Helvetica, sans-serif;">
-                      African Union &mdash; Inter-African Bureau for Animal Resources (AU-IBAR)
+                      {{t "layout.subtitle"}}
                     </p>
                   </td>
                 </tr>
@@ -84,17 +84,17 @@
                 <tr>
                   <td style="text-align: center; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #888888; line-height: 1.6;">
                     <p style="margin: 0 0 8px 0;">
-                      This is an automated notification from ARIS 4.0
+                      {{t "layout.automated_notice"}}
                     </p>
                     <p style="margin: 0 0 8px 0;">
                       {{#if unsubscribeUrl}}
-                      <a href="{{unsubscribeUrl}}" style="color: #003366; text-decoration: underline;">Unsubscribe</a>
+                      <a href="{{unsubscribeUrl}}" style="color: #003366; text-decoration: underline;">{{t "layout.unsubscribe"}}</a>
                       &nbsp;&bull;&nbsp;
                       {{/if}}
-                      <a href="https://aris.au-ibar.org/privacy" style="color: #003366; text-decoration: underline;">Privacy Notice</a>
+                      <a href="https://aris.au-ibar.org/privacy" style="color: #003366; text-decoration: underline;">{{t "layout.privacy"}}</a>
                     </p>
                     <p style="margin: 0; color: #aaaaaa;">
-                      &copy; {{year}} AU-IBAR. All rights reserved.
+                      &copy; {{year}} {{t "layout.copyright"}}
                     </p>
                   </td>
                 </tr>

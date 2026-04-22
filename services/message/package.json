@@ -6,7 +6,7 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc --build && npm run copy-templates",
-    "copy-templates": "cp -r src/templates/layouts dist/templates/layouts && cp -r src/templates/email dist/templates/email",
+    "copy-templates": "mkdir -p dist/templates && cp -r src/templates/layouts dist/templates/layouts && cp -r src/templates/email dist/templates/email",
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",

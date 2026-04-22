@@ -1,22 +1,22 @@
-<!-- new-device-login.hbs — Security alert for new or suspicious login activity -->
+{{!-- new-device-login.hbs �� Security alert for new or suspicious login activity --}}
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
   <tr>
     <td style="padding-bottom: 24px;">
 
       <!-- Greeting -->
       <p style="margin: 0 0 16px 0; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333;">
-        Hello <strong>{{firstName}} {{lastName}}</strong>,
+        {{t "device.greeting"}} <strong>{{firstName}} {{lastName}}</strong>,
       </p>
 
       {{#if isNewDevice}}
       <!-- New device alert -->
       <p style="margin: 0 0 16px 0; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333;">
-        We noticed a login to your ARIS account from a <strong>new device</strong> that we do not recognise.
+        {{{t "device.new_device_alert"}}}
       </p>
       {{else}}
       <!-- Known device / multi-session alert -->
       <p style="margin: 0 0 16px 0; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #333333;">
-        A new login to your ARIS account has been detected.
+        {{t "device.known_device_alert"}}
       </p>
       {{/if}}
 
@@ -27,7 +27,7 @@
           <td style="background-color: #f8f9fa; padding: 6px 16px; font-family: Arial, Helvetica, sans-serif;
                      font-size: 12px; font-weight: bold; color: #666666; text-transform: uppercase;
                      letter-spacing: 0.5px; border-bottom: 1px solid #e0e0e0;">
-            Login Details
+            {{t "device.login_details"}}
           </td>
         </tr>
         <tr>
@@ -36,7 +36,7 @@
               <tr>
                 <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px;
                            color: #555555; border-bottom: 1px solid #f0f0f0; width: 36%;">
-                  <strong>Device</strong>
+                  <strong>{{t "device.label_device"}}</strong>
                 </td>
                 <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px;
                            color: #333333; border-bottom: 1px solid #f0f0f0;">
@@ -46,7 +46,7 @@
               <tr>
                 <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px;
                            color: #555555; border-bottom: 1px solid #f0f0f0;">
-                  <strong>Type</strong>
+                  <strong>{{t "device.label_type"}}</strong>
                 </td>
                 <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px;
                            color: #333333; border-bottom: 1px solid #f0f0f0; text-transform: capitalize;">
@@ -56,7 +56,7 @@
               <tr>
                 <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px;
                            color: #555555; border-bottom: 1px solid #f0f0f0;">
-                  <strong>IP Address</strong>
+                  <strong>{{t "device.label_ip"}}</strong>
                 </td>
                 <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px;
                            color: #333333; border-bottom: 1px solid #f0f0f0; font-family: monospace;">
@@ -66,7 +66,7 @@
               <tr>
                 <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px;
                            color: #555555;">
-                  <strong>Date &amp; Time</strong>
+                  <strong>{{t "device.label_datetime"}}</strong>
                 </td>
                 <td style="padding: 10px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px;
                            color: #333333;">
@@ -84,15 +84,14 @@
         <tr>
           <td style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 14px 16px;
                      font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #856404; border-radius: 0 4px 4px 0;">
-            <strong>&#9888; Security Notice:</strong> If you did not perform this login, your account may be
-            compromised. Please change your password immediately and contact your system administrator.
+            <strong>&#9888;</strong> {{t "device.security_warning"}}
           </td>
         </tr>
       </table>
 
       <!-- CTA -->
       <p style="margin: 0 0 8px 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #555555;">
-        If this was you, no action is required. If it was not you, secure your account immediately:
+        {{t "device.action_hint"}}
       </p>
 
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 16px 0;">
@@ -102,7 +101,7 @@
                target="_blank"
                style="display: inline-block; padding: 12px 28px; font-family: Arial, Helvetica, sans-serif;
                       font-size: 15px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 6px;">
-              Secure My Account
+              {{t "device.cta"}}
             </a>
           </td>
         </tr>
@@ -115,8 +114,7 @@
         <tr>
           <td style="background-color: #e8f4fd; border-left: 4px solid #2196f3; padding: 12px 16px;
                      font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #1565c0; border-radius: 0 4px 4px 0;">
-            <strong>Information:</strong> Your organisation allows simultaneous connections on multiple devices.
-            You will receive this notification for every login to keep you informed of account activity.
+            {{t "device.multi_session_info"}}
           </td>
         </tr>
       </table>

@@ -1,6 +1,8 @@
 import * as Handlebars from 'handlebars';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { translate, textDirection, EMAIL_SUBJECTS_I18N, DEFAULT_LOCALE } from './translations';
+import type { Locale } from './translations';
 
 export type NotificationEventType =
   // Alerts & Events (cross-domain)
@@ -33,21 +35,6 @@ const TEMPLATE_FILES: Record<NotificationEventType, string> = {
   PASSWORD_RESET: 'password-reset.hbs',
   DAILY_DIGEST: 'daily-digest.hbs',
   NEW_DEVICE_LOGIN: 'new-device-login.hbs',
-};
-
-const EMAIL_SUBJECTS: Record<NotificationEventType, string> = {
-  ALERT_NEW: '[ARIS] New Event Reported — {{domain}}: {{title}}',
-  ALERT_CONFIRMED: '[ARIS] Event Confirmed — {{domain}}: {{title}}',
-  ALERT_REGIONAL: '[ARIS] REGIONAL ALERT — {{domain}}: {{title}}',
-  WORKFLOW_APPROVED: '[ARIS] {{entityType}} Approved — Level {{level}}',
-  WORKFLOW_REJECTED: '[ARIS] {{entityType}} Rejected — Level {{level}}',
-  CAMPAIGN_ASSIGNED: '[ARIS] Campaign Assigned — {{campaignName}}',
-  QUALITY_FAILED: '[ARIS] Quality Check Failed — {{entityType}}',
-  CORRECTION_OVERDUE: '[ARIS] ESCALATION — Overdue Correction ({{daysOverdue}} days)',
-  WELCOME: '[ARIS] Welcome to ARIS',
-  PASSWORD_RESET: '[ARIS] Password Reset Request',
-  DAILY_DIGEST: '[ARIS] Daily Summary — {{date}}',
-  NEW_DEVICE_LOGIN: '[ARIS] \u26a0\ufe0f New login on your account — {{deviceName}}',
 };
 
 export const SMS_TEMPLATES: Record<NotificationEventType, string> = {
@@ -83,18 +70,23 @@ export class TemplateEngine {
   }
 
   renderEmail(eventType: NotificationEventType, data: Record<string, unknown>): { subject: string; html: string } {
+    const locale = (data['locale'] as Locale) || DEFAULT_LOCALE;
     const subject = this.renderSubject(eventType, data);
     const templateFile = TEMPLATE_FILES[eventType];
     const templatePath = join(this.templatesDir, 'email', templateFile);
     const bodyTemplate = this.getTemplate(templatePath);
 
+    // Inject locale + direction into data for templates
+    const enrichedData = { ...data, locale, dir: textDirection(locale) };
+
     if (!bodyTemplate) {
-      const fallbackHtml = this.wrapInLayout(`<p>Notification: ${eventType}</p><p>${JSON.stringify(data)}</p>`, data);
-      return { subject, html: fallbackHtml };
+      console.error(`[TemplateEngine] Template not found: ${templatePath} — rendering fallback`);
+      const fallbackHtml = this.renderFallback(eventType, enrichedData);
+      return { subject, html: this.wrapInLayout(fallbackHtml, enrichedData) };
     }
 
-    const bodyHtml = bodyTemplate(data);
-    const html = this.wrapInLayout(bodyHtml, data);
+    const bodyHtml = bodyTemplate(enrichedData);
+    const html = this.wrapInLayout(bodyHtml, enrichedData);
     return { subject, html };
   }
 
@@ -109,9 +101,11 @@ export class TemplateEngine {
   }
 
   renderSubject(eventType: NotificationEventType, data: Record<string, unknown>): string {
-    const subjectTemplate = EMAIL_SUBJECTS[eventType];
-    if (!subjectTemplate) return `[ARIS] Notification — ${eventType}`;
-    return Handlebars.compile(subjectTemplate)(data);
+    const locale = (data['locale'] as Locale) || DEFAULT_LOCALE;
+    const localeSubjects = EMAIL_SUBJECTS_I18N[eventType];
+    if (!localeSubjects) return `[ARIS] Notification — ${eventType}`;
+    const template = localeSubjects[locale] ?? localeSubjects['en'] ?? `[ARIS] Notification — ${eventType}`;
+    return Handlebars.compile(template)(data);
   }
 
   formatPhoneNumber(phone: string, countryCode: string): string {
@@ -121,6 +115,54 @@ export class TemplateEngine {
     if (!prefix) return trimmed;
     const localNumber = trimmed.startsWith('0') ? trimmed.substring(1) : trimmed;
     return `${prefix}${localNumber}`;
+  }
+
+  /**
+   * Structured fallback when the .hbs file is missing.
+   * Renders a clean key/value table instead of raw JSON.
+   */
+  private renderFallback(eventType: string, data: Record<string, unknown>): string {
+    const locale = (data['locale'] as string) || 'en';
+    const LABEL_MAP: Record<string, Record<string, string>> = {
+      userName:          { en: 'Name', fr: 'Nom', pt: 'Nome', ar: 'الاسم' },
+      firstName:         { en: 'First Name', fr: 'Prénom', pt: 'Nome', ar: 'الاسم الأول' },
+      lastName:          { en: 'Last Name', fr: 'Nom de famille', pt: 'Apelido', ar: 'اسم العائلة' },
+      email:             { en: 'Email', fr: 'E-mail', pt: 'E-mail', ar: 'البريد الإلكتروني' },
+      roleName:          { en: 'Role', fr: 'Rôle', pt: 'Função', ar: 'الدور' },
+      tenantName:        { en: 'Organization', fr: 'Organisation', pt: 'Organização', ar: 'المنظمة' },
+      temporaryPassword: { en: 'Temporary Password', fr: 'Mot de passe temporaire', pt: 'Palavra-passe temporária', ar: 'كلمة المرور المؤقتة' },
+      loginUrl:          { en: 'Login URL', fr: 'URL de connexion', pt: 'URL de acesso', ar: 'رابط تسجيل الدخول' },
+      resetUrl:          { en: 'Reset Link', fr: 'Lien de réinitialisation', pt: 'Link de redefinição', ar: 'رابط إعادة التعيين' },
+      entityType:        { en: 'Entity Type', fr: 'Type d\'entité', pt: 'Tipo de entidade', ar: 'نوع الكيان' },
+      recordId:          { en: 'Record ID', fr: 'ID de l\'enregistrement', pt: 'ID do registo', ar: 'معرّف السجل' },
+      deviceName:        { en: 'Device', fr: 'Appareil', pt: 'Dispositivo', ar: 'الجهاز' },
+      ipAddress:         { en: 'IP Address', fr: 'Adresse IP', pt: 'Endereço IP', ar: 'عنوان IP' },
+    };
+
+    // Skip internal / non-display keys
+    const SKIP_KEYS = new Set(['locale', 'dir', 'year', 'content']);
+    const rows: string[] = [];
+    for (const [key, val] of Object.entries(data)) {
+      if (SKIP_KEYS.has(key) || val === undefined || val === null || val === '') continue;
+      if (typeof val === 'object') continue;
+      const label = LABEL_MAP[key]?.[locale] ?? LABEL_MAP[key]?.['en'] ?? key;
+      const isPassword = key === 'temporaryPassword';
+      const cellStyle = isPassword
+        ? 'font-family:monospace;font-weight:700;background:#fff;border:1px solid #cbd5e1;border-radius:4px;padding:4px 8px;'
+        : '';
+      rows.push(`
+        <tr>
+          <td style="padding:8px 12px;font-size:13px;color:#64748b;border-bottom:1px solid #f0f0f0;width:140px;vertical-align:top;">${label}</td>
+          <td style="padding:8px 12px;font-size:14px;color:#0f172a;border-bottom:1px solid #f0f0f0;"><span style="${cellStyle}">${Handlebars.Utils.escapeExpression(String(val))}</span></td>
+        </tr>`);
+    }
+
+    return `
+      <h2 style="margin:0 0 16px;font-size:20px;color:#003366;">${eventType}</h2>
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+             style="border:1px solid #dce3ec;border-radius:8px;overflow:hidden;margin-bottom:20px;">
+        ${rows.join('')}
+      </table>`;
   }
 
   private getTemplate(filePath: string): Handlebars.TemplateDelegate | null {
@@ -153,11 +195,21 @@ export class TemplateEngine {
 
   private registerHelpers(): void {
     Handlebars.registerHelper('eq', function (a: unknown, b: unknown): boolean { return a === b; });
-    Handlebars.registerHelper('formatDate', function (isoDate: unknown): string {
+
+    // {{t "key"}} — resolves the label for the current locale in the template context
+    Handlebars.registerHelper('t', function (this: Record<string, unknown>, key: string): string {
+      const locale = (this?.['locale'] as string) || 'en';
+      return translate(key, locale);
+    });
+
+    Handlebars.registerHelper('formatDate', function (isoDate: unknown, options?: Handlebars.HelperOptions): string {
       if (!isoDate || typeof isoDate !== 'string') return String(isoDate ?? '');
-      try { return new Date(isoDate).toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' }); }
+      const locale = (options?.data?.root?.locale as string) || 'en';
+      const dateLocaleMap: Record<string, string> = { en: 'en-GB', fr: 'fr-FR', pt: 'pt-PT', ar: 'ar-EG' };
+      try { return new Date(isoDate).toLocaleDateString(dateLocaleMap[locale] ?? 'en-GB', { year: 'numeric', month: 'long', day: 'numeric' }); }
       catch { return String(isoDate); }
     });
+
     Handlebars.registerHelper('truncate', function (str: unknown, length: unknown): string {
       const text = String(str ?? '');
       const maxLen = typeof length === 'number' ? length : 100;

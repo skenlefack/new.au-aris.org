@@ -144,6 +144,7 @@ export class AuthService {
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
+      locale: user.locale ?? 'en',
       tenantName: tenant.name ?? tenant.code ?? null,
       temporaryPassword: dto.password,
       loginUrl: `${publicBase}/login`,
@@ -255,6 +256,7 @@ export class AuthService {
         isNewDevice,
         allowMultipleConnections,
         tenantId: user.tenantId,
+        locale: user.locale ?? 'en',
       }, user.tenantId, user.id);
     }
 
@@ -341,6 +343,7 @@ export class AuthService {
         email: user.email,
         resetUrl,
         expiresIn: '15 minutes',
+        locale: user.locale ?? 'en',
       }, {
         correlationId: randomUUID(),
         sourceService: SERVICE_NAME,

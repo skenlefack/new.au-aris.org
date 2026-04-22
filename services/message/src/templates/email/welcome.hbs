@@ -1,18 +1,17 @@
 {{!-- welcome.hbs — Body for the welcome / credentials email sent by
       services/message when a new user account is created. The wrapping
-      <html>/<head> and brand header come from templates/layouts/base.hbs. --}}
+      <html>/<head> and brand header come from templates/layouts/base.hbs.
+      All labels use {{t "key"}} for i18n (EN, FR, PT, AR). --}}
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
   <tr>
     <td style="padding: 0 0 8px 0;">
 
       {{!-- Hero --}}
       <h1 style="margin: 0 0 8px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 22px; line-height: 28px; color: #003366; font-weight: 700;">
-        Welcome to ARIS, {{userName}}
+        {{t "welcome.hero"}}, {{userName}}
       </h1>
       <p style="margin: 0 0 22px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 15px; line-height: 22px; color: #475569;">
-        Your ARIS account has been created by an administrator. Use the
-        credentials below to sign in for the first time. You will be
-        prompted to set your own password before the application unlocks.
+        {{t "welcome.intro"}}
       </p>
 
       {{!-- Credentials card --}}
@@ -21,10 +20,10 @@
         <tr>
           <td style="background: linear-gradient(90deg,#003366 0%, #0b4d8f 100%); padding: 12px 18px;">
             <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #D4AF37;">
-              Your credentials
+              {{t "welcome.credentials_title"}}
             </div>
             <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 14px; font-weight: 600; color: #ffffff; margin-top: 2px;">
-              Keep this email safe — the temporary password is shown only here
+              {{t "welcome.credentials_warning"}}
             </div>
           </td>
         </tr>
@@ -32,21 +31,21 @@
           <td style="padding: 14px 18px; background: #f7f9fc;">
             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
               <tr>
-                <td style="width: 130px; padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 12px; color: #64748b; vertical-align: top;">Email</td>
+                <td style="width: 130px; padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 12px; color: #64748b; vertical-align: top;">{{t "welcome.label_email"}}</td>
                 <td style="padding: 6px 0; font-family: 'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace; font-size: 14px; color: #0f172a; font-weight: 500; word-break: break-all;">{{email}}</td>
               </tr>
               <tr>
-                <td style="width: 130px; padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 12px; color: #64748b; vertical-align: top;">Temporary password</td>
+                <td style="width: 130px; padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 12px; color: #64748b; vertical-align: top;">{{t "welcome.label_password"}}</td>
                 <td style="padding: 6px 0;">
                   <code style="display: inline-block; font-family: 'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace; font-size: 14px; color: #0f172a; font-weight: 700; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 10px; letter-spacing: 0.02em;">{{temporaryPassword}}</code>
                 </td>
               </tr>
               <tr>
-                <td style="width: 130px; padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 12px; color: #64748b; vertical-align: top;">Role</td>
+                <td style="width: 130px; padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 12px; color: #64748b; vertical-align: top;">{{t "welcome.label_role"}}</td>
                 <td style="padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 14px; color: #0f172a; font-weight: 500;">{{roleName}}</td>
               </tr>
               <tr>
-                <td style="width: 130px; padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 12px; color: #64748b; vertical-align: top;">Organization</td>
+                <td style="width: 130px; padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 12px; color: #64748b; vertical-align: top;">{{t "welcome.label_organization"}}</td>
                 <td style="padding: 6px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 14px; color: #0f172a; font-weight: 500;">{{tenantName}}</td>
               </tr>
             </table>
@@ -60,12 +59,10 @@
         <tr>
           <td style="padding: 12px 16px;">
             <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 13px; font-weight: 700; color: #7a5c00; margin-bottom: 4px;">
-              Password change required on first sign-in
+              {{t "welcome.password_change_title"}}
             </div>
             <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 13px; color: #6b4b00; line-height: 19px;">
-              For security reasons, the ARIS platform will block access until
-              you replace this temporary password with one of your own.
-              Choose at least 8 characters, mixing letters and digits.
+              {{t "welcome.password_change_body"}}
             </div>
           </td>
         </tr>
@@ -77,7 +74,7 @@
           <td style="border-radius: 8px; background: linear-gradient(90deg,#003366 0%, #0b4d8f 100%);">
             <a href="{{loginUrl}}" target="_blank"
                style="display: inline-block; padding: 14px 34px; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 15px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 8px;">
-              Sign in to ARIS
+              {{t "welcome.cta"}}
             </a>
           </td>
         </tr>
@@ -85,36 +82,34 @@
 
       {{!-- Getting started --}}
       <div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 14px; font-weight: 700; color: #003366; margin: 0 0 8px 0;">
-        Next steps
+        {{t "welcome.next_steps"}}
       </div>
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 16px 0;">
         <tr>
           <td style="padding: 5px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 13px; line-height: 20px; color: #334155;">
-            <span style="color: #003366; font-weight: 700;">1.</span>&nbsp; Sign in at <a href="{{loginUrl}}" style="color: #0b4d8f; text-decoration: none; font-weight: 600;">{{loginUrl}}</a>
+            <span style="color: #003366; font-weight: 700;">1.</span>&nbsp; {{t "welcome.step1"}} <a href="{{loginUrl}}" style="color: #0b4d8f; text-decoration: none; font-weight: 600;">{{loginUrl}}</a>
           </td>
         </tr>
         <tr>
           <td style="padding: 5px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 13px; line-height: 20px; color: #334155;">
-            <span style="color: #003366; font-weight: 700;">2.</span>&nbsp; Set a new password when prompted
+            <span style="color: #003366; font-weight: 700;">2.</span>&nbsp; {{t "welcome.step2"}}
           </td>
         </tr>
         <tr>
           <td style="padding: 5px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 13px; line-height: 20px; color: #334155;">
-            <span style="color: #003366; font-weight: 700;">3.</span>&nbsp; Enable multi-factor authentication (MFA) from your profile
+            <span style="color: #003366; font-weight: 700;">3.</span>&nbsp; {{t "welcome.step3"}}
           </td>
         </tr>
         <tr>
           <td style="padding: 5px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 13px; line-height: 20px; color: #334155;">
-            <span style="color: #003366; font-weight: 700;">4.</span>&nbsp; Review your campaigns, validations and domain data
+            <span style="color: #003366; font-weight: 700;">4.</span>&nbsp; {{t "welcome.step4"}}
           </td>
         </tr>
       </table>
 
       {{!-- Security footer --}}
       <div style="border-top: 1px solid #e2e8f0; padding-top: 14px; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; font-size: 12px; line-height: 18px; color: #64748b;">
-        If you did not expect this invitation, please ignore this email — the
-        account will remain locked until you sign in. Never share your
-        password with anyone. AU-IBAR staff will never ask for it.
+        {{t "welcome.security_footer"}}
       </div>
 
     </td>

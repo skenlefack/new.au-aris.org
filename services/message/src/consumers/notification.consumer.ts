@@ -24,6 +24,7 @@ import type { PreferencesService } from '../services/preferences.service';
 import type { MessageChannel } from '../services/channel.interface';
 
 const GROUP_ID = 'message-service-notifications';
+const DEFAULT_LOCALE = 'en';
 
 export class NotificationConsumer {
   constructor(
@@ -60,6 +61,23 @@ export class NotificationConsumer {
     await this.kafkaConsumer.disconnectAll();
   }
 
+  /**
+   * Look up the user's preferred locale from the DB.
+   * Falls back to 'en' if not found or on error.
+   */
+  private async getUserLocale(userId: string): Promise<string> {
+    if (!this.prisma) return DEFAULT_LOCALE;
+    try {
+      const user = await (this.prisma as any).user.findUnique({
+        where: { id: userId },
+        select: { locale: true },
+      });
+      return user?.locale ?? DEFAULT_LOCALE;
+    } catch {
+      return DEFAULT_LOCALE;
+    }
+  }
+
   private async sendToPreferredChannels(
     userId: string,
     tenantId: string,
@@ -67,6 +85,11 @@ export class NotificationConsumer {
     data: Record<string, unknown>,
     inAppFallbackBody: string,
   ): Promise<void> {
+    // Resolve user locale if not already present in data
+    if (!data['locale']) {
+      data['locale'] = await this.getUserLocale(userId);
+    }
+
     const channels = await this.preferencesService.getChannelsForEvent(userId, tenantId, eventType);
 
     if (channels.email) {
@@ -194,22 +217,17 @@ export class NotificationConsumer {
       return;
     }
     const channel = this.emailChannel;
-    // Each transactional topic gets its own consumer group so KafkaJS's
-    // partition assigner does not mistakenly hand off partitions of this
-    // topic to a consumer subscribed to a different topic.
     await this.kafkaConsumer.subscribe(
       { topic: TOPIC_SYS_CREDENTIAL_USER_CREATED, groupId: 'message-service-welcome' },
       async (payload) => {
         const data = payload as any;
-        // Only send the welcome email when a temporary password is present —
-        // that is, the user was created with an admin-supplied password. This
-        // filter avoids sending the welcome email to future service accounts
-        // or imports that don't follow the register() path.
         if (!data.email || !data.temporaryPassword) {
           return;
         }
         const userName = [data.firstName, data.lastName].filter(Boolean).join(' ') || data.email;
         const roleName = String(data.role ?? '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+        // Use the locale from the Kafka event (set during user creation) or fall back to 'en'
+        const locale = data.locale ?? DEFAULT_LOCALE;
         const templateData = {
           userName,
           firstName: data.firstName ?? '',
@@ -219,6 +237,7 @@ export class NotificationConsumer {
           tenantName: data.tenantName ?? 'ARIS',
           temporaryPassword: data.temporaryPassword,
           loginUrl: data.loginUrl ?? process.env['PUBLIC_WEB_URL'] ?? 'https://au-aris.org/login',
+          locale,
         };
         const rendered = this.templateEngine.renderEmail('WELCOME', templateData);
         const result = await channel.send({
@@ -227,7 +246,7 @@ export class NotificationConsumer {
           body: rendered.html,
         });
         if (result.success) {
-          console.log(`[WELCOME] Email sent to ${data.email}`);
+          console.log(`[WELCOME] Email sent to ${data.email} (locale: ${locale})`);
         } else {
           console.error(`[WELCOME] Failed to send email to ${data.email}: ${result.error}`);
         }
@@ -243,7 +262,8 @@ export class NotificationConsumer {
     const channel = this.emailChannel;
     await this.kafkaConsumer.subscribe({ topic: TOPIC_SYS_CREDENTIAL_PASSWORD_RESET, groupId: 'message-service-transactional' }, async (payload) => {
       const data = payload as any;
-      const templateData = { resetUrl: data.resetUrl, expiresIn: data.expiresIn };
+      const locale = data.locale ?? DEFAULT_LOCALE;
+      const templateData = { resetUrl: data.resetUrl, expiresIn: data.expiresIn, locale };
       const rendered = this.templateEngine.renderEmail('PASSWORD_RESET', templateData);
       const result = await channel.send({
         to: data.email,
@@ -280,7 +300,6 @@ export class NotificationConsumer {
         const portalUrl = `${process.env['DASHBOARD_URL'] ?? 'https://au-aris.org/dashboard'}/knowledge/admin/review/${data.id}`;
         const body = `A new publication "${title}" is awaiting your review on the Knowledge Hub.\n\n${portalUrl}`;
 
-        // Find all reviewers (KNOWLEDGE_MANAGER + CONTINENTAL_ADMIN + SUPER_ADMIN)
         if (!this.prisma) {
           console.warn('[NotificationConsumer] No prisma client — cannot resolve KH reviewers');
           return;
@@ -318,7 +337,7 @@ export class NotificationConsumer {
           {
             userId: authorId,
             channel: NotificationChannel.IN_APP,
-            subject: `✅ Publication approved: ${title}`,
+            subject: `Publication approved: ${title}`,
             body: `Your publication "${title}" has been approved by the continental knowledge manager.${data.reviewerComment ? `\n\nComment: ${data.reviewerComment}` : ''}`,
           },
           data.tenantId,
@@ -361,7 +380,7 @@ export class NotificationConsumer {
           {
             userId: authorId,
             channel: NotificationChannel.IN_APP,
-            subject: `🌍 Publication is live: ${title}`,
+            subject: `Publication is live: ${title}`,
             body: `Your publication "${title}" is now visible on the public Knowledge Hub portal.\n\n${url}`,
           },
           data.tenantId,
@@ -370,7 +389,7 @@ export class NotificationConsumer {
     );
   }
 
-  // ── Knowledge Hub category proposal workflow ──────────────────────────
+  // ── Knowledge Hub category proposal workflow ─────────���────────────────
 
   private async subscribeKnowledgeCategorySubmitted(): Promise<void> {
     await this.kafkaConsumer.subscribe(
@@ -413,7 +432,7 @@ export class NotificationConsumer {
           {
             userId: submitterId,
             channel: NotificationChannel.IN_APP,
-            subject: `✅ Category approved: ${data.nameEn ?? data.slug}`,
+            subject: `Category approved: ${data.nameEn ?? data.slug}`,
             body: `Your proposed category "${data.nameEn ?? data.slug}" has been approved and is now available for publishing.`,
           },
           data.tenantId ?? data.scopeTenantId,
@@ -452,6 +471,7 @@ export class NotificationConsumer {
       { topic: TOPIC_SYS_CREDENTIAL_NEW_DEVICE_LOGIN, groupId: 'message-service-transactional' },
       async (payload) => {
         const data = payload as any;
+        const locale = data.locale ?? DEFAULT_LOCALE;
         const templateData = {
           firstName: data.firstName,
           lastName: data.lastName,
@@ -462,6 +482,7 @@ export class NotificationConsumer {
           isNewDevice: data.isNewDevice,
           allowMultipleConnections: data.allowMultipleConnections,
           dashboardUrl: process.env['DASHBOARD_URL'] ?? 'https://au-aris.org/dashboard',
+          locale,
         };
         const rendered = this.templateEngine.renderEmail('NEW_DEVICE_LOGIN', templateData);
         const result = await channel.send({
