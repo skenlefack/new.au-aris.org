@@ -727,6 +727,9 @@ importers:
       ioredis:
         specifier: ^5.4.0
         version: 5.9.3
+      pg:
+        specifier: ^8.13.0
+        version: 8.18.0
       pino-pretty:
         specifier: ^13.0.0
         version: 13.1.3
