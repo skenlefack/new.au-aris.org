@@ -156,7 +156,15 @@
     "passwordStrengthFair": "Moyen",
     "passwordStrengthGood": "Bon",
     "passwordStrengthStrong": "Fort",
-    "cannotDismiss": "Vous ne pouvez pas utiliser l'application tant que vous n'avez pas changé votre mot de passe."
+    "cannotDismiss": "Vous ne pouvez pas utiliser l'application tant que vous n'avez pas changé votre mot de passe.",
+    "mfaRequired": "Authentification à deux facteurs",
+    "mfaRequiredDesc": "Saisissez le code à 6 chiffres de votre application d'authentification.",
+    "mfaCode": "Code de vérification",
+    "mfaCodePlaceholder": "000000",
+    "mfaVerify": "Vérifier",
+    "mfaVerifying": "Vérification...",
+    "mfaInvalidCode": "Code de vérification invalide. Veuillez réessayer.",
+    "mfaBackToLogin": "Retour à la connexion"
   },
   "header": {
     "tenantHierarchy": "Hiérarchie des entités",

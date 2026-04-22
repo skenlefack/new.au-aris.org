@@ -156,7 +156,15 @@
     "passwordStrengthFair": "Fair",
     "passwordStrengthGood": "Good",
     "passwordStrengthStrong": "Strong",
-    "cannotDismiss": "You cannot use the application until you change your password."
+    "cannotDismiss": "You cannot use the application until you change your password.",
+    "mfaRequired": "Two-Factor Authentication",
+    "mfaRequiredDesc": "Enter the 6-digit code from your authenticator app.",
+    "mfaCode": "Verification code",
+    "mfaCodePlaceholder": "000000",
+    "mfaVerify": "Verify",
+    "mfaVerifying": "Verifying...",
+    "mfaInvalidCode": "Invalid verification code. Please try again.",
+    "mfaBackToLogin": "Back to login"
   },
   "header": {
     "tenantHierarchy": "Tenant hierarchy",

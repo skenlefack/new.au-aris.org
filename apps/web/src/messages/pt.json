@@ -139,7 +139,15 @@
     "resetPasswordBtn": "Redefinir Senha",
     "resetFailed": "Falha na redefinição. Tente novamente.",
     "sessionRevokedNewDevice": "Sua sessão foi encerrada porque uma nova conexão foi aberta em outro dispositivo. Por favor, entre novamente.",
-    "sessionExpiredMessage": "Sua sessão expirou. Por favor, entre novamente."
+    "sessionExpiredMessage": "Sua sessão expirou. Por favor, entre novamente.",
+    "mfaRequired": "Autenticação de dois fatores",
+    "mfaRequiredDesc": "Insira o código de 6 dígitos do seu aplicativo autenticador.",
+    "mfaCode": "Código de verificação",
+    "mfaCodePlaceholder": "000000",
+    "mfaVerify": "Verificar",
+    "mfaVerifying": "Verificando...",
+    "mfaInvalidCode": "Código de verificação inválido. Tente novamente.",
+    "mfaBackToLogin": "Voltar ao login"
   },
   "header": {
     "tenantHierarchy": "Hierarquia de entidades",

@@ -58,13 +58,16 @@ function withFallback<T>(queryFn: () => Promise<T>, fallback: T): () => Promise<
 interface LoginRequest {
   email: string;
   password: string;
+  totpCode?: string;
 }
 
 interface LoginResponse {
   data: {
+    mfaRequired?: boolean;
     accessToken: string;
     refreshToken: string;
-    user: {
+    expiresIn?: number;
+    user?: {
       id: string;
       email: string;
       firstName: string;
@@ -85,6 +88,11 @@ interface LoginResponse {
     };
     permissions?: Array<{ module: string; feature: string; action: string }>;
   };
+}
+
+/** Thrown when the backend signals that MFA is required. */
+export class MfaRequiredError extends Error {
+  constructor() { super('MFA_REQUIRED'); this.name = 'MfaRequiredError'; }
 }
 
 interface RegisterRequest {
@@ -270,10 +278,15 @@ export function useLogin() {
   const setAuth = useAuthStore((s) => s.setAuth);
 
   return useMutation({
-    mutationFn: async (data: LoginRequest) =>
-      apiClient.post<LoginResponse>('/credential/auth/login', data),
+    mutationFn: async (data: LoginRequest) => {
+      const res = await apiClient.post<LoginResponse>('/credential/auth/login', data);
+      if (res.data.mfaRequired) {
+        throw new MfaRequiredError();
+      }
+      return res;
+    },
     onSuccess: (res) => {
-      const { user, accessToken, refreshToken, permissions } = res.data;
+      const { user, accessToken, refreshToken, permissions } = res.data as LoginResponse['data'] & { user: NonNullable<LoginResponse['data']['user']> };
       const effectiveRoles = user.roles ?? [user.role];
       setAuth(
         {

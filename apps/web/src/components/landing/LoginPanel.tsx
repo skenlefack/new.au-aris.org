@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Eye, EyeOff, LogIn, Shield, AlertTriangle } from 'lucide-react';
-import { useLogin } from '@/lib/api/hooks';
+import { Eye, EyeOff, LogIn, Shield, AlertTriangle, KeyRound, ArrowLeft } from 'lucide-react';
+import { useLogin, MfaRequiredError } from '@/lib/api/hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTenantStore } from '@/lib/stores/tenant-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
@@ -46,6 +46,14 @@ export function LoginPanel({ context }: LoginPanelProps) {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
+  // ── MFA state ──────────────────────────────────────────────
+  const [mfaStep, setMfaStep] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaError, setMfaError] = useState('');
+  const [mfaLoading, setMfaLoading] = useState(false);
+  const [savedCredentials, setSavedCredentials] = useState<LoginForm | null>(null);
+  const mfaInputRef = useRef<HTMLInputElement>(null);
+
   const {
     register,
     handleSubmit,
@@ -58,8 +66,6 @@ export function LoginPanel({ context }: LoginPanelProps) {
 
   const onSubmit = async (data: LoginForm) => {
     setIsLoggingIn(true);
-    // Clear any stale session reason from the URL so it doesn't
-    // persist alongside login-error messages.
     if (sessionReason) {
       const url = new URL(window.location.href);
       url.searchParams.delete('reason');
@@ -67,24 +73,65 @@ export function LoginPanel({ context }: LoginPanelProps) {
     }
     try {
       await loginMutation.mutateAsync(data);
-      try {
-        await useTenantStore.getState().fetchTenantTree();
-      } catch {
-        // non-blocking
+      await completeLogin();
+    } catch (err) {
+      if (err instanceof MfaRequiredError) {
+        // Backend says MFA is required — switch to TOTP step
+        setSavedCredentials(data);
+        setMfaStep(true);
+        setMfaCode('');
+        setMfaError('');
+        setIsLoggingIn(false);
+        setTimeout(() => mfaInputRef.current?.focus(), 100);
+      } else {
+        setIsLoggingIn(false);
       }
-      // Sync tenant store to the logged-in user's tenant
-      const user = useAuthStore.getState().user;
-      if (user?.tenantId) {
-        useTenantStore.getState().initFromUser(user.tenantId, user.email);
-      }
-      // Sync locale store from server preference
-      if (user?.locale && LOCALES.includes(user.locale as Locale)) {
-        useLocaleStore.getState().setLocale(user.locale as Locale);
-      }
-      router.push('/home');
-    } catch {
-      setIsLoggingIn(false);
     }
+  };
+
+  const onMfaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!savedCredentials || mfaCode.length !== 6) return;
+    setMfaLoading(true);
+    setMfaError('');
+    try {
+      await loginMutation.mutateAsync({
+        ...savedCredentials,
+        totpCode: mfaCode,
+      });
+      setIsLoggingIn(true);
+      await completeLogin();
+    } catch {
+      setMfaError(ta('mfaInvalidCode'));
+      setMfaCode('');
+      setMfaLoading(false);
+      mfaInputRef.current?.focus();
+    }
+  };
+
+  const completeLogin = async () => {
+    try {
+      await useTenantStore.getState().fetchTenantTree();
+    } catch {
+      // non-blocking
+    }
+    const user = useAuthStore.getState().user;
+    if (user?.tenantId) {
+      useTenantStore.getState().initFromUser(user.tenantId, user.email);
+    }
+    if (user?.locale && LOCALES.includes(user.locale as Locale)) {
+      useLocaleStore.getState().setLocale(user.locale as Locale);
+    }
+    router.push('/home');
+  };
+
+  const resetMfa = () => {
+    setMfaStep(false);
+    setMfaCode('');
+    setMfaError('');
+    setSavedCredentials(null);
+    setIsLoggingIn(false);
+    loginMutation.reset();
   };
 
   const contextLabel =
@@ -101,6 +148,85 @@ export function LoginPanel({ context }: LoginPanelProps) {
         ? ta('accessRegional')
         : ta('accessContinental');
 
+  // ── MFA TOTP step ──────────────────────────────────────────
+  if (mfaStep) {
+    return (
+      <div className="w-full">
+        <div className="mb-6 flex flex-col items-center gap-3 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30">
+            <KeyRound className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              {ta('mfaRequired')}
+            </h2>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {ta('mfaRequiredDesc')}
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={onMfaSubmit} className="space-y-4">
+          {mfaError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
+              {mfaError}
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="mfa-code" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {ta('mfaCode')}
+            </label>
+            <input
+              ref={mfaInputRef}
+              id="mfa-code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={mfaCode}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                setMfaCode(val);
+              }}
+              className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-3 text-center text-xl font-mono tracking-[0.5em] shadow-sm placeholder:text-gray-400 placeholder:tracking-[0.3em] focus:outline-none focus:ring-2 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              style={{ '--tw-ring-color': `${accentColor}40` } as React.CSSProperties}
+              placeholder={ta('mfaCodePlaceholder')}
+              autoFocus
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={mfaCode.length !== 6 || mfaLoading}
+            className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            style={{
+              backgroundColor: accentColor,
+              '--tw-ring-color': accentColor,
+            } as React.CSSProperties}
+          >
+            {mfaLoading ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : (
+              <Shield className="h-4 w-4" />
+            )}
+            {mfaLoading ? ta('mfaVerifying') : ta('mfaVerify')}
+          </button>
+
+          <button
+            type="button"
+            onClick={resetMfa}
+            className="flex w-full items-center justify-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            {ta('mfaBackToLogin')}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  // ── Normal login form ──────────────────────────────────────
   return (
     <div className="w-full">
       {/* Header with logo */}
@@ -159,7 +285,7 @@ export function LoginPanel({ context }: LoginPanelProps) {
             </div>
           </div>
         )}
-        {loginMutation.error && (
+        {loginMutation.error && !(loginMutation.error instanceof MfaRequiredError) && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300">
             {loginMutation.error instanceof Error
               ? loginMutation.error.message

@@ -139,7 +139,15 @@
     "resetPasswordBtn": "إعادة تعيين كلمة المرور",
     "resetFailed": "فشلت إعادة التعيين. يرجى المحاولة مرة أخرى.",
     "sessionRevokedNewDevice": "تم إغلاق جلستك لأنه تم فتح اتصال جديد من جهاز آخر. يرجى تسجيل الدخول مرة أخرى.",
-    "sessionExpiredMessage": "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى."
+    "sessionExpiredMessage": "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.",
+    "mfaRequired": "المصادقة الثنائية",
+    "mfaRequiredDesc": "أدخل الرمز المكوّن من 6 أرقام من تطبيق المصادقة.",
+    "mfaCode": "رمز التحقق",
+    "mfaCodePlaceholder": "000000",
+    "mfaVerify": "تحقق",
+    "mfaVerifying": "جارٍ التحقق...",
+    "mfaInvalidCode": "رمز التحقق غير صالح. يرجى المحاولة مرة أخرى.",
+    "mfaBackToLogin": "العودة إلى تسجيل الدخول"
   },
   "header": {
     "tenantHierarchy": "التسلسل الهرمي",
