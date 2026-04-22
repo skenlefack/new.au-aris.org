@@ -355,7 +355,7 @@ services:
       NEXT_PUBLIC_METABASE_URL: https://metabase-test.au-aris.org
       NEXT_PUBLIC_SUPERSET_URL: https://superset-test.au-aris.org
       # Internal service URLs (Docker Compose service names)
-      INTERNAL_TENANT_URL: http://tenant:3001
+      INTERNAL_TENANT_URL: http://aris-stg-tenant:3001
       # Server-side env vars for BI proxy API routes (Docker service names, fallback)
       METABASE_INTERNAL_URL: http://metabase:3000
       GRAFANA_INTERNAL_URL: http://grafana:3000

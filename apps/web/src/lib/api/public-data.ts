@@ -6,7 +6,7 @@
  */
 const API_BASE = process.env['NEXT_PUBLIC_TENANT_API_URL']
   || (typeof window === 'undefined'
-    ? (process.env['INTERNAL_TENANT_URL'] || 'http://aris-tenant:3001')
+    ? (process.env['INTERNAL_TENANT_URL'] || 'http://tenant:3001')
     : (process.env['NEXT_PUBLIC_API_URL'] || ''));
 
 export async function getPublicRecs() {
