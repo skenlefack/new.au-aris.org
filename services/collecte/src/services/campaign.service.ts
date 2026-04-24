@@ -279,9 +279,9 @@ export class CampaignService {
 
     // Domain-based filtering: non-SUPER_ADMIN users only see campaigns
     // whose domain matches one of their assigned domains (from JWT).
-    const userDomains = user.domains ?? [];
-    if (user.role !== 'SUPER_ADMIN' && userDomains.length > 0) {
-      where['domain'] = { in: userDomains };
+    const userDomainCodes = Object.keys(user.domains ?? {});
+    if (user.role !== 'SUPER_ADMIN' && userDomainCodes.length > 0) {
+      where['domain'] = { in: userDomainCodes };
     }
 
     if (user.tenantLevel === TenantLevel.CONTINENTAL) {
