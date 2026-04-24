@@ -219,8 +219,16 @@ export class AuthService {
     }
     // ─────────────────────────────────────────────────────────────────
 
-    // Fetch user's domain codes for JWT + full objects for frontend
-    const domainCodes = this.domainService ? await this.domainService.getUserDomainCodes(user.id) : [];
+    // Fetch user's hierarchical domain permissions for JWT + full objects for frontend
+    const domainPermissions = (user.permissions && typeof user.permissions === 'object' && !Array.isArray(user.permissions))
+      ? user.permissions as Record<string, string[]>
+      : {};
+    // Fallback: if no permissions set, derive from UserDomain assignments with wildcard
+    let effectiveDomainPerms = domainPermissions;
+    if (Object.keys(effectiveDomainPerms).length === 0 && this.domainService) {
+      const domainCodes = await this.domainService.getUserDomainCodes(user.id);
+      effectiveDomainPerms = Object.fromEntries(domainCodes.map((c: string) => [c, ['*']]));
+    }
     const userDomainsResult = this.domainService ? await this.domainService.getUserDomains(user.id) : { data: [] };
 
     // Compute effective roles from UserRoleAssignment table
@@ -228,7 +236,7 @@ export class AuthService {
     // Compute permissions for frontend
     const permissions = await this.computePermissions(effectiveRoles);
 
-    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, domainCodes, effectiveRoles);
+    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, effectiveDomainPerms, effectiveRoles);
     await this.storeRefreshToken(user.id, tokens.refreshTokenId, user.role, user.tenantId, user.tenant.level, deviceType);
 
     await (this.prisma as any).user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
@@ -293,13 +301,20 @@ export class AuthService {
     });
     if (!user || !user.isActive) throw new HttpError(401, 'Ce compte a \u00e9t\u00e9 d\u00e9sactiv\u00e9. Contactez votre administrateur.');
 
-    // Fetch fresh domain codes for the new JWT
-    const domainCodes = this.domainService ? await this.domainService.getUserDomainCodes(user.id) : [];
+    // Fetch fresh hierarchical domain permissions for the new JWT
+    let domainPerms: Record<string, string[]> = {};
+    if (user.permissions && typeof user.permissions === 'object' && !Array.isArray(user.permissions)) {
+      domainPerms = user.permissions as Record<string, string[]>;
+    }
+    if (Object.keys(domainPerms).length === 0 && this.domainService) {
+      const codes = await this.domainService.getUserDomainCodes(user.id);
+      domainPerms = Object.fromEntries(codes.map((c: string) => [c, ['*']]));
+    }
 
     // Refresh effective roles
     const effectiveRoles = await this.computeEffectiveRoles(user.id, user.role);
 
-    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, domainCodes, effectiveRoles);
+    const tokens = this.generateTokens(user.id, user.email, user.role, user.tenantId, user.tenant.level, user.locale, domainPerms, effectiveRoles);
     await this.storeRefreshToken(user.id, tokens.refreshTokenId, sessionData.role, sessionData.tenantId, sessionData.tenantLevel);
 
     return { data: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, expiresIn: 900 } };
@@ -383,9 +398,9 @@ export class AuthService {
     return { data: { message: 'Password has been reset successfully. You can now log in.' } };
   }
 
-  private generateTokens(userId: string, email: string, role: string, tenantId: string, tenantLevel: string, locale?: string, domains?: string[], roles?: string[]) {
+  private generateTokens(userId: string, email: string, role: string, tenantId: string, tenantLevel: string, locale?: string, domains?: Record<string, string[]>, roles?: string[]) {
     const effectiveRoles = roles ?? [role];
-    const accessToken = jwt.sign({ sub: userId, email, role, roles: effectiveRoles, tenantId, tenantLevel, locale: locale ?? 'en', domains: domains ?? [] }, this.privateKey, { algorithm: 'RS256', expiresIn: ACCESS_TOKEN_EXPIRY });
+    const accessToken = jwt.sign({ sub: userId, email, role, roles: effectiveRoles, tenantId, tenantLevel, locale: locale ?? 'en', domains: domains ?? {} }, this.privateKey, { algorithm: 'RS256', expiresIn: ACCESS_TOKEN_EXPIRY });
     const refreshTokenId = randomUUID();
     const refreshToken = Buffer.from(`${userId}:${refreshTokenId}`).toString('base64url');
     return { accessToken, refreshToken, refreshTokenId };
