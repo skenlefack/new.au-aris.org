@@ -1033,6 +1033,42 @@ services:
       - "traefik.http.routers.offline.entrypoints=websecure"
       - "traefik.http.services.offline.loadbalancer.server.port=3040"
 
+  # ═══════════════════════════════════════════════════
+  #  PORTAINER CE — Container Management UI
+  # ═══════════════════════════════════════════════════
+  portainer:
+    image: portainer/portainer-ce:2.21.5
+    container_name: aris-portainer
+    <<: *service-common
+    command: -H unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.au-aris.org`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.routers.portainer.priority=20"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+
+  # ═══════════════════════════════════════════════════
+  #  UPTIME KUMA — Service Status Monitor
+  # ═══════════════════════════════════════════════════
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: aris-uptime-kuma
+    <<: *service-common
+    volumes:
+      - uptime-kuma-data:/app/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.uptime-kuma.rule=Host(`status.au-aris.org`)"
+      - "traefik.http.routers.uptime-kuma.entrypoints=websecure"
+      - "traefik.http.routers.uptime-kuma.tls=true"
+      - "traefik.http.routers.uptime-kuma.priority=20"
+      - "traefik.http.services.uptime-kuma.loadbalancer.server.port=3001"
+
 volumes:
   minio-data:
   prometheus-data:
@@ -1040,6 +1076,8 @@ volumes:
   jaeger-data:
   superset_home:
   metabase_data:
+  portainer-data:
+  uptime-kuma-data:
 
 networks:
   aris-app-network:
