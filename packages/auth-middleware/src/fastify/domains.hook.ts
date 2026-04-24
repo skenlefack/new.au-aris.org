@@ -26,8 +26,8 @@ export function domainsHook(...requiredDomains: string[]) {
       return;
     }
 
-    const userDomains = user.domains ?? [];
-    const hasAccess = requiredDomains.some((d) => userDomains.includes(d));
+    const userDomains = user.domains ?? {};
+    const hasAccess = requiredDomains.some((d) => d in userDomains);
 
     if (!hasAccess) {
       return reply.code(403).send({

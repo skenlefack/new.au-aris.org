@@ -8,7 +8,7 @@ export interface JwtPayload {
   tenantId: string;
   tenantLevel: TenantLevel;
   locale?: string;
-  domains?: string[];
+  domains?: Record<string, string[]>;  // { "livestock-prod": ["DAIRY","RED_MEAT"], "trade-sps": ["*"] }
   iat: number;
   exp: number;
 }
@@ -21,7 +21,7 @@ export interface AuthenticatedUser {
   tenantId: string;
   tenantLevel: TenantLevel;
   locale?: string;
-  domains: string[];
+  domains: Record<string, string[]>;  // hierarchical domain → sub-domain permissions
 }
 
 export interface TenantContext {

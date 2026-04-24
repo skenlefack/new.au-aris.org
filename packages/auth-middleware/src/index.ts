@@ -50,6 +50,9 @@ export type {
 } from './interfaces/jwt-payload.interface';
 export { AUTH_MODULE_OPTIONS } from './interfaces/jwt-payload.interface';
 
+// Permission helpers
+export { hasAccessToDomain, hasAccessToSubDomain, getAccessibleDomainCodes } from './permissions';
+
 // Fastify hooks (standalone, no NestJS)
 export { authHook, rolesHook, tenantHook, domainsHook, permissionsHook } from './fastify';
 export type { AuthHookOptions } from './fastify';
