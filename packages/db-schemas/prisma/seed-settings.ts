@@ -1623,6 +1623,121 @@ async function seedDomains(): Promise<void> {
   console.log(`    ${DOMAINS_DATA.length} domains seeded.`);
 }
 
+// ─── Value Chain Codes ───────────────────────────────────────────────────────
+
+const VALUE_CHAIN_CODES = [
+  { code: 'DAIRY',           labelFr: 'Lait',                  labelEn: 'Dairy',                    displayOrder: 10 },
+  { code: 'RED_MEAT',        labelFr: 'Viande rouge',          labelEn: 'Red meat',                 displayOrder: 20 },
+  { code: 'POULTRY',         labelFr: 'Volaille',              labelEn: 'Poultry',                  displayOrder: 30 },
+  { code: 'PORK',            labelFr: 'Porc',                  labelEn: 'Pork',                     displayOrder: 40 },
+  { code: 'SMALL_RUMINANTS', labelFr: 'Petits ruminants',      labelEn: 'Small ruminants',          displayOrder: 50 },
+  { code: 'FISHERIES_AQUA',  labelFr: 'Pêche et aquaculture',  labelEn: 'Fisheries & aquaculture',  displayOrder: 60 },
+  { code: 'APICULTURE',      labelFr: 'Apiculture',            labelEn: 'Apiculture',               displayOrder: 70 },
+];
+
+async function seedValueChainCodes(): Promise<void> {
+  console.log('  Seeding value chain codes...');
+  const db = prisma as any;
+
+  for (const vcc of VALUE_CHAIN_CODES) {
+    await db.valueChainCode.upsert({
+      where: { code: vcc.code },
+      update: { labelFr: vcc.labelFr, labelEn: vcc.labelEn, displayOrder: vcc.displayOrder },
+      create: vcc,
+    });
+  }
+
+  console.log(`    ${VALUE_CHAIN_CODES.length} value chain codes seeded.`);
+}
+
+// ─── Sub-Domains ─────────────────────────────────────────────────────────────
+
+interface SubDomainSeed {
+  code: string;
+  labelFr: string;
+  labelEn: string;
+  typeEnum: 'VALUE_CHAIN' | 'ORGANIZATIONAL' | 'PATHOLOGY' | 'OTHER';
+  valueChainCode?: string;
+  active?: boolean;
+  displayOrder?: number;
+  description?: string;
+}
+
+const SUB_DOMAINS_BY_DOMAIN: Record<string, SubDomainSeed[]> = {
+  // Livestock Production — VALUE_CHAIN sub-domains
+  'livestock-prod': [
+    { code: 'DAIRY',           valueChainCode: 'DAIRY',           labelFr: 'Lait',              labelEn: 'Dairy',             typeEnum: 'VALUE_CHAIN', displayOrder: 10 },
+    { code: 'RED_MEAT',        valueChainCode: 'RED_MEAT',        labelFr: 'Viande rouge',      labelEn: 'Red meat',          typeEnum: 'VALUE_CHAIN', displayOrder: 20 },
+    { code: 'POULTRY',         valueChainCode: 'POULTRY',         labelFr: 'Volaille',          labelEn: 'Poultry',           typeEnum: 'VALUE_CHAIN', displayOrder: 30 },
+    { code: 'PORK',            valueChainCode: 'PORK',            labelFr: 'Porc',              labelEn: 'Pork',              typeEnum: 'VALUE_CHAIN', displayOrder: 40 },
+    { code: 'SMALL_RUMINANTS', valueChainCode: 'SMALL_RUMINANTS', labelFr: 'Petits ruminants',  labelEn: 'Small ruminants',   typeEnum: 'VALUE_CHAIN', displayOrder: 50 },
+    { code: 'APICULTURE',      valueChainCode: 'APICULTURE',      labelFr: 'Apiculture',        labelEn: 'Apiculture',        typeEnum: 'VALUE_CHAIN', displayOrder: 60, active: false },
+  ],
+
+  // Governance — ORGANIZATIONAL sub-domains (pas d'eclatement, sous-domaines a la place)
+  'governance': [
+    { code: 'CLINICS',          labelFr: 'Cliniques',                labelEn: 'Clinics',            typeEnum: 'ORGANIZATIONAL', displayOrder: 10 },
+    { code: 'SLAUGHTERHOUSES',  labelFr: 'Abattoirs',                labelEn: 'Slaughterhouses',    typeEnum: 'ORGANIZATIONAL', displayOrder: 20 },
+    { code: 'LEGAL_FRAMEWORKS', labelFr: 'Cadres juridiques',        labelEn: 'Legal frameworks',   typeEnum: 'ORGANIZATIONAL', displayOrder: 30 },
+    { code: 'VACCINATION',      labelFr: 'Vaccination',              labelEn: 'Vaccination',        typeEnum: 'ORGANIZATIONAL', displayOrder: 40 },
+    { code: 'SURVEILLANCE',     labelFr: 'Surveillance',             labelEn: 'Surveillance',       typeEnum: 'ORGANIZATIONAL', displayOrder: 50 },
+    { code: 'LABORATORIES',     labelFr: 'Laboratoires',             labelEn: 'Laboratories',       typeEnum: 'ORGANIZATIONAL', displayOrder: 60 },
+  ],
+
+  // Trade & SPS — VALUE_CHAIN sub-domains (tags transverses partages avec livestock-prod)
+  'trade-sps': [
+    { code: 'DAIRY_TRADE',           valueChainCode: 'DAIRY',           labelFr: 'Commerce du lait',               labelEn: 'Dairy trade',             typeEnum: 'VALUE_CHAIN', displayOrder: 10 },
+    { code: 'RED_MEAT_TRADE',        valueChainCode: 'RED_MEAT',        labelFr: 'Commerce de la viande rouge',    labelEn: 'Red meat trade',          typeEnum: 'VALUE_CHAIN', displayOrder: 20 },
+    { code: 'POULTRY_TRADE',         valueChainCode: 'POULTRY',         labelFr: 'Commerce de la volaille',        labelEn: 'Poultry trade',           typeEnum: 'VALUE_CHAIN', displayOrder: 30 },
+    { code: 'PORK_TRADE',            valueChainCode: 'PORK',            labelFr: 'Commerce du porc',               labelEn: 'Pork trade',              typeEnum: 'VALUE_CHAIN', displayOrder: 40 },
+    { code: 'SMALL_RUMINANTS_TRADE', valueChainCode: 'SMALL_RUMINANTS', labelFr: 'Commerce des petits ruminants',  labelEn: 'Small ruminants trade',   typeEnum: 'VALUE_CHAIN', displayOrder: 50 },
+    { code: 'FISHERIES_TRADE',       valueChainCode: 'FISHERIES_AQUA',  labelFr: 'Commerce halieutique',           labelEn: 'Fisheries trade',         typeEnum: 'VALUE_CHAIN', displayOrder: 60 },
+  ],
+};
+
+async function seedSubDomains(): Promise<void> {
+  console.log('  Seeding sub-domains...');
+  const db = prisma as any;
+  let count = 0;
+
+  for (const [domainCode, subDomains] of Object.entries(SUB_DOMAINS_BY_DOMAIN)) {
+    const domain = await db.domain.findUnique({ where: { code: domainCode } });
+    if (!domain) {
+      console.warn(`    WARN: Domain '${domainCode}' not found, skipping its sub-domains.`);
+      continue;
+    }
+
+    for (const sd of subDomains) {
+      await db.subDomain.upsert({
+        where: { domainId_code: { domainId: domain.id, code: sd.code } },
+        update: {
+          labelFr: sd.labelFr,
+          labelEn: sd.labelEn,
+          typeEnum: sd.typeEnum,
+          valueChainCode: sd.valueChainCode ?? null,
+          active: sd.active ?? true,
+          displayOrder: sd.displayOrder ?? 0,
+          description: sd.description ?? null,
+        },
+        create: {
+          code: sd.code,
+          domainId: domain.id,
+          labelFr: sd.labelFr,
+          labelEn: sd.labelEn,
+          typeEnum: sd.typeEnum,
+          valueChainCode: sd.valueChainCode ?? null,
+          active: sd.active ?? true,
+          displayOrder: sd.displayOrder ?? 0,
+          description: sd.description ?? null,
+        },
+      });
+      count++;
+    }
+  }
+
+  console.log(`    ${count} sub-domains seeded across ${Object.keys(SUB_DOMAINS_BY_DOMAIN).length} domains.`);
+}
+
 // ─── Admin Levels (per-country administrative hierarchy) ─────────────────────
 
 interface AdminLevelSeed {
@@ -1710,6 +1825,8 @@ async function main(): Promise<void> {
   await seedCountryRecs();
   await seedSystemConfigs();
   await seedDomains();
+  await seedValueChainCodes();
+  await seedSubDomains();
   await seedAdminLevels();
   console.log('Settings seed complete.');
 }
