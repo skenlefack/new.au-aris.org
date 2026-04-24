@@ -309,3 +309,29 @@ export const ALL_TOPICS = [
 ] as const;
 
 export type TopicName = (typeof ALL_TOPICS)[number];
+
+// ── Sub-Domain Event Topics ──
+export const TOPIC_SYS_CREDENTIAL_SUBDOMAIN_CREATED = 'sys.credential.subdomain.created.v1' as const;
+export const TOPIC_SYS_CREDENTIAL_SUBDOMAIN_UPDATED = 'sys.credential.subdomain.updated.v1' as const;
+export const TOPIC_SYS_CREDENTIAL_SUBDOMAIN_DELETED = 'sys.credential.subdomain.deleted.v1' as const;
+export const TOPIC_SYS_CREDENTIAL_SUBDOMAIN_ACTIVATED = 'sys.credential.subdomain.activated.v1' as const;
+export const TOPIC_SYS_CREDENTIAL_SUBDOMAIN_DEACTIVATED = 'sys.credential.subdomain.deactivated.v1' as const;
+
+/**
+ * Build a dynamic topic name with sub-domain granularity.
+ *
+ * Convention: {scope}.{domain}.{subdomain}.{event}.{version}
+ *
+ * @example
+ * domainSubDomainTopic('ms', 'livestock-prod', 'dairy', 'metric.updated')
+ * // → 'ms.livestock-prod.dairy.metric.updated.v1'
+ */
+export function domainSubDomainTopic(
+  scope: 'ms' | 'rec' | 'au' | 'sys',
+  domainCode: string,
+  subDomainCode: string,
+  event: string,
+  version = 'v1',
+): string {
+  return [scope, domainCode.toLowerCase(), subDomainCode.toLowerCase(), event, version].join('.');
+}
