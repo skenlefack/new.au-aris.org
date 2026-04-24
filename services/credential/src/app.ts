@@ -11,6 +11,8 @@ import { AuthService } from './services/auth.service.js';
 import { UserService } from './services/user.service.js';
 import { MfaService } from './services/mfa.service.js';
 import { DomainService } from './services/domain.service.js';
+import { SubDomainService } from './services/subdomain.service.js';
+import { PermissionResolver } from './services/permission-resolver.js';
 import { AccountLockoutService } from './services/account-lockout.service.js';
 import { AuditService } from './services/audit.service.js';
 import { GeolocationService } from './services/geolocation.service.js';
@@ -19,6 +21,7 @@ import { registerAuthRoutes } from './routes/auth.routes.js';
 import { registerUserRoutes } from './routes/user.routes.js';
 import { registerMfaRoutes } from './routes/mfa.routes.js';
 import { registerDomainRoutes } from './routes/domain.routes.js';
+import { registerSubDomainRoutes } from './routes/subdomain.routes.js';
 import { registerI18nRoutes } from './routes/i18n.routes.js';
 import { registerAuditRoutes } from './routes/audit.routes.js';
 import { registerSessionRoutes } from './routes/session.routes.js';
@@ -94,6 +97,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Services
   const lockout = new AccountLockoutService(app.redis);
   const domainService = new DomainService(app.prisma, app.kafka);
+  const subDomainService = new SubDomainService(app.prisma, app.kafka);
+  const permissionResolver = new PermissionResolver(app.prisma);
   const authService = new AuthService(app.prisma, app.redis, app.kafka, lockout, domainService);
   const userService = new UserService(app.prisma, app.redis, domainService);
   const mfaService = new MfaService(app.prisma);
@@ -107,6 +112,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.decorate('userService', userService);
   app.decorate('mfaService', mfaService);
   app.decorate('domainService', domainService);
+  app.decorate('subDomainService', subDomainService);
+  app.decorate('permissionResolver', permissionResolver);
   app.decorate('auditService', auditService);
   app.decorate('sessionService', sessionService);
   app.decorate('i18n', i18n);
@@ -116,6 +123,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerAuthRoutes);
   await app.register(registerUserRoutes);
   await app.register(registerDomainRoutes);
+  await app.register(registerSubDomainRoutes);
   await app.register(registerMfaRoutes);
   await app.register(registerI18nRoutes);
   await app.register(registerAuditRoutes);

@@ -6,6 +6,8 @@ import type { AuthService } from './services/auth.service.js';
 import type { UserService } from './services/user.service.js';
 import type { MfaService } from './services/mfa.service.js';
 import type { DomainService } from './services/domain.service.js';
+import type { SubDomainService } from './services/subdomain.service.js';
+import type { PermissionResolver } from './services/permission-resolver.js';
 import type { AuditService } from './services/audit.service.js';
 import type { SessionService } from './services/session.service.js';
 
@@ -17,6 +19,8 @@ declare module 'fastify' {
     userService: UserService;
     mfaService: MfaService;
     domainService: DomainService;
+    subDomainService: SubDomainService;
+    permissionResolver: PermissionResolver;
     auditService: AuditService;
     sessionService: SessionService;
     i18n: I18nService;
