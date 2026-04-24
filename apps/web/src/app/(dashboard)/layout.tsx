@@ -8,6 +8,7 @@ import { ToastContainer } from '@/components/realtime/ToastContainer';
 import { RouteChangeLoader } from '@/components/ui/PageLoader';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { ForcePasswordChangeModal } from '@/components/auth/ForcePasswordChangeModal';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { useI18nOverridesStore } from '@/lib/stores/i18n-overrides-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
@@ -57,12 +58,35 @@ export default function DashboardLayout({
   // Sync all domains from public API into domain store (for DomainAutocomplete, DomainSelector, etc.)
   const { data: publicDomainData } = usePublicDomains();
   const setAllDomains = useDomainStore((s) => s.setAllDomains);
+  const hydrateFromMeAccess = useDomainStore((s) => s.hydrateFromMeAccess);
+  const isHydrated = useDomainStore((s) => s.hydrated);
   useEffect(() => {
     const domains = (publicDomainData as any)?.data;
     if (Array.isArray(domains) && domains.length > 0) {
       setAllDomains(domains);
     }
   }, [publicDomainData, setAllDomains]);
+
+  // Hydrate hierarchical sub-domain permissions from /me/access
+  useEffect(() => {
+    if (isHydrated) return;
+    const token = useAuthStore.getState().accessToken;
+    if (!token) return;
+    fetch('/api/v1/credential/me/access', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.domains) {
+          hydrateFromMeAccess({
+            domains: data.domains,
+            subDomainsDetails: data.subDomainsDetails ?? [],
+            valueChainCodes: data.valueChainCodes ?? [],
+          });
+        }
+      })
+      .catch(() => { /* non-blocking */ });
+  }, [isHydrated, hydrateFromMeAccess]);
 
   // Load i18n translation overrides from backend (SystemConfig category: i18n-overrides)
   const { data: i18nOverridesData } = useSettingsConfig('i18n-overrides');
