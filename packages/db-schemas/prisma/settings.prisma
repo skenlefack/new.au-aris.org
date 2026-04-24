@@ -120,10 +120,67 @@ model Domain {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
   userDomains UserDomain[]
+  subDomains  SubDomain[]
 
   @@index([isActive], map: "idx_domain_is_active")
   @@index([sortOrder], map: "idx_domain_sort_order")
   @@map("domains")
+  @@schema("governance")
+}
+
+// ─── Referentiel central des codes de chaines de valeur ──────────────
+// Permet les vues transverses : plusieurs sous-domaines peuvent partager un meme code
+model ValueChainCode {
+  code         String      @id @db.VarChar(30)     // ex: 'DAIRY', 'RED_MEAT', 'POULTRY'
+  labelFr      String      @map("label_fr")
+  labelEn      String      @map("label_en")
+  labelAr      String?     @map("label_ar")
+  labelPt      String?     @map("label_pt")
+  active       Boolean     @default(true)
+  displayOrder Int         @default(0) @map("display_order")
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  subDomains   SubDomain[]
+
+  @@index([active], map: "idx_vcc_active")
+  @@map("value_chain_codes")
+  @@schema("governance")
+}
+
+// ─── Type d'un sous-domaine ──────────────────────────────────────────
+enum SubDomainType {
+  VALUE_CHAIN    // Dairy, Red meat, Poultry...
+  ORGANIZATIONAL // Clinics, Laboratories, Slaughterhouses...
+  PATHOLOGY      // PPR, FMD, ASF...
+  OTHER
+
+  @@schema("governance")
+}
+
+// ─── Sous-domaine rattache a un domaine parent ───────────────────────
+// Peut porter un tag value_chain_code optionnel pour les vues transverses
+model SubDomain {
+  id             String          @id @default(uuid()) @db.Uuid
+  code           String          @db.VarChar(50)               // ex: 'DAIRY', 'CLINICS'
+  domainId       String          @map("domain_id") @db.Uuid
+  domain         Domain          @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  valueChainCode String?         @map("value_chain_code") @db.VarChar(30)
+  valueChain     ValueChainCode? @relation(fields: [valueChainCode], references: [code], onDelete: SetNull)
+  labelFr        String          @map("label_fr")
+  labelEn        String          @map("label_en")
+  labelAr        String?         @map("label_ar")
+  labelPt        String?         @map("label_pt")
+  typeEnum       SubDomainType   @map("type_enum")
+  active         Boolean         @default(true)
+  displayOrder   Int             @default(0) @map("display_order")
+  description    String?
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([domainId, code], map: "uq_subdomain_domain_code")
+  @@index([valueChainCode], map: "idx_subdomain_value_chain_code")
+  @@index([domainId, active, displayOrder], map: "idx_subdomain_listing")
+  @@map("sub_domains")
   @@schema("governance")
 }
 
