@@ -29,6 +29,7 @@ import {
   Activity,
   Wand2,
   Monitor,
+  Network,
 } from 'lucide-react';
 
 interface SettingsNavItem {
@@ -63,6 +64,7 @@ export default function SettingsLayout({
     { href: '/settings/statistics', label: t('statistics'), icon: <TrendingUp className="h-4 w-4" />, section: 'statistics' },
     { href: '/settings/kpis', label: t('kpiIndicators'), icon: <Activity className="h-4 w-4" />, section: 'kpis' },
     { href: '/settings/domains', label: t('domains'), icon: <Layers className="h-4 w-4" />, section: 'domains' },
+    { href: '/settings/sub-domains', label: t('subDomains') !== 'subDomains' ? t('subDomains') : 'Sub-domains', icon: <Network className="h-4 w-4" />, section: 'sub-domains' },
     { href: '/settings/workflow', label: t('workflowConfig'), icon: <GitPullRequestArrow className="h-4 w-4" />, section: 'workflow' },
     { href: '/settings/validation-chains', label: t('validationChains'), icon: <Link2 className="h-4 w-4" />, section: 'validation-chains' },
     { href: '/settings/infrastructures', label: t('infraTypes'), icon: <Building2 className="h-4 w-4" />, section: 'infrastructures' },

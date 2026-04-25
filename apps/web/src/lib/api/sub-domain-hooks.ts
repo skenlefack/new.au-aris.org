@@ -63,6 +63,7 @@ export function useAdminSubDomains(params?: SubDomainListParams) {
   if (params?.typeEnum) qs.typeEnum = params.typeEnum;
   if (params?.active) qs.active = params.active;
   if (params?.valueChainCode) qs.valueChainCode = params.valueChainCode;
+  if (params?.search) qs.search = params.search;
 
   return useQuery<PaginatedResponse<SubDomain & { domain?: { code: string; name: Record<string, string> } }>>({
     queryKey: ['admin', 'sub-domains', params],

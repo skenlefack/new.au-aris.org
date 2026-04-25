@@ -1441,6 +1441,8 @@
     "domainDescPlaceholder": "Domain description...",
     "preview": "Preview",
 
+    "subDomains": "Sub-domains",
+
     "dataContracts": "Data Contracts",
     "dataContractsDesc": "Schema registry, frequency, and SLA definitions",
 

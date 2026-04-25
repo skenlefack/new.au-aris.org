@@ -1441,6 +1441,8 @@
     "domainDescPlaceholder": "Description du domaine...",
     "preview": "Aperçu",
 
+    "subDomains": "Sous-domaines",
+
     "dataContracts": "Contrats de données",
     "dataContractsDesc": "Registre des schémas, fréquence et définitions SLA",
 

@@ -34,7 +34,7 @@ async function logout(page: Page) {
 test.describe('Sub-domains admin UI', () => {
   test('admin creates a VALUE_CHAIN sub-domain', async ({ page }) => {
     await loginAs(page, 'admin');
-    await page.goto('/admin/sub-domains/new');
+    await page.goto('/settings/sub-domains/new');
 
     // Fill the form
     await page.locator('input[name="code"]').fill('BUFFALO');
@@ -68,7 +68,7 @@ test.describe('Sub-domains admin UI', () => {
     await expect(page.locator('nav')).not.toContainText('Sous-domaines', { timeout: 5_000 });
 
     // Direct navigation should show forbidden or redirect
-    await page.goto('/admin/sub-domains');
+    await page.goto('/settings/sub-domains');
     // The page should show forbidden content or redirect away
     const url = page.url();
     const body = page.locator('body');
@@ -140,7 +140,7 @@ test.describe('Sub-domains admin UI', () => {
   test('activating a sub-domain makes it visible', async ({ page }) => {
     // Step 1: Admin activates APICULTURE
     await loginAs(page, 'admin');
-    await page.goto('/admin/sub-domains');
+    await page.goto('/settings/sub-domains');
 
     // Search for APICULTURE
     await page.locator('input[name="search"]').fill('APICULTURE');
