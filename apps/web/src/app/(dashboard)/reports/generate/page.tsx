@@ -1,98 +1,123 @@
 'use client';
 
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
-  FileText,
-  Download,
   ChevronLeft,
-  Loader2,
+  ChevronRight,
+  FileText,
+  Settings2,
   CheckCircle2,
-  XCircle,
-  AlertCircle,
-  FileBarChart,
+  Loader2,
+  Layers,
+  ArrowLeft,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useReportTemplates, useGenerateReport } from '@/lib/api/hooks';
+import {
+  useReportTemplatesV2,
+  useGenerateReportV2,
+  type ReportTemplate,
+  type ReportScope,
+  type ReportLanguage,
+  type ReportType,
+} from '@/lib/api/report-hooks';
+import { usePublicDomains } from '@/lib/api/settings-hooks';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 
-const TYPE_BADGE_COLORS: Record<string, string> = {
-  wahis_6monthly: 'bg-blue-100 text-blue-700',
-  wahis_annual: 'bg-indigo-100 text-indigo-700',
-  continental_brief: 'bg-green-100 text-green-700',
-  custom: 'bg-purple-100 text-purple-700',
-};
+/* ------------------------------------------------------------------ */
+/*  Wizard steps                                                       */
+/* ------------------------------------------------------------------ */
 
-const TYPE_LABELS: Record<string, string> = {
-  wahis_6monthly: 'wahis6monthly',
-  wahis_annual: 'wahisAnnual',
-  continental_brief: 'continentalBrief',
-  custom: 'custom',
-};
-
-const OUTPUT_FORMATS = [
-  { value: 'pdf', tKey: 'formatPdf' },
-  { value: 'xlsx', tKey: 'formatExcel' },
-  { value: 'docx', tKey: 'formatWord' },
+const STEPS = [
+  { key: 'template', icon: FileText, tKey: 'stepTemplate' },
+  { key: 'config', icon: Settings2, tKey: 'stepConfig' },
+  { key: 'confirm', icon: CheckCircle2, tKey: 'stepConfirm' },
 ] as const;
 
-export default function GenerateReportPage() {
-  return (
-    <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-      <GenerateReportContent />
-    </Suspense>
-  );
-}
+const TYPE_BADGE: Record<ReportType, string> = {
+  PERIODIC: 'bg-indigo-100 text-indigo-700',
+  AD_HOC: 'bg-purple-100 text-purple-700',
+  FLASH: 'bg-orange-100 text-orange-700',
+};
 
-function GenerateReportContent() {
+/* ------------------------------------------------------------------ */
+/*  Page                                                               */
+/* ------------------------------------------------------------------ */
+
+export default function GenerateReportWizard() {
   const t = useTranslations('reports');
-  const searchParams = useSearchParams();
-  const templateParam = searchParams.get('template');
+  const locale = useLocaleStore((s) => s.locale);
+  const router = useRouter();
 
-  const { data: templatesData, isLoading: templatesLoading } = useReportTemplates();
-  const generateReport = useGenerateReport();
+  const [step, setStep] = useState(0);
+  const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
 
-  const templates = templatesData?.data ?? [];
-
-  // Form state
-  const [templateId, setTemplateId] = useState(templateParam ?? '');
-  const [country, setCountry] = useState('');
+  // Config form state
+  const [titleFr, setTitleFr] = useState('');
+  const [titleEn, setTitleEn] = useState('');
+  const [themeFr, setThemeFr] = useState('');
+  const [scope, setScope] = useState<ReportScope>('CONTINENTAL');
+  const [domainId, setDomainId] = useState('');
   const [periodStart, setPeriodStart] = useState('');
   const [periodEnd, setPeriodEnd] = useState('');
-  const [format, setFormat] = useState<'pdf' | 'xlsx' | 'docx'>('pdf');
+  const [referenceYear, setReferenceYear] = useState(new Date().getFullYear());
+  const [language, setLanguage] = useState<ReportLanguage>(locale === 'fr' ? 'fr' : 'en');
 
-  // Set template from URL param once templates load
-  useEffect(() => {
-    if (templateParam && templates.length > 0) {
-      const found = templates.find((tpl) => tpl.id === templateParam);
-      if (found) {
-        setTemplateId(found.id);
-        setFormat(found.outputFormat);
-      }
-    }
-  }, [templateParam, templates]);
+  const { data: templatesData, isLoading: templatesLoading } = useReportTemplatesV2();
+  const { data: domainsData } = usePublicDomains();
+  const generateMutation = useGenerateReportV2();
 
-  const selectedTemplate = templates.find((tpl) => tpl.id === templateId);
+  // Filter out FLASH templates from wizard
+  const templates = useMemo(() => {
+    const all = (templatesData as any)?.data ?? [];
+    return all.filter((tpl: ReportTemplate) => tpl.type !== 'FLASH');
+  }, [templatesData]);
 
-  function handleGenerate() {
-    if (!templateId || !periodStart || !periodEnd) return;
+  const domains: any[] = (domainsData as any)?.data ?? [];
 
-    generateReport.mutate({
-      templateId,
-      country: country || undefined,
-      periodStart,
-      periodEnd,
-      format,
-    });
+  function handleSelectTemplate(tpl: ReportTemplate) {
+    setSelectedTemplate(tpl);
+    setTitleFr(tpl.nameFr);
+    setTitleEn(tpl.nameEn);
+    if (tpl.domainId) setDomainId(tpl.domainId);
+    if (tpl.scope) setScope(tpl.scope);
+    setStep(1);
   }
 
-  const canSubmit =
-    !!templateId &&
-    !!periodStart &&
-    !!periodEnd &&
-    !generateReport.isPending;
+  function handleGenerate() {
+    if (!selectedTemplate) return;
+
+    generateMutation.mutate(
+      {
+        templateId: selectedTemplate.id,
+        titleFr,
+        titleEn,
+        themeFr: themeFr || undefined,
+        scope,
+        domainId: domainId || undefined,
+        periodStart,
+        periodEnd,
+        referenceYear,
+        language,
+      },
+      {
+        onSuccess: (res) => {
+          const id = (res as any)?.data?.id;
+          if (id) {
+            router.push(`/reports/${id}`);
+          } else {
+            router.push('/reports');
+          }
+        },
+      },
+    );
+  }
+
+  const canGoToConfirm = !!titleFr && !!titleEn && !!periodStart && !!periodEnd;
 
   return (
     <div className="space-y-6">
@@ -100,269 +125,364 @@ function GenerateReportContent() {
       <div>
         <Link
           href="/reports"
-          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" />
           {t('backToReports')}
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-gray-900">
-          {t('generateReportBtn')}
+        <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+          {t('generateNew')}
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          {t('generateDesc')}
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          {t('generateWizardDesc')}
         </p>
       </div>
 
-      {/* Selected template info */}
-      {selectedTemplate && (
-        <div className="rounded-card border border-aris-primary-200 bg-aris-primary-50 p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-aris-primary-100">
-              <FileText className="h-5 w-5 text-aris-primary-600" />
+      {/* Step indicator */}
+      <div className="flex items-center gap-2">
+        {STEPS.map((s, i) => {
+          const Icon = s.icon;
+          const isActive = i === step;
+          const isDone = i < step;
+          return (
+            <React.Fragment key={s.key}>
+              {i > 0 && (
+                <div className={cn('h-px flex-1', isDone ? 'bg-[#1F4E79]' : 'bg-gray-200 dark:bg-gray-700')} />
+              )}
+              <button
+                onClick={() => {
+                  if (isDone) setStep(i);
+                }}
+                disabled={!isDone && !isActive}
+                className={cn(
+                  'flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                  isActive && 'bg-[#1F4E79] text-white',
+                  isDone && 'bg-[#1F4E79]/10 text-[#1F4E79] hover:bg-[#1F4E79]/20',
+                  !isActive && !isDone && 'bg-gray-100 text-gray-400 dark:bg-gray-800',
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                <span className="hidden sm:inline">{t(s.tKey)}</span>
+              </button>
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* ── Step 1: Template selection ── */}
+      {step === 0 && (
+        <div>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+            {t('chooseTemplate')}
+          </h2>
+          {templatesLoading ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-48 w-full rounded-xl" />
+              ))}
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-gray-900">
-                  {selectedTemplate.name}
-                </h3>
-                <span
-                  className={cn(
-                    'inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider',
-                    TYPE_BADGE_COLORS[selectedTemplate.type] ?? 'bg-gray-100 text-gray-600',
-                  )}
-                >
-                  {TYPE_LABELS[selectedTemplate.type] ? t(TYPE_LABELS[selectedTemplate.type]) : selectedTemplate.type}
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-gray-600">
-                {selectedTemplate.description}
+          ) : templates.length === 0 ? (
+            <div className="rounded-xl border border-gray-200 bg-white p-12 text-center dark:border-gray-700 dark:bg-gray-800">
+              <FileText className="mx-auto h-12 w-12 text-gray-300" />
+              <p className="mt-4 text-sm font-medium text-gray-900 dark:text-white">
+                {t('noTemplates')}
               </p>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {selectedTemplate.domains.map((d) => (
-                  <span
-                    key={d}
-                    className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
-                  >
-                    {d}
-                  </span>
-                ))}
-              </div>
+              <p className="mt-1 text-sm text-gray-500">{t('noTemplatesDesc')}</p>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {templates.map((tpl: ReportTemplate) => {
+                const name = locale === 'fr' ? tpl.nameFr : tpl.nameEn;
+                const desc = locale === 'fr' ? tpl.descriptionFr : tpl.descriptionEn;
+                const typeBadge = TYPE_BADGE[tpl.type] ?? 'bg-gray-100 text-gray-600';
+
+                return (
+                  <button
+                    key={tpl.id}
+                    onClick={() => handleSelectTemplate(tpl)}
+                    className={cn(
+                      'rounded-xl border bg-white p-5 text-left shadow-sm transition-all hover:shadow-md hover:border-[#1F4E79]/40',
+                      'dark:border-gray-700 dark:bg-gray-800 dark:hover:border-[#1F4E79]/60',
+                      selectedTemplate?.id === tpl.id && 'ring-2 ring-[#1F4E79] border-[#1F4E79]',
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1F4E79]/10">
+                        <FileText className="h-5 w-5 text-[#1F4E79]" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {name}
+                        </h3>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider', typeBadge)}>
+                            {tpl.type}
+                          </span>
+                          {tpl.scope && (
+                            <span className="text-[10px] text-gray-400 uppercase">
+                              {tpl.scope}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {desc && (
+                      <p className="mt-3 text-sm leading-relaxed text-gray-500 line-clamp-2 dark:text-gray-400">
+                        {desc}
+                      </p>
+                    )}
+                    <div className="mt-3 flex items-center gap-1 text-xs text-gray-400">
+                      <Layers className="h-3 w-3" />
+                      {tpl.sections?.length ?? 0} {t('sections')}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Form */}
-      <div className="rounded-card border border-gray-200 bg-white p-6">
-        <h2 className="mb-5 text-sm font-semibold text-gray-900">
-          {t('reportConfiguration')}
-        </h2>
+      {/* ── Step 2: Configuration ── */}
+      {step === 1 && (
+        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+          <h2 className="mb-5 text-lg font-semibold text-gray-900 dark:text-white">
+            {t('stepConfig')}
+          </h2>
+          <div className="space-y-5 max-w-2xl">
+            {/* Title FR */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                {t('titleFr')} *
+              </label>
+              <input
+                type="text"
+                value={titleFr}
+                onChange={(e) => setTitleFr(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
 
-        <div className="space-y-5">
-          {/* Template selector */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">
-              {t('reportTemplate')}
-            </label>
-            {templatesLoading ? (
-              <Skeleton className="h-10 w-full" />
-            ) : (
+            {/* Title EN */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                {t('titleEn')} *
+              </label>
+              <input
+                type="text"
+                value={titleEn}
+                onChange={(e) => setTitleEn(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            {/* Theme */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                {t('theme')} <span className="text-gray-400">({t('optional')})</span>
+              </label>
+              <input
+                type="text"
+                value={themeFr}
+                onChange={(e) => setThemeFr(e.target.value)}
+                placeholder={t('themePlaceholder')}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm placeholder:text-gray-400 focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            {/* Scope */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                {t('scope')}
+              </label>
               <select
-                value={templateId}
-                onChange={(e) => {
-                  setTemplateId(e.target.value);
-                  const tpl = templates.find((tmpl) => tmpl.id === e.target.value);
-                  if (tpl) setFormat(tpl.outputFormat);
-                }}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500"
+                value={scope}
+                onChange={(e) => setScope(e.target.value as ReportScope)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               >
-                <option value="">{t('selectTemplate')}</option>
-                {templates.map((tpl) => (
-                  <option key={tpl.id} value={tpl.id}>
-                    {tpl.name}
+                <option value="CONTINENTAL">{t('scopeContinental')}</option>
+                <option value="REGIONAL">{t('scopeRegional')}</option>
+                <option value="NATIONAL">{t('scopeNational')}</option>
+              </select>
+            </div>
+
+            {/* Domain */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                {t('domain')} <span className="text-gray-400">({t('optional')})</span>
+              </label>
+              <select
+                value={domainId}
+                onChange={(e) => setDomainId(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">{t('allDomains')}</option>
+                {domains.map((d: any) => (
+                  <option key={d.id} value={d.id}>
+                    {locale === 'fr' ? (d.name?.fr ?? d.code) : (d.name?.en ?? d.code)}
                   </option>
                 ))}
               </select>
-            )}
-          </div>
+            </div>
 
-          {/* Country */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">
-              Country{' '}
-              <span className="text-gray-400">{t('countryOptional')}</span>
-            </label>
-            <input
-              type="text"
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              placeholder={t('countryPlaceholder')}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500"
-            />
-          </div>
+            {/* Period */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                  {t('periodStart')} *
+                </label>
+                <input
+                  type="date"
+                  value={periodStart}
+                  onChange={(e) => setPeriodStart(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                  {t('periodEnd')} *
+                </label>
+                <input
+                  type="date"
+                  value={periodEnd}
+                  onChange={(e) => setPeriodEnd(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            </div>
 
-          {/* Period */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Reference year */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                {t('periodStart')}
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                {t('referenceYear')}
               </label>
               <input
-                type="date"
-                value={periodStart}
-                onChange={(e) => setPeriodStart(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500"
+                type="number"
+                min={2000}
+                max={2100}
+                value={referenceYear}
+                onChange={(e) => setReferenceYear(Number(e.target.value))}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
             </div>
+
+            {/* Language */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                {t('periodEnd')}
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                {t('language')}
               </label>
-              <input
-                type="date"
-                value={periodEnd}
-                onChange={(e) => setPeriodEnd(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500"
-              />
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as ReportLanguage)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="fr">Francais</option>
+                <option value="en">English</option>
+                <option value="pt">Portugues</option>
+                <option value="ar">Arabic</option>
+              </select>
             </div>
           </div>
 
-          {/* Output format radio buttons */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-2">
-              {t('outputFormat')}
-            </label>
-            <div className="flex flex-wrap gap-3">
-              {OUTPUT_FORMATS.map((f) => (
-                <button
-                  key={f.value}
-                  type="button"
-                  onClick={() => setFormat(f.value)}
-                  className={cn(
-                    'flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
-                    format === f.value
-                      ? 'border-aris-primary-300 bg-aris-primary-50 text-aris-primary-700 ring-1 ring-aris-primary-200'
-                      : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50',
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'flex h-4 w-4 items-center justify-center rounded-full border-2',
-                      format === f.value
-                        ? 'border-aris-primary-600'
-                        : 'border-gray-300',
-                    )}
-                  >
-                    {format === f.value && (
-                      <span className="h-2 w-2 rounded-full bg-aris-primary-600" />
-                    )}
-                  </span>
-                  {t(f.tKey)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="mt-6 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
-          <Link
-            href="/reports"
-            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Cancel
-          </Link>
-          <button
-            onClick={handleGenerate}
-            disabled={!canSubmit}
-            className={cn(
-              'inline-flex items-center justify-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-white transition-colors',
-              canSubmit
-                ? 'bg-aris-primary-600 hover:bg-aris-primary-700'
-                : 'cursor-not-allowed bg-gray-300',
-            )}
-          >
-            {generateReport.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {t('statusGenerating')}...
-              </>
-            ) : (
-              <>
-                <FileBarChart className="h-4 w-4" />
-                {t('generateReportBtn')}
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Success message */}
-      {generateReport.isSuccess && generateReport.data?.data && (
-        <div className="rounded-card border border-green-200 bg-green-50 p-5">
-          <div className="flex items-start gap-3">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-600" />
-            <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-semibold text-green-900">
-                {t('generationStarted')}
-              </h3>
-              <p className="mt-1 text-sm text-green-700">
-                {t('generationStartedDesc')}
-              </p>
-              {generateReport.data.data.downloadUrl && (
-                <a
-                  href={generateReport.data.data.downloadUrl}
-                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-                >
-                  <Download className="h-4 w-4" />
-                  {t('downloadReport')}
-                </a>
+          {/* Navigation */}
+          <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-5 dark:border-gray-700">
+            <button
+              onClick={() => setStep(0)}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              {t('back')}
+            </button>
+            <button
+              onClick={() => setStep(2)}
+              disabled={!canGoToConfirm}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-medium text-white transition-colors',
+                canGoToConfirm
+                  ? 'bg-[#1F4E79] hover:bg-[#1a4268]'
+                  : 'cursor-not-allowed bg-gray-300',
               )}
-              {generateReport.data.data.status === 'pending' ||
-              generateReport.data.data.status === 'generating' ? (
-                <div className="mt-3 flex items-center gap-2 text-sm text-green-700">
+            >
+              {t('next')}
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 3: Confirmation ── */}
+      {step === 2 && selectedTemplate && (
+        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+          <h2 className="mb-5 text-lg font-semibold text-gray-900 dark:text-white">
+            {t('stepConfirm')}
+          </h2>
+
+          <div className="space-y-4 max-w-2xl">
+            <SummaryRow label={t('reportTemplate')} value={locale === 'fr' ? selectedTemplate.nameFr : selectedTemplate.nameEn} />
+            <SummaryRow label={t('titleFr')} value={titleFr} />
+            <SummaryRow label={t('titleEn')} value={titleEn} />
+            {themeFr && <SummaryRow label={t('theme')} value={themeFr} />}
+            <SummaryRow label={t('scope')} value={scope} />
+            <SummaryRow label={t('periodStart')} value={periodStart} />
+            <SummaryRow label={t('periodEnd')} value={periodEnd} />
+            <SummaryRow label={t('referenceYear')} value={String(referenceYear)} />
+            <SummaryRow label={t('language')} value={language.toUpperCase()} />
+            <SummaryRow label={t('sections')} value={`${selectedTemplate.sections?.length ?? 0} section(s)`} />
+          </div>
+
+          {/* Error */}
+          {generateMutation.isError && (
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {generateMutation.error instanceof Error
+                ? generateMutation.error.message
+                : t('generationFailed')}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-5 dark:border-gray-700">
+            <button
+              onClick={() => setStep(1)}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              {t('back')}
+            </button>
+            <button
+              onClick={handleGenerate}
+              disabled={generateMutation.isPending}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#C9A227] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#b8921f] transition-colors disabled:opacity-60"
+            >
+              {generateMutation.isPending ? (
+                <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Status: {generateReport.data.data.status === 'generating'
-                    ? 'Generating...'
-                    : 'Pending...'}
-                </div>
-              ) : null}
-            </div>
+                  {t('launching')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  {t('launchGeneration')}
+                </>
+              )}
+            </button>
           </div>
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* Error message */}
-      {generateReport.isError && (
-        <div className="rounded-card border border-red-200 bg-red-50 p-5">
-          <div className="flex items-start gap-3">
-            <XCircle className="mt-0.5 h-5 w-5 text-red-600" />
-            <div>
-              <h3 className="text-sm font-semibold text-red-900">
-                {t('generationFailed')}
-              </h3>
-              <p className="mt-1 text-sm text-red-700">
-                {generateReport.error instanceof Error
-                  ? generateReport.error.message
-                  : 'An unexpected error occurred. Please try again.'}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+/* ------------------------------------------------------------------ */
+/*  Summary row helper                                                 */
+/* ------------------------------------------------------------------ */
 
-      {/* Validation hint */}
-      {!templateId && !generateReport.isPending && !generateReport.isSuccess && (
-        <div className="rounded-card border border-amber-200 bg-amber-50 p-4">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <p className="text-sm text-amber-700">
-              {t('validationMsg')}
-            </p>
-          </div>
-        </div>
-      )}
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-4 border-b border-gray-50 pb-3 dark:border-gray-700">
+      <span className="w-40 flex-shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">
+        {label}
+      </span>
+      <span className="text-sm text-gray-900 dark:text-white">{value}</span>
     </div>
   );
 }

@@ -122,6 +122,7 @@ const STATIC_GROUPS: NavGroup[] = [
   {
     tKey: 'sectionAdmin',
     items: [
+      { tKey: 'flashConsole', href: '/reports/flash-console', icon: ClipboardCheck, matchPrefix: '/reports/flash-console' },
       { tKey: 'settings', href: '/settings', icon: Settings, matchPrefix: '/settings' },
     ],
   },
@@ -221,13 +222,13 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   NATIONAL_ADMIN: new Set([
-    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/reports/flash-console', '/quality', '/workflow',
     '/master-data', '/settings', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   REC_ADMIN: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/workflow', '/master-data', '/quality',
-    '/interop', '/analytics', '/historical', '/reports', '/settings', '/data-sharing',
+    '/interop', '/analytics', '/historical', '/reports', '/reports/flash-console', '/settings', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   CONTINENTAL_ADMIN: new Set(), // full access handled below
