@@ -2,7 +2,7 @@
 
 ARIS 4.0 Governance & Capacities domain service (port 3026).
 
-Covers legal frameworks, institutional capacities, PVS evaluations, and stakeholder registry for AU Member States.
+Covers legal frameworks, institutional capacities, veterinary services evaluations, and stakeholder registry for AU Member States.
 
 ## Tech Stack
 
@@ -26,10 +26,10 @@ Covers legal frameworks, institutional capacities, PVS evaluations, and stakehol
 | GET | `/api/v1/governance/capacities` | List capacity records |
 | GET | `/api/v1/governance/capacities/:id` | Get capacity record |
 | PATCH | `/api/v1/governance/capacities/:id` | Update capacity record |
-| POST | `/api/v1/governance/pvs-evaluations` | Create PVS evaluation |
-| GET | `/api/v1/governance/pvs-evaluations` | List PVS evaluations |
-| GET | `/api/v1/governance/pvs-evaluations/:id` | Get PVS evaluation |
-| PATCH | `/api/v1/governance/pvs-evaluations/:id` | Update PVS evaluation |
+| POST | `/api/v1/governance/vet-evaluations` | Create veterinary evaluation |
+| GET | `/api/v1/governance/vet-evaluations` | List veterinary evaluations |
+| GET | `/api/v1/governance/vet-evaluations/:id` | Get veterinary evaluation |
+| PATCH | `/api/v1/governance/vet-evaluations/:id` | Update veterinary evaluation |
 | POST | `/api/v1/governance/stakeholders` | Create stakeholder |
 | GET | `/api/v1/governance/stakeholders` | List stakeholders |
 | GET | `/api/v1/governance/stakeholders/:id` | Get stakeholder |
@@ -42,8 +42,8 @@ Covers legal frameworks, institutional capacities, PVS evaluations, and stakehol
 - `ms.governance.framework.updated.v1`
 - `ms.governance.capacity.created.v1`
 - `ms.governance.capacity.updated.v1`
-- `ms.governance.pvs.evaluated.v1`
-- `ms.governance.pvs.updated.v1`
+- `ms.governance.vet-evaluation.created.v1`
+- `ms.governance.vet-evaluation.updated.v1`
 - `ms.governance.stakeholder.created.v1`
 - `ms.governance.stakeholder.updated.v1`
 
@@ -61,7 +61,7 @@ pnpm build        # TypeScript build
 |--------|---------|
 | LegalFramework | PUBLIC |
 | InstitutionalCapacity | PARTNER |
-| PVSEvaluation | PARTNER |
+| VetEvaluation | PARTNER |
 | StakeholderRegistry | PUBLIC |
 
 ## Business Rules

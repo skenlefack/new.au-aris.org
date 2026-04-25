@@ -41,7 +41,7 @@ export class CapacityService {
         labStaff: dto.labStaff,
         labTestsAvailable: dto.labTestsAvailable,
         vaccineProductionCapacity: dto.vaccineProductionCapacity ?? null,
-        pvsScore: dto.pvsScore ?? null,
+        vetServicesScore: dto.vetServicesScore ?? null,
         dataClassification: classification,
         tenantId: user.tenantId,
         createdBy: user.userId,
@@ -108,7 +108,7 @@ export class CapacityService {
     if (dto.labStaff !== undefined) updateData['labStaff'] = dto.labStaff;
     if (dto.labTestsAvailable !== undefined) updateData['labTestsAvailable'] = dto.labTestsAvailable;
     if (dto.vaccineProductionCapacity !== undefined) updateData['vaccineProductionCapacity'] = dto.vaccineProductionCapacity;
-    if (dto.pvsScore !== undefined) updateData['pvsScore'] = dto.pvsScore;
+    if (dto.vetServicesScore !== undefined) updateData['vetServicesScore'] = dto.vetServicesScore;
     if (dto.dataClassification !== undefined) updateData['dataClassification'] = dto.dataClassification;
 
     const updated = await this.prisma.sVCapacity.update({

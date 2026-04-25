@@ -33,9 +33,9 @@ DOMAINS = [
         "code": "governance",
         "name": {"en": "Governance", "fr": "Gouvernance", "pt": "Governan\u00e7a"},
         "description": {
-            "en": "Legal frameworks, veterinary services evaluation, PVS metrics, and institutional capacity building.",
-            "fr": "Cadres juridiques, \u00e9valuation des services v\u00e9t\u00e9rinaires, indicateurs PVS et renforcement des capacit\u00e9s institutionnelles.",
-            "pt": "Quadros legais, avalia\u00e7\u00e3o de servi\u00e7os veterin\u00e1rios, m\u00e9tricas PVS e capacita\u00e7\u00e3o institucional.",
+            "en": "Legal frameworks, veterinary services evaluation, and institutional capacity building.",
+            "fr": "Cadres juridiques, \u00e9valuation des services v\u00e9t\u00e9rinaires et renforcement des capacit\u00e9s institutionnelles.",
+            "pt": "Quadros legais, avalia\u00e7\u00e3o de servi\u00e7os veterin\u00e1rios e capacita\u00e7\u00e3o institucional.",
         },
     },
     {

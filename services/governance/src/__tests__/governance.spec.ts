@@ -3,14 +3,14 @@ import { UserRole, TenantLevel } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { LegalFrameworkService, HttpError as LFHttpError, FrameworkStatus } from '../services/legal-framework.service.js';
 import { CapacityService, HttpError as CapHttpError } from '../services/capacity.service.js';
-import { PvsEvaluationService, HttpError as PvsHttpError } from '../services/pvs-evaluation.service.js';
+import { VetEvaluationService, HttpError as VetHttpError } from '../services/vet-evaluation.service.js';
 import { StakeholderService, HttpError as StkHttpError } from '../services/stakeholder.service.js';
 import {
   TOPIC_MS_GOVERNANCE_FRAMEWORK_CREATED,
   TOPIC_MS_GOVERNANCE_FRAMEWORK_ADOPTED,
   TOPIC_MS_GOVERNANCE_FRAMEWORK_UPDATED,
   TOPIC_MS_GOVERNANCE_CAPACITY_CREATED,
-  TOPIC_MS_GOVERNANCE_PVS_EVALUATED,
+  TOPIC_MS_GOVERNANCE_VET_EVALUATION_CREATED,
   TOPIC_MS_GOVERNANCE_STAKEHOLDER_CREATED,
 } from '../kafka-topics.js';
 
@@ -56,7 +56,7 @@ function makePrisma() {
       count: vi.fn(),
       update: vi.fn(),
     },
-    pVSEvaluation: {
+    vetEvaluation: {
       create: vi.fn(),
       findMany: vi.fn(),
       findFirst: vi.fn(),
@@ -250,7 +250,7 @@ describe('CapacityService', () => {
       organizationName: 'DVS Kenya',
       staffCount: 120,
       budgetUsd: 5000000,
-      pvsSelfAssessmentScore: 3.2,
+      vetSelfAssessmentScore: 3.2,
       oieStatus: null,
       dataClassification: 'PARTNER',
       tenantId: nationalAdmin.tenantId,
@@ -265,7 +265,7 @@ describe('CapacityService', () => {
         organizationName: 'DVS Kenya',
         staffCount: 120,
         budgetUsd: 5000000,
-        pvsSelfAssessmentScore: 3.2,
+        vetSelfAssessmentScore: 3.2,
       },
       nationalAdmin,
     );
@@ -328,23 +328,23 @@ describe('CapacityService', () => {
   });
 });
 
-// -- PvsEvaluationService --
+// -- VetEvaluationService --
 
-describe('PvsEvaluationService', () => {
+describe('VetEvaluationService', () => {
   let prisma: ReturnType<typeof makePrisma>;
   let kafka: ReturnType<typeof makeKafka>;
-  let service: PvsEvaluationService;
+  let service: VetEvaluationService;
 
   beforeEach(() => {
     prisma = makePrisma();
     kafka = makeKafka();
-    service = new PvsEvaluationService(prisma as never, kafka as never);
+    service = new VetEvaluationService(prisma as never, kafka as never);
   });
 
-  it('create -- creates PVS evaluation with default PARTNER classification', async () => {
+  it('create -- creates veterinary evaluation with default PARTNER classification', async () => {
     const created = {
-      id: 'pvs-001',
-      evaluationType: 'PVS',
+      id: 'vet-001',
+      evaluationType: 'INITIAL',
       evaluationDate: new Date('2025-06-15'),
       overallScore: 3.5,
       criticalCompetencies: { 'II-1': 3, 'II-2': 4, 'II-3': 3 },
@@ -354,11 +354,11 @@ describe('PvsEvaluationService', () => {
       createdBy: nationalAdmin.userId,
       updatedBy: nationalAdmin.userId,
     };
-    prisma.pVSEvaluation.create.mockResolvedValue(created);
+    prisma.vetEvaluation.create.mockResolvedValue(created);
 
     const result = await service.create(
       {
-        evaluationType: 'PVS',
+        evaluationType: 'INITIAL',
         evaluationDate: '2025-06-15T00:00:00.000Z',
         overallScore: 3.5,
         criticalCompetencies: { 'II-1': 3, 'II-2': 4, 'II-3': 3 },
@@ -369,35 +369,35 @@ describe('PvsEvaluationService', () => {
 
     expect(result).toEqual({ data: created });
 
-    expect(prisma.pVSEvaluation.create).toHaveBeenCalledWith(
+    expect(prisma.vetEvaluation.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           dataClassification: 'PARTNER',
           tenantId: nationalAdmin.tenantId,
-          evaluationType: 'PVS',
+          evaluationType: 'INITIAL',
         }),
       }),
     );
 
     expect(kafka.send).toHaveBeenCalledWith(
-      TOPIC_MS_GOVERNANCE_PVS_EVALUATED,
-      'pvs-001',
-      expect.objectContaining({ id: 'pvs-001' }),
+      TOPIC_MS_GOVERNANCE_VET_EVALUATION_CREATED,
+      'vet-001',
+      expect.objectContaining({ id: 'vet-001' }),
       expect.objectContaining({ sourceService: 'governance-service' }),
     );
   });
 
-  it('findAll -- lists PVS evaluations with period filter', async () => {
+  it('findAll -- lists veterinary evaluations with period filter', async () => {
     const records = [
       {
-        id: 'pvs-001',
-        evaluationType: 'PVS',
+        id: 'vet-001',
+        evaluationType: 'INITIAL',
         evaluationDate: new Date('2025-06-15'),
         tenantId: nationalAdmin.tenantId,
       },
     ];
-    prisma.pVSEvaluation.findMany.mockResolvedValue(records);
-    prisma.pVSEvaluation.count.mockResolvedValue(1);
+    prisma.vetEvaluation.findMany.mockResolvedValue(records);
+    prisma.vetEvaluation.count.mockResolvedValue(1);
 
     const result = await service.findAll(
       nationalAdmin,
@@ -408,7 +408,7 @@ describe('PvsEvaluationService', () => {
     expect(result.data).toEqual(records);
     expect(result.meta).toEqual({ total: 1, page: 1, limit: 10 });
 
-    expect(prisma.pVSEvaluation.findMany).toHaveBeenCalledWith(
+    expect(prisma.vetEvaluation.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           tenantId: nationalAdmin.tenantId,

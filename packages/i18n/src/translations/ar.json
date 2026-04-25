@@ -446,7 +446,7 @@
   "governance": {
     "legalFramework": "الإطار القانوني",
     "veterinaryLegislation": "التشريعات البيطرية",
-    "pvsPathway": "مسار PVS",
+    "vetServicesPathway": "مسار تقييم الخدمات البيطرية",
     "competentAuthority": "السلطة المختصة",
     "veterinaryService": "الخدمات البيطرية",
     "decentralization": "اللامركزية",

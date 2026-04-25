@@ -51,14 +51,14 @@ export default function CapacityPage() {
       : !filtered.length ? <div className="flex flex-col items-center py-16 text-center"><GraduationCap className="h-12 w-12 text-gray-200 dark:text-gray-600" /><p className="mt-4 text-sm text-gray-400">{t('noCapacityFound')}</p><Link href={`/collecte/forms/${PRIMARY}/fill?returnTo=/governance/capacity`} className="mt-4 flex items-center gap-1 text-sm font-medium text-green-600 hover:text-green-700"><Plus className="h-4 w-4" /> New Report</Link></div>
       : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{filtered.map((sub: any) => {
           const d = sub.data ?? {}; const sc = STATUS_CFG[sub.status] ?? STATUS_CFG.DRAFT;
-          const pvs = d.pvs_score ? Number(d.pvs_score) : 0;
+          const vetScore = d.pvs_score ? Number(d.pvs_score) : 0;
           const loc = d.admin_location ?? {}; const cc = loc.level_0 ?? '';
           return (
             <div key={sub.id} className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800">
               <div className="absolute inset-x-0 top-0 h-1 bg-green-600" />
               <div className="flex items-center justify-between">
                 <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', sc.badge)}>{sc.icon}{sub.status}</span>
-                {pvs > 0 && <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-bold', scoreColor(pvs))}>{pvs.toFixed(1)}</span>}
+                {vetScore > 0 && <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-bold', scoreColor(pvs))}>{vetScore.toFixed(1)}</span>}
               </div>
               <p className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">{d.organization_name || '—'}</p>
               <div className="mt-3 grid grid-cols-3 gap-2">

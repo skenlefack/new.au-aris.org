@@ -396,7 +396,7 @@ describe('CrossDomainService', () => {
         if (key === DOMAIN_REDIS_KEYS.wildlife(countryCode)) {
           return { totalCrimes: '6', speciesAffected: '3' };
         }
-        // Governance PVS (high score = low risk)
+        // Governance vet services (high score = low risk)
         if (key === DOMAIN_REDIS_KEYS.governance(countryCode)) {
           return { latestScore: '72' };
         }

@@ -1139,7 +1139,7 @@ erDiagram
         int labStaff "nullable"
         string[] labTestsAvailable
         int vaccineProductionCapacity "nullable"
-        float pvsScore "nullable, OIE PVS score"
+        float vetServicesScore "nullable, veterinary services score"
         DataClassification dataClassification
         uuid createdBy FK "-> public.User"
         uuid updatedBy FK "nullable, -> public.User"

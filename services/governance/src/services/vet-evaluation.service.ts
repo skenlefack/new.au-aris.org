@@ -11,8 +11,8 @@ import type { KafkaHeaders } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { AuditService } from './audit.service.js';
 import {
-  TOPIC_MS_GOVERNANCE_CAPACITY_CREATED,
-  TOPIC_MS_GOVERNANCE_CAPACITY_UPDATED,
+  TOPIC_MS_GOVERNANCE_VET_EVALUATION_CREATED,
+  TOPIC_MS_GOVERNANCE_VET_EVALUATION_UPDATED,
 } from '../kafka-topics.js';
 
 const SERVICE_NAME = 'governance-service';
@@ -21,32 +21,31 @@ export class HttpError extends Error {
   constructor(public statusCode: number, message: string) { super(message); }
 }
 
-export interface CreateCapacityInput {
-  year: number;
-  organizationName: string;
-  staffCount: number;
-  budgetUsd: number;
-  vetSelfAssessmentScore?: number;
-  oieStatus?: string;
+export interface CreateVetEvaluationInput {
+  evaluationType: string;
+  evaluationDate: string;
+  overallScore: number;
+  criticalCompetencies: Record<string, unknown>;
+  recommendations: string[];
   dataClassification?: string;
 }
 
-export interface UpdateCapacityInput {
-  year?: number;
-  organizationName?: string;
-  staffCount?: number;
-  budgetUsd?: number;
-  vetSelfAssessmentScore?: number;
-  oieStatus?: string;
+export interface UpdateVetEvaluationInput {
+  evaluationType?: string;
+  evaluationDate?: string;
+  overallScore?: number;
+  criticalCompetencies?: Record<string, unknown>;
+  recommendations?: string[];
   dataClassification?: string;
 }
 
-export interface CapacityFilter {
-  year?: number;
-  organizationName?: string;
+export interface VetEvaluationFilter {
+  evaluationType?: string;
+  periodStart?: string;
+  periodEnd?: string;
 }
 
-export class CapacityService {
+export class VetEvaluationService {
   private readonly audit = new AuditService();
 
   constructor(
@@ -54,33 +53,16 @@ export class CapacityService {
     private readonly kafka: StandaloneKafkaProducer,
   ) {}
 
-  async create(dto: CreateCapacityInput, user: AuthenticatedUser) {
+  async create(dto: CreateVetEvaluationInput, user: AuthenticatedUser) {
     const classification = dto.dataClassification ?? 'PARTNER';
 
-    // Business rule: unique constraint per tenant+year+organizationName
-    const existing = await (this.prisma as any).institutionalCapacity.findFirst({
-      where: {
-        tenantId: user.tenantId,
-        year: dto.year,
-        organizationName: dto.organizationName,
-      },
-    });
-
-    if (existing) {
-      throw new HttpError(
-        409,
-        `Capacity record already exists for tenant=${user.tenantId}, year=${dto.year}, organization=${dto.organizationName}`,
-      );
-    }
-
-    const capacity = await (this.prisma as any).institutionalCapacity.create({
+    const evaluation = await (this.prisma as any).vetEvaluation.create({
       data: {
-        year: dto.year,
-        organizationName: dto.organizationName,
-        staffCount: dto.staffCount,
-        budgetUsd: dto.budgetUsd,
-        vetSelfAssessmentScore: dto.vetSelfAssessmentScore ?? null,
-        oieStatus: dto.oieStatus ?? null,
+        evaluationType: dto.evaluationType,
+        evaluationDate: new Date(dto.evaluationDate),
+        overallScore: dto.overallScore,
+        criticalCompetencies: dto.criticalCompetencies,
+        recommendations: dto.recommendations,
         dataClassification: classification,
         tenantId: user.tenantId,
         createdBy: user.userId,
@@ -88,19 +70,19 @@ export class CapacityService {
       },
     });
 
-    this.audit.log('InstitutionalCapacity', capacity.id, 'CREATE', user, classification as any, {
-      newVersion: capacity as unknown as object,
+    this.audit.log('VetEvaluation', evaluation.id, 'CREATE', user, classification as any, {
+      newVersion: evaluation as unknown as object,
     });
 
-    await this.publishEvent(TOPIC_MS_GOVERNANCE_CAPACITY_CREATED, capacity, user);
+    await this.publishEvent(TOPIC_MS_GOVERNANCE_VET_EVALUATION_CREATED, evaluation, user);
 
-    return { data: capacity };
+    return { data: evaluation };
   }
 
   async findAll(
     user: AuthenticatedUser,
     query: { page?: number; limit?: number; sort?: string; order?: string },
-    filter: CapacityFilter,
+    filter: VetEvaluationFilter,
   ) {
     const page = query.page ?? DEFAULT_PAGE;
     const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
@@ -113,52 +95,51 @@ export class CapacityService {
     const where = this.buildWhere(user, filter);
 
     const [data, total] = await Promise.all([
-      (this.prisma as any).institutionalCapacity.findMany({ where, skip, take: limit, orderBy }),
-      (this.prisma as any).institutionalCapacity.count({ where }),
+      (this.prisma as any).vetEvaluation.findMany({ where, skip, take: limit, orderBy }),
+      (this.prisma as any).vetEvaluation.count({ where }),
     ]);
 
     return { data, meta: { total, page, limit } };
   }
 
   async findOne(id: string, user: AuthenticatedUser) {
-    const capacity = await (this.prisma as any).institutionalCapacity.findUnique({
+    const evaluation = await (this.prisma as any).vetEvaluation.findUnique({
       where: { id },
     });
 
-    if (!capacity) {
-      throw new HttpError(404, `Capacity record ${id} not found`);
+    if (!evaluation) {
+      throw new HttpError(404, `Veterinary evaluation ${id} not found`);
     }
 
-    this.verifyTenantAccess(user, capacity.tenantId);
+    this.verifyTenantAccess(user, evaluation.tenantId);
 
-    return { data: capacity };
+    return { data: evaluation };
   }
 
-  async update(id: string, dto: UpdateCapacityInput, user: AuthenticatedUser) {
-    const existing = await (this.prisma as any).institutionalCapacity.findUnique({ where: { id } });
+  async update(id: string, dto: UpdateVetEvaluationInput, user: AuthenticatedUser) {
+    const existing = await (this.prisma as any).vetEvaluation.findUnique({ where: { id } });
     if (!existing) {
-      throw new HttpError(404, `Capacity record ${id} not found`);
+      throw new HttpError(404, `Veterinary evaluation ${id} not found`);
     }
 
     this.verifyTenantAccess(user, existing.tenantId);
 
     const updateData: Record<string, unknown> = { updatedBy: user.userId };
 
-    if (dto.year !== undefined) updateData['year'] = dto.year;
-    if (dto.organizationName !== undefined) updateData['organizationName'] = dto.organizationName;
-    if (dto.staffCount !== undefined) updateData['staffCount'] = dto.staffCount;
-    if (dto.budgetUsd !== undefined) updateData['budgetUsd'] = dto.budgetUsd;
-    if (dto.vetSelfAssessmentScore !== undefined) updateData['vetSelfAssessmentScore'] = dto.vetSelfAssessmentScore;
-    if (dto.oieStatus !== undefined) updateData['oieStatus'] = dto.oieStatus;
+    if (dto.evaluationType !== undefined) updateData['evaluationType'] = dto.evaluationType;
+    if (dto.evaluationDate !== undefined) updateData['evaluationDate'] = new Date(dto.evaluationDate);
+    if (dto.overallScore !== undefined) updateData['overallScore'] = dto.overallScore;
+    if (dto.criticalCompetencies !== undefined) updateData['criticalCompetencies'] = dto.criticalCompetencies;
+    if (dto.recommendations !== undefined) updateData['recommendations'] = dto.recommendations;
     if (dto.dataClassification !== undefined) updateData['dataClassification'] = dto.dataClassification;
 
-    const updated = await (this.prisma as any).institutionalCapacity.update({
+    const updated = await (this.prisma as any).vetEvaluation.update({
       where: { id },
       data: updateData,
     });
 
     this.audit.log(
-      'InstitutionalCapacity',
+      'VetEvaluation',
       id,
       'UPDATE',
       user,
@@ -166,12 +147,12 @@ export class CapacityService {
       { previousVersion: existing as unknown as object, newVersion: updated as unknown as object },
     );
 
-    await this.publishEvent(TOPIC_MS_GOVERNANCE_CAPACITY_UPDATED, updated, user);
+    await this.publishEvent(TOPIC_MS_GOVERNANCE_VET_EVALUATION_UPDATED, updated, user);
 
     return { data: updated };
   }
 
-  private buildWhere(user: AuthenticatedUser, filter: CapacityFilter): Record<string, unknown> {
+  private buildWhere(user: AuthenticatedUser, filter: VetEvaluationFilter): Record<string, unknown> {
     const where: Record<string, unknown> = {};
 
     if (user.tenantLevel === TenantLevel.MEMBER_STATE) {
@@ -181,8 +162,13 @@ export class CapacityService {
     }
     // CONTINENTAL: no tenant filter
 
-    if (filter.year) where['year'] = filter.year;
-    if (filter.organizationName) where['organizationName'] = filter.organizationName;
+    if (filter.evaluationType) where['evaluationType'] = filter.evaluationType;
+    if (filter.periodStart || filter.periodEnd) {
+      where['evaluationDate'] = {
+        ...(filter.periodStart && { gte: new Date(filter.periodStart) }),
+        ...(filter.periodEnd && { lte: new Date(filter.periodEnd) }),
+      };
+    }
 
     return where;
   }

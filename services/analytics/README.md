@@ -27,7 +27,7 @@ The service provides real-time aggregated analytics across all 9 ARIS business d
 | GET | `/api/v1/analytics/trade/balance` | Trade balance (exports, imports, partners) |
 | GET | `/api/v1/analytics/wildlife/crime-trends` | Wildlife crime trends by type and area |
 | GET | `/api/v1/analytics/climate/alerts` | Climate/environment hotspot alerts |
-| GET | `/api/v1/analytics/governance/pvs-scores` | Governance PVS evaluation scores |
+| GET | `/api/v1/analytics/governance/vet-scores` | Governance veterinary evaluation scores |
 
 All routes except `/health` require JWT authentication via the `authHookFn` pre-handler.
 
@@ -50,7 +50,7 @@ The service subscribes to 14 Kafka topics via the `analytics-aggregator` consume
 | `ms.trade.flow.created.v1` | `DomainAggregationService.handleTradeFlowCreated` |
 | `ms.climate.hotspot.detected.v1` | `DomainAggregationService.handleClimateHotspotDetected` |
 | `ms.apiculture.production.recorded.v1` | `DomainAggregationService.handleApicultureProductionRecorded` |
-| `ms.governance.pvs.evaluated.v1` | `DomainAggregationService.handleGovernancePvsEvaluated` |
+| `ms.governance.vet-evaluation.created.v1` | `DomainAggregationService.handleGovernanceVetEvaluated` |
 
 ## Architecture
 

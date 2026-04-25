@@ -132,7 +132,7 @@ graph TB
 | **wildlife** | 3023 | Inventories, protected areas, CITES, human-wildlife conflict |
 | **apiculture** | 3024 | Apiaries, honey production, colony health |
 | **trade-sps** | 3025 | Trade flows, SPS certification, market intelligence |
-| **governance** | 3026 | Legal frameworks, veterinary capacities, PVS metrics |
+| **governance** | 3026 | Legal frameworks, veterinary capacities, veterinary services metrics |
 | **climate-env** | 3027 | Water stress, rangelands, GHG, vulnerability hotspots |
 
 ### Data & Integration Services (CC-4)
@@ -215,7 +215,7 @@ flowchart LR
 
 | # | Domain | Scope |
 |---|--------|-------|
-| 1 | Governance & Capacities | Legal frameworks, veterinary services, PVS metrics |
+| 1 | Governance & Capacities | Legal frameworks, veterinary services, veterinary services metrics |
 | 2 | Animal Health & One Health | Surveillance, outbreaks, lab, vaccination, AMR |
 | 3 | Production & Pastoralism | Census, production systems, transhumance corridors |
 | 4 | Trade, Markets & SPS | Trade flows, SPS certification, market intelligence (AfCFTA) |

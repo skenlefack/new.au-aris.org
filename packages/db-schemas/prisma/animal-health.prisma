@@ -1419,7 +1419,7 @@ model SVCapacity {
   labStaff                  Int      @map("lab_staff") @default(0)
   labTestsAvailable         String[] @map("lab_tests_available")
   vaccineProductionCapacity Int?     @map("vaccine_production_capacity")
-  pvsScore                  Float?   @map("pvs_score")
+  vetServicesScore           Float?   @map("pvs_score")
   dataClassification        String   @map("data_classification") @default("PARTNER")
   createdBy                 String   @map("created_by") @db.Uuid
   updatedBy                 String   @map("updated_by") @db.Uuid

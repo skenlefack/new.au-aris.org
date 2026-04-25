@@ -7,12 +7,12 @@ import { authHook } from '@aris/auth-middleware/fastify';
 import type { AuthHookOptions } from '@aris/auth-middleware/fastify';
 import { LegalFrameworkService } from './services/legal-framework.service.js';
 import { CapacityService } from './services/capacity.service.js';
-import { PvsEvaluationService } from './services/pvs-evaluation.service.js';
+import { VetEvaluationService } from './services/vet-evaluation.service.js';
 import { StakeholderService } from './services/stakeholder.service.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
 import { registerLegalFrameworkRoutes } from './routes/legal-framework.routes.js';
 import { registerCapacityRoutes } from './routes/capacity.routes.js';
-import { registerPvsEvaluationRoutes } from './routes/pvs-evaluation.routes.js';
+import { registerVetEvaluationRoutes } from './routes/vet-evaluation.routes.js';
 import { registerStakeholderRoutes } from './routes/stakeholder.routes.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -86,19 +86,19 @@ export async function buildApp(): Promise<FastifyInstance> {
   // --- Services ---
   const legalFrameworkService = new LegalFrameworkService(prisma, kafka);
   const capacityService = new CapacityService(prisma, kafka);
-  const pvsEvaluationService = new PvsEvaluationService(prisma, kafka);
+  const vetEvaluationService = new VetEvaluationService(prisma, kafka);
   const stakeholderService = new StakeholderService(prisma, kafka);
 
   app.decorate('legalFrameworkService', legalFrameworkService);
   app.decorate('capacityService', capacityService);
-  app.decorate('pvsEvaluationService', pvsEvaluationService);
+  app.decorate('vetEvaluationService', vetEvaluationService);
   app.decorate('stakeholderService', stakeholderService);
 
   // --- Routes ---
   await app.register(registerHealthRoutes);
   await app.register(registerLegalFrameworkRoutes);
   await app.register(registerCapacityRoutes);
-  await app.register(registerPvsEvaluationRoutes);
+  await app.register(registerVetEvaluationRoutes);
   await app.register(registerStakeholderRoutes);
 
   return app;

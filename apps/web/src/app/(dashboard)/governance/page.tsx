@@ -59,7 +59,7 @@ export default function GovernancePage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { href: '/governance/legal-frameworks', label: t('legalFrameworks'), desc: t('legalFrameworksDesc'), icon: Scale, color: '#4527A0' },
-            { href: '/governance/pvs', label: t('pvs'), desc: t('pvsDesc'), icon: Landmark, color: '#1565C0' },
+            { href: '/governance/vet-evaluations', label: t('vetEvaluations'), desc: t('vetEvaluationsDesc'), icon: Landmark, color: '#1565C0' },
             { href: '/governance/stakeholders', label: t('stakeholders'), desc: t('stakeholdersDesc'), icon: Users, color: '#00695C' },
             { href: '/governance/capacity', label: t('capacity'), desc: t('capacityDesc'), icon: GraduationCap, color: '#2E7D32' },
           ].map((link) => (
@@ -136,7 +136,7 @@ function GovCatalog() {
   const templates = Array.from(latest.values());
   if (isLoading) return <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"><Skeleton className="mb-4 h-6 w-60" /><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div></div>;
   if (!templates.length) return null;
-  const CM: Record<string, string> = { 'Legal Framework Assessment': '#4527A0', 'PVS Evaluation Report': '#1565C0', 'Stakeholder Registry': '#00695C', 'Capacity Building Report': '#2E7D32', 'Governance Event Alert': '#C62828' };
+  const CM: Record<string, string> = { 'Legal Framework Assessment': '#4527A0', 'Veterinary Services Evaluation Report': '#1565C0', 'Stakeholder Registry': '#00695C', 'Capacity Building Report': '#2E7D32', 'Governance Event Alert': '#C62828' };
   return (
     <div className="rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-6 dark:border-indigo-800 dark:from-indigo-950/30 dark:to-gray-800">
       <div className="mb-5 flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white"><Landmark className="h-5 w-5" /></div><div><h3 className="text-lg font-bold text-gray-900 dark:text-white">Governance — Data Collection Forms</h3><p className="text-xs text-gray-500">{templates.length} published templates</p></div></div>

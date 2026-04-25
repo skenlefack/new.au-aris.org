@@ -589,7 +589,7 @@ All 22 backend services and their assigned ports:
 | 3023 | Wildlife | `services/wildlife` | Inventories, protected areas, CITES |
 | 3024 | Apiculture | `services/apiculture` | Apiaries, production, colony health |
 | 3025 | Trade SPS | `services/trade-sps` | Trade flows, SPS certification, markets |
-| 3026 | Governance | `services/governance` | Legal frameworks, capacities, PVS |
+| 3026 | Governance | `services/governance` | Legal frameworks, capacities, vet evaluations |
 | 3027 | Climate Env | `services/climate-env` | Water stress, rangelands, hotspots |
 | **Data & Integration (CC-4)** | | | |
 | 3030 | Analytics | `services/analytics` | Kafka Streams, KPIs, denominators |

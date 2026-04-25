@@ -2,7 +2,7 @@
   "name": "@aris/governance-service",
   "version": "0.1.0",
   "private": true,
-  "description": "ARIS 4.0 — Governance service: legal frameworks, capacities, PVS evaluations, stakeholders",
+  "description": "ARIS 4.0 — Governance service: legal frameworks, capacities, veterinary evaluations, stakeholders",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc --build",

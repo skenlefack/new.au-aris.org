@@ -281,8 +281,8 @@ export async function seed(): Promise<void> {
   console.log('  🏛️ SV capacity...');
 
   const svCapacities = [
-    { id: domainId(P, 401), year: 2023, epiStaff: 45, labStaff: 32, labTestsAvailable: ['PCR', 'ELISA', 'CFT', 'AGID', 'FAT', 'VI'], pvsScore: 68.0 },
-    { id: domainId(P, 402), year: 2024, epiStaff: 52, labStaff: 38, labTestsAvailable: ['PCR', 'ELISA', 'CFT', 'AGID', 'FAT', 'VI', 'RT-PCR', 'LAMP'], pvsScore: 72.0 },
+    { id: domainId(P, 401), year: 2023, epiStaff: 45, labStaff: 32, labTestsAvailable: ['PCR', 'ELISA', 'CFT', 'AGID', 'FAT', 'VI'], vetServicesScore: 68.0 },
+    { id: domainId(P, 402), year: 2024, epiStaff: 52, labStaff: 38, labTestsAvailable: ['PCR', 'ELISA', 'CFT', 'AGID', 'FAT', 'VI', 'RT-PCR', 'LAMP'], vetServicesScore: 72.0 },
   ];
 
   for (const sv of svCapacities) {
@@ -296,7 +296,7 @@ export async function seed(): Promise<void> {
         epiStaff: sv.epiStaff,
         labStaff: sv.labStaff,
         labTestsAvailable: sv.labTestsAvailable,
-        pvsScore: sv.pvsScore,
+        vetServicesScore: sv.vetServicesScore,
         dataClassification: 'PARTNER',
         createdBy: USER_KE_ADMIN,
         updatedBy: USER_KE_ADMIN,

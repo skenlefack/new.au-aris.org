@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { AggregationService } from '../services/aggregation.service';
 import type { HealthEventPayload, VaccinationPayload, LabResultPayload, QualityRecordPayload, WorkflowApprovedPayload } from '../services/aggregation.service';
 import type { DomainAggregationService } from '../services/domain-aggregation.service';
-import type { LivestockCensusPayload, FishCapturePayload, WildlifeCrimePayload, TradeFlowPayload, ClimateHotspotPayload, ApicultureProductionPayload, GovernancePvsPayload } from '../dto/cross-domain.dto';
+import type { LivestockCensusPayload, FishCapturePayload, WildlifeCrimePayload, TradeFlowPayload, ClimateHotspotPayload, ApicultureProductionPayload, GovernanceVetEvalPayload } from '../dto/cross-domain.dto';
 import {
   TOPIC_MS_LIVESTOCK_CENSUS_CREATED,
   TOPIC_MS_FISHERIES_CAPTURE_RECORDED,
@@ -10,7 +10,7 @@ import {
   TOPIC_MS_TRADE_FLOW_CREATED,
   TOPIC_MS_CLIMATE_HOTSPOT_DETECTED,
   TOPIC_MS_APICULTURE_PRODUCTION_RECORDED,
-  TOPIC_MS_GOVERNANCE_PVS_EVALUATED,
+  TOPIC_MS_GOVERNANCE_VET_EVALUATION_CREATED,
 } from '../dto/cross-domain.dto';
 import {
   TOPIC_MS_HEALTH_EVENT_CREATED,
@@ -198,16 +198,16 @@ export async function registerConsumers(
     app.log.warn(`Failed to subscribe to ${TOPIC_MS_APICULTURE_PRODUCTION_RECORDED}: ${err}`);
   }
 
-  // ── Governance PVS Evaluated ──
+  // ── Governance Vet Evaluation Created ──
   try {
     await app.kafka.subscribe(
-      { topic: TOPIC_MS_GOVERNANCE_PVS_EVALUATED, groupId: CONSUMER_GROUP, fromBeginning: false },
+      { topic: TOPIC_MS_GOVERNANCE_VET_EVALUATION_CREATED, groupId: CONSUMER_GROUP, fromBeginning: false },
       async (payload) => {
-        await domainAggregation.handleGovernancePvsEvaluated(payload as GovernancePvsPayload);
+        await domainAggregation.handleGovernanceVetEvaluated(payload as GovernanceVetEvalPayload);
       },
     );
-    app.log.info(`Subscribed to ${TOPIC_MS_GOVERNANCE_PVS_EVALUATED}`);
+    app.log.info(`Subscribed to ${TOPIC_MS_GOVERNANCE_VET_EVALUATION_CREATED}`);
   } catch (err) {
-    app.log.warn(`Failed to subscribe to ${TOPIC_MS_GOVERNANCE_PVS_EVALUATED}: ${err}`);
+    app.log.warn(`Failed to subscribe to ${TOPIC_MS_GOVERNANCE_VET_EVALUATION_CREATED}: ${err}`);
   }
 }

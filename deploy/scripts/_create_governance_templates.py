@@ -102,7 +102,7 @@ TEMPLATES = [
         "campaign": ("GOV_LEGAL_FRAMEWORKS_2026", "annual", 550),
     },
     {
-        "name": "PVS Evaluation Report",
+        "name": "Veterinary Services Evaluation Report",
         "domain": "governance",
         "formType": "CAMPAIGN",
         "schema": {"sections": [
@@ -110,13 +110,13 @@ TEMPLATES = [
             sec("eval", "Evaluation", "Evaluation", 1, 2, [
                 f("year", "number", "Year", "Annee", 0, props={"min": 2015, "max": 2030}),
                 f("evaluation_type", "select", "Evaluation Type", "Type d'evaluation", 1, col=2, props={"options": [
-                    {"label": {"en": "Initial PVS"}, "value": "INITIAL"},
-                    {"label": {"en": "Follow-up PVS"}, "value": "FOLLOW_UP"},
+                    {"label": {"en": "Initial Evaluation"}, "value": "INITIAL"},
+                    {"label": {"en": "Follow-up Evaluation"}, "value": "FOLLOW_UP"},
                     {"label": {"en": "Gap Analysis"}, "value": "GAP_ANALYSIS"},
-                    {"label": {"en": "PVS Pathway"}, "value": "PATHWAY"},
+                    {"label": {"en": "Veterinary Services Pathway"}, "value": "PATHWAY"},
                 ]}),
             ]),
-            sec("scores", "PVS Scores (1-5)", "Scores PVS (1-5)", 2, 4, [
+            sec("scores", "Veterinary Services Scores (1-5)", "Scores des services vétérinaires (1-5)", 2, 4, [
                 f("score_legislation", "number", "Legislation", "Legislation", 0, props={"min": 1, "max": 5}),
                 f("score_labs", "number", "Laboratories", "Laboratoires", 1, col=2, props={"min": 1, "max": 5}),
                 f("score_risk_analysis", "number", "Risk Analysis", "Analyse de risque", 2, col=3, props={"min": 1, "max": 5}),
@@ -130,7 +130,7 @@ TEMPLATES = [
                 f("observations", "textarea", "Observations", "Observations", 0, span=1, req=False),
             ], collapsible=True),
         ], "settings": SETTINGS},
-        "campaign": ("GOV_PVS_EVALUATION_2026", "annual", 55),
+        "campaign": ("GOV_VET_EVALUATION_2026", "annual", 55),
     },
     {
         "name": "Stakeholder Registry",
@@ -171,7 +171,7 @@ TEMPLATES = [
                 f("year", "number", "Year", "Annee", 1, col=2, props={"min": 2020, "max": 2030}),
                 f("staff_count", "number", "Staff Count", "Effectif", 2, col=3, props={"min": 0}),
                 f("budget_usd", "number", "Budget (USD)", "Budget (USD)", 3, props={"min": 0}),
-                f("pvs_score", "number", "PVS Score", "Score PVS", 4, col=2, props={"min": 1, "max": 5}),
+                f("pvs_score", "number", "Veterinary Score", "Score des services vétérinaires", 4, col=2, props={"min": 1, "max": 5}),
                 f("oie_status", "text", "OIE/WOAH Status", "Statut OIE/OMSA", 5, col=3, req=False),
             ]),
             sec("obs", "Observations", "Observations", 2, 1, [
@@ -192,7 +192,7 @@ ALERT = {
         sec("event", "Event", "Evenement", 1, 2, [
             f("event_type", "select", "Event Type", "Type", 0, props={"options": [
                 {"label": {"en": "Legislative Change", "fr": "Changement legislatif"}, "value": "legislative_change"},
-                {"label": {"en": "PVS Gap Identified", "fr": "Lacune PVS identifiee"}, "value": "pvs_gap"},
+                {"label": {"en": "Vet Services Gap Identified", "fr": "Lacune des services vétérinaires identifiée"}, "value": "vet_gap"},
                 {"label": {"en": "Capacity Deficit", "fr": "Deficit de capacite"}, "value": "capacity_deficit"},
                 {"label": {"en": "Institutional Reform", "fr": "Reforme institutionnelle"}, "value": "institutional_reform"},
                 {"label": {"en": "Other", "fr": "Autre"}, "value": "other"},

@@ -466,10 +466,10 @@
 | `GET` | `/api/v1/governance/capacities` | Authenticated | List capacities |
 | `GET` | `/api/v1/governance/capacities/:id` | Authenticated | Get capacity |
 | `PATCH` | `/api/v1/governance/capacities/:id` | Admin roles | Update capacity |
-| `POST` | `/api/v1/governance/pvs-evaluations` | Admin roles | Create PVS evaluation |
-| `GET` | `/api/v1/governance/pvs-evaluations` | Authenticated | List PVS evaluations |
-| `GET` | `/api/v1/governance/pvs-evaluations/:id` | Authenticated | Get PVS evaluation |
-| `PATCH` | `/api/v1/governance/pvs-evaluations/:id` | Admin roles | Update PVS evaluation |
+| `POST` | `/api/v1/governance/vet-evaluations` | Admin roles | Create veterinary evaluation |
+| `GET` | `/api/v1/governance/vet-evaluations` | Authenticated | List veterinary evaluations |
+| `GET` | `/api/v1/governance/vet-evaluations/:id` | Authenticated | Get veterinary evaluation |
+| `PATCH` | `/api/v1/governance/vet-evaluations/:id` | Admin roles | Update veterinary evaluation |
 | `POST` | `/api/v1/governance/stakeholders` | Admin roles | Create stakeholder |
 | `GET` | `/api/v1/governance/stakeholders` | Authenticated | List stakeholders |
 | `GET` | `/api/v1/governance/stakeholders/:id` | Authenticated | Get stakeholder |
@@ -518,7 +518,7 @@
 | `GET` | `/analytics/trade/balance` | Authenticated | Trade balance analytics |
 | `GET` | `/analytics/wildlife/crime-trends` | Authenticated | Wildlife crime trends |
 | `GET` | `/analytics/climate/alerts` | Authenticated | Climate alerts |
-| `GET` | `/analytics/governance/pvs-scores` | Authenticated | PVS scores by country |
+| `GET` | `/analytics/governance/vet-scores` | Authenticated | Veterinary scores by country |
 
 ### Geo Services (`:3031`)
 

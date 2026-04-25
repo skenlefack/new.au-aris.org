@@ -8,7 +8,7 @@ export const TOPIC_MS_WILDLIFE_CRIME_REPORTED = 'ms.wildlife.crime.reported.v1' 
 export const TOPIC_MS_TRADE_FLOW_CREATED = 'ms.trade.flow.created.v1' as const;
 export const TOPIC_MS_CLIMATE_HOTSPOT_DETECTED = 'ms.climate.hotspot.detected.v1' as const;
 export const TOPIC_MS_APICULTURE_PRODUCTION_RECORDED = 'ms.apiculture.production.recorded.v1' as const;
-export const TOPIC_MS_GOVERNANCE_PVS_EVALUATED = 'ms.governance.pvs.evaluated.v1' as const;
+export const TOPIC_MS_GOVERNANCE_VET_EVALUATION_CREATED = 'ms.governance.vet-evaluation.created.v1' as const;
 
 // ── Kafka event payloads ──
 
@@ -82,7 +82,7 @@ export interface ApicultureProductionPayload {
   timestamp?: string;
 }
 
-export interface GovernancePvsPayload {
+export interface GovernanceVetEvalPayload {
   id: string;
   tenantId: string;
   countryCode: string;
@@ -166,7 +166,7 @@ export interface ClimateAlert {
   lastUpdated: string;
 }
 
-export interface PvsScoreEntry {
+export interface VetScoreEntry {
   countryCode: string;
   latestScore: number;
   evaluationType: string;

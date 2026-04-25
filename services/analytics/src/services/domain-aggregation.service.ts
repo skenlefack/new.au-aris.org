@@ -6,7 +6,7 @@ import type {
   TradeFlowPayload,
   ClimateHotspotPayload,
   ApicultureProductionPayload,
-  GovernancePvsPayload,
+  GovernanceVetEvalPayload,
 } from '../dto/cross-domain.dto';
 
 /** Redis key patterns for domain aggregation read models */
@@ -146,7 +146,7 @@ export class DomainAggregationService {
 
   // ── Governance ──
 
-  async handleGovernancePvsEvaluated(payload: GovernancePvsPayload): Promise<void> {
+  async handleGovernanceVetEvaluated(payload: GovernanceVetEvalPayload): Promise<void> {
     const key = DOMAIN_REDIS_KEYS.governance(payload.countryCode);
 
     await this.redis.hMSet(key, {

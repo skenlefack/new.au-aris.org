@@ -36,7 +36,7 @@ model InstitutionalCapacity {
   organizationName        String  @map("organization_name")
   staffCount              Int     @map("staff_count")
   budgetUsd               Float   @map("budget_usd")
-  pvsSelfAssessmentScore  Float?  @map("pvs_self_assessment_score")
+  vetSelfAssessmentScore  Float?  @map("pvs_self_assessment_score")
   oieStatus               String? @map("oie_status")
   dataClassification      String  @default("PARTNER") @map("data_classification")
   createdBy               String  @map("created_by")
@@ -50,7 +50,7 @@ model InstitutionalCapacity {
   @@map("institutional_capacities")
 }
 
-model PVSEvaluation {
+model VetEvaluation {
   id                    String   @id @default(uuid())
   tenantId              String   @map("tenant_id")
   evaluationType        String   @map("evaluation_type")

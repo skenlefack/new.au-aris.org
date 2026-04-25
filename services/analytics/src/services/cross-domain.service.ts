@@ -11,7 +11,7 @@ import type {
   TradeBalance,
   WildlifeCrimeTrends,
   ClimateAlert,
-  PvsScoreEntry,
+  VetScoreEntry,
   ContinentalKpiResponse,
   KpiCard,
 } from '../dto/cross-domain.dto';
@@ -255,7 +255,7 @@ export class CrossDomainService {
     const wildlifeScore = await this.calculateWildlifeRisk(countryCode);
     components.push(wildlifeScore);
 
-    // Governance (inverse: higher PVS = lower risk)
+    // Governance (inverse: higher vet services score = lower risk)
     const govScore = await this.calculateGovernanceRisk(countryCode);
     components.push(govScore);
 
@@ -356,13 +356,13 @@ export class CrossDomainService {
 
   async calculateGovernanceRisk(countryCode: string): Promise<RiskComponent> {
     const data = await this.redis.hGetAll(DOMAIN_REDIS_KEYS.governance(countryCode));
-    const pvsScore = parseFloat(data['latestScore'] ?? '0');
+    const vetScore = parseFloat(data['latestScore'] ?? '0');
     const factors: string[] = [];
 
-    // Inverse: high PVS = low risk. PVS scale is roughly 0-100.
-    const score = pvsScore > 0 ? Math.max(0, 100 - pvsScore) : 50; // 50 = unknown
-    if (pvsScore > 0) factors.push(`PVS score: ${pvsScore}`);
-    else factors.push('No PVS data');
+    // Inverse: high vet services score = low risk. Scale is roughly 0-100.
+    const score = vetScore > 0 ? Math.max(0, 100 - vetScore) : 50; // 50 = unknown
+    if (vetScore > 0) factors.push(`Vet services score: ${vetScore}`);
+    else factors.push('No vet services data');
 
     return { domain: 'governance', score, weight: RISK_WEIGHTS.governance, factors };
   }
@@ -537,12 +537,12 @@ export class CrossDomainService {
     return results;
   }
 
-  async getPvsScores(countryCode?: string): Promise<PvsScoreEntry[]> {
+  async getVetScores(countryCode?: string): Promise<VetScoreEntry[]> {
     const countries = countryCode
       ? [countryCode]
       : await this.discoverCountriesForPrefix('analytics:governance:');
 
-    const results: PvsScoreEntry[] = [];
+    const results: VetScoreEntry[] = [];
     for (const cc of countries) {
       const data = await this.redis.hGetAll(DOMAIN_REDIS_KEYS.governance(cc));
       if (data['latestScore']) {
@@ -810,12 +810,12 @@ export class CrossDomainService {
         break;
       }
       case 'governance': {
-        const entries = await this.getPvsScores();
+        const entries = await this.getVetScores();
         const avgScore = entries.length > 0
           ? Math.round(entries.reduce((s, e) => s + e.latestScore, 0) / entries.length * 10) / 10
           : 0;
         kpis.push(
-          { key: 'avg_pvs_score', label: 'Avg PVS Score', value: avgScore, unit: '', trend: 'stable', trendPercent: 0 },
+          { key: 'avg_vet_score', label: 'Avg Vet Services Score', value: avgScore, unit: '', trend: 'stable', trendPercent: 0 },
           { key: 'countries_evaluated', label: 'Countries Evaluated', value: entries.length, unit: '', trend: 'stable', trendPercent: 0 },
         );
         break;

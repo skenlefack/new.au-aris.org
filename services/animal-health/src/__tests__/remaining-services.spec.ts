@@ -80,7 +80,7 @@ const mockCapacity = {
   labStaff: 30,
   labTestsAvailable: 120,
   vaccineProductionCapacity: 50000,
-  pvsScore: 3.5,
+  vetServicesScore: 3.5,
   dataClassification: 'PARTNER',
   tenantId: nationalAdmin.tenantId,
   createdBy: nationalAdmin.userId,

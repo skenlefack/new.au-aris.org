@@ -57,7 +57,7 @@ SELECT
   (SELECT COUNT(*) FROM wildlife.wildlife_crimes)::int AS wildlife_crimes,
   -- Governance
   (SELECT COUNT(*) FROM governance.legal_frameworks)::int AS legal_fw,
-  (SELECT COUNT(*) FROM governance.pvs_evaluations)::int AS pvs_eval,
+  (SELECT COUNT(*) FROM governance.pvs_evaluations)::int AS vet_eval,
   -- Apiculture
   (SELECT COUNT(*) FROM apiculture.apiaries)::int AS apiaries,
   (SELECT COUNT(*) FROM apiculture.honey_production)::int AS honey_prod,
@@ -131,7 +131,7 @@ export class DbStatsService {
       const fisheriesRecords = (counts.fish_captures ?? 0) + (counts.aquaculture_prod ?? 0) + (counts.fishing_vessels ?? 0);
       const tradeRecords = (counts.trade_flows ?? 0) + (counts.sps_certs ?? 0);
       const wildlifeRecords = (counts.wildlife_inv ?? 0) + (counts.wildlife_crimes ?? 0);
-      const governanceRecords = (counts.legal_fw ?? 0) + (counts.pvs_eval ?? 0);
+      const governanceRecords = (counts.legal_fw ?? 0) + (counts.vet_eval ?? 0);
       const apicultureRecords = (counts.apiaries ?? 0) + (counts.honey_prod ?? 0);
       const climateRecords = (counts.env_hotspots ?? 0) + (counts.water_stress ?? 0);
 

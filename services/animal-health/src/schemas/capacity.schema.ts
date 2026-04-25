@@ -6,7 +6,7 @@ export const CreateCapacitySchema = Type.Object({
   labStaff: Type.Integer({ minimum: 0, default: 0 }),
   labTestsAvailable: Type.Array(Type.String()),
   vaccineProductionCapacity: Type.Optional(Type.Integer({ minimum: 0 })),
-  pvsScore: Type.Optional(Type.Number({ minimum: 0, maximum: 5 })),
+  vetServicesScore: Type.Optional(Type.Number({ minimum: 0, maximum: 5 })),
   dataClassification: Type.Optional(Type.String()),
 });
 
@@ -15,7 +15,7 @@ export const UpdateCapacitySchema = Type.Object({
   labStaff: Type.Optional(Type.Integer({ minimum: 0 })),
   labTestsAvailable: Type.Optional(Type.Array(Type.String())),
   vaccineProductionCapacity: Type.Optional(Type.Integer({ minimum: 0 })),
-  pvsScore: Type.Optional(Type.Number({ minimum: 0, maximum: 5 })),
+  vetServicesScore: Type.Optional(Type.Number({ minimum: 0, maximum: 5 })),
   dataClassification: Type.Optional(Type.String()),
 });
 

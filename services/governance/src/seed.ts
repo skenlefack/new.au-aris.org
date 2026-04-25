@@ -47,11 +47,11 @@ export async function seed(): Promise<void> {
   console.log('  🏢 Institutional capacities...');
 
   const capacities = [
-    { seq: 101, year: 2022, organizationName: 'Directorate of Veterinary Services', staffCount: 1200, budgetUsd: 45000000, pvsSelfAssessmentScore: 68.0, oieStatus: 'MEMBER' },
-    { seq: 102, year: 2023, organizationName: 'Directorate of Veterinary Services', staffCount: 1320, budgetUsd: 48000000, pvsSelfAssessmentScore: 70.0, oieStatus: 'MEMBER' },
-    { seq: 103, year: 2024, organizationName: 'Directorate of Veterinary Services', staffCount: 1450, budgetUsd: 52000000, pvsSelfAssessmentScore: 72.0, oieStatus: 'MEMBER' },
-    { seq: 104, year: 2023, organizationName: 'Kenya Wildlife Service', staffCount: 3200, budgetUsd: 85000000, pvsSelfAssessmentScore: null, oieStatus: null },
-    { seq: 105, year: 2024, organizationName: 'Kenya Wildlife Service', staffCount: 3350, budgetUsd: 92000000, pvsSelfAssessmentScore: null, oieStatus: null },
+    { seq: 101, year: 2022, organizationName: 'Directorate of Veterinary Services', staffCount: 1200, budgetUsd: 45000000, vetSelfAssessmentScore: 68.0, oieStatus: 'MEMBER' },
+    { seq: 102, year: 2023, organizationName: 'Directorate of Veterinary Services', staffCount: 1320, budgetUsd: 48000000, vetSelfAssessmentScore: 70.0, oieStatus: 'MEMBER' },
+    { seq: 103, year: 2024, organizationName: 'Directorate of Veterinary Services', staffCount: 1450, budgetUsd: 52000000, vetSelfAssessmentScore: 72.0, oieStatus: 'MEMBER' },
+    { seq: 104, year: 2023, organizationName: 'Kenya Wildlife Service', staffCount: 3200, budgetUsd: 85000000, vetSelfAssessmentScore: null, oieStatus: null },
+    { seq: 105, year: 2024, organizationName: 'Kenya Wildlife Service', staffCount: 3350, budgetUsd: 92000000, vetSelfAssessmentScore: null, oieStatus: null },
   ];
 
   for (const cap of capacities) {
@@ -65,7 +65,7 @@ export async function seed(): Promise<void> {
         organizationName: cap.organizationName,
         staffCount: cap.staffCount,
         budgetUsd: cap.budgetUsd,
-        pvsSelfAssessmentScore: cap.pvsSelfAssessmentScore,
+        vetSelfAssessmentScore: cap.vetSelfAssessmentScore,
         oieStatus: cap.oieStatus,
         dataClassification: 'PARTNER',
         createdBy: USER_KE_ADMIN,
@@ -75,13 +75,13 @@ export async function seed(): Promise<void> {
   }
   console.log(`  ✓ ${capacities.length} institutional capacities`);
 
-  // ── PVS Evaluations (3) ──
-  console.log('  📊 PVS evaluations...');
+  // ── Veterinary Services Evaluations (3) ──
+  console.log('  📊 Veterinary services evaluations...');
 
-  const pvsEvals = [
+  const vetEvals = [
     {
       id: domainId(P, 201),
-      evaluationType: 'PVS',
+      evaluationType: 'INITIAL',
       evaluationDate: new Date('2020-09-15'),
       overallScore: 65.0,
       criticalCompetencies: {
@@ -101,7 +101,7 @@ export async function seed(): Promise<void> {
     },
     {
       id: domainId(P, 202),
-      evaluationType: 'PVS_GAP_ANALYSIS',
+      evaluationType: 'GAP_ANALYSIS',
       evaluationDate: new Date('2022-03-20'),
       overallScore: 70.0,
       criticalCompetencies: {
@@ -119,7 +119,7 @@ export async function seed(): Promise<void> {
     },
     {
       id: domainId(P, 203),
-      evaluationType: 'PVS_FOLLOW_UP',
+      evaluationType: 'FOLLOW_UP',
       evaluationDate: new Date('2024-11-10'),
       overallScore: 75.0,
       criticalCompetencies: {
@@ -138,25 +138,25 @@ export async function seed(): Promise<void> {
     },
   ];
 
-  for (const pvs of pvsEvals) {
-    await prisma.pVSEvaluation.upsert({
-      where: { id: pvs.id },
+  for (const ve of vetEvals) {
+    await prisma.vetEvaluation.upsert({
+      where: { id: ve.id },
       update: {},
       create: {
-        id: pvs.id,
+        id: ve.id,
         tenantId: TENANT_KE,
-        evaluationType: pvs.evaluationType,
-        evaluationDate: pvs.evaluationDate,
-        overallScore: pvs.overallScore,
-        criticalCompetencies: pvs.criticalCompetencies,
-        recommendations: pvs.recommendations,
+        evaluationType: ve.evaluationType,
+        evaluationDate: ve.evaluationDate,
+        overallScore: ve.overallScore,
+        criticalCompetencies: ve.criticalCompetencies,
+        recommendations: ve.recommendations,
         dataClassification: 'PARTNER',
         createdBy: USER_KE_ADMIN,
         updatedBy: USER_KE_ADMIN,
       },
     });
   }
-  console.log(`  ✓ ${pvsEvals.length} PVS evaluations`);
+  console.log(`  ✓ ${vetEvals.length} veterinary services evaluations`);
 
   // ── Stakeholder Registry (5) ──
   console.log('  👥 Stakeholder registry...');

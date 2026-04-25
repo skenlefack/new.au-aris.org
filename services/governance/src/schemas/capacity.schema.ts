@@ -12,7 +12,7 @@ export const CreateCapacitySchema = Type.Object({
   organizationName: Type.String({ minLength: 1, maxLength: 255 }),
   staffCount: Type.Integer({ minimum: 0 }),
   budgetUsd: Type.Number({ minimum: 0 }),
-  pvsSelfAssessmentScore: Type.Optional(Type.Number({ minimum: 0, maximum: 5 })),
+  vetSelfAssessmentScore: Type.Optional(Type.Number({ minimum: 0, maximum: 5 })),
   oieStatus: Type.Optional(Type.String({ maxLength: 100 })),
   dataClassification: Type.Optional(DataClassificationEnum),
 });
@@ -22,7 +22,7 @@ export const UpdateCapacitySchema = Type.Object({
   organizationName: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
   staffCount: Type.Optional(Type.Integer({ minimum: 0 })),
   budgetUsd: Type.Optional(Type.Number({ minimum: 0 })),
-  pvsSelfAssessmentScore: Type.Optional(Type.Number({ minimum: 0, maximum: 5 })),
+  vetSelfAssessmentScore: Type.Optional(Type.Number({ minimum: 0, maximum: 5 })),
   oieStatus: Type.Optional(Type.String({ maxLength: 100 })),
   dataClassification: Type.Optional(DataClassificationEnum),
 });

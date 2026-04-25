@@ -3664,7 +3664,7 @@ export function useApicultureProduction(params?: {
 
 export interface GovernanceKpis {
   legalFrameworks: number;
-  pvsEvaluations: number;
+  vetEvaluations: number;
   stakeholders: number;
   capacityPrograms: number;
 }
@@ -3683,7 +3683,7 @@ export interface LegalFramework {
   updatedAt: string;
 }
 
-export interface PvsEvaluation {
+export interface VetEvaluation {
   id: string;
   country: string;
   countryCode: string;
@@ -3724,7 +3724,7 @@ export interface GovernanceCapacity {
   year: number;
   staffCount: number;
   budgetUsd: number;
-  pvsSelfAssessmentScore: number;
+  vetSelfAssessmentScore: number;
   oieStatus: string;
   createdAt: string;
   updatedAt: string;
@@ -3733,7 +3733,7 @@ export interface GovernanceCapacity {
 // ─── Governance Hooks ───────────────────────────────────────────────────────
 
 export function useGovernanceKpis() {
-  const fallback: GovernanceKpis = { legalFrameworks: 0, pvsEvaluations: 0, stakeholders: 0, capacityPrograms: 0 };
+  const fallback: GovernanceKpis = { legalFrameworks: 0, vetEvaluations: 0, stakeholders: 0, capacityPrograms: 0 };
   return useQuery({
     queryKey: ['governance', 'kpis'],
     queryFn: withFallback(
@@ -3775,7 +3775,7 @@ export function useLegalFrameworks(params?: {
   });
 }
 
-export function usePvsEvaluations(params?: {
+export function useVetEvaluations(params?: {
   page?: number;
   limit?: number;
   country?: string;
@@ -3789,13 +3789,13 @@ export function usePvsEvaluations(params?: {
   if (params?.year) searchParams.year = String(params.year);
   if (params?.search) searchParams.search = params.search;
 
-  const fallback: PaginatedResponse<PvsEvaluation> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  const fallback: PaginatedResponse<VetEvaluation> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
-    queryKey: ['governance', 'pvs-evaluations', params],
+    queryKey: ['governance', 'vet-evaluations', params],
     queryFn: withFallback(
       () =>
-        governanceClient.get<PaginatedResponse<PvsEvaluation>>(
-          '/governance/pvs-evaluations',
+        governanceClient.get<PaginatedResponse<VetEvaluation>>(
+          '/governance/vet-evaluations',
           searchParams,
         ),
       fallback,

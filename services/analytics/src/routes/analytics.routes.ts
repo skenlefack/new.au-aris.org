@@ -272,16 +272,16 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
     return reply.code(200).send({ data });
   });
 
-  // ── Governance PVS Scores ──
+  // ── Governance Vet Services Scores ──
 
-  app.get(`${PREFIX}/governance/pvs-scores`, {
+  app.get(`${PREFIX}/governance/vet-scores`, {
     preHandler: [app.authHookFn, tenantHook(), domainsHook('governance')],
   }, async (
     request: FastifyRequest<{ Querystring: { country?: string } }>,
     reply: FastifyReply,
   ) => {
     const { country } = request.query;
-    const data = await app.crossDomainService.getPvsScores(country);
+    const data = await app.crossDomainService.getVetScores(country);
     return reply.code(200).send({ data });
   });
 }

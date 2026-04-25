@@ -446,7 +446,7 @@
   "governance": {
     "legalFramework": "Quadro jurídico",
     "veterinaryLegislation": "Legislação veterinária",
-    "pvsPathway": "Percurso PVS",
+    "vetServicesPathway": "Percurso de avaliação dos serviços veterinários",
     "competentAuthority": "Autoridade competente",
     "veterinaryService": "Serviço veterinário",
     "decentralization": "Descentralização",
