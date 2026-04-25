@@ -18,6 +18,9 @@ import { FormulaEvaluator } from './indicators/formula-evaluator';
 import { registerIndicatorRoutes } from './indicators/indicator.routes';
 import { registerAutoFromFormConsumer } from './indicators/auto-from-form.consumer';
 import { registerCompositeRecomputeConsumer } from './indicators/composite-recompute.consumer';
+import { DashboardService } from './dashboards/dashboard.service';
+import { WidgetResolver } from './dashboards/widget-resolver';
+import { registerDashboardRoutes } from './dashboards/dashboard.routes';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -93,6 +96,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.decorate('indicatorService', indicatorService);
   app.decorate('formulaEvaluator', formulaEvaluator);
 
+  // --- Dashboard builder service ---
+  const dashboardService = new DashboardService(redisClient, app.kafka);
+  const widgetResolver = new WidgetResolver(redisClient, indicatorService, dashboardService);
+  app.decorate('dashboardService', dashboardService);
+  app.decorate('widgetResolver', widgetResolver);
+
   // --- Kafka Consumers (12 aggregation + 2 indicator subscriptions) ---
   await registerConsumers(app, aggregationService, domainAggregationService);
   await registerAutoFromFormConsumer(app, indicatorService.getPool());
@@ -102,6 +111,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerHealthRoutes);
   await app.register(registerAnalyticsRoutes);
   await app.register(registerIndicatorRoutes);
+  await app.register(registerDashboardRoutes);
 
   return app;
 }

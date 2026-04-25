@@ -6,6 +6,8 @@ import type { DomainAggregationService } from '../services/domain-aggregation.se
 import type { DbStatsService } from '../services/db-stats.service';
 import type { IndicatorService } from '../indicators/indicator.service';
 import type { FormulaEvaluator } from '../indicators/formula-evaluator';
+import type { DashboardService } from '../dashboards/dashboard.service';
+import type { WidgetResolver } from '../dashboards/widget-resolver';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -17,5 +19,7 @@ declare module 'fastify' {
     dbStatsService: DbStatsService;
     indicatorService: IndicatorService;
     formulaEvaluator: FormulaEvaluator;
+    dashboardService: DashboardService;
+    widgetResolver: WidgetResolver;
   }
 }
