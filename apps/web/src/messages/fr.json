@@ -60,6 +60,7 @@
     "sectionMonitoring": "SUIVI",
     "sectionBiTools": "OUTILS BI",
     "sectionAdmin": "ADMIN",
+    "subDomains": "Sous-domaines",
     "sectionCollaboration": "COLLABORATION",
     "dataSharing": "Partage de données",
     "sectionPaid": "PAID",

@@ -121,6 +121,7 @@ const STATIC_GROUPS: NavGroup[] = [
   {
     tKey: 'sectionAdmin',
     items: [
+      { tKey: 'subDomains', href: '/admin/sub-domains', icon: Layers, matchPrefix: '/admin/sub-domains' },
       { tKey: 'settings', href: '/settings', icon: Settings, matchPrefix: '/settings' },
     ],
   },
@@ -221,12 +222,12 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
   ]),
   NATIONAL_ADMIN: new Set([
     '/home', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
-    '/master-data', '/settings', '/data-sharing',
+    '/master-data', '/settings', '/admin/sub-domains', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   REC_ADMIN: new Set([
     '/home', '/paid', '/paid-collecte', '/collecte', '/workflow', '/master-data', '/quality',
-    '/interop', '/analytics', '/historical', '/reports', '/settings', '/data-sharing',
+    '/interop', '/analytics', '/historical', '/reports', '/settings', '/admin/sub-domains', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   CONTINENTAL_ADMIN: new Set(), // full access handled below
