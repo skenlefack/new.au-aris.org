@@ -15,6 +15,10 @@ function mockPrismaService() {
       update: vi.fn(),
       count: vi.fn(),
     },
+    formTarget: {
+      create: vi.fn(),
+      deleteMany: vi.fn(),
+    },
   };
 }
 
@@ -114,6 +118,14 @@ describe('TemplateService', () => {
 
       prisma.formTemplate.findFirst.mockResolvedValue(null);
       prisma.formTemplate.create.mockResolvedValue(templateFixture());
+      prisma.formTarget.create.mockResolvedValue({
+        id: 'target-1',
+        form_id: 'tmpl-1',
+        domain_code: 'health',
+        sub_domain_code: null,
+        is_primary: true,
+        created_at: new Date(),
+      });
 
       const result = await service.create(dto, continentalUser());
 
@@ -121,6 +133,11 @@ describe('TemplateService', () => {
       expect(result.data.version).toBe(1);
       expect(result.data.status).toBe('DRAFT');
       expect(prisma.formTemplate.create).toHaveBeenCalledOnce();
+      // Auto-creates 1 target from legacy domain field
+      expect(prisma.formTarget.create).toHaveBeenCalledOnce();
+      expect(result.data.targets).toHaveLength(1);
+      expect(result.data.targets![0].domainCode).toBe('health');
+      expect(result.data.targets![0].isPrimary).toBe(true);
       expect(kafka.send).toHaveBeenCalledWith(
         'ms.formbuilder.template.created.v1',
         'tmpl-1',
@@ -129,8 +146,113 @@ describe('TemplateService', () => {
       );
     });
 
+    it('should create a template with explicit multi-targets', async () => {
+      const dto = {
+        name: 'Cross-Domain Template',
+        schema: { type: 'object', properties: {} },
+        targets: [
+          { domainCode: 'livestock-prod', isPrimary: true },
+          { domainCode: 'trade-sps', subDomainCode: 'DAIRY_TRADE', isPrimary: false },
+        ],
+      };
+
+      prisma.formTemplate.findFirst.mockResolvedValue(null);
+      prisma.formTemplate.create.mockResolvedValue(
+        templateFixture({ domain: 'livestock-prod' }),
+      );
+      prisma.formTarget.create
+        .mockResolvedValueOnce({
+          id: 'target-1',
+          form_id: 'tmpl-1',
+          domain_code: 'livestock-prod',
+          sub_domain_code: null,
+          is_primary: true,
+          created_at: new Date(),
+        })
+        .mockResolvedValueOnce({
+          id: 'target-2',
+          form_id: 'tmpl-1',
+          domain_code: 'trade-sps',
+          sub_domain_code: 'DAIRY_TRADE',
+          is_primary: false,
+          created_at: new Date(),
+        });
+
+      const result = await service.create(dto, continentalUser());
+
+      expect(result.data.domain).toBe('livestock-prod');
+      expect(result.data.targets).toHaveLength(2);
+      expect(result.data.targets![0].domainCode).toBe('livestock-prod');
+      expect(result.data.targets![0].isPrimary).toBe(true);
+      expect(result.data.targets![1].domainCode).toBe('trade-sps');
+      expect(result.data.targets![1].subDomainCode).toBe('DAIRY_TRADE');
+      expect(result.data.targets![1].isPrimary).toBe(false);
+      // Legacy domain = primary target's domainCode
+      expect(prisma.formTemplate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ domain: 'livestock-prod' }),
+        }),
+      );
+    });
+
+    it('should create backward-compatible template without targets (legacy domain)', async () => {
+      const dto = {
+        name: 'Legacy Template',
+        domain: 'health',
+        schema: { type: 'object' },
+      };
+
+      prisma.formTemplate.findFirst.mockResolvedValue(null);
+      prisma.formTemplate.create.mockResolvedValue(templateFixture());
+      prisma.formTarget.create.mockResolvedValue({
+        id: 'target-auto',
+        form_id: 'tmpl-1',
+        domain_code: 'health',
+        sub_domain_code: null,
+        is_primary: true,
+        created_at: new Date(),
+      });
+
+      const result = await service.create(dto, continentalUser());
+
+      expect(result.data.domain).toBe('health');
+      expect(result.data.targets).toHaveLength(1);
+      expect(result.data.targets![0].domainCode).toBe('health');
+      expect(result.data.targets![0].isPrimary).toBe(true);
+    });
+
+    it('should throw when neither domain nor targets provided', async () => {
+      const dto = {
+        name: 'No domain',
+        schema: { type: 'object' },
+      };
+
+      await expect(
+        service.create(dto as any, continentalUser()),
+      ).rejects.toThrow(HttpError);
+    });
+
+    it('should throw when multiple targets without exactly 1 primary', async () => {
+      const dto = {
+        name: 'Bad targets',
+        schema: { type: 'object' },
+        targets: [
+          { domainCode: 'health', isPrimary: false },
+          { domainCode: 'trade-sps', isPrimary: false },
+        ],
+      };
+
+      await expect(
+        service.create(dto, continentalUser()),
+      ).rejects.toThrow(HttpError);
+    });
+
     it('should throw HttpError 409 if duplicate name+version exists', async () => {
       prisma.formTemplate.findFirst.mockResolvedValue(templateFixture());
+      prisma.formTarget.create.mockResolvedValue({
+        id: 'target-1', form_id: 'tmpl-1', domain_code: 'health',
+        sub_domain_code: null, is_primary: true, created_at: new Date(),
+      });
 
       await expect(
         service.create(
@@ -168,6 +290,10 @@ describe('TemplateService', () => {
     it('should not fail request if Kafka publish errors', async () => {
       prisma.formTemplate.findFirst.mockResolvedValue(null);
       prisma.formTemplate.create.mockResolvedValue(templateFixture());
+      prisma.formTarget.create.mockResolvedValue({
+        id: 'target-1', form_id: 'tmpl-1', domain_code: 'health',
+        sub_domain_code: null, is_primary: true, created_at: new Date(),
+      });
       kafka.send.mockRejectedValue(new Error('Kafka down'));
 
       const result = await service.create(
@@ -181,6 +307,10 @@ describe('TemplateService', () => {
     it('should set default data classification to RESTRICTED', async () => {
       prisma.formTemplate.findFirst.mockResolvedValue(null);
       prisma.formTemplate.create.mockResolvedValue(templateFixture());
+      prisma.formTarget.create.mockResolvedValue({
+        id: 'target-1', form_id: 'tmpl-1', domain_code: 'health',
+        sub_domain_code: null, is_primary: true, created_at: new Date(),
+      });
 
       await service.create(
         { name: 'Test', domain: 'health', schema: {} },
@@ -734,6 +864,88 @@ describe('TemplateService', () => {
     it('should handle empty child', () => {
       const result = service.deepMergeSchema({ type: 'object' }, {});
       expect(result).toEqual({ type: 'object' });
+    });
+  });
+
+  // ── Multi-target filtering ──
+
+  describe('multi-target filtering', () => {
+    it('should filter templates by domainCode via targets join', async () => {
+      prisma.formTemplate.findMany.mockResolvedValue([
+        { ...templateFixture(), targets: [{
+          id: 't1', form_id: 'tmpl-1', domain_code: 'livestock-prod',
+          sub_domain_code: null, is_primary: true, created_at: new Date(),
+        }] },
+      ]);
+      prisma.formTemplate.count.mockResolvedValue(1);
+
+      const result = await service.findAll(continentalUser(), {
+        domainCode: 'livestock-prod',
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(prisma.formTemplate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            targets: { some: { domain_code: 'livestock-prod' } },
+          }),
+        }),
+      );
+    });
+
+    it('should filter templates by domainCode and subDomainCode', async () => {
+      prisma.formTemplate.findMany.mockResolvedValue([]);
+      prisma.formTemplate.count.mockResolvedValue(0);
+
+      await service.findAll(continentalUser(), {
+        domainCode: 'trade-sps',
+        subDomainCode: 'DAIRY_TRADE',
+      });
+
+      expect(prisma.formTemplate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            targets: {
+              some: {
+                domain_code: 'trade-sps',
+                sub_domain_code: 'DAIRY_TRADE',
+              },
+            },
+          }),
+        }),
+      );
+    });
+
+    it('should include targets in findAll response', async () => {
+      prisma.formTemplate.findMany.mockResolvedValue([{
+        ...templateFixture(),
+        targets: [
+          { id: 't1', form_id: 'tmpl-1', domain_code: 'health', sub_domain_code: null, is_primary: true, created_at: new Date() },
+          { id: 't2', form_id: 'tmpl-1', domain_code: 'trade-sps', sub_domain_code: 'LIVE_ANIMAL', is_primary: false, created_at: new Date() },
+        ],
+        _count: { overlays: 0 },
+      }]);
+      prisma.formTemplate.count.mockResolvedValue(1);
+
+      const result = await service.findAll(continentalUser(), {});
+
+      expect(result.data[0].targets).toHaveLength(2);
+      expect(result.data[0].targets![0].domainCode).toBe('health');
+      expect(result.data[0].targets![1].subDomainCode).toBe('LIVE_ANIMAL');
+    });
+
+    it('should include targets in findOne response', async () => {
+      prisma.formTemplate.findUnique.mockResolvedValue({
+        ...templateFixture(),
+        targets: [
+          { id: 't1', form_id: 'tmpl-1', domain_code: 'health', sub_domain_code: null, is_primary: true, created_at: new Date() },
+        ],
+      });
+
+      const result = await service.findOne('tmpl-1', continentalUser());
+
+      expect(result.data.targets).toHaveLength(1);
+      expect(result.data.targets![0].domainCode).toBe('health');
     });
   });
 

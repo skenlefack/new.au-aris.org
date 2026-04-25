@@ -1,6 +1,15 @@
 export type CampaignStatusType = 'PLANNED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 export type ConflictStrategyType = 'LAST_WRITE_WINS' | 'MANUAL_MERGE';
 
+export interface CampaignDomainTargetEntity {
+  id: string;
+  campaignId: string;
+  domainCode: string;
+  subDomainCode: string | null;
+  isPrimary: boolean;
+  createdAt: Date;
+}
+
 export interface CampaignEntity {
   id: string;
   tenantId: string;
@@ -21,6 +30,7 @@ export interface CampaignEntity {
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
+  targets?: CampaignDomainTargetEntity[];
 }
 
 export interface CampaignWithProgress extends CampaignEntity {

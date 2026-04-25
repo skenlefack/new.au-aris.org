@@ -18,7 +18,9 @@ import type { AuthenticatedUser } from '@aris/auth-middleware';
 import type {
   CampaignEntity,
   CampaignWithProgress,
+  CampaignDomainTargetEntity,
 } from '../campaign/entities/campaign.entity';
+import type { CampaignTargetInput } from '../schemas/campaign.schema';
 
 const SERVICE_NAME = 'collecte-service';
 
@@ -47,7 +49,7 @@ export class CampaignService {
   async create(
     dto: {
       name: string;
-      domain: string;
+      domain?: string;
       templateId: string;
       templateIds?: string[];
       targetCountries?: string[];
@@ -62,9 +64,22 @@ export class CampaignService {
       reminderDaysBefore?: number;
       conflictStrategy?: 'LAST_WRITE_WINS' | 'MANUAL_MERGE';
       dataContractId?: string;
+      targets?: CampaignTargetInput[];
     },
     user: AuthenticatedUser,
   ): Promise<ApiResponse<CampaignEntity>> {
+    // Validate targets if provided
+    const targets = dto.targets;
+    if (targets && targets.length > 0) {
+      this.validateTargets(targets);
+    }
+
+    // Determine legacy domain: from targets (primary) or from dto.domain
+    const domain = this.resolveDomain(dto.domain, targets);
+    if (!domain) {
+      throw new HttpError(400, 'Either "domain" or "targets" with a primary target must be provided');
+    }
+
     // Validate dates
     const startDate = new Date(dto.startDate);
     const endDate = new Date(dto.endDate);
@@ -76,7 +91,7 @@ export class CampaignService {
       data: {
         tenantId: user.tenantId,
         name: dto.name,
-        domain: dto.domain,
+        domain,
         templateId: dto.templateId,
         templateIds: dto.templateIds ?? [],
         targetCountries: dto.targetCountries ?? [],
@@ -92,18 +107,32 @@ export class CampaignService {
       },
     });
 
+    // Create domain targets
+    const resolvedTargets = targets && targets.length > 0
+      ? targets
+      : [{ domainCode: domain, subDomainCode: null, isPrimary: true }];
+
+    const createdTargets = await this.createDomainTargets(campaign.id, resolvedTargets);
+
     await this.publishEvent(TOPIC_MS_COLLECTE_CAMPAIGN_CREATED, campaign, user);
 
     console.log(
-      `[CampaignService] Campaign created: ${campaign.name} (${campaign.id}) domain=${dto.domain}`,
+      `[CampaignService] Campaign created: ${campaign.name} (${campaign.id}) domain=${domain} with ${createdTargets.length} target(s)`,
     );
 
-    return { data: campaign as unknown as CampaignEntity };
+    return { data: { ...(campaign as unknown as CampaignEntity), targets: createdTargets } };
   }
 
   async findAll(
     user: AuthenticatedUser,
-    query: PaginationQuery & { domain?: string; status?: string; zone?: string; search?: string },
+    query: PaginationQuery & {
+      domain?: string;
+      domainCode?: string;
+      subDomainCode?: string;
+      status?: string;
+      zone?: string;
+      search?: string;
+    },
   ): Promise<PaginatedResponse<CampaignEntity>> {
     const page = query.page ?? DEFAULT_PAGE;
     const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
@@ -117,12 +146,16 @@ export class CampaignService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: { targets: true },
       }),
       (this.prisma as any).campaign.count({ where }),
     ]);
 
     return {
-      data: data as unknown as CampaignEntity[],
+      data: data.map((c: any) => ({
+        ...(c as unknown as CampaignEntity),
+        targets: (c.targets ?? []).map(this.toTargetEntity),
+      })),
       meta: { total, page, limit },
     };
   }
@@ -133,6 +166,7 @@ export class CampaignService {
   ): Promise<ApiResponse<CampaignWithProgress>> {
     const campaign = await (this.prisma as any).campaign.findUnique({
       where: { id },
+      include: { targets: true },
     });
 
     if (!campaign) {
@@ -169,6 +203,7 @@ export class CampaignService {
     return {
       data: {
         ...(campaign as unknown as CampaignEntity),
+        targets: (campaign.targets ?? []).map(this.toTargetEntity),
         progress: {
           totalSubmissions,
           validated,
@@ -273,7 +308,14 @@ export class CampaignService {
    */
   private async buildFilter(
     user: AuthenticatedUser,
-    query: { domain?: string; status?: string; zone?: string; search?: string },
+    query: {
+      domain?: string;
+      domainCode?: string;
+      subDomainCode?: string;
+      status?: string;
+      zone?: string;
+      search?: string;
+    },
   ): Promise<Record<string, unknown>> {
     const where: Record<string, unknown> = {};
 
@@ -325,11 +367,20 @@ export class CampaignService {
 
     if (query.domain) {
       // Explicit domain filter from query — override the IN filter if allowed
-      if (user.role === 'SUPER_ADMIN' || userDomains.length === 0 || userDomains.includes(query.domain)) {
+      if (user.role === 'SUPER_ADMIN' || userDomainCodes.length === 0 || userDomainCodes.includes(query.domain)) {
         where['domain'] = query.domain;
       }
       // If user doesn't have access to the requested domain, the IN filter above keeps them restricted
     }
+
+    // Multi-target filtering via CampaignDomainTarget join table
+    if (query.domainCode || query.subDomainCode) {
+      const targetWhere: Record<string, unknown> = {};
+      if (query.domainCode) targetWhere['domainCode'] = query.domainCode;
+      if (query.subDomainCode) targetWhere['subDomainCode'] = query.subDomainCode;
+      where['targets'] = { some: targetWhere };
+    }
+
     if (query.status) where['status'] = query.status;
     if (query.zone) {
       where['targetZones'] = { has: query.zone };
@@ -413,6 +464,95 @@ export class CampaignService {
       `Only users at that level or above can edit it.`,
     );
   }
+
+  // ── Target helpers ──
+
+  /**
+   * Validate targets array: at least 1 target, exactly 1 isPrimary when >1 target.
+   */
+  validateTargets(targets: CampaignTargetInput[]): void {
+    if (targets.length === 0) {
+      throw new HttpError(400, 'At least one target is required');
+    }
+
+    const primaryCount = targets.filter((t) => t.isPrimary === true).length;
+
+    if (targets.length === 1) {
+      // Single target is always primary, auto-set
+      return;
+    }
+
+    if (primaryCount !== 1) {
+      throw new HttpError(
+        400,
+        `Exactly 1 primary target is required when multiple targets are provided (found ${primaryCount})`,
+      );
+    }
+  }
+
+  /**
+   * Determine the legacy domain field value.
+   */
+  private resolveDomain(
+    dtoDomain: string | undefined,
+    targets: CampaignTargetInput[] | undefined,
+  ): string | undefined {
+    if (targets && targets.length > 0) {
+      if (targets.length === 1) return targets[0].domainCode;
+      const primary = targets.find((t) => t.isPrimary === true);
+      return primary?.domainCode ?? targets[0].domainCode;
+    }
+    return dtoDomain;
+  }
+
+  /**
+   * Create CampaignDomainTarget records for a campaign.
+   */
+  private async createDomainTargets(
+    campaignId: string,
+    targets: CampaignTargetInput[],
+  ): Promise<CampaignDomainTargetEntity[]> {
+    const normalized = targets.length === 1
+      ? [{ ...targets[0], isPrimary: true }]
+      : targets;
+
+    const created: CampaignDomainTargetEntity[] = [];
+    for (const target of normalized) {
+      const row = await (this.prisma as any).campaignDomainTarget.create({
+        data: {
+          campaignId,
+          domainCode: target.domainCode,
+          subDomainCode: target.subDomainCode ?? null,
+          isPrimary: target.isPrimary ?? false,
+        },
+      });
+      created.push(this.toTargetEntity(row));
+    }
+    return created;
+  }
+
+  /**
+   * Map a Prisma CampaignDomainTarget row to entity.
+   */
+  private toTargetEntity(row: {
+    id: string;
+    campaignId: string;
+    domainCode: string;
+    subDomainCode: string | null;
+    isPrimary: boolean;
+    createdAt: Date;
+  }): CampaignDomainTargetEntity {
+    return {
+      id: row.id,
+      campaignId: row.campaignId,
+      domainCode: row.domainCode,
+      subDomainCode: row.subDomainCode,
+      isPrimary: row.isPrimary,
+      createdAt: row.createdAt,
+    };
+  }
+
+  // ── Kafka Events ──
 
   private async publishEvent(
     topic: string,

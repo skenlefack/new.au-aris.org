@@ -1,8 +1,15 @@
 import { Type, Static } from '@sinclair/typebox';
 
+export const TargetSchema = Type.Object({
+  domainCode: Type.String({ minLength: 2, maxLength: 50 }),
+  subDomainCode: Type.Optional(Type.Union([Type.String({ maxLength: 50 }), Type.Null()])),
+  isPrimary: Type.Optional(Type.Boolean()),
+});
+export type TargetInput = Static<typeof TargetSchema>;
+
 export const CreateTemplateSchema = Type.Object({
   name: Type.String({ minLength: 2, maxLength: 255 }),
-  domain: Type.String({ minLength: 2, maxLength: 50 }),
+  domain: Type.Optional(Type.String({ minLength: 2, maxLength: 50 })),
   formType: Type.Optional(Type.Union([Type.Literal('CAMPAIGN'), Type.Literal('EVENT_ALERT')])),
   parentTemplateId: Type.Optional(Type.String({ format: 'uuid' })),
   schema: Type.Record(Type.String(), Type.Unknown()),
@@ -16,6 +23,7 @@ export const CreateTemplateSchema = Type.Object({
       Type.Literal('CONFIDENTIAL'),
     ]),
   ),
+  targets: Type.Optional(Type.Array(TargetSchema, { minItems: 1 })),
 });
 export type CreateTemplateBody = Static<typeof CreateTemplateSchema>;
 
@@ -42,6 +50,8 @@ export const ListTemplatesQuerySchema = Type.Object({
   sort: Type.Optional(Type.String()),
   order: Type.Optional(Type.Union([Type.Literal('asc'), Type.Literal('desc')])),
   domain: Type.Optional(Type.String()),
+  domainCode: Type.Optional(Type.String()),
+  subDomainCode: Type.Optional(Type.String()),
   formType: Type.Optional(Type.String()),
   status: Type.Optional(Type.String()),
 });

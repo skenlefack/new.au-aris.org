@@ -1,8 +1,15 @@
 import { Type, Static } from '@sinclair/typebox';
 
+export const CampaignTargetSchema = Type.Object({
+  domainCode: Type.String({ minLength: 2, maxLength: 50 }),
+  subDomainCode: Type.Optional(Type.Union([Type.String({ maxLength: 50 }), Type.Null()])),
+  isPrimary: Type.Optional(Type.Boolean()),
+});
+export type CampaignTargetInput = Static<typeof CampaignTargetSchema>;
+
 export const CreateCampaignSchema = Type.Object({
   name: Type.String({ minLength: 2, maxLength: 255 }),
-  domain: Type.String({ minLength: 2, maxLength: 100 }),
+  domain: Type.Optional(Type.String({ minLength: 2, maxLength: 100 })),
   templateId: Type.String({ format: 'uuid' }),
   templateIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
   targetCountries: Type.Optional(Type.Array(Type.String({ minLength: 2, maxLength: 2 }))),
@@ -22,6 +29,7 @@ export const CreateCampaignSchema = Type.Object({
     ]),
   ),
   dataContractId: Type.Optional(Type.String({ format: 'uuid' })),
+  targets: Type.Optional(Type.Array(CampaignTargetSchema, { minItems: 1 })),
 });
 export type CreateCampaignBody = Static<typeof CreateCampaignSchema>;
 
@@ -56,6 +64,8 @@ export const ListCampaignsQuerySchema = Type.Object({
   page: Type.Optional(Type.Integer({ minimum: 1 })),
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
   domain: Type.Optional(Type.String()),
+  domainCode: Type.Optional(Type.String()),
+  subDomainCode: Type.Optional(Type.String()),
   status: Type.Optional(Type.String()),
   zone: Type.Optional(Type.String()),
   search: Type.Optional(Type.String()),

@@ -17,6 +17,18 @@ export type ArisComponentType =
   | 'lab-result-panel';
 
 /**
+ * Target entity matching the Prisma FormTarget model.
+ */
+export interface FormTargetEntity {
+  id: string;
+  formId: string;
+  domainCode: string;
+  subDomainCode: string | null;
+  isPrimary: boolean;
+  createdAt: Date;
+}
+
+/**
  * Reference type matching the Prisma FormTemplate model.
  */
 export interface FormTemplateEntity {
@@ -38,4 +50,5 @@ export interface FormTemplateEntity {
   archivedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  targets?: FormTargetEntity[];
 }

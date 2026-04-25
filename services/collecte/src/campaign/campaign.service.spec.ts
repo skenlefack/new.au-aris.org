@@ -49,6 +49,9 @@ describe('CampaignService', () => {
       count: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
     };
+    campaignDomainTarget: {
+      create: ReturnType<typeof vi.fn>;
+    };
     submission: {
       count: ReturnType<typeof vi.fn>;
     };
@@ -59,10 +62,29 @@ describe('CampaignService', () => {
     prisma = {
       campaign: {
         create: vi.fn().mockResolvedValue(mockCampaign),
-        findMany: vi.fn().mockResolvedValue([mockCampaign]),
-        findUnique: vi.fn().mockResolvedValue(mockCampaign),
+        findMany: vi.fn().mockResolvedValue([{ ...mockCampaign, targets: [] }]),
+        findUnique: vi.fn().mockResolvedValue({ ...mockCampaign, targets: [] }),
         count: vi.fn().mockResolvedValue(1),
         update: vi.fn().mockResolvedValue({ ...mockCampaign, status: 'ACTIVE' }),
+      },
+      campaignDomainTarget: {
+        create: vi.fn().mockImplementation((args: { data: { campaignId: string; domainCode: string; subDomainCode: string | null; isPrimary: boolean } }) => {
+          return Promise.resolve({
+            id: 'target-auto',
+            campaignId: args.data.campaignId,
+            domainCode: args.data.domainCode,
+            subDomainCode: args.data.subDomainCode,
+            isPrimary: args.data.isPrimary,
+            createdAt: new Date(),
+          });
+        }),
+      },
+      tenant: {
+        findUnique: vi.fn().mockResolvedValue({
+          level: 'MEMBER_STATE',
+          countryCode: 'KE',
+        }),
+        findMany: vi.fn().mockResolvedValue([]),
       },
       submission: {
         count: vi.fn().mockResolvedValue(0),
@@ -74,13 +96,13 @@ describe('CampaignService', () => {
   });
 
   describe('create', () => {
-    it('should create a campaign', async () => {
+    it('should create a campaign with auto-generated target from legacy domain', async () => {
       const dto = {
         name: 'Kenya FMD Surveillance Q1 2025',
         domain: 'health',
         templateId: '00000000-0000-0000-0000-000000000200',
-        startDate: '2025-01-01',
-        endDate: '2025-03-31',
+        startDate: '2025-01-01T00:00:00Z',
+        endDate: '2025-03-31T00:00:00Z',
         targetZones: ['zone-1'],
         assignedAgents: ['agent-1'],
       };
@@ -89,7 +111,64 @@ describe('CampaignService', () => {
 
       expect(result.data).toBeDefined();
       expect(result.data.name).toBe('Kenya FMD Surveillance Q1 2025');
+      expect(result.data.targets).toHaveLength(1);
+      expect(result.data.targets![0].domainCode).toBe('health');
+      expect(result.data.targets![0].isPrimary).toBe(true);
       expect(kafkaProducer.send).toHaveBeenCalledOnce();
+    });
+
+    it('should create a campaign with explicit multi-targets', async () => {
+      const dto = {
+        name: 'Cross-Domain Campaign',
+        templateId: '00000000-0000-0000-0000-000000000200',
+        startDate: '2025-01-01T00:00:00Z',
+        endDate: '2025-03-31T00:00:00Z',
+        targets: [
+          { domainCode: 'livestock-prod', isPrimary: true },
+          { domainCode: 'trade-sps', subDomainCode: 'DAIRY_TRADE', isPrimary: false },
+        ],
+      };
+
+      const result = await service.create(dto as any, adminUser);
+
+      expect(result.data).toBeDefined();
+      expect(result.data.targets).toHaveLength(2);
+      expect(result.data.targets![0].domainCode).toBe('livestock-prod');
+      expect(result.data.targets![0].isPrimary).toBe(true);
+      expect(result.data.targets![1].domainCode).toBe('trade-sps');
+      expect(result.data.targets![1].subDomainCode).toBe('DAIRY_TRADE');
+      // Legacy domain = primary target's domainCode
+      expect(prisma.campaign.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ domain: 'livestock-prod' }),
+        }),
+      );
+    });
+
+    it('should throw when neither domain nor targets provided', async () => {
+      const dto = {
+        name: 'No domain',
+        templateId: '00000000-0000-0000-0000-000000000200',
+        startDate: '2025-01-01T00:00:00Z',
+        endDate: '2025-03-31T00:00:00Z',
+      };
+
+      await expect(service.create(dto as any, adminUser)).rejects.toThrow(HttpError);
+    });
+
+    it('should throw when multiple targets without exactly 1 primary', async () => {
+      const dto = {
+        name: 'Bad targets',
+        templateId: '00000000-0000-0000-0000-000000000200',
+        startDate: '2025-01-01T00:00:00Z',
+        endDate: '2025-03-31T00:00:00Z',
+        targets: [
+          { domainCode: 'health', isPrimary: true },
+          { domainCode: 'trade-sps', isPrimary: true },
+        ],
+      };
+
+      await expect(service.create(dto as any, adminUser)).rejects.toThrow(HttpError);
     });
 
     it('should reject when endDate is before startDate', async () => {
@@ -97,8 +176,8 @@ describe('CampaignService', () => {
         name: 'Bad dates',
         domain: 'health',
         templateId: '00000000-0000-0000-0000-000000000200',
-        startDate: '2025-06-01',
-        endDate: '2025-01-01',
+        startDate: '2025-06-01T00:00:00Z',
+        endDate: '2025-01-01T00:00:00Z',
         targetZones: [],
         assignedAgents: [],
       };
@@ -115,8 +194,8 @@ describe('CampaignService', () => {
         name: 'Test',
         domain: 'health',
         templateId: '00000000-0000-0000-0000-000000000200',
-        startDate: '2025-01-01',
-        endDate: '2025-03-31',
+        startDate: '2025-01-01T00:00:00Z',
+        endDate: '2025-03-31T00:00:00Z',
         targetZones: [],
         assignedAgents: [],
       };
@@ -138,7 +217,13 @@ describe('CampaignService', () => {
       await service.findAll(adminUser, {});
 
       const call = prisma.campaign.findMany.mock.calls[0][0];
-      expect(call.where).toHaveProperty('tenantId', adminUser.tenantId);
+      // MS users see own campaigns OR campaigns targeting their country
+      expect(call.where).toHaveProperty('OR');
+      expect(call.where.OR).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ tenantId: adminUser.tenantId }),
+        ]),
+      );
     });
 
     it('should not filter by tenant for continental users', async () => {
@@ -159,6 +244,52 @@ describe('CampaignService', () => {
       expect(call.where).toHaveProperty('domain', 'health');
       expect(call.where).toHaveProperty('status', 'ACTIVE');
       expect(call.where).toHaveProperty('targetZones', { has: 'zone-1' });
+    });
+  });
+
+  describe('multi-target filtering', () => {
+    it('should filter campaigns by domainCode via targets join', async () => {
+      prisma.campaign.findMany.mockResolvedValue([]);
+      prisma.campaign.count.mockResolvedValue(0);
+
+      await service.findAll(continentalUser, {
+        domainCode: 'livestock-prod',
+      });
+
+      const call = prisma.campaign.findMany.mock.calls[0][0];
+      expect(call.where).toHaveProperty('targets', {
+        some: { domainCode: 'livestock-prod' },
+      });
+    });
+
+    it('should filter campaigns by domainCode and subDomainCode', async () => {
+      prisma.campaign.findMany.mockResolvedValue([]);
+      prisma.campaign.count.mockResolvedValue(0);
+
+      await service.findAll(continentalUser, {
+        domainCode: 'trade-sps',
+        subDomainCode: 'DAIRY_TRADE',
+      });
+
+      const call = prisma.campaign.findMany.mock.calls[0][0];
+      expect(call.where).toHaveProperty('targets', {
+        some: { domainCode: 'trade-sps', subDomainCode: 'DAIRY_TRADE' },
+      });
+    });
+
+    it('should include targets in findAll response', async () => {
+      prisma.campaign.findMany.mockResolvedValue([{
+        ...mockCampaign,
+        targets: [
+          { id: 't1', campaignId: mockCampaign.id, domainCode: 'health', subDomainCode: null, isPrimary: true, createdAt: new Date() },
+        ],
+      }]);
+      prisma.campaign.count.mockResolvedValue(1);
+
+      const result = await service.findAll(continentalUser, {});
+
+      expect(result.data[0].targets).toHaveLength(1);
+      expect(result.data[0].targets![0].domainCode).toBe('health');
     });
   });
 

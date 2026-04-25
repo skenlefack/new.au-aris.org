@@ -101,12 +101,33 @@ model Campaign {
   updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz
 
   submissions Submission[]
+  targets     CampaignDomainTarget[]
 
   @@index([tenantId], map: "idx_campaign_tenant_id")
   @@index([domain], map: "idx_campaign_domain")
   @@index([status], map: "idx_campaign_status")
   @@index([templateId], map: "idx_campaign_template_id")
   @@map("campaigns")
+  @@schema("public")
+}
+
+// ── Campaign Domain Target — Multi-domain targeting for Campaign ──
+
+model CampaignDomainTarget {
+  id            String   @id @default(uuid()) @db.Uuid
+  campaignId    String   @map("campaign_id") @db.Uuid
+  domainCode    String   @map("domain_code") @db.VarChar(50)
+  subDomainCode String?  @map("sub_domain_code") @db.VarChar(50)
+  isPrimary     Boolean  @default(false) @map("is_primary")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, domainCode, subDomainCode], map: "uq_campaign_domain_target")
+  @@index([domainCode], map: "idx_campaign_domain_target_domain")
+  @@index([subDomainCode], map: "idx_campaign_domain_target_subdomain")
+  @@index([campaignId, isPrimary], map: "idx_campaign_domain_target_primary")
+  @@map("campaign_domain_targets")
   @@schema("public")
 }
 

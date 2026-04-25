@@ -18,7 +18,8 @@ import type {
   ApiResponse,
 } from '@aris/shared-types';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
-import type { FormTemplateEntity } from '../template/entities/template.entity';
+import type { FormTemplateEntity, FormTargetEntity } from '../template/entities/template.entity';
+import type { TargetInput } from '../schemas/template.schema';
 
 const SERVICE_NAME = 'form-builder-service';
 
@@ -39,16 +40,29 @@ export class TemplateService {
   async create(
     dto: {
       name: string;
-      domain: string;
+      domain?: string;
       formType?: string;
       parentTemplateId?: string;
       schema: Record<string, unknown>;
       uiSchema?: Record<string, unknown>;
       dataContractId?: string;
       dataClassification?: string;
+      targets?: TargetInput[];
     },
     user: AuthenticatedUser,
   ): Promise<ApiResponse<FormTemplateEntity>> {
+    // Validate targets if provided
+    const targets = dto.targets;
+    if (targets && targets.length > 0) {
+      this.validateTargets(targets);
+    }
+
+    // Determine legacy domain: from targets (primary) or from dto.domain
+    const domain = this.resolveDomain(dto.domain, targets);
+    if (!domain) {
+      throw new HttpError(400, 'Either "domain" or "targets" with a primary target must be provided');
+    }
+
     if (dto.parentTemplateId) {
       const parent = await (this.prisma as any).formTemplate.findUnique({
         where: { id: dto.parentTemplateId },
@@ -73,7 +87,7 @@ export class TemplateService {
       data: {
         tenant_id: user.tenantId,
         name: dto.name,
-        domain: dto.domain,
+        domain,
         form_type: dto.formType ?? 'CAMPAIGN',
         version: 1,
         parent_template_id: dto.parentTemplateId ?? null,
@@ -87,19 +101,32 @@ export class TemplateService {
       },
     });
 
+    // Create targets
+    const resolvedTargets = targets && targets.length > 0
+      ? targets
+      : [{ domainCode: domain, subDomainCode: null, isPrimary: true }];
+
+    const createdTargets = await this.createFormTargets(template.id, resolvedTargets);
+
     await this.publishEvent(
       TOPIC_MS_FORMBUILDER_TEMPLATE_CREATED,
       template,
       user,
     );
 
-    console.log(`[TemplateService] Template created: ${template.name} v${template.version} (${template.id})`);
-    return { data: this.toEntity(template) };
+    console.log(`[TemplateService] Template created: ${template.name} v${template.version} (${template.id}) with ${createdTargets.length} target(s)`);
+    return { data: { ...this.toEntity(template), targets: createdTargets } };
   }
 
   async findAll(
     user: AuthenticatedUser,
-    query: PaginationQuery & { domain?: string; formType?: string; status?: string },
+    query: PaginationQuery & {
+      domain?: string;
+      domainCode?: string;
+      subDomainCode?: string;
+      formType?: string;
+      status?: string;
+    },
   ): Promise<PaginatedResponse<FormTemplateEntity & { overlayCount?: number; hasOverlay?: boolean }>> {
     const page = query.page ?? DEFAULT_PAGE;
     const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
@@ -122,9 +149,19 @@ export class TemplateService {
       domainFilter = { domain: { in: userDomains } };
     }
 
+    // Multi-target filtering via FormTarget join table
+    let targetFilter: Record<string, unknown> = {};
+    if (query.domainCode || query.subDomainCode) {
+      const targetWhere: Record<string, unknown> = {};
+      if (query.domainCode) targetWhere['domain_code'] = query.domainCode;
+      if (query.subDomainCode) targetWhere['sub_domain_code'] = query.subDomainCode;
+      targetFilter = { targets: { some: targetWhere } };
+    }
+
     const where: Prisma.FormTemplateWhereInput = {
       ...this.buildTenantFilter(user),
       ...domainFilter,
+      ...targetFilter,
       ...(query.formType && { form_type: query.formType }),
       ...(query.status && { status: query.status as Prisma.EnumFormTemplateStatusFilter }),
     };
@@ -135,7 +172,10 @@ export class TemplateService {
         skip,
         take: limit,
         orderBy,
-        include: { _count: { select: { overlays: true } } },
+        include: {
+          _count: { select: { overlays: true } },
+          targets: true,
+        },
       }),
       (this.prisma as any).formTemplate.count({ where }),
     ]);
@@ -143,6 +183,7 @@ export class TemplateService {
     return {
       data: data.map((t: any) => ({
         ...this.toEntity(t),
+        targets: (t.targets ?? []).map(this.toTargetEntity),
         overlayCount: t._count?.overlays ?? 0,
         hasOverlay: (t._count?.overlays ?? 0) > 0,
       })),
@@ -157,6 +198,7 @@ export class TemplateService {
   ): Promise<ApiResponse<FormTemplateEntity>> {
     const template = await (this.prisma as any).formTemplate.findUnique({
       where: { id },
+      include: { targets: true },
     });
 
     if (!template) {
@@ -166,6 +208,7 @@ export class TemplateService {
     this.verifyTenantAccess(user, template.tenant_id, template.status);
 
     const resolved = await this.resolveInheritance(template);
+    const targets = (template.targets ?? []).map(this.toTargetEntity);
 
     // If a tenantId is provided, also resolve overlays
     if (resolveTenantId) {
@@ -175,6 +218,7 @@ export class TemplateService {
       return {
         data: {
           ...resolved,
+          targets,
           schema: {
             ...(resolved.schema as Record<string, unknown>),
             _resolved: true,
@@ -191,7 +235,7 @@ export class TemplateService {
       };
     }
 
-    return { data: resolved };
+    return { data: { ...resolved, targets } };
   }
 
   async update(
@@ -330,6 +374,7 @@ export class TemplateService {
   ): Promise<ApiResponse<FormTemplateEntity>> {
     const existing = await (this.prisma as any).formTemplate.findUnique({
       where: { id },
+      include: { targets: true },
     });
     if (!existing) {
       throw new HttpError(404, `Template ${id} not found`);
@@ -353,8 +398,25 @@ export class TemplateService {
       },
     });
 
+    // Copy targets from original
+    const sourceTargets = (existing.targets ?? []) as Array<{
+      domain_code: string;
+      sub_domain_code: string | null;
+      is_primary: boolean;
+    }>;
+    const copiedTargets = sourceTargets.length > 0
+      ? await this.createFormTargets(
+          template.id,
+          sourceTargets.map((t) => ({
+            domainCode: t.domain_code,
+            subDomainCode: t.sub_domain_code,
+            isPrimary: t.is_primary,
+          })),
+        )
+      : [];
+
     console.log(`[TemplateService] Template duplicated: ${template.name} v${template.version} (${template.id})`);
-    return { data: this.toEntity(template) };
+    return { data: { ...this.toEntity(template), targets: copiedTargets } };
   }
 
   async remove(
@@ -374,6 +436,7 @@ export class TemplateService {
     }
 
     // Delete related records first (FK constraints)
+    await (this.prisma as any).formTarget.deleteMany({ where: { form_id: id } });
     await (this.prisma as any).formSubmission.deleteMany({ where: { template_id: id } });
     await (this.prisma as any).formOverlay.deleteMany({ where: { template_id: id } });
     await (this.prisma as any).formVersionHistory.deleteMany({ where: { template_id: id } });
@@ -854,6 +917,96 @@ export class TemplateService {
       archivedAt: row.archived_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+    };
+  }
+
+  // ── Target helpers ──
+
+  /**
+   * Validate targets array: at least 1 target, exactly 1 isPrimary when >1 target.
+   */
+  validateTargets(targets: TargetInput[]): void {
+    if (targets.length === 0) {
+      throw new HttpError(400, 'At least one target is required');
+    }
+
+    const primaryCount = targets.filter((t) => t.isPrimary === true).length;
+
+    if (targets.length === 1) {
+      // Single target is always primary, auto-set
+      return;
+    }
+
+    if (primaryCount !== 1) {
+      throw new HttpError(
+        400,
+        `Exactly 1 primary target is required when multiple targets are provided (found ${primaryCount})`,
+      );
+    }
+  }
+
+  /**
+   * Determine the legacy domain field value.
+   * If targets are provided, use the primary target's domainCode.
+   * Otherwise fall back to dto.domain.
+   */
+  private resolveDomain(
+    dtoDomain: string | undefined,
+    targets: TargetInput[] | undefined,
+  ): string | undefined {
+    if (targets && targets.length > 0) {
+      if (targets.length === 1) return targets[0].domainCode;
+      const primary = targets.find((t) => t.isPrimary === true);
+      return primary?.domainCode ?? targets[0].domainCode;
+    }
+    return dtoDomain;
+  }
+
+  /**
+   * Create FormTarget records for a template.
+   */
+  private async createFormTargets(
+    formId: string,
+    targets: TargetInput[],
+  ): Promise<FormTargetEntity[]> {
+    // For a single target, force isPrimary = true
+    const normalized = targets.length === 1
+      ? [{ ...targets[0], isPrimary: true }]
+      : targets;
+
+    const created: FormTargetEntity[] = [];
+    for (const target of normalized) {
+      const row = await (this.prisma as any).formTarget.create({
+        data: {
+          form_id: formId,
+          domain_code: target.domainCode,
+          sub_domain_code: target.subDomainCode ?? null,
+          is_primary: target.isPrimary ?? false,
+        },
+      });
+      created.push(this.toTargetEntity(row));
+    }
+    return created;
+  }
+
+  /**
+   * Map a Prisma FormTarget row to a FormTargetEntity.
+   */
+  private toTargetEntity(row: {
+    id: string;
+    form_id: string;
+    domain_code: string;
+    sub_domain_code: string | null;
+    is_primary: boolean;
+    created_at: Date;
+  }): FormTargetEntity {
+    return {
+      id: row.id,
+      formId: row.form_id,
+      domainCode: row.domain_code,
+      subDomainCode: row.sub_domain_code,
+      isPrimary: row.is_primary,
+      createdAt: row.created_at,
     };
   }
 }
