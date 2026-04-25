@@ -1442,6 +1442,10 @@
     "preview": "Aperçu",
 
     "subDomains": "Sous-domaines",
+    "indicatorTypes": "Types d'indicateurs",
+    "indicatorTypesDesc": "Definir les categories d'indicateurs (performance, couverture, etc.)",
+    "indicators": "Indicateurs",
+    "indicatorsDesc": "Configurer les indicateurs mesurables pour tous les domaines",
 
     "dataContracts": "Contrats de données",
     "dataContractsDesc": "Registre des schémas, fréquence et définitions SLA",

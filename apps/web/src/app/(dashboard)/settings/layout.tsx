@@ -65,6 +65,8 @@ export default function SettingsLayout({
     { href: '/settings/kpis', label: t('kpiIndicators'), icon: <Activity className="h-4 w-4" />, section: 'kpis' },
     { href: '/settings/domains', label: t('domains'), icon: <Layers className="h-4 w-4" />, section: 'domains' },
     { href: '/settings/sub-domains', label: t('subDomains') !== 'subDomains' ? t('subDomains') : 'Sub-domains', icon: <Network className="h-4 w-4" />, section: 'sub-domains' },
+    { href: '/settings/indicator-types', label: t('indicatorTypes') !== 'indicatorTypes' ? t('indicatorTypes') : 'Indicator Types', icon: <BarChart3 className="h-4 w-4" />, section: 'indicator-types' },
+    { href: '/settings/indicators', label: t('indicators') !== 'indicators' ? t('indicators') : 'Indicators', icon: <Activity className="h-4 w-4" />, section: 'indicators' },
     { href: '/settings/workflow', label: t('workflowConfig'), icon: <GitPullRequestArrow className="h-4 w-4" />, section: 'workflow' },
     { href: '/settings/validation-chains', label: t('validationChains'), icon: <Link2 className="h-4 w-4" />, section: 'validation-chains' },
     { href: '/settings/infrastructures', label: t('infraTypes'), icon: <Building2 className="h-4 w-4" />, section: 'infrastructures' },
