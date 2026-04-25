@@ -161,6 +161,17 @@ export class SubDomainService {
     return { data: { id, deleted: true } };
   }
 
+  // ─── GET BY ID (admin) ────────────────────────────────────────────────────────
+
+  async getById(id: string) {
+    const subDomain = await this.db().subDomain.findUnique({
+      where: { id },
+      include: { domain: { select: { code: true, name: true } } },
+    });
+    if (!subDomain) throw new HttpError(404, `Sub-domain '${id}' not found`);
+    return { data: subDomain };
+  }
+
   // ─── LIST (admin, paginated with filters) ────────────────────────────────────
 
   async list(filters: {
@@ -168,6 +179,7 @@ export class SubDomainService {
     typeEnum?: string;
     active?: string;
     valueChainCode?: string;
+    search?: string;
     page?: number;
     limit?: number;
   }) {
@@ -184,6 +196,15 @@ export class SubDomainService {
     if (filters.typeEnum) where.typeEnum = filters.typeEnum;
     if (filters.active !== undefined) where.active = filters.active === 'true';
     if (filters.valueChainCode) where.valueChainCode = filters.valueChainCode;
+    if (filters.search) {
+      const q = filters.search;
+      where.OR = [
+        { code: { contains: q, mode: 'insensitive' } },
+        { labelFr: { contains: q, mode: 'insensitive' } },
+        { labelEn: { contains: q, mode: 'insensitive' } },
+        { valueChainCode: { contains: q, mode: 'insensitive' } },
+      ];
+    }
 
     const [data, total] = await Promise.all([
       this.db().subDomain.findMany({

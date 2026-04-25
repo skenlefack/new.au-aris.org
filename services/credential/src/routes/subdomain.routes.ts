@@ -53,6 +53,15 @@ export async function registerSubDomainRoutes(app: FastifyInstance): Promise<voi
     },
   );
 
+  // GET /api/v1/credential/admin/sub-domains/:id
+  app.get<{ Params: SubDomainIdParam }>(
+    '/api/v1/credential/admin/sub-domains/:id',
+    { schema: { params: SubDomainIdParamSchema }, preHandler: admin },
+    async (request) => {
+      return app.subDomainService.getById(request.params.id);
+    },
+  );
+
   // GET /api/v1/credential/admin/sub-domains (paginated + filters)
   app.get<{ Querystring: SubDomainListQuery }>(
     '/api/v1/credential/admin/sub-domains',
