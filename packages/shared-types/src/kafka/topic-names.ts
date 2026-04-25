@@ -179,6 +179,12 @@ export const TOPIC_SYS_DATA_SHARING_AGREEMENT_REVOKED = 'sys.data-sharing.agreem
 export const TOPIC_SYS_DATA_SHARING_AGREEMENT_EXPIRED = 'sys.data-sharing.agreement.expired.v1' as const;
 export const TOPIC_SYS_DATA_SHARING_ACCESS_RECORDED = 'sys.data-sharing.access.recorded.v1' as const;
 
+// ── Report & Flash Topics ──
+export const TOPIC_SYS_ANALYTICS_REPORT_GENERATED = 'sys.analytics.report.generated.v1' as const;
+export const TOPIC_SYS_ANALYTICS_REPORT_PUBLISHED = 'sys.analytics.report.published.v1' as const;
+export const TOPIC_SYS_ANALYTICS_REPORT_GENERATION_FAILED = 'sys.analytics.report.generation-failed.v1' as const;
+export const TOPIC_SYS_ANALYTICS_FLASH_ALERT_CREATED = 'sys.analytics.flash-alert.created.v1' as const;
+
 // ── DLQ Topics ──
 export const TOPIC_DLQ_ALL = 'dlq.all.v1' as const;
 export const TOPIC_DLQ_HEALTH = 'dlq.health.v1' as const;
@@ -336,11 +342,7 @@ export const ALL_TOPICS = [
 
 export type TopicName = (typeof ALL_TOPICS)[number];
 
-// ── Report & Flash Topics ──
-export const TOPIC_SYS_ANALYTICS_REPORT_GENERATED = 'sys.analytics.report.generated.v1' as const;
-export const TOPIC_SYS_ANALYTICS_REPORT_PUBLISHED = 'sys.analytics.report.published.v1' as const;
-export const TOPIC_SYS_ANALYTICS_REPORT_GENERATION_FAILED = 'sys.analytics.report.generation-failed.v1' as const;
-export const TOPIC_SYS_ANALYTICS_FLASH_ALERT_CREATED = 'sys.analytics.flash-alert.created.v1' as const;
+// ── Report & Flash Topics (moved before ALL_TOPICS to avoid use-before-declaration) ──
 
 // ── Sub-Domain Event Topics ──
 export const TOPIC_SYS_CREDENTIAL_SUBDOMAIN_CREATED = 'sys.credential.subdomain.created.v1' as const;
