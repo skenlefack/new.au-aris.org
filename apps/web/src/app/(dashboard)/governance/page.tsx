@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   Plus, ChevronLeft, ChevronRight, Activity, AlertTriangle, CheckCircle2,
   Clock, TrendingUp, FileText, ArrowRight, Landmark, Scale, Users,
-  GraduationCap, ExternalLink,
+  GraduationCap, ExternalLink, Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -29,6 +29,13 @@ export default function GovernancePage() {
 
   return (
     <div className="space-y-6">
+      {/* New refactored view banner */}
+      <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+        <Link href="/domains/governance" className="text-sm text-[#1F4E79] hover:underline flex items-center gap-1">
+          <Sparkles className="h-4 w-4" /> Decouvrir la nouvelle vue avec tableau de bord personnalisable
+        </Link>
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
