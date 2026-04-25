@@ -1,0 +1,193 @@
+// ARIS 4.0 -- Dashboard Builder schema
+// Configurable dashboards with drag-and-drop widget grid
+// Schema: dashboard_builder
+// Owner: CC-5 (frontend) + CC-4 (analytics)
+
+// ── Enums ──────────────────────────────────────────────────────────────
+
+enum DashboardOwnership {
+  SYSTEM_TEMPLATE
+  USER_OWNED
+  SHARED
+
+  @@schema("dashboard_builder")
+}
+
+enum DashboardScope {
+  CONTINENTAL
+  REC
+  COUNTRY
+  PERSONAL
+
+  @@schema("dashboard_builder")
+}
+
+enum WidgetType {
+  KPI_CARD
+  LINE_CHART
+  BAR_CHART
+  PIE_CHART
+  STACKED_BAR
+  AREA_CHART
+  TABLE
+  MAP_AFRICA
+  HEATMAP
+  GAUGE
+  TEXT_BLOCK
+  IFRAME_BI
+  COMPOSITE_FORMULA
+  ALERT_FEED
+  PROGRESS_BAR
+
+  @@schema("dashboard_builder")
+}
+
+enum WidgetDataSource {
+  INDICATOR
+  FORM_AGGREGATION
+  KPI_CONTINENTAL
+  MANUAL_VALUE
+  COMPOSITE
+  SQL_QUERY
+
+  @@schema("dashboard_builder")
+}
+
+enum SharePermission {
+  VIEW
+  CLONE
+
+  @@schema("dashboard_builder")
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────
+
+model Dashboard {
+  id              String               @id @default(uuid()) @db.Uuid
+  ownership       DashboardOwnership   @default(USER_OWNED)
+  scope           DashboardScope       @default(PERSONAL)
+
+  // ── Domain linkage (optional, loose coupling via codes/UUIDs) ──
+  domainId        String?              @map("domain_id") @db.Uuid
+  subDomainId     String?              @map("sub_domain_id") @db.Uuid
+  valueChainCode  String?              @map("value_chain_code") @db.VarChar(30)
+  recCode         String?              @map("rec_code") @db.VarChar(20)
+  countryCode     String?              @map("country_code") @db.VarChar(2)
+
+  // ── Multilingual titles ──
+  titleFr         String               @map("title_fr")
+  titleEn         String               @map("title_en")
+  titleAr         String?              @map("title_ar")
+  titlePt         String?              @map("title_pt")
+  description     String?              @db.Text
+
+  // ── Grid configuration ──
+  gridColumns     Int                  @default(12) @map("grid_columns")
+  rowHeight       Int                  @default(80) @map("row_height")
+
+  // ── Ownership ──
+  ownerUserId     String?              @map("owner_user_id") @db.Uuid
+  isDefault       Boolean              @default(false) @map("is_default")
+
+  // ── Timestamps ──
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+
+  // ── Relations ──
+  widgets         DashboardWidget[]
+  shares          DashboardShare[]
+  preferences     UserDashboardPreference[]
+
+  @@index([ownership], map: "idx_dashboard_ownership")
+  @@index([scope], map: "idx_dashboard_scope")
+  @@index([domainId], map: "idx_dashboard_domain_id")
+  @@index([ownerUserId], map: "idx_dashboard_owner_user_id")
+  @@index([isDefault], map: "idx_dashboard_is_default")
+  @@map("dashboards")
+  @@schema("dashboard_builder")
+}
+
+// ── Dashboard Widget ───────────────────────────────────────────────────
+
+model DashboardWidget {
+  id              String             @id @default(uuid()) @db.Uuid
+  dashboardId     String             @map("dashboard_id") @db.Uuid
+  dashboard       Dashboard          @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  // ── Widget type & data source ──
+  type            WidgetType
+  dataSource      WidgetDataSource   @default(INDICATOR) @map("data_source")
+
+  // ── Grid position (react-grid-layout compatible) ──
+  gridX           Int                @default(0) @map("grid_x")
+  gridY           Int                @default(0) @map("grid_y")
+  gridW           Int                @default(3) @map("grid_w")
+  gridH           Int                @default(2) @map("grid_h")
+
+  // ── Multilingual titles ──
+  titleFr         String             @map("title_fr")
+  titleEn         String             @map("title_en")
+  titleAr         String?            @map("title_ar")
+  titlePt         String?            @map("title_pt")
+
+  // ── Configuration (JSON blobs) ──
+  config          Json               @default("{}")
+  filters         Json               @default("{}")
+
+  // ── Timestamps ──
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([dashboardId], map: "idx_widget_dashboard_id")
+  @@index([type], map: "idx_widget_type")
+  @@map("dashboard_widgets")
+  @@schema("dashboard_builder")
+}
+
+// ── Dashboard Share ────────────────────────────────────────────────────
+
+model DashboardShare {
+  id               String           @id @default(uuid()) @db.Uuid
+  dashboardId      String           @map("dashboard_id") @db.Uuid
+  dashboard        Dashboard        @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  // ── Target (user, role, or public) ──
+  sharedWithUserId String?          @map("shared_with_user_id") @db.Uuid
+  sharedWithRole   String?          @map("shared_with_role") @db.VarChar(30)
+  isPublic         Boolean          @default(false) @map("is_public")
+
+  // ── Permission ──
+  permission       SharePermission  @default(VIEW)
+
+  // ── Audit ──
+  createdBy        String           @map("created_by") @db.Uuid
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([dashboardId], map: "idx_share_dashboard_id")
+  @@index([sharedWithUserId], map: "idx_share_user_id")
+  @@index([isPublic], map: "idx_share_is_public")
+  @@map("dashboard_shares")
+  @@schema("dashboard_builder")
+}
+
+// ── User Dashboard Preference ──────────────────────────────────────────
+
+model UserDashboardPreference {
+  id              String         @id @default(uuid()) @db.Uuid
+  userId          String         @map("user_id") @db.Uuid
+  scope           DashboardScope
+  domainId        String?        @map("domain_id") @db.Uuid
+  subDomainId     String?        @map("sub_domain_id") @db.Uuid
+  valueChainCode  String?        @map("value_chain_code") @db.VarChar(30)
+  dashboardId     String         @map("dashboard_id") @db.Uuid
+  dashboard       Dashboard      @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([userId, scope, domainId, subDomainId, valueChainCode], map: "uq_user_dashboard_pref")
+  @@index([userId], map: "idx_pref_user_id")
+  @@index([dashboardId], map: "idx_pref_dashboard_id")
+  @@map("user_dashboard_preferences")
+  @@schema("dashboard_builder")
+}
