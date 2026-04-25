@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useMemo } from 'react';
-import { Responsive, WidthProvider, type Layout } from 'react-grid-layout';
+import { Responsive, type Layout } from 'react-grid-layout';
 import { Settings, Trash2, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DashboardWidget } from '@/lib/api/dashboard-hooks';
@@ -10,7 +10,8 @@ import { WidgetRenderer } from './WidgetRenderer';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-const ResponsiveGridLayout = WidthProvider(Responsive);
+// react-grid-layout v2.x removed WidthProvider; use Responsive directly with a measured width
+const ResponsiveGridLayout = Responsive;
 
 interface DashboardGridProps {
   widgets: DashboardWidget[];
@@ -45,7 +46,7 @@ export function DashboardGrid({
   onWidgetRemove,
 }: DashboardGridProps) {
   // Build layout from widgets
-  const layout: Layout[] = useMemo(
+  const layout = useMemo<any[]>(
     () =>
       widgets.map((w) => {
         const mins = MIN_SIZES[w.type] ?? { minW: 2, minH: 2 };
@@ -64,9 +65,10 @@ export function DashboardGrid({
   );
 
   const handleLayoutChange = useCallback(
-    (newLayout: Layout[]) => {
+    (currentLayout: any, allLayouts: any) => {
       if (!onLayoutChange) return;
-      const updates = newLayout.map((l) => ({
+      const items = Array.isArray(currentLayout) ? currentLayout : Object.values(allLayouts || {}).flat();
+      const updates = (items as any[]).map((l: any) => ({
         id: l.i,
         layout: { x: l.x, y: l.y, w: l.w, h: l.h },
       }));
@@ -92,20 +94,22 @@ export function DashboardGrid({
     );
   }
 
+  const gridProps: any = {
+    className: 'dashboard-grid-layout',
+    layouts: { lg: layout },
+    breakpoints: { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 },
+    cols: { lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 },
+    rowHeight: 60,
+    isDraggable: editable,
+    isResizable: editable,
+    onLayoutChange: handleLayoutChange,
+    draggableHandle: '.widget-drag-handle',
+    containerPadding: [0, 0],
+    margin: [16, 16],
+  };
+
   return (
-    <ResponsiveGridLayout
-      className="dashboard-grid-layout"
-      layouts={{ lg: layout }}
-      breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-      cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-      rowHeight={60}
-      isDraggable={editable}
-      isResizable={editable}
-      onLayoutChange={handleLayoutChange}
-      draggableHandle=".widget-drag-handle"
-      containerPadding={[0, 0]}
-      margin={[16, 16]}
-    >
+    <ResponsiveGridLayout {...gridProps}>
       {widgets.map((widget) => (
         <div
           key={widget.id}

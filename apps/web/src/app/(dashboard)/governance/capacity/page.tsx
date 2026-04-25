@@ -58,7 +58,7 @@ export default function CapacityPage() {
               <div className="absolute inset-x-0 top-0 h-1 bg-green-600" />
               <div className="flex items-center justify-between">
                 <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', sc.badge)}>{sc.icon}{sub.status}</span>
-                {vetScore > 0 && <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-bold', scoreColor(pvs))}>{vetScore.toFixed(1)}</span>}
+                {vetScore > 0 && <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-bold', scoreColor(vetScore))}>{vetScore.toFixed(1)}</span>}
               </div>
               <p className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">{d.organization_name || '—'}</p>
               <div className="mt-3 grid grid-cols-3 gap-2">
