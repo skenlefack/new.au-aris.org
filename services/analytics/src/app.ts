@@ -16,6 +16,8 @@ import { registerAnalyticsRoutes } from './routes/analytics.routes';
 import { IndicatorService } from './indicators/indicator.service';
 import { FormulaEvaluator } from './indicators/formula-evaluator';
 import { registerIndicatorRoutes } from './indicators/indicator.routes';
+import { registerAutoFromFormConsumer } from './indicators/auto-from-form.consumer';
+import { registerCompositeRecomputeConsumer } from './indicators/composite-recompute.consumer';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -91,8 +93,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.decorate('indicatorService', indicatorService);
   app.decorate('formulaEvaluator', formulaEvaluator);
 
-  // --- Kafka Consumers (12 subscriptions) ---
+  // --- Kafka Consumers (12 aggregation + 2 indicator subscriptions) ---
   await registerConsumers(app, aggregationService, domainAggregationService);
+  await registerAutoFromFormConsumer(app, indicatorService.getPool());
+  await registerCompositeRecomputeConsumer(app, indicatorService.getPool(), formulaEvaluator);
 
   // --- Routes ---
   await app.register(registerHealthRoutes);

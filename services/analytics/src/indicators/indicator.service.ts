@@ -544,6 +544,11 @@ export class IndicatorService {
     }
   }
 
+  /** Expose the connection pool for consumers that need direct SQL access. */
+  getPool(): Pool {
+    return this.pool;
+  }
+
   async close(): Promise<void> {
     await this.pool.end();
   }
