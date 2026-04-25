@@ -359,6 +359,7 @@ model CollectionCampaign {
   updatedAt           DateTime                 @updatedAt @map("updated_at") @db.Timestamptz
 
   formTemplate FormTemplate       @relation(fields: [formTemplateId], references: [id])
+  targets      CampaignTarget[]
   assignments  CampaignAssignment[]
 
   @@unique([code, scope, ownerId], map: "uq_cc_code_scope_owner")
@@ -366,6 +367,26 @@ model CollectionCampaign {
   @@index([domain], map: "idx_cc_domain")
   @@index([formTemplateId], map: "idx_cc_template_id")
   @@map("collection_campaigns")
+  @@schema("public")
+}
+
+// ── Campaign Target — Multi-domain targeting for collection campaigns ──
+
+model CampaignTarget {
+  id            String             @id @default(uuid()) @db.Uuid
+  campaignId    String             @map("campaign_id") @db.Uuid
+  domainCode    String             @map("domain_code") @db.VarChar(50)
+  subDomainCode String?            @map("sub_domain_code") @db.VarChar(50)
+  isPrimary     Boolean            @default(false) @map("is_primary")
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz
+
+  campaign CollectionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, domainCode, subDomainCode], map: "uq_campaign_target")
+  @@index([domainCode], map: "idx_campaign_target_domain")
+  @@index([subDomainCode], map: "idx_campaign_target_subdomain")
+  @@index([campaignId, isPrimary], map: "idx_campaign_target_primary")
+  @@map("campaign_targets")
   @@schema("public")
 }
 

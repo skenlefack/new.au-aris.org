@@ -46,6 +46,9 @@ model FormTemplate {
   // Collection campaigns using this template
   collectionCampaigns CollectionCampaign[]
 
+  // Multi-domain targeting (join table)
+  targets             FormTarget[]
+
   // Multi-tenant overlays (REC/COUNTRY customizations)
   overlays            FormOverlay[]
 
@@ -121,6 +124,25 @@ model FormOverlay {
   @@index([template_id, tenant_level])
   @@index([tenant_id])
   @@map("form_overlays")
+  @@schema("form_builder")
+}
+
+// Multi-domain targeting for form templates
+model FormTarget {
+  id              String       @id @default(uuid()) @db.Uuid
+  form_id         String       @db.Uuid
+  domain_code     String       @db.VarChar(50)
+  sub_domain_code String?      @db.VarChar(50)
+  is_primary      Boolean      @default(false)
+  created_at      DateTime     @default(now())
+
+  form FormTemplate @relation(fields: [form_id], references: [id], onDelete: Cascade)
+
+  @@unique([form_id, domain_code, sub_domain_code], map: "uq_form_target")
+  @@index([domain_code], map: "idx_form_target_domain")
+  @@index([sub_domain_code], map: "idx_form_target_subdomain")
+  @@index([form_id, is_primary], map: "idx_form_target_primary")
+  @@map("form_targets")
   @@schema("form_builder")
 }
 
