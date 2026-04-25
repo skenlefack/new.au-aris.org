@@ -66,6 +66,7 @@
     "sectionPaid": "PAID",
     "paidDashboard": "Tableau de bord PAID",
     "paidCollecte": "Collecte PAID",
+    "myDashboards": "Mes tableaux de bord",
     "searchPlaceholder": "Rechercher dans ARIS..."
   },
   "dashboard": {

@@ -76,6 +76,7 @@ const STATIC_GROUPS: NavGroup[] = [
     tKey: 'sectionOverview',
     items: [
       { tKey: 'home', href: '/home', icon: LayoutDashboard, matchPrefix: '/home' },
+      { tKey: 'myDashboards', href: '/my-dashboards', icon: LayoutDashboard, matchPrefix: '/my-dashboards' },
     ],
   },
   // sectionDomain is built dynamically — see buildDomainGroup()
@@ -208,24 +209,24 @@ function buildDomainGroup(
 const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
   FIELD_AGENT: new Set(['/home', '/collecte', '/workflow', '/data-sharing']),
   ANALYST: new Set([
-    '/home', '/paid', '/paid-collecte', '/analytics', '/historical', '/reports', '/data-sharing',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/analytics', '/historical', '/reports', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   WAHIS_FOCAL_POINT: new Set([
-    '/home', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/interop', '/data-sharing',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/interop', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   DATA_STEWARD: new Set([
-    '/home', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow', '/data-sharing',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   NATIONAL_ADMIN: new Set([
-    '/home', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow',
     '/master-data', '/settings', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   REC_ADMIN: new Set([
-    '/home', '/paid', '/paid-collecte', '/collecte', '/workflow', '/master-data', '/quality',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/workflow', '/master-data', '/quality',
     '/interop', '/analytics', '/historical', '/reports', '/settings', '/data-sharing',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
