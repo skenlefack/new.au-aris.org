@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
+import { TargetBadges } from '@/components/forms/TargetsSelector';
 import {
   useCollectionCampaigns,
   useActivateCampaign,
@@ -183,11 +184,13 @@ export default function CampaignsPage() {
                         <Target className="h-3.5 w-3.5" />
                         {target} {t('targetSubmissions')}
                       </span>
-                      {campaign.domain && (
+                      {campaign.targets && campaign.targets.length > 0 ? (
+                        <TargetBadges targets={campaign.targets} />
+                      ) : campaign.domain ? (
                         <span className="rounded bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 text-blue-700 dark:text-blue-300">
                           {DOMAIN_LABELS[campaign.domain] ?? campaign.domain}
                         </span>
-                      )}
+                      ) : null}
                       <span className="flex items-center gap-1">
                         <Users className="h-3.5 w-3.5" />
                         {campaign._count?.assignments ?? 0} {t('agents').toLowerCase()}

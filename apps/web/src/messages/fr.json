@@ -1953,6 +1953,17 @@
     "importing": "Importation en cours...",
     "importAndOpenEditor": "Importer et ouvrir l'éditeur",
 
+    "targetsHelp": "Definissez les cibles de domaine pour cet element. Une cible doit etre marquee comme principale. Vous pouvez optionnellement selectionner un sous-domaine pour une granularite plus fine.",
+    "targets": "Cibles",
+    "targetsDesc": "Selectionnez un ou plusieurs domaines cibles",
+    "selectDomain": "Selectionner un domaine...",
+    "allSubDomains": "Tous les sous-domaines",
+    "addTarget": "Ajouter une cible",
+    "removeTarget": "Supprimer cette cible",
+    "primaryTarget": "Cible principale",
+    "setPrimary": "Definir comme principale",
+    "primary": "Principale",
+
     "fillFormDesc": "Remplissez le formulaire et soumettez-le pour validation",
     "submissionSuccess": "Soumission enregistree",
     "submissionSuccessDesc": "Votre soumission a ete enregistree et est en attente de validation.",

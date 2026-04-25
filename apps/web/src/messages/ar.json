@@ -1838,6 +1838,18 @@
     "importedFormName": "اسم النموذج المستورد...",
     "importing": "جارٍ الاستيراد...",
     "importAndOpenEditor": "استيراد وفتح المحرر",
+
+    "targetsHelp": "حدد أهداف المجال لهذا العنصر. يجب تحديد هدف واحد كهدف رئيسي. يمكنك اختياريًا تحديد مجال فرعي لمزيد من الدقة.",
+    "targets": "الأهداف",
+    "targetsDesc": "حدد مجالًا واحدًا أو أكثر كأهداف",
+    "selectDomain": "اختر مجالًا...",
+    "allSubDomains": "جميع المجالات الفرعية",
+    "addTarget": "إضافة هدف",
+    "removeTarget": "إزالة هذا الهدف",
+    "primaryTarget": "الهدف الرئيسي",
+    "setPrimary": "تعيين كرئيسي",
+    "primary": "رئيسي",
+
     "backToForms": "العودة إلى النماذج",
     "untitledForm": "نموذج بدون عنوان",
     "undoCtrlZ": "تراجع (Ctrl+Z)",

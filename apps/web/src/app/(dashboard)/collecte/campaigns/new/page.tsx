@@ -25,6 +25,7 @@ import { MultiSearchCombobox } from '@/components/ui/MultiSearchCombobox';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea';
 import { useTranslations } from '@/lib/i18n/translations';
+import { TargetsSelector, type TargetFormValue } from '@/components/forms/TargetsSelector';
 
 const FREQUENCY_OPTIONS = [
   { value: 'one_time', tKey: 'oneTime' },
@@ -50,6 +51,11 @@ export default function NewCampaignPage() {
   // Multilingual name & description
   const [name, setName] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
   const [description, setDescription] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
+
+  // Targets
+  const [targets, setTargets] = useState<TargetFormValue[]>([
+    { domainCode: '', subDomainCode: null, isPrimary: true },
+  ]);
 
   // Multi-domain selection
   const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
@@ -127,6 +133,13 @@ export default function NewCampaignPage() {
     const primaryDomain = selectedDomains[0];
     const code = `${primaryDomain.replace(/[^a-zA-Z]/g, '_').toUpperCase().slice(0, 10)}_${startDate.replace(/-/g, '')}`;
 
+    // Build targets array for API
+    const validTargets = targets.filter((t) => t.domainCode).map((t) => ({
+      domainCode: t.domainCode,
+      subDomainCode: t.subDomainCode,
+      isPrimary: t.isPrimary,
+    }));
+
     const payload = {
       code,
       name,
@@ -141,6 +154,7 @@ export default function NewCampaignPage() {
       frequency,
       sendReminders,
       reminderDaysBefore: sendReminders ? parseInt(reminderDays, 10) || 3 : undefined,
+      targets: validTargets.length > 0 ? validTargets : undefined,
       metadata: {
         domains: selectedDomains,
         recCodes: selectedRecs.map((r) => r.code),
@@ -320,7 +334,17 @@ export default function NewCampaignPage() {
           </div>
         </div>
 
-        {/* ROW 2 — Domains */}
+        {/* ROW 2 — Targets */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-gray-400" />
+            {t('targets')}
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('targetsDesc')}</p>
+          <TargetsSelector value={targets} onChange={setTargets} t={t} />
+        </div>
+
+        {/* ROW 3 — Domains */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <ClipboardList className="h-4 w-4 text-gray-400" />

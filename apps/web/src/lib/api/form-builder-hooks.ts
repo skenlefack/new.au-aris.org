@@ -135,7 +135,7 @@ export function useFormBuilderTemplate(id: string | undefined) {
 export function useCreateFormTemplate() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { name: string; domain: string; formType?: FormType; schema: unknown; uiSchema?: unknown }) =>
+    mutationFn: (body: { name: string; domain: string; formType?: FormType; schema: unknown; uiSchema?: unknown; targets?: Array<{ domainCode: string; subDomainCode: string | null; isPrimary: boolean }> }) =>
       fb.post<ApiResponse<FormTemplateListItem>>('/templates', body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['form-builder', 'templates'] });
@@ -147,7 +147,7 @@ export function useCreateFormTemplate() {
 export function useUpdateFormTemplate() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: string; name?: string; domain?: string; schema?: unknown; uiSchema?: unknown }) =>
+    mutationFn: ({ id, ...body }: { id: string; name?: string; domain?: string; schema?: unknown; uiSchema?: unknown; targets?: Array<{ domainCode: string; subDomainCode: string | null; isPrimary: boolean }> }) =>
       fb.patch<ApiResponse<FormTemplateListItem>>(`/templates/${id}`, body),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['form-builder', 'templates'] });

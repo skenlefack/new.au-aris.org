@@ -36,6 +36,7 @@ import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTranslations } from '@/lib/i18n/translations';
+import { TargetBadges } from '@/components/forms/TargetsSelector';
 import { toast } from 'sonner';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -681,10 +682,14 @@ function FormCard({
               {template.formType === 'EVENT_ALERT' ? t('eventAlert') : t('campaign')}
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
-            <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600 font-medium dark:bg-gray-700 dark:text-gray-400">
-              {domainLabel}
-            </span>
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-500">
+            {(template as any).targets && (template as any).targets.length > 0 ? (
+              <TargetBadges targets={(template as any).targets} />
+            ) : (
+              <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-600 font-medium dark:bg-gray-700 dark:text-gray-400">
+                {domainLabel}
+              </span>
+            )}
             <span>v{template.version}</span>
             <span>{sectionCount} {t('sections')}</span>
             <span>{fieldCount} {t('fields')}</span>

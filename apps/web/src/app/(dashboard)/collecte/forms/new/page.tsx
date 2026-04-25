@@ -2,11 +2,12 @@
 
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, ArrowLeft, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
+import { FileText, ArrowLeft, Upload, CheckCircle2, AlertCircle, Target } from 'lucide-react';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { createDefaultFormSchema } from '@/components/form-builder/utils/form-schema';
 import { useCreateFormTemplate, useImportExcelTemplate, type FormType } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
+import { TargetsSelector, type TargetFormValue } from '@/components/forms/TargetsSelector';
 
 export default function NewFormPage() {
   const router = useRouter();
@@ -17,6 +18,9 @@ export default function NewFormPage() {
 
   const [name, setName] = useState('');
   const [domain, setDomain] = useState('animal_health');
+  const [targets, setTargets] = useState<TargetFormValue[]>([
+    { domainCode: 'animal_health', subDomainCode: null, isPrimary: true },
+  ]);
   const [formType, setFormType] = useState<FormType>('CAMPAIGN');
   const [description, setDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -37,12 +41,21 @@ export default function NewFormPage() {
       schema.sections[0].name = { en: 'General Information' };
     }
 
+    // Derive domain from primary target for backward compat
+    const primaryTarget = targets.find((t) => t.isPrimary) ?? targets[0];
+    const effectiveDomain = primaryTarget?.domainCode || domain;
+
     try {
       const result = await createMutation.mutateAsync({
         name: name.trim(),
-        domain,
+        domain: effectiveDomain,
         formType,
         schema,
+        targets: targets.filter((t) => t.domainCode).map((t) => ({
+          domainCode: t.domainCode,
+          subDomainCode: t.subDomainCode,
+          isPrimary: t.isPrimary,
+        })),
       });
       const templateId = result?.data?.id;
       if (templateId) {
@@ -141,19 +154,13 @@ export default function NewFormPage() {
               />
             </div>
 
+            {/* Targets */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                {t('domain')} <span className="text-red-500">*</span>
+              <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <Target className="h-4 w-4 text-gray-400" />
+                {t('targets')} <span className="text-red-500">*</span>
               </label>
-              <select
-                value={domain}
-                onChange={(e) => setDomain(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-              >
-                {DOMAIN_OPTIONS.map((d) => (
-                  <option key={d.value} value={d.value}>{d.label}</option>
-                ))}
-              </select>
+              <TargetsSelector value={targets} onChange={setTargets} t={t} />
             </div>
 
             <div>

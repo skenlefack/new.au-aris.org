@@ -1958,6 +1958,17 @@
     "importing": "Importing...",
     "importAndOpenEditor": "Import & Open Editor",
 
+    "targetsHelp": "Define the domain targets for this item. One target must be marked as primary. You can optionally select a sub-domain for finer granularity.",
+    "targets": "Targets",
+    "targetsDesc": "Select one or more domain targets",
+    "selectDomain": "Select a domain...",
+    "allSubDomains": "All sub-domains",
+    "addTarget": "Add a target",
+    "removeTarget": "Remove this target",
+    "primaryTarget": "Primary target",
+    "setPrimary": "Set as primary",
+    "primary": "Primary",
+
     "fillFormDesc": "Fill out the form and submit for validation",
     "submissionSuccess": "Submission Successful",
     "submissionSuccessDesc": "Your submission has been recorded and is pending validation.",

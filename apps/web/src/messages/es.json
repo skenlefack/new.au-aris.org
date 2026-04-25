@@ -1838,6 +1838,18 @@
     "importedFormName": "Nombre del formulario importado...",
     "importing": "Importando...",
     "importAndOpenEditor": "Importar y Abrir Editor",
+
+    "targetsHelp": "Defina los objetivos de dominio para este elemento. Un objetivo debe marcarse como principal. Opcionalmente puede seleccionar un subdominio para mayor granularidad.",
+    "targets": "Objetivos",
+    "targetsDesc": "Seleccione uno o mas dominios objetivo",
+    "selectDomain": "Seleccionar un dominio...",
+    "allSubDomains": "Todos los subdominios",
+    "addTarget": "Agregar un objetivo",
+    "removeTarget": "Eliminar este objetivo",
+    "primaryTarget": "Objetivo principal",
+    "setPrimary": "Establecer como principal",
+    "primary": "Principal",
+
     "backToForms": "Volver a formularios",
     "untitledForm": "Formulario Sin Título",
     "undoCtrlZ": "Deshacer (Ctrl+Z)",

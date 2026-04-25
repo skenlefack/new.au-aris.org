@@ -29,6 +29,7 @@ import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { useTranslations } from '@/lib/i18n/translations';
+import { TargetsSelector, type TargetFormValue } from '@/components/forms/TargetsSelector';
 
 const FREQUENCY_OPTIONS = [
   { value: 'one_time', tKey: 'oneTime' },
@@ -71,6 +72,9 @@ export default function EditCampaignPage() {
   const [name, setName] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
   const [description, setDescription] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
   const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
+  const [targets, setTargets] = useState<TargetFormValue[]>([
+    { domainCode: '', subDomainCode: null, isPrimary: true },
+  ]);
   const [selectedRecs, setSelectedRecs] = useState<RecConfig[]>([]);
   const [selectedTemplates, setSelectedTemplates] = useState<FormTemplateListItem[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<CountryConfig[]>([]);
@@ -111,6 +115,18 @@ export default function EditCampaignPage() {
       setFrequency(campaign.frequency ?? 'one_time');
       setSendReminders(campaign.sendReminders ?? false);
       setReminderDays(String(campaign.reminderDaysBefore ?? 3));
+
+      // Restore targets
+      const campaignTargets = campaign.targets as TargetFormValue[] | undefined;
+      if (campaignTargets && campaignTargets.length > 0) {
+        setTargets(campaignTargets.map((t: any) => ({
+          domainCode: t.domainCode || '',
+          subDomainCode: t.subDomainCode || null,
+          isPrimary: !!t.isPrimary,
+        })));
+      } else if (campaign.domain) {
+        setTargets([{ domainCode: campaign.domain, subDomainCode: null, isPrimary: true }]);
+      }
 
       // Restore template
       const tplId = campaign.formTemplateId ?? campaign.templateId;
@@ -165,6 +181,13 @@ export default function EditCampaignPage() {
     if (!validate()) return;
     setSubmitError(null);
 
+    // Build targets array for API
+    const validTargets = targets.filter((t) => t.domainCode).map((t) => ({
+      domainCode: t.domainCode,
+      subDomainCode: t.subDomainCode,
+      isPrimary: t.isPrimary,
+    }));
+
     const payload = {
       id: campaignId,
       name,
@@ -176,6 +199,7 @@ export default function EditCampaignPage() {
       frequency,
       sendReminders,
       reminderDaysBefore: sendReminders ? parseInt(reminderDays, 10) || 3 : undefined,
+      targets: validTargets.length > 0 ? validTargets : undefined,
       metadata: {
         ...(campaign?.metadata ?? {}),
         domains: selectedDomains,
@@ -301,7 +325,16 @@ export default function EditCampaignPage() {
           </div>
         </div>
 
-        {/* ROW 2 — Domains (full width) */}
+        {/* ROW 2 — Targets */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-gray-400" /> {t('targets')}
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('targetsDesc')}</p>
+          <TargetsSelector value={targets} onChange={setTargets} t={t} />
+        </div>
+
+        {/* ROW 3 — Domains (full width) */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <ClipboardList className="h-4 w-4 text-gray-400" /> {t('domains')}
