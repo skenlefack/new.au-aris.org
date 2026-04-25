@@ -1,0 +1,413 @@
+// ARIS 4.0 -- Reports & Flash Alerts Schema
+// AI-assisted report generation, flash alerts, and generation jobs
+// Schema: reports
+// Owner: CC-4 (analytics) + CC-5 (frontend)
+
+// ── Enums ──────────────────────────────────────────────────────────────
+
+enum ReportFormat {
+  PDF
+  DOCX
+  HTML
+  MARKDOWN
+
+  @@schema("reports")
+}
+
+enum ReportFrequency {
+  ON_DEMAND
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+  EVENT_TRIGGERED
+
+  @@schema("reports")
+}
+
+enum ReportScope {
+  CONTINENTAL
+  REGIONAL
+  NATIONAL
+  DOMAIN_FOCUSED
+  SUBDOMAIN_FOCUSED
+  CROSS_CUTTING
+
+  @@schema("reports")
+}
+
+enum ReportType {
+  FLASH
+  ANNUAL_PROFESSIONAL
+  PERIODIC_BRIEF
+  AD_HOC
+
+  @@schema("reports")
+}
+
+enum ReportStatus {
+  DRAFT
+  GENERATING
+  AWAITING_REVIEW
+  PUBLISHED
+  ARCHIVED
+  FAILED
+
+  @@schema("reports")
+}
+
+enum ReportSectionType {
+  EXECUTIVE_SUMMARY
+  DATA_TABLE
+  CHART
+  MAP
+  NARRATIVE
+  RECOMMENDATIONS
+  ANNEX
+  METHODOLOGY
+  COVER_PAGE
+  TABLE_OF_CONTENTS
+
+  @@schema("reports")
+}
+
+enum FlashAlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@schema("reports")
+}
+
+enum FlashAlertStatus {
+  DETECTED
+  ACKNOWLEDGED
+  REPORT_GENERATED
+  DISMISSED
+
+  @@schema("reports")
+}
+
+enum AiJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+
+  @@schema("reports")
+}
+
+// ── Report Template ────────────────────────────────────────────────────
+
+model ReportTemplate {
+  id                String            @id @default(uuid()) @db.Uuid
+  code              String            @unique @db.VarChar(80)
+  type              ReportType
+
+  // ── Multilingual titles ──
+  titleFr           String            @map("title_fr")
+  titleEn           String            @map("title_en")
+  titleAr           String?           @map("title_ar")
+  titlePt           String?           @map("title_pt")
+  descriptionFr     String?           @map("description_fr") @db.Text
+  descriptionEn     String?           @map("description_en") @db.Text
+  descriptionAr     String?           @map("description_ar") @db.Text
+  descriptionPt     String?           @map("description_pt") @db.Text
+
+  // ── Scope & domain linkage ──
+  scope             ReportScope       @default(NATIONAL)
+  domainId          String?           @map("domain_id") @db.Uuid
+  subDomainId       String?           @map("sub_domain_id") @db.Uuid
+
+  // ── Configuration ──
+  frequency         ReportFrequency   @default(ON_DEMAND)
+  formats           ReportFormat[]
+  sectionsConfig    Json              @default("[]") @map("sections_config")
+  aiPrompts         Json              @default("{}") @map("ai_prompts")
+  triggerRules      Json?             @map("trigger_rules")
+  defaultRecipients Json              @default("[]") @map("default_recipients")
+
+  // ── Flags ──
+  active            Boolean           @default(true)
+
+  // ── Audit ──
+  createdBy         String?           @map("created_by") @db.Uuid
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  // ── Relations ──
+  reports           Report[]
+  flashStrategies   FlashStrategy[]
+
+  @@index([type], map: "idx_report_template_type")
+  @@index([scope], map: "idx_report_template_scope")
+  @@index([frequency], map: "idx_report_template_frequency")
+  @@index([active], map: "idx_report_template_active")
+  @@index([domainId], map: "idx_report_template_domain_id")
+  @@map("report_templates")
+  @@schema("reports")
+}
+
+// ── Report ─────────────────────────────────────────────────────────────
+
+model Report {
+  id                    String          @id @default(uuid()) @db.Uuid
+  templateId            String          @map("template_id") @db.Uuid
+  template              ReportTemplate  @relation(fields: [templateId], references: [id], onDelete: Restrict)
+
+  type                  ReportType
+  status                ReportStatus    @default(DRAFT)
+
+  // ── Multilingual titles ──
+  titleFr               String          @map("title_fr")
+  titleEn               String          @map("title_en")
+  titleAr               String?         @map("title_ar")
+  titlePt               String?         @map("title_pt")
+
+  // ── Theme / subject line ──
+  themeFr               String?         @map("theme_fr") @db.Text
+  themeEn               String?         @map("theme_en") @db.Text
+
+  // ── Period ──
+  periodStart           DateTime        @map("period_start") @db.Date
+  periodEnd             DateTime        @map("period_end") @db.Date
+  referenceYear         Int?            @map("reference_year")
+
+  // ── Scope & domain linkage ──
+  scope                 ReportScope     @default(NATIONAL)
+  domainId              String?         @map("domain_id") @db.Uuid
+  subDomainId           String?         @map("sub_domain_id") @db.Uuid
+  countryCode           String?         @map("country_code") @db.VarChar(2)
+  recCode               String?         @map("rec_code") @db.VarChar(20)
+
+  // ── AI generation metadata ──
+  aiModelUsed           String?         @map("ai_model_used") @db.VarChar(100)
+  generationDurationMs  Int?            @map("generation_duration_ms")
+  generatedAt           DateTime?       @map("generated_at") @db.Timestamptz
+
+  // ── Review & publication ──
+  reviewedBy            String?         @map("reviewed_by") @db.Uuid
+  publishedAt           DateTime?       @map("published_at") @db.Timestamptz
+
+  // ── Alert trigger ──
+  triggeredByAlertId    String?         @map("triggered_by_alert_id") @db.Uuid
+
+  // ── Audit ──
+  createdBy             String?         @map("created_by") @db.Uuid
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  // ── Relations ──
+  sections              ReportSection[]
+  files                 ReportFile[]
+  aiJobs                AiGenerationJob[] @relation("ReportAiJobs")
+
+  @@index([templateId], map: "idx_report_template_id")
+  @@index([type], map: "idx_report_type")
+  @@index([status], map: "idx_report_status")
+  @@index([scope], map: "idx_report_scope")
+  @@index([domainId], map: "idx_report_domain_id")
+  @@index([countryCode], map: "idx_report_country_code")
+  @@index([recCode], map: "idx_report_rec_code")
+  @@index([periodStart, periodEnd], map: "idx_report_period")
+  @@index([createdAt], map: "idx_report_created_at")
+  @@map("reports")
+  @@schema("reports")
+}
+
+// ── Report Section ─────────────────────────────────────────────────────
+
+model ReportSection {
+  id                String            @id @default(uuid()) @db.Uuid
+  reportId          String            @map("report_id") @db.Uuid
+  report            Report            @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  code              String            @db.VarChar(80)
+  order             Int               @default(0)
+  sectionType       ReportSectionType @map("section_type")
+
+  // ── Multilingual content ──
+  contentFr         String?           @map("content_fr") @db.Text
+  contentEn         String?           @map("content_en") @db.Text
+  contentAr         String?           @map("content_ar") @db.Text
+  contentPt         String?           @map("content_pt") @db.Text
+
+  // ── Configuration & data ──
+  config            Json              @default("{}") @map("config")
+  resolvedData      Json?             @map("resolved_data")
+
+  // ── AI metadata ──
+  aiPromptUsed      String?           @map("ai_prompt_used") @db.Text
+  aiTokensInput     Int?              @map("ai_tokens_input")
+  aiTokensOutput    Int?              @map("ai_tokens_output")
+
+  // ── Review ──
+  reviewedBy        String?           @map("reviewed_by") @db.Uuid
+  isApproved        Boolean           @default(false) @map("is_approved")
+
+  // ── Timestamps ──
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  // ── Relations ──
+  aiJobs            AiGenerationJob[] @relation("SectionAiJobs")
+
+  @@index([reportId], map: "idx_report_section_report_id")
+  @@index([sectionType], map: "idx_report_section_type")
+  @@index([order], map: "idx_report_section_order")
+  @@map("report_sections")
+  @@schema("reports")
+}
+
+// ── Report File ────────────────────────────────────────────────────────
+
+model ReportFile {
+  id                String         @id @default(uuid()) @db.Uuid
+  reportId          String         @map("report_id") @db.Uuid
+  report            Report         @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  format            ReportFormat
+  language          String         @db.VarChar(5)   // en, fr, ar, pt
+  fileUrl           String         @map("file_url") @db.Text
+  fileSize          Int?           @map("file_size")
+  checksum          String?        @db.VarChar(128)
+
+  // ── Timestamps ──
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([reportId, format, language], map: "uq_report_file_format_lang")
+  @@index([reportId], map: "idx_report_file_report_id")
+  @@map("report_files")
+  @@schema("reports")
+}
+
+// ── Flash Alert ────────────────────────────────────────────────────────
+
+model FlashAlert {
+  id                    String              @id @default(uuid()) @db.Uuid
+  alertCode             String              @map("alert_code") @db.VarChar(80)
+  severity              FlashAlertSeverity
+
+  // ── Source identification ──
+  sourceType            String              @map("source_type") @db.VarChar(50)
+  sourceId              String?             @map("source_id") @db.Uuid
+
+  // ── Scope ──
+  countryCode           String?             @map("country_code") @db.VarChar(2)
+  recCode               String?             @map("rec_code") @db.VarChar(20)
+  domainId              String?             @map("domain_id") @db.Uuid
+  subDomainId           String?             @map("sub_domain_id") @db.Uuid
+
+  // ── Multilingual titles ──
+  titleFr               String              @map("title_fr")
+  titleEn               String              @map("title_en")
+
+  // ── Timestamps & data ──
+  detectedAt            DateTime            @map("detected_at") @db.Timestamptz
+  triggerData           Json                @map("trigger_data")
+
+  // ── Status ──
+  status                FlashAlertStatus    @default(DETECTED)
+  generatedReportId     String?             @map("generated_report_id") @db.Uuid
+  dismissedBy           String?             @map("dismissed_by") @db.Uuid
+
+  // ── Timestamps ──
+  createdAt             DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([alertCode], map: "idx_flash_alert_code")
+  @@index([severity], map: "idx_flash_alert_severity")
+  @@index([status], map: "idx_flash_alert_status")
+  @@index([countryCode], map: "idx_flash_alert_country_code")
+  @@index([domainId], map: "idx_flash_alert_domain_id")
+  @@index([detectedAt], map: "idx_flash_alert_detected_at")
+  @@map("flash_alerts")
+  @@schema("reports")
+}
+
+// ── Flash Strategy ─────────────────────────────────────────────────────
+
+model FlashStrategy {
+  id                String          @id @default(uuid()) @db.Uuid
+  templateId        String          @map("template_id") @db.Uuid
+  template          ReportTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  code              String          @unique @db.VarChar(80)
+
+  // ── Multilingual names ──
+  nameFr            String          @map("name_fr")
+  nameEn            String          @map("name_en")
+
+  // ── Filter configuration ──
+  alertCodes        String[]        @map("alert_codes")
+  severityFilter    String[]        @map("severity_filter")
+  domainIds         String[]        @map("domain_ids")
+  countryCodes      String[]        @map("country_codes")
+  conditionsRules   Json?           @map("conditions_rules")
+
+  // ── Notification ──
+  recipients        Json            @default("[]")
+  channels          String[]        @default([])
+
+  // ── Cooldown ──
+  cooldownMinutes   Int             @default(60) @map("cooldown_minutes")
+
+  // ── Flags ──
+  active            Boolean         @default(true)
+
+  // ── Timestamps ──
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([templateId], map: "idx_flash_strategy_template_id")
+  @@index([active], map: "idx_flash_strategy_active")
+  @@map("flash_strategies")
+  @@schema("reports")
+}
+
+// ── AI Generation Job ──────────────────────────────────────────────────
+
+model AiGenerationJob {
+  id                String          @id @default(uuid()) @db.Uuid
+
+  // ── Report or section linkage ──
+  reportId          String?         @map("report_id") @db.Uuid
+  report            Report?         @relation("ReportAiJobs", fields: [reportId], references: [id], onDelete: Cascade)
+  reportSectionId   String?         @map("report_section_id") @db.Uuid
+  reportSection     ReportSection?  @relation("SectionAiJobs", fields: [reportSectionId], references: [id], onDelete: Cascade)
+
+  // ── AI model info ──
+  modelUsed         String          @map("model_used") @db.VarChar(100)
+  promptVersion     String?         @map("prompt_version") @db.VarChar(20)
+
+  // ── Prompts ──
+  prompt            String          @db.Text
+  systemPrompt      String?         @map("system_prompt") @db.Text
+
+  // ── Execution ──
+  status            AiJobStatus     @default(PENDING)
+  output            String?         @db.Text
+  errorMessage      String?         @map("error_message") @db.Text
+
+  // ── Timing ──
+  startedAt         DateTime?       @map("started_at") @db.Timestamptz
+  completedAt       DateTime?       @map("completed_at") @db.Timestamptz
+  durationMs        Int?            @map("duration_ms")
+
+  // ── Token usage ──
+  tokensInput       Int?            @map("tokens_input")
+  tokensOutput      Int?            @map("tokens_output")
+
+  // ── Timestamps ──
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([reportId], map: "idx_ai_job_report_id")
+  @@index([reportSectionId], map: "idx_ai_job_section_id")
+  @@index([status], map: "idx_ai_job_status")
+  @@index([createdAt], map: "idx_ai_job_created_at")
+  @@map("ai_generation_jobs")
+  @@schema("reports")
+}
