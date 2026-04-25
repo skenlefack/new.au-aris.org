@@ -4,6 +4,8 @@ import type { CrossDomainService } from '../services/cross-domain.service';
 import type { AggregationService } from '../services/aggregation.service';
 import type { DomainAggregationService } from '../services/domain-aggregation.service';
 import type { DbStatsService } from '../services/db-stats.service';
+import type { IndicatorService } from '../indicators/indicator.service';
+import type { FormulaEvaluator } from '../indicators/formula-evaluator';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -13,5 +15,7 @@ declare module 'fastify' {
     aggregationService: AggregationService;
     domainAggregationService: DomainAggregationService;
     dbStatsService: DbStatsService;
+    indicatorService: IndicatorService;
+    formulaEvaluator: FormulaEvaluator;
   }
 }

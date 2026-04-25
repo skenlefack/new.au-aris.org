@@ -128,6 +128,13 @@ export const TOPIC_SYS_SUPPORT_SLA_BREACHED = 'sys.support.sla.breached.v1' as c
 export const TOPIC_AU_ANALYTICS_METRIC_CALCULATED = 'au.analytics.metric.calculated.v1' as const;
 export const TOPIC_AU_ANALYTICS_AGGREGATION_COMPLETED = 'au.analytics.aggregation.completed.v1' as const;
 
+// ── Indicator Topics ──
+export const TOPIC_SYS_ANALYTICS_INDICATOR_CREATED = 'sys.analytics.indicator.created.v1' as const;
+export const TOPIC_SYS_ANALYTICS_INDICATOR_UPDATED = 'sys.analytics.indicator.updated.v1' as const;
+export const TOPIC_SYS_ANALYTICS_INDICATOR_VALUE_CREATED = 'sys.analytics.indicator.value-created.v1' as const;
+export const TOPIC_SYS_ANALYTICS_INDICATOR_VALUE_UPDATED = 'sys.analytics.indicator.value-updated.v1' as const;
+export const TOPIC_SYS_ANALYTICS_INDICATOR_COMPUTE_FAILED = 'sys.analytics.indicator.compute-failed.v1' as const;
+
 // ── Interop V2 Topics ──
 export const TOPIC_AU_INTEROP_DHIS2_SYNCED = 'au.interop.dhis2.synced.v1' as const;
 export const TOPIC_AU_INTEROP_FHIR_SYNCED = 'au.interop.fhir.synced.v1' as const;
@@ -275,6 +282,11 @@ export const ALL_TOPICS = [
   TOPIC_SYS_SUPPORT_SLA_BREACHED,
   TOPIC_AU_ANALYTICS_METRIC_CALCULATED,
   TOPIC_AU_ANALYTICS_AGGREGATION_COMPLETED,
+  TOPIC_SYS_ANALYTICS_INDICATOR_CREATED,
+  TOPIC_SYS_ANALYTICS_INDICATOR_UPDATED,
+  TOPIC_SYS_ANALYTICS_INDICATOR_VALUE_CREATED,
+  TOPIC_SYS_ANALYTICS_INDICATOR_VALUE_UPDATED,
+  TOPIC_SYS_ANALYTICS_INDICATOR_COMPUTE_FAILED,
   TOPIC_AU_INTEROP_DHIS2_SYNCED,
   TOPIC_AU_INTEROP_FHIR_SYNCED,
   TOPIC_AU_INTEROP_OMS_SYNCED,

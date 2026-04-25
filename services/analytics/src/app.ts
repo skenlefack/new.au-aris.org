@@ -13,6 +13,9 @@ import { DbStatsService } from './services/db-stats.service';
 import { registerConsumers } from './consumers/consumer-registry';
 import { registerHealthRoutes } from './routes/health.routes';
 import { registerAnalyticsRoutes } from './routes/analytics.routes';
+import { IndicatorService } from './indicators/indicator.service';
+import { FormulaEvaluator } from './indicators/formula-evaluator';
+import { registerIndicatorRoutes } from './indicators/indicator.routes';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -82,12 +85,19 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.decorate('crossDomainService', crossDomainService);
   app.decorate('dbStatsService', dbStatsService);
 
+  // --- Indicator service ---
+  const indicatorService = new IndicatorService(redisClient, app.kafka);
+  const formulaEvaluator = new FormulaEvaluator(redisClient, indicatorService);
+  app.decorate('indicatorService', indicatorService);
+  app.decorate('formulaEvaluator', formulaEvaluator);
+
   // --- Kafka Consumers (12 subscriptions) ---
   await registerConsumers(app, aggregationService, domainAggregationService);
 
   // --- Routes ---
   await app.register(registerHealthRoutes);
   await app.register(registerAnalyticsRoutes);
+  await app.register(registerIndicatorRoutes);
 
   return app;
 }
