@@ -84,6 +84,15 @@ export async function registerSubDomainRoutes(app: FastifyInstance): Promise<voi
     },
   );
 
+  // GET /api/v1/credential/value-chain-codes (list all)
+  app.get(
+    '/api/v1/credential/value-chain-codes',
+    { preHandler: auth },
+    async () => {
+      return app.subDomainService.listAllValueChainCodes();
+    },
+  );
+
   // GET /api/v1/credential/value-chain-codes/:code/sub-domains (transverse)
   app.get<{ Params: ValueChainCodeParam }>(
     '/api/v1/credential/value-chain-codes/:code/sub-domains',

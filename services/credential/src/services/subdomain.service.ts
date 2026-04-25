@@ -237,6 +237,16 @@ export class SubDomainService {
     return { data: subDomains };
   }
 
+  // ─── LIST ALL VALUE CHAIN CODES ───────────────────────────────────────────────
+
+  async listAllValueChainCodes() {
+    const codes = await this.db().valueChainCode.findMany({
+      where: { active: true },
+      orderBy: { displayOrder: 'asc' },
+    });
+    return { data: codes };
+  }
+
   // ─── TRANSVERSE: by value chain code ─────────────────────────────────────────
 
   async listByValueChainCode(valueChainCode: string) {
