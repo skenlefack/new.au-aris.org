@@ -15,6 +15,7 @@ import { Pool } from 'pg';
 import { OllamaClient } from './ollama.client';
 import { PromptBuilder } from './prompt-builder';
 import { DataResolver } from './data-resolver';
+import { OutputValidator } from './output-validator';
 import type { ReportContext, SectionConfig } from './data-resolver';
 import type { FastifyKafka } from '@aris/kafka-client/fastify';
 import {
@@ -41,6 +42,7 @@ export class ReportGenerator {
   private ollama: OllamaClient;
   private promptBuilder: PromptBuilder;
   private dataResolver: DataResolver;
+  private outputValidator: OutputValidator;
 
   constructor(
     private readonly kafka: FastifyKafka | null,
@@ -55,6 +57,7 @@ export class ReportGenerator {
     this.ollama = new OllamaClient();
     this.promptBuilder = new PromptBuilder();
     this.dataResolver = new DataResolver(url);
+    this.outputValidator = new OutputValidator();
   }
 
   /**
@@ -96,6 +99,7 @@ export class ReportGenerator {
       // Check Ollama availability once
       const ollamaAvailable = await this.ollama.healthCheck();
       let hasUnavailableAi = false;
+      let requiresReview = false;
 
       // 2. Process each section
       for (const section of sections.sort((a, b) => a.displayOrder - b.displayOrder)) {
@@ -125,8 +129,9 @@ export class ReportGenerator {
 
               const systemPrompt = this.promptBuilder.buildSystemPrompt(reportCtx.language);
               const variables = this.buildVariables(report, section, reportCtx);
+              const basePromptTemplate = section.promptTemplate ?? this.defaultPrompt(section.sectionType, reportCtx.language);
               const prompt = this.promptBuilder.buildDataPrompt(
-                section.promptTemplate ?? this.defaultPrompt(section.sectionType, reportCtx.language),
+                basePromptTemplate,
                 variables,
                 data as Record<string, unknown>,
                 reportCtx.language,
@@ -140,7 +145,48 @@ export class ReportGenerator {
                 maxTokens: 4096,
               });
 
-              contentHtml = this.markdownToHtml(result.output);
+              // Validate AI output
+              let validation = this.outputValidator.validate(result.output, {
+                expectedLanguage: reportCtx.language,
+                resolvedData: data,
+              });
+
+              if (!validation.valid) {
+                // Retry once with reinforced prompt
+                console.warn(`[ReportGenerator] Section ${section.code} failed validation (${validation.errors.join('; ')}), retrying with reinforced prompt`);
+                const reinforcedPrompt = prompt + '\n\nATTENTION: Ne mentionnez JAMAIS PVS (Performance of Veterinary Services). Do NOT mention PVS under any circumstances.';
+
+                const retryResult = await this.ollama.generate({
+                  model: DEFAULT_MODEL,
+                  prompt: reinforcedPrompt,
+                  system: systemPrompt,
+                  temperature: 0.2,
+                  maxTokens: 4096,
+                });
+
+                validation = this.outputValidator.validate(retryResult.output, {
+                  expectedLanguage: reportCtx.language,
+                  resolvedData: data,
+                });
+
+                if (!validation.valid) {
+                  // Still invalid after retry — mark as FAILED
+                  console.error(`[ReportGenerator] Section ${section.code} still invalid after retry: ${validation.errors.join('; ')}`);
+                  sectionStatus = 'FAILED';
+                  contentHtml = this.buildFailedValidationHtml(section, reportCtx.language, validation.errors);
+                  break;
+                }
+
+                contentHtml = this.markdownToHtml(retryResult.output);
+              } else {
+                contentHtml = this.markdownToHtml(result.output);
+              }
+
+              // If warnings present, flag for review
+              if (validation.warnings.length > 0) {
+                requiresReview = true;
+                console.warn(`[ReportGenerator] Section ${section.code} has warnings: ${validation.warnings.join('; ')}`);
+              }
               break;
             }
 
@@ -209,10 +255,11 @@ export class ReportGenerator {
         `UPDATE analytics.reports
          SET status = $1,
              ai_unavailable = $2,
+             requires_review = $3,
              generated_at = NOW(),
              updated_at = NOW()
-         WHERE id = $3`,
-        [finalStatus, hasUnavailableAi, reportId],
+         WHERE id = $4`,
+        [finalStatus, hasUnavailableAi, requiresReview, reportId],
       );
 
       // 4. Publish Kafka event
@@ -220,6 +267,7 @@ export class ReportGenerator {
         reportId,
         status: finalStatus,
         aiUnavailable: hasUnavailableAi,
+        requiresReview,
         generatedAt: new Date().toISOString(),
       });
     } catch (err) {
@@ -300,6 +348,15 @@ export class ReportGenerator {
       ? 'Le service IA est temporairement indisponible. Cette section peut etre regeneree ulterieurement.'
       : 'The AI service is temporarily unavailable. This section can be regenerated later.';
     return `<div class="ai-unavailable"><h3>${title}</h3><p>${msg}</p></div>`;
+  }
+
+  private buildFailedValidationHtml(section: TemplateSection, language: string, errors: string[]): string {
+    const title = language === 'fr' ? section.titleFr : section.titleEn;
+    const msg = language === 'fr'
+      ? 'La generation IA a echoue la validation de qualite. Cette section doit etre regeneree.'
+      : 'AI generation failed quality validation. This section must be regenerated.';
+    const errorList = errors.map(e => `<li>${e}</li>`).join('');
+    return `<div class="ai-validation-failed"><h3>${title}</h3><p>${msg}</p><ul>${errorList}</ul></div>`;
   }
 
   private buildVariables(
