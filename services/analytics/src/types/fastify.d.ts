@@ -8,6 +8,7 @@ import type { IndicatorService } from '../indicators/indicator.service';
 import type { FormulaEvaluator } from '../indicators/formula-evaluator';
 import type { DashboardService } from '../dashboards/dashboard.service';
 import type { WidgetResolver } from '../dashboards/widget-resolver';
+import type { ReportService } from '../reports/report.service';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -21,5 +22,6 @@ declare module 'fastify' {
     formulaEvaluator: FormulaEvaluator;
     dashboardService: DashboardService;
     widgetResolver: WidgetResolver;
+    reportService: ReportService;
   }
 }

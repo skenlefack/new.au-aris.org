@@ -325,12 +325,22 @@ export const ALL_TOPICS = [
   TOPIC_SYS_DATA_SHARING_AGREEMENT_REVOKED,
   TOPIC_SYS_DATA_SHARING_AGREEMENT_EXPIRED,
   TOPIC_SYS_DATA_SHARING_ACCESS_RECORDED,
+  TOPIC_SYS_ANALYTICS_REPORT_GENERATED,
+  TOPIC_SYS_ANALYTICS_REPORT_PUBLISHED,
+  TOPIC_SYS_ANALYTICS_REPORT_GENERATION_FAILED,
+  TOPIC_SYS_ANALYTICS_FLASH_ALERT_CREATED,
   TOPIC_DLQ_ALL,
   TOPIC_DLQ_HEALTH,
   TOPIC_DLQ_COLLECTE,
 ] as const;
 
 export type TopicName = (typeof ALL_TOPICS)[number];
+
+// ── Report & Flash Topics ──
+export const TOPIC_SYS_ANALYTICS_REPORT_GENERATED = 'sys.analytics.report.generated.v1' as const;
+export const TOPIC_SYS_ANALYTICS_REPORT_PUBLISHED = 'sys.analytics.report.published.v1' as const;
+export const TOPIC_SYS_ANALYTICS_REPORT_GENERATION_FAILED = 'sys.analytics.report.generation-failed.v1' as const;
+export const TOPIC_SYS_ANALYTICS_FLASH_ALERT_CREATED = 'sys.analytics.flash-alert.created.v1' as const;
 
 // ── Sub-Domain Event Topics ──
 export const TOPIC_SYS_CREDENTIAL_SUBDOMAIN_CREATED = 'sys.credential.subdomain.created.v1' as const;

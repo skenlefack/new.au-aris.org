@@ -21,6 +21,9 @@ import { registerCompositeRecomputeConsumer } from './indicators/composite-recom
 import { DashboardService } from './dashboards/dashboard.service';
 import { WidgetResolver } from './dashboards/widget-resolver';
 import { registerDashboardRoutes } from './dashboards/dashboard.routes';
+import { ReportService } from './reports/report.service';
+import { registerReportRoutes } from './reports/report.routes';
+import { registerFlashDetectorConsumer } from './reports/flash-detector';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -102,16 +105,22 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.decorate('dashboardService', dashboardService);
   app.decorate('widgetResolver', widgetResolver);
 
-  // --- Kafka Consumers (12 aggregation + 2 indicator subscriptions) ---
+  // --- Report service ---
+  const reportService = new ReportService(redisClient, app.kafka);
+  app.decorate('reportService', reportService);
+
+  // --- Kafka Consumers (12 aggregation + 2 indicator subscriptions + flash detector) ---
   await registerConsumers(app, aggregationService, domainAggregationService);
   await registerAutoFromFormConsumer(app, indicatorService.getPool());
   await registerCompositeRecomputeConsumer(app, indicatorService.getPool(), formulaEvaluator);
+  await registerFlashDetectorConsumer(app, reportService.getPool());
 
   // --- Routes ---
   await app.register(registerHealthRoutes);
   await app.register(registerAnalyticsRoutes);
   await app.register(registerIndicatorRoutes);
   await app.register(registerDashboardRoutes);
+  await app.register(registerReportRoutes);
 
   return app;
 }
