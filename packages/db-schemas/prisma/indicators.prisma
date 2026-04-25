@@ -1,0 +1,210 @@
+// ARIS 4.0 — Refactored Indicators Schema
+// Unified indicator model replacing KpiDefinition, StatisticDefinition, AggregateMetric
+// Schema: analytics
+// Owner: CC-4 (analytics service)
+
+// ── Enums ──────────────────────────────────────────────────────────────
+
+enum IndicatorMeasurementMode {
+  MANUAL_ENTRY
+  AUTO_FROM_FORM
+  AUTO_FROM_KPI_SOURCE
+  COMPOSITE_FORMULA
+
+  @@schema("analytics")
+}
+
+enum IndicatorAggregation {
+  SUM
+  AVERAGE
+  MIN
+  MAX
+  MEDIAN
+  COUNT
+  WEIGHTED_AVG
+  LATEST
+  CUSTOM
+
+  @@schema("analytics")
+}
+
+enum IndicatorPeriodicity {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+  ON_DEMAND
+
+  @@schema("analytics")
+}
+
+enum IndicatorScope {
+  CONTINENTAL
+  REGIONAL
+  NATIONAL
+  SUB_NATIONAL
+  CROSS_CUTTING
+
+  @@schema("analytics")
+}
+
+// ── Indicator Type (parametric reference table) ────────────────────────
+
+model IndicatorType {
+  code         String      @id @db.VarChar(30)
+  labelFr      String      @map("label_fr")
+  labelEn      String      @map("label_en")
+  labelAr      String?     @map("label_ar")
+  labelPt      String?     @map("label_pt")
+  description  String?
+  color        String?     @db.VarChar(20)
+  iconName     String?     @map("icon_name") @db.VarChar(50)
+  externalRef  String?     @map("external_ref")
+  active       Boolean     @default(true)
+  displayOrder Int         @default(0) @map("display_order")
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  indicators   Indicator[]
+
+  @@index([active], map: "idx_indicator_type_active")
+  @@map("indicator_types")
+  @@schema("analytics")
+}
+
+// ── Indicator (main definition table) ──────────────────────────────────
+
+model Indicator {
+  id                          String                    @id @default(uuid()) @db.Uuid
+  code                        String                    @unique @db.VarChar(80)
+  typeCode                    String                    @map("type_code") @db.VarChar(30)
+  type                        IndicatorType             @relation(fields: [typeCode], references: [code], onDelete: Restrict)
+
+  // ── Multilingual labels ──
+  nameFr                      String                    @map("name_fr")
+  nameEn                      String                    @map("name_en")
+  nameAr                      String?                   @map("name_ar")
+  namePt                      String?                   @map("name_pt")
+  descriptionFr               String?                   @map("description_fr") @db.Text
+  descriptionEn               String?                   @map("description_en") @db.Text
+  descriptionAr               String?                   @map("description_ar") @db.Text
+  descriptionPt               String?                   @map("description_pt") @db.Text
+
+  // ── Domain linkage (optional, stores codes for loose coupling) ──
+  domainId                    String?                   @map("domain_id") @db.Uuid
+  subDomainId                 String?                   @map("sub_domain_id") @db.Uuid
+  valueChainCode              String?                   @map("value_chain_code") @db.VarChar(30)
+
+  // ── Measurement configuration ──
+  scope                       IndicatorScope            @default(NATIONAL)
+  measurementMode             IndicatorMeasurementMode  @default(MANUAL_ENTRY) @map("measurement_mode")
+  aggregation                 IndicatorAggregation      @default(SUM)
+  periodicity                 IndicatorPeriodicity      @default(ANNUAL)
+
+  // ── Data source (for AUTO_FROM_FORM mode) ──
+  sourceFormId                String?                   @map("source_form_id") @db.Uuid
+  sourceFormFieldId           String?                   @map("source_form_field_id") @db.VarChar(100)
+  externalSource              String?                   @map("external_source") @db.VarChar(100)
+
+  // ── Display & formatting ──
+  unit                        String                    @default("count") @db.VarChar(30)
+  decimalPlaces               Int                       @default(0) @map("decimal_places")
+  formatPattern               String?                   @map("format_pattern") @db.VarChar(50)
+
+  // ── Targets & thresholds ──
+  targetValue                 Float?                    @map("target_value")
+  thresholds                  Json?                     // { "good": 75, "warn": 50 }
+  betterIsHigher              Boolean                   @default(true) @map("better_is_higher")
+
+  // ── Flags ──
+  active                      Boolean                   @default(true)
+  isPublic                    Boolean                   @default(false) @map("is_public")
+
+  // ── External framework reference ──
+  externalFrameworkReference  String?                   @map("external_framework_reference") @db.VarChar(255)
+  notes                       String?                   @db.Text
+
+  // ── Timestamps ──
+  createdAt                   DateTime                  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                   DateTime                  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // ── Relations ──
+  values                      IndicatorValue[]
+  formula                     IndicatorFormula?
+  referencedBy                IndicatorFormulaDependency[]
+
+  @@index([typeCode], map: "idx_indicator_type_code")
+  @@index([domainId], map: "idx_indicator_domain_id")
+  @@index([subDomainId], map: "idx_indicator_sub_domain_id")
+  @@index([scope], map: "idx_indicator_scope")
+  @@index([active], map: "idx_indicator_active")
+  @@index([measurementMode], map: "idx_indicator_measurement_mode")
+  @@map("indicators")
+  @@schema("analytics")
+}
+
+// ── Indicator Value (historical data points) ───────────────────────────
+
+model IndicatorValue {
+  id                String     @id @default(uuid()) @db.Uuid
+  indicatorId       String     @map("indicator_id") @db.Uuid
+  indicator         Indicator  @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
+  year              Int
+  month             Int?
+  quarter           Int?
+  countryCode       String?    @map("country_code") @db.VarChar(2)
+  recCode           String?    @map("rec_code") @db.VarChar(20)
+  isContinental     Boolean    @default(false) @map("is_continental")
+  value             Float
+  source            String?    @db.VarChar(100)
+  enteredByUserId   String?    @map("entered_by_user_id") @db.Uuid
+  validatedByUserId String?    @map("validated_by_user_id") @db.Uuid
+  validatedAt       DateTime?  @map("validated_at") @db.Timestamptz
+  notes             String?    @db.Text
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([indicatorId, year, month, quarter, countryCode, recCode, isContinental], map: "uq_indicator_value")
+  @@index([indicatorId], map: "idx_indicator_value_indicator_id")
+  @@index([year], map: "idx_indicator_value_year")
+  @@index([countryCode], map: "idx_indicator_value_country_code")
+  @@index([recCode], map: "idx_indicator_value_rec_code")
+  @@map("indicator_values")
+  @@schema("analytics")
+}
+
+// ── Indicator Formula (for COMPOSITE_FORMULA mode) ─────────────────────
+
+model IndicatorFormula {
+  id           String     @id @default(uuid()) @db.Uuid
+  indicatorId  String     @unique @map("indicator_id") @db.Uuid
+  indicator    Indicator  @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
+  expression   String     @db.Text  // e.g. "(A / B) * 100"
+  isValidated  Boolean    @default(false) @map("is_validated")
+  validatedAt  DateTime?  @map("validated_at") @db.Timestamptz
+  validatedBy  String?    @map("validated_by") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  dependencies IndicatorFormulaDependency[]
+
+  @@map("indicator_formulas")
+  @@schema("analytics")
+}
+
+// ── Indicator Formula Dependency (DAG edges) ───────────────────────────
+
+model IndicatorFormulaDependency {
+  id                    String           @id @default(uuid()) @db.Uuid
+  formulaId             String           @map("formula_id") @db.Uuid
+  formula               IndicatorFormula @relation(fields: [formulaId], references: [id], onDelete: Cascade)
+  referencedIndicatorId String           @map("referenced_indicator_id") @db.Uuid
+  referencedIndicator   Indicator        @relation(fields: [referencedIndicatorId], references: [id], onDelete: Cascade)
+  createdAt             DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([formulaId, referencedIndicatorId], map: "uq_formula_dependency")
+  @@index([formulaId], map: "idx_formula_dep_formula_id")
+  @@index([referencedIndicatorId], map: "idx_formula_dep_ref_indicator_id")
+  @@map("indicator_formula_dependencies")
+  @@schema("analytics")
+}
