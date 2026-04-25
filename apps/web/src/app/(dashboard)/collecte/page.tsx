@@ -391,6 +391,7 @@ function CampaignCard({
       {/* Stats row */}
       <Link href={`/collecte/campaigns/${campaign.id}`} className="flex-1 px-5 space-y-3">
         {/* Domain badge */}
+        {/* Backward compat: reads legacy domain field, prefer targets[] */}
         {campaign.domain && (
           <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
             {getDomainLabel(campaign.domain)}
@@ -507,6 +508,7 @@ function CampaignListRow({
           {i18nStr(campaign.name, locale)}
         </h3>
         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+          {/* Backward compat: reads legacy domain field, prefer targets[] */}
           {getDomainLabel(campaign.domain)} {i18nStr(campaign.description, locale) ? `— ${i18nStr(campaign.description, locale)}` : ''}
         </p>
       </Link>

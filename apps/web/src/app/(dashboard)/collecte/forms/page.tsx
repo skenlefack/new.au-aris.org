@@ -216,6 +216,7 @@ async function exportFormToExcel(template: FormTemplateListItem) {
   const schema = template.schema as { sections?: SchemaSection[] } | undefined;
   const sections = schema?.sections || [];
   const fields = flattenFields(sections);
+  // Backward compat: reads legacy domain field, prefer targets[]
   const domainLabel = DOMAIN_OPTIONS.find((d) => d.value === template.domain)?.label || template.domain;
 
   const wb = new ExcelJS.Workbook();
@@ -642,6 +643,7 @@ function FormCard({
 }) {
   const t = useTranslations('collecte');
   const statusCfg = STATUS_CONFIG[template.status] || STATUS_CONFIG.DRAFT;
+  // Backward compat: reads legacy domain field, prefer targets[]
   const domainLabel = DOMAIN_OPTIONS.find((d) => d.value === template.domain)?.label || template.domain;
 
   // Count fields from schema

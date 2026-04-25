@@ -106,6 +106,7 @@ export default function EditCampaignPage() {
       setName(toMultilingual(campaign.name));
       setDescription(toMultilingual(campaign.description));
 
+      // Backward compat: reads legacy domain field, prefer targets[]
       const domains = campaign.metadata?.domains ?? (campaign.domain ? [campaign.domain] : []);
       setSelectedDomains(domains);
 
@@ -125,6 +126,7 @@ export default function EditCampaignPage() {
           isPrimary: !!t.isPrimary,
         })));
       } else if (campaign.domain) {
+        // Backward compat: reads legacy domain field, prefer targets[]
         setTargets([{ domainCode: campaign.domain, subDomainCode: null, isPrimary: true }]);
       }
 

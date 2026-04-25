@@ -366,7 +366,7 @@ export class CampaignService {
     }
 
     if (query.domain) {
-      // Explicit domain filter from query — override the IN filter if allowed
+      // Backward compat: reads legacy domain field, prefer targets[] filtering via domainCode/subDomainCode
       if (user.role === 'SUPER_ADMIN' || userDomainCodes.length === 0 || userDomainCodes.includes(query.domain)) {
         where['domain'] = query.domain;
       }
@@ -572,7 +572,7 @@ export class CampaignService {
     const payload = {
       campaignId: c.id,
       name: c.name,
-      domain: c.domain,
+      domain: c.domain, // Backward compat: reads legacy domain field, prefer targets[]
       templateId: c.templateId,
       status: c.status,
       startDate: c.startDate,

@@ -193,7 +193,7 @@ export class FormResolverService {
         status: template.status,
         schema: template.schema,
         tenant_id: template.tenant_id,
-        domain: template.domain,
+        domain: template.domain, // Backward compat: reads legacy domain field, prefer targets[]
       },
       appliedOverlays,
       resolvedFields: fields,

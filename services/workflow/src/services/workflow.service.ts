@@ -58,7 +58,7 @@ export class WorkflowService {
         tenant_id: user.tenantId,
         entity_type: dto.entityType,
         entity_id: dto.entityId,
-        domain: dto.domain,
+        domain: dto.domain, // Backward compat: writes legacy domain field from campaign/form, prefer targets[]
         current_level: 'NATIONAL_TECHNICAL',
         status: 'PENDING',
         data_contract_id: dto.dataContractId ?? null,
@@ -98,7 +98,7 @@ export class WorkflowService {
       ...this.buildTenantFilter(user),
       ...(query.level && { current_level: query.level as Prisma.EnumWfLevelFilter }),
       ...(query.status && { status: query.status as Prisma.EnumWfStatusFilter }),
-      ...(query.domain && { domain: query.domain }),
+      ...(query.domain && { domain: query.domain }), // Backward compat: reads legacy domain field, prefer targets[]
     };
 
     const [data, total] = await Promise.all([
@@ -447,7 +447,7 @@ export class WorkflowService {
           instanceId: instance.id,
           entityType: instance.entity_type,
           entityId: instance.entity_id,
-          domain: instance.domain,
+          domain: instance.domain, // Backward compat: reads legacy domain field, prefer targets[]
           flag,
         },
       }, { key: instance.entity_id });
@@ -608,7 +608,7 @@ export class WorkflowService {
       tenantId: row.tenant_id,
       entityType: row.entity_type,
       entityId: row.entity_id,
-      domain: row.domain,
+      domain: row.domain, // Backward compat: reads legacy domain field, prefer targets[]
       currentLevel: row.current_level as WorkflowLevel,
       status: row.status,
       dataContractId: row.data_contract_id,

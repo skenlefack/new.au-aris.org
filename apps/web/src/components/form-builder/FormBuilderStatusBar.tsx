@@ -23,6 +23,7 @@ export function FormBuilderStatusBar() {
       <div className="flex items-center gap-4">
         <span>{sectionCount} {sectionCount !== 1 ? t('sections') : t('section')}</span>
         <span>{fieldCount} {fieldCount !== 1 ? t('fields') : t('field')}</span>
+        {/* Backward compat: reads legacy domain field, prefer targets[] */}
         {form?.domain && (
           <span className="capitalize">{form.domain.replace('_', ' ')}</span>
         )}

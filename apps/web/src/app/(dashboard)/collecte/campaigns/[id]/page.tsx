@@ -434,6 +434,7 @@ export default function CampaignDetailPage() {
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500 dark:text-gray-400">{t('domain')}</dt>
+                {/* Backward compat: reads legacy domain field, prefer targets[] */}
                 <dd className="text-xs font-medium text-gray-900 dark:text-white">{getDomainLabel(campaign.domain)}</dd>
               </div>
               <div className="flex justify-between">

@@ -34,7 +34,7 @@ export default function FormEditorPage() {
         id: template.id,
         tenantId: template.tenantId,
         name: template.name,
-        domain: template.domain,
+        domain: template.domain, // Backward compat: reads legacy domain field, prefer targets[]
         version: template.version,
         parentTemplateId: null,
         schema: template.schema as FormTemplateData['schema'],
@@ -62,7 +62,7 @@ export default function FormEditorPage() {
       await updateMutation.mutateAsync({
         id: formId,
         name: form.name,
-        domain: form.domain,
+        domain: form.domain, // Backward compat: writes legacy domain field, prefer targets[]
         schema,
       });
       setLastSaved(new Date());

@@ -131,7 +131,7 @@ export class SubmissionService {
     // 4. Request quality validation asynchronously via Kafka event
     await this.requestQualityValidation(
       submission,
-      campaign.domain ?? 'collecte',
+      campaign.domain ?? 'collecte', // Backward compat: reads legacy domain field, prefer targets[]
       user,
     );
 
@@ -485,7 +485,7 @@ export class SubmissionService {
         where: { id: s.campaignId },
         select: { domain: true },
       });
-      payload.domain = campaign?.domain;
+      payload.domain = campaign?.domain; // Backward compat: reads legacy domain field, prefer targets[]
     } catch {
       // Best effort
     }

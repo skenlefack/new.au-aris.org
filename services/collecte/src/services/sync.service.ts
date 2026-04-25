@@ -237,6 +237,7 @@ export class SyncService {
     });
 
     // Publish submitted event for downstream processing
+    // Backward compat: reads legacy domain field, prefer targets[]
     await this.publishSubmittedEvent(id, payload, campaign.domain, user);
 
     return { status: 'accepted', id };

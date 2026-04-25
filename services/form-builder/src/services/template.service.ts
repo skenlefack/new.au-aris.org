@@ -141,11 +141,12 @@ export class TemplateService {
     const userDomains = (user as any).domains ?? [];
     let domainFilter: Record<string, unknown> = {};
     if (query.domain) {
-      // Explicit domain filter from query — use it if user has access
+      // Backward compat: reads legacy domain field, prefer targets[] filtering via domainCode/subDomainCode
       if (user.role === 'SUPER_ADMIN' || userDomains.length === 0 || userDomains.includes(query.domain)) {
         domainFilter = { domain: query.domain };
       }
     } else if (user.role !== 'SUPER_ADMIN' && userDomains.length > 0) {
+      // Backward compat: reads legacy domain field, prefer targets[] filtering via domainCode/subDomainCode
       domainFilter = { domain: { in: userDomains } };
     }
 
@@ -272,7 +273,7 @@ export class TemplateService {
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
-        ...(dto.domain !== undefined && { domain: dto.domain }),
+        ...(dto.domain !== undefined && { domain: dto.domain }), // Backward compat: writes legacy domain field, prefer targets[]
         ...(dto.schema !== undefined && {
           schema: dto.schema as Prisma.InputJsonValue,
         }),
@@ -386,7 +387,7 @@ export class TemplateService {
       data: {
         tenant_id: user.tenantId,
         name: copyName,
-        domain: existing.domain,
+        domain: existing.domain, // Backward compat: copies legacy domain field, prefer targets[]
         version: 1,
         parent_template_id: null,
         schema: existing.schema as Prisma.InputJsonValue,
@@ -786,7 +787,7 @@ export class TemplateService {
       data: {
         tenant_id: existing.tenant_id,
         name: dto.name ?? existing.name,
-        domain: dto.domain ?? existing.domain,
+        domain: dto.domain ?? existing.domain, // Backward compat: writes legacy domain field, prefer targets[]
         version: nextVersion,
         parent_template_id: existing.parent_template_id,
         schema: (dto.schema ?? existing.schema) as Prisma.InputJsonValue,
@@ -902,7 +903,7 @@ export class TemplateService {
       id: row.id,
       tenantId: row.tenant_id,
       name: row.name,
-      domain: row.domain,
+      domain: row.domain, // Backward compat: reads legacy domain field, prefer targets[]
       formType: (row.form_type as string) ?? 'CAMPAIGN',
       version: row.version,
       parentTemplateId: row.parent_template_id,

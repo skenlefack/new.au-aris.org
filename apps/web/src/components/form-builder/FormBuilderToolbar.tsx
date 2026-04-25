@@ -44,6 +44,7 @@ export function FormBuilderToolbar({ onSave, onPublish, onPreview }: FormBuilder
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
+  // Backward compat: reads legacy domain field, prefer targets[]
   const domainLabel = DOMAIN_OPTIONS.find((d) => d.value === form.domain)?.label || form.domain;
   const statusColor =
     form.status === 'PUBLISHED'

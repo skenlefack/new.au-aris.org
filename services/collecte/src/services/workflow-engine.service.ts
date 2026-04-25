@@ -1172,7 +1172,7 @@ export class CollectionCampaignService {
         code: dto.code as string,
         name: dto.name,
         description: dto.description ?? null,
-        domain: dto.domain as string,
+        domain: dto.domain as string, // Backward compat: writes legacy domain field, prefer targets[]
         formTemplateId: dto.formTemplateId as string,
         startDate,
         endDate,
@@ -1399,7 +1399,7 @@ export class CollectionCampaignService {
     }
 
     if (query.status) where['status'] = query.status.toUpperCase();
-    if (query.domain) where['domain'] = query.domain;
+    if (query.domain) where['domain'] = query.domain; // Backward compat: reads legacy domain field, prefer targets[]
 
     return where;
   }

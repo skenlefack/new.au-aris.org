@@ -187,6 +187,7 @@ export default function CampaignsPage() {
                       {campaign.targets && campaign.targets.length > 0 ? (
                         <TargetBadges targets={campaign.targets} />
                       ) : campaign.domain ? (
+                        // Backward compat: reads legacy domain field, prefer targets[]
                         <span className="rounded bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 text-blue-700 dark:text-blue-300">
                           {DOMAIN_LABELS[campaign.domain] ?? campaign.domain}
                         </span>
