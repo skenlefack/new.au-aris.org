@@ -22,12 +22,12 @@ import {
   type DashboardScope,
 } from '@/lib/api/dashboard-hooks';
 
-type Tab = 'OWN' | 'SHARED' | 'SYSTEM';
+type Tab = 'USER_OWNED' | 'SHARED' | 'SYSTEM_TEMPLATE';
 
 const TABS: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
-  { key: 'OWN', label: 'My Dashboards', icon: LayoutDashboard },
+  { key: 'USER_OWNED', label: 'My Dashboards', icon: LayoutDashboard },
   { key: 'SHARED', label: 'Shared with me', icon: Share2 },
-  { key: 'SYSTEM', label: 'System Templates', icon: Layers },
+  { key: 'SYSTEM_TEMPLATE', label: 'System Templates', icon: Layers },
 ];
 
 const SCOPE_LABELS: Record<DashboardScope, string> = {
@@ -125,7 +125,7 @@ function DashboardCard({
 
 export default function MyDashboardsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>('OWN');
+  const [activeTab, setActiveTab] = useState<Tab>('USER_OWNED');
 
   const { data, isLoading } = useDashboards({
     ownership: activeTab as DashboardOwnership,
@@ -217,13 +217,13 @@ export default function MyDashboardsPage() {
           <div className="flex min-h-[250px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700">
             <LayoutDashboard className="h-12 w-12 text-gray-300 dark:text-gray-600" />
             <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">
-              {activeTab === 'OWN'
+              {activeTab === 'USER_OWNED'
                 ? 'No dashboards yet'
                 : activeTab === 'SHARED'
                   ? 'No dashboards shared with you'
                   : 'No system templates available'}
             </p>
-            {activeTab === 'OWN' && (
+            {activeTab === 'USER_OWNED' && (
               <button
                 onClick={handleCreate}
                 className="mt-3 flex items-center gap-1.5 text-sm font-medium text-[#1F4E79] hover:underline"
@@ -239,7 +239,7 @@ export default function MyDashboardsPage() {
               <DashboardCard
                 key={d.id}
                 dashboard={d}
-                onDelete={activeTab === 'OWN' ? handleDelete : undefined}
+                onDelete={activeTab === 'USER_OWNED' ? handleDelete : undefined}
               />
             ))}
           </div>

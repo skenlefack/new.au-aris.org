@@ -70,8 +70,8 @@ export class ReportGenerator {
       // 1. Load report + template
       const { rows: reportRows } = await this.pool.query(
         `SELECT r.*, rt.sections AS template_sections, rt.type AS template_type
-         FROM analytics.reports r
-         JOIN analytics.report_templates rt ON rt.id = r.template_id
+         FROM reports.reports r
+         JOIN reports.report_templates rt ON rt.id = r.template_id
          WHERE r.id = $1`,
         [reportId],
       );
@@ -80,7 +80,7 @@ export class ReportGenerator {
 
       // Update status to GENERATING
       await this.pool.query(
-        `UPDATE analytics.reports SET status = 'GENERATING', updated_at = NOW() WHERE id = $1`,
+        `UPDATE reports.reports SET status = 'GENERATING', updated_at = NOW() WHERE id = $1`,
         [reportId],
       );
 
@@ -227,7 +227,7 @@ export class ReportGenerator {
 
         // Persist section
         await this.pool.query(
-          `INSERT INTO analytics.report_sections
+          `INSERT INTO reports.report_sections
              (id, report_id, section_code, title_fr, title_en, section_type, display_order, content_html, status, created_at, updated_at)
            VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
            ON CONFLICT (report_id, section_code) DO UPDATE
@@ -252,7 +252,7 @@ export class ReportGenerator {
       const finalStatus = templateType === 'FLASH' ? 'PUBLISHED' : 'AWAITING_REVIEW';
 
       await this.pool.query(
-        `UPDATE analytics.reports
+        `UPDATE reports.reports
          SET status = $1,
              ai_unavailable = $2,
              requires_review = $3,
@@ -275,7 +275,7 @@ export class ReportGenerator {
 
       // Mark as FAILED
       await this.pool.query(
-        `UPDATE analytics.reports
+        `UPDATE reports.reports
          SET status = 'FAILED', error_message = $1, updated_at = NOW()
          WHERE id = $2`,
         [(err as Error).message, reportId],

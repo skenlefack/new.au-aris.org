@@ -56,7 +56,7 @@ export class ReportService {
       try { return JSON.parse(cached); } catch { /* stale */ }
     }
     const { rows } = await this.pool.query(
-      `SELECT * FROM analytics.report_templates WHERE active = true ORDER BY created_at DESC`,
+      `SELECT * FROM reports.report_templates WHERE active = true ORDER BY created_at DESC`,
     );
     await this.redis.set(cacheKey, JSON.stringify(rows), CACHE_TTL);
     return rows;
@@ -69,7 +69,7 @@ export class ReportService {
       try { return JSON.parse(cached); } catch { /* stale */ }
     }
     const { rows } = await this.pool.query(
-      `SELECT * FROM analytics.report_templates WHERE id = $1`,
+      `SELECT * FROM reports.report_templates WHERE id = $1`,
       [id],
     );
     if (rows[0]) await this.redis.set(cacheKey, JSON.stringify(rows[0]), CACHE_TTL);
@@ -79,7 +79,7 @@ export class ReportService {
   async createTemplate(dto: CreateReportTemplateDto, userId: string): Promise<unknown> {
     const id = randomUUID();
     const { rows } = await this.pool.query(
-      `INSERT INTO analytics.report_templates
+      `INSERT INTO reports.report_templates
          (id, code, name_fr, name_en, type, domain_id, scope, description_fr, description_en, sections, active, created_by, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true, $11, NOW(), NOW())
        RETURNING *`,
@@ -123,7 +123,7 @@ export class ReportService {
     values.push(id);
 
     const { rows } = await this.pool.query(
-      `UPDATE analytics.report_templates SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE reports.report_templates SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`,
       values,
     );
     await this.invalidateTemplateCache();
@@ -132,7 +132,7 @@ export class ReportService {
 
   async deleteTemplate(id: string): Promise<boolean> {
     const { rowCount } = await this.pool.query(
-      `UPDATE analytics.report_templates SET active = false, updated_at = NOW() WHERE id = $1`,
+      `UPDATE reports.report_templates SET active = false, updated_at = NOW() WHERE id = $1`,
       [id],
     );
     await this.invalidateTemplateCache();
@@ -164,7 +164,7 @@ export class ReportService {
     const whereClause = where.join(' AND ');
 
     const countResult = await this.pool.query(
-      `SELECT COUNT(*) as total FROM analytics.reports r WHERE ${whereClause}`,
+      `SELECT COUNT(*) as total FROM reports.reports r WHERE ${whereClause}`,
       values,
     );
     const total = parseInt(countResult.rows[0]?.total ?? '0', 10);
@@ -172,8 +172,8 @@ export class ReportService {
     values.push(limit, offset);
     const { rows } = await this.pool.query(
       `SELECT r.*, rt.name_fr AS template_name_fr, rt.name_en AS template_name_en
-       FROM analytics.reports r
-       LEFT JOIN analytics.report_templates rt ON rt.id = r.template_id
+       FROM reports.reports r
+       LEFT JOIN reports.report_templates rt ON rt.id = r.template_id
        WHERE ${whereClause}
        ORDER BY r.created_at DESC
        LIMIT $${idx++} OFFSET $${idx}`,
@@ -191,11 +191,11 @@ export class ReportService {
               rt.sections AS template_sections,
               COALESCE(
                 (SELECT json_agg(s ORDER BY s.display_order)
-                 FROM analytics.report_sections s
+                 FROM reports.report_sections s
                  WHERE s.report_id = r.id), '[]'::json
               ) AS sections
-       FROM analytics.reports r
-       LEFT JOIN analytics.report_templates rt ON rt.id = r.template_id
+       FROM reports.reports r
+       LEFT JOIN reports.report_templates rt ON rt.id = r.template_id
        WHERE r.id = $1`,
       [id],
     );
@@ -209,11 +209,11 @@ export class ReportService {
     const id = randomUUID();
 
     const { rows } = await this.pool.query(
-      `INSERT INTO analytics.reports
+      `INSERT INTO reports.reports
          (id, template_id, title_fr, title_en, theme_fr, scope, domain_id, tenant_id,
           period_start, period_end, reference_year, language, type, status, created_by, created_at, updated_at)
        SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, rt.type, 'DRAFT', $13, NOW(), NOW()
-       FROM analytics.report_templates rt
+       FROM reports.report_templates rt
        WHERE rt.id = $2
        RETURNING *`,
       [
@@ -238,7 +238,7 @@ export class ReportService {
   async getReportStatus(id: string): Promise<unknown | null> {
     const { rows } = await this.pool.query(
       `SELECT id, status, ai_unavailable, error_message, generated_at, updated_at
-       FROM analytics.reports WHERE id = $1`,
+       FROM reports.reports WHERE id = $1`,
       [id],
     );
     return rows[0] ?? null;
@@ -246,7 +246,7 @@ export class ReportService {
 
   async editSection(reportId: string, sectionCode: string, dto: EditSectionBody): Promise<unknown | null> {
     const { rows } = await this.pool.query(
-      `UPDATE analytics.report_sections
+      `UPDATE reports.report_sections
        SET content_html = $1, status = 'EDITED', updated_at = NOW()
        WHERE report_id = $2 AND section_code = $3
        RETURNING *`,
@@ -266,7 +266,7 @@ export class ReportService {
 
   async approveReport(id: string, userId: string): Promise<unknown | null> {
     const { rows } = await this.pool.query(
-      `UPDATE analytics.reports
+      `UPDATE reports.reports
        SET status = 'AWAITING_REVIEW', approved_by = $1, approved_at = NOW(), updated_at = NOW()
        WHERE id = $2 AND status IN ('AWAITING_REVIEW', 'DRAFT')
        RETURNING *`,
@@ -277,7 +277,7 @@ export class ReportService {
 
   async publishReport(id: string, userId: string): Promise<unknown | null> {
     const { rows } = await this.pool.query(
-      `UPDATE analytics.reports
+      `UPDATE reports.reports
        SET status = 'PUBLISHED', published_by = $1, published_at = NOW(), updated_at = NOW()
        WHERE id = $2 AND status = 'AWAITING_REVIEW'
        RETURNING *`,
@@ -302,8 +302,8 @@ export class ReportService {
   async listFlashAlerts(tenantId?: string): Promise<unknown[]> {
     const { rows } = await this.pool.query(
       tenantId
-        ? `SELECT * FROM analytics.flash_alerts WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT 50`
-        : `SELECT * FROM analytics.flash_alerts ORDER BY created_at DESC LIMIT 50`,
+        ? `SELECT * FROM reports.flash_alerts WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT 50`
+        : `SELECT * FROM reports.flash_alerts ORDER BY created_at DESC LIMIT 50`,
       tenantId ? [tenantId] : [],
     );
     return rows;
@@ -311,7 +311,7 @@ export class ReportService {
 
   async getFlashAlertById(id: string): Promise<unknown | null> {
     const { rows } = await this.pool.query(
-      `SELECT * FROM analytics.flash_alerts WHERE id = $1`,
+      `SELECT * FROM reports.flash_alerts WHERE id = $1`,
       [id],
     );
     return rows[0] ?? null;
@@ -319,7 +319,7 @@ export class ReportService {
 
   async dismissFlashAlert(id: string, userId: string): Promise<unknown | null> {
     const { rows } = await this.pool.query(
-      `UPDATE analytics.flash_alerts
+      `UPDATE reports.flash_alerts
        SET dismissed = true, dismissed_by = $1, dismissed_at = NOW(), updated_at = NOW()
        WHERE id = $2
        RETURNING *`,
@@ -339,7 +339,7 @@ export class ReportService {
       try { return JSON.parse(cached); } catch { /* stale */ }
     }
     const { rows } = await this.pool.query(
-      `SELECT * FROM analytics.flash_strategies ORDER BY created_at DESC`,
+      `SELECT * FROM reports.flash_strategies ORDER BY created_at DESC`,
     );
     await this.redis.set(cacheKey, JSON.stringify(rows), CACHE_TTL);
     return rows;
@@ -348,7 +348,7 @@ export class ReportService {
   async createFlashStrategy(dto: CreateFlashStrategyDto, userId: string): Promise<unknown> {
     const id = randomUUID();
     const { rows } = await this.pool.query(
-      `INSERT INTO analytics.flash_strategies
+      `INSERT INTO reports.flash_strategies
          (id, code, name_fr, name_en, domain_id, indicator_code, condition_type, condition_value,
           template_id, cooldown_minutes, active, created_by, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
@@ -391,7 +391,7 @@ export class ReportService {
     values.push(id);
 
     const { rows } = await this.pool.query(
-      `UPDATE analytics.flash_strategies SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE reports.flash_strategies SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`,
       values,
     );
     await this.invalidateFlashStrategyCache();
@@ -400,7 +400,7 @@ export class ReportService {
 
   async deleteFlashStrategy(id: string): Promise<boolean> {
     const { rowCount } = await this.pool.query(
-      `DELETE FROM analytics.flash_strategies WHERE id = $1`,
+      `DELETE FROM reports.flash_strategies WHERE id = $1`,
       [id],
     );
     await this.invalidateFlashStrategyCache();

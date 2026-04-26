@@ -60,7 +60,7 @@ export const SubDomainListQuerySchema = Type.Object({
   valueChainCode: Type.Optional(Type.String()),
   search: Type.Optional(Type.String()),
   page: Type.Optional(Type.Integer({ minimum: 1 })),
-  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 500 })),
 });
 
 // ─── Types ───────────────────────────────────────────────────────────────────

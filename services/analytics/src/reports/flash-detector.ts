@@ -84,7 +84,7 @@ async function evaluateStrategies(
 ): Promise<void> {
   // Load active strategies matching this indicator
   const { rows: strategies } = await pool.query<FlashStrategy>(
-    `SELECT * FROM analytics.flash_strategies
+    `SELECT * FROM reports.flash_strategies
      WHERE active = true AND indicator_code = $1`,
     [event.indicatorCode],
   );
@@ -117,7 +117,7 @@ async function evaluateStrategies(
     // Create flash alert
     const alertId = randomUUID();
     await pool.query(
-      `INSERT INTO analytics.flash_alerts
+      `INSERT INTO reports.flash_alerts
          (id, strategy_id, indicator_code, trigger_value, threshold_value,
           condition_type, tenant_id, report_id, dismissed, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, false, NOW(), NOW())`,
@@ -130,7 +130,7 @@ async function evaluateStrategies(
 
     // Update last_triggered_at
     await pool.query(
-      `UPDATE analytics.flash_strategies SET last_triggered_at = NOW() WHERE id = $1`,
+      `UPDATE reports.flash_strategies SET last_triggered_at = NOW() WHERE id = $1`,
       [strategy.id],
     );
 
@@ -156,7 +156,7 @@ async function evaluateStrategies(
         const reportId = (report as Record<string, unknown>)['id'];
         if (reportId) {
           await pool.query(
-            `UPDATE analytics.flash_alerts SET report_id = $1 WHERE id = $2`,
+            `UPDATE reports.flash_alerts SET report_id = $1 WHERE id = $2`,
             [reportId, alertId],
           );
         }

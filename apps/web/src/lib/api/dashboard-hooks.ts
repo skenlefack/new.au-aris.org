@@ -9,7 +9,7 @@ import { analyticsClient } from './client';
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export type DashboardScope = 'CONTINENTAL' | 'REC' | 'MEMBER_STATE' | 'PERSONAL';
-export type DashboardOwnership = 'OWN' | 'SHARED' | 'SYSTEM';
+export type DashboardOwnership = 'USER_OWNED' | 'SHARED' | 'SYSTEM_TEMPLATE';
 export type WidgetType =
   | 'KPI_CARD'
   | 'LINE'
