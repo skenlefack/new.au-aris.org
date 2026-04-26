@@ -76,7 +76,7 @@ export function useAiHealth() {
       try {
         return await apiClient.get('/ai/health');
       } catch {
-        return { data: { status: 'down', ollama: false, ml: false, models: [] } as AiHealthStatus };
+        return { data: { status: 'down', ollama: false, ml: false, models: [] } as unknown as AiHealthStatus };
       }
     },
     refetchInterval: 60_000,
