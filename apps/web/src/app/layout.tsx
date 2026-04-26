@@ -1,11 +1,16 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 import Script from 'next/script';
 import { Toaster } from 'sonner';
 import './globals.css';
 import { Providers } from './providers';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const inter = localFont({
+  src: './fonts/inter-variable.woff2',
+  variable: '--font-inter',
+  display: 'swap',
+  weight: '100 900',
+});
 
 export const metadata: Metadata = {
   title: 'ARIS — Animal Resources Information System',
