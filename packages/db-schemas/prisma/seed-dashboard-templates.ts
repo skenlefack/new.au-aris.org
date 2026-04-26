@@ -7,29 +7,23 @@
  *   Row 2: 1x LINE_CHART (gridW=6) + 1x STACKED_BAR (gridW=6)
  *
  * Usage:
- *   npx tsx packages/db-schemas/prisma/seed-dashboard-templates.ts
- *
- * Idempotent: uses upsert-like logic keyed on (ownership=SYSTEM_TEMPLATE, domainId, scope=CONTINENTAL).
+ *   DATABASE_URL="..." npx tsx packages/db-schemas/prisma/seed-dashboard-templates.ts
  */
 
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// ── Domain definitions ─────────────────────────────────────────────────
+// ── Domain KPI definitions ────────────────────────────────────────────
 
-interface DomainDef {
-  code: string;
-  domainId: string; // deterministic UUID per domain
+interface DomainKpi {
   titleEn: string;
   titleFr: string;
-  kpis: { titleEn: string; titleFr: string; config: Record<string, unknown> }[];
+  config: Record<string, unknown>;
 }
 
-const DOMAINS: DomainDef[] = [
-  {
-    code: 'animal-health',
-    domainId: 'a0000000-0000-4000-8000-000000000001',
+const DOMAIN_KPIS: Record<string, { titleEn: string; titleFr: string; kpis: DomainKpi[] }> = {
+  'animal-health': {
     titleEn: 'Animal Health - Continental Overview',
     titleFr: 'Sante animale - Vue continentale',
     kpis: [
@@ -39,9 +33,7 @@ const DOMAINS: DomainDef[] = [
       { titleEn: 'Notification Rate', titleFr: 'Taux de notification', config: { indicatorCode: 'disease-notification', color: '#E65100', unit: '%' } },
     ],
   },
-  {
-    code: 'livestock-prod',
-    domainId: 'a0000000-0000-4000-8000-000000000002',
+  'livestock-prod': {
     titleEn: 'Livestock Production - Continental Overview',
     titleFr: 'Production animale - Vue continentale',
     kpis: [
@@ -51,9 +43,7 @@ const DOMAINS: DomainDef[] = [
       { titleEn: 'Active Campaigns', titleFr: 'Campagnes actives', config: { indicatorCode: 'active-campaigns', color: '#6A1B9A' } },
     ],
   },
-  {
-    code: 'trade-sps',
-    domainId: 'a0000000-0000-4000-8000-000000000003',
+  'trade-sps': {
     titleEn: 'Trade & SPS - Continental Overview',
     titleFr: 'Commerce & SPS - Vue continentale',
     kpis: [
@@ -63,9 +53,7 @@ const DOMAINS: DomainDef[] = [
       { titleEn: 'Border Points', titleFr: 'Points frontaliers', config: { indicatorCode: 'border-points', color: '#6A1B9A' } },
     ],
   },
-  {
-    code: 'fisheries',
-    domainId: 'a0000000-0000-4000-8000-000000000004',
+  'fisheries': {
     titleEn: 'Fisheries & Aquaculture - Continental Overview',
     titleFr: 'Peches & Aquaculture - Vue continentale',
     kpis: [
@@ -75,164 +63,100 @@ const DOMAINS: DomainDef[] = [
       { titleEn: 'Active Vessels', titleFr: 'Navires actifs', config: { indicatorCode: 'active-vessels', color: '#E65100' } },
     ],
   },
-  {
-    code: 'governance',
-    domainId: 'a0000000-0000-4000-8000-000000000005',
+  'governance': {
     titleEn: 'Governance & Capacities - Continental Overview',
     titleFr: 'Gouvernance & Capacites - Vue continentale',
     kpis: [
       { titleEn: 'Legal Frameworks', titleFr: 'Cadres juridiques', config: { indicatorCode: 'legal-frameworks', color: '#4527A0' } },
-      { titleEn: 'PVS Score (avg)', titleFr: 'Score PVS (moy)', config: { indicatorCode: 'pvs-score-avg', color: '#1565C0' } },
+      { titleEn: 'Vet Evaluation Score (avg)', titleFr: 'Score evaluation vet. (moy)', config: { indicatorCode: 'vet-eval-score-avg', color: '#1565C0' } },
       { titleEn: 'Staff Capacity', titleFr: 'Capacite en personnel', config: { indicatorCode: 'staff-capacity', color: '#2E7D32' } },
       { titleEn: 'Countries Evaluated', titleFr: 'Pays evalues', config: { indicatorCode: 'countries-evaluated', color: '#E65100' } },
     ],
   },
-];
+};
 
-// ── Widget template builder ────────────────────────────────────────────
-
-interface WidgetInput {
-  type: 'KPI_CARD' | 'MAP_AFRICA' | 'BAR_CHART' | 'LINE_CHART' | 'STACKED_BAR';
-  gridX: number;
-  gridY: number;
-  gridW: number;
-  gridH: number;
-  titleEn: string;
-  titleFr: string;
-  config: Record<string, unknown>;
-}
-
-function buildWidgets(domain: DomainDef): WidgetInput[] {
-  const widgets: WidgetInput[] = [];
-
-  // Row 0: 4 KPI cards
-  domain.kpis.forEach((kpi, i) => {
-    widgets.push({
-      type: 'KPI_CARD',
-      gridX: i * 3,
-      gridY: 0,
-      gridW: 3,
-      gridH: 2,
-      titleEn: kpi.titleEn,
-      titleFr: kpi.titleFr,
-      config: { ...kpi.config, dataSource: 'INDICATOR' },
-    });
-  });
-
-  // Row 1: MAP_AFRICA (8 cols) + BAR_CHART (4 cols)
-  widgets.push({
-    type: 'MAP_AFRICA',
-    gridX: 0,
-    gridY: 2,
-    gridW: 8,
-    gridH: 5,
-    titleEn: `${domain.code.replace(/-/g, ' ')} - Geographic Distribution`,
-    titleFr: `${domain.code.replace(/-/g, ' ')} - Distribution geographique`,
-    config: { domain: domain.code, dataSource: 'KPI_CONTINENTAL' },
-  });
-
-  widgets.push({
-    type: 'BAR_CHART',
-    gridX: 8,
-    gridY: 2,
-    gridW: 4,
-    gridH: 5,
-    titleEn: 'Top 10 Countries',
-    titleFr: 'Top 10 Pays',
-    config: { domain: domain.code, metric: 'records', limit: 10, dataSource: 'KPI_CONTINENTAL' },
-  });
-
-  // Row 2: LINE_CHART (6 cols) + STACKED_BAR (6 cols)
-  widgets.push({
-    type: 'LINE_CHART',
-    gridX: 0,
-    gridY: 7,
-    gridW: 6,
-    gridH: 4,
-    titleEn: 'Trend (Last 12 Months)',
-    titleFr: 'Tendance (12 derniers mois)',
-    config: { domain: domain.code, period: '12M', dataSource: 'KPI_CONTINENTAL' },
-  });
-
-  widgets.push({
-    type: 'STACKED_BAR',
-    gridX: 6,
-    gridY: 7,
-    gridW: 6,
-    gridH: 4,
-    titleEn: 'Breakdown by REC',
-    titleFr: 'Repartition par CER',
-    config: { domain: domain.code, groupBy: 'rec', dataSource: 'KPI_CONTINENTAL' },
-  });
-
-  return widgets;
-}
-
-// ── Main seed logic ────────────────────────────────────────────────────
+// ── Main seed ─────────────────────────────────────────────────────────
 
 async function seedDashboardTemplates() {
   console.log('[seed-dashboard-templates] Starting...');
 
   // Ensure schema exists
-  await (prisma as any).$executeRawUnsafe(
-    `CREATE SCHEMA IF NOT EXISTS dashboard_builder`,
+  try {
+    await (prisma as any).$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS dashboard_builder`);
+  } catch { /* schema may already exist */ }
+
+  // Lookup real domain IDs from the governance.domains table
+  const domains: { id: string; code: string }[] = await (prisma as any).$queryRawUnsafe(
+    `SELECT id, code FROM governance.domains WHERE code = ANY($1::text[])`,
+    Object.keys(DOMAIN_KPIS),
   );
+
+  if (domains.length === 0) {
+    console.log('  No domains found in governance.domains — skipping dashboard templates.');
+    return;
+  }
 
   let created = 0;
   let skipped = 0;
 
-  for (const domain of DOMAINS) {
-    // Check if a SYSTEM_TEMPLATE already exists for this domain + scope
-    const existing = await (prisma as any).dashboard.findFirst({
-      where: {
-        ownership: 'SYSTEM_TEMPLATE',
-        scope: 'CONTINENTAL',
-        domain_id: domain.domainId,
-      },
-    });
+  for (const domain of domains) {
+    const def = DOMAIN_KPIS[domain.code];
+    if (!def) continue;
 
-    if (existing) {
-      console.log(`  [SKIP] ${domain.code} — template already exists (${existing.id})`);
+    // Check if template already exists
+    const existing: any[] = await (prisma as any).$queryRawUnsafe(
+      `SELECT id FROM dashboard_builder.dashboards WHERE ownership = 'SYSTEM_TEMPLATE' AND scope = 'CONTINENTAL' AND domain_id = $1::uuid LIMIT 1`,
+      domain.id,
+    );
+
+    if (existing.length > 0) {
+      console.log(`  [SKIP] ${domain.code} — already exists`);
       skipped++;
       continue;
     }
 
-    // Create dashboard with widgets
-    const widgets = buildWidgets(domain);
-    const dashboard = await (prisma as any).dashboard.create({
-      data: {
-        ownership: 'SYSTEM_TEMPLATE',
-        scope: 'CONTINENTAL',
-        domain_id: domain.domainId,
-        title_en: domain.titleEn,
-        title_fr: domain.titleFr,
-        description: `System template for ${domain.code} continental dashboard`,
-        grid_columns: 12,
-        row_height: 80,
-        is_default: true,
-        widgets: {
-          create: widgets.map((w) => ({
-            type: w.type,
-            data_source: 'KPI_CONTINENTAL',
-            grid_x: w.gridX,
-            grid_y: w.gridY,
-            grid_w: w.gridW,
-            grid_h: w.gridH,
-            title_en: w.titleEn,
-            title_fr: w.titleFr,
-            config: w.config,
-            filters: {},
-          })),
-        },
-      },
-      include: { widgets: true },
-    });
+    // Create dashboard
+    const dashId: any[] = await (prisma as any).$queryRawUnsafe(
+      `INSERT INTO dashboard_builder.dashboards (id, ownership, scope, domain_id, title_en, title_fr, description, grid_columns, row_height, is_default, created_at, updated_at)
+       VALUES (gen_random_uuid(), 'SYSTEM_TEMPLATE', 'CONTINENTAL', $1::uuid, $2, $3, $4, 12, 80, true, NOW(), NOW())
+       RETURNING id`,
+      domain.id, def.titleEn, def.titleFr, `System template for ${domain.code} continental dashboard`,
+    );
 
-    console.log(`  [CREATE] ${domain.code} — ${dashboard.id} (${dashboard.widgets.length} widgets)`);
+    const dashboardId = dashId[0].id;
+
+    // Create widgets
+    const widgets = [
+      // Row 0: 4 KPI cards
+      ...def.kpis.map((kpi, i) => ({
+        type: 'KPI_CARD', dataSource: 'INDICATOR', gridX: i * 3, gridY: 0, gridW: 3, gridH: 2,
+        titleEn: kpi.titleEn, titleFr: kpi.titleFr, config: JSON.stringify({ ...kpi.config, dataSource: 'INDICATOR' }),
+      })),
+      // Row 1: MAP + BAR
+      { type: 'MAP_AFRICA', dataSource: 'KPI_CONTINENTAL', gridX: 0, gridY: 2, gridW: 8, gridH: 5,
+        titleEn: 'Geographic Distribution', titleFr: 'Distribution geographique', config: JSON.stringify({ domain: domain.code }) },
+      { type: 'BAR_CHART', dataSource: 'KPI_CONTINENTAL', gridX: 8, gridY: 2, gridW: 4, gridH: 5,
+        titleEn: 'Top 10 Countries', titleFr: 'Top 10 Pays', config: JSON.stringify({ domain: domain.code, limit: 10 }) },
+      // Row 2: LINE + STACKED
+      { type: 'LINE_CHART', dataSource: 'KPI_CONTINENTAL', gridX: 0, gridY: 7, gridW: 6, gridH: 4,
+        titleEn: 'Trend (Last 12 Months)', titleFr: 'Tendance (12 derniers mois)', config: JSON.stringify({ domain: domain.code, period: '12M' }) },
+      { type: 'STACKED_BAR', dataSource: 'KPI_CONTINENTAL', gridX: 6, gridY: 7, gridW: 6, gridH: 4,
+        titleEn: 'Breakdown by REC', titleFr: 'Repartition par CER', config: JSON.stringify({ domain: domain.code, groupBy: 'rec' }) },
+    ];
+
+    for (const w of widgets) {
+      await (prisma as any).$executeRawUnsafe(
+        `INSERT INTO dashboard_builder.dashboard_widgets (id, dashboard_id, type, data_source, grid_x, grid_y, grid_w, grid_h, title_en, title_fr, config, filters, created_at, updated_at)
+         VALUES (gen_random_uuid(), $1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, '{}'::jsonb, NOW(), NOW())`,
+        dashboardId, w.type, w.dataSource, w.gridX, w.gridY, w.gridW, w.gridH, w.titleEn, w.titleFr, w.config,
+      );
+    }
+
+    console.log(`  [CREATE] ${domain.code} — ${dashboardId} (${widgets.length} widgets)`);
     created++;
   }
 
-  console.log(`[seed-dashboard-templates] Done: ${created} created, ${skipped} skipped.`);
+  console.log(`\n[seed-dashboard-templates] Done: ${created} created, ${skipped} skipped.`);
 }
 
 seedDashboardTemplates()
