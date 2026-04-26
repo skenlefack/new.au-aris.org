@@ -156,13 +156,22 @@ export function useCreateDashboard() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: {
-      title: string;
+      title?: string;
+      titleFr?: string;
+      titleEn?: string;
       description?: string;
       scope: DashboardScope;
       domainCode?: string;
       isTemplate?: boolean;
       tags?: string[];
-    }) => analyticsClient.post<{ data: Dashboard }>('/analytics/dashboards', body),
+    }) => {
+      const payload = {
+        ...body,
+        titleFr: body.titleFr || body.title || 'Nouveau tableau de bord',
+        titleEn: body.titleEn || body.title || 'New Dashboard',
+      };
+      return analyticsClient.post<{ data: Dashboard }>('/analytics/dashboards', payload);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEYS.lists() });
     },
