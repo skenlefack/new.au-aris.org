@@ -16,7 +16,8 @@ import type {
 import { useSettingsDomains } from '@/lib/api/settings-hooks';
 import { useAdminSubDomains } from '@/lib/api/sub-domain-hooks';
 import { ForbiddenPage } from '@/components/ui/ForbiddenPage';
-import { Loader2, ArrowLeft, Check } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, Sparkles } from 'lucide-react';
+import { AiSuggestionDialog } from '@/components/ai/AiSuggestionDialog';
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN']);
 
@@ -87,6 +88,24 @@ function IndicatorForm() {
   const [descriptionFr, setDescriptionFr] = useState('');
   const [descriptionEn, setDescriptionEn] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // AI suggestion dialog
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+
+  const handleAiAccept = (draft: any) => {
+    if (draft.code) { setCode(draft.code); setCodeManual(true); }
+    if (draft.nameEn) handleNameEnChange(draft.nameEn);
+    if (draft.nameFr) setNameFr(draft.nameFr);
+    if (draft.nameAr) setNameAr(draft.nameAr);
+    if (draft.namePt) setNamePt(draft.namePt);
+    if (draft.descriptionEn) setDescriptionEn(draft.descriptionEn);
+    if (draft.descriptionFr) setDescriptionFr(draft.descriptionFr);
+    if (draft.scope) setScope(draft.scope);
+    if (draft.measurementMode) setMeasurementMode(draft.measurementMode);
+    if (draft.unit) setUnit(draft.unit);
+    if (draft.targetValue !== undefined) setTargetValue(String(draft.targetValue));
+    if (draft.betterIsHigher !== undefined) setBetterIsHigher(draft.betterIsHigher);
+  };
 
   // Auto-generate code from nameEn
   const handleNameEnChange = (val: string) => {
@@ -164,16 +183,33 @@ function IndicatorForm() {
   return (
     <div className="space-y-6 pb-20">
       {/* Back + Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/settings/indicators"
-          className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">New Indicator</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Create a new indicator in the ARIS analytics system.</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/settings/indicators"
+            className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">New Indicator</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Create a new indicator in the ARIS analytics system.</p>
+          </div>
         </div>
+        <button
+          onClick={() => setAiDialogOpen(true)}
+          className="inline-flex items-center gap-2 rounded-xl border border-[#C9A227]/30 bg-gradient-to-r from-[#1F4E79]/5 to-[#C9A227]/5 px-4 py-2 text-sm font-medium text-[#1F4E79] hover:from-[#1F4E79]/10 hover:to-[#C9A227]/10 transition-all dark:text-[#C9A227] dark:border-[#C9A227]/20"
+        >
+          <Sparkles className="h-4 w-4" style={{ color: '#C9A227' }} />
+          Suggest with AI
+        </button>
       </div>
+
+      <AiSuggestionDialog
+        open={aiDialogOpen}
+        onClose={() => setAiDialogOpen(false)}
+        type="indicator"
+        onAccept={handleAiAccept}
+        context={{ domainId: selectedDomainCode }}
+      />
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6 rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">

@@ -12,6 +12,7 @@ import {
   Loader2,
   Settings,
   Building2,
+  Sparkles,
 } from 'lucide-react';
 import { useCreateCollectionCampaign } from '@/lib/api/workflow-hooks';
 import {
@@ -26,6 +27,7 @@ import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea';
 import { useTranslations } from '@/lib/i18n/translations';
 import { TargetsSelector, type TargetFormValue } from '@/components/forms/TargetsSelector';
+import { AiSuggestionDialog } from '@/components/ai/AiSuggestionDialog';
 
 const FREQUENCY_OPTIONS = [
   { value: 'one_time', tKey: 'oneTime' },
@@ -46,6 +48,7 @@ const allRecs = getAllRecs();
 export default function NewCampaignPage() {
   const router = useRouter();
   const t = useTranslations('collecte');
+  const tAi = useTranslations('ai');
   const createCampaign = useCreateCollectionCampaign();
 
   // Multilingual name & description
@@ -73,6 +76,25 @@ export default function NewCampaignPage() {
   const [reminderDays, setReminderDays] = useState('3');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // AI suggestion dialog
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+
+  const handleAiAccept = (draft: any) => {
+    if (draft.name) setName(typeof draft.name === 'string' ? { en: draft.name, fr: '', pt: '', ar: '', es: '' } : draft.name);
+    if (draft.description) setDescription(typeof draft.description === 'string' ? { en: draft.description, fr: '', pt: '', ar: '', es: '' } : draft.description);
+    if (draft.startDate) setStartDate(draft.startDate);
+    if (draft.endDate) setEndDate(draft.endDate);
+    if (draft.frequency) setFrequency(draft.frequency);
+    if (Array.isArray(draft.domains)) handleDomainsChange(draft.domains);
+    if (Array.isArray(draft.targets) && draft.targets.length > 0) {
+      setTargets(draft.targets.map((t: any, i: number) => ({
+        domainCode: t.domainCode ?? '',
+        subDomainCode: t.subDomainCode ?? null,
+        isPrimary: i === 0,
+      })));
+    }
+  };
 
   // Fetch all templates
   const { data: templatesData, isLoading: templatesLoading } = useFormBuilderTemplates({
@@ -172,21 +194,38 @@ export default function NewCampaignPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div>
-        <Link
-          href="/collecte"
-          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+      <div className="flex items-start justify-between">
+        <div>
+          <Link
+            href="/collecte"
+            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t('backToCampaigns')}
+          </Link>
+          <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+            {t('createCampaign')}
+          </h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {t('collectionCampaignsDesc')}
+          </p>
+        </div>
+        <button
+          onClick={() => setAiDialogOpen(true)}
+          className="inline-flex items-center gap-2 rounded-xl border border-[#C9A227]/30 bg-gradient-to-r from-[#1F4E79]/5 to-[#C9A227]/5 px-4 py-2 text-sm font-medium text-[#1F4E79] hover:from-[#1F4E79]/10 hover:to-[#C9A227]/10 transition-all dark:text-[#C9A227] dark:border-[#C9A227]/20"
         >
-          <ArrowLeft className="h-4 w-4" />
-          {t('backToCampaigns')}
-        </Link>
-        <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-          {t('createCampaign')}
-        </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {t('collectionCampaignsDesc')}
-        </p>
+          <Sparkles className="h-4 w-4" style={{ color: '#C9A227' }} />
+          {tAi('suggestWithAi')}
+        </button>
       </div>
+
+      <AiSuggestionDialog
+        open={aiDialogOpen}
+        onClose={() => setAiDialogOpen(false)}
+        type="campaign"
+        onAccept={handleAiAccept}
+        context={{ domains: selectedDomains }}
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* ROW 1 — Two-column: Information (left) + Scheduling & Options (right) */}

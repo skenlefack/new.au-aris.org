@@ -2,16 +2,18 @@
 
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, ArrowLeft, Upload, CheckCircle2, AlertCircle, Target } from 'lucide-react';
+import { FileText, ArrowLeft, Upload, CheckCircle2, AlertCircle, Target, Sparkles } from 'lucide-react';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { createDefaultFormSchema } from '@/components/form-builder/utils/form-schema';
 import { useCreateFormTemplate, useImportExcelTemplate, type FormType } from '@/lib/api/form-builder-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 import { TargetsSelector, type TargetFormValue } from '@/components/forms/TargetsSelector';
+import { AiSuggestionDialog } from '@/components/ai/AiSuggestionDialog';
 
 export default function NewFormPage() {
   const router = useRouter();
   const t = useTranslations('collecte');
+  const tAi = useTranslations('ai');
   const createMutation = useCreateFormTemplate();
   const importMutation = useImportExcelTemplate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -24,6 +26,23 @@ export default function NewFormPage() {
   const [formType, setFormType] = useState<FormType>('CAMPAIGN');
   const [description, setDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+
+  // AI suggestion dialog state
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+
+  const handleAiAccept = (draft: any) => {
+    if (draft.name) setName(draft.name);
+    if (draft.description) setDescription(draft.description);
+    if (draft.domain) setDomain(draft.domain);
+    if (draft.formType) setFormType(draft.formType);
+    if (Array.isArray(draft.targets) && draft.targets.length > 0) {
+      setTargets(draft.targets.map((t: any, i: number) => ({
+        domainCode: t.domainCode ?? '',
+        subDomainCode: t.subDomainCode ?? null,
+        isPrimary: i === 0,
+      })));
+    }
+  };
 
   // Excel import state
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -110,20 +129,37 @@ export default function NewFormPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => router.push('/collecte/forms')}
-          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('newForm')}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {t('newFormDesc')}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push('/collecte/forms')}
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('newForm')}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {t('newFormDesc')}
+            </p>
+          </div>
         </div>
+        <button
+          onClick={() => setAiDialogOpen(true)}
+          className="inline-flex items-center gap-2 rounded-xl border border-[#C9A227]/30 bg-gradient-to-r from-[#1F4E79]/5 to-[#C9A227]/5 px-4 py-2 text-sm font-medium text-[#1F4E79] hover:from-[#1F4E79]/10 hover:to-[#C9A227]/10 transition-all dark:text-[#C9A227] dark:border-[#C9A227]/20"
+        >
+          <Sparkles className="h-4 w-4" style={{ color: '#C9A227' }} />
+          {tAi('suggestWithAi')}
+        </button>
       </div>
+
+      <AiSuggestionDialog
+        open={aiDialogOpen}
+        onClose={() => setAiDialogOpen(false)}
+        type="form"
+        onAccept={handleAiAccept}
+        context={{ domain }}
+      />
 
       {/* Two-column grid on large screens */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

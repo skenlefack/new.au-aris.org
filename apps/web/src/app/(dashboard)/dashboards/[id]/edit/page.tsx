@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Save, X, Share2, ArrowLeft } from 'lucide-react';
+import { Save, X, Share2, ArrowLeft, Sparkles } from 'lucide-react';
 import {
   useDashboard,
   useUpdateDashboard,
@@ -14,6 +14,7 @@ import {
 } from '@/lib/api/dashboard-hooks';
 import { DashboardGrid } from '@/components/dashboard-builder/DashboardGrid';
 import { WidgetPalette } from '@/components/dashboard-builder/WidgetPalette';
+import { AiSuggestionDialog } from '@/components/ai/AiSuggestionDialog';
 
 export default function DashboardEditPage() {
   const params = useParams();
@@ -34,6 +35,33 @@ export default function DashboardEditPage() {
     setTitle(dashboard.title);
     titleInitialized.current = true;
   }
+
+  // AI suggestion dialog
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+
+  const handleAiAccept = useCallback(
+    (draft: any) => {
+      if (!dashboard) return;
+      if (draft.title) setTitle(draft.title);
+      // If the AI suggests widgets, add them via addWidget
+      if (Array.isArray(draft.widgets)) {
+        let currentY = (dashboard.widgets ?? []).reduce(
+          (max, w) => Math.max(max, w.layout.y + w.layout.h),
+          0,
+        );
+        for (const w of draft.widgets) {
+          addWidget.mutate({
+            dashboardId: id,
+            type: w.type ?? 'KPI_CARD',
+            title: w.title ?? w.type,
+            layout: { x: w.layout?.x ?? 0, y: currentY, w: w.layout?.w ?? 4, h: w.layout?.h ?? 3 },
+          });
+          currentY += w.layout?.h ?? 3;
+        }
+      }
+    },
+    [dashboard, id, addWidget],
+  );
 
   // Pending layout changes (accumulated during drag/resize, saved on explicit Save)
   const pendingLayoutRef = useRef<
@@ -147,6 +175,13 @@ export default function DashboardEditPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setAiDialogOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-[#C9A227]/30 bg-gradient-to-r from-[#1F4E79]/5 to-[#C9A227]/5 px-3 py-1.5 text-sm font-medium text-[#1F4E79] hover:from-[#1F4E79]/10 hover:to-[#C9A227]/10 transition-all dark:text-[#C9A227] dark:border-[#C9A227]/20"
+            >
+              <Sparkles className="h-4 w-4" style={{ color: '#C9A227' }} />
+              Suggest with AI
+            </button>
+            <button
               onClick={handleCancel}
               className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
@@ -181,6 +216,14 @@ export default function DashboardEditPage() {
           />
         </div>
       </div>
+
+      <AiSuggestionDialog
+        open={aiDialogOpen}
+        onClose={() => setAiDialogOpen(false)}
+        type="dashboard"
+        onAccept={handleAiAccept}
+        context={{ domainCode: dashboard.domainCode, scope: dashboard.scope }}
+      />
     </div>
   );
 }

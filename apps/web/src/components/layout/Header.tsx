@@ -31,6 +31,7 @@ import { ConnectionIndicator } from '@/components/realtime/ConnectionIndicator';
 import { NotificationPanel } from '@/components/realtime/NotificationPanel';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { AiHealthIndicator } from '@/components/ai/AiHealthIndicator';
 import { useUiStore } from '@/lib/stores/ui-store';
 import { useUserFunctions } from '@/lib/api/settings-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -150,6 +151,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   users: 'Users',
   audit: 'Audit Log',
   system: 'System',
+  'ai-console': 'AI Console',
 };
 
 /* ------------------------------------------------------------------ */
@@ -444,6 +446,7 @@ export function Header({ sidebarCollapsed, onSidebarToggle }: HeaderProps) {
           )}
         </div>
 
+        <AiHealthIndicator />
         <LanguageSwitcher />
         <ThemeToggle />
         <ConnectionIndicator />
