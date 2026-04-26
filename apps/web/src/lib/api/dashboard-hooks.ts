@@ -6,6 +6,32 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { analyticsClient } from './client';
 
+/** Map flat grid_x/grid_y/grid_w/grid_h from backend to layout object expected by frontend */
+function mapWidgetLayout(w: any): any {
+  if (w.layout) return w; // already mapped
+  return {
+    ...w,
+    title: w.title || w.title_fr || w.titleFr || '',
+    layout: {
+      x: w.grid_x ?? w.gridX ?? 0,
+      y: w.grid_y ?? w.gridY ?? 0,
+      w: w.grid_w ?? w.gridW ?? 3,
+      h: w.grid_h ?? w.gridH ?? 2,
+      minW: 2,
+      minH: 2,
+    },
+  };
+}
+
+function mapDashboardWidgets(data: any): any {
+  if (!data) return data;
+  const d = data.data ?? data;
+  if (d.widgets && Array.isArray(d.widgets)) {
+    d.widgets = d.widgets.map(mapWidgetLayout);
+  }
+  return data;
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export type DashboardScope = 'CONTINENTAL' | 'REC' | 'MEMBER_STATE' | 'PERSONAL';
@@ -120,8 +146,10 @@ export function useDashboards(params?: {
 export function useDashboard(id: string) {
   return useQuery<{ data: Dashboard }>({
     queryKey: KEYS.detail(id),
-    queryFn: () =>
-      analyticsClient.get<{ data: Dashboard }>(`/analytics/dashboards/${id}`),
+    queryFn: async () => {
+      const res = await analyticsClient.get<{ data: Dashboard }>(`/analytics/dashboards/${id}`);
+      return mapDashboardWidgets(res);
+    },
     enabled: !!id,
   });
 }
@@ -129,10 +157,12 @@ export function useDashboard(id: string) {
 export function useDashboardRender(id: string) {
   return useQuery<{ data: DashboardRenderData }>({
     queryKey: KEYS.render(id),
-    queryFn: () =>
-      analyticsClient.get<{ data: DashboardRenderData }>(
+    queryFn: async () => {
+      const res = await analyticsClient.get<{ data: DashboardRenderData }>(
         `/analytics/dashboards/${id}/render`,
-      ),
+      );
+      return mapDashboardWidgets(res);
+    },
     enabled: !!id,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
