@@ -1,0 +1,148 @@
+# ═══════════════════════════════════════════════════════════════
+# ARIS 4.0 — VM-AI: Python ML Service + NiFi ETL + Monitoring
+# Host: 10.202.101.142 (nbo-ai01)
+# ═══════════════════════════════════════════════════════════════
+# External dependencies:
+#   Ollama         → localhost:11434 (systemd, NOT in Docker)
+#   PostgreSQL     → 10.202.101.185:6432 (PgBouncer)
+#   Kafka          → 10.202.101.184:9092,9094,9096
+#   Redis          → 10.202.101.186:6379
+# ═══════════════════════════════════════════════════════════════
+
+x-common: &common
+  restart: unless-stopped
+  networks:
+    - aris-ai-net
+
+services:
+  # ── Python ML Service (FastAPI) ──────────────────────────────
+  python-ml:
+    <<: *common
+    build:
+      context: /opt/aris/services/python-ml
+      dockerfile: Dockerfile
+    container_name: aris-ai-python-ml
+    ports:
+      - "8000:8000"
+    environment:
+      OLLAMA_URL: http://host.docker.internal:11434
+      REDIS_URL: redis://:${REDIS_PASSWORD:-R3d1s_Pr0d_2024!vN7wQ}@10.202.101.186:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-Ar1s_Pr0d_2024!xK9mZ}@10.202.101.185:6432/${POSTGRES_DB:-aris}?pgbouncer=true
+      KAFKA_BROKERS: 10.202.101.184:9092,10.202.101.184:9094,10.202.101.184:9096
+      LOG_LEVEL: info
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ml-models:/app/data/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ── Apache NiFi 2.x (ETL) ───────────────────────────────────
+  nifi:
+    <<: *common
+    image: apache/nifi:2.1.0
+    container_name: aris-ai-nifi
+    ports:
+      - "8443:8443"
+    environment:
+      SINGLE_USER_CREDENTIALS_USERNAME: admin
+      SINGLE_USER_CREDENTIALS_PASSWORD: ${NIFI_PASSWORD:-Ar1s_N1f1_2024!zQ8xR}
+      NIFI_WEB_HTTPS_PORT: "8443"
+    volumes:
+      - nifi-data:/opt/nifi/nifi-current/conf
+      - nifi-content:/opt/nifi/nifi-current/content_repository
+      - nifi-flowfile:/opt/nifi/nifi-current/flowfile_repository
+      - nifi-provenance:/opt/nifi/nifi-current/provenance_repository
+      - nifi-state:/opt/nifi/nifi-current/state
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fk https://localhost:8443/nifi-api/system-diagnostics || exit 1"]
+      interval: 60s
+      timeout: 15s
+      retries: 5
+      start_period: 120s
+
+  # ── Prometheus (Monitoring) ──────────────────────────────────
+  prometheus:
+    <<: *common
+    image: prom/prometheus:v2.53.0
+    container_name: aris-ai-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Grafana (Dashboards) ─────────────────────────────────────
+  grafana:
+    <<: *common
+    image: grafana/grafana:11.2.0
+    container_name: aris-ai-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-Ar1s_Graf_2024!mK5nP}
+      GF_SERVER_ROOT_URL: http://10.202.101.142:3000
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Node Exporter (System Metrics) ───────────────────────────
+  node-exporter:
+    <<: *common
+    image: prom/node-exporter:v1.8.2
+    container_name: aris-ai-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+
+networks:
+  aris-ai-net:
+    driver: bridge
+    name: aris-ai-net
+
+volumes:
+  ml-models:
+    name: aris-ai-ml-models
+  nifi-data:
+    name: aris-ai-nifi-data
+  nifi-content:
+    name: aris-ai-nifi-content
+  nifi-flowfile:
+    name: aris-ai-nifi-flowfile
+  nifi-provenance:
+    name: aris-ai-nifi-provenance
+  nifi-state:
+    name: aris-ai-nifi-state
+  prometheus-data:
+    name: aris-ai-prometheus-data
+  grafana-data:
+    name: aris-ai-grafana-data
