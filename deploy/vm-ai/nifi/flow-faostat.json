@@ -1,0 +1,149 @@
+{
+  "_comment": "ARIS 4.0 - NiFi Flow Template: FAOSTAT Data Ingestion",
+  "_description": "Skeleton template documenting the intended NiFi flow. Configure manually via NiFi UI.",
+  "flowName": "ARIS_FAOSTAT_Ingestion",
+  "version": "1.0.0",
+
+  "processors": [
+    {
+      "id": "proc-01-invoke-faostat",
+      "type": "org.apache.nifi.processors.standard.InvokeHTTP",
+      "name": "Fetch FAOSTAT CSV",
+      "config": {
+        "HTTP Method": "GET",
+        "Remote URL": "https://fenixservices.fao.org/faostat/api/v1/en/data/${faostat.dataset}?area=${country.code}&year=${year}&output_type=csv",
+        "scheduling": {
+          "strategy": "CRON_DRIVEN",
+          "expression": "0 0 4 * * ?",
+          "_comment": "Daily at 04:00 UTC"
+        }
+      },
+      "relationships": {
+        "Response": "proc-02-convert-csv"
+      }
+    },
+    {
+      "id": "proc-02-convert-csv",
+      "type": "org.apache.nifi.processors.standard.ConvertRecord",
+      "name": "CSV to JSON",
+      "config": {
+        "Record Reader": "CSVReader",
+        "Record Writer": "JsonRecordSetWriter",
+        "_csvReaderConfig": {
+          "Schema Access Strategy": "Infer Schema",
+          "Treat First Line as Header": "true",
+          "Value Separator": ","
+        }
+      },
+      "relationships": {
+        "success": "proc-03-route-indicator"
+      }
+    },
+    {
+      "id": "proc-03-route-indicator",
+      "type": "org.apache.nifi.processors.standard.RouteOnAttribute",
+      "name": "Filter ARIS Indicators",
+      "config": {
+        "Routing Strategy": "Route to Property name",
+        "properties": {
+          "livestock_production": "${item_code:matches('(0882|0946|1107|1126|1137)')}",
+          "livestock_trade": "${item_code:matches('(0866|0867|0868|0869)')}",
+          "fisheries_capture": "${item_code:matches('(2960|2961|2962)')}",
+          "_comment": "FAOSTAT item codes mapped to ARIS domains"
+        }
+      },
+      "relationships": {
+        "livestock_production": "proc-04-transform",
+        "livestock_trade": "proc-04-transform",
+        "fisheries_capture": "proc-04-transform",
+        "unmatched": "proc-drop"
+      }
+    },
+    {
+      "id": "proc-04-transform",
+      "type": "org.apache.nifi.processors.standard.JoltTransformJSON",
+      "name": "Map FAOSTAT to ARIS indicator_values",
+      "config": {
+        "Jolt Transformation DSL": "Chain",
+        "Jolt Specification": [
+          {
+            "operation": "shift",
+            "spec": {
+              "Area Code (ISO3)": "country_code",
+              "Item Code": "faostat_item_code",
+              "Element Code": "faostat_element_code",
+              "Year": "year",
+              "Value": "numeric_value",
+              "Unit": "unit",
+              "Item": "indicator_name"
+            }
+          },
+          {
+            "operation": "default",
+            "spec": {
+              "source": "FAOSTAT",
+              "source_version": "v1",
+              "data_classification": "PUBLIC"
+            }
+          }
+        ]
+      },
+      "relationships": {
+        "success": "proc-05-publish-kafka"
+      }
+    },
+    {
+      "id": "proc-05-publish-kafka",
+      "type": "org.apache.nifi.processors.kafka.publish.PublishKafka",
+      "name": "Publish to Kafka",
+      "config": {
+        "Kafka Brokers": "${kafka.brokers:nbo-brk01:9092}",
+        "Topic Name": "connector.faostat.indicator.received.v1",
+        "Key Attribute Expression": "${country_code}-${year}-${faostat_item_code}",
+        "Delivery Guarantee": "GUARANTEE_REPLICATED_DELIVERY",
+        "Compression Type": "lz4",
+        "Message Header Encoding": "UTF-8"
+      },
+      "relationships": {
+        "success": "proc-log-success",
+        "failure": "proc-log-failure"
+      }
+    },
+    {
+      "id": "proc-log-success",
+      "type": "org.apache.nifi.processors.standard.LogAttribute",
+      "name": "Log Success",
+      "config": {
+        "Log Level": "INFO",
+        "Log Prefix": "FAOSTAT_INGESTION_OK"
+      }
+    },
+    {
+      "id": "proc-log-failure",
+      "type": "org.apache.nifi.processors.standard.LogAttribute",
+      "name": "Log Failure",
+      "config": {
+        "Log Level": "ERROR",
+        "Log Prefix": "FAOSTAT_INGESTION_FAIL"
+      }
+    },
+    {
+      "id": "proc-drop",
+      "type": "org.apache.nifi.processors.standard.LogAttribute",
+      "name": "Drop Unmatched",
+      "config": {
+        "Log Level": "DEBUG",
+        "Log Prefix": "FAOSTAT_UNMATCHED"
+      }
+    }
+  ],
+
+  "processGroups": [],
+
+  "variables": {
+    "faostat.dataset": "QCL",
+    "country.code": "all",
+    "year": "2020-2025",
+    "kafka.brokers": "nbo-brk01:9092,nbo-brk01:9093,nbo-brk01:9094"
+  }
+}

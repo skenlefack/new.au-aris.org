@@ -27,6 +27,41 @@ enum AiDraftStatus {
   @@schema("ai")
 }
 
+enum MlModelType {
+  XGBOOST
+  ISOLATION_FOREST
+  HDBSCAN
+  CHRONOS
+  PROPHET
+
+  @@schema("ai")
+}
+
+enum MlModelStatus {
+  TRAINING
+  READY
+  FAILED
+  DEPRECATED
+
+  @@schema("ai")
+}
+
+enum MlJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+
+  @@schema("ai")
+}
+
+enum MlJobTrigger {
+  SCHEDULE
+  MANUAL
+
+  @@schema("ai")
+}
+
 model AiUsageLog {
   id            String        @id @default(uuid()) @db.Uuid
   userId        String        @db.Uuid
@@ -59,5 +94,48 @@ model AiGenerationDraft {
   @@index([type, status])
   @@index([createdAt])
   @@map("ai_generation_drafts")
+  @@schema("ai")
+}
+
+model MlModel {
+  id           String        @id @default(uuid()) @db.Uuid
+  code         String        @unique @db.VarChar(128)
+  name         String        @db.VarChar(255)
+  type         MlModelType
+  version      String        @db.VarChar(32) @default("1.0.0")
+  status       MlModelStatus @default(TRAINING)
+  trainedAt    DateTime?     @db.Timestamptz(3)
+  accuracy     Float?
+  metrics      Json          @default("{}")
+  artifactPath String?       @db.VarChar(512)
+  config       Json          @default("{}")
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @db.Timestamptz(3)
+
+  trainingJobs MlTrainingJob[]
+
+  @@index([type, status])
+  @@index([code])
+  @@map("ml_models")
+  @@schema("ai")
+}
+
+model MlTrainingJob {
+  id            String       @id @default(uuid()) @db.Uuid
+  modelId       String       @db.Uuid
+  model         MlModel      @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  status        MlJobStatus  @default(PENDING)
+  triggeredBy   MlJobTrigger @default(SCHEDULE)
+  startedAt     DateTime?    @db.Timestamptz(3)
+  completedAt   DateTime?    @db.Timestamptz(3)
+  durationMs    Int?
+  inputRowCount Int?
+  errorMessage  String?      @db.Text
+  metrics       Json         @default("{}")
+  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@index([modelId, status])
+  @@index([createdAt])
+  @@map("ml_training_jobs")
   @@schema("ai")
 }

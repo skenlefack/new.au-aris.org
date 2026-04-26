@@ -1,0 +1,193 @@
+{
+  "_comment": "ARIS 4.0 - NiFi Flow Template: WAHIS Outbreak Data Ingestion",
+  "_description": "Skeleton template documenting the intended NiFi flow. Configure manually via NiFi UI.",
+  "flowName": "ARIS_WAHIS_Ingestion",
+  "version": "1.0.0",
+
+  "processors": [
+    {
+      "id": "proc-01-invoke-wahis",
+      "type": "org.apache.nifi.processors.standard.InvokeHTTP",
+      "name": "Fetch WAHIS Events",
+      "config": {
+        "HTTP Method": "GET",
+        "Remote URL": "https://wahis.woah.org/api/v1/pi/review/event?dateFrom=${wahis.date.from}&dateTo=${wahis.date.to}&regionId=1",
+        "HTTP Headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer ${wahis.api.token}"
+        },
+        "scheduling": {
+          "strategy": "CRON_DRIVEN",
+          "expression": "0 */30 * * * ?",
+          "_comment": "Every 30 minutes for near-real-time"
+        },
+        "Penalization Period": "5 min",
+        "Yield Duration": "10 sec"
+      },
+      "relationships": {
+        "Response": "proc-02-split-events",
+        "No Retry": "proc-log-failure",
+        "Failure": "proc-log-failure"
+      }
+    },
+    {
+      "id": "proc-02-split-events",
+      "type": "org.apache.nifi.processors.standard.SplitJson",
+      "name": "Split Event Array",
+      "config": {
+        "JsonPath Expression": "$.events[*]",
+        "_comment": "WAHIS returns an array of events; split into individual FlowFiles"
+      },
+      "relationships": {
+        "split": "proc-03-route-severity",
+        "failure": "proc-log-failure"
+      }
+    },
+    {
+      "id": "proc-03-route-severity",
+      "type": "org.apache.nifi.processors.standard.RouteOnAttribute",
+      "name": "Route by Severity",
+      "config": {
+        "Routing Strategy": "Route to Property name",
+        "properties": {
+          "high_priority": "${event.quantityOutbreaks:gt(10):or(${event.diseaseCategory:equals('OIE-Listed')})}",
+          "normal": "${event.quantityOutbreaks:le(10)}",
+          "_comment": "High priority: >10 outbreaks or OIE-Listed diseases"
+        }
+      },
+      "relationships": {
+        "high_priority": "proc-04-transform",
+        "normal": "proc-04-transform",
+        "unmatched": "proc-log-unmatched"
+      }
+    },
+    {
+      "id": "proc-04-transform",
+      "type": "org.apache.nifi.processors.standard.JoltTransformJSON",
+      "name": "Map WAHIS to ARIS Events",
+      "config": {
+        "Jolt Transformation DSL": "Chain",
+        "Jolt Specification": [
+          {
+            "operation": "shift",
+            "spec": {
+              "eventId": "wahis_event_id",
+              "country.isoCode": "country_code",
+              "disease.oieCode": "disease_code",
+              "disease.name": "disease_name",
+              "species[0].name": "species_name",
+              "species[0].speciesId": "species_code",
+              "quantityOutbreaks": "outbreak_count",
+              "totalCases": "cases_count",
+              "totalDeaths": "deaths_count",
+              "reportDate": "report_date",
+              "startDate": "start_date",
+              "endDate": "end_date",
+              "latitude": "latitude",
+              "longitude": "longitude",
+              "eventStatus": "status",
+              "reason": "reason"
+            }
+          },
+          {
+            "operation": "default",
+            "spec": {
+              "source": "WAHIS",
+              "source_version": "v1",
+              "severity": "SUSPECTED",
+              "data_classification": "PARTNER"
+            }
+          },
+          {
+            "operation": "modify-overwrite-beta",
+            "spec": {
+              "severity": "=if(${outbreak_count} > 10) CONFIRMED else SUSPECTED"
+            }
+          }
+        ]
+      },
+      "relationships": {
+        "success": "proc-05-enrich-geo",
+        "failure": "proc-log-failure"
+      }
+    },
+    {
+      "id": "proc-05-enrich-geo",
+      "type": "org.apache.nifi.processors.standard.LookupRecord",
+      "name": "Enrich with ARIS Geo Codes",
+      "config": {
+        "Record Reader": "JsonTreeReader",
+        "Record Writer": "JsonRecordSetWriter",
+        "Lookup Service": "RestLookupService",
+        "_lookupConfig": {
+          "URL": "http://master-data:3003/api/v1/master-data/geo/lookup?countryCode=${country_code}",
+          "_comment": "Lookup ARIS admin1/admin2 codes from country_code + coordinates"
+        },
+        "Result RecordPath": "/admin1_code",
+        "Routing Strategy": "Route to 'success' or 'failure'"
+      },
+      "relationships": {
+        "success": "proc-06-publish-kafka",
+        "failure": "proc-06-publish-kafka"
+      }
+    },
+    {
+      "id": "proc-06-publish-kafka",
+      "type": "org.apache.nifi.processors.kafka.publish.PublishKafka",
+      "name": "Publish to Kafka",
+      "config": {
+        "Kafka Brokers": "${kafka.brokers}",
+        "Topic Name": "wahis.outbreak.detected.v1",
+        "Key Attribute Expression": "${country_code}-${wahis_event_id}",
+        "Delivery Guarantee": "GUARANTEE_REPLICATED_DELIVERY",
+        "Compression Type": "lz4",
+        "Message Header Encoding": "UTF-8",
+        "_headers": {
+          "aris.source": "WAHIS",
+          "aris.severity": "${severity}",
+          "aris.country": "${country_code}"
+        }
+      },
+      "relationships": {
+        "success": "proc-log-success",
+        "failure": "proc-log-failure"
+      }
+    },
+    {
+      "id": "proc-log-success",
+      "type": "org.apache.nifi.processors.standard.LogAttribute",
+      "name": "Log Success",
+      "config": {
+        "Log Level": "INFO",
+        "Log Prefix": "WAHIS_INGESTION_OK"
+      }
+    },
+    {
+      "id": "proc-log-failure",
+      "type": "org.apache.nifi.processors.standard.LogAttribute",
+      "name": "Log Failure",
+      "config": {
+        "Log Level": "ERROR",
+        "Log Prefix": "WAHIS_INGESTION_FAIL"
+      }
+    },
+    {
+      "id": "proc-log-unmatched",
+      "type": "org.apache.nifi.processors.standard.LogAttribute",
+      "name": "Log Unmatched",
+      "config": {
+        "Log Level": "DEBUG",
+        "Log Prefix": "WAHIS_UNMATCHED"
+      }
+    }
+  ],
+
+  "processGroups": [],
+
+  "variables": {
+    "wahis.date.from": "${now():toNumber():minus(86400000):format('yyyy-MM-dd')}",
+    "wahis.date.to": "${now():format('yyyy-MM-dd')}",
+    "wahis.api.token": "${WAHIS_API_TOKEN}",
+    "kafka.brokers": "nbo-brk01:9092,nbo-brk01:9093,nbo-brk01:9094"
+  }
+}
