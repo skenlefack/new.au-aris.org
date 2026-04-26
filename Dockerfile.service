@@ -30,6 +30,9 @@ RUN if [ -d packages/db-schemas/prisma ]; then \
       cd packages/db-schemas && npx prisma generate --schema=prisma 2>/dev/null || true; \
     fi
 
+# Remove hoisted frontend type declarations that break backend package builds
+RUN rm -rf node_modules/@types/react-grid-layout 2>/dev/null; true
+
 # Build all shared packages (identical for every service — cached after first build)
 RUN pnpm turbo build --filter='./packages/*'
 
