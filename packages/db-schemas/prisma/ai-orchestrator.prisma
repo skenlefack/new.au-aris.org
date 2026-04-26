@@ -1,0 +1,63 @@
+// ARIS 4.0 — AI Orchestrator Schema
+// Audit logging for AI usage and generation drafts
+
+enum AiUsageStatus {
+  SUCCESS
+  FAILED
+  TIMEOUT
+
+  @@schema("ai")
+}
+
+enum AiDraftType {
+  FORM
+  CAMPAIGN
+  INDICATOR
+  DASHBOARD
+
+  @@schema("ai")
+}
+
+enum AiDraftStatus {
+  DRAFT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+
+  @@schema("ai")
+}
+
+model AiUsageLog {
+  id            String        @id @default(uuid()) @db.Uuid
+  userId        String        @db.Uuid
+  endpoint      String        @db.VarChar(255)
+  model         String        @db.VarChar(128)
+  tokensInput   Int           @default(0)
+  tokensOutput  Int           @default(0)
+  durationMs    Int           @default(0)
+  status        AiUsageStatus @default(SUCCESS)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("ai_usage_logs")
+  @@schema("ai")
+}
+
+model AiGenerationDraft {
+  id          String        @id @default(uuid()) @db.Uuid
+  userId      String        @db.Uuid
+  type        AiDraftType
+  prompt      String        @db.Text
+  output      Json          @default("{}")
+  status      AiDraftStatus @default(DRAFT)
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  acceptedAt  DateTime?     @db.Timestamptz(3)
+  rejectedAt  DateTime?     @db.Timestamptz(3)
+
+  @@index([userId, status])
+  @@index([type, status])
+  @@index([createdAt])
+  @@map("ai_generation_drafts")
+  @@schema("ai")
+}

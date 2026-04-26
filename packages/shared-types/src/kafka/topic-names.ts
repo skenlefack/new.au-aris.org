@@ -185,6 +185,12 @@ export const TOPIC_SYS_ANALYTICS_REPORT_PUBLISHED = 'sys.analytics.report.publis
 export const TOPIC_SYS_ANALYTICS_REPORT_GENERATION_FAILED = 'sys.analytics.report.generation-failed.v1' as const;
 export const TOPIC_SYS_ANALYTICS_FLASH_ALERT_CREATED = 'sys.analytics.flash-alert.created.v1' as const;
 
+// ── AI Orchestrator Topics ──
+export const TOPIC_AI_GENERATION_COMPLETED = 'sys.ai.generation.completed.v1' as const;
+export const TOPIC_AI_GENERATION_FAILED = 'sys.ai.generation.failed.v1' as const;
+export const TOPIC_AI_ANOMALY_DETECTED = 'sys.ai.anomaly.detected.v1' as const;
+export const TOPIC_AI_PREDICTION_COMPLETED = 'sys.ai.prediction.completed.v1' as const;
+
 // ── DLQ Topics ──
 export const TOPIC_DLQ_ALL = 'dlq.all.v1' as const;
 export const TOPIC_DLQ_HEALTH = 'dlq.health.v1' as const;
@@ -335,6 +341,10 @@ export const ALL_TOPICS = [
   TOPIC_SYS_ANALYTICS_REPORT_PUBLISHED,
   TOPIC_SYS_ANALYTICS_REPORT_GENERATION_FAILED,
   TOPIC_SYS_ANALYTICS_FLASH_ALERT_CREATED,
+  TOPIC_AI_GENERATION_COMPLETED,
+  TOPIC_AI_GENERATION_FAILED,
+  TOPIC_AI_ANOMALY_DETECTED,
+  TOPIC_AI_PREDICTION_COMPLETED,
   TOPIC_DLQ_ALL,
   TOPIC_DLQ_HEALTH,
   TOPIC_DLQ_COLLECTE,
