@@ -6,6 +6,9 @@
 .vscode
 .idea
 
+# Dependencies (installed fresh in Docker via pnpm install)
+**/node_modules
+
 # Build artifacts
 **/dist
 **/build
