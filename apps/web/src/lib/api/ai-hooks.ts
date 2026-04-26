@@ -72,10 +72,16 @@ export interface AiAnomalyRequest {
 export function useAiHealth() {
   return useQuery<{ data: AiHealthStatus }>({
     queryKey: ['ai', 'health'],
-    queryFn: () => apiClient.get('/ai/health'),
-    refetchInterval: 30_000, // poll every 30s
-    retry: 1,
-    staleTime: 10_000,
+    queryFn: async () => {
+      try {
+        return await apiClient.get('/ai/health');
+      } catch {
+        return { data: { status: 'down', ollama: false, ml: false, models: [] } as AiHealthStatus };
+      }
+    },
+    refetchInterval: 60_000,
+    retry: 0,
+    staleTime: 30_000,
   });
 }
 

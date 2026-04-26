@@ -140,7 +140,8 @@ export default function MyDashboardsPage() {
   const handleCreate = async () => {
     try {
       const result = await createMutation.mutateAsync({
-        title: 'New Dashboard',
+        titleFr: 'Nouveau tableau de bord',
+        titleEn: 'New Dashboard',
         scope: 'PERSONAL',
       });
       const id = (result as any)?.data?.id;
