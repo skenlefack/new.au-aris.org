@@ -137,7 +137,10 @@ export default function MyDashboardsPage() {
 
   const dashboards: DashboardListItem[] = data?.data ?? [];
 
+  const [isCreating, setIsCreating] = useState(false);
+
   const handleCreate = async () => {
+    setIsCreating(true);
     try {
       const result = await createMutation.mutateAsync({
         title: 'New Dashboard',
@@ -146,9 +149,11 @@ export default function MyDashboardsPage() {
       const id = (result as any)?.data?.id;
       if (id) {
         router.push(`/dashboards/${id}/edit`);
+      } else {
+        setIsCreating(false);
       }
     } catch {
-      // Error handling via toast or query error
+      setIsCreating(false);
     }
   };
 
@@ -245,6 +250,16 @@ export default function MyDashboardsPage() {
           </div>
         )}
       </div>
+
+      {/* Full-screen loading overlay when creating dashboard */}
+      {isCreating && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#1F4E79]" />
+          <p className="mt-4 text-sm font-medium text-gray-600 dark:text-gray-300">
+            Creating dashboard...
+          </p>
+        </div>
+      )}
     </div>
   );
 }
