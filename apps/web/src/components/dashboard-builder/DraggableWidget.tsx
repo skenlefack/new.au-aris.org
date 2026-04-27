@@ -62,7 +62,7 @@ export function DraggableWidget({
   });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
     minHeight: MIN_HEIGHTS[widget.type] || '120px',
   };

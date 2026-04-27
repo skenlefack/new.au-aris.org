@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
-  closestCenter,
+  pointerWithin,
   PointerSensor,
-  KeyboardSensor,
   useSensor,
   useSensors,
   type DragStartEvent,
@@ -22,7 +21,6 @@ import type {
 } from '@/lib/api/dashboard-hooks';
 import { SectionList } from './SectionList';
 import { WidgetPalette } from './WidgetPalette';
-import { WidgetRenderer } from './WidgetRenderer';
 
 interface DashboardEditorProps {
   sections: DashboardSection[];
@@ -50,14 +48,19 @@ export function DashboardEditor({
   onWidgetConfigure,
   onWidgetRemove,
 }: DashboardEditorProps) {
-  const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
-  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [activeDragItem, setActiveDragItem] = useState<{
+    type: 'widget' | 'section';
+    widget?: DashboardWidget;
+    sectionId?: string;
+  } | null>(null);
+
+  // Throttle dragOver to avoid excessive re-renders
+  const lastDragOverRef = useRef<string>('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
+      activationConstraint: { distance: 8 },
     }),
-    useSensor(KeyboardSensor),
   );
 
   // ── Section CRUD ──
@@ -66,8 +69,8 @@ export function DashboardEditor({
     const newSection: DashboardSection = {
       id: genTempId(),
       dashboardId: '',
-      titleFr: `Section ${sections.length + 1}`,
-      titleEn: `Section ${sections.length + 1}`,
+      titleFr: '',
+      titleEn: '',
       titleAr: null,
       titlePt: null,
       columnCount: 2,
@@ -99,7 +102,6 @@ export function DashboardEditor({
 
   const handlePaletteAdd = useCallback(
     (type: WidgetType) => {
-      // Add to first section, first column
       const targetSection = sections[0];
       if (!targetSection) return;
       onAddWidget(type, targetSection.id, 0);
@@ -112,9 +114,9 @@ export function DashboardEditor({
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const data = event.active.data.current;
     if (data?.type === 'widget') {
-      setActiveWidget(data.widget as DashboardWidget);
+      setActiveDragItem({ type: 'widget', widget: data.widget as DashboardWidget });
     } else if (data?.type === 'section') {
-      setActiveSection(data.sectionId as string);
+      setActiveDragItem({ type: 'section', sectionId: data.sectionId as string });
     }
   }, []);
 
@@ -126,7 +128,6 @@ export function DashboardEditor({
       const activeData = active.data.current;
       const overData = over.data.current;
 
-      // Only handle widget moves
       if (activeData?.type !== 'widget') return;
 
       const activeWidgetId = activeData.widgetId as string;
@@ -146,46 +147,35 @@ export function DashboardEditor({
       const sourceSectionId = activeData.sectionId as string;
       const sourceColumnIndex = activeData.columnIndex as number;
 
-      // Skip if same location
+      // Throttle: skip if same target as last event
+      const key = `${targetSectionId}-${targetColumnIndex}`;
+      if (key === lastDragOverRef.current && sourceSectionId === targetSectionId && sourceColumnIndex === targetColumnIndex) return;
+      lastDragOverRef.current = key;
+
       if (sourceSectionId === targetSectionId && sourceColumnIndex === targetColumnIndex) return;
 
-      // Move widget to target column
       onSectionsChange(
         sections.map((sec) => {
           if (sec.id === sourceSectionId && sec.id === targetSectionId) {
-            // Same section, different column
-            const widget = sec.widgets.find((w) => w.id === activeWidgetId);
-            if (!widget) return sec;
             return {
               ...sec,
               widgets: sec.widgets.map((w) =>
                 w.id === activeWidgetId
-                  ? { ...w, columnIndex: targetColumnIndex!, sectionId: targetSectionId }
+                  ? { ...w, columnIndex: targetColumnIndex! }
                   : w,
               ),
             };
           }
           if (sec.id === sourceSectionId) {
-            // Remove from source
-            return {
-              ...sec,
-              widgets: sec.widgets.filter((w) => w.id !== activeWidgetId),
-            };
+            return { ...sec, widgets: sec.widgets.filter((w) => w.id !== activeWidgetId) };
           }
           if (sec.id === targetSectionId) {
-            // Add to target
             const sourceSection = sections.find((s) => s.id === sourceSectionId);
             const widget = sourceSection?.widgets.find((w) => w.id === activeWidgetId);
             if (!widget) return sec;
-            const movedWidget = {
-              ...widget,
-              sectionId: targetSectionId,
-              columnIndex: targetColumnIndex!,
-              sortOrder: sec.widgets.filter((w) => (w.columnIndex ?? 0) === targetColumnIndex).length,
-            };
             return {
               ...sec,
-              widgets: [...sec.widgets, movedWidget],
+              widgets: [...sec.widgets, { ...widget, columnIndex: targetColumnIndex!, sortOrder: sec.widgets.length }],
             };
           }
           return sec;
@@ -198,8 +188,8 @@ export function DashboardEditor({
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
-      setActiveWidget(null);
-      setActiveSection(null);
+      setActiveDragItem(null);
+      lastDragOverRef.current = '';
 
       if (!over || active.id === over.id) return;
 
@@ -254,7 +244,7 @@ export function DashboardEditor({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={pointerWithin}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
@@ -279,6 +269,7 @@ export function DashboardEditor({
 
           {/* Add section button */}
           <button
+            type="button"
             onClick={handleAddSection}
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 py-3 text-sm font-medium text-gray-500 hover:border-[#1F4E79]/40 hover:text-[#1F4E79] transition-colors"
           >
@@ -288,22 +279,22 @@ export function DashboardEditor({
         </div>
       </div>
 
-      {/* Drag overlay for smooth visual feedback */}
-      <DragOverlay>
-        {activeWidget && (
-          <div className="rounded-xl border bg-white shadow-xl dark:bg-gray-900 dark:border-gray-800 opacity-90 w-64">
-            <div className="border-b border-gray-100 dark:border-gray-800 px-3 py-1.5">
-              <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">
-                {activeWidget.title}
-              </h3>
-            </div>
-            <div className="h-24">
-              <WidgetRenderer widget={activeWidget} />
+      {/* Drag overlay */}
+      <DragOverlay dropAnimation={null}>
+        {activeDragItem?.type === 'widget' && activeDragItem.widget && (
+          <div className="rounded-xl border-2 border-[#1F4E79]/40 bg-white shadow-2xl dark:bg-gray-900 dark:border-[#1F4E79]/30 w-56 pointer-events-none">
+            <div className="px-3 py-2">
+              <p className="text-xs font-semibold text-[#1F4E79] truncate">
+                {activeDragItem.widget.title}
+              </p>
+              <p className="text-[10px] text-gray-400 mt-0.5">
+                {activeDragItem.widget.type.replace(/_/g, ' ')}
+              </p>
             </div>
           </div>
         )}
-        {activeSection && (
-          <div className="rounded-lg border-2 border-[#1F4E79]/30 bg-[#1F4E79]/5 py-4 px-6 text-sm font-medium text-[#1F4E79] shadow-xl">
+        {activeDragItem?.type === 'section' && (
+          <div className="rounded-lg border-2 border-[#1F4E79]/30 bg-[#1F4E79]/5 py-3 px-6 text-sm font-medium text-[#1F4E79] shadow-2xl pointer-events-none">
             Moving section...
           </div>
         )}
