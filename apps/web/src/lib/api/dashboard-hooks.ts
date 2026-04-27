@@ -100,7 +100,13 @@ export type WidgetType =
   | 'TABLE'
   | 'GAUGE'
   | 'TEXT_BLOCK'
-  | 'ALERT_FEED';
+  | 'ALERT_FEED'
+  | 'STAT_CARD'
+  | 'PROGRESS_BAR'
+  | 'DIVIDER'
+  | 'IMAGE'
+  | 'IFRAME'
+  | 'LIST';
 
 export interface DashboardWidget {
   id: string;

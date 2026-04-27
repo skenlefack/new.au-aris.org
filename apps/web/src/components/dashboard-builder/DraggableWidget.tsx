@@ -19,6 +19,12 @@ const MIN_HEIGHTS: Record<string, string> = {
   GAUGE: '200px',
   TEXT_BLOCK: '100px',
   ALERT_FEED: '200px',
+  STAT_CARD: '120px',
+  PROGRESS_BAR: '80px',
+  DIVIDER: '40px',
+  IMAGE: '200px',
+  IFRAME: '400px',
+  LIST: '200px',
 };
 
 interface DraggableWidgetProps {

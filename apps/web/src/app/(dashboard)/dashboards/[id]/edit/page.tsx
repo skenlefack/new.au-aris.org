@@ -14,6 +14,7 @@ import {
   type DashboardSection,
 } from '@/lib/api/dashboard-hooks';
 import { DashboardEditor } from '@/components/dashboard-builder/DashboardEditor';
+import { WidgetConfigPanel } from '@/components/dashboard-builder/WidgetConfigPanel';
 import { AiSuggestionDialog } from '@/components/ai/AiSuggestionDialog';
 
 export default function DashboardEditPage() {
@@ -53,6 +54,9 @@ export default function DashboardEditPage() {
       setLocalSections(dashboard.sections);
     }
   }, [dashboard?.sections]);
+
+  // Widget config panel
+  const [configWidget, setConfigWidget] = useState<DashboardWidget | null>(null);
 
   // AI suggestion dialog
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
@@ -165,8 +169,8 @@ export default function DashboardEditPage() {
     [id, removeWidget],
   );
 
-  const handleConfigureWidget = useCallback((_widget: DashboardWidget) => {
-    // Widget config modal - future iteration
+  const handleConfigureWidget = useCallback((widget: DashboardWidget) => {
+    setConfigWidget(widget);
   }, []);
 
   const handleSave = async () => {
@@ -290,6 +294,16 @@ export default function DashboardEditPage() {
           onWidgetRemove={handleRemoveWidget}
         />
       </div>
+
+      <WidgetConfigPanel
+        widget={configWidget}
+        dashboardId={id}
+        onClose={() => setConfigWidget(null)}
+        onSaved={() => {
+          setConfigWidget(null);
+          hasLocalEdits.current = false;
+        }}
+      />
 
       <AiSuggestionDialog
         open={aiDialogOpen}

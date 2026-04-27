@@ -31,6 +31,10 @@ export const WidgetTypeSchema = Type.Union([
   Type.Literal('COMPOSITE_FORMULA'),
   Type.Literal('ALERT_FEED'),
   Type.Literal('PROGRESS_BAR'),
+  Type.Literal('STAT_CARD'),
+  Type.Literal('DIVIDER'),
+  Type.Literal('IMAGE'),
+  Type.Literal('LIST'),
 ]);
 
 export const WidgetDataSourceSchema = Type.Union([

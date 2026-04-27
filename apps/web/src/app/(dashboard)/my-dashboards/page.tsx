@@ -21,6 +21,8 @@ import {
   type DashboardOwnership,
   type DashboardScope,
 } from '@/lib/api/dashboard-hooks';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useRealtimeStore } from '@/lib/realtime/realtime-store';
 
 type Tab = 'USER_OWNED' | 'SHARED' | 'SYSTEM_TEMPLATE';
 
@@ -134,10 +136,12 @@ export default function MyDashboardsPage() {
 
   const createMutation = useCreateDashboard();
   const deleteMutation = useDeleteDashboard();
+  const addToast = useRealtimeStore((s) => s.addToast);
 
   const dashboards: DashboardListItem[] = data?.data ?? [];
 
   const [isCreating, setIsCreating] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const handleCreate = async () => {
     setIsCreating(true);
@@ -158,9 +162,21 @@ export default function MyDashboardsPage() {
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Delete this dashboard? This cannot be undone.')) {
-      deleteMutation.mutate(id);
-    }
+    setDeleteTarget(id);
+  };
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    deleteMutation.mutate(deleteTarget, {
+      onSuccess: () => {
+        addToast({
+          type: 'success',
+          title: 'Dashboard supprime',
+          message: 'Le tableau de bord a ete supprime avec succes.',
+        });
+        setDeleteTarget(null);
+      },
+    });
   };
 
   return (
@@ -260,6 +276,17 @@ export default function MyDashboardsPage() {
           </p>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+        title="Supprimer le tableau de bord"
+        message="Cette action est irreversible. Tous les widgets et configurations seront perdus."
+        confirmLabel="Supprimer"
+        variant="danger"
+        loading={deleteMutation.isPending}
+      />
     </div>
   );
 }

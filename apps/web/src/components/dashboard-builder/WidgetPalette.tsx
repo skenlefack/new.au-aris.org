@@ -13,6 +13,12 @@ import {
   TrendingUp,
   Layers,
   AreaChart,
+  Hash,
+  Minus,
+  Image as ImageIcon,
+  Globe,
+  List as ListIcon,
+  BarChart,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { WidgetType } from '@/lib/api/dashboard-hooks';
@@ -102,6 +108,48 @@ const WIDGET_TEMPLATES: WidgetTemplate[] = [
     description: 'List of alerts and notifications',
     icon: Bell,
     defaultLayout: { w: 4, h: 4 },
+  },
+  {
+    type: 'STAT_CARD',
+    label: 'Statistics',
+    description: 'Big number with comparison',
+    icon: Hash,
+    defaultLayout: { w: 3, h: 2 },
+  },
+  {
+    type: 'PROGRESS_BAR',
+    label: 'Progress Bar',
+    description: 'Progress toward a goal',
+    icon: BarChart,
+    defaultLayout: { w: 4, h: 2 },
+  },
+  {
+    type: 'DIVIDER',
+    label: 'Divider',
+    description: 'Visual separator',
+    icon: Minus,
+    defaultLayout: { w: 12, h: 1 },
+  },
+  {
+    type: 'IMAGE',
+    label: 'Image',
+    description: 'Display an image',
+    icon: ImageIcon,
+    defaultLayout: { w: 4, h: 3 },
+  },
+  {
+    type: 'IFRAME',
+    label: 'Embed',
+    description: 'Embed external content',
+    icon: Globe,
+    defaultLayout: { w: 6, h: 4 },
+  },
+  {
+    type: 'LIST',
+    label: 'List',
+    description: 'List of items with values',
+    icon: ListIcon,
+    defaultLayout: { w: 4, h: 3 },
   },
 ];
 

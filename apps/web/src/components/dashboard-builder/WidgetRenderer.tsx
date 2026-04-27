@@ -9,6 +9,32 @@ import { TableWidget } from './widgets/TableWidget';
 import { GaugeWidget } from './widgets/GaugeWidget';
 import { TextBlockWidget } from './widgets/TextBlockWidget';
 import { AlertFeedWidget } from './widgets/AlertFeedWidget';
+import { StatCardWidget } from './widgets/StatCardWidget';
+import { ProgressBarWidget } from './widgets/ProgressBarWidget';
+import { DividerWidget } from './widgets/DividerWidget';
+import { ImageWidget } from './widgets/ImageWidget';
+import { IframeWidget } from './widgets/IframeWidget';
+import { ListWidget } from './widgets/ListWidget';
+
+const DEFAULT_WIDGET_CONFIGS: Record<string, Record<string, unknown>> = {
+  KPI_CARD: { value: null, label: 'Configure this KPI' },
+  LINE: { data: [] },
+  BAR: { data: [] },
+  PIE: { data: [] },
+  STACKED_BAR: { data: [] },
+  AREA: { data: [] },
+  MAP: {},
+  TABLE: { columns: [], rows: [] },
+  GAUGE: { value: 0, target: 100, unit: '%' },
+  TEXT_BLOCK: { content: 'Click settings to edit', format: 'plain' },
+  ALERT_FEED: { alerts: [] },
+  STAT_CARD: { value: 0, label: 'Statistic' },
+  PROGRESS_BAR: { value: 0, target: 100, label: 'Progress' },
+  DIVIDER: { style: 'line' },
+  IMAGE: { src: '', alt: '' },
+  IFRAME: { url: '' },
+  LIST: { items: [] },
+};
 
 interface WidgetRendererProps {
   widget: DashboardWidget;
@@ -49,7 +75,7 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
   if (loading) return <WidgetSkeleton />;
   if (error) return <WidgetError message={error} />;
 
-  const cfg = { ...widget.config, ...data } as Record<string, any>;
+  const cfg = { ...DEFAULT_WIDGET_CONFIGS[widget.type], ...widget.config, ...data } as Record<string, any>;
 
   switch (widget.type) {
     case 'KPI_CARD':
@@ -116,6 +142,62 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
         <AlertFeedWidget
           alerts={cfg.alerts ?? []}
           maxItems={cfg.maxItems}
+        />
+      );
+
+    case 'STAT_CARD':
+      return (
+        <StatCardWidget
+          value={cfg.value ?? 0}
+          previousValue={cfg.previousValue}
+          label={cfg.label ?? widget.title}
+          icon={cfg.icon}
+          color={cfg.color}
+        />
+      );
+
+    case 'PROGRESS_BAR':
+      return (
+        <ProgressBarWidget
+          value={cfg.value ?? 0}
+          target={cfg.target ?? 100}
+          label={cfg.label ?? widget.title}
+          color={cfg.color}
+          showPercentage={cfg.showPercentage}
+        />
+      );
+
+    case 'DIVIDER':
+      return (
+        <DividerWidget
+          style={cfg.style}
+          label={cfg.label}
+        />
+      );
+
+    case 'IMAGE':
+      return (
+        <ImageWidget
+          src={cfg.src ?? ''}
+          alt={cfg.alt ?? ''}
+          caption={cfg.caption}
+          fit={cfg.fit}
+        />
+      );
+
+    case 'IFRAME':
+      return (
+        <IframeWidget
+          url={cfg.url ?? ''}
+          title={cfg.title ?? widget.title}
+        />
+      );
+
+    case 'LIST':
+      return (
+        <ListWidget
+          items={cfg.items ?? []}
+          ordered={cfg.ordered}
         />
       );
 
