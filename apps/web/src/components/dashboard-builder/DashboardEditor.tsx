@@ -54,6 +54,12 @@ export function DashboardEditor({
     sectionId?: string;
   } | null>(null);
 
+  // Track selected column for palette click-to-add
+  const [selectedTarget, setSelectedTarget] = useState<{
+    sectionId: string;
+    columnIndex: number;
+  } | null>(null);
+
   // Throttle dragOver to avoid excessive re-renders
   const lastDragOverRef = useRef<string>('');
 
@@ -73,7 +79,7 @@ export function DashboardEditor({
       titleEn: '',
       titleAr: null,
       titlePt: null,
-      columnCount: 2,
+      columnCount: 1,
       sortOrder: sections.length,
       isCollapsed: false,
       config: {},
@@ -98,15 +104,24 @@ export function DashboardEditor({
     [sections, onSectionsChange],
   );
 
-  // ── Palette add (click) ──
+  // ── Column selection ──
+
+  const handleColumnSelect = useCallback(
+    (sectionId: string, columnIndex: number) => {
+      setSelectedTarget({ sectionId, columnIndex });
+    },
+    [],
+  );
+
+  // ── Palette add (click) — uses selected column ──
 
   const handlePaletteAdd = useCallback(
     (type: WidgetType) => {
-      const targetSection = sections[0];
-      if (!targetSection) return;
-      onAddWidget(type, targetSection.id, 0);
+      const target = selectedTarget ?? { sectionId: sections[0]?.id, columnIndex: 0 };
+      if (!target.sectionId) return;
+      onAddWidget(type, target.sectionId, target.columnIndex);
     },
-    [sections, onAddWidget],
+    [sections, onAddWidget, selectedTarget],
   );
 
   // ── DnD handlers ──
@@ -261,6 +276,8 @@ export function DashboardEditor({
             sections={sections}
             widgetData={widgetData}
             editable
+            selectedTarget={selectedTarget}
+            onColumnSelect={handleColumnSelect}
             onSectionUpdate={handleSectionUpdate}
             onSectionRemove={handleSectionRemove}
             onWidgetConfigure={onWidgetConfigure}

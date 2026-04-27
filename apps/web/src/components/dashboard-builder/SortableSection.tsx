@@ -11,6 +11,8 @@ interface SortableSectionProps {
   section: DashboardSection;
   widgetData?: Record<string, Record<string, unknown>>;
   editable?: boolean;
+  selectedTarget?: { sectionId: string; columnIndex: number } | null;
+  onColumnSelect?: (sectionId: string, columnIndex: number) => void;
   onSectionUpdate?: (sectionId: string, updates: Partial<DashboardSection>) => void;
   onSectionRemove?: (sectionId: string) => void;
   onWidgetConfigure?: (widget: DashboardWidget) => void;
@@ -21,6 +23,8 @@ export function SortableSection({
   section,
   widgetData,
   editable = false,
+  selectedTarget,
+  onColumnSelect,
   onSectionUpdate,
   onSectionRemove,
   onWidgetConfigure,
@@ -89,6 +93,8 @@ export function SortableSection({
               widgets={columnWidgets}
               widgetData={widgetData}
               editable={editable}
+              isSelected={selectedTarget?.sectionId === section.id && selectedTarget?.columnIndex === colIdx}
+              onSelect={() => onColumnSelect?.(section.id, colIdx)}
               onWidgetConfigure={onWidgetConfigure}
               onWidgetRemove={onWidgetRemove}
             />

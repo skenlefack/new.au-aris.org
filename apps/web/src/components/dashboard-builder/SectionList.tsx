@@ -12,6 +12,8 @@ interface SectionListProps {
   sections: DashboardSection[];
   widgetData?: Record<string, Record<string, unknown>>;
   editable?: boolean;
+  selectedTarget?: { sectionId: string; columnIndex: number } | null;
+  onColumnSelect?: (sectionId: string, columnIndex: number) => void;
   onSectionUpdate?: (sectionId: string, updates: Partial<DashboardSection>) => void;
   onSectionRemove?: (sectionId: string) => void;
   onWidgetConfigure?: (widget: DashboardWidget) => void;
@@ -22,6 +24,8 @@ export function SectionList({
   sections,
   widgetData,
   editable = false,
+  selectedTarget,
+  onColumnSelect,
   onSectionUpdate,
   onSectionRemove,
   onWidgetConfigure,
@@ -56,6 +60,8 @@ export function SectionList({
             section={section}
             widgetData={widgetData}
             editable={editable}
+            selectedTarget={selectedTarget}
+            onColumnSelect={onColumnSelect}
             onSectionUpdate={onSectionUpdate}
             onSectionRemove={onSectionRemove}
             onWidgetConfigure={onWidgetConfigure}
