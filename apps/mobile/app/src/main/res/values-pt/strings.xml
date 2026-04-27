@@ -306,4 +306,37 @@
     <string name="update_now">Atualizar Agora</string>
     <string name="update_later">Mais Tarde</string>
     <string name="update_checking">Verificando atualiza\u00e7\u00f5es\u2026</string>
+
+    <!-- Indicators -->
+    <string name="indicators">Indicadores</string>
+    <string name="no_indicators">Nenhum indicador dispon\u00edvel</string>
+    <string name="indicator_detail">Detalhe do indicador</string>
+    <string name="current_value">Valor atual</string>
+    <string name="target">Meta</string>
+    <string name="history">Hist\u00f3rico</string>
+    <string name="details">Detalhes</string>
+    <string name="indicator_code">C\u00f3digo</string>
+    <string name="indicator_type">Tipo</string>
+    <string name="measurement_mode">Medi\u00e7\u00e3o</string>
+    <string name="report_detail">Detalhe do relat\u00f3rio</string>
+    <string name="no_reports">Nenhum relat\u00f3rio dispon\u00edvel</string>
+    <string name="offline_available">Offline</string>
+    <string name="downloading">Baixando\u2026</string>
+    <string name="download">Baixar</string>
+    <string name="download_pdf">Baixar PDF</string>
+    <string name="pdf_not_downloaded">PDF ainda n\u00e3o baixado</string>
+    <string name="pdf_file_missing">Arquivo PDF ausente</string>
+    <string name="pdf_render_error">N\u00e3o foi poss\u00edvel exibir o PDF</string>
+    <string name="dashboards">Pain\u00e9is</string>
+    <string name="dashboard">Painel</string>
+    <string name="no_dashboards">Nenhum painel dispon\u00edvel</string>
+    <string name="no_widgets">Nenhum widget</string>
+    <string name="cached">Cache offline</string>
+    <string name="kpi_widget_placeholder">\u2014</string>
+    <string name="table_widget_placeholder">Carregando dados\u2026</string>
+    <string name="alert_feed_placeholder">Carregando alertas\u2026</string>
+    <string name="unsupported_widget">Widget n\u00e3o suportado</string>
+    <string name="flash_alerts">Alertas flash</string>
+    <string name="no_flash_alerts">Nenhum alerta flash</string>
+    <string name="mark_all_read">Marcar tudo como lido</string>
 </resources>
