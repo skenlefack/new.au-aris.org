@@ -52,10 +52,10 @@ class DashboardMobileApi @Inject constructor(
     private val baseUrl: String,
 ) {
     suspend fun listAccessible(scope: String? = null): ApiResponse<List<DashboardSummaryDto>> =
-        http.get("$baseUrl/api/v1/dashboards") {
+        http.get("$baseUrl/api/v1/analytics/dashboards") {
             scope?.let { parameter("scope", it) }
         }.body()
 
     suspend fun render(dashboardId: String): ApiResponse<DashboardRenderedDto> =
-        http.get("$baseUrl/api/v1/dashboards/$dashboardId/render").body()
+        http.get("$baseUrl/api/v1/analytics/dashboards/$dashboardId/render").body()
 }

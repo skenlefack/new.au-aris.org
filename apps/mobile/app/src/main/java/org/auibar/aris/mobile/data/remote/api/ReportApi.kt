@@ -38,7 +38,7 @@ class ReportApi @Inject constructor(
     private val baseUrl: String,
 ) {
     suspend fun listPublished(domainCode: String? = null): ApiResponse<List<ReportDto>> =
-        http.get("$baseUrl/api/v1/reports") {
+        http.get("$baseUrl/api/v1/analytics/reports") {
             parameter("status", "PUBLISHED")
             domainCode?.let { parameter("domainCode", it) }
         }.body()

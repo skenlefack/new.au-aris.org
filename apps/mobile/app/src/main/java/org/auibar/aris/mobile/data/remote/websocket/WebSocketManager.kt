@@ -16,7 +16,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.auibar.aris.mobile.BuildConfig
+import org.auibar.aris.mobile.data.local.dao.FlashAlertDao
 import org.auibar.aris.mobile.data.local.dao.NotificationDao
+import org.auibar.aris.mobile.data.local.entity.FlashAlertEntity
 import org.auibar.aris.mobile.data.local.entity.NotificationEntity
 import org.auibar.aris.mobile.data.remote.api.AuthApi
 import org.auibar.aris.mobile.util.TokenManager
@@ -47,6 +49,7 @@ data class RealtimeEvent(
 class WebSocketManager @Inject constructor(
     private val tokenManager: TokenManager,
     private val notificationDao: NotificationDao,
+    private val flashAlertDao: FlashAlertDao,
     private val authApi: AuthApi,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -138,6 +141,11 @@ class WebSocketManager @Inject constructor(
                 on("sync_update") { args ->
                     handleEvent("sync_update", args)
                 }
+
+                // Flash alerts (Chantier D)
+                on("flash_alert") { args ->
+                    handleFlashAlert(args)
+                }
             }
 
             _connectionState.value = ConnectionState.CONNECTING
@@ -161,6 +169,43 @@ class WebSocketManager @Inject constructor(
         socket?.off()
         socket = null
         _connectionState.value = ConnectionState.DISCONNECTED
+    }
+
+    private fun handleFlashAlert(args: Array<Any>) {
+        try {
+            val json = args.firstOrNull() as? JSONObject ?: return
+            val alert = FlashAlertEntity(
+                id = json.optString("id", java.util.UUID.randomUUID().toString()),
+                alertCode = json.optString("alertCode", ""),
+                severity = json.optString("severity", "LOW"),
+                sourceType = json.optString("sourceType", "INDICATOR"),
+                sourceId = json.optString("sourceId", null),
+                countryCode = json.optString("countryCode", null),
+                recCode = json.optString("recCode", null),
+                domainCode = json.optString("domainCode", null),
+                subDomainCode = json.optString("subDomainCode", null),
+                titleFr = json.optString("titleFr", ""),
+                titleEn = json.optString("titleEn", json.optString("title", "Flash Alert")),
+                detectedAt = json.optLong("detectedAt", System.currentTimeMillis()),
+                triggerDataJson = json.optString("triggerDataJson", null),
+                status = json.optString("status", "ACTIVE"),
+                relatedReportId = json.optString("relatedReportId", null),
+                syncedAt = System.currentTimeMillis(),
+            )
+            scope.launch {
+                flashAlertDao.upsert(alert)
+                _events.emit(
+                    RealtimeEvent(
+                        type = "flash_alert",
+                        title = alert.titleEn,
+                        body = "${alert.severity} | ${alert.sourceType}",
+                        payload = mapOf("id" to alert.id, "severity" to alert.severity),
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse flash_alert event", e)
+        }
     }
 
     private fun handleEvent(type: String, args: Array<Any>) {
