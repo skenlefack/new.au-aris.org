@@ -5,8 +5,10 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import org.auibar.aris.mobile.data.local.dao.CampaignDao
+import org.auibar.aris.mobile.data.local.dao.CampaignTargetDao
 import org.auibar.aris.mobile.data.local.dao.DiseaseDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
+import org.auibar.aris.mobile.data.local.dao.FormTemplateTargetDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
 import org.auibar.aris.mobile.data.local.dao.GpsTrackDao
 import org.auibar.aris.mobile.data.local.dao.NotificationDao
@@ -51,8 +53,9 @@ object AppModule {
     @Singleton
     fun provideCampaignRepository(
         campaignDao: CampaignDao,
+        campaignTargetDao: CampaignTargetDao,
         campaignApi: CampaignApi,
-    ): CampaignRepository = CampaignRepository(campaignDao, campaignApi)
+    ): CampaignRepository = CampaignRepository(campaignDao, campaignTargetDao, campaignApi)
 
     @Provides
     @Singleton
@@ -72,13 +75,16 @@ object AppModule {
         syncApi: SyncApi,
         submissionDao: SubmissionDao,
         campaignDao: CampaignDao,
+        campaignTargetDao: CampaignTargetDao,
         formTemplateDao: FormTemplateDao,
+        formTemplateTargetDao: FormTemplateTargetDao,
         speciesDao: SpeciesDao,
         diseaseDao: DiseaseDao,
         geoDao: GeoDao,
         tokenManager: TokenManager,
     ): SyncRepository = SyncRepository(
-        syncApi, submissionDao, campaignDao, formTemplateDao,
+        syncApi, submissionDao, campaignDao, campaignTargetDao,
+        formTemplateDao, formTemplateTargetDao,
         speciesDao, diseaseDao, geoDao, tokenManager,
     )
 

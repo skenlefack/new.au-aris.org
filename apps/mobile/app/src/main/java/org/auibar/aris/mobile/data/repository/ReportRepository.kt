@@ -1,6 +1,7 @@
 package org.auibar.aris.mobile.data.repository
 
 import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import org.auibar.aris.mobile.data.local.dao.ReportDao
 import org.auibar.aris.mobile.data.local.entity.ReportEntity
@@ -12,7 +13,7 @@ import javax.inject.Inject
 class ReportRepository @Inject constructor(
     private val reportDao: ReportDao,
     private val reportApi: ReportApi,
-    private val context: Context,
+    @ApplicationContext private val context: Context,
 ) {
     fun observePublished(): Flow<List<ReportEntity>> = reportDao.observePublished()
 

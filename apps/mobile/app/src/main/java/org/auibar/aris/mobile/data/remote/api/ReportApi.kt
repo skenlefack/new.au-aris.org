@@ -4,8 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
-import io.ktor.client.statement.bodyAsChannel
-import io.ktor.utils.io.readRemaining
+import io.ktor.client.statement.readBytes
 import kotlinx.serialization.Serializable
 import org.auibar.aris.mobile.data.remote.dto.ApiResponse
 import java.io.File
@@ -47,8 +46,7 @@ class ReportApi @Inject constructor(
     suspend fun downloadPdf(pdfUrl: String, targetFile: File): Result<File> {
         return try {
             val response = http.get(pdfUrl)
-            val channel = response.bodyAsChannel()
-            val bytes = channel.readRemaining().readBytes()
+            val bytes = response.readBytes()
             if (bytes.size > 10 * 1024 * 1024) {
                 return Result.failure(IllegalStateException("PDF exceeds 10MB limit"))
             }

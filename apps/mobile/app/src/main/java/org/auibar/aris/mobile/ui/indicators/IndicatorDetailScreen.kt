@@ -39,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.ui.charts.LineChart
+import org.auibar.aris.mobile.ui.charts.LineChartPoint
 import org.auibar.aris.mobile.ui.components.LoadingSpinner
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -147,13 +148,12 @@ fun IndicatorDetailScreen(
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(stringResource(R.string.history), style = MaterialTheme.typography.titleMedium)
                             Spacer(Modifier.height(12.dp))
-                            val chartData = values.reversed().map { it.value.toFloat() }
-                            val labels = values.reversed().map { v ->
-                                if (v.month != null) "${v.year}-${v.month}" else "${v.year}"
+                            val chartPoints = values.reversed().map { v ->
+                                val label = if (v.month != null) "${v.year}-${v.month}" else "${v.year}"
+                                LineChartPoint(label = label, value = v.value.toFloat())
                             }
                             LineChart(
-                                data = chartData,
-                                labels = labels,
+                                points = chartPoints,
                                 modifier = Modifier.fillMaxWidth().height(200.dp),
                             )
                         }
