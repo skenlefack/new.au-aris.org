@@ -13,13 +13,15 @@ export async function registerHealthRoutes(app: FastifyInstance): Promise<void> 
 
     return {
       data: {
-        status: ollamaOk && mlOk ? 'healthy' : ollamaOk || mlOk ? 'degraded' : 'unhealthy',
+        status: ollamaOk && mlOk ? 'ok' : ollamaOk || mlOk ? 'degraded' : 'down',
         ollama: {
+          connected: ollamaOk,
           status: ollamaOk ? 'up' : 'down',
           url: app.ollamaClient.getBaseUrl(),
           models: ollamaModels.map((m) => m.name),
         },
         ml: {
+          connected: mlOk,
           status: mlOk ? 'up' : 'down',
           url: app.mlClient.getBaseUrl(),
           models: mlModels.map((m) => ({ name: m.name, type: m.type, status: m.status })),
