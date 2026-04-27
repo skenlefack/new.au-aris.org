@@ -28,32 +28,40 @@ interface AiGenerationDraft {
 }
 
 interface SuggestFormBody {
-  description: string;
+  description?: string;
+  prompt?: string;        // frontend sends `prompt`
   domain?: string;
   fields?: string[];
   model?: string;
+  context?: Record<string, unknown>;
 }
 
 interface SuggestCampaignBody {
-  objective: string;
+  objective?: string;
+  prompt?: string;
   domain?: string;
   targetCountries?: string[];
   model?: string;
+  context?: Record<string, unknown>;
 }
 
 interface SuggestIndicatorBody {
-  name: string;
-  description: string;
+  name?: string;
+  description?: string;
+  prompt?: string;
   domain?: string;
   availableFields?: string[];
   model?: string;
+  context?: Record<string, unknown>;
 }
 
 interface SuggestDashboardBody {
-  purpose: string;
+  purpose?: string;
+  prompt?: string;
   domain?: string;
   availableIndicators?: string[];
   model?: string;
+  context?: Record<string, unknown>;
 }
 
 export async function registerGenerationRoutes(app: FastifyInstance): Promise<void> {
@@ -124,10 +132,10 @@ export async function registerGenerationRoutes(app: FastifyInstance): Promise<vo
     preHandler: [app.authHookFn, app.rateLimitHook],
   }, async (request: FastifyRequest<{ Body: SuggestFormBody }>, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const { description, domain, fields, model } = request.body;
+    const { description, prompt: rawPrompt, domain, fields, model } = request.body;
     const usedModel = model || DEFAULT_MODEL;
 
-    const prompt = buildFormPrompt(description, domain, fields);
+    const prompt = buildFormPrompt(description || rawPrompt || '', domain, fields);
     const system = 'You are an expert form designer for the ARIS animal resources information system. Generate valid JSON Schema forms.';
 
     const draft = await createDraft(user, 'FORM', prompt, system, usedModel);
@@ -139,10 +147,10 @@ export async function registerGenerationRoutes(app: FastifyInstance): Promise<vo
     preHandler: [app.authHookFn, app.rateLimitHook],
   }, async (request: FastifyRequest<{ Body: SuggestCampaignBody }>, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const { objective, domain, targetCountries, model } = request.body;
+    const { objective, prompt: rawPrompt, domain, targetCountries, model } = request.body;
     const usedModel = model || DEFAULT_MODEL;
 
-    const prompt = buildCampaignPrompt(objective, domain, targetCountries);
+    const prompt = buildCampaignPrompt(objective || rawPrompt || '', domain, targetCountries);
     const system = 'You are an expert in data collection campaign design for AU-IBAR. Generate structured campaign proposals with timeline, forms, and target assignments.';
 
     const draft = await createDraft(user, 'CAMPAIGN', prompt, system, usedModel);
@@ -154,10 +162,10 @@ export async function registerGenerationRoutes(app: FastifyInstance): Promise<vo
     preHandler: [app.authHookFn, app.rateLimitHook],
   }, async (request: FastifyRequest<{ Body: SuggestIndicatorBody }>, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const { name, description, domain, availableFields, model } = request.body;
+    const { name, description, prompt: rawPrompt, domain, availableFields, model } = request.body;
     const usedModel = model || DEFAULT_MODEL;
 
-    const prompt = buildIndicatorPrompt(name, description, domain, availableFields);
+    const prompt = buildIndicatorPrompt(name || '', description || rawPrompt || '', domain, availableFields);
     const system = 'You are an expert in KPI and indicator design for animal resources. Generate indicator definitions with formulas, units, thresholds, and data sources.';
 
     const draft = await createDraft(user, 'INDICATOR', prompt, system, usedModel);
@@ -169,10 +177,10 @@ export async function registerGenerationRoutes(app: FastifyInstance): Promise<vo
     preHandler: [app.authHookFn, app.rateLimitHook],
   }, async (request: FastifyRequest<{ Body: SuggestDashboardBody }>, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const { purpose, domain, availableIndicators, model } = request.body;
+    const { purpose, prompt: rawPrompt, domain, availableIndicators, model } = request.body;
     const usedModel = model || DEFAULT_MODEL;
 
-    const prompt = buildDashboardPrompt(purpose, domain, availableIndicators);
+    const prompt = buildDashboardPrompt(purpose || rawPrompt || '', domain, availableIndicators);
     const system = 'You are an expert dashboard designer for the ARIS analytics platform. Generate dashboard layouts with widget placement, types (chart, map, table, KPI card), and data bindings.';
 
     const draft = await createDraft(user, 'DASHBOARD', prompt, system, usedModel);

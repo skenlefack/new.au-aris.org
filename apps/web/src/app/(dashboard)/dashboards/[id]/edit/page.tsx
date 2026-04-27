@@ -60,13 +60,24 @@ export default function DashboardEditPage() {
   const handleAiAccept = useCallback(
     (draft: any) => {
       if (!dashboard) return;
-      if (draft.title) setTitle(draft.title);
-      if (Array.isArray(draft.widgets) && localSections.length > 0) {
+      // The draft may be the full AI response { id, type, output: {...} }
+      // or just the inner output. Handle both.
+      const inner = draft.output ?? draft;
+      if (inner.title) setTitle(inner.title);
+      const widgets = inner.widgets ?? draft.widgets;
+      if (Array.isArray(widgets) && localSections.length > 0) {
         const targetSection = localSections[0];
-        for (const w of draft.widgets) {
+        const typeMap: Record<string, string> = {
+          kpi: 'KPI_CARD', stat: 'KPI_CARD', chart: 'LINE_CHART',
+          bar: 'BAR_CHART', line: 'LINE_CHART', pie: 'PIE_CHART',
+          table: 'TABLE', map: 'MAP', gauge: 'GAUGE',
+        };
+        for (const w of widgets) {
+          const rawType = (w.type ?? 'KPI_CARD').toLowerCase();
+          const mappedType = typeMap[rawType] ?? rawType.toUpperCase();
           addWidget.mutate({
             dashboardId: id,
-            type: w.type ?? 'KPI_CARD',
+            type: mappedType as WidgetType,
             title: w.title ?? w.type,
             sectionId: targetSection.id.startsWith('temp-') ? undefined : targetSection.id,
             columnIndex: 0,
