@@ -14,7 +14,10 @@ from psycopg2.extras import RealDictCursor
 
 logger = logging.getLogger("aris.ml.data_loader")
 
-DB_URL = os.getenv("DB_URL", "postgresql://aris:password@localhost:5432/aris")
+DB_URL = os.getenv("DATABASE_URL", os.getenv("DB_URL", "postgresql://aris:password@localhost:5432/aris"))
+# Strip ?pgbouncer=true if present (psycopg2 doesn't understand it)
+if "?pgbouncer" in DB_URL:
+    DB_URL = DB_URL.split("?")[0]
 
 
 def get_connection():

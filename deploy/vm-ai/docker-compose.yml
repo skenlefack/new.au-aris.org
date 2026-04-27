@@ -41,6 +41,30 @@ services:
       retries: 3
       start_period: 30s
 
+  # ── ML Training Scheduler (nightly at 02:00 UTC) ─────────────
+  ml-scheduler:
+    <<: *common
+    build:
+      context: /opt/aris/services/python-ml
+      dockerfile: Dockerfile
+    container_name: aris-ai-ml-scheduler
+    entrypoint: ["python", "-m", "training.scheduler"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-aris}:${POSTGRES_PASSWORD:-Ar1s_Pr0d_2024!xK9mZ}@10.202.101.185:5432/${POSTGRES_DB:-aris}
+      OLLAMA_URL: http://host.docker.internal:11434
+      REDIS_URL: redis://:${REDIS_PASSWORD:-R3d1s_Pr0d_2024!vN7wQ}@10.202.101.186:6379
+      ML_TRAINING_HOUR: "2"
+      ML_RETRY_HOUR: "3"
+      LOG_LEVEL: info
+      MODELS_DIR: /app/data/models
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ml-models:/app/data/models
+    depends_on:
+      python-ml:
+        condition: service_healthy
+
   # ── Apache NiFi 2.x (ETL) ───────────────────────────────────
   nifi:
     <<: *common
