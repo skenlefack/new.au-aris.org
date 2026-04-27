@@ -30,6 +30,12 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
 
+        // Room schema export for migration testing
+        ksp {
+            arg("room.schemaLocation", "$projectDir/schemas")
+            arg("room.incremental", "true")
+        }
+
         buildConfigField("String", "API_BASE_URL_PROD", "\"https://au-aris.org\"")
         buildConfigField("String", "API_BASE_URL_OFFICE", "\"https://10.202.101.183\"")
         buildConfigField("String", "API_BASE_URL_STG", "\"https://test.au-aris.org\"")
@@ -89,6 +95,10 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
+    }
+
+    sourceSets {
+        getByName("androidTest").assets.srcDirs("$projectDir/schemas")
     }
 }
 

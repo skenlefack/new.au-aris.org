@@ -13,12 +13,13 @@ import org.auibar.aris.mobile.data.local.dao.DiseaseDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
 import org.auibar.aris.mobile.data.local.dao.GpsTrackDao
+import org.auibar.aris.mobile.data.local.dao.KnowledgeDao
 import org.auibar.aris.mobile.data.local.dao.MessageDao
 import org.auibar.aris.mobile.data.local.dao.NotificationDao
 import org.auibar.aris.mobile.data.local.dao.PhotoDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
-import org.auibar.aris.mobile.data.local.dao.KnowledgeDao
 import org.auibar.aris.mobile.data.local.dao.SubmissionDao
+import org.auibar.aris.mobile.data.local.migrations.MIGRATION_9_10
 import javax.inject.Singleton
 
 @Module
@@ -33,6 +34,7 @@ object DatabaseModule {
             ArisDatabase::class.java,
             "aris_database",
         )
+            .addMigrations(MIGRATION_9_10)
             .fallbackToDestructiveMigration()
             .build()
     }
