@@ -48,6 +48,8 @@ class PhotoUploadWorker @AssistedInject constructor(
                     continue
                 }
 
+                // Increment retry count before attempt
+                photoDao.incrementRetry(photo.id)
                 photoDao.updateUploadStatus(photo.id, "UPLOADING", null)
 
                 val response: ApiResponse<UploadResult> = client.submitFormWithBinaryData(

@@ -32,144 +32,180 @@ class SyncRepository @Inject constructor(
     private val geoDao: GeoDao,
     private val tokenManager: TokenManager,
 ) {
+    companion object {
+        const val BATCH_SIZE = 10
+        private const val CLEANUP_DAYS = 30
+    }
+
+    /** Clean up old synced submissions (>30 days). Called from CacheRefreshWorker. */
+    suspend fun cleanupOldSubmissions() {
+        val cutoff = System.currentTimeMillis() - CLEANUP_DAYS.toLong() * 24 * 60 * 60 * 1000
+        submissionDao.deleteSyncedOlderThan(cutoff)
+    }
+
     suspend fun performSync(): Result<SyncResult> {
         return try {
             val pendingSubmissions = submissionDao.getPendingSync()
-            val submissionDtos = pendingSubmissions.map { entity ->
-                SubmissionDto(
-                    id = entity.id,
-                    tenantId = entity.tenantId,
-                    campaignId = entity.campaignId,
-                    templateId = entity.templateId,
-                    data = entity.data,
-                    domain = entity.domain,
-                    gpsLat = entity.gpsLat,
-                    gpsLng = entity.gpsLng,
-                    gpsAccuracy = entity.gpsAccuracy,
-                    offlineCreatedAt = entity.offlineCreatedAt,
-                )
-            }
+            // Paginate: send in batches of BATCH_SIZE to avoid timeout on degraded networks
+            val batches = pendingSubmissions.chunked(BATCH_SIZE)
 
-            val response = syncApi.sync(
-                SyncRequest(
-                    submissions = submissionDtos,
-                    lastSyncAt = tokenManager.lastSyncAt,
-                    deviceId = tokenManager.deviceId,
-                    clientVersion = BuildConfig.VERSION_NAME,
-                )
-            )
+            var totalAccepted = 0
+            var totalRejected = 0
+            var totalConflicts = 0
 
-            val syncData = response.data
-            val now = System.currentTimeMillis()
-
-            // Mark accepted submissions
-            syncData.accepted.forEach { id ->
-                submissionDao.updateSyncStatus(id, "SYNCED", now)
-            }
-
-            // Mark rejected submissions
-            syncData.rejected.forEach { rejected ->
-                submissionDao.updateSyncError(
-                    rejected.id,
-                    "FAILED",
-                    rejected.errors.joinToString("; "),
-                )
-            }
-
-            // Mark conflicts with server version data
-            syncData.conflicts.forEach { conflict ->
-                submissionDao.markConflict(conflict.id, conflict.serverVersion)
-            }
-
-            // Update campaigns + their targets
-            if (syncData.updatedCampaigns.isNotEmpty()) {
-                val entities = syncData.updatedCampaigns.map { it.toEntity(now) }
-                campaignDao.upsertAll(entities)
-                syncData.updatedCampaigns.forEach { dto ->
-                    val targets = TargetMapper.campaignTargetsFromDto(dto, now)
-                    campaignTargetDao.replaceForCampaign(dto.id, targets)
-                }
-            }
-
-            // Update form templates + their targets
-            if (syncData.updatedTemplates.isNotEmpty()) {
-                val entities = syncData.updatedTemplates.map { dto ->
-                    FormTemplateEntity(
-                        id = dto.id,
-                        name = dto.name,
-                        domain = dto.domain,
-                        schema = dto.schema,
-                        uiSchema = dto.uiSchema,
-                        version = dto.version,
-                        syncedAt = now,
+            for (batch in batches) {
+                val submissionDtos = batch.map { entity ->
+                    SubmissionDto(
+                        id = entity.id,
+                        tenantId = entity.tenantId,
+                        campaignId = entity.campaignId,
+                        templateId = entity.templateId,
+                        data = entity.data,
+                        domain = entity.domain,
+                        gpsLat = entity.gpsLat,
+                        gpsLng = entity.gpsLng,
+                        gpsAccuracy = entity.gpsAccuracy,
+                        offlineCreatedAt = entity.offlineCreatedAt,
                     )
                 }
-                formTemplateDao.upsertAll(entities)
-                syncData.updatedTemplates.forEach { dto ->
-                    val targets = TargetMapper.templateTargetsFromDto(dto, now)
-                    formTemplateTargetDao.replaceForTemplate(dto.id, targets)
+
+                val response = try {
+                    syncApi.sync(
+                        SyncRequest(
+                            submissions = submissionDtos,
+                            lastSyncAt = tokenManager.lastSyncAt,
+                            deviceId = tokenManager.deviceId,
+                            clientVersion = BuildConfig.VERSION_NAME,
+                        )
+                    )
+                } catch (e: Exception) {
+                    // If a batch fails, stop and retry remaining on next run
+                    break
                 }
+
+                val syncData = response.data
+                val now = System.currentTimeMillis()
+
+                processSyncResponse(syncData, now)
+
+                totalAccepted += syncData.accepted.size
+                totalRejected += syncData.rejected.size
+                totalConflicts += syncData.conflicts.size
             }
 
-            // Update referentials
-            val refs = syncData.updatedReferentials
-            if (refs.species.isNotEmpty()) {
-                speciesDao.upsertAll(refs.species.map { dto ->
-                    SpeciesEntity(
-                        id = dto.id,
-                        commonName = dto.commonName,
-                        scientificName = dto.scientificName,
-                        category = dto.category,
-                        syncedAt = now,
-                    )
-                })
-            }
-            if (refs.diseases.isNotEmpty()) {
-                diseaseDao.upsertAll(refs.diseases.map { dto ->
-                    DiseaseEntity(
-                        id = dto.id,
-                        name = dto.name,
-                        woahCode = dto.woahCode,
-                        category = dto.category,
-                        isNotifiable = dto.isNotifiable,
-                        syncedAt = now,
-                    )
-                })
-            }
-            if (refs.geoUnits.isNotEmpty()) {
-                geoDao.upsertAll(refs.geoUnits.map { dto ->
-                    GeoEntity(
-                        id = dto.id,
-                        name = dto.name,
-                        level = dto.level,
-                        parentId = dto.parentId,
-                        isoCode = dto.isoCode,
-                        syncedAt = now,
-                    )
-                })
-            }
-
-            // Update workflow statuses
-            syncData.workflowUpdates.forEach { wf ->
-                submissionDao.updateWorkflow(wf.submissionId, wf.level, wf.status)
-            }
-
-            // Update quality gate results
-            syncData.qualityResults.forEach { qr ->
-                submissionDao.updateQualityResults(qr.submissionId, qr.results)
-            }
-
-            tokenManager.lastSyncAt = now
+            tokenManager.lastSyncAt = System.currentTimeMillis()
 
             Result.success(
                 SyncResult(
-                    accepted = syncData.accepted.size,
-                    rejected = syncData.rejected.size,
-                    conflicts = syncData.conflicts.size,
+                    accepted = totalAccepted,
+                    rejected = totalRejected,
+                    conflicts = totalConflicts,
                 )
             )
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    private suspend fun processSyncResponse(
+        syncData: org.auibar.aris.mobile.data.remote.dto.SyncResponse,
+        now: Long,
+    ) {
+        // Mark accepted submissions
+        syncData.accepted.forEach { id ->
+            submissionDao.updateSyncStatus(id, "SYNCED", now)
+        }
+
+        // Mark rejected submissions
+        syncData.rejected.forEach { rejected ->
+            submissionDao.updateSyncError(
+                rejected.id,
+                "FAILED",
+                rejected.errors.joinToString("; "),
+            )
+        }
+
+        // Mark conflicts with server version data
+        syncData.conflicts.forEach { conflict ->
+            submissionDao.markConflict(conflict.id, conflict.serverVersion)
+        }
+
+        // Update campaigns + their targets
+        if (syncData.updatedCampaigns.isNotEmpty()) {
+            val entities = syncData.updatedCampaigns.map { it.toEntity(now) }
+            campaignDao.upsertAll(entities)
+            syncData.updatedCampaigns.forEach { dto ->
+                val targets = TargetMapper.campaignTargetsFromDto(dto, now)
+                campaignTargetDao.replaceForCampaign(dto.id, targets)
+            }
+        }
+
+        // Update form templates + their targets
+        if (syncData.updatedTemplates.isNotEmpty()) {
+            val entities = syncData.updatedTemplates.map { dto ->
+                FormTemplateEntity(
+                    id = dto.id,
+                    name = dto.name,
+                    domain = dto.domain,
+                    schema = dto.schema,
+                    uiSchema = dto.uiSchema,
+                    version = dto.version,
+                    syncedAt = now,
+                )
+            }
+            formTemplateDao.upsertAll(entities)
+            syncData.updatedTemplates.forEach { dto ->
+                val targets = TargetMapper.templateTargetsFromDto(dto, now)
+                formTemplateTargetDao.replaceForTemplate(dto.id, targets)
+            }
+        }
+
+        // Update referentials
+        val refs = syncData.updatedReferentials
+        if (refs.species.isNotEmpty()) {
+            speciesDao.upsertAll(refs.species.map { dto ->
+                SpeciesEntity(
+                    id = dto.id,
+                    commonName = dto.commonName,
+                    scientificName = dto.scientificName,
+                    category = dto.category,
+                    syncedAt = now,
+                )
+            })
+        }
+        if (refs.diseases.isNotEmpty()) {
+            diseaseDao.upsertAll(refs.diseases.map { dto ->
+                DiseaseEntity(
+                    id = dto.id,
+                    name = dto.name,
+                    woahCode = dto.woahCode,
+                    category = dto.category,
+                    isNotifiable = dto.isNotifiable,
+                    syncedAt = now,
+                )
+            })
+        }
+        if (refs.geoUnits.isNotEmpty()) {
+            geoDao.upsertAll(refs.geoUnits.map { dto ->
+                GeoEntity(
+                    id = dto.id,
+                    name = dto.name,
+                    level = dto.level,
+                    parentId = dto.parentId,
+                    isoCode = dto.isoCode,
+                    syncedAt = now,
+                )
+            })
+        }
+
+        // Update workflow statuses
+        syncData.workflowUpdates.forEach { wf ->
+            submissionDao.updateWorkflow(wf.submissionId, wf.level, wf.status)
+        }
+
+        // Update quality gate results
+        syncData.qualityResults.forEach { qr ->
+            submissionDao.updateQualityResults(qr.submissionId, qr.results)
         }
     }
 }
