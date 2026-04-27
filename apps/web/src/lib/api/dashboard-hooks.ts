@@ -124,7 +124,7 @@ export interface DashboardSection {
   titleEn: string;
   titleAr?: string | null;
   titlePt?: string | null;
-  columnCount: 1 | 2 | 3 | 4;
+  columnCount: number;
   sortOrder: number;
   isCollapsed: boolean;
   config: Record<string, unknown>;

@@ -10,12 +10,12 @@ interface SectionHeaderProps {
   editable?: boolean;
   dragListeners?: SyntheticListenerMap;
   onTitleChange?: (title: string) => void;
-  onColumnCountChange?: (count: 1 | 2 | 3 | 4) => void;
+  onColumnCountChange?: (count: number) => void;
   onToggleCollapse?: () => void;
   onRemove?: () => void;
 }
 
-const COL_OPTS = [1, 2, 3, 4] as const;
+const COL_OPTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
 export function SectionHeader({
   section,

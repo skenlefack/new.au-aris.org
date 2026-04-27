@@ -130,7 +130,7 @@ export const SaveLayoutSchema = Type.Object({
       titleEn: Type.Optional(Type.String({ default: '' })),
       titleAr: Type.Optional(Type.Union([Type.String(), Type.Null()])),
       titlePt: Type.Optional(Type.Union([Type.String(), Type.Null()])),
-      columnCount: Type.Optional(Type.Integer({ minimum: 1, maximum: 4, default: 2 })),
+      columnCount: Type.Optional(Type.Integer({ minimum: 1, maximum: 12, default: 2 })),
       sortOrder: Type.Integer({ minimum: 0 }),
       isCollapsed: Type.Optional(Type.Boolean({ default: false })),
       config: Type.Optional(Type.Any()),

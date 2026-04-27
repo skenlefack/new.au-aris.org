@@ -122,7 +122,7 @@ model DashboardSection {
   titlePt         String?            @map("title_pt") @db.VarChar(255)
 
   // ── Layout ──
-  columnCount     Int                @default(2) @map("column_count") @db.SmallInt
+  columnCount     Int                @default(2) @map("column_count") @db.SmallInt // 1-12
   sortOrder       Int                @default(0) @map("sort_order")
   isCollapsed     Boolean            @default(false) @map("is_collapsed")
   config          Json               @default("{}")
