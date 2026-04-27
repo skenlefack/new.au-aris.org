@@ -1,106 +1,108 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { GripVertical, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import type { DashboardSection } from '@/lib/api/dashboard-hooks';
+import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 
 interface SectionHeaderProps {
   section: DashboardSection;
   editable?: boolean;
-  dragHandleProps?: Record<string, unknown>;
+  dragListeners?: SyntheticListenerMap;
   onTitleChange?: (title: string) => void;
   onColumnCountChange?: (count: 1 | 2 | 3 | 4) => void;
   onToggleCollapse?: () => void;
   onRemove?: () => void;
 }
 
-const COL_OPTIONS = [1, 2, 3, 4] as const;
+const COL_OPTS = [1, 2, 3, 4] as const;
 
 export function SectionHeader({
   section,
   editable = false,
-  dragHandleProps,
+  dragListeners,
   onTitleChange,
   onColumnCountChange,
   onToggleCollapse,
   onRemove,
 }: SectionHeaderProps) {
-  // Use local state for the title input so user can freely type/clear
-  const [localTitle, setLocalTitle] = useState(section.titleFr ?? '');
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sync from parent when section changes (e.g. after save/reload)
+  // Keep input value in sync with section prop
   useEffect(() => {
-    setLocalTitle(section.titleFr ?? '');
-  }, [section.id]); // only on section ID change, not every render
-
-  const handleTitleBlur = () => {
-    onTitleChange?.(localTitle);
-  };
-
-  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      (e.target as HTMLInputElement).blur();
+    if (inputRef.current) {
+      inputRef.current.value = section.titleFr ?? '';
     }
+  }, [section.id]);
+
+  const handleBlur = () => {
+    onTitleChange?.(inputRef.current?.value ?? '');
   };
 
-  const displayTitle = section.titleFr || section.titleEn || 'Untitled section';
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+  };
+
+  const colCount = Number(section.columnCount) || 2;
 
   return (
     <div className="flex items-center gap-2 rounded-t-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
-      {/* Drag handle */}
+      {/* Drag handle — ONLY this element has drag listeners */}
       {editable && (
-        <div
-          {...dragHandleProps}
-          className="cursor-grab text-gray-300 dark:text-gray-600 hover:text-gray-500 active:cursor-grabbing flex-shrink-0"
+        <button
+          type="button"
+          className="cursor-grab text-gray-300 dark:text-gray-600 hover:text-gray-500 active:cursor-grabbing flex-shrink-0 touch-none"
+          {...dragListeners}
         >
           <GripVertical className="h-4 w-4" />
-        </div>
+        </button>
       )}
 
-      {/* Collapse toggle */}
+      {/* Collapse */}
       <button
-        onClick={onToggleCollapse}
-        className="rounded p-0.5 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-600 flex-shrink-0"
         type="button"
+        onClick={(e) => { e.stopPropagation(); onToggleCollapse?.(); }}
+        className="rounded p-0.5 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-600 flex-shrink-0"
       >
-        {section.isCollapsed ? (
-          <ChevronRight className="h-4 w-4" />
-        ) : (
-          <ChevronDown className="h-4 w-4" />
-        )}
+        {section.isCollapsed
+          ? <ChevronRight className="h-4 w-4" />
+          : <ChevronDown className="h-4 w-4" />}
       </button>
 
-      {/* Title */}
+      {/* Title — uncontrolled input for smooth typing */}
       {editable ? (
         <input
+          ref={inputRef}
           type="text"
-          value={localTitle}
-          onChange={(e) => setLocalTitle(e.target.value)}
-          onBlur={handleTitleBlur}
-          onKeyDown={handleTitleKeyDown}
+          defaultValue={section.titleFr ?? ''}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
           className="flex-1 min-w-0 bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 border-none outline-none focus:ring-1 focus:ring-[#1F4E79]/30 rounded px-1"
           placeholder="Section title..."
         />
       ) : (
         <span className="flex-1 min-w-0 text-sm font-semibold text-gray-700 dark:text-gray-200 truncate">
-          {displayTitle}
+          {section.titleFr || section.titleEn || ''}
         </span>
       )}
 
-      {/* Column count selector */}
+      {/* Column count — simple buttons, stopPropagation to prevent dnd interference */}
       {editable && (
         <div className="flex items-center gap-0.5 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 p-0.5 flex-shrink-0">
-          {COL_OPTIONS.map((n) => (
+          {COL_OPTS.map((n) => (
             <button
               key={n}
               type="button"
-              onClick={() => onColumnCountChange?.(n)}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onColumnCountChange?.(n);
+              }}
               className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
-                Number(section.columnCount) === n
+                colCount === n
                   ? 'bg-[#1F4E79] text-white'
                   : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
-              title={`${n} column${n > 1 ? 's' : ''}`}
             >
               {n}
             </button>
@@ -108,7 +110,7 @@ export function SectionHeader({
         </div>
       )}
 
-      {/* Widget count */}
+      {/* Count */}
       <span className="text-xs text-gray-400 tabular-nums flex-shrink-0">
         {section.widgets.length}
       </span>
@@ -117,9 +119,8 @@ export function SectionHeader({
       {editable && (
         <button
           type="button"
-          onClick={onRemove}
+          onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
           className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400 flex-shrink-0"
-          title="Remove section"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>

@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import type { DashboardSection, DashboardWidget } from '@/lib/api/dashboard-hooks';
 import { SectionHeader } from './SectionHeader';
@@ -28,7 +27,6 @@ export function SortableSection({
   onWidgetRemove,
 }: SortableSectionProps) {
   const {
-    attributes,
     listeners,
     setNodeRef,
     transform,
@@ -40,33 +38,28 @@ export function SortableSection({
     disabled: !editable,
   });
 
-  const style = {
-    transform: CSS.Translate.toString(transform),
-    transition,
-  };
+  // Only translate, never scale
+  const tx = transform ? `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0)` : undefined;
 
   // Group widgets by column index
-  const widgetsByColumn: DashboardWidget[][] = [];
-  for (let i = 0; i < section.columnCount; i++) {
-    widgetsByColumn.push(
-      section.widgets.filter((w) => (w.columnIndex ?? 0) === i),
-    );
+  const cols: DashboardWidget[][] = [];
+  for (let i = 0; i < (Number(section.columnCount) || 2); i++) {
+    cols.push(section.widgets.filter((w) => (w.columnIndex ?? 0) === i));
   }
 
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{ transform: tx, transition: transition ?? undefined }}
       className={cn(
-        'rounded-lg transition-shadow',
-        isDragging && 'opacity-50 shadow-xl ring-2 ring-[#1F4E79]/30 z-50',
+        'rounded-lg',
+        isDragging && 'opacity-40 ring-2 ring-[#1F4E79]/30 z-50',
       )}
-      {...attributes}
     >
       <SectionHeader
         section={section}
         editable={editable}
-        dragHandleProps={listeners}
+        dragListeners={listeners}
         onTitleChange={(title) =>
           onSectionUpdate?.(section.id, { titleFr: title, titleEn: title })
         }
@@ -79,17 +72,16 @@ export function SortableSection({
         onRemove={() => onSectionRemove?.(section.id)}
       />
 
-      {/* Column grid */}
       {!section.isCollapsed && (
         <div
           className="rounded-b-lg border border-t-0 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3"
           style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${section.columnCount}, 1fr)`,
+            gridTemplateColumns: `repeat(${Number(section.columnCount) || 2}, 1fr)`,
             gap: '12px',
           }}
         >
-          {widgetsByColumn.map((columnWidgets, colIdx) => (
+          {cols.map((columnWidgets, colIdx) => (
             <DroppableColumn
               key={`${section.id}-col-${colIdx}`}
               sectionId={section.id}
