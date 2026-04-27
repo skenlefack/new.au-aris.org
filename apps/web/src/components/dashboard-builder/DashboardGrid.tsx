@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Responsive, type Layout } from 'react-grid-layout';
 import { Settings, Trash2, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -9,9 +9,6 @@ import { WidgetRenderer } from './WidgetRenderer';
 
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
-
-// react-grid-layout v2.x removed WidthProvider; use Responsive directly with a measured width
-const ResponsiveGridLayout = Responsive;
 
 interface DashboardGridProps {
   widgets: DashboardWidget[];
@@ -45,6 +42,25 @@ export function DashboardGrid({
   onWidgetConfigure,
   onWidgetRemove,
 }: DashboardGridProps) {
+  // Measure container width for react-grid-layout v2 (no WidthProvider)
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(1200);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const w = entry.contentRect.width;
+        if (w > 0) setContainerWidth(w);
+      }
+    });
+    ro.observe(el);
+    // Initial measurement
+    if (el.offsetWidth > 0) setContainerWidth(el.offsetWidth);
+    return () => ro.disconnect();
+  }, []);
+
   // Build layout from widgets
   const layout = useMemo<any[]>(
     () =>
@@ -79,16 +95,18 @@ export function DashboardGrid({
 
   if (widgets.length === 0) {
     return (
-      <div className="flex min-h-[300px] items-center justify-center rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-        <div className="text-center">
-          <p className="text-lg font-medium text-gray-500 dark:text-gray-400">
-            No widgets yet
-          </p>
-          <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
-            {editable
-              ? 'Use the palette on the left to add widgets'
-              : 'This dashboard has no widgets configured'}
-          </p>
+      <div ref={containerRef} className="w-full">
+        <div className="flex min-h-[300px] items-center justify-center rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+          <div className="text-center">
+            <p className="text-lg font-medium text-gray-500 dark:text-gray-400">
+              No widgets yet
+            </p>
+            <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
+              {editable
+                ? 'Use the palette on the left to add widgets'
+                : 'This dashboard has no widgets configured'}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -96,6 +114,7 @@ export function DashboardGrid({
 
   const gridProps: any = {
     className: 'dashboard-grid-layout',
+    width: containerWidth,
     layouts: { lg: layout },
     breakpoints: { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 },
     cols: { lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 },
@@ -109,7 +128,8 @@ export function DashboardGrid({
   };
 
   return (
-    <ResponsiveGridLayout {...gridProps}>
+    <div ref={containerRef} className="w-full">
+    <Responsive {...gridProps}>
       {widgets.map((widget) => (
         <div
           key={widget.id}
@@ -157,6 +177,7 @@ export function DashboardGrid({
           </div>
         </div>
       ))}
-    </ResponsiveGridLayout>
+    </Responsive>
+    </div>
   );
 }

@@ -229,8 +229,9 @@ export class DashboardService {
         `INSERT INTO dashboard_builder.dashboards
           (id, ownership, scope, domain_id, sub_domain_id, value_chain_code,
            rec_code, country_code, title_fr, title_en, title_ar, title_pt,
-           description, grid_columns, row_height, owner_user_id, is_default)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+           description, grid_columns, row_height, owner_user_id, is_default,
+           created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NOW(),NOW())
          RETURNING *`,
         [
           id,
@@ -258,9 +259,11 @@ export class DashboardService {
         await client.query(
           `INSERT INTO dashboard_builder.dashboard_widgets
             (id, dashboard_id, type, data_source, grid_x, grid_y, grid_w, grid_h,
-             title_fr, title_en, title_ar, title_pt, config, filters)
+             title_fr, title_en, title_ar, title_pt, config, filters,
+             created_at, updated_at)
            SELECT gen_random_uuid(), $1, type, data_source, grid_x, grid_y, grid_w, grid_h,
-                  title_fr, title_en, title_ar, title_pt, config, filters
+                  title_fr, title_en, title_ar, title_pt, config, filters,
+                  NOW(), NOW()
            FROM dashboard_builder.dashboard_widgets
            WHERE dashboard_id = $2`,
           [id, input.cloneFrom],
@@ -366,8 +369,9 @@ export class DashboardService {
     const { rows } = await this.pool.query(
       `INSERT INTO dashboard_builder.dashboard_widgets
         (id, dashboard_id, type, data_source, grid_x, grid_y, grid_w, grid_h,
-         title_fr, title_en, title_ar, title_pt, config, filters)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+         title_fr, title_en, title_ar, title_pt, config, filters,
+         created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW(),NOW())
        RETURNING *`,
       [
         id,
@@ -582,8 +586,9 @@ export class DashboardService {
     const id = randomUUID();
     const { rows } = await this.pool.query(
       `INSERT INTO dashboard_builder.user_dashboard_preferences
-        (id, user_id, scope, domain_id, sub_domain_id, value_chain_code, dashboard_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
+        (id, user_id, scope, domain_id, sub_domain_id, value_chain_code, dashboard_id,
+         created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,NOW(),NOW())
        ON CONFLICT ON CONSTRAINT uq_user_dashboard_pref
        DO UPDATE SET dashboard_id = EXCLUDED.dashboard_id, updated_at = NOW()
        RETURNING *`,
