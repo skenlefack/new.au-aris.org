@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Save, X, Share2, ArrowLeft, Sparkles } from 'lucide-react';
 import {
@@ -28,24 +28,29 @@ export default function DashboardEditPage() {
   const saveLayout = useSaveLayout();
 
   const dashboard = dashboardData?.data;
+  const d = dashboard as any;
 
   const [title, setTitle] = useState('');
-  const titleInitialized = useRef(false);
+  const titleInitRef = useRef(false);
 
-  // Local sections state for optimistic drag updates
+  // Local sections state — synced from server, modified locally during editing
   const [localSections, setLocalSections] = useState<DashboardSection[]>([]);
-  const sectionsInitialized = useRef(false);
+  // Track whether user has made local edits (drag/reorder) to avoid overwriting
+  const hasLocalEdits = useRef(false);
 
-  if (dashboard && !titleInitialized.current) {
-    const d = dashboard as any;
-    setTitle(d.title || d.title_fr || d.titleFr || d.title_en || d.titleEn || '');
-    titleInitialized.current = true;
+  // Initialize title once
+  if (d && !titleInitRef.current) {
+    setTitle(d.title || d.title_fr || d.titleFr || '');
+    titleInitRef.current = true;
   }
 
-  if (dashboard && !sectionsInitialized.current) {
-    setLocalSections(dashboard.sections ?? []);
-    sectionsInitialized.current = true;
-  }
+  // Sync sections from server data — re-sync when server data changes
+  // (after addWidget/removeWidget mutations invalidate the query)
+  useEffect(() => {
+    if (dashboard?.sections && !hasLocalEdits.current) {
+      setLocalSections(dashboard.sections);
+    }
+  }, [dashboard?.sections]);
 
   // AI suggestion dialog
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
@@ -61,7 +66,7 @@ export default function DashboardEditPage() {
             dashboardId: id,
             type: w.type ?? 'KPI_CARD',
             title: w.title ?? w.type,
-            sectionId: targetSection.id,
+            sectionId: targetSection.id.startsWith('temp-') ? undefined : targetSection.id,
             columnIndex: 0,
             sortOrder: targetSection.widgets.length,
           });
@@ -78,27 +83,29 @@ export default function DashboardEditPage() {
         (w) => (w.columnIndex ?? 0) === columnIndex,
       ) ?? [];
 
-      addWidget.mutate(
-        {
-          dashboardId: id,
-          type,
-          title: type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-          titleFr: type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-          titleEn: type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-          sectionId,
-          columnIndex,
-          sortOrder: colWidgets.length,
-        },
-        {
-          onSuccess: () => {
-            // Re-initialize sections from updated query data
-            sectionsInitialized.current = false;
-          },
-        },
-      );
+      const widgetTitle = type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+      // Don't mark as local edit — we want server response to sync back
+      hasLocalEdits.current = false;
+
+      addWidget.mutate({
+        dashboardId: id,
+        type,
+        title: widgetTitle,
+        titleFr: widgetTitle,
+        titleEn: widgetTitle,
+        sectionId: sectionId.startsWith('temp-') ? undefined : sectionId,
+        columnIndex,
+        sortOrder: colWidgets.length,
+      });
     },
     [id, addWidget, localSections],
   );
+
+  const handleSectionsChange = useCallback((newSections: DashboardSection[]) => {
+    hasLocalEdits.current = true;
+    setLocalSections(newSections);
+  }, []);
 
   const handleRemoveWidget = useCallback(
     (widgetId: string) => {
@@ -109,6 +116,7 @@ export default function DashboardEditPage() {
           widgets: sec.widgets.filter((w) => w.id !== widgetId),
         })),
       );
+      hasLocalEdits.current = false; // allow server sync after delete
       removeWidget.mutate({ dashboardId: id, widgetId });
     },
     [id, removeWidget],
@@ -120,7 +128,6 @@ export default function DashboardEditPage() {
 
   const handleSave = async () => {
     // 1. Update title if changed
-    const d = dashboard as any;
     const dashTitle = d?.title || d?.title_fr || '';
     if (title !== dashTitle) {
       await updateDashboard.mutateAsync({ id, title });
@@ -234,7 +241,7 @@ export default function DashboardEditPage() {
       <div className="flex-1 min-h-0">
         <DashboardEditor
           sections={localSections}
-          onSectionsChange={setLocalSections}
+          onSectionsChange={handleSectionsChange}
           onAddWidget={handleAddWidget}
           onWidgetConfigure={handleConfigureWidget}
           onWidgetRemove={handleRemoveWidget}
@@ -246,7 +253,7 @@ export default function DashboardEditPage() {
         onClose={() => setAiDialogOpen(false)}
         type="dashboard"
         onAccept={handleAiAccept}
-        context={{ domainCode: dashboard.domainCode, scope: dashboard.scope }}
+        context={{ domainCode: (dashboard as any).domainCode, scope: (dashboard as any).scope }}
       />
     </div>
   );
