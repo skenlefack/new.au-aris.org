@@ -31,6 +31,7 @@ import {
   CreateWidgetSchema,
   UpdateWidgetSchema,
   BatchUpdateWidgetsSchema,
+  SaveLayoutSchema,
   CreateShareSchema,
   SetPreferenceSchema,
   ListDashboardsQuerySchema,
@@ -43,6 +44,7 @@ import type {
   CreateWidgetDto,
   UpdateWidgetDto,
   BatchUpdateWidgetsDto,
+  SaveLayoutDto,
   CreateShareDto,
   SetPreferenceDto,
   ListDashboardsQuery,
@@ -215,6 +217,26 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
     const user = request.user as AuthenticatedUser;
     await app.dashboardService.removeWidget(request.params.id, request.params.widgetId, user.userId);
     return reply.code(204).send();
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  Layout (sections + widget positions — bulk save)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  app.post(`${PREFIX}/:id/layout`, {
+    preHandler: [app.authHookFn, tenantHook()],
+    schema: { body: SaveLayoutSchema, tags: ['dashboards'] },
+  }, async (
+    request: FastifyRequest<{ Params: DashboardIdParam; Body: SaveLayoutDto }>,
+    reply: FastifyReply,
+  ) => {
+    const user = request.user as AuthenticatedUser;
+    const data = await app.dashboardService.saveLayout(
+      request.params.id,
+      request.body,
+      user.userId,
+    );
+    return reply.code(200).send({ data });
   });
 
   // ═══════════════════════════════════════════════════════════════════════

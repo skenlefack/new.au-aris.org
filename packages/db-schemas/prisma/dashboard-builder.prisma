@@ -94,6 +94,7 @@ model Dashboard {
   updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz
 
   // ── Relations ──
+  sections        DashboardSection[]
   widgets         DashboardWidget[]
   shares          DashboardShare[]
   preferences     UserDashboardPreference[]
@@ -107,6 +108,38 @@ model Dashboard {
   @@schema("dashboard_builder")
 }
 
+// ── Dashboard Section ──────────────────────────────────────────────────
+
+model DashboardSection {
+  id              String             @id @default(uuid()) @db.Uuid
+  dashboardId     String             @map("dashboard_id") @db.Uuid
+  dashboard       Dashboard          @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  // ── Multilingual titles ──
+  titleFr         String             @default("") @map("title_fr") @db.VarChar(255)
+  titleEn         String             @default("") @map("title_en") @db.VarChar(255)
+  titleAr         String?            @map("title_ar") @db.VarChar(255)
+  titlePt         String?            @map("title_pt") @db.VarChar(255)
+
+  // ── Layout ──
+  columnCount     Int                @default(2) @map("column_count") @db.SmallInt
+  sortOrder       Int                @default(0) @map("sort_order")
+  isCollapsed     Boolean            @default(false) @map("is_collapsed")
+  config          Json               @default("{}")
+
+  // ── Timestamps ──
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  // ── Relations ──
+  widgets         DashboardWidget[]
+
+  @@index([dashboardId], map: "idx_section_dashboard_id")
+  @@index([dashboardId, sortOrder], map: "idx_section_sort_order")
+  @@map("dashboard_sections")
+  @@schema("dashboard_builder")
+}
+
 // ── Dashboard Widget ───────────────────────────────────────────────────
 
 model DashboardWidget {
@@ -114,11 +147,17 @@ model DashboardWidget {
   dashboardId     String             @map("dashboard_id") @db.Uuid
   dashboard       Dashboard          @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
 
+  // ── Section assignment ──
+  sectionId       String?            @map("section_id") @db.Uuid
+  section         DashboardSection?  @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  columnIndex     Int                @default(0) @map("column_index") @db.SmallInt
+  sortOrder       Int                @default(0) @map("sort_order")
+
   // ── Widget type & data source ──
   type            WidgetType
   dataSource      WidgetDataSource   @default(INDICATOR) @map("data_source")
 
-  // ── Grid position (react-grid-layout compatible) ──
+  // ── Grid position (legacy, kept for backward compat) ──
   gridX           Int                @default(0) @map("grid_x")
   gridY           Int                @default(0) @map("grid_y")
   gridW           Int                @default(3) @map("grid_w")
@@ -139,6 +178,8 @@ model DashboardWidget {
   updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz
 
   @@index([dashboardId], map: "idx_widget_dashboard_id")
+  @@index([sectionId], map: "idx_widget_section_id")
+  @@index([sectionId, columnIndex, sortOrder], map: "idx_widget_section_sort")
   @@index([type], map: "idx_widget_type")
   @@map("dashboard_widgets")
   @@schema("dashboard_builder")

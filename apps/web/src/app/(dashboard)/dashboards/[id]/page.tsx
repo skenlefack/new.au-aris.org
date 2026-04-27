@@ -8,7 +8,7 @@ import {
   useDashboardRender,
   useSetDashboardPreference,
 } from '@/lib/api/dashboard-hooks';
-import { DashboardGrid } from '@/components/dashboard-builder/DashboardGrid';
+import { SectionList } from '@/components/dashboard-builder/SectionList';
 
 export default function DashboardViewPage() {
   const params = useParams();
@@ -62,6 +62,8 @@ export default function DashboardViewPage() {
     );
   }
 
+  const title = dashboard.title || (dashboard as any).title_fr || (dashboard as any).titleFr || '';
+
   return (
     <div className="mx-auto max-w-7xl">
       {/* Toolbar */}
@@ -75,7 +77,7 @@ export default function DashboardViewPage() {
           </button>
           <div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              {dashboard.title}
+              {title}
             </h1>
             {dashboard.description && (
               <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -110,10 +112,10 @@ export default function DashboardViewPage() {
         </div>
       </div>
 
-      {/* Grid */}
+      {/* Sections view */}
       <div className="mt-6">
-        <DashboardGrid
-          widgets={dashboard.widgets ?? []}
+        <SectionList
+          sections={dashboard.sections ?? []}
           widgetData={widgetData}
           editable={false}
         />

@@ -12,6 +12,9 @@ function mapWidgetLayout(w: any): any {
   return {
     ...w,
     title: w.title || w.title_fr || w.titleFr || '',
+    sectionId: w.section_id ?? w.sectionId ?? null,
+    columnIndex: w.column_index ?? w.columnIndex ?? 0,
+    sortOrder: w.sort_order ?? w.sortOrder ?? 0,
     layout: {
       x: w.grid_x ?? w.gridX ?? 0,
       y: w.grid_y ?? w.gridY ?? 0,
@@ -23,12 +26,62 @@ function mapWidgetLayout(w: any): any {
   };
 }
 
+/** Map backend section data with nested widgets */
+function mapSectionWidgets(sec: any): DashboardSection {
+  const widgets = (sec.widgets || []).map(mapWidgetLayout);
+  return {
+    id: sec.id,
+    dashboardId: sec.dashboard_id || sec.dashboardId,
+    titleFr: sec.title_fr ?? sec.titleFr ?? '',
+    titleEn: sec.title_en ?? sec.titleEn ?? '',
+    titleAr: sec.title_ar ?? sec.titleAr ?? null,
+    titlePt: sec.title_pt ?? sec.titlePt ?? null,
+    columnCount: sec.column_count ?? sec.columnCount ?? 2,
+    sortOrder: sec.sort_order ?? sec.sortOrder ?? 0,
+    isCollapsed: sec.is_collapsed ?? sec.isCollapsed ?? false,
+    config: sec.config ?? {},
+    widgets,
+  };
+}
+
 function mapDashboardWidgets(data: any): any {
   if (!data) return data;
   const d = data.data ?? data;
+
+  // Map sections with nested widgets
+  if (d.sections && Array.isArray(d.sections)) {
+    d.sections = d.sections.map(mapSectionWidgets);
+  }
+
+  // Map orphan widgets (backward compat — widgets without section)
   if (d.widgets && Array.isArray(d.widgets)) {
     d.widgets = d.widgets.map(mapWidgetLayout);
   }
+
+  // Map dashboard title from backend fields
+  if (!d.title) {
+    d.title = d.title_fr || d.titleFr || d.title_en || d.titleEn || '';
+  }
+  d.titleFr = d.title_fr || d.titleFr || d.title || '';
+  d.titleEn = d.title_en || d.titleEn || d.title || '';
+
+  // Backward compat: if no sections exist, create a synthetic one from flat widgets
+  if ((!d.sections || d.sections.length === 0) && d.widgets && d.widgets.length > 0) {
+    d.sections = [{
+      id: 'default-section',
+      dashboardId: d.id,
+      titleFr: 'Section principale',
+      titleEn: 'Main Section',
+      titleAr: null,
+      titlePt: null,
+      columnCount: 1,
+      sortOrder: 0,
+      isCollapsed: false,
+      config: {},
+      widgets: d.widgets,
+    }];
+  }
+
   return data;
 }
 
@@ -57,9 +110,25 @@ export interface DashboardWidget {
   config: Record<string, unknown>;
   dataSource?: Record<string, unknown>;
   layout: { x: number; y: number; w: number; h: number; minW?: number; minH?: number };
+  sectionId?: string;
+  columnIndex: number;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DashboardSection {
+  id: string;
+  dashboardId: string;
+  titleFr: string;
+  titleEn: string;
+  titleAr?: string | null;
+  titlePt?: string | null;
+  columnCount: 1 | 2 | 3 | 4;
+  sortOrder: number;
+  isCollapsed: boolean;
+  config: Record<string, unknown>;
+  widgets: DashboardWidget[];
 }
 
 export interface Dashboard {
@@ -73,6 +142,7 @@ export interface Dashboard {
   isDefault: boolean;
   isTemplate: boolean;
   tags?: string[];
+  sections: DashboardSection[];
   widgets: DashboardWidget[];
   createdAt: string;
   updatedAt: string;
@@ -256,16 +326,69 @@ export function useAddWidget() {
       dashboardId: string;
       type: WidgetType;
       title: string;
+      titleFr?: string;
+      titleEn?: string;
       config?: Record<string, unknown>;
       dataSource?: Record<string, unknown>;
-      layout: { x: number; y: number; w: number; h: number };
-    }) =>
-      analyticsClient.post<{ data: DashboardWidget }>(
+      sectionId?: string;
+      columnIndex?: number;
+      sortOrder?: number;
+      layout?: { x: number; y: number; w: number; h: number };
+    }) => {
+      const payload: Record<string, unknown> = { ...body };
+      payload.titleFr = body.titleFr || body.title || 'Widget';
+      payload.titleEn = body.titleEn || body.title || 'Widget';
+      if (body.layout) {
+        payload.gridX = body.layout.x;
+        payload.gridY = body.layout.y;
+        payload.gridW = body.layout.w;
+        payload.gridH = body.layout.h;
+      }
+      return analyticsClient.post<{ data: DashboardWidget }>(
         `/analytics/dashboards/${dashboardId}/widgets`,
-        body,
+        payload,
+      );
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: KEYS.detail(vars.dashboardId) });
+    },
+  });
+}
+
+export function useSaveLayout() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      dashboardId,
+      sections,
+      widgets,
+    }: {
+      dashboardId: string;
+      sections: Array<{
+        id?: string | null;
+        titleFr?: string;
+        titleEn?: string;
+        titleAr?: string | null;
+        titlePt?: string | null;
+        columnCount?: number;
+        sortOrder: number;
+        isCollapsed?: boolean;
+        config?: Record<string, unknown>;
+      }>;
+      widgets: Array<{
+        id: string;
+        sectionId: string | null;
+        columnIndex: number;
+        sortOrder: number;
+      }>;
+    }) =>
+      analyticsClient.post<{ data: Dashboard }>(
+        `/analytics/dashboards/${dashboardId}/layout`,
+        { sections, widgets },
       ),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: KEYS.detail(vars.dashboardId) });
+      qc.invalidateQueries({ queryKey: KEYS.lists() });
     },
   });
 }

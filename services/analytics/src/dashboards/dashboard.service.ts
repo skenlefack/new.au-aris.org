@@ -21,6 +21,7 @@ import type {
   CreateWidgetDto,
   UpdateWidgetDto,
   BatchUpdateWidgetsDto,
+  SaveLayoutDto,
   CreateShareDto,
   SetPreferenceDto,
   ListDashboardsQuery,
@@ -125,9 +126,37 @@ export class DashboardService {
     const { rows } = await this.pool.query(
       `SELECT d.*,
               COALESCE(
+                (SELECT json_agg(
+                   json_build_object(
+                     'id', sec.id,
+                     'dashboard_id', sec.dashboard_id,
+                     'title_fr', sec.title_fr,
+                     'title_en', sec.title_en,
+                     'title_ar', sec.title_ar,
+                     'title_pt', sec.title_pt,
+                     'column_count', sec.column_count,
+                     'sort_order', sec.sort_order,
+                     'is_collapsed', sec.is_collapsed,
+                     'config', sec.config,
+                     'created_at', sec.created_at,
+                     'updated_at', sec.updated_at,
+                     'widgets', COALESCE(
+                       (SELECT json_agg(w ORDER BY w.column_index, w.sort_order)
+                        FROM dashboard_builder.dashboard_widgets w
+                        WHERE w.section_id = sec.id),
+                       '[]'::json
+                     )
+                   )
+                   ORDER BY sec.sort_order
+                 )
+                 FROM dashboard_builder.dashboard_sections sec
+                 WHERE sec.dashboard_id = d.id),
+                '[]'::json
+              ) AS sections,
+              COALESCE(
                 (SELECT json_agg(w ORDER BY w.grid_y, w.grid_x)
                  FROM dashboard_builder.dashboard_widgets w
-                 WHERE w.dashboard_id = d.id),
+                 WHERE w.dashboard_id = d.id AND w.section_id IS NULL),
                 '[]'::json
               ) AS widgets,
               COALESCE(
@@ -254,19 +283,71 @@ export class DashboardService {
         ],
       );
 
-      // Clone widgets from another dashboard if requested
       if (input.cloneFrom) {
+        // Clone sections and widgets from source dashboard
+        const { rows: srcSections } = await client.query(
+          `SELECT * FROM dashboard_builder.dashboard_sections WHERE dashboard_id = $1 ORDER BY sort_order`,
+          [input.cloneFrom],
+        );
+
+        if (srcSections.length > 0) {
+          // Clone sections with ID mapping
+          const sectionMap = new Map<string, string>();
+          for (const sec of srcSections) {
+            const newSecId = randomUUID();
+            sectionMap.set(sec.id, newSecId);
+            await client.query(
+              `INSERT INTO dashboard_builder.dashboard_sections
+                (id, dashboard_id, title_fr, title_en, title_ar, title_pt,
+                 column_count, sort_order, is_collapsed, config, created_at, updated_at)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW(),NOW())`,
+              [newSecId, id, sec.title_fr, sec.title_en, sec.title_ar, sec.title_pt,
+               sec.column_count, sec.sort_order, sec.is_collapsed, JSON.stringify(sec.config)],
+            );
+          }
+
+          // Clone widgets with remapped section IDs
+          const { rows: srcWidgets } = await client.query(
+            `SELECT * FROM dashboard_builder.dashboard_widgets WHERE dashboard_id = $1`,
+            [input.cloneFrom],
+          );
+          for (const w of srcWidgets) {
+            const newSectionId = w.section_id ? (sectionMap.get(w.section_id) ?? null) : null;
+            await client.query(
+              `INSERT INTO dashboard_builder.dashboard_widgets
+                (id, dashboard_id, section_id, column_index, sort_order,
+                 type, data_source, grid_x, grid_y, grid_w, grid_h,
+                 title_fr, title_en, title_ar, title_pt, config, filters,
+                 created_at, updated_at)
+               VALUES (gen_random_uuid(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW(),NOW())`,
+              [id, newSectionId, w.column_index ?? 0, w.sort_order ?? 0,
+               w.type, w.data_source, w.grid_x, w.grid_y, w.grid_w, w.grid_h,
+               w.title_fr, w.title_en, w.title_ar, w.title_pt,
+               JSON.stringify(w.config), JSON.stringify(w.filters)],
+            );
+          }
+        } else {
+          // No sections — just clone widgets flat
+          await client.query(
+            `INSERT INTO dashboard_builder.dashboard_widgets
+              (id, dashboard_id, type, data_source, grid_x, grid_y, grid_w, grid_h,
+               title_fr, title_en, title_ar, title_pt, config, filters,
+               created_at, updated_at)
+             SELECT gen_random_uuid(), $1, type, data_source, grid_x, grid_y, grid_w, grid_h,
+                    title_fr, title_en, title_ar, title_pt, config, filters,
+                    NOW(), NOW()
+             FROM dashboard_builder.dashboard_widgets
+             WHERE dashboard_id = $2`,
+            [id, input.cloneFrom],
+          );
+        }
+      } else {
+        // Create a default section for new dashboards
         await client.query(
-          `INSERT INTO dashboard_builder.dashboard_widgets
-            (id, dashboard_id, type, data_source, grid_x, grid_y, grid_w, grid_h,
-             title_fr, title_en, title_ar, title_pt, config, filters,
-             created_at, updated_at)
-           SELECT gen_random_uuid(), $1, type, data_source, grid_x, grid_y, grid_w, grid_h,
-                  title_fr, title_en, title_ar, title_pt, config, filters,
-                  NOW(), NOW()
-           FROM dashboard_builder.dashboard_widgets
-           WHERE dashboard_id = $2`,
-          [id, input.cloneFrom],
+          `INSERT INTO dashboard_builder.dashboard_sections
+            (id, dashboard_id, title_fr, title_en, column_count, sort_order, created_at, updated_at)
+           VALUES ($1, $2, 'Section 1', 'Section 1', 2, 0, NOW(), NOW())`,
+          [randomUUID(), id],
         );
       }
 
@@ -368,14 +449,18 @@ export class DashboardService {
     const id = randomUUID();
     const { rows } = await this.pool.query(
       `INSERT INTO dashboard_builder.dashboard_widgets
-        (id, dashboard_id, type, data_source, grid_x, grid_y, grid_w, grid_h,
+        (id, dashboard_id, section_id, column_index, sort_order,
+         type, data_source, grid_x, grid_y, grid_w, grid_h,
          title_fr, title_en, title_ar, title_pt, config, filters,
          created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW(),NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NOW(),NOW())
        RETURNING *`,
       [
         id,
         dashboardId,
+        input.sectionId ?? null,
+        input.columnIndex ?? 0,
+        input.sortOrder ?? 0,
         input.type,
         input.dataSource ?? 'INDICATOR',
         gridX,
@@ -407,6 +492,9 @@ export class DashboardService {
     const fieldMap: Record<string, string> = {
       type: 'type',
       dataSource: 'data_source',
+      sectionId: 'section_id',
+      columnIndex: 'column_index',
+      sortOrder: 'sort_order',
       gridX: 'grid_x',
       gridY: 'grid_y',
       gridW: 'grid_w',
@@ -487,19 +575,30 @@ export class DashboardService {
       await client.query('BEGIN');
 
       for (const w of input.widgets) {
-        if (w.gridX + w.gridW > 12) {
-          throw Object.assign(
-            new Error(`Widget ${w.id} exceeds grid width: gridX + gridW must be <= 12`),
-            { statusCode: 400 },
-          );
-        }
+        // Build dynamic SET clause based on provided fields
+        const sets: string[] = [];
+        const params: unknown[] = [];
+        let idx = 1;
+
+        if (w.sectionId !== undefined) { sets.push(`section_id = $${idx++}`); params.push(w.sectionId); }
+        if (w.columnIndex !== undefined) { sets.push(`column_index = $${idx++}`); params.push(w.columnIndex); }
+        if (w.sortOrder !== undefined) { sets.push(`sort_order = $${idx++}`); params.push(w.sortOrder); }
+        if (w.gridX !== undefined) { sets.push(`grid_x = $${idx++}`); params.push(w.gridX); }
+        if (w.gridY !== undefined) { sets.push(`grid_y = $${idx++}`); params.push(w.gridY); }
+        if (w.gridW !== undefined) { sets.push(`grid_w = $${idx++}`); params.push(w.gridW); }
+        if (w.gridH !== undefined) { sets.push(`grid_h = $${idx++}`); params.push(w.gridH); }
+
+        if (sets.length === 0) continue;
+
+        sets.push('updated_at = NOW()');
+        params.push(w.id, dashboardId);
 
         const { rows } = await client.query(
           `UPDATE dashboard_builder.dashboard_widgets
-           SET grid_x = $1, grid_y = $2, grid_w = $3, grid_h = $4, updated_at = NOW()
-           WHERE id = $5 AND dashboard_id = $6
+           SET ${sets.join(', ')}
+           WHERE id = $${idx++} AND dashboard_id = $${idx}
            RETURNING *`,
-          [w.gridX, w.gridY, w.gridW, w.gridH, w.id, dashboardId],
+          params,
         );
 
         if (rows.length === 0) {
@@ -533,6 +632,115 @@ export class DashboardService {
     }
 
     await this.redis.del(`${CACHE_PREFIX}${dashboardId}`);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  Layout (sections + widget positions — bulk save)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async saveLayout(dashboardId: string, input: SaveLayoutDto, userId: string): Promise<unknown> {
+    await this.verifyOwnership(dashboardId, userId);
+
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Get existing section IDs for this dashboard
+      const { rows: existingSections } = await client.query(
+        `SELECT id FROM dashboard_builder.dashboard_sections WHERE dashboard_id = $1`,
+        [dashboardId],
+      );
+      const existingIds = new Set(existingSections.map((s: any) => s.id));
+      const incomingIds = new Set(
+        input.sections.filter((s) => s.id).map((s) => s.id as string),
+      );
+
+      // 2. Delete removed sections (widgets get section_id = NULL via ON DELETE SET NULL)
+      for (const existing of existingIds) {
+        if (!incomingIds.has(existing)) {
+          await client.query(
+            `DELETE FROM dashboard_builder.dashboard_sections WHERE id = $1 AND dashboard_id = $2`,
+            [existing, dashboardId],
+          );
+        }
+      }
+
+      // 3. Upsert sections — map temp IDs to real IDs
+      const sectionIdMap = new Map<string, string>();
+      for (const sec of input.sections) {
+        if (sec.id && existingIds.has(sec.id)) {
+          // Update existing section
+          sectionIdMap.set(sec.id, sec.id);
+          await client.query(
+            `UPDATE dashboard_builder.dashboard_sections
+             SET title_fr = COALESCE($1, title_fr),
+                 title_en = COALESCE($2, title_en),
+                 title_ar = $3,
+                 title_pt = $4,
+                 column_count = COALESCE($5, column_count),
+                 sort_order = $6,
+                 is_collapsed = COALESCE($7, is_collapsed),
+                 config = COALESCE($8, config),
+                 updated_at = NOW()
+             WHERE id = $9 AND dashboard_id = $10`,
+            [
+              sec.titleFr ?? '', sec.titleEn ?? '',
+              sec.titleAr ?? null, sec.titlePt ?? null,
+              sec.columnCount ?? 2, sec.sortOrder,
+              sec.isCollapsed ?? false,
+              sec.config ? JSON.stringify(sec.config) : '{}',
+              sec.id, dashboardId,
+            ],
+          );
+        } else {
+          // Insert new section
+          const newId = randomUUID();
+          const tempId = sec.id || `temp-${sec.sortOrder}`;
+          sectionIdMap.set(tempId, newId);
+          await client.query(
+            `INSERT INTO dashboard_builder.dashboard_sections
+              (id, dashboard_id, title_fr, title_en, title_ar, title_pt,
+               column_count, sort_order, is_collapsed, config, created_at, updated_at)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW(),NOW())`,
+            [
+              newId, dashboardId,
+              sec.titleFr ?? '', sec.titleEn ?? '',
+              sec.titleAr ?? null, sec.titlePt ?? null,
+              sec.columnCount ?? 2, sec.sortOrder,
+              sec.isCollapsed ?? false,
+              sec.config ? JSON.stringify(sec.config) : '{}',
+            ],
+          );
+        }
+      }
+
+      // 4. Update widget positions
+      for (const w of input.widgets) {
+        // Resolve section ID (may be a temp ID that was just created)
+        const resolvedSectionId = w.sectionId
+          ? (sectionIdMap.get(w.sectionId) ?? w.sectionId)
+          : null;
+
+        await client.query(
+          `UPDATE dashboard_builder.dashboard_widgets
+           SET section_id = $1, column_index = $2, sort_order = $3, updated_at = NOW()
+           WHERE id = $4 AND dashboard_id = $5`,
+          [resolvedSectionId, w.columnIndex, w.sortOrder, w.id, dashboardId],
+        );
+      }
+
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+
+    await this.redis.del(`${CACHE_PREFIX}${dashboardId}`);
+    await this.publishWithTimeout(TOPIC_SYS_ANALYTICS_DASHBOARD_UPDATED, dashboardId, { id: dashboardId });
+
+    return this.getById(dashboardId, userId);
   }
 
   // ═══════════════════════════════════════════════════════════════════════

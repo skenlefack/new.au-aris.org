@@ -19,7 +19,7 @@ import {
   useSetDashboardPreference,
   type DashboardScope,
 } from '@/lib/api/dashboard-hooks';
-import { DashboardGrid } from '@/components/dashboard-builder/DashboardGrid';
+import { SectionList } from '@/components/dashboard-builder/SectionList';
 
 interface DashboardTarget {
   domainId?: string;
@@ -176,9 +176,9 @@ export function DashboardSection({ scope, target, domainCode }: DashboardSection
             </div>
             <Skeleton className="h-64 rounded-xl" />
           </div>
-        ) : renderedDashboard && renderedDashboard.widgets.length > 0 ? (
-          <DashboardGrid
-            widgets={renderedDashboard.widgets}
+        ) : renderedDashboard && (renderedDashboard.sections?.length > 0 || renderedDashboard.widgets?.length > 0) ? (
+          <SectionList
+            sections={renderedDashboard.sections ?? []}
             widgetData={widgetData}
             editable={false}
           />

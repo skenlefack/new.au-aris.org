@@ -84,6 +84,9 @@ export type DashboardIdParam = Static<typeof DashboardIdParamSchema>;
 export const CreateWidgetSchema = Type.Object({
   type: WidgetTypeSchema,
   dataSource: Type.Optional(WidgetDataSourceSchema),
+  sectionId: Type.Optional(Type.String({ format: 'uuid' })),
+  columnIndex: Type.Optional(Type.Integer({ minimum: 0, default: 0 })),
+  sortOrder: Type.Optional(Type.Integer({ minimum: 0, default: 0 })),
   gridX: Type.Optional(Type.Integer({ minimum: 0, default: 0 })),
   gridY: Type.Optional(Type.Integer({ minimum: 0, default: 0 })),
   gridW: Type.Optional(Type.Integer({ minimum: 1, maximum: 12, default: 3 })),
@@ -104,15 +107,47 @@ export const BatchUpdateWidgetsSchema = Type.Object({
   widgets: Type.Array(
     Type.Object({
       id: Type.String({ format: 'uuid' }),
-      gridX: Type.Integer({ minimum: 0 }),
-      gridY: Type.Integer({ minimum: 0 }),
-      gridW: Type.Integer({ minimum: 1, maximum: 12 }),
-      gridH: Type.Integer({ minimum: 1 }),
+      sectionId: Type.Optional(Type.String({ format: 'uuid' })),
+      columnIndex: Type.Optional(Type.Integer({ minimum: 0 })),
+      sortOrder: Type.Optional(Type.Integer({ minimum: 0 })),
+      gridX: Type.Optional(Type.Integer({ minimum: 0 })),
+      gridY: Type.Optional(Type.Integer({ minimum: 0 })),
+      gridW: Type.Optional(Type.Integer({ minimum: 1, maximum: 12 })),
+      gridH: Type.Optional(Type.Integer({ minimum: 1 })),
     }),
-    { minItems: 1, maxItems: 50 },
+    { minItems: 1, maxItems: 100 },
   ),
 });
 export type BatchUpdateWidgetsDto = Static<typeof BatchUpdateWidgetsSchema>;
+
+// ── Section ──
+
+export const SaveLayoutSchema = Type.Object({
+  sections: Type.Array(
+    Type.Object({
+      id: Type.Optional(Type.Union([Type.String({ format: 'uuid' }), Type.Null()])),
+      titleFr: Type.Optional(Type.String({ default: '' })),
+      titleEn: Type.Optional(Type.String({ default: '' })),
+      titleAr: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+      titlePt: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+      columnCount: Type.Optional(Type.Integer({ minimum: 1, maximum: 4, default: 2 })),
+      sortOrder: Type.Integer({ minimum: 0 }),
+      isCollapsed: Type.Optional(Type.Boolean({ default: false })),
+      config: Type.Optional(Type.Any()),
+    }),
+    { maxItems: 50 },
+  ),
+  widgets: Type.Array(
+    Type.Object({
+      id: Type.String({ format: 'uuid' }),
+      sectionId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+      columnIndex: Type.Integer({ minimum: 0 }),
+      sortOrder: Type.Integer({ minimum: 0 }),
+    }),
+    { maxItems: 200 },
+  ),
+});
+export type SaveLayoutDto = Static<typeof SaveLayoutSchema>;
 
 export const WidgetIdParamSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
