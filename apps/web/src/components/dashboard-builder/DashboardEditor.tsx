@@ -23,6 +23,10 @@ import { SectionList } from './SectionList';
 import { WidgetPalette } from './WidgetPalette';
 
 interface DashboardEditorProps {
+  title: string;
+  description?: string;
+  onTitleChange: (title: string) => void;
+  onDescriptionChange?: (desc: string) => void;
   sections: DashboardSection[];
   widgetData?: Record<string, Record<string, unknown>>;
   onSectionsChange: (sections: DashboardSection[]) => void;
@@ -41,6 +45,10 @@ function genTempId() {
 }
 
 export function DashboardEditor({
+  title,
+  description,
+  onTitleChange,
+  onDescriptionChange,
   sections,
   widgetData,
   onSectionsChange,
@@ -270,8 +278,26 @@ export function DashboardEditor({
           <WidgetPalette onAdd={handlePaletteAdd} />
         </div>
 
-        {/* Main content — Sections */}
+        {/* Main content — Title + Sections */}
         <div className="flex-1 overflow-auto bg-slate-50 dark:bg-gray-950 p-6">
+          {/* Dashboard title & description */}
+          <div className="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => onTitleChange(e.target.value)}
+              className="w-full bg-transparent text-xl font-bold text-gray-900 dark:text-white border-none outline-none focus:ring-0 placeholder-gray-300"
+              placeholder="Dashboard title..."
+            />
+            <textarea
+              value={description ?? ''}
+              onChange={(e) => onDescriptionChange?.(e.target.value)}
+              rows={1}
+              className="mt-2 w-full bg-transparent text-sm text-gray-500 dark:text-gray-400 border-none outline-none focus:ring-0 placeholder-gray-300 resize-none"
+              placeholder="Add a description..."
+            />
+          </div>
+
           <SectionList
             sections={sections}
             widgetData={widgetData}

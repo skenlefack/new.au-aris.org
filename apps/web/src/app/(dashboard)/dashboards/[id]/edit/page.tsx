@@ -31,6 +31,7 @@ export default function DashboardEditPage() {
   const d = dashboard as any;
 
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const titleInitRef = useRef(false);
 
   // Local sections state — synced from server, modified locally during editing
@@ -41,6 +42,7 @@ export default function DashboardEditPage() {
   // Initialize title once
   if (d && !titleInitRef.current) {
     setTitle(d.title || d.title_fr || d.titleFr || '');
+    setDescription(d.description || '');
     titleInitRef.current = true;
   }
 
@@ -159,8 +161,8 @@ export default function DashboardEditPage() {
   const handleSave = async () => {
     // 1. Update title if changed
     const dashTitle = d?.title || d?.title_fr || '';
-    if (title !== dashTitle) {
-      await updateDashboard.mutateAsync({ id, title });
+    if (title !== dashTitle || description !== (d?.description || '')) {
+      await updateDashboard.mutateAsync({ id, title, description });
     }
 
     // 2. Save layout (sections + widget positions)
@@ -227,13 +229,9 @@ export default function DashboardEditPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="border-none bg-transparent text-lg font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-0 w-80"
-            placeholder="Dashboard title..."
-          />
+          <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            {title || 'Untitled Dashboard'}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -270,6 +268,10 @@ export default function DashboardEditPage() {
       {/* Editor with DnD */}
       <div className="flex-1 min-h-0">
         <DashboardEditor
+          title={title}
+          description={description}
+          onTitleChange={setTitle}
+          onDescriptionChange={setDescription}
           sections={localSections}
           onSectionsChange={handleSectionsChange}
           onAddWidget={handleAddWidget}
