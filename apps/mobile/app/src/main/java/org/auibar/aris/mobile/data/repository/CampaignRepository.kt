@@ -1,17 +1,29 @@
 package org.auibar.aris.mobile.data.repository
 
-import android.util.Log
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import org.auibar.aris.mobile.data.local.dao.CampaignDao
+import org.auibar.aris.mobile.data.local.dao.CampaignTargetDao
 import org.auibar.aris.mobile.data.local.entity.CampaignEntity
+import org.auibar.aris.mobile.data.local.entity.CampaignTargetEntity
+import org.auibar.aris.mobile.data.mapper.TargetMapper
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
 import org.auibar.aris.mobile.data.remote.dto.CampaignDto
 import org.auibar.aris.mobile.ui.components.RoleConfig
+import org.auibar.aris.mobile.ui.components.TargetUiModel
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
+import timber.log.Timber
 import javax.inject.Inject
+
+data class CampaignTarget(
+    val id: String,
+    val domainCode: String,
+    val subDomainCode: String?,
+    val isPrimary: Boolean,
+)
 
 data class Campaign(
     val id: String,
@@ -27,6 +39,7 @@ data class Campaign(
     val totalSubmissions: Int = 0,
     val validatedSubmissions: Int = 0,
     val rejectedSubmissions: Int = 0,
+    val targets: List<CampaignTarget> = emptyList(),
 ) {
     val pendingSubmissions: Int get() = totalSubmissions - validatedSubmissions - rejectedSubmissions
 
@@ -35,56 +48,91 @@ data class Campaign(
             val target = targetSubmissions ?: totalSubmissions.coerceAtLeast(1)
             return if (target > 0) (validatedSubmissions.toDouble() / target * 100.0) else 0.0
         }
+
+    val targetUiModels: List<TargetUiModel>
+        get() = targets.map { t ->
+            TargetUiModel(
+                domainCode = t.domainCode,
+                domainLabel = DOMAIN_LABELS[t.domainCode] ?: t.domainCode,
+                subDomainCode = t.subDomainCode,
+                subDomainLabel = t.subDomainCode,
+                isPrimary = t.isPrimary,
+            )
+        }
 }
+
+private val DOMAIN_LABELS = mapOf(
+    "health" to "Animal Health",
+    "livestock" to "Livestock",
+    "fisheries" to "Fisheries",
+    "trade" to "Trade & SPS",
+    "wildlife" to "Wildlife",
+    "apiculture" to "Apiculture",
+    "governance" to "Governance",
+    "climate" to "Climate",
+    "knowledge" to "Knowledge",
+    "paid" to "PAID",
+)
 
 class CampaignRepository @Inject constructor(
     private val campaignDao: CampaignDao,
+    private val campaignTargetDao: CampaignTargetDao,
     private val campaignApi: CampaignApi,
 ) {
     companion object {
-        private const val TAG = "CampaignRepository"
-
-        /** Parse ISO-8601 date string to epoch millis. Falls back to 0 on error. */
         fun parseIsoDate(dateStr: String?): Long {
             if (dateStr.isNullOrBlank()) return 0L
             return try {
                 val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
                     timeZone = TimeZone.getTimeZone("UTC")
                 }
-                // Strip fractional seconds and trailing Z for SimpleDateFormat
                 val cleaned = dateStr.replace(Regex("\\.[0-9]+Z$"), "")
                     .replace("Z", "")
                 fmt.parse(cleaned)?.time ?: 0L
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to parse date: $dateStr", e)
+                Timber.w(e, "Failed to parse date: $dateStr")
                 0L
             }
         }
     }
 
     suspend fun getById(id: String): Campaign? {
-        return campaignDao.getById(id)?.toDomain()
+        val entity = campaignDao.getById(id) ?: return null
+        val targets = campaignTargetDao.getForCampaign(id)
+        return entity.toDomain(targets)
     }
 
     fun observeById(id: String): Flow<Campaign?> {
-        return campaignDao.observeById(id).map { it?.toDomain() }
+        return combine(
+            campaignDao.observeById(id),
+            campaignTargetDao.observeForCampaign(id),
+        ) { entity, targets ->
+            entity?.toDomain(targets)
+        }
     }
 
     fun getActiveCampaigns(): Flow<List<Campaign>> {
         return campaignDao.getActiveCampaigns().map { entities ->
-            entities.map { it.toDomain() }
+            entities.map { it.toDomain(emptyList()) }
         }
     }
 
     fun getActiveCampaignsByDomain(domain: String): Flow<List<Campaign>> {
         return campaignDao.getActiveCampaignsByDomain(domain).map { entities ->
-            entities.map { it.toDomain() }
+            entities.map { it.toDomain(emptyList()) }
         }
     }
 
     fun getActiveCampaignsByDomains(domains: List<String>): Flow<List<Campaign>> {
         return campaignDao.getActiveCampaignsByDomains(domains).map { entities ->
-            entities.map { it.toDomain() }
+            entities.map { it.toDomain(emptyList()) }
+        }
+    }
+
+    /** Observe campaigns matching a target domainCode via the campaign_targets join table. */
+    fun observeCampaignsByTarget(domainCode: String): Flow<List<Campaign>> {
+        return campaignTargetDao.observeCampaignsByTarget(domainCode).map { entities ->
+            entities.map { it.toDomain(emptyList()) }
         }
     }
 
@@ -94,14 +142,18 @@ class CampaignRepository @Inject constructor(
             val now = System.currentTimeMillis()
             val entities = response.data.map { it.toEntity(now) }
             campaignDao.upsertAll(entities)
+            // Persist targets for each campaign
+            response.data.forEach { dto ->
+                val targets = TargetMapper.campaignTargetsFromDto(dto, now)
+                campaignTargetDao.replaceForCampaign(dto.id, targets)
+            }
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to refresh campaigns", e)
+            Timber.e(e, "Failed to refresh campaigns")
             Result.failure(e)
         }
     }
 
-    /** Refresh a single campaign's detail (with progress stats). */
     suspend fun refreshCampaignDetail(campaignId: String): Result<Campaign> {
         return try {
             val response = campaignApi.getCampaignDetail(campaignId)
@@ -124,14 +176,32 @@ class CampaignRepository @Inject constructor(
                 syncedAt = now,
             )
             campaignDao.upsertAll(listOf(entity))
-            Result.success(entity.toDomain())
+
+            // Persist targets from detail DTO
+            val detailTargets = detail.targets
+            if (!detailTargets.isNullOrEmpty()) {
+                val targetEntities = detailTargets.map { t ->
+                    CampaignTargetEntity(
+                        id = t.id,
+                        campaignId = detail.id,
+                        domainCode = RoleConfig.backendToMobileKey(t.domainCode),
+                        subDomainCode = t.subDomainCode,
+                        isPrimary = t.isPrimary,
+                        syncedAt = now,
+                    )
+                }
+                campaignTargetDao.replaceForCampaign(detail.id, targetEntities)
+            }
+
+            val savedTargets = campaignTargetDao.getForCampaign(campaignId)
+            Result.success(entity.toDomain(savedTargets))
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to refresh campaign detail: $campaignId", e)
+            Timber.e(e, "Failed to refresh campaign detail: $campaignId")
             Result.failure(e)
         }
     }
 
-    private fun CampaignEntity.toDomain() = Campaign(
+    private fun CampaignEntity.toDomain(targets: List<CampaignTargetEntity> = emptyList()) = Campaign(
         id = id,
         tenantId = tenantId,
         name = name,
@@ -145,10 +215,17 @@ class CampaignRepository @Inject constructor(
         totalSubmissions = totalSubmissions,
         validatedSubmissions = validatedSubmissions,
         rejectedSubmissions = rejectedSubmissions,
+        targets = targets.map { t ->
+            CampaignTarget(
+                id = t.id,
+                domainCode = t.domainCode,
+                subDomainCode = t.subDomainCode,
+                isPrimary = t.isPrimary,
+            )
+        },
     )
 }
 
-/** Convert API DTO to Room entity. */
 fun CampaignDto.toEntity(syncedAt: Long): CampaignEntity {
     return CampaignEntity(
         id = id,

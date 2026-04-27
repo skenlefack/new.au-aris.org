@@ -9,8 +9,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import org.auibar.aris.mobile.data.local.ArisDatabase
 import org.auibar.aris.mobile.data.local.dao.CampaignDao
+import org.auibar.aris.mobile.data.local.dao.CampaignTargetDao
 import org.auibar.aris.mobile.data.local.dao.DiseaseDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
+import org.auibar.aris.mobile.data.local.dao.FormTemplateTargetDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
 import org.auibar.aris.mobile.data.local.dao.GpsTrackDao
 import org.auibar.aris.mobile.data.local.dao.KnowledgeDao
@@ -41,6 +43,12 @@ object DatabaseModule {
 
     @Provides
     fun provideCampaignDao(db: ArisDatabase): CampaignDao = db.campaignDao()
+
+    @Provides
+    fun provideCampaignTargetDao(db: ArisDatabase): CampaignTargetDao = db.campaignTargetDao()
+
+    @Provides
+    fun provideFormTemplateTargetDao(db: ArisDatabase): FormTemplateTargetDao = db.formTemplateTargetDao()
 
     @Provides
     fun provideSubmissionDao(db: ArisDatabase): SubmissionDao = db.submissionDao()

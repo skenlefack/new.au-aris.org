@@ -1,8 +1,10 @@
 package org.auibar.aris.mobile.data.repository
 
 import org.auibar.aris.mobile.data.local.dao.CampaignDao
+import org.auibar.aris.mobile.data.local.dao.CampaignTargetDao
 import org.auibar.aris.mobile.data.local.dao.DiseaseDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
+import org.auibar.aris.mobile.data.local.dao.FormTemplateTargetDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
 import org.auibar.aris.mobile.data.local.dao.SubmissionDao
@@ -10,6 +12,7 @@ import org.auibar.aris.mobile.data.local.entity.DiseaseEntity
 import org.auibar.aris.mobile.data.local.entity.FormTemplateEntity
 import org.auibar.aris.mobile.data.local.entity.GeoEntity
 import org.auibar.aris.mobile.data.local.entity.SpeciesEntity
+import org.auibar.aris.mobile.data.mapper.TargetMapper
 import org.auibar.aris.mobile.BuildConfig
 import org.auibar.aris.mobile.data.remote.api.SyncApi
 import org.auibar.aris.mobile.data.remote.dto.SubmissionDto
@@ -21,7 +24,9 @@ class SyncRepository @Inject constructor(
     private val syncApi: SyncApi,
     private val submissionDao: SubmissionDao,
     private val campaignDao: CampaignDao,
+    private val campaignTargetDao: CampaignTargetDao,
     private val formTemplateDao: FormTemplateDao,
+    private val formTemplateTargetDao: FormTemplateTargetDao,
     private val speciesDao: SpeciesDao,
     private val diseaseDao: DiseaseDao,
     private val geoDao: GeoDao,
@@ -76,13 +81,17 @@ class SyncRepository @Inject constructor(
                 submissionDao.markConflict(conflict.id, conflict.serverVersion)
             }
 
-            // Update campaigns
+            // Update campaigns + their targets
             if (syncData.updatedCampaigns.isNotEmpty()) {
                 val entities = syncData.updatedCampaigns.map { it.toEntity(now) }
                 campaignDao.upsertAll(entities)
+                syncData.updatedCampaigns.forEach { dto ->
+                    val targets = TargetMapper.campaignTargetsFromDto(dto, now)
+                    campaignTargetDao.replaceForCampaign(dto.id, targets)
+                }
             }
 
-            // Update form templates
+            // Update form templates + their targets
             if (syncData.updatedTemplates.isNotEmpty()) {
                 val entities = syncData.updatedTemplates.map { dto ->
                     FormTemplateEntity(
@@ -96,6 +105,10 @@ class SyncRepository @Inject constructor(
                     )
                 }
                 formTemplateDao.upsertAll(entities)
+                syncData.updatedTemplates.forEach { dto ->
+                    val targets = TargetMapper.templateTargetsFromDto(dto, now)
+                    formTemplateTargetDao.replaceForTemplate(dto.id, targets)
+                }
             }
 
             // Update referentials

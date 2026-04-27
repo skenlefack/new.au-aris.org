@@ -15,10 +15,12 @@ import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
 import org.auibar.aris.mobile.data.remote.dto.CampaignProgressDto
 import org.auibar.aris.mobile.data.repository.CampaignRepository
+import org.auibar.aris.mobile.data.repository.CampaignTarget
 import org.auibar.aris.mobile.data.repository.FormTemplateRepository
 import org.auibar.aris.mobile.data.repository.Submission
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
 import org.auibar.aris.mobile.ui.components.RoleConfig
+import org.auibar.aris.mobile.ui.components.TargetUiModel
 import javax.inject.Inject
 
 data class TemplateInfo(
@@ -43,6 +45,7 @@ data class CampaignDetailUiState(
     val assignedAgentsCount: Int = 0,
     val templates: List<TemplateInfo> = emptyList(),
     val progress: CampaignProgressDto? = null,
+    val targets: List<TargetUiModel> = emptyList(),
 )
 
 private val DOMAIN_LABELS = mapOf(
@@ -80,7 +83,14 @@ class CampaignDetailViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     init {
-        loadCampaignDetail()
+        if (campaignId.isNotBlank()) {
+            loadCampaignDetail()
+        } else {
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                error = "Campaign ID is missing",
+            )
+        }
     }
 
     private fun loadCampaignDetail() {
@@ -98,6 +108,7 @@ class CampaignDetailViewModel @Inject constructor(
                     startDate = localCampaign.startDate,
                     endDate = localCampaign.endDate,
                     status = localCampaign.status,
+                    targets = localCampaign.targetUiModels,
                     isLoading = false,
                 )
             }
@@ -118,6 +129,18 @@ class CampaignDetailViewModel @Inject constructor(
                 val startMs = parseIsoDate(detail.startDate)
                 val endMs = parseIsoDate(detail.endDate)
 
+                // Build target UI models from API detail
+                val apiTargets = detail.targets?.map { t ->
+                    val tDomain = RoleConfig.backendToMobileKey(t.domainCode)
+                    TargetUiModel(
+                        domainCode = tDomain,
+                        domainLabel = DOMAIN_LABELS[tDomain] ?: tDomain,
+                        subDomainCode = t.subDomainCode,
+                        subDomainLabel = t.subDomainCode,
+                        isPrimary = t.isPrimary,
+                    )
+                } ?: _uiState.value.targets
+
                 _uiState.value = CampaignDetailUiState(
                     isLoading = false,
                     campaignName = detail.name,
@@ -132,6 +155,7 @@ class CampaignDetailViewModel @Inject constructor(
                     assignedAgentsCount = detail.assignedAgents.size,
                     templates = templateInfos,
                     progress = detail.progress,
+                    targets = apiTargets,
                 )
             } catch (e: Exception) {
                 // If API fails, keep the local data but show error only if we have nothing

@@ -47,6 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.data.repository.Campaign
 import org.auibar.aris.mobile.ui.components.SyncIndicator
+import org.auibar.aris.mobile.ui.components.TargetBadges
 import org.auibar.aris.mobile.ui.components.arisDomains
 import androidx.compose.foundation.layout.defaultMinSize
 import java.text.SimpleDateFormat
@@ -191,17 +192,28 @@ private fun CampaignCard(
                 )
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
+            // Multi-target badges or legacy domain label
+            if (campaign.targets.isNotEmpty()) {
+                TargetBadges(
+                    targets = campaign.targetUiModels,
+                    maxVisible = 2,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            } else {
                 Text(
                     text = campaign.domain,
                     style = MaterialTheme.typography.labelLarge,
                     color = domainColor,
+                    modifier = Modifier.padding(top = 8.dp),
                 )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
                 Text(
                     text = "$startDateStr - $endDateStr",
                     style = MaterialTheme.typography.bodySmall,
