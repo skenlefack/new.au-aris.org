@@ -29,7 +29,7 @@ export interface OllamaModel {
 }
 
 const DEFAULT_URL = 'http://10.202.101.142:11434';
-const GENERATE_TIMEOUT_MS = 5 * 60 * 1000; // 5 min
+const GENERATE_TIMEOUT_MS = 10 * 60 * 1000; // 10 min (CPU inference is slow)
 const HEALTH_TIMEOUT_MS = 3_000;
 const RETRY_DELAY_MS = 10_000;
 

@@ -71,23 +71,29 @@ export default function DashboardEditPage() {
       const widgets = inner.widgets ?? draft.widgets;
       if (Array.isArray(widgets) && localSections.length > 0) {
         const targetSection = localSections[0];
+        // Map AI widget types to ARIS WidgetType enum
         const typeMap: Record<string, string> = {
+          // exact matches (AI returns these directly now)
+          kpi_card: 'KPI_CARD', bar_chart: 'BAR_CHART', line_chart: 'LINE_CHART',
+          pie_chart: 'PIE_CHART', table: 'TABLE', map: 'MAP', gauge: 'GAUGE',
+          // legacy / short forms
           kpi: 'KPI_CARD', stat: 'KPI_CARD', chart: 'LINE_CHART',
           bar: 'BAR_CHART', line: 'LINE_CHART', pie: 'PIE_CHART',
-          table: 'TABLE', map: 'MAP', gauge: 'GAUGE',
+          timeseries: 'LINE_CHART', time_series: 'LINE_CHART',
+          horizontal_bar: 'BAR_CHART', area: 'LINE_CHART',
         };
-        for (const w of widgets) {
-          const rawType = (w.type ?? 'KPI_CARD').toLowerCase();
-          const mappedType = typeMap[rawType] ?? rawType.toUpperCase();
+        widgets.forEach((w: any, idx: number) => {
+          const rawType = (w.type ?? 'KPI_CARD').toLowerCase().trim();
+          const mappedType = typeMap[rawType] ?? 'KPI_CARD';
           addWidget.mutate({
             dashboardId: id,
             type: mappedType as WidgetType,
-            title: w.title ?? w.type,
+            title: w.title ?? w.type ?? `Widget ${idx + 1}`,
             sectionId: targetSection.id.startsWith('temp-') ? undefined : targetSection.id,
-            columnIndex: 0,
-            sortOrder: targetSection.widgets.length,
+            columnIndex: idx % 3,  // spread across 3 columns
+            sortOrder: Math.floor(idx / 3),
           });
-        }
+        });
       }
     },
     [dashboard, id, addWidget, localSections],

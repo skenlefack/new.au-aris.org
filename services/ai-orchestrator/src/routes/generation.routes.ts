@@ -2,6 +2,8 @@
  * Router 2: /api/v1/ai/generation
  * AI-assisted generation of forms, campaigns, indicators, dashboards.
  * Each returns an AiGenerationDraft with status: 'DRAFT'.
+ *
+ * Uses phi4:14b by default for generation (faster on CPU than 32b models).
  */
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
@@ -12,7 +14,8 @@ import {
 } from '@aris/shared-types';
 
 const PREFIX = '/api/v1/ai/generation';
-const DEFAULT_MODEL = 'qwen2.5:32b';
+// phi4:14b is ~3x faster than qwen2.5:32b on CPU — good enough for JSON generation
+const DEFAULT_MODEL = process.env.AI_GENERATION_MODEL || 'phi4:14b';
 
 type DraftType = 'FORM' | 'CAMPAIGN' | 'INDICATOR' | 'DASHBOARD';
 
@@ -27,44 +30,37 @@ interface AiGenerationDraft {
   createdAt: string;
 }
 
-interface SuggestFormBody {
+interface GenerationBody {
+  // The frontend always sends { prompt, context }
+  prompt?: string;
+  context?: Record<string, unknown>;
+  // Backend-specific fields (optional, for direct API use)
   description?: string;
-  prompt?: string;        // frontend sends `prompt`
+  purpose?: string;
+  objective?: string;
+  name?: string;
   domain?: string;
   fields?: string[];
-  model?: string;
-  context?: Record<string, unknown>;
-}
-
-interface SuggestCampaignBody {
-  objective?: string;
-  prompt?: string;
-  domain?: string;
+  availableFields?: string[];
+  availableIndicators?: string[];
   targetCountries?: string[];
   model?: string;
-  context?: Record<string, unknown>;
-}
-
-interface SuggestIndicatorBody {
-  name?: string;
-  description?: string;
-  prompt?: string;
-  domain?: string;
-  availableFields?: string[];
-  model?: string;
-  context?: Record<string, unknown>;
-}
-
-interface SuggestDashboardBody {
-  purpose?: string;
-  prompt?: string;
-  domain?: string;
-  availableIndicators?: string[];
-  model?: string;
-  context?: Record<string, unknown>;
 }
 
 export async function registerGenerationRoutes(app: FastifyInstance): Promise<void> {
+
+  /** Extract the user's text from the various possible fields */
+  function extractText(body: GenerationBody): string {
+    return body.prompt || body.description || body.purpose || body.objective || '';
+  }
+
+  /** Extract domain from body or context */
+  function extractDomain(body: GenerationBody): string | undefined {
+    return body.domain
+      || (body.context?.domainCode as string)
+      || (body.context?.domain as string)
+      || undefined;
+  }
 
   async function createDraft(
     user: AuthenticatedUser,
@@ -85,7 +81,8 @@ export async function registerGenerationRoutes(app: FastifyInstance): Promise<vo
         prompt,
         system: systemPrompt,
         format: 'json',
-        temperature: 0.4,
+        temperature: 0.3,
+        maxTokens: 2048, // limit output for speed
       });
     } catch (err) {
       await publishKafka(app, TOPIC_AI_GENERATION_FAILED, {
@@ -130,13 +127,14 @@ export async function registerGenerationRoutes(app: FastifyInstance): Promise<vo
   // ── POST /suggest-form ──
   app.post(`${PREFIX}/suggest-form`, {
     preHandler: [app.authHookFn, app.rateLimitHook],
-  }, async (request: FastifyRequest<{ Body: SuggestFormBody }>, reply: FastifyReply) => {
+  }, async (request: FastifyRequest<{ Body: GenerationBody }>, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const { description, prompt: rawPrompt, domain, fields, model } = request.body;
-    const usedModel = model || DEFAULT_MODEL;
+    const body = request.body;
+    const usedModel = body.model || DEFAULT_MODEL;
+    const domain = extractDomain(body);
 
-    const prompt = buildFormPrompt(description || rawPrompt || '', domain, fields);
-    const system = 'You are an expert form designer for the ARIS animal resources information system. Generate valid JSON Schema forms.';
+    const prompt = buildFormPrompt(extractText(body), domain, body.fields);
+    const system = 'You are an expert form designer for ARIS (Animal Resources Information System, AU-IBAR). Generate valid JSON Schema forms relevant to African animal resources. Be concise.';
 
     const draft = await createDraft(user, 'FORM', prompt, system, usedModel);
     return reply.code(200).send({ data: draft });
@@ -145,13 +143,14 @@ export async function registerGenerationRoutes(app: FastifyInstance): Promise<vo
   // ── POST /suggest-campaign ──
   app.post(`${PREFIX}/suggest-campaign`, {
     preHandler: [app.authHookFn, app.rateLimitHook],
-  }, async (request: FastifyRequest<{ Body: SuggestCampaignBody }>, reply: FastifyReply) => {
+  }, async (request: FastifyRequest<{ Body: GenerationBody }>, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const { objective, prompt: rawPrompt, domain, targetCountries, model } = request.body;
-    const usedModel = model || DEFAULT_MODEL;
+    const body = request.body;
+    const usedModel = body.model || DEFAULT_MODEL;
+    const domain = extractDomain(body);
 
-    const prompt = buildCampaignPrompt(objective || rawPrompt || '', domain, targetCountries);
-    const system = 'You are an expert in data collection campaign design for AU-IBAR. Generate structured campaign proposals with timeline, forms, and target assignments.';
+    const prompt = buildCampaignPrompt(extractText(body), domain, body.targetCountries);
+    const system = 'You are an expert in data collection campaign design for AU-IBAR. Generate structured campaign proposals. Be concise.';
 
     const draft = await createDraft(user, 'CAMPAIGN', prompt, system, usedModel);
     return reply.code(200).send({ data: draft });
@@ -160,13 +159,14 @@ export async function registerGenerationRoutes(app: FastifyInstance): Promise<vo
   // ── POST /suggest-indicator ──
   app.post(`${PREFIX}/suggest-indicator`, {
     preHandler: [app.authHookFn, app.rateLimitHook],
-  }, async (request: FastifyRequest<{ Body: SuggestIndicatorBody }>, reply: FastifyReply) => {
+  }, async (request: FastifyRequest<{ Body: GenerationBody }>, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const { name, description, prompt: rawPrompt, domain, availableFields, model } = request.body;
-    const usedModel = model || DEFAULT_MODEL;
+    const body = request.body;
+    const usedModel = body.model || DEFAULT_MODEL;
+    const domain = extractDomain(body);
 
-    const prompt = buildIndicatorPrompt(name || '', description || rawPrompt || '', domain, availableFields);
-    const system = 'You are an expert in KPI and indicator design for animal resources. Generate indicator definitions with formulas, units, thresholds, and data sources.';
+    const prompt = buildIndicatorPrompt(body.name || '', extractText(body), domain, body.availableFields);
+    const system = 'You are an expert in KPI and indicator design for animal resources. Generate indicator definitions. Be concise.';
 
     const draft = await createDraft(user, 'INDICATOR', prompt, system, usedModel);
     return reply.code(200).send({ data: draft });
@@ -175,13 +175,14 @@ export async function registerGenerationRoutes(app: FastifyInstance): Promise<vo
   // ── POST /suggest-dashboard ──
   app.post(`${PREFIX}/suggest-dashboard`, {
     preHandler: [app.authHookFn, app.rateLimitHook],
-  }, async (request: FastifyRequest<{ Body: SuggestDashboardBody }>, reply: FastifyReply) => {
+  }, async (request: FastifyRequest<{ Body: GenerationBody }>, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const { purpose, prompt: rawPrompt, domain, availableIndicators, model } = request.body;
-    const usedModel = model || DEFAULT_MODEL;
+    const body = request.body;
+    const usedModel = body.model || DEFAULT_MODEL;
+    const domain = extractDomain(body);
 
-    const prompt = buildDashboardPrompt(purpose || rawPrompt || '', domain, availableIndicators);
-    const system = 'You are an expert dashboard designer for the ARIS analytics platform. Generate dashboard layouts with widget placement, types (chart, map, table, KPI card), and data bindings.';
+    const prompt = buildDashboardPrompt(extractText(body), domain, body.availableIndicators);
+    const system = DASHBOARD_SYSTEM_PROMPT;
 
     const draft = await createDraft(user, 'DASHBOARD', prompt, system, usedModel);
     return reply.code(200).send({ data: draft });
@@ -194,7 +195,7 @@ function buildFormPrompt(description: string, domain?: string, fields?: string[]
   let prompt = `Design a data collection form for: ${description}`;
   if (domain) prompt += `\nDomain: ${domain}`;
   if (fields?.length) prompt += `\nRequired fields: ${fields.join(', ')}`;
-  prompt += '\n\nRespond with JSON Schema format: { "title": "...", "type": "object", "properties": {...}, "required": [...] }';
+  prompt += '\n\nRespond with JSON: { "title": "...", "type": "object", "properties": {...}, "required": [...] }';
   return prompt;
 }
 
@@ -207,18 +208,26 @@ function buildCampaignPrompt(objective: string, domain?: string, countries?: str
 }
 
 function buildIndicatorPrompt(name: string, description: string, domain?: string, fields?: string[]): string {
-  let prompt = `Design a KPI indicator named "${name}": ${description}`;
+  let prompt = name ? `Design a KPI indicator named "${name}": ${description}` : `Design a KPI indicator: ${description}`;
   if (domain) prompt += `\nDomain: ${domain}`;
   if (fields?.length) prompt += `\nAvailable data fields: ${fields.join(', ')}`;
   prompt += '\n\nRespond with JSON: { "name": "...", "formula": "...", "unit": "...", "frequency": "...", "thresholds": { "warning": ..., "critical": ... }, "dataSources": [...] }';
   return prompt;
 }
 
+const WIDGET_TYPES = 'KPI_CARD, BAR_CHART, LINE_CHART, PIE_CHART, TABLE, MAP, GAUGE';
+
+const DASHBOARD_SYSTEM_PROMPT = `You are an expert dashboard designer for ARIS (Animal Resources Information System, AU-IBAR).
+Generate dashboard layouts for African animal resources data.
+Use ONLY these widget types: ${WIDGET_TYPES}.
+Be concise. Return valid JSON only.`;
+
 function buildDashboardPrompt(purpose: string, domain?: string, indicators?: string[]): string {
-  let prompt = `Design a dashboard layout for: ${purpose}`;
+  let prompt = `Design a dashboard: ${purpose}`;
   if (domain) prompt += `\nDomain: ${domain}`;
   if (indicators?.length) prompt += `\nAvailable indicators: ${indicators.join(', ')}`;
-  prompt += '\n\nRespond with JSON: { "title": "...", "layout": { "columns": 12, "rows": [...] }, "widgets": [{ "type": "chart|map|table|kpi", "title": "...", "position": { "x": ..., "y": ..., "w": ..., "h": ... }, "dataSource": "..." }] }';
+  prompt += `\n\nWidget types allowed: ${WIDGET_TYPES}`;
+  prompt += '\n\nRespond with JSON: { "title": "...", "widgets": [{ "type": "KPI_CARD|BAR_CHART|LINE_CHART|PIE_CHART|TABLE|MAP|GAUGE", "title": "...", "dataSource": "..." }] }';
   return prompt;
 }
 
