@@ -10,7 +10,7 @@ import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { UserRole } from '@aris/shared-types';
 
 const PREFIX = '/api/v1/ai/interop';
-const CODER_MODEL = 'qwen2.5-coder:14b';
+const CODER_MODEL = process.env.CODER_MODEL || 'qwen2.5-coder:32b';
 
 const ADMIN_ROLES = [UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN];
 
