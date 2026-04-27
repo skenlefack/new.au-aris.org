@@ -205,11 +205,20 @@ export function useDashboards(params?: {
 
   return useQuery<PaginatedResponse<DashboardListItem>>({
     queryKey: KEYS.list(qp),
-    queryFn: () =>
-      analyticsClient.get<PaginatedResponse<DashboardListItem>>(
+    queryFn: async () => {
+      const res = await analyticsClient.get<PaginatedResponse<DashboardListItem>>(
         '/analytics/dashboards',
         qp,
-      ),
+      );
+      // Map title_fr/title_en → title for each dashboard in the list
+      if (res?.data && Array.isArray(res.data)) {
+        res.data = res.data.map((d: any) => ({
+          ...d,
+          title: d.title || d.title_fr || d.titleFr || d.title_en || d.titleEn || '',
+        }));
+      }
+      return res;
+    },
   });
 }
 
