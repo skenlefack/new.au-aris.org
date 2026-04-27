@@ -84,20 +84,50 @@ export default function DashboardEditPage() {
       ) ?? [];
 
       const widgetTitle = type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      const tempWidgetId = `temp-widget-${Date.now()}`;
 
-      // Don't mark as local edit — we want server response to sync back
-      hasLocalEdits.current = false;
-
-      addWidget.mutate({
+      // Optimistic: add widget to local state immediately
+      const tempWidget: DashboardWidget = {
+        id: tempWidgetId,
         dashboardId: id,
         type,
         title: widgetTitle,
-        titleFr: widgetTitle,
-        titleEn: widgetTitle,
-        sectionId: sectionId.startsWith('temp-') ? undefined : sectionId,
+        config: {},
+        layout: { x: 0, y: 0, w: 3, h: 2 },
+        sectionId,
         columnIndex,
         sortOrder: colWidgets.length,
-      });
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      setLocalSections((prev) =>
+        prev.map((sec) =>
+          sec.id === sectionId
+            ? { ...sec, widgets: [...sec.widgets, tempWidget] }
+            : sec,
+        ),
+      );
+      hasLocalEdits.current = true;
+
+      // Fire server mutation — on success, allow server sync to replace temp widget
+      addWidget.mutate(
+        {
+          dashboardId: id,
+          type,
+          title: widgetTitle,
+          titleFr: widgetTitle,
+          titleEn: widgetTitle,
+          sectionId: sectionId.startsWith('temp-') ? undefined : sectionId,
+          columnIndex,
+          sortOrder: colWidgets.length,
+        },
+        {
+          onSuccess: () => {
+            hasLocalEdits.current = false;
+          },
+        },
+      );
     },
     [id, addWidget, localSections],
   );
