@@ -1,5 +1,5 @@
 {
-  "name": "@aris/ai-orchestrator",
+  "name": "@aris/ai-orchestrator-service",
   "version": "0.1.0",
   "private": true,
   "description": "ARIS 4.0 — AI Orchestrator service (Fastify): proxy to Ollama LLM + Python ML, NLP, generation, predictions, anomalies, spatial",
