@@ -165,6 +165,9 @@ dependencies {
     // OSMDroid (offline maps)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
 
+    // Timber (structured logging)
+    implementation("com.jakewharton.timber:timber:5.0.1")
+
     // Firebase (BOM + Cloud Messaging)
     implementation(platform("com.google.firebase:firebase-bom:32.7.1"))
     implementation("com.google.firebase:firebase-messaging-ktx")
@@ -194,3 +197,40 @@ dependencies {
     androidTestImplementation("com.google.dagger:hilt-android-testing:2.50")
     kspAndroidTest("com.google.dagger:hilt-android-compiler:2.50")
 }
+
+tasks.register("checkNoPvsMention") {
+    group = "verification"
+    description = "Fails the build if any PVS mention is found in source files"
+
+    doLast {
+        val violations = mutableListOf<String>()
+        val sourceDirs = listOf(
+            file("src/main/java"),
+            file("src/main/res"),
+        )
+
+        sourceDirs.forEach { dir ->
+            if (!dir.exists()) return@forEach
+            dir.walkTopDown()
+                .filter { it.isFile && (it.extension == "kt" || it.extension == "xml") }
+                .forEach { file ->
+                    file.readLines().forEachIndexed { idx, line ->
+                        if (Regex("\\bPVS\\b", RegexOption.IGNORE_CASE).containsMatchIn(line) ||
+                            Regex("performance.*veterinary", RegexOption.IGNORE_CASE).containsMatchIn(line)
+                        ) {
+                            violations.add("${file.relativeTo(rootDir)}:${idx + 1}: $line")
+                        }
+                    }
+                }
+        }
+
+        if (violations.isNotEmpty()) {
+            throw GradleException(
+                "PVS mentions found (renamed to 'Vet Evaluation' on Chantier C):\n" +
+                violations.joinToString("\n")
+            )
+        }
+    }
+}
+
+tasks.named("check") { dependsOn("checkNoPvsMention") }
