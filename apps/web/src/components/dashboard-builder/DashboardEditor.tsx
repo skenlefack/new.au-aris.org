@@ -104,7 +104,7 @@ export function DashboardEditor({
     [sections, onSectionsChange],
   );
 
-  // ── Column selection ──
+  // ── Column selection handler (passed to DroppableColumn) ──
 
   const handleColumnSelect = useCallback(
     (sectionId: string, columnIndex: number) => {
@@ -113,7 +113,7 @@ export function DashboardEditor({
     [],
   );
 
-  // ── Palette add (click) — uses selected column ──
+  // ── Palette add (click) — uses selected column or first available ──
 
   const handlePaletteAdd = useCallback(
     (type: WidgetType) => {

@@ -78,7 +78,7 @@ export function DroppableColumn({
             ? 'border-[#1F4E79]/40 text-[#1F4E79] bg-[#1F4E79]/5'
             : 'border-gray-200 dark:border-gray-700 text-gray-400',
         )}>
-          {isSelected ? 'Click a widget to add here' : 'Click to select'}
+          {isSelected ? 'Click a widget to add here' : 'Click to select, then add widget'}
         </div>
       )}
     </div>

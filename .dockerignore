@@ -36,9 +36,6 @@ apps/mobile
 # Python ML service (deployed separately on VM-AI)
 services/python-ml
 
-# AI orchestrator (not yet in docker-compose, deployed separately)
-services/ai-orchestrator
-
 # Large files
 *.apk
 *.docx
