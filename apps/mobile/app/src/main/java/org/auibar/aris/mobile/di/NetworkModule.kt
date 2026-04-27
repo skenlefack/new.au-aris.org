@@ -24,8 +24,11 @@ import org.auibar.aris.mobile.BuildConfig
 import org.auibar.aris.mobile.data.remote.api.AnalyticsApi
 import org.auibar.aris.mobile.data.remote.api.AuthApi
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
+import org.auibar.aris.mobile.data.remote.api.DashboardMobileApi
+import org.auibar.aris.mobile.data.remote.api.IndicatorApi
 import org.auibar.aris.mobile.data.remote.api.KnowledgeApi
 import org.auibar.aris.mobile.data.remote.api.MessageApi
+import org.auibar.aris.mobile.data.remote.api.ReportApi
 import org.auibar.aris.mobile.data.remote.api.SyncApi
 import org.auibar.aris.mobile.util.ServerEnvironment
 import org.auibar.aris.mobile.util.TokenManager
@@ -134,4 +137,19 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideKnowledgeApi(client: HttpClient): KnowledgeApi = KnowledgeApi(client)
+
+    @Provides
+    @Singleton
+    fun provideIndicatorApi(client: HttpClient, tokenManager: TokenManager): IndicatorApi =
+        IndicatorApi(client, ServerEnvironment.fromName(tokenManager.serverEnvironment).baseUrl)
+
+    @Provides
+    @Singleton
+    fun provideDashboardMobileApi(client: HttpClient, tokenManager: TokenManager): DashboardMobileApi =
+        DashboardMobileApi(client, ServerEnvironment.fromName(tokenManager.serverEnvironment).baseUrl)
+
+    @Provides
+    @Singleton
+    fun provideReportApi(client: HttpClient, tokenManager: TokenManager): ReportApi =
+        ReportApi(client, ServerEnvironment.fromName(tokenManager.serverEnvironment).baseUrl)
 }
