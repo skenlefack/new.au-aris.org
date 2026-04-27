@@ -27,6 +27,14 @@ data class ConflictSubmission(
 )
 
 @Serializable
+data class TargetDto(
+    val id: String,
+    val domainCode: String,
+    val subDomainCode: String? = null,
+    val isPrimary: Boolean = false,
+)
+
+@Serializable
 data class CampaignDto(
     val id: String,
     val tenantId: String,
@@ -41,6 +49,7 @@ data class CampaignDto(
     val description: String? = null,
     val targetSubmissions: Int? = null,
     val assignedAgents: List<String> = emptyList(),
+    val targets: List<TargetDto>? = null,
     val createdBy: String? = null,
     val createdAt: String? = null,
     val updatedAt: String? = null,
@@ -61,6 +70,7 @@ data class CampaignDetailDto(
     val description: String? = null,
     val targetSubmissions: Int? = null,
     val assignedAgents: List<String> = emptyList(),
+    val targets: List<TargetDto>? = null,
     val progress: CampaignProgressDto? = null,
     val createdAt: String? = null,
 )
@@ -104,6 +114,7 @@ data class FormTemplateDto(
     val schema: String,
     val uiSchema: String,
     val version: Int,
+    val targets: List<TargetDto>? = null,
 )
 
 @Serializable

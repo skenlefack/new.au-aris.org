@@ -66,6 +66,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.data.repository.Submission
 import org.auibar.aris.mobile.ui.components.LoadingSpinner
+import org.auibar.aris.mobile.ui.components.TargetBadges
 import org.auibar.aris.mobile.ui.theme.SyncConflict
 import org.auibar.aris.mobile.ui.theme.SyncFailed
 import org.auibar.aris.mobile.ui.theme.SyncPending
@@ -261,11 +262,18 @@ private fun CampaignHeaderCard(state: CampaignDetailUiState, dateFormat: SimpleD
             }
 
             Spacer(Modifier.height(8.dp))
-            Text(
-                state.domainLabel,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            if (state.targets.isNotEmpty()) {
+                TargetBadges(
+                    targets = state.targets,
+                    maxVisible = 3,
+                )
+            } else {
+                Text(
+                    state.domainLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
 
             if (state.startDate > 0) {
                 Spacer(Modifier.height(4.dp))

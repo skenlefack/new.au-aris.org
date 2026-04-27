@@ -3,8 +3,10 @@ package org.auibar.aris.mobile.data.local
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import org.auibar.aris.mobile.data.local.dao.CampaignDao
+import org.auibar.aris.mobile.data.local.dao.CampaignTargetDao
 import org.auibar.aris.mobile.data.local.dao.DiseaseDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
+import org.auibar.aris.mobile.data.local.dao.FormTemplateTargetDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
 import org.auibar.aris.mobile.data.local.dao.GpsTrackDao
 import org.auibar.aris.mobile.data.local.dao.KnowledgeDao
@@ -70,6 +72,8 @@ import org.auibar.aris.mobile.data.local.entity.UserDashboardPreferenceEntity
 )
 abstract class ArisDatabase : RoomDatabase() {
     abstract fun campaignDao(): CampaignDao
+    abstract fun campaignTargetDao(): CampaignTargetDao
+    abstract fun formTemplateTargetDao(): FormTemplateTargetDao
     abstract fun submissionDao(): SubmissionDao
     abstract fun formTemplateDao(): FormTemplateDao
     abstract fun speciesDao(): SpeciesDao
