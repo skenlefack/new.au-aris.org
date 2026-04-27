@@ -21,7 +21,8 @@ data class PhotoEntity(
     val gpsLat: Double?,
     val gpsLng: Double?,
     val capturedAt: Long,
-    val uploadStatus: String,  // PENDING, UPLOADING, UPLOADED, FAILED
+    val uploadStatus: String,  // PENDING, UPLOADING, UPLOADED, FAILED, ABANDONED
     val serverUrl: String?,
     val errorMessage: String?,
+    val retryCount: Int = 0,
 )
