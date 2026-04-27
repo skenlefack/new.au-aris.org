@@ -12,7 +12,7 @@ interface PhotoDao {
     @Query("SELECT * FROM photos WHERE submissionId = :submissionId ORDER BY capturedAt DESC")
     fun getBySubmission(submissionId: String): Flow<List<PhotoEntity>>
 
-    @Query("SELECT * FROM photos WHERE uploadStatus = 'PENDING' OR uploadStatus = 'FAILED'")
+    @Query("SELECT * FROM photos WHERE (uploadStatus = 'PENDING' OR uploadStatus = 'FAILED') AND retryCount < 3")
     suspend fun getPendingUpload(): List<PhotoEntity>
 
     @Query("SELECT COUNT(*) FROM photos WHERE submissionId = :submissionId")
@@ -38,4 +38,10 @@ interface PhotoDao {
 
     @Query("DELETE FROM photos WHERE uploadStatus = 'UPLOADED'")
     suspend fun deleteUploaded(): Int
+
+    @Query("UPDATE photos SET retryCount = retryCount + 1 WHERE id = :id")
+    suspend fun incrementRetry(id: String)
+
+    @Query("UPDATE photos SET uploadStatus = 'ABANDONED' WHERE id = :id")
+    suspend fun markAsAbandoned(id: String)
 }

@@ -13,6 +13,7 @@ import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import org.auibar.aris.mobile.data.cache.MasterDataRefresher
+import org.auibar.aris.mobile.data.repository.SyncRepository
 import java.util.concurrent.TimeUnit
 
 @HiltWorker
@@ -20,13 +21,16 @@ class CacheRefreshWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted params: WorkerParameters,
     private val masterDataRefresher: MasterDataRefresher,
+    private val syncRepository: SyncRepository,
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
         return try {
             Log.d(TAG, "Starting cache refresh...")
             masterDataRefresher.forceRefreshAll()
-            Log.d(TAG, "Cache refresh complete")
+            // Cleanup synced submissions older than 30 days
+            syncRepository.cleanupOldSubmissions()
+            Log.d(TAG, "Cache refresh + cleanup complete")
             Result.success()
         } catch (e: Exception) {
             Log.w(TAG, "Cache refresh failed", e)

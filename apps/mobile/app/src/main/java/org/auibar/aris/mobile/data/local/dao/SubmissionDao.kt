@@ -61,6 +61,9 @@ interface SubmissionDao {
     @Query("DELETE FROM submissions WHERE syncStatus = 'SYNCED'")
     suspend fun deleteSynced(): Int
 
+    @Query("DELETE FROM submissions WHERE syncStatus = 'SYNCED' AND syncedAt < :cutoff")
+    suspend fun deleteSyncedOlderThan(cutoff: Long): Int
+
     @Query("UPDATE submissions SET workflowLevel = :level, workflowStatus = :status WHERE id = :id")
     suspend fun updateWorkflow(id: String, level: Int, status: String)
 
