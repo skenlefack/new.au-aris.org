@@ -4,17 +4,24 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import org.auibar.aris.mobile.data.local.dao.CampaignDao
 import org.auibar.aris.mobile.data.local.dao.CampaignTargetDao
+import org.auibar.aris.mobile.data.local.dao.DashboardDao
+import org.auibar.aris.mobile.data.local.dao.DashboardWidgetDao
 import org.auibar.aris.mobile.data.local.dao.DiseaseDao
+import org.auibar.aris.mobile.data.local.dao.FlashAlertDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateTargetDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
 import org.auibar.aris.mobile.data.local.dao.GpsTrackDao
+import org.auibar.aris.mobile.data.local.dao.IndicatorDao
+import org.auibar.aris.mobile.data.local.dao.IndicatorValueDao
 import org.auibar.aris.mobile.data.local.dao.KnowledgeDao
 import org.auibar.aris.mobile.data.local.dao.MessageDao
 import org.auibar.aris.mobile.data.local.dao.NotificationDao
 import org.auibar.aris.mobile.data.local.dao.PhotoDao
+import org.auibar.aris.mobile.data.local.dao.ReportDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
 import org.auibar.aris.mobile.data.local.dao.SubmissionDao
+import org.auibar.aris.mobile.data.local.dao.UserDashboardPreferenceDao
 import org.auibar.aris.mobile.data.local.entity.CampaignEntity
 import org.auibar.aris.mobile.data.local.entity.CampaignTargetEntity
 import org.auibar.aris.mobile.data.local.entity.DashboardEntity
@@ -84,4 +91,11 @@ abstract class ArisDatabase : RoomDatabase() {
     abstract fun gpsTrackDao(): GpsTrackDao
     abstract fun messageDao(): MessageDao
     abstract fun knowledgeDao(): KnowledgeDao
+    abstract fun indicatorDao(): IndicatorDao
+    abstract fun indicatorValueDao(): IndicatorValueDao
+    abstract fun dashboardDao(): DashboardDao
+    abstract fun dashboardWidgetDao(): DashboardWidgetDao
+    abstract fun userDashboardPreferenceDao(): UserDashboardPreferenceDao
+    abstract fun reportDao(): ReportDao
+    abstract fun flashAlertDao(): FlashAlertDao
 }

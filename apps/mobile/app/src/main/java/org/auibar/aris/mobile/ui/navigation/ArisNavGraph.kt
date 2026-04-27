@@ -74,6 +74,13 @@ import org.auibar.aris.mobile.ui.knowledge.KnowledgeSearchScreen
 import org.auibar.aris.mobile.ui.knowledge.KnowledgeArticleScreen
 import org.auibar.aris.mobile.ui.knowledge.KnowledgeCourseListScreen
 import org.auibar.aris.mobile.ui.knowledge.KnowledgeCourseDetailScreen
+import org.auibar.aris.mobile.ui.indicators.IndicatorListScreen
+import org.auibar.aris.mobile.ui.indicators.IndicatorDetailScreen
+import org.auibar.aris.mobile.ui.reportview.ReportListScreen
+import org.auibar.aris.mobile.ui.reportview.ReportDetailScreen
+import org.auibar.aris.mobile.ui.dashboardview.DashboardListScreen
+import org.auibar.aris.mobile.ui.dashboardview.DashboardViewScreen
+import org.auibar.aris.mobile.ui.flashalert.FlashAlertListScreen
 import org.auibar.aris.mobile.ui.lock.AppLockScreen
 import org.auibar.aris.mobile.ui.lock.SetPinScreen
 import org.auibar.aris.mobile.ui.navigation.AppLockViewModel
@@ -122,6 +129,14 @@ object ArisRoutes {
     const val KNOWLEDGE_COURSES = "knowledge-courses"
     const val KNOWLEDGE_COURSE_DETAIL = "knowledge-course/{courseId}"
     const val ANALYTICS_DASHBOARD = "analytics-dashboard"
+    const val INDICATORS = "indicators"
+    const val INDICATOR_LIST = "indicators?domainCode={domainCode}"
+    const val INDICATOR_DETAIL = "indicator/{indicatorId}"
+    const val REPORT_LIST = "report-list?domainCode={domainCode}"
+    const val REPORT_DETAIL = "report/{reportId}"
+    const val DASHBOARD_LIST = "dashboard-list"
+    const val DASHBOARD_VIEW = "dashboard-view/{dashboardId}"
+    const val FLASH_ALERTS = "flash-alerts"
     const val TILE_DOWNLOAD = "tile-download"
     const val MESSAGES = "messages"
     const val COMPOSE_MESSAGE = "compose-message"
@@ -151,6 +166,13 @@ object ArisRoutes {
     fun knowledgeCourseDetail(courseId: String) = "knowledge-course/$courseId"
     fun messageThread(threadId: String, recipientId: String, recipientName: String) =
         "messages/$threadId/$recipientId/$recipientName"
+    fun indicatorList(domainCode: String? = null) =
+        if (domainCode != null) "indicators?domainCode=$domainCode" else "indicators"
+    fun indicatorDetail(indicatorId: String) = "indicator/$indicatorId"
+    fun reportList(domainCode: String? = null) =
+        if (domainCode != null) "report-list?domainCode=$domainCode" else "report-list"
+    fun reportDetail(reportId: String) = "report/$reportId"
+    fun dashboardView(dashboardId: String) = "dashboard-view/$dashboardId"
 }
 
 data class BottomNavItem(
@@ -748,6 +770,81 @@ fun ArisNavGraph(
                     },
                     verifyPin = { pin -> appLockManager.verifyPin(pin) },
                     isBiometricAvailable = appLockManager.isBiometricEnabled,
+                )
+            }
+
+            // ── Indicators (Chantier C) ──
+            composable(
+                route = ArisRoutes.INDICATOR_LIST,
+                arguments = listOf(navArgument("domainCode") {
+                    type = NavType.StringType; nullable = true; defaultValue = null
+                }),
+                deepLinks = listOf(navDeepLink { uriPattern = "aris://indicators" }),
+            ) {
+                IndicatorListScreen(
+                    onIndicatorClick = { id -> navController.navigate(ArisRoutes.indicatorDetail(id)) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.INDICATOR_DETAIL,
+                arguments = listOf(navArgument("indicatorId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val indicatorId = backStackEntry.arguments?.getString("indicatorId") ?: ""
+                IndicatorDetailScreen(
+                    indicatorId = indicatorId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // ── Reports (Chantier D) ──
+            composable(
+                route = ArisRoutes.REPORT_LIST,
+                arguments = listOf(navArgument("domainCode") {
+                    type = NavType.StringType; nullable = true; defaultValue = null
+                }),
+            ) {
+                ReportListScreen(
+                    onReportClick = { id -> navController.navigate(ArisRoutes.reportDetail(id)) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.REPORT_DETAIL,
+                arguments = listOf(navArgument("reportId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val reportId = backStackEntry.arguments?.getString("reportId") ?: ""
+                ReportDetailScreen(
+                    reportId = reportId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // ── Dashboards (Chantier B) ──
+            composable(ArisRoutes.DASHBOARD_LIST) {
+                DashboardListScreen(
+                    onDashboardClick = { id -> navController.navigate(ArisRoutes.dashboardView(id)) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.DASHBOARD_VIEW,
+                arguments = listOf(navArgument("dashboardId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val dashboardId = backStackEntry.arguments?.getString("dashboardId") ?: ""
+                DashboardViewScreen(
+                    dashboardId = dashboardId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // ── Flash Alerts (Chantier D) ──
+            composable(ArisRoutes.FLASH_ALERTS) {
+                FlashAlertListScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
 

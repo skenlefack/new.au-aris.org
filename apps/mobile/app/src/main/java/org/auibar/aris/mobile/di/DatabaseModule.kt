@@ -10,17 +10,24 @@ import dagger.hilt.components.SingletonComponent
 import org.auibar.aris.mobile.data.local.ArisDatabase
 import org.auibar.aris.mobile.data.local.dao.CampaignDao
 import org.auibar.aris.mobile.data.local.dao.CampaignTargetDao
+import org.auibar.aris.mobile.data.local.dao.DashboardDao
+import org.auibar.aris.mobile.data.local.dao.DashboardWidgetDao
 import org.auibar.aris.mobile.data.local.dao.DiseaseDao
+import org.auibar.aris.mobile.data.local.dao.FlashAlertDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateTargetDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
 import org.auibar.aris.mobile.data.local.dao.GpsTrackDao
+import org.auibar.aris.mobile.data.local.dao.IndicatorDao
+import org.auibar.aris.mobile.data.local.dao.IndicatorValueDao
 import org.auibar.aris.mobile.data.local.dao.KnowledgeDao
 import org.auibar.aris.mobile.data.local.dao.MessageDao
 import org.auibar.aris.mobile.data.local.dao.NotificationDao
 import org.auibar.aris.mobile.data.local.dao.PhotoDao
+import org.auibar.aris.mobile.data.local.dao.ReportDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
 import org.auibar.aris.mobile.data.local.dao.SubmissionDao
+import org.auibar.aris.mobile.data.local.dao.UserDashboardPreferenceDao
 import org.auibar.aris.mobile.data.local.migrations.MIGRATION_9_10
 import javax.inject.Singleton
 
@@ -79,4 +86,25 @@ object DatabaseModule {
 
     @Provides
     fun provideKnowledgeDao(db: ArisDatabase): KnowledgeDao = db.knowledgeDao()
+
+    @Provides
+    fun provideIndicatorDao(db: ArisDatabase): IndicatorDao = db.indicatorDao()
+
+    @Provides
+    fun provideIndicatorValueDao(db: ArisDatabase): IndicatorValueDao = db.indicatorValueDao()
+
+    @Provides
+    fun provideDashboardDao(db: ArisDatabase): DashboardDao = db.dashboardDao()
+
+    @Provides
+    fun provideDashboardWidgetDao(db: ArisDatabase): DashboardWidgetDao = db.dashboardWidgetDao()
+
+    @Provides
+    fun provideUserDashboardPreferenceDao(db: ArisDatabase): UserDashboardPreferenceDao = db.userDashboardPreferenceDao()
+
+    @Provides
+    fun provideReportDao(db: ArisDatabase): ReportDao = db.reportDao()
+
+    @Provides
+    fun provideFlashAlertDao(db: ArisDatabase): FlashAlertDao = db.flashAlertDao()
 }
