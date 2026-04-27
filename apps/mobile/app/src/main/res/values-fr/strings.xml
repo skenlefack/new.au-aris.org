@@ -328,7 +328,6 @@
     <string name="pdf_file_missing">Fichier PDF manquant</string>
     <string name="pdf_render_error">Impossible d\'afficher le PDF</string>
     <string name="dashboards">Tableaux de bord</string>
-    <string name="dashboard">Tableau de bord</string>
     <string name="no_dashboards">Aucun tableau de bord disponible</string>
     <string name="no_widgets">Aucun widget</string>
     <string name="cached">Cache hors ligne</string>
@@ -338,5 +337,4 @@
     <string name="unsupported_widget">Widget non support\u00e9</string>
     <string name="flash_alerts">Alertes flash</string>
     <string name="no_flash_alerts">Aucune alerte flash</string>
-    <string name="mark_all_read">Tout marquer comme lu</string>
 </resources>

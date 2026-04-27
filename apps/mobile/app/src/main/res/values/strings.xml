@@ -603,7 +603,6 @@
 
     <!-- Dashboards (Chantier B) -->
     <string name="dashboards">Dashboards</string>
-    <string name="dashboard">Dashboard</string>
     <string name="no_dashboards">No dashboards available</string>
     <string name="no_widgets">No widgets in this dashboard</string>
     <string name="cached">Cached offline</string>
@@ -615,5 +614,4 @@
     <!-- Flash Alerts (Chantier D) -->
     <string name="flash_alerts">Flash Alerts</string>
     <string name="no_flash_alerts">No flash alerts</string>
-    <string name="mark_all_read">Mark all as read</string>
 </resources>

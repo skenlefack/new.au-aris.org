@@ -328,7 +328,6 @@
     <string name="pdf_file_missing">Arquivo PDF ausente</string>
     <string name="pdf_render_error">N\u00e3o foi poss\u00edvel exibir o PDF</string>
     <string name="dashboards">Pain\u00e9is</string>
-    <string name="dashboard">Painel</string>
     <string name="no_dashboards">Nenhum painel dispon\u00edvel</string>
     <string name="no_widgets">Nenhum widget</string>
     <string name="cached">Cache offline</string>
@@ -338,5 +337,4 @@
     <string name="unsupported_widget">Widget n\u00e3o suportado</string>
     <string name="flash_alerts">Alertas flash</string>
     <string name="no_flash_alerts">Nenhum alerta flash</string>
-    <string name="mark_all_read">Marcar tudo como lido</string>
 </resources>
