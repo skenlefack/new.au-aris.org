@@ -37,7 +37,8 @@ export default function DashboardEditPage() {
   const sectionsInitialized = useRef(false);
 
   if (dashboard && !titleInitialized.current) {
-    setTitle(dashboard.title || dashboard.titleFr || dashboard.titleEn || '');
+    const d = dashboard as any;
+    setTitle(d.title || d.title_fr || d.titleFr || d.title_en || d.titleEn || '');
     titleInitialized.current = true;
   }
 
@@ -119,7 +120,8 @@ export default function DashboardEditPage() {
 
   const handleSave = async () => {
     // 1. Update title if changed
-    const dashTitle = dashboard?.title || dashboard?.titleFr || '';
+    const d = dashboard as any;
+    const dashTitle = d?.title || d?.title_fr || '';
     if (title !== dashTitle) {
       await updateDashboard.mutateAsync({ id, title });
     }
