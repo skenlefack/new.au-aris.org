@@ -577,4 +577,43 @@
     <string name="degradation_level">Degradation Level</string>
     <string name="carrying_capacity">Carrying Capacity (heads/ha)</string>
     <string name="assessment_date">Assessment Date</string>
+
+    <!-- Indicators (Chantier C) -->
+    <string name="indicators">Indicators</string>
+    <string name="no_indicators">No indicators available</string>
+    <string name="indicator_detail">Indicator Detail</string>
+    <string name="current_value">Current Value</string>
+    <string name="target">Target</string>
+    <string name="history">History</string>
+    <string name="details">Details</string>
+    <string name="indicator_code">Code</string>
+    <string name="indicator_type">Type</string>
+    <string name="measurement_mode">Measurement</string>
+
+    <!-- Reports (Chantier D) -->
+    <string name="report_detail">Report Detail</string>
+    <string name="no_reports">No reports available</string>
+    <string name="offline_available">Offline</string>
+    <string name="downloading">Downloading…</string>
+    <string name="download">Download</string>
+    <string name="download_pdf">Download PDF</string>
+    <string name="pdf_not_downloaded">PDF not yet downloaded</string>
+    <string name="pdf_file_missing">PDF file missing — re-download</string>
+    <string name="pdf_render_error">Could not render PDF</string>
+
+    <!-- Dashboards (Chantier B) -->
+    <string name="dashboards">Dashboards</string>
+    <string name="dashboard">Dashboard</string>
+    <string name="no_dashboards">No dashboards available</string>
+    <string name="no_widgets">No widgets in this dashboard</string>
+    <string name="cached">Cached offline</string>
+    <string name="kpi_widget_placeholder">—</string>
+    <string name="table_widget_placeholder">Table data loading…</string>
+    <string name="alert_feed_placeholder">Alert feed loading…</string>
+    <string name="unsupported_widget">Unsupported widget</string>
+
+    <!-- Flash Alerts (Chantier D) -->
+    <string name="flash_alerts">Flash Alerts</string>
+    <string name="no_flash_alerts">No flash alerts</string>
+    <string name="mark_all_read">Mark all as read</string>
 </resources>

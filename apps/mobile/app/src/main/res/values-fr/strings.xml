@@ -306,4 +306,37 @@
     <string name="update_now">Mettre \u00e0 jour</string>
     <string name="update_later">Plus tard</string>
     <string name="update_checking">V\u00e9rification des mises \u00e0 jour\u2026</string>
+
+    <!-- Indicators -->
+    <string name="indicators">Indicateurs</string>
+    <string name="no_indicators">Aucun indicateur disponible</string>
+    <string name="indicator_detail">D\u00e9tail indicateur</string>
+    <string name="current_value">Valeur actuelle</string>
+    <string name="target">Cible</string>
+    <string name="history">Historique</string>
+    <string name="details">D\u00e9tails</string>
+    <string name="indicator_code">Code</string>
+    <string name="indicator_type">Type</string>
+    <string name="measurement_mode">Mesure</string>
+    <string name="report_detail">D\u00e9tail rapport</string>
+    <string name="no_reports">Aucun rapport disponible</string>
+    <string name="offline_available">Hors ligne</string>
+    <string name="downloading">T\u00e9l\u00e9chargement\u2026</string>
+    <string name="download">T\u00e9l\u00e9charger</string>
+    <string name="download_pdf">T\u00e9l\u00e9charger PDF</string>
+    <string name="pdf_not_downloaded">PDF pas encore t\u00e9l\u00e9charg\u00e9</string>
+    <string name="pdf_file_missing">Fichier PDF manquant</string>
+    <string name="pdf_render_error">Impossible d\'afficher le PDF</string>
+    <string name="dashboards">Tableaux de bord</string>
+    <string name="dashboard">Tableau de bord</string>
+    <string name="no_dashboards">Aucun tableau de bord disponible</string>
+    <string name="no_widgets">Aucun widget</string>
+    <string name="cached">Cache hors ligne</string>
+    <string name="kpi_widget_placeholder">\u2014</string>
+    <string name="table_widget_placeholder">Chargement des donn\u00e9es\u2026</string>
+    <string name="alert_feed_placeholder">Chargement des alertes\u2026</string>
+    <string name="unsupported_widget">Widget non support\u00e9</string>
+    <string name="flash_alerts">Alertes flash</string>
+    <string name="no_flash_alerts">Aucune alerte flash</string>
+    <string name="mark_all_read">Tout marquer comme lu</string>
 </resources>
