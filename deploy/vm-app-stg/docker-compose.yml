@@ -1015,6 +1015,33 @@ services:
       - "traefik.http.services.offline.loadbalancer.server.port=3040"
 
   # ═══════════════════════════════════════════════════
+  #  AI ORCHESTRATOR — Gateway to Ollama + ML Service
+  # ═══════════════════════════════════════════════════
+  ai-orchestrator:
+    container_name: aris-stg-ai-orchestrator
+    <<: *service-common
+    build:
+      <<: *service-build
+      args:
+        SERVICE_NAME: ai-orchestrator
+        SERVICE_PORT: "3045"
+    ports:
+      - "3045:3045"
+    environment:
+      <<: *service-env
+      SERVICE_PORT: "3045"
+      AI_ORCHESTRATOR_PORT: "3045"
+      KAFKA_CLIENT_ID: aris-stg-ai-orchestrator
+      OLLAMA_URL: http://10.202.101.142:11434
+      ML_SERVICE_URL: http://10.202.101.142:8000
+    volumes: *service-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ai-orchestrator.rule=PathPrefix(`/api/v1/ai`)"
+      - "traefik.http.routers.ai-orchestrator.entrypoints=websecure"
+      - "traefik.http.services.ai-orchestrator.loadbalancer.server.port=3045"
+
+  # ═══════════════════════════════════════════════════
   #  PORTAINER CE — Container Management UI
   # ═══════════════════════════════════════════════════
   portainer:
