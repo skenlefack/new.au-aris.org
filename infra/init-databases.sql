@@ -73,5 +73,61 @@ GRANT ALL ON ALL TABLES IN SCHEMA datalake TO aris;
 CREATE SCHEMA IF NOT EXISTS historical;
 GRANT ALL ON ALL TABLES IN SCHEMA historical TO aris;
 
+-- AI / ML schema
+CREATE SCHEMA IF NOT EXISTS ai;
+
+CREATE TABLE IF NOT EXISTS ai.ml_models (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    type VARCHAR(50) NOT NULL,          -- xgboost, isolation_forest, hdbscan, chronos
+    version INTEGER NOT NULL DEFAULT 1,
+    status VARCHAR(20) NOT NULL DEFAULT 'REGISTERED', -- REGISTERED, TRAINING, READY, FAILED, RETIRED
+    config JSONB NOT NULL DEFAULT '{}',
+    accuracy DOUBLE PRECISION,
+    metrics JSONB,
+    artifact_path TEXT,
+    trained_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS ai.ml_training_jobs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    model_id UUID NOT NULL REFERENCES ai.ml_models(id),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING', -- PENDING, RUNNING, COMPLETED, FAILED
+    triggered_by VARCHAR(20) NOT NULL DEFAULT 'SCHEDULE', -- SCHEDULE, MANUAL, API
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    duration_ms INTEGER,
+    input_row_count INTEGER,
+    metrics JSONB,
+    error_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ml_models_code ON ai.ml_models(code);
+CREATE INDEX IF NOT EXISTS idx_ml_models_status ON ai.ml_models(status);
+CREATE INDEX IF NOT EXISTS idx_ml_training_model ON ai.ml_training_jobs(model_id);
+CREATE INDEX IF NOT EXISTS idx_ml_training_status ON ai.ml_training_jobs(status);
+
+-- Seed default models
+INSERT INTO ai.ml_models (id, code, name, type, status, config, description) VALUES
+    (uuid_generate_v4(), 'epidemic_predictor', 'Epidemic Predictor (XGBoost)', 'xgboost', 'REGISTERED',
+     '{"indicator_codes": ["OBR-001","OBR-002","OBR-003"], "since_days": 1095, "xgb_params": {"n_estimators": 100, "max_depth": 6, "learning_rate": 0.1}}',
+     'Predicts outbreak risk based on historical event data and indicator time series'),
+    (uuid_generate_v4(), 'anomaly_detector', 'Anomaly Detector (Isolation Forest)', 'isolation_forest', 'REGISTERED',
+     '{"contamination": 0.05, "n_estimators": 200}',
+     'Detects anomalous data points in submitted records using Isolation Forest'),
+    (uuid_generate_v4(), 'spatial_clusterer', 'Spatial Clusterer (HDBSCAN)', 'hdbscan', 'REGISTERED',
+     '{"min_cluster_size": 5, "min_samples": 3}',
+     'Spatial clustering of geographic events for hotspot detection')
+ON CONFLICT (code) DO NOTHING;
+
+GRANT ALL ON ALL TABLES IN SCHEMA ai TO aris;
+GRANT USAGE ON SCHEMA ai TO aris;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA ai TO aris;
+
 -- Metabase needs its own database for internal application tables
 -- Run separately: CREATE DATABASE metabase OWNER aris;
