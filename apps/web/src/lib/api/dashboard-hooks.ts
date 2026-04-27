@@ -292,6 +292,7 @@ export function useUpdateDashboard() {
   return useMutation({
     mutationFn: ({
       id,
+      title,
       ...body
     }: {
       id: string;
@@ -300,11 +301,17 @@ export function useUpdateDashboard() {
       scope?: DashboardScope;
       domainCode?: string;
       tags?: string[];
-    }) =>
-      analyticsClient.patch<{ data: Dashboard }>(
+    }) => {
+      const payload: Record<string, unknown> = { ...body };
+      if (title !== undefined) {
+        payload.titleFr = title;
+        payload.titleEn = title;
+      }
+      return analyticsClient.patch<{ data: Dashboard }>(
         `/analytics/dashboards/${id}`,
-        body,
-      ),
+        payload,
+      );
+    },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: KEYS.detail(vars.id) });
       qc.invalidateQueries({ queryKey: KEYS.lists() });
