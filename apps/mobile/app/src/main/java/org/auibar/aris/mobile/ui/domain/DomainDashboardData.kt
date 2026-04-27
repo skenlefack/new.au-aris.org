@@ -155,10 +155,10 @@ object DomainDashboards {
         )
 
         "governance" -> DomainDashboardConfig(
-            subtitle = "Legal Frameworks, PVS & Capacities",
+            subtitle = "Legal Frameworks, Vet Evaluation & Capacities",
             kpis = listOf(
                 DomainKpi("Legal Frameworks", "186", "registered", "up", "+12", Icons.Default.Gavel),
-                DomainKpi("PVS Evaluations", "42", "completed", "up", "+4", Icons.Default.Assessment),
+                DomainKpi("Vet Evaluations", "42", "completed", "up", "+4", Icons.Default.Assessment),
                 DomainKpi("Stakeholders", "1,850", "engaged", "up", "+120", Icons.Default.Groups),
                 DomainKpi("Programs", "68", "capacity building", "up", "+8", Icons.Default.School),
             ),
@@ -168,7 +168,7 @@ object DomainDashboards {
                 DomainQuickLink("Map View", Icons.Default.Map, "map"),
                 DomainQuickLink("Reports", Icons.Default.Assessment, "reports"),
             ),
-            alertTypes = listOf("Regulatory gap", "Capacity need", "PVS follow-up"),
+            alertTypes = listOf("Regulatory gap", "Capacity need", "Vet evaluation follow-up"),
         )
 
         "climate" -> DomainDashboardConfig(
