@@ -1,5 +1,6 @@
 package org.auibar.aris.mobile.data.remote.api
 
+import android.util.Log
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -12,8 +13,9 @@ import org.auibar.aris.mobile.data.remote.dto.FormTemplateDto
 import org.auibar.aris.mobile.data.remote.dto.FormTemplateSummaryDto
 import org.auibar.aris.mobile.data.remote.dto.SafeApiResponse
 import org.auibar.aris.mobile.data.remote.dto.TemplateInfoDto
-import timber.log.Timber
 import javax.inject.Inject
+
+private const val TAG = "CampaignApi"
 
 class CampaignApi @Inject constructor(
     private val client: HttpClient,
@@ -22,21 +24,33 @@ class CampaignApi @Inject constructor(
         return client.get("/api/v1/collecte/campaigns?status=ACTIVE").body()
     }
 
-    /** Get ALL campaigns for a domain (all statuses). Safe parsing. */
+    /**
+     * Get ALL campaigns for a domain (all statuses). Safe parsing.
+     * Tries multi-target (domainCode) first, then legacy (domain) field.
+     * Many planned/completed campaigns only have the legacy domain field set.
+     */
     suspend fun getAllCampaignsByDomain(domainCode: String): List<CampaignDto> {
+        // Try 1: modern multi-target filter (domainCode)
+        val fromTargets = fetchCampaignsSafe("domainCode", domainCode)
+        // Try 2: legacy domain field
+        val fromLegacy = fetchCampaignsSafe("domain", domainCode)
+        // Merge and deduplicate by id
+        val merged = (fromTargets + fromLegacy).distinctBy { it.id }
+        Log.d(TAG, "Campaigns for $domainCode: ${fromTargets.size} from targets + ${fromLegacy.size} from legacy = ${merged.size} merged")
+        return merged
+    }
+
+    private suspend fun fetchCampaignsSafe(paramName: String, value: String): List<CampaignDto> {
         return try {
             val response = client.get("/api/v1/collecte/campaigns") {
-                parameter("domainCode", domainCode)
+                parameter(paramName, value)
                 parameter("limit", 100)
             }
-            if (response.status.value !in 200..299) {
-                Timber.w("Campaigns API returned ${response.status.value} for $domainCode")
-                return emptyList()
-            }
+            if (response.status.value !in 200..299) return emptyList()
             val body: SafeApiResponse<List<CampaignDto>> = response.body()
             body.data ?: emptyList()
         } catch (e: Exception) {
-            Timber.w(e, "Failed to fetch campaigns for $domainCode")
+            Log.w(TAG, "fetchCampaignsSafe($paramName=$value) failed: ${e.message}")
             emptyList()
         }
     }
@@ -67,7 +81,7 @@ class CampaignApi @Inject constructor(
             val body: SafeApiResponse<List<FormTemplateSummaryDto>> = response.body()
             body.data ?: emptyList()
         } catch (e: Exception) {
-            Timber.w(e, "Failed to fetch templates for $domain")
+            Log.w(TAG, "Failed to fetch templates for $domain: ${e.message}")
             emptyList()
         }
     }
@@ -77,13 +91,13 @@ class CampaignApi @Inject constructor(
         return try {
             val response = client.get("/api/v1/credential/domains/$domainCode/sub-domains")
             if (response.status.value !in 200..299) {
-                Timber.w("Sub-domains API returned ${response.status.value} for $domainCode")
+                Log.w(TAG, "Sub-domains API returned ${response.status.value} for $domainCode")
                 return emptyList()
             }
             val body: SafeApiResponse<List<org.auibar.aris.mobile.data.remote.dto.SubDomainDto>> = response.body()
             body.data ?: emptyList()
         } catch (e: Exception) {
-            Timber.w(e, "Failed to fetch sub-domains for $domainCode")
+            Log.w(TAG, "Failed to fetch sub-domains for $domainCode: ${e.message}")
             emptyList()
         }
     }
