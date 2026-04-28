@@ -9,7 +9,7 @@ import {
   // Health / Medical / Veterinary
   HeartPulse, Stethoscope, Syringe, Pill, Thermometer, Microscope, TestTube,
   ShieldCheck, Bug, Skull, Activity, Heart, Brain, Eye, Ear, Bone,
-  Cross, Scan, Biohazard, Dna, Bandage, Baby, Accessibility,
+  Cross, Scan, Biohazard, Dna, Baby, Accessibility,
   // Animals / Nature / Wildlife
   Bird, Fish, Cat, Dog, Rabbit, Leaf, TreePine, Flower, Sun, Cloud, Droplets,
   Mountain, Globe, TreeDeciduous, Turtle, Squirrel, Rat, PawPrint, Feather, Shell,
@@ -19,8 +19,7 @@ import {
   Ruler, Beef, Ham, Drumstick, Cherry, Grape, Carrot, Salad, Citrus, Bean,
   // Data / Analytics / KPIs
   BarChart3, LineChart, PieChart, TrendingUp, Database, Table2, FileText,
-  FileSpreadsheet, Calculator, Hash, Percent, Binary, ChartArea, ChartBar,
-  ChartColumn, ChartLine, ChartPie, ChartSpline, SquareStack, Sigma,
+  FileSpreadsheet, Calculator, Hash, Percent, Binary, SquareStack, Sigma,
   // Maps / Geography / Geo
   Map, MapPin, Navigation, Compass, Globe2, Flag, Building2, Landmark,
   MapPinned, Route, Locate, Earth,
@@ -57,7 +56,7 @@ export const ICON_MAP: Record<string, LucideIcon> = {
   // Health / Medical / Veterinary
   HeartPulse, Stethoscope, Syringe, Pill, Thermometer, Microscope, TestTube,
   ShieldCheck, Bug, Skull, Activity, Heart, Brain, Eye, Ear, Bone,
-  Cross, Scan, Biohazard, Dna, Bandage, Baby, Accessibility,
+  Cross, Scan, Biohazard, Dna, Baby, Accessibility,
   // Animals / Nature / Wildlife
   Bird, Fish, Cat, Dog, Rabbit, Leaf, TreePine, Flower, Sun, Cloud, Droplets,
   Mountain, Globe, TreeDeciduous, Turtle, Squirrel, Rat, PawPrint, Feather, Shell,
@@ -67,8 +66,7 @@ export const ICON_MAP: Record<string, LucideIcon> = {
   Ruler, Beef, Ham, Drumstick, Cherry, Grape, Carrot, Salad, Citrus, Bean,
   // Data / Analytics
   BarChart3, LineChart, PieChart, TrendingUp, Database, Table2, FileText,
-  FileSpreadsheet, Calculator, Hash, Percent, Binary, ChartArea, ChartBar,
-  ChartColumn, ChartLine, ChartPie, ChartSpline, SquareStack, Sigma,
+  FileSpreadsheet, Calculator, Hash, Percent, Binary, SquareStack, Sigma,
   // Maps / Geography
   Map, MapPin, Navigation, Compass, Globe2, Flag, Building2, Landmark,
   MapPinned, Route, Locate, Earth,
