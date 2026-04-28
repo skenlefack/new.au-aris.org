@@ -62,7 +62,6 @@ import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.data.remote.dto.FormTemplateSummaryDto
 import org.auibar.aris.mobile.data.repository.Campaign
 import org.auibar.aris.mobile.ui.components.DomainIcon
-import org.auibar.aris.mobile.ui.components.RoleConfig
 import org.auibar.aris.mobile.ui.components.arisDomains
 
 private val DOMAIN_COLORS = mapOf(
@@ -174,19 +173,27 @@ fun DomainDashboardScreen(
                 }
             }
 
-            // ═══ SECTION 2: SUB-DOMAINS ═══
-            if (config.subDomains.isNotEmpty()) {
+            // ═══ SECTION 2: SUB-DOMAINS (from API, hidden if empty) ═══
+            if (uiState.subDomains.isNotEmpty()) {
                 item {
                     Spacer(Modifier.height(20.dp))
                     SectionHeader("Sub-domains")
                 }
-                item {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        items(config.subDomains) { sub ->
-                            SubDomainChip(sub = sub, domainColor = domainColor)
+                // 2 cards per row
+                val rows = uiState.subDomains.chunked(2)
+                rows.forEach { rowItems ->
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            rowItems.forEach { sub ->
+                                SubDomainCard(sub = sub, domainColor = domainColor, modifier = Modifier.weight(1f))
+                            }
+                            // Fill empty space if odd number
+                            if (rowItems.size == 1) {
+                                Spacer(Modifier.weight(1f))
+                            }
                         }
                     }
                 }
@@ -326,17 +333,42 @@ private fun DashboardSkeleton(domainColor: Color) {
     }
 }
 
-// ── Sub-Domain Chip ────────────────────────────────────────
+// ── Sub-Domain Card (2 per row, with stats) ───────────────
 @Composable
-private fun SubDomainChip(sub: SubDomain, domainColor: Color) {
-    Card(shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
-        Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(32.dp).clip(CircleShape).background(domainColor.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
-                Icon(sub.icon, contentDescription = null, tint = domainColor, modifier = Modifier.size(18.dp))
+private fun SubDomainCard(sub: SubDomainUi, domainColor: Color, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            // Title
+            Text(
+                text = sub.labelEn,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                color = domainColor,
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // Stats row
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                StatMini(value = "${sub.campaignCount}", label = "Campaigns")
+                StatMini(value = "${sub.formCount}", label = "Forms")
+                StatMini(value = "${sub.submissionCount}", label = "Data")
             }
-            Spacer(Modifier.width(8.dp))
-            Text(sub.label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
         }
+    }
+}
+
+@Composable
+private fun StatMini(value: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

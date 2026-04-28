@@ -2,24 +2,15 @@ package org.auibar.aris.mobile.data.remote.dto
 
 import kotlinx.serialization.Serializable
 
+/**
+ * A nullable-data variant of ApiResponse for endpoints that may return
+ * error objects without a `data` field.
+ */
 @Serializable
-data class ApiResponse<T>(
-    val data: T,
+data class SafeApiResponse<T>(
+    val data: T? = null,
     val meta: ApiMeta? = null,
     val errors: List<ApiError>? = null,
     val statusCode: Int? = null,
     val message: String? = null,
-)
-
-@Serializable
-data class ApiMeta(
-    val total: Int = 0,
-    val page: Int = 1,
-    val limit: Int = 20,
-)
-
-@Serializable
-data class ApiError(
-    val field: String,
-    val message: String,
 )
