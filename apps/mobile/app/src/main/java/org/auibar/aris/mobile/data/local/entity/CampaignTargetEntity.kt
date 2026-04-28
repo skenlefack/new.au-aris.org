@@ -1,5 +1,6 @@
 package org.auibar.aris.mobile.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -26,6 +27,6 @@ data class CampaignTargetEntity(
     val campaignId: String,
     val domainCode: String,
     val subDomainCode: String?,
-    val isPrimary: Boolean = false,
-    val syncedAt: Long = 0L,
+    @ColumnInfo(defaultValue = "0") val isPrimary: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val syncedAt: Long = 0L,
 )

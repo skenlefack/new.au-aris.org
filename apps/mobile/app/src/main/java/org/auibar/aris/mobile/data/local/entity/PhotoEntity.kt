@@ -1,5 +1,6 @@
 package org.auibar.aris.mobile.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -24,5 +25,5 @@ data class PhotoEntity(
     val uploadStatus: String,  // PENDING, UPLOADING, UPLOADED, FAILED, ABANDONED
     val serverUrl: String?,
     val errorMessage: String?,
-    val retryCount: Int = 0,
+    @ColumnInfo(defaultValue = "0") val retryCount: Int = 0,
 )
