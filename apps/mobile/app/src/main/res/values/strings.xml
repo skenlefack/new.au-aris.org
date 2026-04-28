@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ARIS 4.0</string>
+    <string name="app_name">ARIS</string>
     <string name="app_subtitle">Animal Resources Information System</string>
 
     <!-- Splash / Branding -->
@@ -184,7 +184,7 @@
     <string name="sign_in_title">Sign in to ARIS</string>
     <string name="sign_in_subtitle">Continental Animal Resources Platform</string>
     <string name="domains">Domains</string>
-    <string name="aris_version">ARIS 4.0</string>
+    <string name="aris_version">ARIS</string>
     <string name="powered_by_au_ibar">Powered by AU-IBAR</string>
     <string name="settings_profile">Profile</string>
 

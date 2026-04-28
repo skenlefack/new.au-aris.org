@@ -190,7 +190,7 @@ fun SplashScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ARIS 4.0
+            // ARIS
             Text(
                 text = stringResource(R.string.aris_version),
                 style = MaterialTheme.typography.displayMedium.copy(
