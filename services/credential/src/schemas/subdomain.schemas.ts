@@ -23,6 +23,8 @@ export const CreateSubDomainSchema = Type.Object({
   active: Type.Optional(Type.Boolean()),
   displayOrder: Type.Optional(Type.Integer({ minimum: 0 })),
   description: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  icon: Type.Optional(Type.Union([Type.String({ maxLength: 50 }), Type.Null()])),
+  color: Type.Optional(Type.Union([Type.String({ maxLength: 20 }), Type.Null()])),
 });
 
 export const UpdateSubDomainSchema = Type.Object({
@@ -35,6 +37,8 @@ export const UpdateSubDomainSchema = Type.Object({
   active: Type.Optional(Type.Boolean()),
   displayOrder: Type.Optional(Type.Integer({ minimum: 0 })),
   description: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  icon: Type.Optional(Type.Union([Type.String({ maxLength: 50 }), Type.Null()])),
+  color: Type.Optional(Type.Union([Type.String({ maxLength: 20 }), Type.Null()])),
 });
 
 // ─── Params ──────────────────────────────────────────────────────────────────

@@ -30,6 +30,8 @@ export interface SubDomainCreateBody {
   active?: boolean;
   displayOrder?: number;
   description?: string | null;
+  icon?: string | null;
+  color?: string | null;
 }
 
 export interface SubDomainUpdateBody {
@@ -42,6 +44,8 @@ export interface SubDomainUpdateBody {
   active?: boolean;
   displayOrder?: number;
   description?: string | null;
+  icon?: string | null;
+  color?: string | null;
 }
 
 interface PaginatedResponse<T> {

@@ -14,6 +14,7 @@ import {
 } from '@/lib/api/sub-domain-hooks';
 import type { SubDomainType } from '@/lib/stores/domain-store';
 import { ForbiddenPage } from '@/components/ui/ForbiddenPage';
+import { IconPicker, ICON_MAP } from '@/components/ui/IconPicker';
 import {
   Loader2,
   ArrowLeft,
@@ -24,6 +25,7 @@ import {
   Power,
   PowerOff,
   Info,
+  Circle,
 } from 'lucide-react';
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN']);
@@ -77,6 +79,9 @@ function SubDomainDetail() {
   const [valueChainCode, setValueChainCode] = useState('');
   const [displayOrder, setDisplayOrder] = useState(0);
   const [description, setDescription] = useState('');
+  const [icon, setIcon] = useState('Circle');
+  const [color, setColor] = useState('#1F4E79');
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -89,6 +94,8 @@ function SubDomainDetail() {
       setValueChainCode(sd.valueChainCode ?? '');
       setDisplayOrder(sd.displayOrder);
       setDescription(sd.description ?? '');
+      setIcon(sd.icon ?? 'Circle');
+      setColor(sd.color ?? '#1F4E79');
     }
   }, [sd]);
 
@@ -108,6 +115,7 @@ function SubDomainDetail() {
         labelAr: labelAr.trim() || null, labelPt: labelPt.trim() || null,
         typeEnum, valueChainCode: typeEnum === 'VALUE_CHAIN' && valueChainCode ? valueChainCode : null,
         displayOrder, description: description.trim() || null,
+        icon: icon || null, color: color || null,
       });
       addToast({ type: 'success', title: 'Mis a jour', message: `${sd?.code} a ete modifie avec succes.` });
       setEditing(false);
@@ -266,6 +274,29 @@ function SubDomainDetail() {
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
             </div>
 
+            {/* Icon + Color */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Icone</label>
+                <button type="button" onClick={() => setIconPickerOpen(true)}
+                  className="inline-flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-2.5 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700">
+                  {React.createElement(ICON_MAP[icon] ?? Circle, { className: 'h-5 w-5', style: { color } })}
+                  <span className="text-gray-700 dark:text-gray-300">{icon}</span>
+                  <span className="text-xs text-[#1F4E79]">Changer</span>
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Couleur</label>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={color} onChange={(e) => setColor(e.target.value)}
+                    className="h-10 w-14 cursor-pointer rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-900" />
+                  <input type="text" value={color} onChange={(e) => setColor(e.target.value)}
+                    placeholder="#1F4E79" maxLength={20}
+                    className="w-32 rounded-lg border border-gray-200 px-3 py-2 font-mono text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+                </div>
+              </div>
+            </div>
+
             {/* Actions */}
             <div className="flex justify-end gap-3 border-t border-gray-200 pt-4 dark:border-gray-700">
               <button type="button" onClick={() => setEditing(false)}
@@ -301,10 +332,28 @@ function SubDomainDetail() {
                 sd.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
               }`}>{sd.active ? 'Actif' : 'Inactif'}</span>
             </DetailRow>
+            {sd.icon && (
+              <DetailRow label="Icone">
+                <div className="flex items-center gap-2">
+                  {React.createElement(ICON_MAP[sd.icon] ?? Circle, { className: 'h-5 w-5', style: { color: sd.color ?? '#1F4E79' } })}
+                  <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-sm text-gray-900 dark:bg-gray-700 dark:text-white">{sd.icon}</span>
+                </div>
+              </DetailRow>
+            )}
+            {sd.color && (
+              <DetailRow label="Couleur">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block h-5 w-5 rounded-full border border-gray-200 dark:border-gray-600" style={{ backgroundColor: sd.color }} />
+                  <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-sm text-gray-900 dark:bg-gray-700 dark:text-white">{sd.color}</span>
+                </div>
+              </DetailRow>
+            )}
             {sd.description && <DetailRow label="Description" value={sd.description} />}
           </div>
         )}
       </div>
+
+      <IconPicker open={iconPickerOpen} value={icon} onSelect={setIcon} onClose={() => setIconPickerOpen(false)} />
 
       {/* Delete Modal */}
       {showDeleteModal && (

@@ -174,6 +174,8 @@ model SubDomain {
   active         Boolean         @default(true)
   displayOrder   Int             @default(0) @map("display_order")
   description    String?
+  icon           String?         @db.VarChar(50)    // Lucide icon name
+  color          String?         @db.VarChar(20)    // Hex color e.g. "#2E7D32"
   createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 

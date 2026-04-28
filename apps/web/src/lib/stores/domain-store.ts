@@ -40,6 +40,8 @@ export interface SubDomain {
   active: boolean;
   displayOrder: number;
   description: string | null;
+  icon: string | null;
+  color: string | null;
 }
 
 interface DomainState {

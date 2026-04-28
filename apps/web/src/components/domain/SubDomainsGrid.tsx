@@ -2,7 +2,10 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ChevronRight, FileText, ClipboardList, Database } from 'lucide-react';
+import { ChevronRight, FileText, ClipboardList, Database, Layers, GitBranch, Bug, Circle } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import type { SubDomainType } from '@/lib/stores/domain-store';
+import { ICON_MAP } from '@/components/ui/IconPicker';
 import { useSubDomains } from '@/hooks/use-sub-domains';
 import { useQuery } from '@tanstack/react-query';
 import { collecteClient } from '@/lib/api/client';
@@ -106,20 +109,26 @@ export function SubDomainsGrid({ domainCode }: SubDomainsGridProps) {
               className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
             >
               {/* Accent line */}
-              <div className="absolute inset-x-0 top-0 h-0.5 bg-[#1F4E79]" />
+              <div className="absolute inset-x-0 top-0 h-0.5" style={{ backgroundColor: sd.color ?? '#1F4E79' }} />
 
               <div className="flex items-start justify-between">
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-[#1F4E79] dark:text-white">
-                    {sd.labelEn || sd.labelFr}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    {React.createElement(ICON_MAP[sd.icon ?? ''] ?? Circle, {
+                      className: 'h-4 w-4 shrink-0',
+                      style: { color: sd.color ?? '#1F4E79' },
+                    })}
+                    <h3 className="text-sm font-semibold line-clamp-2 dark:text-white" style={{ color: sd.color ?? undefined }}>
+                      {sd.labelEn || sd.labelFr}
+                    </h3>
+                  </div>
                   {sd.description && (
                     <p className="mt-1 text-[11px] text-gray-400 line-clamp-2">
                       {sd.description}
                     </p>
                   )}
                 </div>
-                <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-[#1F4E79] dark:text-gray-600" />
+                <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 dark:text-gray-600" />
               </div>
 
               {/* Stats */}

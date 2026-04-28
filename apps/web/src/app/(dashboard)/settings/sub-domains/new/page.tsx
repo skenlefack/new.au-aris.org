@@ -12,7 +12,8 @@ import {
 } from '@/lib/api/sub-domain-hooks';
 import type { SubDomainType } from '@/lib/stores/domain-store';
 import { ForbiddenPage } from '@/components/ui/ForbiddenPage';
-import { Loader2, ArrowLeft, Check } from 'lucide-react';
+import { IconPicker, ICON_MAP } from '@/components/ui/IconPicker';
+import { Loader2, ArrowLeft, Check, Circle } from 'lucide-react';
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN']);
 
@@ -52,6 +53,9 @@ function SubDomainForm() {
   const [displayOrder, setDisplayOrder] = useState(0);
   const [active, setActive] = useState(true);
   const [description, setDescription] = useState('');
+  const [icon, setIcon] = useState('Circle');
+  const [color, setColor] = useState('#1F4E79');
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = (): boolean => {
@@ -81,6 +85,8 @@ function SubDomainForm() {
         displayOrder,
         active,
         description: description.trim() || null,
+        icon: icon || null,
+        color: color || null,
       });
       addToast({ type: 'success', title: 'Sous-domaine cree', message: `${code} a ete cree avec succes.` });
       router.push('/settings/sub-domains');
@@ -191,6 +197,33 @@ function SubDomainForm() {
           </div>
         </div>
 
+        {/* Row 3b: Icon + Color */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Icone <span className="text-xs text-gray-400">(optionnel)</span>
+            </label>
+            <button type="button" onClick={() => setIconPickerOpen(true)}
+              className="inline-flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-2.5 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700">
+              {React.createElement(ICON_MAP[icon] ?? Circle, { className: 'h-5 w-5', style: { color } })}
+              <span className="text-gray-700 dark:text-gray-300">{icon}</span>
+              <span className="text-xs text-[#1F4E79]">Changer</span>
+            </button>
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Couleur <span className="text-xs text-gray-400">(optionnel)</span>
+            </label>
+            <div className="flex items-center gap-3">
+              <input type="color" value={color} onChange={(e) => setColor(e.target.value)}
+                className="h-10 w-14 cursor-pointer rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-900" />
+              <input type="text" value={color} onChange={(e) => setColor(e.target.value)}
+                placeholder="#1F4E79" maxLength={20}
+                className="w-32 rounded-lg border border-gray-200 px-3 py-2 font-mono text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+            </div>
+          </div>
+        </div>
+
         {/* Row 4: Labels (4 cols) */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1.5">
@@ -239,6 +272,8 @@ function SubDomainForm() {
           </button>
         </div>
       </form>
+
+      <IconPicker open={iconPickerOpen} value={icon} onSelect={setIcon} onClose={() => setIconPickerOpen(false)} />
     </div>
   );
 }
