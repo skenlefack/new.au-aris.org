@@ -6,6 +6,11 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.auibar.aris.mobile.data.remote.dto.ApiResponse
 import org.auibar.aris.mobile.data.remote.dto.CampaignDetailDto
 import org.auibar.aris.mobile.data.remote.dto.CampaignDto
@@ -17,6 +22,63 @@ import javax.inject.Inject
 
 private const val TAG = "CampaignApi"
 
+/**
+ * DTO for /api/v1/workflow/campaigns — name/description are JSON objects {en, fr, ...}
+ * Unlike /collecte/campaigns which returns name as plain String.
+ */
+@Serializable
+private data class WorkflowCampaignDto(
+    val id: String,
+    val code: String? = null,
+    val name: JsonElement? = null,
+    val description: JsonElement? = null,
+    val domain: String? = null,
+    val status: String = "",
+    val startDate: String? = null,
+    val endDate: String? = null,
+    val targetSubmissions: Int? = null,
+    val tenantId: String? = null,
+) {
+    /** Extract localized name, preferring EN then FR. */
+    fun nameString(): String {
+        if (name == null) return code ?: ""
+        return when (name) {
+            is JsonPrimitive -> name.content
+            else -> try {
+                val obj = name.jsonObject
+                obj["en"]?.jsonPrimitive?.content
+                    ?: obj["fr"]?.jsonPrimitive?.content
+                    ?: obj.values.firstOrNull()?.jsonPrimitive?.content
+                    ?: code ?: ""
+            } catch (_: Exception) { code ?: "" }
+        }
+    }
+
+    fun descriptionString(): String? {
+        if (description == null) return null
+        return when (description) {
+            is JsonPrimitive -> description.content
+            else -> try {
+                val obj = description.jsonObject
+                obj["en"]?.jsonPrimitive?.content ?: obj["fr"]?.jsonPrimitive?.content
+            } catch (_: Exception) { null }
+        }
+    }
+
+    fun toCampaignDto(): CampaignDto = CampaignDto(
+        id = id,
+        tenantId = tenantId ?: "",
+        name = nameString(),
+        domain = domain ?: "",
+        templateId = "",
+        startDate = startDate ?: "",
+        endDate = endDate ?: "",
+        status = status,
+        description = descriptionString(),
+        targetSubmissions = targetSubmissions,
+    )
+}
+
 class CampaignApi @Inject constructor(
     private val client: HttpClient,
 ) {
@@ -26,31 +88,53 @@ class CampaignApi @Inject constructor(
 
     /**
      * Get ALL campaigns for a domain (all statuses). Safe parsing.
-     * Tries multi-target (domainCode) first, then legacy (domain) field.
-     * Many planned/completed campaigns only have the legacy domain field set.
+     * Uses /api/v1/workflow/campaigns (same as web PlanningsSection)
+     * with domain param in underscore format (animal_health, not animal-health).
      */
     suspend fun getAllCampaignsByDomain(domainCode: String): List<CampaignDto> {
-        // Try 1: modern multi-target filter (domainCode)
-        val fromTargets = fetchCampaignsSafe("domainCode", domainCode)
-        // Try 2: legacy domain field
-        val fromLegacy = fetchCampaignsSafe("domain", domainCode)
-        // Merge and deduplicate by id
-        val merged = (fromTargets + fromLegacy).distinctBy { it.id }
-        Log.d(TAG, "Campaigns for $domainCode: ${fromTargets.size} from targets + ${fromLegacy.size} from legacy = ${merged.size} merged")
+        // Web uses underscores: animal-health → animal_health
+        val underscoreDomain = domainCode.replace("-", "_")
+
+        // Primary: workflow/campaigns (what web uses — has ALL statuses)
+        val fromWorkflow = fetchCampaignsSafe("/api/v1/workflow/campaigns", "domain", underscoreDomain)
+        if (fromWorkflow.isNotEmpty()) {
+            Log.d(TAG, "Campaigns for $domainCode: ${fromWorkflow.size} from workflow (domain=$underscoreDomain)")
+            return fromWorkflow
+        }
+
+        // Fallback: collecte/campaigns with both param styles
+        val fromCollecte = fetchCampaignsSafe("/api/v1/collecte/campaigns", "domainCode", domainCode)
+        val fromLegacy = fetchCampaignsSafe("/api/v1/collecte/campaigns", "domain", domainCode)
+        val merged = (fromCollecte + fromLegacy).distinctBy { it.id }
+        Log.d(TAG, "Campaigns for $domainCode: ${fromCollecte.size} collecte + ${fromLegacy.size} legacy = ${merged.size} merged")
         return merged
     }
 
-    private suspend fun fetchCampaignsSafe(paramName: String, value: String): List<CampaignDto> {
+    private suspend fun fetchCampaignsSafe(endpoint: String, paramName: String, value: String): List<CampaignDto> {
         return try {
-            val response = client.get("/api/v1/collecte/campaigns") {
+            val response = client.get(endpoint) {
                 parameter(paramName, value)
-                parameter("limit", 100)
+                parameter("limit", 50)
             }
-            if (response.status.value !in 200..299) return emptyList()
-            val body: SafeApiResponse<List<CampaignDto>> = response.body()
-            body.data ?: emptyList()
+            if (response.status.value !in 200..299) {
+                Log.w(TAG, "fetchCampaigns $endpoint?$paramName=$value → HTTP ${response.status.value}")
+                return emptyList()
+            }
+
+            if (endpoint.contains("/workflow/")) {
+                // Workflow endpoint returns name as JSON object {en, fr}
+                val body: SafeApiResponse<List<WorkflowCampaignDto>> = response.body()
+                val result = (body.data ?: emptyList()).map { it.toCampaignDto() }
+                Log.d(TAG, "fetchWorkflow $paramName=$value → ${result.size} campaigns")
+                result
+            } else {
+                // Collecte endpoint returns name as plain String
+                val body: SafeApiResponse<List<CampaignDto>> = response.body()
+                body.data ?: emptyList()
+            }
         } catch (e: Exception) {
-            Log.w(TAG, "fetchCampaignsSafe($paramName=$value) failed: ${e.message}")
+            Log.w(TAG, "fetchCampaigns $endpoint?$paramName=$value failed: ${e.message}")
+            Log.w(TAG, "JSON input: ...${e.message?.takeLast(80)}...")
             emptyList()
         }
     }

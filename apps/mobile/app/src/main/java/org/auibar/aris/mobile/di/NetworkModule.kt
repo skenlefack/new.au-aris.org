@@ -1,5 +1,6 @@
 package org.auibar.aris.mobile.di
 
+import android.util.Log
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,6 +20,7 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.auibar.aris.mobile.BuildConfig
 import org.auibar.aris.mobile.data.remote.api.AnalyticsApi
@@ -34,6 +36,22 @@ import org.auibar.aris.mobile.data.remote.api.SyncApi
 import org.auibar.aris.mobile.util.ServerEnvironment
 import org.auibar.aris.mobile.util.TokenManager
 import javax.inject.Singleton
+
+private const val TAG = "NetworkModule"
+
+/** Minimal response shape for refresh — nullable data to handle errors. */
+@Serializable
+private data class RefreshResponse(
+    val data: RefreshData? = null,
+    val statusCode: Int? = null,
+    val message: String? = null,
+)
+
+@Serializable
+private data class RefreshData(
+    val accessToken: String,
+    val refreshToken: String,
+)
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -60,7 +78,7 @@ object NetworkModule {
             install(ContentNegotiation) { json(json) }
 
             install(Logging) {
-                level = if (BuildConfig.DEBUG) LogLevel.BODY else LogLevel.NONE
+                level = if (BuildConfig.DEBUG) LogLevel.HEADERS else LogLevel.NONE
             }
 
             install(Auth) {
@@ -73,28 +91,62 @@ object NetworkModule {
                         } else null
                     }
                     refreshTokens {
-                        val refresh = oldTokens?.refreshToken ?: return@refreshTokens null
+                        Log.d(TAG, "Token refresh triggered")
+                        val refresh = tokenManager.refreshToken
+                            ?: oldTokens?.refreshToken
+                            ?: return@refreshTokens null.also { Log.w(TAG, "No refresh token available") }
+
                         try {
-                            val response = client.post("/api/v1/credential/auth/refresh") {
-                                markAsRefreshTokenRequest()
+                            // Use a SEPARATE bare client to avoid recursive 401 loop
+                            val env = ServerEnvironment.fromName(tokenManager.serverEnvironment)
+                            val bareClient = io.ktor.client.HttpClient(Android) {
+                                install(ContentNegotiation) { json(provideJson()) }
+                                engine {
+                                    connectTimeout = 15_000
+                                    socketTimeout = 15_000
+                                    sslManager = { conn ->
+                                        if (env.isInternalIp) {
+                                            conn.hostnameVerifier = javax.net.ssl.HostnameVerifier { _, _ -> true }
+                                        }
+                                    }
+                                }
+                            }
+
+                            val response = bareClient.post("${env.baseUrl}/api/v1/credential/auth/refresh") {
                                 contentType(io.ktor.http.ContentType.Application.Json)
                                 setBody(mapOf("refreshToken" to refresh))
                             }
-                            val body = response.body<org.auibar.aris.mobile.data.remote.dto.ApiResponse<org.auibar.aris.mobile.data.remote.dto.LoginResponse>>()
-                            val newAccess = body.data.accessToken
-                            val newRefresh = body.data.refreshToken
-                            tokenManager.accessToken = newAccess
-                            tokenManager.refreshToken = newRefresh
-                            BearerTokens(newAccess, newRefresh)
+                            bareClient.close()
+
+                            if (response.status.value !in 200..299) {
+                                Log.w(TAG, "Refresh returned ${response.status.value}")
+                                tokenManager.accessToken = null
+                                tokenManager.refreshToken = null
+                                return@refreshTokens null
+                            }
+
+                            val body: RefreshResponse = response.body()
+                            val data = body.data
+                            if (data == null) {
+                                Log.w(TAG, "Refresh no data: ${body.message}")
+                                return@refreshTokens null
+                            }
+
+                            tokenManager.accessToken = data.accessToken
+                            tokenManager.refreshToken = data.refreshToken
+                            Log.d(TAG, "Token refreshed OK")
+                            BearerTokens(data.accessToken, data.refreshToken)
                         } catch (e: Exception) {
-                            android.util.Log.e("NetworkModule", "Token refresh failed", e)
+                            Log.e(TAG, "Token refresh error: ${e.message}")
                             null
                         }
                     }
+                    // Send auth on ALL requests (not just those with WWW-Authenticate)
+                    sendWithoutRequest { true }
                 }
             }
 
-            // Dynamic base URL — reads current environment on every request
+            // Dynamic base URL
             defaultRequest {
                 val env = ServerEnvironment.fromName(tokenManager.serverEnvironment)
                 url(env.baseUrl)
@@ -103,7 +155,6 @@ object NetworkModule {
             engine {
                 connectTimeout = 30_000
                 socketTimeout = 30_000
-                // Bypass hostname verification for internal IPs (cert is issued for au-aris.org)
                 sslManager = { httpsURLConnection ->
                     val env = ServerEnvironment.fromName(tokenManager.serverEnvironment)
                     if (env.isInternalIp) {
