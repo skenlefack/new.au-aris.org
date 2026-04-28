@@ -25,8 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -59,7 +57,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.auibar.aris.mobile.R
-import org.auibar.aris.mobile.data.remote.dto.FormTemplateSummaryDto
 import org.auibar.aris.mobile.data.repository.Campaign
 import org.auibar.aris.mobile.ui.components.DomainIcon
 import org.auibar.aris.mobile.ui.components.arisDomains
@@ -273,21 +270,6 @@ fun DomainDashboardScreen(
                 }
             }
 
-            // ═══ SECTION 4: FORM CATALOG ═══
-            if (uiState.formTemplates.isNotEmpty()) {
-                item {
-                    Spacer(Modifier.height(20.dp))
-                    SectionHeader(stringResource(R.string.form_catalog))
-                }
-                item {
-                    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        uiState.formTemplates.forEach { template ->
-                            FormTemplateRow(template = template, domainColor = domainColor, onFill = { onFillTemplate(template.id) })
-                        }
-                    }
-                }
-            }
-
             if (uiState.error != null) {
                 item { Text(uiState.error!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
             }
@@ -417,26 +399,3 @@ private fun StatusChip(status: String, domainColor: Color) {
     }
 }
 
-// ── Form Template Row ──────────────────────────────────────
-@Composable
-private fun FormTemplateRow(template: FormTemplateSummaryDto, domainColor: Color, onFill: () -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
-        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(36.dp).clip(CircleShape).background(domainColor.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Description, contentDescription = null, tint = domainColor, modifier = Modifier.size(20.dp))
-            }
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(template.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("v${template.version}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Card(Modifier.clickable(onClick = onFill), shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = domainColor)) {
-                Row(Modifier.padding(horizontal = 10.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Edit, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.fill), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = Color.White)
-                }
-            }
-        }
-    }
-}
