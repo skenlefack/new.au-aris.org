@@ -21,21 +21,9 @@ import {
   X,
   Check,
   AlertTriangle,
-  Settings2,
+  Circle,
 } from 'lucide-react';
-import type { DomainSectionConfig } from '@/lib/hooks/use-domain-config';
-
-const DEFAULT_SECTIONS: DomainSectionConfig = {
-  kpis: true,
-  chart: true,
-  map: true,
-  statistics: true,
-  curve: true,
-  quickLinks: true,
-  campaigns: true,
-  alertForm: true,
-  table: true,
-};
+import { IconPicker, ICON_MAP } from '@/components/ui/IconPicker';
 
 interface DomainForm {
   code: string;
@@ -45,7 +33,6 @@ interface DomainForm {
   color: string;
   isActive: boolean;
   sortOrder: number;
-  modules: { sections: DomainSectionConfig };
 }
 
 const EMPTY_FORM: DomainForm = {
@@ -56,7 +43,6 @@ const EMPTY_FORM: DomainForm = {
   color: '#003399',
   isActive: true,
   sortOrder: 0,
-  modules: { sections: { ...DEFAULT_SECTIONS } },
 };
 
 export default function DomainsPage() {
@@ -92,9 +78,6 @@ export default function DomainsPage() {
       color: domain.color ?? '#003399',
       isActive: domain.isActive ?? true,
       sortOrder: domain.sortOrder ?? 0,
-      modules: {
-        sections: { ...DEFAULT_SECTIONS, ...domain.metadata?.modules?.sections },
-      },
     });
   };
 
@@ -113,14 +96,12 @@ export default function DomainsPage() {
       color: form.color,
       isActive: form.isActive,
       sortOrder: form.sortOrder,
-      metadata: { modules: form.modules },
     });
     cancelForm();
   };
 
   const handleUpdate = async () => {
     if (!editingId) return;
-    const domain = domains.find((d: any) => d.id === editingId);
     await updateMutation.mutateAsync({
       id: editingId,
       name: form.name,
@@ -129,7 +110,6 @@ export default function DomainsPage() {
       color: form.color,
       isActive: form.isActive,
       sortOrder: form.sortOrder,
-      metadata: { ...domain?.metadata, modules: form.modules },
     });
     cancelForm();
   };
@@ -228,7 +208,7 @@ export default function DomainsPage() {
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
                 style={{ backgroundColor: `${domain.color}14`, color: domain.color }}
               >
-                <span className="text-sm font-bold">{domain.icon?.slice(0, 2) ?? '?'}</span>
+                {React.createElement(ICON_MAP[domain.icon] ?? Circle, { className: 'h-5 w-5' })}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -381,17 +361,27 @@ function DomainFormPanel({
           </div>
         )}
 
-        {/* Icon name */}
+        {/* Icon picker */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             {t('iconLucide')}
           </label>
-          <input
-            type="text"
+          <button
+            type="button"
+            onClick={() => setForm((f) => ({ ...f, _iconPickerOpen: true } as any))}
+            className="flex w-full items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800"
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-md" style={{ backgroundColor: `${form.color}14`, color: form.color }}>
+              {React.createElement(ICON_MAP[form.icon] ?? Circle, { className: 'h-5 w-5' })}
+            </div>
+            <span className="text-gray-700 dark:text-gray-300">{form.icon}</span>
+            <span className="ml-auto text-xs text-gray-400">Change</span>
+          </button>
+          <IconPicker
+            open={(form as any)._iconPickerOpen ?? false}
             value={form.icon}
-            onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}
-            placeholder={t('domainIconPlaceholder')}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            onSelect={(name) => setForm((f) => ({ ...f, icon: name, _iconPickerOpen: false } as any))}
+            onClose={() => setForm((f) => ({ ...f, _iconPickerOpen: false } as any))}
           />
         </div>
 
@@ -459,73 +449,6 @@ function DomainFormPanel({
         />
       </div>
 
-      {/* Module Configuration */}
-      <div className="mt-5 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-        <div className="mb-3 flex items-center gap-2">
-          <Settings2 className="h-4 w-4 text-indigo-500" />
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-            {t('landingPageSections')}
-          </h4>
-        </div>
-        <p className="mb-3 text-xs text-gray-400">
-          {t('toggleSectionsDesc')}
-        </p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {(
-            [
-              ['kpis', t('kpiCards')],
-              ['chart', t('chart')],
-              ['map', t('map')],
-              ['statistics', t('statistics')],
-              ['curve', t('curve')],
-              ['quickLinks', t('quickLinks')],
-              ['campaigns', t('campaigns')],
-              ['alertForm', t('alertForm')],
-              ['table', t('dataTable')],
-            ] as [keyof DomainSectionConfig, string][]
-          ).map(([key, label]) => (
-            <label
-              key={key}
-              className="flex items-center gap-2.5 rounded-lg border border-gray-100 px-3 py-2 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/40"
-            >
-              <button
-                type="button"
-                role="switch"
-                aria-checked={form.modules.sections[key]}
-                onClick={() =>
-                  setForm((f) => ({
-                    ...f,
-                    modules: {
-                      ...f.modules,
-                      sections: {
-                        ...f.modules.sections,
-                        [key]: !f.modules.sections[key],
-                      },
-                    },
-                  }))
-                }
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                  form.modules.sections[key]
-                    ? 'bg-indigo-600'
-                    : 'bg-gray-300 dark:bg-gray-600'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                    form.modules.sections[key]
-                      ? 'translate-x-4'
-                      : 'translate-x-0'
-                  }`}
-                />
-              </button>
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                {label}
-              </span>
-            </label>
-          ))}
-        </div>
-      </div>
-
       {/* Preview */}
       <div className="mt-4 rounded-lg border border-dashed border-gray-200 bg-gray-50/50 p-3 dark:border-gray-700 dark:bg-gray-800/30">
         <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
@@ -533,10 +456,10 @@ function DomainFormPanel({
         </p>
         <div className="flex items-center gap-3">
           <div
-            className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-white"
             style={{ backgroundColor: form.color }}
           >
-            {form.icon?.slice(0, 2) ?? '?'}
+            {React.createElement(ICON_MAP[form.icon] ?? Circle, { className: 'h-4.5 w-4.5' })}
           </div>
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">
