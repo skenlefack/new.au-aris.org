@@ -124,25 +124,25 @@ export function SubDomainsGrid({ domainCode }: SubDomainsGridProps) {
 
               {/* Stats */}
               <div className="mt-3 grid grid-cols-3 gap-1.5">
-                <div className="flex items-center gap-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 px-2 py-1.5">
-                  <ClipboardList className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400 shrink-0" />
-                  <div className="min-w-0">
-                    <span className="text-xs font-bold text-blue-700 dark:text-blue-300">{sdStats.campaigns}</span>
-                    <span className="ml-1 text-[10px] text-blue-500 dark:text-blue-400">Campagnes</span>
+                <div className="flex flex-col items-center rounded-md bg-blue-50 dark:bg-blue-900/20 px-1 py-1.5">
+                  <span className="text-sm font-bold text-blue-700 dark:text-blue-300">{sdStats.campaigns}</span>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <ClipboardList className="h-3 w-3 text-blue-500 dark:text-blue-400" />
+                    <span className="text-[10px] text-blue-500 dark:text-blue-400">Campagnes</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-md bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1.5">
-                  <FileText className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
-                  <div className="min-w-0">
-                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">{sdStats.forms}</span>
-                    <span className="ml-1 text-[10px] text-emerald-500 dark:text-emerald-400">Formulaires</span>
+                <div className="flex flex-col items-center rounded-md bg-emerald-50 dark:bg-emerald-900/20 px-1 py-1.5">
+                  <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">{sdStats.forms}</span>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <FileText className="h-3 w-3 text-emerald-500 dark:text-emerald-400" />
+                    <span className="text-[10px] text-emerald-500 dark:text-emerald-400">Formulaires</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-md bg-amber-50 dark:bg-amber-900/20 px-2 py-1.5">
-                  <Database className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
-                  <div className="min-w-0">
-                    <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{sdStats.submissions}</span>
-                    <span className="ml-1 text-[10px] text-amber-500 dark:text-amber-400">Donnees</span>
+                <div className="flex flex-col items-center rounded-md bg-amber-50 dark:bg-amber-900/20 px-1 py-1.5">
+                  <span className="text-sm font-bold text-amber-700 dark:text-amber-300">{sdStats.submissions}</span>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Database className="h-3 w-3 text-amber-500 dark:text-amber-400" />
+                    <span className="text-[10px] text-amber-500 dark:text-amber-400">Donnees</span>
                   </div>
                 </div>
               </div>
