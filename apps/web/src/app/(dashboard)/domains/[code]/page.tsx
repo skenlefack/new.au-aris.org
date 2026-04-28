@@ -114,11 +114,11 @@ export default function DomainPage() {
         domainCode={code}
       />
 
-      {/* SECTION 2: Planifications */}
-      <PlanningsSection target={{ domainCode: code }} />
-
-      {/* SECTION 3: Sous-domaines */}
+      {/* SECTION 2: Sous-domaines */}
       <SubDomainsGrid domainCode={code} />
+
+      {/* SECTION 3: Planifications */}
+      <PlanningsSection target={{ domainCode: code }} />
     </div>
   );
 }
