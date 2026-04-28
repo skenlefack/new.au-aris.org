@@ -47,8 +47,9 @@ class DomainDashboardViewModel @Inject constructor(
 
     val config: DomainDashboardConfig = DomainDashboards.configFor(domainKey)
 
-    val campaigns: StateFlow<List<Campaign>> = campaignRepository
-        .getActiveCampaignsByDomain(domainKey)
+    /** All campaigns for this domain (all statuses for tab filtering). */
+    val allCampaigns: StateFlow<List<Campaign>> = campaignRepository
+        .getAllCampaignsByDomain(domainKey)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _dashboardWidgets = MutableStateFlow<List<DashboardWidgetEntity>>(emptyList())

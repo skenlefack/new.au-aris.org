@@ -42,11 +42,18 @@ data class DomainQuickLink(
     val action: String, // campaigns, submissions, map, reports, form
 )
 
+data class SubDomain(
+    val code: String,
+    val label: String,
+    val icon: ImageVector,
+)
+
 data class DomainDashboardConfig(
     val subtitle: String,
     val kpis: List<DomainKpi>,
     val quickLinks: List<DomainQuickLink>,
     val alertTypes: List<String> = emptyList(),
+    val subDomains: List<SubDomain> = emptyList(),
 )
 
 object DomainDashboards {
@@ -67,6 +74,13 @@ object DomainDashboards {
                 DomainQuickLink("Reports", Icons.Default.Assessment, "reports"),
             ),
             alertTypes = listOf("Disease outbreak", "AMR detection", "Zoonotic event", "Lab alert"),
+            subDomains = listOf(
+                SubDomain("surveillance", "Surveillance", Icons.Default.Biotech),
+                SubDomain("outbreaks", "Outbreaks", Icons.Default.Warning),
+                SubDomain("laboratory", "Laboratory", Icons.Default.Science),
+                SubDomain("vaccination", "Vaccination", Icons.Default.Vaccines),
+                SubDomain("amr", "AMR", Icons.Default.BugReport),
+            ),
         )
 
         "livestock" -> DomainDashboardConfig(
@@ -84,6 +98,12 @@ object DomainDashboards {
                 DomainQuickLink("Reports", Icons.Default.Assessment, "reports"),
             ),
             alertTypes = listOf("Census update", "Corridor alert", "Production anomaly"),
+            subDomains = listOf(
+                SubDomain("census", "Census", Icons.Default.Pets),
+                SubDomain("production", "Production", Icons.Default.Agriculture),
+                SubDomain("slaughter", "Slaughter", Icons.Default.Inventory),
+                SubDomain("transhumance", "Transhumance", Icons.Default.LocalShipping),
+            ),
         )
 
         "fisheries" -> DomainDashboardConfig(
@@ -101,6 +121,12 @@ object DomainDashboards {
                 DomainQuickLink("Reports", Icons.Default.Assessment, "reports"),
             ),
             alertTypes = listOf("IUU fishing", "Stock depletion", "Aquatic disease"),
+            subDomains = listOf(
+                SubDomain("captures", "Captures", Icons.Default.SetMeal),
+                SubDomain("fleet", "Fleet & Vessels", Icons.Default.DirectionsBoat),
+                SubDomain("aquaculture", "Aquaculture", Icons.Default.Agriculture),
+                SubDomain("aquatic_health", "Aquatic Health", Icons.Default.HealthAndSafety),
+            ),
         )
 
         "trade" -> DomainDashboardConfig(
@@ -118,6 +144,11 @@ object DomainDashboards {
                 DomainQuickLink("Reports", Icons.Default.Assessment, "reports"),
             ),
             alertTypes = listOf("SPS non-compliance", "Border delay", "Price anomaly"),
+            subDomains = listOf(
+                SubDomain("trade_flows", "Trade Flows", Icons.Default.LocalShipping),
+                SubDomain("sps", "SPS Certification", Icons.Default.Security),
+                SubDomain("markets", "Markets", Icons.Default.Inventory),
+            ),
         )
 
         "wildlife" -> DomainDashboardConfig(
@@ -169,6 +200,12 @@ object DomainDashboards {
                 DomainQuickLink("Reports", Icons.Default.Assessment, "reports"),
             ),
             alertTypes = listOf("Regulatory gap", "Capacity need", "Vet evaluation follow-up"),
+            subDomains = listOf(
+                SubDomain("legal", "Legal Frameworks", Icons.Default.Gavel),
+                SubDomain("vet_services", "Vet Services", Icons.Default.HealthAndSafety),
+                SubDomain("capacity", "Capacity Building", Icons.Default.School),
+                SubDomain("stakeholders", "Stakeholders", Icons.Default.Groups),
+            ),
         )
 
         "climate" -> DomainDashboardConfig(

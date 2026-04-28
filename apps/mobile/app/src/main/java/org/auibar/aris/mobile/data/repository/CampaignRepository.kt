@@ -117,6 +117,13 @@ class CampaignRepository @Inject constructor(
         }
     }
 
+    /** All campaigns for a domain (all statuses). */
+    fun getAllCampaignsByDomain(domain: String): Flow<List<Campaign>> {
+        return campaignDao.getAllCampaignsByDomain(domain).map { entities ->
+            entities.map { it.toDomain(emptyList()) }
+        }
+    }
+
     fun getActiveCampaignsByDomain(domain: String): Flow<List<Campaign>> {
         return campaignDao.getActiveCampaignsByDomain(domain).map { entities ->
             entities.map { it.toDomain(emptyList()) }
