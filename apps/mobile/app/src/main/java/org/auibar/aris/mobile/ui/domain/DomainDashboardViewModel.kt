@@ -9,21 +9,24 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.auibar.aris.mobile.data.local.dao.DashboardWidgetDao
+import org.auibar.aris.mobile.data.local.dao.CampaignDao
+import org.auibar.aris.mobile.data.local.entity.CampaignEntity
 import org.auibar.aris.mobile.data.local.entity.DashboardWidgetEntity
-import org.auibar.aris.mobile.data.remote.api.CampaignApi
+import org.auibar.aris.mobile.data.remote.dto.CampaignDto
 import org.auibar.aris.mobile.data.remote.dto.FormTemplateSummaryDto
 import org.auibar.aris.mobile.data.remote.dto.SafeApiResponse
 import org.auibar.aris.mobile.data.remote.dto.SubDomainDto
 import org.auibar.aris.mobile.data.repository.Campaign
 import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.DashboardMobileRepository
+import org.auibar.aris.mobile.data.repository.toEntity
 import org.auibar.aris.mobile.ui.components.RoleConfig
 import javax.inject.Inject
 
@@ -54,9 +57,8 @@ data class DomainDashboardUiState(
 class DomainDashboardViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val campaignRepository: CampaignRepository,
-    private val campaignApi: CampaignApi,
+    private val campaignDao: CampaignDao,
     private val dashboardRepository: DashboardMobileRepository,
-    private val dashboardWidgetDao: DashboardWidgetDao,
     private val httpClient: HttpClient,
 ) : ViewModel() {
 
@@ -65,6 +67,7 @@ class DomainDashboardViewModel @Inject constructor(
 
     val config: DomainDashboardConfig = DomainDashboards.configFor(domainKey)
 
+    /** All campaigns for this domain from local Room DB (all statuses). */
     val allCampaigns: StateFlow<List<Campaign>> = campaignRepository
         .getAllCampaignsByDomain(domainKey)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -79,19 +82,15 @@ class DomainDashboardViewModel @Inject constructor(
         loadAll()
     }
 
-    fun refresh() {
-        loadAll()
-    }
+    fun refresh() { loadAll() }
 
     private fun loadAll() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, isDashboardLoading = true, error = null)
-
             loadDashboard()
             loadSubDomains()
-            loadCampaigns()
+            loadCampaignsFromApi()
             loadFormTemplates()
-
             _uiState.value = _uiState.value.copy(isLoading = false)
         }
     }
@@ -108,72 +107,98 @@ class DomainDashboardViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(defaultDashboardId = domainDashboard.id)
                 val result = dashboardRepository.renderAndCache(domainDashboard.id)
                 if (result.isSuccess) {
-                    _dashboardWidgets.value = (result.getOrNull() ?: emptyList()).sortedWith(compareBy({ it.gridY }, { it.gridX }))
+                    _dashboardWidgets.value = (result.getOrNull() ?: emptyList())
+                        .sortedWith(compareBy({ it.gridY }, { it.gridX }))
                 }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to load dashboard: ${e.message}")
+            Log.w(TAG, "Dashboard load failed: ${e.message}")
         }
         _uiState.value = _uiState.value.copy(isDashboardLoading = false)
     }
 
     private suspend fun loadSubDomains() {
         try {
-            val response: SafeApiResponse<List<SubDomainDto>> =
-                httpClient.get("/api/v1/credential/domains/$backendDomain/sub-domains").body()
-            val dtos = response.data ?: emptyList()
-            val subDomainUis = dtos.filter { it.active }.sortedBy { it.displayOrder }.map { dto ->
-                SubDomainUi(
-                    id = dto.id,
-                    code = dto.code,
-                    labelEn = dto.labelEn.ifBlank { dto.code },
-                    labelFr = dto.labelFr.ifBlank { dto.labelEn.ifBlank { dto.code } },
-                )
+            val response = httpClient.get("/api/v1/credential/domains/$backendDomain/sub-domains")
+            val statusCode = response.status.value
+            if (statusCode !in 200..299) {
+                Log.w(TAG, "Sub-domains API returned $statusCode for $backendDomain")
+                return
             }
+            val body: SafeApiResponse<List<SubDomainDto>> = response.body()
+            val dtos = body.data ?: emptyList()
+            val subDomainUis = dtos
+                .filter { it.active }
+                .sortedBy { it.displayOrder }
+                .map { dto ->
+                    SubDomainUi(
+                        id = dto.id,
+                        code = dto.code,
+                        labelEn = dto.labelEn.ifBlank { dto.code },
+                        labelFr = dto.labelFr.ifBlank { dto.labelEn.ifBlank { dto.code } },
+                    )
+                }
             _uiState.value = _uiState.value.copy(subDomains = subDomainUis)
+            Log.d(TAG, "Loaded ${subDomainUis.size} sub-domains for $backendDomain")
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to load sub-domains: ${e.message}")
-            // Sub-domains are optional — no error shown
+            Log.w(TAG, "Sub-domains failed for $backendDomain: ${e.message}")
         }
     }
 
-    private suspend fun loadCampaigns() {
+    /**
+     * Fetch ALL campaigns for this domain from API and save to Room.
+     * This ensures Room has ACTIVE + PLANNED + COMPLETED + CANCELLED.
+     */
+    private suspend fun loadCampaignsFromApi() {
         try {
-            val response: SafeApiResponse<List<org.auibar.aris.mobile.data.remote.dto.CampaignDto>> =
-                httpClient.get("/api/v1/collecte/campaigns") {
-                    parameter("domain", backendDomain)
-                    parameter("limit", 100)
-                }.body()
-            val allCampaigns = response.data ?: emptyList()
-            val active = allCampaigns.filter { it.status == "ACTIVE" }
-            val totalSubs = allCampaigns.sumOf { it.targetSubmissions ?: 0 }
-            val target = totalSubs.coerceAtLeast(1)
-            val completionPct = if (target > 0) ((totalSubs.toDouble() / target) * 100).toInt().coerceIn(0, 100) else 0
+            val response = httpClient.get("/api/v1/collecte/campaigns") {
+                parameter("domain", backendDomain)
+                parameter("limit", 200)
+            }
+            if (response.status.value !in 200..299) {
+                val text = response.bodyAsText().take(200)
+                Log.w(TAG, "Campaigns API returned ${response.status.value}: $text")
+                _uiState.value = _uiState.value.copy(error = "Campaigns: HTTP ${response.status.value}")
+                return
+            }
+            val body: SafeApiResponse<List<CampaignDto>> = response.body()
+            val campaignDtos = body.data ?: emptyList()
 
+            // Save ALL campaigns to Room (not just active)
+            val now = System.currentTimeMillis()
+            val entities = campaignDtos.map { it.toEntity(now) }
+            if (entities.isNotEmpty()) {
+                campaignDao.upsertAll(entities)
+            }
+
+            // Update KPI stats
+            val active = campaignDtos.filter { it.status == "ACTIVE" }
+            val totalSubs = campaignDtos.sumOf { it.targetSubmissions ?: 0 }
             _uiState.value = _uiState.value.copy(
                 activeCampaigns = active.size,
                 totalSubmissions = totalSubs,
-                completionRate = completionPct,
-                totalCampaigns = allCampaigns.size,
+                completionRate = if (totalSubs > 0) 100 else 0,
+                totalCampaigns = campaignDtos.size,
             )
-            campaignRepository.refreshCampaigns()
+            Log.d(TAG, "Loaded ${campaignDtos.size} campaigns for $backendDomain (${active.size} active)")
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to load campaigns: ${e.message}")
+            Log.w(TAG, "Campaigns failed: ${e.message}")
             _uiState.value = _uiState.value.copy(error = e.message)
         }
     }
 
     private suspend fun loadFormTemplates() {
         try {
-            val response: SafeApiResponse<List<FormTemplateSummaryDto>> =
-                httpClient.get("/api/v1/form-builder/templates") {
-                    parameter("domain", backendDomain)
-                    parameter("status", "PUBLISHED")
-                    parameter("limit", 20)
-                }.body()
-            _uiState.value = _uiState.value.copy(formTemplates = response.data ?: emptyList())
+            val response = httpClient.get("/api/v1/form-builder/templates") {
+                parameter("domain", backendDomain)
+                parameter("status", "PUBLISHED")
+                parameter("limit", 20)
+            }
+            if (response.status.value !in 200..299) return
+            val body: SafeApiResponse<List<FormTemplateSummaryDto>> = response.body()
+            _uiState.value = _uiState.value.copy(formTemplates = body.data ?: emptyList())
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to load form templates: ${e.message}")
+            Log.w(TAG, "Form templates failed: ${e.message}")
         }
     }
 
