@@ -2,41 +2,76 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ChevronRight, FileText, ClipboardList, Database } from 'lucide-react';
 import { useSubDomains } from '@/hooks/use-sub-domains';
-import type { SubDomainType } from '@/lib/stores/domain-store';
+import { useQuery } from '@tanstack/react-query';
+import { collecteClient } from '@/lib/api/client';
 
 interface SubDomainsGridProps {
   domainCode: string;
 }
 
-const TYPE_BADGES: Record<SubDomainType, { label: string; classes: string }> = {
-  VALUE_CHAIN: {
-    label: 'Chaine de valeur',
-    classes: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  },
-  ORGANIZATIONAL: {
-    label: 'Organisationnel',
-    classes: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  },
-  PATHOLOGY: {
-    label: 'Pathologie',
-    classes: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  },
-  OTHER: {
-    label: 'Autre',
-    classes: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
-  },
-};
+/** Fetch lightweight stats for all sub-domains of a domain in one call */
+function useSubDomainStats(domainCode: string) {
+  return useQuery<Record<string, { campaigns: number; forms: number; submissions: number }>>({
+    queryKey: ['sub-domain-stats', domainCode],
+    queryFn: async () => {
+      // Fetch campaigns and forms for this domain — lightweight calls
+      const [campaignsRes, formsRes] = await Promise.allSettled([
+        collecteClient.get<any>('/api/v1/collecte/campaigns', { domain: domainCode, limit: '200' }),
+        collecteClient.get<any>('/api/v1/form-builder/templates', { domain: domainCode, limit: '200', status: 'PUBLISHED' }),
+      ]);
 
-/**
- * Grid of sub-domain cards for a given domain.
- * Uses useSubDomains(domainCode) from the Zustand store (RBAC-filtered).
- * Returns null if no sub-domains are available.
- */
+      const campaigns = campaignsRes.status === 'fulfilled' ? (campaignsRes.value?.data ?? []) : [];
+      const forms = formsRes.status === 'fulfilled' ? (formsRes.value?.data ?? []) : [];
+
+      // Group by sub-domain target
+      const stats: Record<string, { campaigns: number; forms: number; submissions: number }> = {};
+
+      for (const c of campaigns) {
+        const targets = c.targets ?? [];
+        for (const t of targets) {
+          const sub = t.sub_domain_code ?? t.subDomainCode;
+          if (sub) {
+            if (!stats[sub]) stats[sub] = { campaigns: 0, forms: 0, submissions: 0 };
+            stats[sub].campaigns++;
+            stats[sub].submissions += Number(c.submission_count ?? c.submissionCount ?? 0);
+          }
+        }
+        // Also count by legacy domain field
+        if (!targets.length && c.domain === domainCode) {
+          const key = '__all__';
+          if (!stats[key]) stats[key] = { campaigns: 0, forms: 0, submissions: 0 };
+          stats[key].campaigns++;
+          stats[key].submissions += Number(c.submission_count ?? c.submissionCount ?? 0);
+        }
+      }
+
+      for (const f of forms) {
+        const targets = f.targets ?? [];
+        for (const t of targets) {
+          const sub = t.sub_domain_code ?? t.subDomainCode;
+          if (sub) {
+            if (!stats[sub]) stats[sub] = { campaigns: 0, forms: 0, submissions: 0 };
+            stats[sub].forms++;
+          }
+        }
+        if (!targets.length) {
+          const key = '__all__';
+          if (!stats[key]) stats[key] = { campaigns: 0, forms: 0, submissions: 0 };
+          stats[key].forms++;
+        }
+      }
+
+      return stats;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function SubDomainsGrid({ domainCode }: SubDomainsGridProps) {
   const subDomains = useSubDomains(domainCode);
+  const { data: stats } = useSubDomainStats(domainCode);
 
   if (!subDomains || subDomains.length === 0) {
     return null;
@@ -62,7 +97,7 @@ export function SubDomainsGrid({ domainCode }: SubDomainsGridProps) {
       {/* Grid */}
       <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {subDomains.map((sd) => {
-          const typeBadge = TYPE_BADGES[sd.typeEnum] ?? TYPE_BADGES.OTHER;
+          const sdStats = stats?.[sd.code] ?? stats?.['__all__'] ?? { campaigns: 0, forms: 0, submissions: 0 };
 
           return (
             <Link
@@ -70,19 +105,8 @@ export function SubDomainsGrid({ domainCode }: SubDomainsGridProps) {
               href={`/domains/${domainCode}/${sd.code}`}
               className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
             >
-              {/* Type accent line */}
-              <div
-                className={cn(
-                  'absolute inset-x-0 top-0 h-0.5',
-                  sd.typeEnum === 'VALUE_CHAIN'
-                    ? 'bg-emerald-500'
-                    : sd.typeEnum === 'ORGANIZATIONAL'
-                      ? 'bg-blue-500'
-                      : sd.typeEnum === 'PATHOLOGY'
-                        ? 'bg-red-500'
-                        : 'bg-gray-400',
-                )}
-              />
+              {/* Accent line */}
+              <div className="absolute inset-x-0 top-0 h-0.5 bg-[#1F4E79]" />
 
               <div className="flex items-start justify-between">
                 <div className="min-w-0 flex-1">
@@ -98,23 +122,20 @@ export function SubDomainsGrid({ domainCode }: SubDomainsGridProps) {
                 <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-[#1F4E79] dark:text-gray-600" />
               </div>
 
-              <div className="mt-3 flex items-center gap-2">
-                {/* Type badge */}
-                <span
-                  className={cn(
-                    'rounded-full px-2 py-0.5 text-[10px] font-semibold',
-                    typeBadge.classes,
-                  )}
-                >
-                  {typeBadge.label}
+              {/* Stats */}
+              <div className="mt-3 flex items-center gap-3 text-[10px] text-gray-500 dark:text-gray-400">
+                <span className="flex items-center gap-1" title="Campaigns">
+                  <ClipboardList className="h-3 w-3" />
+                  {sdStats.campaigns}
                 </span>
-
-                {/* Value chain code badge */}
-                {sd.valueChainCode && (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                    {sd.valueChainCode}
-                  </span>
-                )}
+                <span className="flex items-center gap-1" title="Forms">
+                  <FileText className="h-3 w-3" />
+                  {sdStats.forms}
+                </span>
+                <span className="flex items-center gap-1" title="Records">
+                  <Database className="h-3 w-3" />
+                  {sdStats.submissions}
+                </span>
               </div>
             </Link>
           );
