@@ -123,19 +123,22 @@ export function SubDomainsGrid({ domainCode }: SubDomainsGridProps) {
               </div>
 
               {/* Stats */}
-              <div className="mt-3 flex items-center gap-3 text-[10px] text-gray-500 dark:text-gray-400">
-                <span className="flex items-center gap-1" title="Campaigns">
-                  <ClipboardList className="h-3 w-3" />
-                  {sdStats.campaigns}
-                </span>
-                <span className="flex items-center gap-1" title="Forms">
-                  <FileText className="h-3 w-3" />
-                  {sdStats.forms}
-                </span>
-                <span className="flex items-center gap-1" title="Records">
-                  <Database className="h-3 w-3" />
-                  {sdStats.submissions}
-                </span>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <div className="flex flex-col items-center rounded-lg bg-blue-50 dark:bg-blue-900/20 py-2 px-1">
+                  <ClipboardList className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <span className="mt-1 text-sm font-bold text-blue-700 dark:text-blue-300">{sdStats.campaigns}</span>
+                  <span className="text-[9px] text-blue-500 dark:text-blue-400">Campagnes</span>
+                </div>
+                <div className="flex flex-col items-center rounded-lg bg-emerald-50 dark:bg-emerald-900/20 py-2 px-1">
+                  <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="mt-1 text-sm font-bold text-emerald-700 dark:text-emerald-300">{sdStats.forms}</span>
+                  <span className="text-[9px] text-emerald-500 dark:text-emerald-400">Formulaires</span>
+                </div>
+                <div className="flex flex-col items-center rounded-lg bg-amber-50 dark:bg-amber-900/20 py-2 px-1">
+                  <Database className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <span className="mt-1 text-sm font-bold text-amber-700 dark:text-amber-300">{sdStats.submissions}</span>
+                  <span className="text-[9px] text-amber-500 dark:text-amber-400">Collectes</span>
+                </div>
               </div>
             </Link>
           );
