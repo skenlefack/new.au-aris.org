@@ -317,7 +317,7 @@ export function useDefaultDashboard(scope: string, target: string) {
     queryKey: KEYS.default(scope, target),
     queryFn: () =>
       analyticsClient.get<{ data: Dashboard }>(
-        '/analytics/dashboards/default',
+        '/analytics/dashboards/default-for',
         { scope, target },
       ),
     enabled: !!scope && !!target,

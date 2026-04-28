@@ -82,12 +82,25 @@ export class DashboardService {
       params.push(filters.scope);
     }
     if (filters.domainCode) {
-      conditions.push(`d.domain_id = $${idx++}`);
-      params.push(filters.domainCode);
+      // domainCode may be a UUID or a domain code string — support both
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filters.domainCode);
+      if (isUuid) {
+        conditions.push(`d.domain_id = $${idx++}`);
+        params.push(filters.domainCode);
+      } else {
+        conditions.push(`d.domain_id IN (SELECT id FROM governance.domains WHERE code = $${idx++})`);
+        params.push(filters.domainCode);
+      }
     }
     if (filters.subDomainCode) {
-      conditions.push(`d.sub_domain_id = $${idx++}`);
-      params.push(filters.subDomainCode);
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filters.subDomainCode);
+      if (isUuid) {
+        conditions.push(`d.sub_domain_id = $${idx++}`);
+        params.push(filters.subDomainCode);
+      } else {
+        conditions.push(`d.sub_domain_id IN (SELECT id FROM governance.sub_domains WHERE code = $${idx++})`);
+        params.push(filters.subDomainCode);
+      }
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
