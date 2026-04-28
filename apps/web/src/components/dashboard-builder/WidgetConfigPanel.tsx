@@ -43,6 +43,12 @@ const WIDGET_TYPE_LABELS: Record<WidgetType, string> = {
   GAUGE: 'Gauge',
   TEXT_BLOCK: 'Text Block',
   ALERT_FEED: 'Alert Feed',
+  STAT_CARD: 'Statistics',
+  PROGRESS_BAR: 'Progress Bar',
+  DIVIDER: 'Divider',
+  IMAGE: 'Image',
+  IFRAME: 'Embed',
+  LIST: 'List',
 };
 
 const CHART_TYPES: WidgetType[] = ['LINE', 'BAR', 'PIE', 'STACKED_BAR', 'AREA'];

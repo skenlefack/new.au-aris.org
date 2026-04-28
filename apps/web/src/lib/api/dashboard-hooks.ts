@@ -6,11 +6,70 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { analyticsClient } from './client';
 
+// ─── Widget type mapping (backend ↔ frontend) ──────────────────────────────
+// Backend (Prisma/DB) uses LINE_CHART, BAR_CHART etc.
+// Frontend uses shorter names: LINE, BAR, etc.
+const BACKEND_TO_FRONTEND_TYPE: Record<string, WidgetType> = {
+  LINE_CHART: 'LINE',
+  BAR_CHART: 'BAR',
+  PIE_CHART: 'PIE',
+  AREA_CHART: 'AREA',
+  MAP_AFRICA: 'MAP',
+  IFRAME_BI: 'IFRAME',
+  HEATMAP: 'BAR', // fallback: render heatmaps as bar charts
+  COMPOSITE_FORMULA: 'KPI_CARD', // fallback: render composites as KPI
+  // These match 1:1 already:
+  KPI_CARD: 'KPI_CARD',
+  STACKED_BAR: 'STACKED_BAR',
+  TABLE: 'TABLE',
+  GAUGE: 'GAUGE',
+  TEXT_BLOCK: 'TEXT_BLOCK',
+  ALERT_FEED: 'ALERT_FEED',
+  PROGRESS_BAR: 'PROGRESS_BAR',
+  STAT_CARD: 'STAT_CARD',
+  DIVIDER: 'DIVIDER',
+  IMAGE: 'IMAGE',
+  LIST: 'LIST',
+};
+
+const FRONTEND_TO_BACKEND_TYPE: Record<string, string> = {
+  LINE: 'LINE_CHART',
+  BAR: 'BAR_CHART',
+  PIE: 'PIE_CHART',
+  AREA: 'AREA_CHART',
+  MAP: 'MAP_AFRICA',
+  IFRAME: 'IFRAME_BI',
+  // These match 1:1:
+  KPI_CARD: 'KPI_CARD',
+  STACKED_BAR: 'STACKED_BAR',
+  TABLE: 'TABLE',
+  GAUGE: 'GAUGE',
+  TEXT_BLOCK: 'TEXT_BLOCK',
+  ALERT_FEED: 'ALERT_FEED',
+  PROGRESS_BAR: 'PROGRESS_BAR',
+  STAT_CARD: 'STAT_CARD',
+  DIVIDER: 'DIVIDER',
+  IMAGE: 'IMAGE',
+  LIST: 'LIST',
+};
+
+function toFrontendType(backendType: string): WidgetType {
+  return BACKEND_TO_FRONTEND_TYPE[backendType] ?? (backendType as WidgetType);
+}
+
+function toBackendType(frontendType: string): string {
+  return FRONTEND_TO_BACKEND_TYPE[frontendType] ?? frontendType;
+}
+
 /** Map flat grid_x/grid_y/grid_w/grid_h from backend to layout object expected by frontend */
 function mapWidgetLayout(w: any): any {
-  if (w.layout) return w; // already mapped
+  if (w.layout) {
+    // Still map the type even if layout is already mapped
+    return w.type ? { ...w, type: toFrontendType(w.type) } : w;
+  }
   return {
     ...w,
+    type: toFrontendType(w.type ?? 'KPI_CARD'),
     title: w.title || w.title_fr || w.titleFr || '',
     sectionId: w.section_id ?? w.sectionId ?? null,
     columnIndex: w.column_index ?? w.columnIndex ?? 0,
@@ -87,7 +146,7 @@ function mapDashboardWidgets(data: any): any {
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type DashboardScope = 'CONTINENTAL' | 'REC' | 'MEMBER_STATE' | 'PERSONAL';
+export type DashboardScope = 'CONTINENTAL' | 'REC' | 'COUNTRY' | 'PERSONAL';
 export type DashboardOwnership = 'USER_OWNED' | 'SHARED' | 'SYSTEM_TEMPLATE';
 export type WidgetType =
   | 'KPI_CARD'
@@ -358,6 +417,7 @@ export function useAddWidget() {
       layout?: { x: number; y: number; w: number; h: number };
     }) => {
       const payload: Record<string, unknown> = { ...body };
+      payload.type = toBackendType(body.type);
       payload.titleFr = body.titleFr || body.title || 'Widget';
       payload.titleEn = body.titleEn || body.title || 'Widget';
       if (body.layout) {
@@ -421,7 +481,8 @@ export function useUpdateWidget() {
     mutationFn: ({
       dashboardId,
       widgetId,
-      ...body
+      title,
+      ...rest
     }: {
       dashboardId: string;
       widgetId: string;
@@ -429,11 +490,24 @@ export function useUpdateWidget() {
       config?: Record<string, unknown>;
       dataSource?: Record<string, unknown>;
       layout?: { x: number; y: number; w: number; h: number };
-    }) =>
-      analyticsClient.patch<{ data: DashboardWidget }>(
+    }) => {
+      const payload: Record<string, unknown> = { ...rest };
+      if (title !== undefined) {
+        payload.titleFr = title;
+        payload.titleEn = title;
+      }
+      if (rest.layout) {
+        payload.gridX = rest.layout.x;
+        payload.gridY = rest.layout.y;
+        payload.gridW = rest.layout.w;
+        payload.gridH = rest.layout.h;
+        delete payload.layout;
+      }
+      return analyticsClient.patch<{ data: DashboardWidget }>(
         `/analytics/dashboards/${dashboardId}/widgets/${widgetId}`,
-        body,
-      ),
+        payload,
+      );
+    },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: KEYS.detail(vars.dashboardId) });
     },
@@ -453,11 +527,21 @@ export function useBatchUpdateWidgets() {
         layout: { x: number; y: number; w: number; h: number };
         sortOrder?: number;
       }>;
-    }) =>
-      analyticsClient.patch<{ data: DashboardWidget[] }>(
+    }) => {
+      // Map frontend layout objects to backend gridX/gridY/gridW/gridH fields
+      const mapped = widgets.map((w) => ({
+        id: w.id,
+        gridX: w.layout.x,
+        gridY: w.layout.y,
+        gridW: w.layout.w,
+        gridH: w.layout.h,
+        sortOrder: w.sortOrder,
+      }));
+      return analyticsClient.patch<{ data: DashboardWidget[] }>(
         `/analytics/dashboards/${dashboardId}/widgets/batch`,
-        { widgets },
-      ),
+        { widgets: mapped },
+      );
+    },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: KEYS.detail(vars.dashboardId) });
     },

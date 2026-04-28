@@ -35,7 +35,7 @@ const TABS: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
 const SCOPE_LABELS: Record<DashboardScope, string> = {
   CONTINENTAL: 'Continental',
   REC: 'REC',
-  MEMBER_STATE: 'Member State',
+  COUNTRY: 'Country',
   PERSONAL: 'Personal',
 };
 
@@ -53,7 +53,7 @@ function DashboardCard({
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1F4E79]/10">
-              <BarChart3 className="h-4.5 w-4.5 text-[#1F4E79]" />
+              <BarChart3 className="h-5 w-5 text-[#1F4E79]" />
             </div>
             <div>
               <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 group-hover:text-[#1F4E79] transition-colors">

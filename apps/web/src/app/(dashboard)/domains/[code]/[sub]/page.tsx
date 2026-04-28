@@ -49,7 +49,7 @@ function resolveScope(role?: string, tenantLevel?: string): DashboardScope {
   if (role === 'REC_ADMIN') return 'REC';
   if (tenantLevel === 'CONTINENTAL') return 'CONTINENTAL';
   if (tenantLevel === 'REC') return 'REC';
-  return 'MEMBER_STATE';
+  return 'COUNTRY';
 }
 
 export default function SubDomainPage() {

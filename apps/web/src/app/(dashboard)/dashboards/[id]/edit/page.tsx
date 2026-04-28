@@ -73,14 +73,18 @@ export default function DashboardEditPage() {
         const targetSection = localSections[0];
         // Map AI widget types to ARIS WidgetType enum
         const typeMap: Record<string, string> = {
-          // exact matches (AI returns these directly now)
-          kpi_card: 'KPI_CARD', bar_chart: 'BAR_CHART', line_chart: 'LINE_CHART',
-          pie_chart: 'PIE_CHART', table: 'TABLE', map: 'MAP', gauge: 'GAUGE',
+          // exact matches — use frontend short names
+          kpi_card: 'KPI_CARD', bar_chart: 'BAR', line_chart: 'LINE',
+          pie_chart: 'PIE', table: 'TABLE', map: 'MAP', gauge: 'GAUGE',
+          stat_card: 'STAT_CARD', progress_bar: 'PROGRESS_BAR',
+          divider: 'DIVIDER', image: 'IMAGE', iframe: 'IFRAME', list: 'LIST',
           // legacy / short forms
-          kpi: 'KPI_CARD', stat: 'KPI_CARD', chart: 'LINE_CHART',
-          bar: 'BAR_CHART', line: 'LINE_CHART', pie: 'PIE_CHART',
-          timeseries: 'LINE_CHART', time_series: 'LINE_CHART',
-          horizontal_bar: 'BAR_CHART', area: 'LINE_CHART',
+          kpi: 'KPI_CARD', stat: 'STAT_CARD', chart: 'LINE',
+          bar: 'BAR', line: 'LINE', pie: 'PIE',
+          timeseries: 'LINE', time_series: 'LINE',
+          horizontal_bar: 'BAR', area: 'AREA',
+          stacked_bar: 'STACKED_BAR', text_block: 'TEXT_BLOCK',
+          alert_feed: 'ALERT_FEED',
         };
         widgets.forEach((w: any, idx: number) => {
           const rawType = (w.type ?? 'KPI_CARD').toLowerCase().trim();
