@@ -11,10 +11,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.auibar.aris.mobile.data.local.entity.IndicatorEntity
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
 import org.auibar.aris.mobile.data.remote.dto.FormTemplateSummaryDto
 import org.auibar.aris.mobile.data.repository.Campaign
 import org.auibar.aris.mobile.data.repository.CampaignRepository
+import org.auibar.aris.mobile.data.repository.IndicatorRepository
+import org.auibar.aris.mobile.data.repository.FlashAlertRepository
+import org.auibar.aris.mobile.data.local.entity.FlashAlertEntity
 import org.auibar.aris.mobile.ui.components.RoleConfig
 import javax.inject.Inject
 
@@ -33,6 +37,8 @@ class DomainDashboardViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val campaignRepository: CampaignRepository,
     private val campaignApi: CampaignApi,
+    private val indicatorRepository: IndicatorRepository,
+    private val flashAlertRepository: FlashAlertRepository,
 ) : ViewModel() {
 
     val domainKey: String = savedStateHandle.get<String>("domainKey") ?: ""
@@ -42,6 +48,14 @@ class DomainDashboardViewModel @Inject constructor(
 
     val campaigns: StateFlow<List<Campaign>> = campaignRepository
         .getActiveCampaignsByDomain(domainKey)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val indicators: StateFlow<List<IndicatorEntity>> = indicatorRepository
+        .observeByDomain(backendDomain)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val flashAlerts: StateFlow<List<FlashAlertEntity>> = flashAlertRepository
+        .observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _uiState = MutableStateFlow(DomainDashboardUiState())
@@ -66,7 +80,6 @@ class DomainDashboardViewModel @Inject constructor(
                 val active = allCampaigns.filter { it.status == "ACTIVE" }
                 val totalSubs = allCampaigns.sumOf { it.targetSubmissions ?: 0 }
                 val target = allCampaigns.sumOf { it.targetSubmissions ?: 0 }.coerceAtLeast(1)
-                // Use validated submissions from campaign detail if available, fallback to 0
                 val completionPct = if (target > 0) ((totalSubs.toDouble() / target) * 100).toInt().coerceIn(0, 100) else 0
 
                 _uiState.value = _uiState.value.copy(
@@ -76,7 +89,6 @@ class DomainDashboardViewModel @Inject constructor(
                     totalCampaigns = allCampaigns.size,
                 )
 
-                // Also refresh Room DB
                 campaignRepository.refreshCampaigns()
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to load domain campaigns: ${e.message}")
@@ -93,6 +105,20 @@ class DomainDashboardViewModel @Inject constructor(
                 )
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to load form templates: ${e.message}")
+            }
+
+            // Refresh indicators for this domain
+            try {
+                indicatorRepository.refreshIndicators(backendDomain)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to refresh indicators: ${e.message}")
+            }
+
+            // Refresh flash alerts
+            try {
+                flashAlertRepository.refreshFromApi()
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to refresh flash alerts: ${e.message}")
             }
 
             _uiState.value = _uiState.value.copy(isLoading = false)

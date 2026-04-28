@@ -602,8 +602,6 @@ fun ArisNavGraph(
                         navController.navigate(ArisRoutes.offlineMap(domainKey))
                     },
                     onDomainForm = { action ->
-                        // Domain-specific form screens use a placeholder campaignId
-                        // until the user selects a campaign from the list
                         val route = when (action) {
                             "outbreak_report" -> ArisRoutes.outbreakReport("new")
                             "surveillance_event" -> ArisRoutes.surveillanceEvent("new")
@@ -616,6 +614,15 @@ fun ArisNavGraph(
                             else -> return@DomainDashboardScreen
                         }
                         navController.navigate(route)
+                    },
+                    onIndicators = {
+                        navController.navigate(ArisRoutes.indicatorList(domainKey))
+                    },
+                    onDashboards = {
+                        navController.navigate(ArisRoutes.DASHBOARD_LIST)
+                    },
+                    onFlashAlerts = {
+                        navController.navigate(ArisRoutes.FLASH_ALERTS)
                     },
                 )
             }
