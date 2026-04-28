@@ -111,6 +111,7 @@ object ArisRoutes {
     const val CONFLICT_RESOLUTION = "conflict/{submissionId}"
     const val TENANT_HIERARCHY = "tenant-hierarchy"
     const val DOMAIN_DASHBOARD = "domain/{domainKey}"
+    const val SUB_DOMAIN_DASHBOARD = "domain/{domainKey}/sub/{subDomainCode}?subDomainLabel={subDomainLabel}"
     const val APP_LOCK = "app-lock"
     const val SET_PIN = "set-pin"
     const val OUTBREAK_REPORT = "outbreak-report/{campaignId}"
@@ -166,6 +167,8 @@ object ArisRoutes {
     fun knowledgeCourseDetail(courseId: String) = "knowledge-course/$courseId"
     fun messageThread(threadId: String, recipientId: String, recipientName: String) =
         "messages/$threadId/$recipientId/$recipientName"
+    fun subDomainDashboard(domainKey: String, subDomainCode: String, subDomainLabel: String) =
+        "domain/$domainKey/sub/$subDomainCode?subDomainLabel=${java.net.URLEncoder.encode(subDomainLabel, "UTF-8")}"
     fun indicatorList(domainCode: String? = null) =
         if (domainCode != null) "indicators?domainCode=$domainCode" else "indicators"
     fun indicatorDetail(indicatorId: String) = "indicator/$indicatorId"
@@ -624,6 +627,28 @@ fun ArisNavGraph(
                     onFlashAlerts = {
                         navController.navigate(ArisRoutes.FLASH_ALERTS)
                     },
+                    onSubDomainClick = { dk, subCode, subLabel ->
+                        navController.navigate(ArisRoutes.subDomainDashboard(dk, subCode, subLabel))
+                    },
+                )
+            }
+
+            // ── Sub-Domain Dashboard ──
+            composable(
+                route = ArisRoutes.SUB_DOMAIN_DASHBOARD,
+                arguments = listOf(
+                    navArgument("domainKey") { type = NavType.StringType },
+                    navArgument("subDomainCode") { type = NavType.StringType },
+                    navArgument("subDomainLabel") { type = NavType.StringType; nullable = true; defaultValue = null },
+                ),
+            ) { backStackEntry ->
+                val dk = backStackEntry.arguments?.getString("domainKey") ?: ""
+                DomainDashboardScreen(
+                    domainKey = dk,
+                    onBack = { navController.popBackStack() },
+                    onCampaignClick = { campaignId -> navController.navigate(ArisRoutes.campaignDetail(campaignId)) },
+                    onNewSubmission = { navController.navigate(ArisRoutes.CAMPAIGNS) },
+                    onDashboards = { navController.navigate(ArisRoutes.DASHBOARD_LIST) },
                 )
             }
 

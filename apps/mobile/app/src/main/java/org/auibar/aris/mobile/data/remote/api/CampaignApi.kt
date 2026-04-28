@@ -110,6 +110,42 @@ class CampaignApi @Inject constructor(
         return merged
     }
 
+    /** Get campaigns filtered by sub-domain code. */
+    suspend fun getCampaignsBySubDomain(domainCode: String, subDomainCode: String): List<CampaignDto> {
+        val underscoreDomain = domainCode.replace("-", "_")
+        // Try workflow first (has all statuses)
+        val fromWorkflow = fetchCampaignsSafeWithSub("/api/v1/workflow/campaigns", underscoreDomain, subDomainCode)
+        if (fromWorkflow.isNotEmpty()) {
+            Log.d(TAG, "SubDomain campaigns: ${fromWorkflow.size} from workflow ($underscoreDomain/$subDomainCode)")
+            return fromWorkflow
+        }
+        // Fallback collecte
+        val fromCollecte = fetchCampaignsSafeWithSub("/api/v1/collecte/campaigns", domainCode, subDomainCode)
+        Log.d(TAG, "SubDomain campaigns: ${fromCollecte.size} from collecte ($domainCode/$subDomainCode)")
+        return fromCollecte
+    }
+
+    private suspend fun fetchCampaignsSafeWithSub(endpoint: String, domain: String, subDomainCode: String): List<CampaignDto> {
+        return try {
+            val response = client.get(endpoint) {
+                parameter("domain", domain)
+                parameter("subDomainCode", subDomainCode)
+                parameter("limit", 50)
+            }
+            if (response.status.value !in 200..299) return emptyList()
+            if (endpoint.contains("/workflow/")) {
+                val body: SafeApiResponse<List<WorkflowCampaignDto>> = response.body()
+                (body.data ?: emptyList()).map { it.toCampaignDto() }
+            } else {
+                val body: SafeApiResponse<List<CampaignDto>> = response.body()
+                body.data ?: emptyList()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "fetchSubDomain $endpoint failed: ${e.message}")
+            emptyList()
+        }
+    }
+
     private suspend fun fetchCampaignsSafe(endpoint: String, paramName: String, value: String): List<CampaignDto> {
         return try {
             val response = client.get(endpoint) {

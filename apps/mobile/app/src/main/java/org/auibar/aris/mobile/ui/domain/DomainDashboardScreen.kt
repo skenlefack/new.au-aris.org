@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -77,13 +76,14 @@ fun DomainDashboardScreen(
     onBack: () -> Unit,
     onCampaignClick: (String) -> Unit,
     onNewSubmission: () -> Unit,
-    onReports: () -> Unit,
-    onMap: () -> Unit,
+    onReports: () -> Unit = {},
+    onMap: () -> Unit = {},
     onDomainForm: (String) -> Unit = {},
     onFillTemplate: (String) -> Unit = {},
     onIndicators: () -> Unit = {},
     onDashboards: () -> Unit = {},
     onFlashAlerts: () -> Unit = {},
+    onSubDomainClick: (domainKey: String, subDomainCode: String, subDomainLabel: String) -> Unit = { _, _, _ -> },
     viewModel: DomainDashboardViewModel = hiltViewModel(),
 ) {
     val allCampaigns by viewModel.allCampaigns.collectAsStateWithLifecycle()
@@ -92,9 +92,20 @@ fun DomainDashboardScreen(
     val domainInfo = remember(domainKey) { arisDomains.find { it.key == domainKey } }
     val config = viewModel.config
     val domainColor = DOMAIN_COLORS[domainKey] ?: domainInfo?.color ?: MaterialTheme.colorScheme.primary
-    val domainName = domainInfo?.label ?: domainKey.replaceFirstChar { it.uppercase() }
 
-    // Campaign tab state
+    // Resolve display name: sub-domain label if in sub-domain mode, else domain label
+    val isSubDomain = viewModel.subDomainCode != null
+    val headerName = if (isSubDomain) {
+        viewModel.subDomainLabel ?: viewModel.subDomainCode ?: domainKey
+    } else {
+        domainInfo?.label ?: domainKey.replaceFirstChar { it.uppercase() }
+    }
+    val headerSubtitle = if (isSubDomain) {
+        domainInfo?.label ?: domainKey
+    } else {
+        config.subtitle
+    }
+
     val tabs = remember {
         listOf(
             CampaignTab("Active", "ACTIVE"),
@@ -134,19 +145,19 @@ fun DomainDashboardScreen(
                         Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
                                 if (domainInfo != null) DomainIcon(icon = domainInfo.icon, color = Color.White, size = 48.dp, iconSize = 24.dp, tintedBackground = false)
-                                else Text(domainName.first().uppercase(), style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
+                                else Text(headerName.first().uppercase(), style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
                             }
                             Spacer(Modifier.width(14.dp))
                             Column {
-                                Text(domainName, style = MaterialTheme.typography.headlineSmall, color = Color.White, fontWeight = FontWeight.Bold)
-                                if (config.subtitle.isNotEmpty()) Text(config.subtitle, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.8f), maxLines = 2)
+                                Text(headerName, style = MaterialTheme.typography.headlineSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                                if (headerSubtitle.isNotEmpty()) Text(headerSubtitle, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.8f), maxLines = 2)
                             }
                         }
                     }
                 }
             }
 
-            // ═══ SECTION 1: DASHBOARD (personalized widgets) ═══
+            // ═══ SECTION 1: DASHBOARD ═══
             item {
                 Spacer(Modifier.height(12.dp))
                 SectionHeader(stringResource(R.string.dashboard), stringResource(R.string.dashboards), onDashboards)
@@ -170,13 +181,12 @@ fun DomainDashboardScreen(
                 }
             }
 
-            // ═══ SECTION 2: SUB-DOMAINS (from API, hidden if empty) ═══
-            if (uiState.subDomains.isNotEmpty()) {
+            // ═══ SECTION 2: SUB-DOMAINS (only on domain level, not sub-domain level) ═══
+            if (!isSubDomain && uiState.subDomains.isNotEmpty()) {
                 item {
                     Spacer(Modifier.height(20.dp))
                     SectionHeader("Sub-domains")
                 }
-                // 2 cards per row
                 val rows = uiState.subDomains.chunked(2)
                 rows.forEach { rowItems ->
                     item {
@@ -185,18 +195,20 @@ fun DomainDashboardScreen(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             rowItems.forEach { sub ->
-                                SubDomainCard(sub = sub, domainColor = domainColor, modifier = Modifier.weight(1f))
+                                SubDomainCard(
+                                    sub = sub,
+                                    domainColor = domainColor,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { onSubDomainClick(domainKey, sub.code, sub.labelEn) },
+                                )
                             }
-                            // Fill empty space if odd number
-                            if (rowItems.size == 1) {
-                                Spacer(Modifier.weight(1f))
-                            }
+                            if (rowItems.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
                 }
             }
 
-            // ═══ SECTION 3: CAMPAIGNS (with status tabs) ═══
+            // ═══ SECTION 3: CAMPAIGNS ═══
             item {
                 Spacer(Modifier.height(20.dp))
                 SectionHeader("Campaigns")
@@ -214,8 +226,7 @@ fun DomainDashboardScreen(
                         if (selectedTabIndex < tabPositions.size) {
                             TabRowDefaults.SecondaryIndicator(
                                 modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                                color = domainColor,
-                                height = 3.dp,
+                                color = domainColor, height = 3.dp,
                             )
                         }
                     },
@@ -233,12 +244,7 @@ fun DomainDashboardScreen(
                                     Text(tab.label, fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal)
                                     if (count > 0) {
                                         Spacer(Modifier.width(6.dp))
-                                        Box(
-                                            Modifier.size(20.dp).clip(CircleShape).background(
-                                                if (selectedTabIndex == index) domainColor else MaterialTheme.colorScheme.surfaceVariant,
-                                            ),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
+                                        Box(Modifier.size(20.dp).clip(CircleShape).background(if (selectedTabIndex == index) domainColor else MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
                                             Text("$count", style = MaterialTheme.typography.labelSmall, color = if (selectedTabIndex == index) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
                                     }
@@ -251,19 +257,10 @@ fun DomainDashboardScreen(
                 }
             }
 
-            // Campaign list for selected tab
             if (uiState.isLoading) {
-                item {
-                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = domainColor)
-                    }
-                }
+                item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = domainColor) } }
             } else if (filteredCampaigns.isEmpty()) {
-                item {
-                    Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
-                        Text("No ${tabs[selectedTabIndex].label.lowercase()} campaigns", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
+                item { Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) { Text("No ${tabs[selectedTabIndex].label.lowercase()} campaigns", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
             } else {
                 items(filteredCampaigns, key = { it.id }) { campaign ->
                     CampaignRow(campaign = campaign, domainColor = domainColor, onClick = { onCampaignClick(campaign.id) })
@@ -277,12 +274,10 @@ fun DomainDashboardScreen(
             item { Spacer(Modifier.height(16.dp)) }
         }
 
-        // FAB
         FloatingActionButton(onClick = onNewSubmission, containerColor = domainColor, contentColor = Color.White, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
             Icon(Icons.Default.Add, contentDescription = stringResource(R.string.cd_new_submission))
         }
 
-        // Loading overlay
         AnimatedVisibility(visible = uiState.isDashboardLoading, enter = fadeIn(), exit = fadeOut()) {
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -304,7 +299,6 @@ private fun SectionHeader(title: String, actionLabel: String? = null, onAction: 
     }
 }
 
-// ── Dashboard Skeleton ────────────────────────────────────
 @Composable
 private fun DashboardSkeleton(domainColor: Color) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -315,28 +309,17 @@ private fun DashboardSkeleton(domainColor: Color) {
     }
 }
 
-// ── Sub-Domain Card (2 per row, with stats) ───────────────
+// ── Sub-Domain Card (clickable, 2 per row) ─────────────────
 @Composable
-private fun SubDomainCard(sub: SubDomainUi, domainColor: Color, modifier: Modifier = Modifier) {
+private fun SubDomainCard(sub: SubDomainUi, domainColor: Color, modifier: Modifier = Modifier, onClick: () -> Unit = {}) {
     Card(
-        modifier = modifier,
+        modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(14.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(Modifier.padding(14.dp)) {
-            // Title
-            Text(
-                text = sub.labelEn,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                color = domainColor,
-            )
-
+            Text(sub.labelEn, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis, color = domainColor)
             Spacer(Modifier.height(12.dp))
-
-            // Stats row
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 StatMini(value = "${sub.campaignCount}", label = "Campaigns")
                 StatMini(value = "${sub.formCount}", label = "Forms")
@@ -354,14 +337,10 @@ private fun StatMini(value: String, label: String) {
     }
 }
 
-// ── Campaign Row (used in vertical list under tabs) ────────
+// ── Campaign Row ────────────────────────────────────────────
 @Composable
 private fun CampaignRow(campaign: Campaign, domainColor: Color, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    ) {
+    Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clickable(onClick = onClick), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
         Column(Modifier.padding(14.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(campaign.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
@@ -382,7 +361,6 @@ private fun CampaignRow(campaign: Campaign, domainColor: Color, onClick: () -> U
     }
 }
 
-// ── Status Chip ────────────────────────────────────────────
 @Composable
 private fun StatusChip(status: String, domainColor: Color) {
     val (bgColor, label) = when (status.uppercase()) {
@@ -392,10 +370,7 @@ private fun StatusChip(status: String, domainColor: Color) {
         "CANCELLED" -> Color(0xFF757575) to "Archived"
         else -> domainColor to status
     }
-    Box(
-        modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(bgColor.copy(alpha = 0.12f)).padding(horizontal = 8.dp, vertical = 3.dp),
-    ) {
+    Box(Modifier.clip(RoundedCornerShape(8.dp)).background(bgColor.copy(alpha = 0.12f)).padding(horizontal = 8.dp, vertical = 3.dp)) {
         Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = bgColor)
     }
 }
-

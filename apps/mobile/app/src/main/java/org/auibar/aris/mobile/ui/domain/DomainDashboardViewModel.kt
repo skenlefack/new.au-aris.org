@@ -57,6 +57,10 @@ class DomainDashboardViewModel @Inject constructor(
     val domainKey: String = savedStateHandle.get<String>("domainKey") ?: ""
     private val backendDomain: String = RoleConfig.mobileToBackendKey(domainKey)
 
+    /** Optional sub-domain code (null = domain level, non-null = sub-domain level) */
+    val subDomainCode: String? = savedStateHandle.get<String>("subDomainCode")
+    val subDomainLabel: String? = savedStateHandle.get<String>("subDomainLabel")
+
     val config: DomainDashboardConfig = DomainDashboards.configFor(domainKey)
 
     val allCampaigns: StateFlow<List<Campaign>> = campaignRepository
@@ -77,9 +81,8 @@ class DomainDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, isDashboardLoading = true, error = null)
             loadDashboard()
-            loadSubDomains()
+            if (subDomainCode == null) loadSubDomains()
             loadCampaigns()
-            loadFormTemplates()
             _uiState.value = _uiState.value.copy(isLoading = false)
         }
     }
@@ -89,12 +92,18 @@ class DomainDashboardViewModel @Inject constructor(
             dashboardRepository.refreshDashboards()
             val all = dashboardRepository.observeAll()
                 .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList()).value
-            val db = all.find { it.domainCode == backendDomain }
-                ?: all.find { it.isDefault }
-                ?: all.firstOrNull()
-            if (db != null) {
-                _uiState.value = _uiState.value.copy(defaultDashboardId = db.id)
-                val result = dashboardRepository.renderAndCache(db.id)
+
+            // Find dashboard for sub-domain or domain
+            val dashboard = if (subDomainCode != null) {
+                all.find { it.subDomainCode == subDomainCode }
+                    ?: all.find { it.domainCode == backendDomain }
+            } else {
+                all.find { it.domainCode == backendDomain }
+            } ?: all.find { it.isDefault } ?: all.firstOrNull()
+
+            if (dashboard != null) {
+                _uiState.value = _uiState.value.copy(defaultDashboardId = dashboard.id)
+                val result = dashboardRepository.renderAndCache(dashboard.id)
                 if (result.isSuccess) {
                     _dashboardWidgets.value = (result.getOrNull() ?: emptyList())
                         .sortedWith(compareBy({ it.gridY }, { it.gridX }))
@@ -107,7 +116,6 @@ class DomainDashboardViewModel @Inject constructor(
     }
 
     private suspend fun loadSubDomains() {
-        // Try backendDomain first, then domainKey as fallback
         for (code in listOf(backendDomain, domainKey).distinct()) {
             val dtos = campaignApi.getSubDomains(code)
             if (dtos.isNotEmpty()) {
@@ -123,34 +131,30 @@ class DomainDashboardViewModel @Inject constructor(
                 return
             }
         }
-        Log.d(TAG, "No sub-domains found for $backendDomain/$domainKey")
     }
 
     private suspend fun loadCampaigns() {
-        val dtos = campaignApi.getAllCampaignsByDomain(backendDomain)
+        // If sub-domain mode, filter by subDomainCode
+        val dtos = if (subDomainCode != null) {
+            campaignApi.getCampaignsBySubDomain(backendDomain, subDomainCode)
+        } else {
+            campaignApi.getAllCampaignsByDomain(backendDomain)
+        }
+
         if (dtos.isNotEmpty()) {
-            // Save ALL to Room
             val now = System.currentTimeMillis()
             campaignDao.upsertAll(dtos.map { it.toEntity(now) })
-
             val active = dtos.count { it.status == "ACTIVE" }
             val totalSubs = dtos.sumOf { it.targetSubmissions ?: 0 }
             _uiState.value = _uiState.value.copy(
-                activeCampaigns = active,
-                totalSubmissions = totalSubs,
+                activeCampaigns = active, totalSubmissions = totalSubs,
                 completionRate = if (totalSubs > 0) 100 else 0,
                 totalCampaigns = dtos.size,
             )
-            Log.d(TAG, "Campaigns: ${dtos.size} (${active} active) for $backendDomain")
+            Log.d(TAG, "Campaigns: ${dtos.size} ($active active) for ${subDomainCode ?: backendDomain}")
         } else {
-            Log.d(TAG, "No campaigns for $backendDomain")
+            Log.d(TAG, "No campaigns for ${subDomainCode ?: backendDomain}")
         }
-    }
-
-    private suspend fun loadFormTemplates() {
-        val templates = campaignApi.getPublishedTemplatesSafe(backendDomain)
-        _uiState.value = _uiState.value.copy(formTemplates = templates)
-        Log.d(TAG, "Templates: ${templates.size} for $backendDomain")
     }
 
     companion object {
