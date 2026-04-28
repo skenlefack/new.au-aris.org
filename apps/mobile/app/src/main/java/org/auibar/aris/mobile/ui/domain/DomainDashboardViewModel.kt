@@ -118,30 +118,40 @@ class DomainDashboardViewModel @Inject constructor(
     }
 
     private suspend fun loadSubDomains() {
-        try {
-            val response = httpClient.get("/api/v1/credential/domains/$backendDomain/sub-domains")
-            val statusCode = response.status.value
-            if (statusCode !in 200..299) {
-                Log.w(TAG, "Sub-domains API returned $statusCode for $backendDomain")
-                return
-            }
-            val body: SafeApiResponse<List<SubDomainDto>> = response.body()
-            val dtos = body.data ?: emptyList()
-            val subDomainUis = dtos
-                .filter { it.active }
-                .sortedBy { it.displayOrder }
-                .map { dto ->
-                    SubDomainUi(
-                        id = dto.id,
-                        code = dto.code,
-                        labelEn = dto.labelEn.ifBlank { dto.code },
-                        labelFr = dto.labelFr.ifBlank { dto.labelEn.ifBlank { dto.code } },
-                    )
+        // Try with backendDomain code (e.g., "livestock-prod")
+        val codes = listOf(backendDomain, domainKey).distinct()
+        for (code in codes) {
+            try {
+                Log.d(TAG, "Trying sub-domains for code=$code")
+                val response = httpClient.get("/api/v1/credential/domains/$code/sub-domains")
+                val statusCode = response.status.value
+                if (statusCode !in 200..299) {
+                    Log.w(TAG, "Sub-domains API returned $statusCode for code=$code")
+                    continue
                 }
-            _uiState.value = _uiState.value.copy(subDomains = subDomainUis)
-            Log.d(TAG, "Loaded ${subDomainUis.size} sub-domains for $backendDomain")
-        } catch (e: Exception) {
-            Log.w(TAG, "Sub-domains failed for $backendDomain: ${e.message}")
+                val body: SafeApiResponse<List<SubDomainDto>> = response.body()
+                val dtos = body.data ?: emptyList()
+                if (dtos.isEmpty()) {
+                    Log.d(TAG, "No sub-domains returned for code=$code")
+                    continue
+                }
+                val subDomainUis = dtos
+                    .filter { it.active }
+                    .sortedBy { it.displayOrder }
+                    .map { dto ->
+                        SubDomainUi(
+                            id = dto.id,
+                            code = dto.code,
+                            labelEn = dto.labelEn.ifBlank { dto.code },
+                            labelFr = dto.labelFr.ifBlank { dto.labelEn.ifBlank { dto.code } },
+                        )
+                    }
+                _uiState.value = _uiState.value.copy(subDomains = subDomainUis)
+                Log.d(TAG, "Loaded ${subDomainUis.size} sub-domains for code=$code")
+                return // Success — stop trying
+            } catch (e: Exception) {
+                Log.w(TAG, "Sub-domains failed for code=$code: ${e.message}")
+            }
         }
     }
 
@@ -151,9 +161,10 @@ class DomainDashboardViewModel @Inject constructor(
      */
     private suspend fun loadCampaignsFromApi() {
         try {
+            // Use domainCode (modern multi-target) with limit max 100
             val response = httpClient.get("/api/v1/collecte/campaigns") {
-                parameter("domain", backendDomain)
-                parameter("limit", 200)
+                parameter("domainCode", backendDomain)
+                parameter("limit", 100)
             }
             if (response.status.value !in 200..299) {
                 val text = response.bodyAsText().take(200)
