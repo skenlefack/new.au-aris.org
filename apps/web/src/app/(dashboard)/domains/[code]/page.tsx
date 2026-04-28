@@ -3,7 +3,6 @@
 import React from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronRight, Home } from 'lucide-react';
 import { useDomainStore, type Domain } from '@/lib/stores/domain-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { DashboardSection } from '@/components/domain/DashboardSection';
@@ -80,17 +79,6 @@ export default function DomainPage() {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-        <Link href="/" className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300">
-          <Home className="h-3.5 w-3.5" />
-        </Link>
-        <ChevronRight className="h-3 w-3" />
-        <span className="font-medium text-gray-900 dark:text-white capitalize">
-          {domainName}
-        </span>
-      </nav>
-
       {/* Header */}
       <div
         className="rounded-xl border p-6"
