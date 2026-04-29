@@ -112,6 +112,7 @@ export default function DomainPage() {
         scope={scope}
         target={{ domainId: domain?.id }}
         domainCode={code}
+        zone="domain"
       />
 
       {/* SECTION 2: Sous-domaines */}
