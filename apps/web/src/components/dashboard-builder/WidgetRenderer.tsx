@@ -15,6 +15,12 @@ import { DividerWidget } from './widgets/DividerWidget';
 import { ImageWidget } from './widgets/ImageWidget';
 import { IframeWidget } from './widgets/IframeWidget';
 import { ListWidget } from './widgets/ListWidget';
+import { HeatmapWidget } from './widgets/HeatmapWidget';
+import { RankedListWidget } from './widgets/RankedListWidget';
+import { ActivityFeedWidget } from './widgets/ActivityFeedWidget';
+import { EpiCurveWidget } from './widgets/EpiCurveWidget';
+import { DualAxisWidget } from './widgets/DualAxisWidget';
+import { CounterWidget } from './widgets/CounterWidget';
 
 const DEFAULT_WIDGET_CONFIGS: Record<string, Record<string, unknown>> = {
   KPI_CARD: { value: null, label: 'Configure this KPI' },
@@ -34,6 +40,12 @@ const DEFAULT_WIDGET_CONFIGS: Record<string, Record<string, unknown>> = {
   IMAGE: { src: '', alt: '' },
   IFRAME: { url: '' },
   LIST: { items: [] },
+  HEATMAP: { rows: [], columns: [] },
+  RANKED_LIST: { items: [] },
+  ACTIVITY_FEED: { activities: [] },
+  EPI_CURVE: { data: [] },
+  DUAL_AXIS: { data: [], leftAxis: { key: 'left', label: 'Left', color: '#1F4E79' }, rightAxis: { key: 'right', label: 'Right', color: '#C9A227' } },
+  COUNTER: { value: 0, label: 'Counter' },
 };
 
 interface WidgetRendererProps {
@@ -198,6 +210,61 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
         <ListWidget
           items={cfg.items ?? []}
           ordered={cfg.ordered}
+        />
+      );
+
+    case 'HEATMAP':
+      return (
+        <HeatmapWidget
+          rows={cfg.rows ?? []}
+          columns={cfg.columns ?? []}
+          colorScale={cfg.colorScale}
+        />
+      );
+
+    case 'RANKED_LIST':
+      return (
+        <RankedListWidget
+          items={cfg.items ?? []}
+          maxItems={cfg.maxItems}
+          unit={cfg.unit}
+        />
+      );
+
+    case 'ACTIVITY_FEED':
+      return (
+        <ActivityFeedWidget
+          activities={cfg.activities ?? []}
+          maxItems={cfg.maxItems}
+        />
+      );
+
+    case 'EPI_CURVE':
+      return (
+        <EpiCurveWidget
+          data={cfg.data ?? []}
+          title={cfg.title ?? widget.title}
+        />
+      );
+
+    case 'DUAL_AXIS':
+      return (
+        <DualAxisWidget
+          data={cfg.data ?? []}
+          leftAxis={cfg.leftAxis ?? { key: 'left', label: 'Left', color: '#1F4E79' }}
+          rightAxis={cfg.rightAxis ?? { key: 'right', label: 'Right', color: '#C9A227' }}
+          xKey={cfg.xKey}
+        />
+      );
+
+    case 'COUNTER':
+      return (
+        <CounterWidget
+          value={cfg.value ?? 0}
+          label={cfg.label ?? widget.title}
+          icon={cfg.icon}
+          color={cfg.color}
+          format={cfg.format}
         />
       );
 

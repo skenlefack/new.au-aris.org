@@ -25,6 +25,12 @@ const MIN_HEIGHTS: Record<string, string> = {
   IMAGE: '200px',
   IFRAME: '400px',
   LIST: '200px',
+  HEATMAP: '300px',
+  RANKED_LIST: '250px',
+  ACTIVITY_FEED: '250px',
+  EPI_CURVE: '300px',
+  DUAL_AXIS: '300px',
+  COUNTER: '120px',
 };
 
 interface DraggableWidgetProps {

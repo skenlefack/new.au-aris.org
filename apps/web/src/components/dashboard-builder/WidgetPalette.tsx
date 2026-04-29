@@ -19,6 +19,12 @@ import {
   Globe,
   List as ListIcon,
   BarChart,
+  Grid3X3,
+  Medal,
+  Clock,
+  HeartPulse,
+  GitBranch,
+  Calculator,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { WidgetType } from '@/lib/api/dashboard-hooks';
@@ -150,6 +156,48 @@ const WIDGET_TEMPLATES: WidgetTemplate[] = [
     description: 'List of items with values',
     icon: ListIcon,
     defaultLayout: { w: 4, h: 3 },
+  },
+  {
+    type: 'HEATMAP',
+    label: 'Heatmap',
+    description: 'Table with color-coded cells',
+    icon: Grid3X3,
+    defaultLayout: { w: 6, h: 4 },
+  },
+  {
+    type: 'RANKED_LIST',
+    label: 'Ranked List',
+    description: 'Ranked items with bar indicators',
+    icon: Medal,
+    defaultLayout: { w: 4, h: 4 },
+  },
+  {
+    type: 'ACTIVITY_FEED',
+    label: 'Activity Feed',
+    description: 'Timeline of recent activities',
+    icon: Clock,
+    defaultLayout: { w: 4, h: 4 },
+  },
+  {
+    type: 'EPI_CURVE',
+    label: 'Epi Curve',
+    description: 'Epidemiological curve with moving average',
+    icon: HeartPulse,
+    defaultLayout: { w: 6, h: 4 },
+  },
+  {
+    type: 'DUAL_AXIS',
+    label: 'Dual Axis',
+    description: 'Two metrics on separate Y axes',
+    icon: GitBranch,
+    defaultLayout: { w: 6, h: 4 },
+  },
+  {
+    type: 'COUNTER',
+    label: 'Counter',
+    description: 'Big number with label and icon',
+    icon: Calculator,
+    defaultLayout: { w: 3, h: 2 },
   },
 ];
 

@@ -35,6 +35,11 @@ export const WidgetTypeSchema = Type.Union([
   Type.Literal('DIVIDER'),
   Type.Literal('IMAGE'),
   Type.Literal('LIST'),
+  Type.Literal('RANKED_LIST'),
+  Type.Literal('ACTIVITY_FEED'),
+  Type.Literal('EPI_CURVE'),
+  Type.Literal('DUAL_AXIS'),
+  Type.Literal('COUNTER'),
 ]);
 
 export const WidgetDataSourceSchema = Type.Union([

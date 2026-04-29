@@ -16,7 +16,7 @@ const BACKEND_TO_FRONTEND_TYPE: Record<string, WidgetType> = {
   AREA_CHART: 'AREA',
   MAP_AFRICA: 'MAP',
   IFRAME_BI: 'IFRAME',
-  HEATMAP: 'BAR', // fallback: render heatmaps as bar charts
+  HEATMAP: 'HEATMAP',
   COMPOSITE_FORMULA: 'KPI_CARD', // fallback: render composites as KPI
   // These match 1:1 already:
   KPI_CARD: 'KPI_CARD',
@@ -30,6 +30,11 @@ const BACKEND_TO_FRONTEND_TYPE: Record<string, WidgetType> = {
   DIVIDER: 'DIVIDER',
   IMAGE: 'IMAGE',
   LIST: 'LIST',
+  RANKED_LIST: 'RANKED_LIST',
+  ACTIVITY_FEED: 'ACTIVITY_FEED',
+  EPI_CURVE: 'EPI_CURVE',
+  DUAL_AXIS: 'DUAL_AXIS',
+  COUNTER: 'COUNTER',
 };
 
 const FRONTEND_TO_BACKEND_TYPE: Record<string, string> = {
@@ -51,6 +56,12 @@ const FRONTEND_TO_BACKEND_TYPE: Record<string, string> = {
   DIVIDER: 'DIVIDER',
   IMAGE: 'IMAGE',
   LIST: 'LIST',
+  HEATMAP: 'HEATMAP',
+  RANKED_LIST: 'RANKED_LIST',
+  ACTIVITY_FEED: 'ACTIVITY_FEED',
+  EPI_CURVE: 'EPI_CURVE',
+  DUAL_AXIS: 'DUAL_AXIS',
+  COUNTER: 'COUNTER',
 };
 
 function toFrontendType(backendType: string): WidgetType {
@@ -165,7 +176,13 @@ export type WidgetType =
   | 'DIVIDER'
   | 'IMAGE'
   | 'IFRAME'
-  | 'LIST';
+  | 'LIST'
+  | 'HEATMAP'
+  | 'RANKED_LIST'
+  | 'ACTIVITY_FEED'
+  | 'EPI_CURVE'
+  | 'DUAL_AXIS'
+  | 'COUNTER';
 
 export interface DashboardWidget {
   id: string;
