@@ -14,6 +14,16 @@ data class FormField(
     val placeholder: String? = null,
     val description: String? = null,
     val order: Int = 0,
+    /** For master-data-select fields: type key (species, diseases, breeds, ...) */
+    val masterDataType: String? = null,
+    /** Whether this field supports search/filtering */
+    val searchable: Boolean = false,
+    /** Validation rules from schema */
+    val disableFuture: Boolean = false,
+    val step: Double? = null,
+    val decimals: Int? = null,
+    /** Section name this field belongs to */
+    val sectionName: String? = null,
 )
 
 data class SelectOption(

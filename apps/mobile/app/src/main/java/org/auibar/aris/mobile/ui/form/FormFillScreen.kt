@@ -185,6 +185,7 @@ fun FormFillScreen(
                         countryOptions = uiState.countryOptions,
                         admin1Options = uiState.admin1Options,
                         admin2Options = uiState.admin2Options,
+                        masterDataOptions = uiState.masterDataOptions,
                         onValueChange = viewModel::onValueChange,
                         onCaptureLocation = {
                             locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))

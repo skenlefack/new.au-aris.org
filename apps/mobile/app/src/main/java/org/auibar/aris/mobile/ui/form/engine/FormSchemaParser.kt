@@ -66,6 +66,18 @@ class FormSchemaParser {
                 // Options for select fields
                 val options = parseFieldOptions(f)
 
+                val props = f["properties"]?.jsonObject
+                val validation = f["validation"]?.jsonObject
+                val masterDataType = props?.get("masterDataType")?.jsonPrimitive?.content
+                val searchable = props?.get("searchable")?.jsonPrimitive?.booleanOrNull ?: false
+                val disableFuture = validation?.get("disableFuture")?.jsonPrimitive?.booleanOrNull ?: false
+                val step = props?.get("step")?.jsonPrimitive?.content?.toDoubleOrNull()
+                val decimals = props?.get("decimals")?.jsonPrimitive?.intOrNull
+                val maxLength = validation?.get("maxLength")?.jsonPrimitive?.intOrNull
+                val min = validation?.get("min")?.jsonPrimitive?.content?.toDoubleOrNull()
+                val max = validation?.get("max")?.jsonPrimitive?.content?.toDoubleOrNull()
+                val sectionName = extractLocalizedString(sec["name"]?.jsonObject, null)
+
                 val fieldType = mapSectionFieldType(type, f)
 
                 fields.add(
@@ -78,6 +90,15 @@ class FormSchemaParser {
                         placeholder = placeholder,
                         description = helpText,
                         order = order,
+                        masterDataType = masterDataType,
+                        searchable = searchable,
+                        disableFuture = disableFuture,
+                        step = step,
+                        decimals = decimals,
+                        maxLength = maxLength,
+                        minValue = min,
+                        maxValue = max,
+                        sectionName = sectionName,
                     )
                 )
                 globalOrder++

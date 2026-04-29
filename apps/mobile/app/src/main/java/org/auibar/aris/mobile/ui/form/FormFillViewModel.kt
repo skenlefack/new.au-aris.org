@@ -1,34 +1,45 @@
 package org.auibar.aris.mobile.ui.form
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.auibar.aris.mobile.data.local.dao.DiseaseDao
+import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
-import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
 import org.auibar.aris.mobile.data.local.entity.FormTemplateEntity
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
+import org.auibar.aris.mobile.data.remote.dto.SafeApiResponse
 import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.FormTemplateRepository
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
 import org.auibar.aris.mobile.ui.form.engine.FormSchemaParser
 import org.auibar.aris.mobile.ui.form.engine.FormValidator
 import org.auibar.aris.mobile.ui.form.model.FormField
+import org.auibar.aris.mobile.ui.form.model.FormFieldType
 import org.auibar.aris.mobile.ui.form.model.SelectOption
 import org.auibar.aris.mobile.util.TokenManager
 import java.util.UUID
 import javax.inject.Inject
+
+private const val TAG = "FormFillVM"
 
 data class FormFillUiState(
     val isLoading: Boolean = true,
@@ -43,6 +54,8 @@ data class FormFillUiState(
     val countryOptions: List<SelectOption> = emptyList(),
     val admin1Options: List<SelectOption> = emptyList(),
     val admin2Options: List<SelectOption> = emptyList(),
+    /** Dynamic options loaded from /ref/{type}/for-select, keyed by masterDataType */
+    val masterDataOptions: Map<String, List<SelectOption>> = emptyMap(),
     val gpsLat: Double? = null,
     val gpsLng: Double? = null,
     val gpsAccuracy: Float? = null,
@@ -56,6 +69,18 @@ sealed class FormEvent {
     data class Error(val message: String) : FormEvent()
 }
 
+@Serializable
+private data class RefSelectItem(
+    val id: String,
+    val code: String? = null,
+    val label: String? = null,
+    val labelEn: String? = null,
+    val labelFr: String? = null,
+    val name: String? = null,
+    val commonName: String? = null,
+    val scientificName: String? = null,
+)
+
 @HiltViewModel
 class FormFillViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -68,6 +93,7 @@ class FormFillViewModel @Inject constructor(
     private val diseaseDao: DiseaseDao,
     private val geoDao: GeoDao,
     private val tokenManager: TokenManager,
+    private val httpClient: HttpClient,
 ) : ViewModel() {
 
     private val campaignId: String = savedStateHandle["campaignId"] ?: ""
@@ -94,42 +120,35 @@ class FormFillViewModel @Inject constructor(
 
                 // Try local first, then fetch from API
                 var template = formTemplateRepository.getById(templateId)
-                if (template == null) {
-                    android.util.Log.d("FormFillVM", "Template $templateId not in local DB, fetching from API...")
-                    try {
-                        val dto = campaignApi.getFormTemplate(templateId)
-                        if (dto != null) {
-                        val entity = FormTemplateEntity(
-                            id = dto.id,
-                            name = dto.name,
-                            domain = dto.domain,
-                            schema = dto.schema,
-                            uiSchema = dto.uiSchema,
-                            version = dto.version,
-                            syncedAt = System.currentTimeMillis(),
-                        )
-                        formTemplateDao.upsertAll(listOf(entity))
+                if (template == null && templateId.isNotBlank()) {
+                    val dto = campaignApi.getFormTemplate(templateId)
+                    if (dto != null) {
+                        formTemplateDao.upsertAll(listOf(FormTemplateEntity(
+                            id = dto.id, name = dto.name, domain = dto.domain,
+                            schema = dto.schema, uiSchema = dto.uiSchema,
+                            version = dto.version, syncedAt = System.currentTimeMillis(),
+                        )))
                         template = formTemplateRepository.getById(templateId)
-                        android.util.Log.d("FormFillVM", "Template fetched and saved: ${dto.name}")
-                        } else {
-                            android.util.Log.w("FormFillVM", "API returned null for template $templateId")
-                        }
-                    } catch (e: Exception) {
-                        android.util.Log.w("FormFillVM", "Failed to fetch template from API: ${e.message}")
                     }
                 }
 
                 if (template == null) throw IllegalStateException("Template not found")
 
                 val fields = parser.parse(template.schema, template.uiSchema)
+                Log.d(TAG, "Parsed ${fields.size} fields, loading options...")
 
-                val species = speciesDao.getAll().map {
+                // Load geo options from local DB
+                val countries = geoDao.getByLevel("COUNTRY").map { SelectOption(value = it.id, label = it.name) }
+
+                // Load master data options for all unique masterDataTypes in the form
+                val masterDataTypes = fields.mapNotNull { it.masterDataType }.distinct()
+                val masterDataOptions = loadMasterDataOptions(masterDataTypes)
+
+                // Also put species/diseases from master data into the classic fields
+                val speciesOptions = masterDataOptions["species"] ?: speciesDao.getAll().map {
                     SelectOption(value = it.id, label = "${it.commonName} (${it.scientificName})")
                 }
-                val diseases = diseaseDao.getAll().map {
-                    SelectOption(value = it.id, label = it.name)
-                }
-                val countries = geoDao.getByLevel("COUNTRY").map {
+                val diseaseOptions = masterDataOptions["diseases"] ?: diseaseDao.getAll().map {
                     SelectOption(value = it.id, label = it.name)
                 }
 
@@ -139,15 +158,51 @@ class FormFillViewModel @Inject constructor(
                     templateId = template.id,
                     templateName = template.name,
                     fields = fields,
-                    speciesOptions = species,
-                    diseaseOptions = diseases,
+                    speciesOptions = speciesOptions,
+                    diseaseOptions = diseaseOptions,
                     countryOptions = countries,
+                    masterDataOptions = masterDataOptions,
                 )
             } catch (e: Exception) {
+                Log.w(TAG, "loadForm failed: ${e.message}")
                 _uiState.value = _uiState.value.copy(isLoading = false)
                 _events.emit(FormEvent.Error(e.message ?: "Failed to load form"))
             }
         }
+    }
+
+    /** Load options from /api/v1/master-data/ref/{type}/for-select for each type. */
+    private suspend fun loadMasterDataOptions(types: List<String>): Map<String, List<SelectOption>> {
+        val results = mutableMapOf<String, List<SelectOption>>()
+        types.map { type ->
+            viewModelScope.async {
+                try {
+                    val response = httpClient.get("/api/v1/master-data/ref/$type/for-select")
+                    if (response.status.value !in 200..299) {
+                        Log.w(TAG, "Ref data $type → HTTP ${response.status.value}")
+                        return@async type to emptyList<SelectOption>()
+                    }
+                    val body: SafeApiResponse<List<RefSelectItem>> = response.body()
+                    val options = (body.data ?: emptyList()).map { item ->
+                        val label = item.labelEn
+                            ?: item.label
+                            ?: item.commonName?.let { "$it${item.scientificName?.let { s -> " ($s)" } ?: ""}" }
+                            ?: item.name
+                            ?: item.code
+                            ?: item.id
+                        SelectOption(value = item.id, label = label)
+                    }
+                    Log.d(TAG, "Ref data $type: ${options.size} options")
+                    type to options
+                } catch (e: Exception) {
+                    Log.w(TAG, "Ref data $type failed: ${e.message}")
+                    type to emptyList<SelectOption>()
+                }
+            }
+        }.awaitAll().forEach { (type, options) ->
+            results[type] = options
+        }
+        return results
     }
 
     fun onValueChange(key: String, value: String) {
@@ -158,6 +213,7 @@ class FormFillViewModel @Inject constructor(
             errors = _uiState.value.errors - key,
         )
 
+        // Cascading admin location
         if (key == "_country") {
             newValues.remove("_admin1")
             newValues.remove("_admin2")
@@ -172,18 +228,14 @@ class FormFillViewModel @Inject constructor(
 
     private fun loadAdmin1(countryId: String) {
         viewModelScope.launch {
-            val children = geoDao.getChildren(countryId).map {
-                SelectOption(value = it.id, label = it.name)
-            }
+            val children = geoDao.getChildren(countryId).map { SelectOption(value = it.id, label = it.name) }
             _uiState.value = _uiState.value.copy(admin1Options = children)
         }
     }
 
     private fun loadAdmin2(admin1Id: String) {
         viewModelScope.launch {
-            val children = geoDao.getChildren(admin1Id).map {
-                SelectOption(value = it.id, label = it.name)
-            }
+            val children = geoDao.getChildren(admin1Id).map { SelectOption(value = it.id, label = it.name) }
             _uiState.value = _uiState.value.copy(admin2Options = children)
         }
     }
@@ -191,12 +243,7 @@ class FormFillViewModel @Inject constructor(
     fun onLocationCaptured(lat: Double, lng: Double, accuracy: Float) {
         val newValues = _uiState.value.values.toMutableMap()
         newValues["_location"] = "%.6f, %.6f".format(lat, lng)
-        _uiState.value = _uiState.value.copy(
-            values = newValues,
-            gpsLat = lat,
-            gpsLng = lng,
-            gpsAccuracy = accuracy,
-        )
+        _uiState.value = _uiState.value.copy(values = newValues, gpsLat = lat, gpsLng = lng, gpsAccuracy = accuracy)
     }
 
     fun onPhotoCaptured(uri: String) {
@@ -208,16 +255,11 @@ class FormFillViewModel @Inject constructor(
     fun saveDraft() {
         viewModelScope.launch {
             val state = _uiState.value
-            val dataJson = buildDataJson(state.values)
             submissionRepository.saveDraft(
-                id = state.submissionId,
-                tenantId = tokenManager.tenantId ?: "",
-                campaignId = campaignId,
-                templateId = state.templateId,
-                data = dataJson,
-                gpsLat = state.gpsLat,
-                gpsLng = state.gpsLng,
-                gpsAccuracy = state.gpsAccuracy,
+                id = state.submissionId, tenantId = tokenManager.tenantId ?: "",
+                campaignId = campaignId, templateId = state.templateId,
+                data = buildDataJson(state.values),
+                gpsLat = state.gpsLat, gpsLng = state.gpsLng, gpsAccuracy = state.gpsAccuracy,
             )
             _events.emit(FormEvent.DraftSaved)
         }
@@ -228,30 +270,21 @@ class FormFillViewModel @Inject constructor(
             val state = _uiState.value
             val validationErrors = validator.validate(state.fields, state.values)
             if (validationErrors.isNotEmpty()) {
-                _uiState.value = state.copy(
-                    errors = validationErrors.associate { it.field to it.message }
-                )
+                _uiState.value = state.copy(errors = validationErrors.associate { it.field to it.message })
                 return@launch
             }
-
-            val dataJson = buildDataJson(state.values)
             submissionRepository.submitForm(
-                id = state.submissionId,
-                tenantId = tokenManager.tenantId ?: "",
-                campaignId = campaignId,
-                templateId = state.templateId,
-                data = dataJson,
-                gpsLat = state.gpsLat,
-                gpsLng = state.gpsLng,
-                gpsAccuracy = state.gpsAccuracy,
+                id = state.submissionId, tenantId = tokenManager.tenantId ?: "",
+                campaignId = campaignId, templateId = state.templateId,
+                data = buildDataJson(state.values),
+                gpsLat = state.gpsLat, gpsLng = state.gpsLng, gpsAccuracy = state.gpsAccuracy,
             )
             _events.emit(FormEvent.Submitted)
         }
     }
 
     private fun buildDataJson(values: Map<String, String>): String {
-        val entries = values.filterKeys { !it.startsWith("_") }
-            .mapValues { (_, v) -> JsonPrimitive(v) }
+        val entries = values.filterKeys { !it.startsWith("_") }.mapValues { (_, v) -> JsonPrimitive(v) }
         return JsonObject(entries).toString()
     }
 }
