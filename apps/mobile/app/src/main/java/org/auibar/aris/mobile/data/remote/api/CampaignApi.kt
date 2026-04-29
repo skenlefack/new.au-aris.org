@@ -283,10 +283,32 @@ class CampaignApi @Inject constructor(
 data class RefDataSelectItem(
     val id: String,
     val code: String? = null,
-    val label: String? = null,
+    val label: JsonElement? = null,
     val labelEn: String? = null,
     val labelFr: String? = null,
-    val name: String? = null,
+    val name: JsonElement? = null,
     val commonName: String? = null,
     val scientificName: String? = null,
-)
+) {
+    fun displayLabel(): String {
+        return labelEn
+            ?: extractLocalized(label)
+            ?: commonName?.let { "$it${scientificName?.let { s -> " ($s)" } ?: ""}" }
+            ?: extractLocalized(name)
+            ?: code
+            ?: id
+    }
+
+    private fun extractLocalized(el: JsonElement?): String? {
+        if (el == null) return null
+        return when (el) {
+            is JsonPrimitive -> el.content
+            else -> try {
+                val obj = el.jsonObject
+                obj["en"]?.jsonPrimitive?.content
+                    ?: obj["fr"]?.jsonPrimitive?.content
+                    ?: obj.values.firstOrNull()?.jsonPrimitive?.content
+            } catch (_: Exception) { el.toString() }
+        }
+    }
+}

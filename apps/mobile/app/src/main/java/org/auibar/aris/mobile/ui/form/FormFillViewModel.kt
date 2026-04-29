@@ -160,13 +160,7 @@ class FormFillViewModel @Inject constructor(
             viewModelScope.async {
                 val items = campaignApi.getRefDataForSelect(type)
                 val options = items.map { item ->
-                    val label = item.labelEn
-                        ?: item.label
-                        ?: item.commonName?.let { "$it${item.scientificName?.let { s -> " ($s)" } ?: ""}" }
-                        ?: item.name
-                        ?: item.code
-                        ?: item.id
-                    SelectOption(value = item.id, label = label)
+                    SelectOption(value = item.id, label = item.displayLabel())
                 }
                 Log.d(TAG, "Ref data $type: ${options.size} options")
                 type to options
