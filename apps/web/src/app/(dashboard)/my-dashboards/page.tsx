@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -147,6 +148,9 @@ export default function MyDashboardsPage() {
   const subDomainsMetadata = useDomainStore((s) => s.subDomainsMetadata);
 
   const dashboards: DashboardListItem[] = data?.data ?? [];
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   const [isCreating, setIsCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -303,13 +307,14 @@ export default function MyDashboardsPage() {
       </div>
 
       {/* Full-screen loading overlay when creating dashboard */}
-      {isCreating && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm">
+      {isCreating && mounted && createPortal(
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#1F4E79]" />
           <p className="mt-4 text-sm font-medium text-gray-600 dark:text-gray-300">
             Creating dashboard...
           </p>
-        </div>
+        </div>,
+        document.body,
       )}
 
       <ConfirmDialog
@@ -323,8 +328,8 @@ export default function MyDashboardsPage() {
         loading={deleteMutation.isPending}
       />
 
-      {/* Create Dashboard Modal */}
-      {showCreateModal && (
+      {/* Create Dashboard Modal — rendered via portal to cover sidebar */}
+      {showCreateModal && mounted && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={handleBackdropClick}>
           <div
             className={cn(
@@ -504,7 +509,8 @@ export default function MyDashboardsPage() {
               }
             `}</style>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
