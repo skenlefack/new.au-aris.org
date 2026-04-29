@@ -16,6 +16,9 @@ import kotlinx.serialization.json.JsonPrimitive
 import org.auibar.aris.mobile.data.local.dao.DiseaseDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
+import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
+import org.auibar.aris.mobile.data.local.entity.FormTemplateEntity
+import org.auibar.aris.mobile.data.remote.api.CampaignApi
 import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.FormTemplateRepository
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
@@ -59,6 +62,8 @@ class FormFillViewModel @Inject constructor(
     private val campaignRepository: CampaignRepository,
     private val formTemplateRepository: FormTemplateRepository,
     private val submissionRepository: SubmissionRepository,
+    private val campaignApi: CampaignApi,
+    private val formTemplateDao: FormTemplateDao,
     private val speciesDao: SpeciesDao,
     private val diseaseDao: DiseaseDao,
     private val geoDao: GeoDao,
@@ -86,8 +91,32 @@ class FormFillViewModel @Inject constructor(
                 val campaign = campaignRepository.getById(campaignId)
                     ?: throw IllegalStateException("Campaign not found")
                 val templateId = overrideTemplateId ?: campaign.templateId
-                val template = formTemplateRepository.getById(templateId)
-                    ?: throw IllegalStateException("Template not found")
+
+                // Try local first, then fetch from API
+                var template = formTemplateRepository.getById(templateId)
+                if (template == null) {
+                    android.util.Log.d("FormFillVM", "Template $templateId not in local DB, fetching from API...")
+                    try {
+                        val response = campaignApi.getFormTemplate(templateId)
+                        val dto = response.data
+                        val entity = FormTemplateEntity(
+                            id = dto.id,
+                            name = dto.name,
+                            domain = dto.domain,
+                            schema = dto.schema,
+                            uiSchema = dto.uiSchema,
+                            version = dto.version,
+                            syncedAt = System.currentTimeMillis(),
+                        )
+                        formTemplateDao.upsertAll(listOf(entity))
+                        template = formTemplateRepository.getById(templateId)
+                        android.util.Log.d("FormFillVM", "Template fetched and saved: ${dto.name}")
+                    } catch (e: Exception) {
+                        android.util.Log.w("FormFillVM", "Failed to fetch template from API: ${e.message}")
+                    }
+                }
+
+                if (template == null) throw IllegalStateException("Template not found")
 
                 val fields = parser.parse(template.schema, template.uiSchema)
 
