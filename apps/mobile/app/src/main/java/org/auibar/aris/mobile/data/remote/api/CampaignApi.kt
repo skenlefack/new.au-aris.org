@@ -262,6 +262,26 @@ class CampaignApi @Inject constructor(
         }
     }
 
+    /** Load geo units (countries, admin1, admin2) from master-data API. */
+    suspend fun getGeoUnits(level: String?, parentId: String?): List<RefDataSelectItem> {
+        return try {
+            val response = client.get("/api/v1/master-data/geo") {
+                if (level != null) parameter("level", level)
+                if (parentId != null) parameter("parentId", parentId)
+                parameter("limit", 300)
+            }
+            if (response.status.value !in 200..299) {
+                Log.w(TAG, "Geo API → HTTP ${response.status.value}")
+                return emptyList()
+            }
+            val body: SafeApiResponse<List<RefDataSelectItem>> = response.body()
+            body.data ?: emptyList()
+        } catch (e: Exception) {
+            Log.w(TAG, "Geo API failed: ${e.message}")
+            emptyList()
+        }
+    }
+
     /** Load reference data options for form select fields via /ref/{type}/for-select. */
     suspend fun getRefDataForSelect(type: String): List<RefDataSelectItem> {
         return try {

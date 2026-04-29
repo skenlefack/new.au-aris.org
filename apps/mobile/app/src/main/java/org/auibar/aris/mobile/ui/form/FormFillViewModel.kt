@@ -119,8 +119,8 @@ class FormFillViewModel @Inject constructor(
                 val fields = parser.parse(template.schema, template.uiSchema)
                 Log.d(TAG, "Parsed ${fields.size} fields, loading options...")
 
-                // Load geo options from local DB
-                val countries = geoDao.getByLevel("COUNTRY").map { SelectOption(value = it.id, label = it.name) }
+                // Load geo options — try API first, fallback to local Room
+                val countries = loadCountries()
 
                 // Load master data options for all unique masterDataTypes in the form
                 val masterDataTypes = fields.mapNotNull { it.masterDataType }.distinct()
@@ -192,8 +192,35 @@ class FormFillViewModel @Inject constructor(
         }
     }
 
+    private suspend fun loadCountries(): List<SelectOption> {
+        // Try API first
+        try {
+            val items = campaignApi.getGeoUnits("COUNTRY", null)
+            if (items.isNotEmpty()) {
+                Log.d(TAG, "Countries from API: ${items.size}")
+                return items.map { SelectOption(value = it.id, label = it.displayLabel()) }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Countries API failed: ${e.message}")
+        }
+        // Fallback to local Room
+        val local = geoDao.getByLevel("COUNTRY").map { SelectOption(value = it.id, label = it.name) }
+        Log.d(TAG, "Countries from Room: ${local.size}")
+        return local
+    }
+
     private fun loadAdmin1(countryId: String) {
         viewModelScope.launch {
+            // Try API first
+            try {
+                val items = campaignApi.getGeoUnits(null, countryId)
+                if (items.isNotEmpty()) {
+                    _uiState.value = _uiState.value.copy(admin1Options = items.map { SelectOption(value = it.id, label = it.displayLabel()) })
+                    Log.d(TAG, "Admin1 from API: ${items.size}")
+                    return@launch
+                }
+            } catch (_: Exception) {}
+            // Fallback Room
             val children = geoDao.getChildren(countryId).map { SelectOption(value = it.id, label = it.name) }
             _uiState.value = _uiState.value.copy(admin1Options = children)
         }
@@ -201,6 +228,14 @@ class FormFillViewModel @Inject constructor(
 
     private fun loadAdmin2(admin1Id: String) {
         viewModelScope.launch {
+            try {
+                val items = campaignApi.getGeoUnits(null, admin1Id)
+                if (items.isNotEmpty()) {
+                    _uiState.value = _uiState.value.copy(admin2Options = items.map { SelectOption(value = it.id, label = it.displayLabel()) })
+                    Log.d(TAG, "Admin2 from API: ${items.size}")
+                    return@launch
+                }
+            } catch (_: Exception) {}
             val children = geoDao.getChildren(admin1Id).map { SelectOption(value = it.id, label = it.name) }
             _uiState.value = _uiState.value.copy(admin2Options = children)
         }
