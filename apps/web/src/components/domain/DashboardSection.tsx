@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
 import {
   useDefaultDashboard,
+  useDashboard,
   useDashboards,
   useDashboardRender,
   useSetDashboardPreference,
@@ -59,12 +60,16 @@ export function DashboardSection({ scope, target, domainCode, zone = 'domain' }:
   const defaultDashboard = defaultData?.data ?? null;
   const activeDashboardId = selectedId ?? defaultDashboard?.id ?? null;
 
-  const { data: renderData, isLoading: renderLoading } = useDashboardRender(activeDashboardId ?? '');
+  // Use getById for sections/widgets structure, render for widget data
+  const { data: dashDetail, isLoading: detailLoading } = useDashboard(activeDashboardId ?? '');
+  const { data: renderData } = useDashboardRender(activeDashboardId ?? '');
 
-  const renderedDashboard = renderData?.data?.dashboard ?? null;
+  const loadedDashboard = dashDetail?.data ?? null;
   const widgetData = (renderData?.data?.widgetData ?? {}) as Record<string, Record<string, unknown>>;
+  const renderLoading = detailLoading;
 
-  const dashTitle = (renderedDashboard as any)?.title_fr || (renderedDashboard as any)?.titleFr || (renderedDashboard as any)?.title || '';
+  const d = loadedDashboard as any;
+  const dashTitle = d?.title_fr || d?.titleFr || d?.title || d?.title_en || d?.titleEn || '';
 
   const handleSetDefault = () => {
     if (!activeDashboardId) return;
@@ -196,9 +201,9 @@ export function DashboardSection({ scope, target, domainCode, zone = 'domain' }:
             </div>
             <Skeleton className="h-64 rounded-xl" />
           </div>
-        ) : renderedDashboard && ((renderedDashboard as any).sections?.length > 0 || (renderedDashboard as any).widgets?.length > 0) ? (
+        ) : loadedDashboard && ((loadedDashboard as any).sections?.length > 0 || (loadedDashboard as any).widgets?.length > 0) ? (
           <SectionList
-            sections={(renderedDashboard as any).sections ?? []}
+            sections={(loadedDashboard as any).sections ?? []}
             widgetData={widgetData}
             editable={false}
           />
