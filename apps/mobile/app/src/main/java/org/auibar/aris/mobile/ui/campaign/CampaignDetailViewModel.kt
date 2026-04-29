@@ -115,15 +115,23 @@ class CampaignDetailViewModel @Inject constructor(
 
             // Then fetch full detail from API (with progress + templates)
             try {
-                val response = campaignApi.getCampaignDetail(campaignId)
-                val detail = response.data
+                val detail = campaignApi.getCampaignDetailSafe(campaignId)
+                    ?: throw IllegalStateException("Campaign detail not found")
                 val domainKey = RoleConfig.backendToMobileKey(detail.domain)
 
                 // Resolve template IDs to template infos
-                val allTemplateIds = detail.templateIds.ifEmpty {
-                    listOfNotNull(detail.templateId)
+                var allTemplateIds = detail.templateIds.ifEmpty {
+                    listOfNotNull(detail.templateId).filter { it.isNotBlank() }
                 }
-                val templateInfos = resolveTemplates(allTemplateIds)
+
+                // If no template IDs, load published templates for this domain
+                var templateInfos = resolveTemplates(allTemplateIds)
+                if (templateInfos.isEmpty() && detail.domain.isNotBlank()) {
+                    val domainTemplates = campaignApi.getPublishedTemplatesSafe(detail.domain)
+                    templateInfos = domainTemplates.map {
+                        TemplateInfo(id = it.id, name = it.name, domain = it.domain, version = it.version)
+                    }
+                }
 
                 // Parse dates
                 val startMs = parseIsoDate(detail.startDate)

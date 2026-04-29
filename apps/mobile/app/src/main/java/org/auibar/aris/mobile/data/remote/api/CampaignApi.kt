@@ -197,6 +197,41 @@ class CampaignApi @Inject constructor(
         return client.get("/api/v1/collecte/campaigns/$campaignId").body()
     }
 
+    /** Safe campaign detail — tries collecte then workflow. */
+    suspend fun getCampaignDetailSafe(campaignId: String): CampaignDetailDto? {
+        // Try collecte first
+        try {
+            val response = client.get("/api/v1/collecte/campaigns/$campaignId")
+            if (response.status.value in 200..299) {
+                val body: SafeApiResponse<CampaignDetailDto> = response.body()
+                if (body.data != null) return body.data
+            }
+        } catch (_: Exception) {}
+
+        // Try workflow
+        try {
+            val response = client.get("/api/v1/workflow/campaigns/$campaignId")
+            if (response.status.value in 200..299) {
+                val body: SafeApiResponse<WorkflowCampaignDto> = response.body()
+                val wf = body.data ?: return null
+                return CampaignDetailDto(
+                    id = wf.id,
+                    tenantId = wf.tenantId ?: "",
+                    name = wf.nameString(),
+                    domain = wf.domain ?: "",
+                    templateIds = emptyList(),
+                    startDate = wf.startDate ?: "",
+                    endDate = wf.endDate ?: "",
+                    status = wf.status,
+                    description = wf.descriptionString(),
+                    targetSubmissions = wf.targetSubmissions,
+                )
+            }
+        } catch (_: Exception) {}
+
+        return null
+    }
+
     suspend fun getFormTemplate(templateId: String): FormTemplateDto? {
         if (templateId.isBlank()) return null
         return try {
