@@ -120,8 +120,12 @@ object NetworkModule {
 
                             if (response.status.value !in 200..299) {
                                 Log.w(TAG, "Refresh returned ${response.status.value}")
-                                tokenManager.accessToken = null
-                                tokenManager.refreshToken = null
+                                // Only clear tokens if refresh is definitively rejected (401/403)
+                                if (response.status.value == 401 || response.status.value == 403) {
+                                    Log.w(TAG, "Refresh token rejected — clearing session")
+                                    tokenManager.accessToken = null
+                                    tokenManager.refreshToken = null
+                                }
                                 return@refreshTokens null
                             }
 
