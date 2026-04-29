@@ -381,7 +381,9 @@ export default function MyDashboardsPage() {
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                   >
                     <option value="">-- Tous les domaines --</option>
-                    {allDomains.map((d) => (
+                    {allDomains
+                      .filter((d) => !['knowledge-hub', 'knowledge'].includes(d.code))
+                      .map((d) => (
                       <option key={d.code} value={d.code}>
                         {d.name?.fr || d.name?.en || d.code}
                       </option>
