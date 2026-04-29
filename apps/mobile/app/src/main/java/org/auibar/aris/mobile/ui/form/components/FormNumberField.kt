@@ -22,7 +22,7 @@ fun FormNumberField(
     placeholder: String?,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+    Column(modifier = modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         OutlinedTextField(
             value = value,
             onValueChange = { newValue ->
@@ -34,6 +34,7 @@ fun FormNumberField(
             placeholder = placeholder?.let { { Text(it) } },
             isError = error != null,
             singleLine = true,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )

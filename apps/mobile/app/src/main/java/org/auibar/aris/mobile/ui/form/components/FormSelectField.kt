@@ -3,6 +3,7 @@ package org.auibar.aris.mobile.ui.form.components
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -34,7 +35,7 @@ fun FormSelectField(
     var expanded by remember { mutableStateOf(false) }
     val selectedLabel = options.find { it.value == value }?.label ?: ""
 
-    Column(modifier = modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+    Column(modifier = modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = !expanded },
@@ -46,6 +47,7 @@ fun FormSelectField(
                 label = { Text(if (required) "$label *" else label) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 isError = error != null,
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
             )
             ExposedDropdownMenu(

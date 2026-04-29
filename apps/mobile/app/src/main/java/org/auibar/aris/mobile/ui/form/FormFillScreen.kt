@@ -1,7 +1,6 @@
 package org.auibar.aris.mobile.ui.form
 
 import android.Manifest
-import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,11 +21,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.automirrored.filled.Send
-import org.auibar.aris.mobile.ui.components.LoadingSpinner
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,16 +46,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.location.LocationServices
 import org.auibar.aris.mobile.R
+import org.auibar.aris.mobile.ui.components.LoadingSpinner
 import java.io.File
 
 @Suppress("UNUSED_PARAMETER")
@@ -79,24 +78,19 @@ fun FormFillScreen(
             val fusedClient = LocationServices.getFusedLocationProviderClient(context)
             try {
                 fusedClient.lastLocation.addOnSuccessListener { location ->
-                    if (location != null) {
-                        viewModel.onLocationCaptured(location.latitude, location.longitude, location.accuracy)
-                    }
+                    if (location != null) viewModel.onLocationCaptured(location.latitude, location.longitude, location.accuracy)
                 }
-            } catch (e: SecurityException) { Log.w("FormFill", "Location permission denied", e) }
+            } catch (e: SecurityException) { Log.w("FormFill", "Location denied", e) }
         }
     }
 
     val photoFile = remember {
-        File(context.cacheDir, "photos").apply { mkdirs() }
-            .let { File(it, "photo_${System.currentTimeMillis()}.jpg") }
+        File(context.cacheDir, "photos").apply { mkdirs() }.let { File(it, "photo_${System.currentTimeMillis()}.jpg") }
     }
     val photoUri = remember {
         FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photoFile)
     }
-    val cameraLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.TakePicture()
-    ) { success ->
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) viewModel.onPhotoCaptured(photoUri.toString())
     }
 
@@ -119,9 +113,14 @@ fun FormFillScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(uiState.templateName.ifBlank { "Form" })
+                        Text(
+                            uiState.templateName.ifBlank { "Form" },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.titleSmall,
+                        )
                         if (readOnly) {
-                            Text("Preview mode", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f))
+                            Text("Preview", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f))
                         }
                     }
                 },
@@ -140,88 +139,97 @@ fun FormFillScreen(
     ) { padding ->
         if (uiState.isLoading) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { LoadingSpinner() }
+        } else if (uiState.fields.isEmpty()) {
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("No form fields available", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(8.dp))
+                    Text(uiState.campaignName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedButton(onClick = onBack) { Text("Go Back") }
+                }
+            }
         } else {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
+                    .verticalScroll(rememberScrollState()),
             ) {
-                // Campaign name
-                Text(uiState.campaignName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
+                // Campaign name — compact
+                Text(
+                    uiState.campaignName,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
 
-                // Preview mode banner
+                // Preview banner
                 if (readOnly) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF1565C0).copy(alpha = 0.1f))
-                            .padding(12.dp),
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF1565C0).copy(alpha = 0.08f)).padding(10.dp),
                     ) {
-                        Text(
-                            "This is a preview. You can explore the form but submissions are disabled for this campaign status.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF1565C0),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                        Text("Preview mode — submissions disabled for this campaign.", style = MaterialTheme.typography.bodySmall, color = Color(0xFF1565C0), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                     }
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(8.dp))
                 }
 
                 // Form fields
-                FormRenderer(
-                    fields = uiState.fields,
-                    values = uiState.values,
-                    errors = uiState.errors,
-                    speciesOptions = uiState.speciesOptions,
-                    diseaseOptions = uiState.diseaseOptions,
-                    countryOptions = uiState.countryOptions,
-                    admin1Options = uiState.admin1Options,
-                    admin2Options = uiState.admin2Options,
-                    onValueChange = viewModel::onValueChange,
-                    onCaptureLocation = {
-                        locationPermissionLauncher.launch(
-                            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-                        )
-                    },
-                    onTakePhoto = { cameraLauncher.launch(photoUri) },
-                )
+                Box(Modifier.padding(horizontal = 16.dp)) {
+                    FormRenderer(
+                        fields = uiState.fields,
+                        values = uiState.values,
+                        errors = uiState.errors,
+                        speciesOptions = uiState.speciesOptions,
+                        diseaseOptions = uiState.diseaseOptions,
+                        countryOptions = uiState.countryOptions,
+                        admin1Options = uiState.admin1Options,
+                        admin2Options = uiState.admin2Options,
+                        onValueChange = viewModel::onValueChange,
+                        onCaptureLocation = {
+                            locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                        },
+                        onTakePhoto = { cameraLauncher.launch(photoUri) },
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
 
                 // Action buttons
-                if (readOnly) {
-                    // Preview mode: only a back button, no submit/draft
-                    Spacer(Modifier.height(24.dp))
-                    OutlinedButton(
-                        onClick = onBack,
-                        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp),
-                    ) {
-                        Text("Close Preview", fontWeight = FontWeight.Medium)
-                    }
-                } else {
-                    // Active campaign: Save Draft + Submit
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
+                Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    if (readOnly) {
                         OutlinedButton(
-                            onClick = viewModel::saveDraft,
-                            modifier = Modifier.weight(1f).defaultMinSize(minHeight = 48.dp),
+                            onClick = onBack,
+                            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp),
+                            shape = RoundedCornerShape(12.dp),
                         ) {
-                            Icon(Icons.Default.Save, contentDescription = stringResource(R.string.save_draft))
-                            Text(stringResource(R.string.save_draft), modifier = Modifier.padding(start = 8.dp))
+                            Text("Close Preview", fontWeight = FontWeight.Medium)
                         }
-                        ExtendedFloatingActionButton(
-                            onClick = viewModel::submit,
-                            modifier = Modifier.weight(1f).defaultMinSize(minHeight = 48.dp),
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.submit))
-                            Text(stringResource(R.string.submit), modifier = Modifier.padding(start = 8.dp))
+                    } else {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedButton(
+                                onClick = viewModel::saveDraft,
+                                modifier = Modifier.weight(1f).defaultMinSize(minHeight = 48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                            ) {
+                                Icon(Icons.Default.Save, contentDescription = null)
+                                Spacer(Modifier.width(6.dp))
+                                Text(stringResource(R.string.save_draft))
+                            }
+                            Button(
+                                onClick = viewModel::submit,
+                                modifier = Modifier.weight(1f).defaultMinSize(minHeight = 48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
+                                Spacer(Modifier.width(6.dp))
+                                Text(stringResource(R.string.submit))
+                            }
                         }
                     }
                 }
+
+                Spacer(Modifier.height(32.dp))
             }
         }
     }
