@@ -332,12 +332,21 @@ export function useDashboardRender(id: string) {
 export function useDefaultDashboard(scope: string, target: string) {
   return useQuery<{ data: Dashboard }>({
     queryKey: KEYS.default(scope, target),
-    queryFn: () =>
-      analyticsClient.get<{ data: Dashboard }>(
+    queryFn: () => {
+      // Parse target key: "domain:uuid", "sub:uuid", or "global"
+      const params: Record<string, string> = { scope };
+      if (target.startsWith('domain:')) {
+        params.domainId = target.slice(7);
+      } else if (target.startsWith('sub:')) {
+        params.subDomainId = target.slice(4);
+      }
+      // "global" = no domainId/subDomainId, just scope
+      return analyticsClient.get<{ data: Dashboard }>(
         '/analytics/dashboards/default-for',
-        { scope, target },
-      ),
-    enabled: !!scope && !!target,
+        params,
+      );
+    },
+    enabled: !!scope,
   });
 }
 
@@ -615,8 +624,19 @@ export function useSetDashboardPreference() {
       dashboardId: string;
       scope: string;
       target: string;
-    }) =>
-      analyticsClient.post('/analytics/dashboards/preference', body),
+    }) => {
+      // Parse target key to proper API fields
+      const payload: Record<string, string> = {
+        dashboardId: body.dashboardId,
+        scope: body.scope,
+      };
+      if (body.target.startsWith('domain:')) {
+        payload.domainId = body.target.slice(7);
+      } else if (body.target.startsWith('sub:')) {
+        payload.subDomainId = body.target.slice(4);
+      }
+      return analyticsClient.post('/analytics/dashboards/preferences', payload);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEYS.all });
     },
