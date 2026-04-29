@@ -5,15 +5,20 @@ import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -38,10 +43,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -55,6 +64,7 @@ import java.io.File
 @Composable
 fun FormFillScreen(
     campaignId: String,
+    readOnly: Boolean = false,
     onBack: () -> Unit,
     viewModel: FormFillViewModel = hiltViewModel(),
 ) {
@@ -70,11 +80,7 @@ fun FormFillScreen(
             try {
                 fusedClient.lastLocation.addOnSuccessListener { location ->
                     if (location != null) {
-                        viewModel.onLocationCaptured(
-                            location.latitude,
-                            location.longitude,
-                            location.accuracy,
-                        )
+                        viewModel.onLocationCaptured(location.latitude, location.longitude, location.accuracy)
                     }
                 }
             } catch (e: SecurityException) { Log.w("FormFill", "Location permission denied", e) }
@@ -91,9 +97,7 @@ fun FormFillScreen(
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
-        if (success) {
-            viewModel.onPhotoCaptured(photoUri.toString())
-        }
+        if (success) viewModel.onPhotoCaptured(photoUri.toString())
     }
 
     val draftSavedMsg = stringResource(R.string.form_saved)
@@ -102,16 +106,9 @@ fun FormFillScreen(
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                FormEvent.DraftSaved -> {
-                    snackbarHostState.showSnackbar(draftSavedMsg)
-                }
-                FormEvent.Submitted -> {
-                    snackbarHostState.showSnackbar(submittedMsg)
-                    onBack()
-                }
-                is FormEvent.Error -> {
-                    snackbarHostState.showSnackbar(event.message)
-                }
+                FormEvent.DraftSaved -> snackbarHostState.showSnackbar(draftSavedMsg)
+                FormEvent.Submitted -> { snackbarHostState.showSnackbar(submittedMsg); onBack() }
+                is FormEvent.Error -> snackbarHostState.showSnackbar(event.message)
             }
         }
     }
@@ -120,14 +117,21 @@ fun FormFillScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(uiState.templateName.ifBlank { "Form" }) },
+                title = {
+                    Column {
+                        Text(uiState.templateName.ifBlank { "Form" })
+                        if (readOnly) {
+                            Text("Preview mode", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f))
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back_button))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    containerColor = if (readOnly) Color(0xFF1565C0) else MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
@@ -135,12 +139,7 @@ fun FormFillScreen(
         },
     ) { padding ->
         if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                LoadingSpinner()
-            }
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { LoadingSpinner() }
         } else {
             Column(
                 modifier = Modifier
@@ -149,12 +148,30 @@ fun FormFillScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
             ) {
-                Text(
-                    text = uiState.campaignName,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(bottom = 16.dp),
-                )
+                // Campaign name
+                Text(uiState.campaignName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
 
+                // Preview mode banner
+                if (readOnly) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF1565C0).copy(alpha = 0.1f))
+                            .padding(12.dp),
+                    ) {
+                        Text(
+                            "This is a preview. You can explore the form but submissions are disabled for this campaign status.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF1565C0),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
+                }
+
+                // Form fields
                 FormRenderer(
                     fields = uiState.fields,
                     values = uiState.values,
@@ -167,36 +184,42 @@ fun FormFillScreen(
                     onValueChange = viewModel::onValueChange,
                     onCaptureLocation = {
                         locationPermissionLauncher.launch(
-                            arrayOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION,
-                            )
+                            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
                         )
                     },
                     onTakePhoto = { cameraLauncher.launch(photoUri) },
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
+                // Action buttons
+                if (readOnly) {
+                    // Preview mode: only a back button, no submit/draft
+                    Spacer(Modifier.height(24.dp))
                     OutlinedButton(
-                        onClick = viewModel::saveDraft,
-                        modifier = Modifier
-                            .weight(1f)
-                            .defaultMinSize(minHeight = 48.dp),
+                        onClick = onBack,
+                        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp),
                     ) {
-                        Icon(Icons.Default.Save, contentDescription = stringResource(R.string.save_draft))
-                        Text(stringResource(R.string.save_draft), modifier = Modifier.padding(start = 8.dp))
+                        Text("Close Preview", fontWeight = FontWeight.Medium)
                     }
-                    ExtendedFloatingActionButton(
-                        onClick = viewModel::submit,
-                        modifier = Modifier
-                            .weight(1f)
-                            .defaultMinSize(minHeight = 48.dp),
+                } else {
+                    // Active campaign: Save Draft + Submit
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.submit))
-                        Text(stringResource(R.string.submit), modifier = Modifier.padding(start = 8.dp))
+                        OutlinedButton(
+                            onClick = viewModel::saveDraft,
+                            modifier = Modifier.weight(1f).defaultMinSize(minHeight = 48.dp),
+                        ) {
+                            Icon(Icons.Default.Save, contentDescription = stringResource(R.string.save_draft))
+                            Text(stringResource(R.string.save_draft), modifier = Modifier.padding(start = 8.dp))
+                        }
+                        ExtendedFloatingActionButton(
+                            onClick = viewModel::submit,
+                            modifier = Modifier.weight(1f).defaultMinSize(minHeight = 48.dp),
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.submit))
+                            Text(stringResource(R.string.submit), modifier = Modifier.padding(start = 8.dp))
+                        }
                     }
                 }
             }

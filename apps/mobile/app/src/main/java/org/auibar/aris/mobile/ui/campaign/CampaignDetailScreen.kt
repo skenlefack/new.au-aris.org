@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.TrackChanges
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -91,7 +92,7 @@ fun CampaignDetailScreen(
     campaignId: String,
     onNewSubmission: () -> Unit,
     onBack: () -> Unit,
-    onFillTemplate: ((campaignId: String, templateId: String) -> Unit)? = null,
+    onFillTemplate: ((campaignId: String, templateId: String, mode: String) -> Unit)? = null,
     viewModel: CampaignDetailViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -173,12 +174,14 @@ fun CampaignDetailScreen(
 
                     // ── Form Templates Card ──
                     item {
+                        val isActive = uiState.status == "ACTIVE"
                         FormTemplatesCard(
                             templates = uiState.templates,
-                            isActive = uiState.status == "ACTIVE",
+                            isActive = isActive,
                             onFillForm = { templateId ->
+                                val mode = if (isActive) "fill" else "preview"
                                 if (onFillTemplate != null) {
-                                    onFillTemplate(campaignId, templateId)
+                                    onFillTemplate(campaignId, templateId, mode)
                                 } else {
                                     onNewSubmission()
                                 }
@@ -482,6 +485,18 @@ private fun FormTemplatesCard(
                                 Spacer(Modifier.width(4.dp))
                                 Text(
                                     stringResource(R.string.fill_form),
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = { onFillForm(template.id) },
+                                contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                            ) {
+                                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    "Preview",
                                     style = MaterialTheme.typography.labelMedium,
                                 )
                             }

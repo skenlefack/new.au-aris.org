@@ -95,7 +95,7 @@ object ArisRoutes {
     const val DASHBOARD = "dashboard"
     const val CAMPAIGNS = "campaigns"
     const val CAMPAIGN_DETAIL = "campaign/{campaignId}"
-    const val FORM_FILL = "form/{campaignId}?templateId={templateId}"
+    const val FORM_FILL = "form/{campaignId}?templateId={templateId}&mode={mode}"
     const val FORM_FILL_BASE = "form/{campaignId}"
     const val SUBMISSIONS = "submissions"
     const val NOTIFICATIONS = "notifications"
@@ -145,9 +145,14 @@ object ArisRoutes {
 
     fun domainDashboard(domainKey: String) = "domain/$domainKey"
     fun campaignDetail(campaignId: String) = "campaign/$campaignId"
-    fun formFill(campaignId: String, templateId: String? = null) =
-        if (templateId != null) "form/$campaignId?templateId=$templateId"
-        else "form/$campaignId"
+    fun formFill(campaignId: String, templateId: String? = null, mode: String = "fill") =
+        buildString {
+            append("form/$campaignId")
+            val params = mutableListOf<String>()
+            if (templateId != null) params.add("templateId=$templateId")
+            if (mode != "fill") params.add("mode=$mode")
+            if (params.isNotEmpty()) append("?${params.joinToString("&")}")
+        }
     fun livestockCensus(campaignId: String) = "livestock-census/$campaignId"
     fun productionRecord(campaignId: String) = "production-record/$campaignId"
     fun outbreakReport(campaignId: String) = "outbreak-report/$campaignId"
@@ -338,8 +343,8 @@ fun ArisNavGraph(
                     onNewSubmission = {
                         navController.navigate(ArisRoutes.formFill(campaignId))
                     },
-                    onFillTemplate = { cId, templateId ->
-                        navController.navigate(ArisRoutes.formFill(cId, templateId))
+                    onFillTemplate = { cId, templateId, mode ->
+                        navController.navigate(ArisRoutes.formFill(cId, templateId, mode))
                     },
                     onBack = { navController.popBackStack() },
                 )
@@ -354,11 +359,18 @@ fun ArisNavGraph(
                         nullable = true
                         defaultValue = null
                     },
+                    navArgument("mode") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = "fill"
+                    },
                 ),
             ) { backStackEntry ->
                 val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                val mode = backStackEntry.arguments?.getString("mode") ?: "fill"
                 FormFillScreen(
                     campaignId = campaignId,
+                    readOnly = mode == "preview",
                     onBack = { navController.popBackStack() },
                 )
             }
