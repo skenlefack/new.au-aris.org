@@ -49,6 +49,12 @@ const WIDGET_TYPE_LABELS: Record<WidgetType, string> = {
   IMAGE: 'Image',
   IFRAME: 'Embed',
   LIST: 'List',
+  HEATMAP: 'Heatmap',
+  RANKED_LIST: 'Ranked List',
+  ACTIVITY_FEED: 'Activity Feed',
+  EPI_CURVE: 'Epi Curve',
+  DUAL_AXIS: 'Dual Axis',
+  COUNTER: 'Counter',
 };
 
 const CHART_TYPES: WidgetType[] = ['LINE', 'BAR', 'PIE', 'STACKED_BAR', 'AREA'];
