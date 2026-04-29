@@ -22,6 +22,24 @@ import javax.inject.Inject
 
 private const val TAG = "CampaignApi"
 
+/** DTO for template API — schema/uiSchema are JSON objects, not strings. */
+@Serializable
+private data class RawFormTemplateDto(
+    val id: String,
+    val name: String = "",
+    val domain: String = "",
+    val schema: JsonElement? = null,
+    val uiSchema: JsonElement? = null,
+    val version: Int = 1,
+) {
+    fun toFormTemplateDto(): FormTemplateDto = FormTemplateDto(
+        id = id, name = name, domain = domain,
+        schema = schema?.toString() ?: "{}",
+        uiSchema = uiSchema?.toString() ?: "{}",
+        version = version,
+    )
+}
+
 /**
  * DTO for /api/v1/workflow/campaigns — name/description are JSON objects {en, fr, ...}
  * Unlike /collecte/campaigns which returns name as plain String.
@@ -180,14 +198,18 @@ class CampaignApi @Inject constructor(
     }
 
     suspend fun getFormTemplate(templateId: String): FormTemplateDto? {
+        if (templateId.isBlank()) return null
         return try {
             val response = client.get("/api/v1/form-builder/templates/$templateId")
             if (response.status.value !in 200..299) {
                 Log.w(TAG, "getFormTemplate $templateId → HTTP ${response.status.value}")
                 return null
             }
-            val body: SafeApiResponse<FormTemplateDto> = response.body()
-            body.data
+            // schema/uiSchema come as JSON objects from API, not strings
+            val body: SafeApiResponse<RawFormTemplateDto> = response.body()
+            val raw = body.data ?: return null
+            Log.d(TAG, "getFormTemplate OK: ${raw.name} (schema ${raw.schema?.toString()?.take(50)}...)")
+            raw.toFormTemplateDto()
         } catch (e: Exception) {
             Log.w(TAG, "getFormTemplate $templateId failed: ${e.message}")
             null
@@ -195,6 +217,7 @@ class CampaignApi @Inject constructor(
     }
 
     suspend fun getFormTemplateInfo(templateId: String): TemplateInfoDto? {
+        if (templateId.isBlank()) return null
         return try {
             val response = client.get("/api/v1/form-builder/templates/$templateId")
             if (response.status.value !in 200..299) return null
