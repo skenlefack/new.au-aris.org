@@ -179,14 +179,31 @@ class CampaignApi @Inject constructor(
         return client.get("/api/v1/collecte/campaigns/$campaignId").body()
     }
 
-    suspend fun getFormTemplate(templateId: String): ApiResponse<FormTemplateDto> {
-        return client.get("/api/v1/form-builder/templates/$templateId").body()
+    suspend fun getFormTemplate(templateId: String): FormTemplateDto? {
+        return try {
+            val response = client.get("/api/v1/form-builder/templates/$templateId")
+            if (response.status.value !in 200..299) {
+                Log.w(TAG, "getFormTemplate $templateId → HTTP ${response.status.value}")
+                return null
+            }
+            val body: SafeApiResponse<FormTemplateDto> = response.body()
+            body.data
+        } catch (e: Exception) {
+            Log.w(TAG, "getFormTemplate $templateId failed: ${e.message}")
+            null
+        }
     }
 
-    suspend fun getFormTemplateInfo(templateId: String): TemplateInfoDto {
-        val response: ApiResponse<TemplateInfoDto> =
-            client.get("/api/v1/form-builder/templates/$templateId").body()
-        return response.data
+    suspend fun getFormTemplateInfo(templateId: String): TemplateInfoDto? {
+        return try {
+            val response = client.get("/api/v1/form-builder/templates/$templateId")
+            if (response.status.value !in 200..299) return null
+            val body: SafeApiResponse<TemplateInfoDto> = response.body()
+            body.data
+        } catch (e: Exception) {
+            Log.w(TAG, "getFormTemplateInfo $templateId failed: ${e.message}")
+            null
+        }
     }
 
     /** List published form templates for a domain. Safe parsing. */

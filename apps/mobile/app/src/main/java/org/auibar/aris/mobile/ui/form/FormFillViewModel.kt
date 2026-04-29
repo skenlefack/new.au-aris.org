@@ -97,8 +97,8 @@ class FormFillViewModel @Inject constructor(
                 if (template == null) {
                     android.util.Log.d("FormFillVM", "Template $templateId not in local DB, fetching from API...")
                     try {
-                        val response = campaignApi.getFormTemplate(templateId)
-                        val dto = response.data
+                        val dto = campaignApi.getFormTemplate(templateId)
+                        if (dto != null) {
                         val entity = FormTemplateEntity(
                             id = dto.id,
                             name = dto.name,
@@ -111,6 +111,9 @@ class FormFillViewModel @Inject constructor(
                         formTemplateDao.upsertAll(listOf(entity))
                         template = formTemplateRepository.getById(templateId)
                         android.util.Log.d("FormFillVM", "Template fetched and saved: ${dto.name}")
+                        } else {
+                            android.util.Log.w("FormFillVM", "API returned null for template $templateId")
+                        }
                     } catch (e: Exception) {
                         android.util.Log.w("FormFillVM", "Failed to fetch template from API: ${e.message}")
                     }

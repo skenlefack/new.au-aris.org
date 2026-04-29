@@ -207,12 +207,11 @@ class CampaignDetailViewModel @Inject constructor(
                     }
                     // Fetch from API
                     val dto = campaignApi.getFormTemplateInfo(id)
-                    TemplateInfo(
-                        id = dto.id,
-                        name = dto.name,
-                        domain = dto.domain ?: "",
-                        version = dto.version,
-                    )
+                    if (dto != null) {
+                        TemplateInfo(id = dto.id, name = dto.name, domain = dto.domain ?: "", version = dto.version)
+                    } else {
+                        TemplateInfo(id = id, name = "Form Template")
+                    }
                 } catch (_: Exception) {
                     TemplateInfo(id = id, name = "Form Template")
                 }

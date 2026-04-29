@@ -35,8 +35,7 @@ class CampaignRefresher @Inject constructor(
     /** Refresh templates for a specific campaign. */
     suspend fun refreshTemplateForCampaign(templateId: String) {
         try {
-            val response = campaignApi.getFormTemplate(templateId)
-            val dto = response.data
+            val dto = campaignApi.getFormTemplate(templateId) ?: return
             val now = System.currentTimeMillis()
             formTemplateDao.upsertAll(
                 listOf(
