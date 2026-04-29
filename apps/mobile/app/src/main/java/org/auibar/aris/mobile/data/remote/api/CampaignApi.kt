@@ -261,4 +261,32 @@ class CampaignApi @Inject constructor(
             emptyList()
         }
     }
+
+    /** Load reference data options for form select fields via /ref/{type}/for-select. */
+    suspend fun getRefDataForSelect(type: String): List<RefDataSelectItem> {
+        return try {
+            val response = client.get("/api/v1/master-data/ref/$type/for-select")
+            if (response.status.value !in 200..299) {
+                Log.w(TAG, "Ref data $type → HTTP ${response.status.value}")
+                return emptyList()
+            }
+            val body: SafeApiResponse<List<RefDataSelectItem>> = response.body()
+            body.data ?: emptyList()
+        } catch (e: Exception) {
+            Log.w(TAG, "Ref data $type failed: ${e.message}")
+            emptyList()
+        }
+    }
 }
+
+@Serializable
+data class RefDataSelectItem(
+    val id: String,
+    val code: String? = null,
+    val label: String? = null,
+    val labelEn: String? = null,
+    val labelFr: String? = null,
+    val name: String? = null,
+    val commonName: String? = null,
+    val scientificName: String? = null,
+)

@@ -5,9 +5,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.get
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -16,7 +13,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -26,7 +22,6 @@ import org.auibar.aris.mobile.data.local.dao.GeoDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
 import org.auibar.aris.mobile.data.local.entity.FormTemplateEntity
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
-import org.auibar.aris.mobile.data.remote.dto.SafeApiResponse
 import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.FormTemplateRepository
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
@@ -69,18 +64,6 @@ sealed class FormEvent {
     data class Error(val message: String) : FormEvent()
 }
 
-@Serializable
-private data class RefSelectItem(
-    val id: String,
-    val code: String? = null,
-    val label: String? = null,
-    val labelEn: String? = null,
-    val labelFr: String? = null,
-    val name: String? = null,
-    val commonName: String? = null,
-    val scientificName: String? = null,
-)
-
 @HiltViewModel
 class FormFillViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -93,7 +76,6 @@ class FormFillViewModel @Inject constructor(
     private val diseaseDao: DiseaseDao,
     private val geoDao: GeoDao,
     private val tokenManager: TokenManager,
-    private val httpClient: HttpClient,
 ) : ViewModel() {
 
     private val campaignId: String = savedStateHandle["campaignId"] ?: ""
@@ -176,28 +158,18 @@ class FormFillViewModel @Inject constructor(
         val results = mutableMapOf<String, List<SelectOption>>()
         types.map { type ->
             viewModelScope.async {
-                try {
-                    val response = httpClient.get("/api/v1/master-data/ref/$type/for-select")
-                    if (response.status.value !in 200..299) {
-                        Log.w(TAG, "Ref data $type → HTTP ${response.status.value}")
-                        return@async type to emptyList<SelectOption>()
-                    }
-                    val body: SafeApiResponse<List<RefSelectItem>> = response.body()
-                    val options = (body.data ?: emptyList()).map { item ->
-                        val label = item.labelEn
-                            ?: item.label
-                            ?: item.commonName?.let { "$it${item.scientificName?.let { s -> " ($s)" } ?: ""}" }
-                            ?: item.name
-                            ?: item.code
-                            ?: item.id
-                        SelectOption(value = item.id, label = label)
-                    }
-                    Log.d(TAG, "Ref data $type: ${options.size} options")
-                    type to options
-                } catch (e: Exception) {
-                    Log.w(TAG, "Ref data $type failed: ${e.message}")
-                    type to emptyList<SelectOption>()
+                val items = campaignApi.getRefDataForSelect(type)
+                val options = items.map { item ->
+                    val label = item.labelEn
+                        ?: item.label
+                        ?: item.commonName?.let { "$it${item.scientificName?.let { s -> " ($s)" } ?: ""}" }
+                        ?: item.name
+                        ?: item.code
+                        ?: item.id
+                    SelectOption(value = item.id, label = label)
                 }
+                Log.d(TAG, "Ref data $type: ${options.size} options")
+                type to options
             }
         }.awaitAll().forEach { (type, options) ->
             results[type] = options
