@@ -212,7 +212,7 @@ export function DashboardSection({ scope, target, domainCode, zone = 'domain' }:
               Creez un tableau de bord personnalise depuis &quot;Mes tableaux de bord&quot;
             </p>
             <Link
-              href="/my-dashboards"
+              href={`/my-dashboards${domainCode ? `?domain=${domainCode}` : ''}`}
               className="mt-4 flex items-center gap-1.5 rounded-lg bg-[#1F4E79] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#1a4060]"
             >
               <Plus className="h-3.5 w-3.5" />

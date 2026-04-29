@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   LayoutDashboard,
   Plus,
@@ -11,6 +11,9 @@ import {
   BarChart3,
   Trash2,
   Calendar,
+  X,
+  Home,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -23,6 +26,8 @@ import {
 } from '@/lib/api/dashboard-hooks';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useRealtimeStore } from '@/lib/realtime/realtime-store';
+import { useDomainStore } from '@/lib/stores/domain-store';
+import { useSubDomains } from '@/hooks/use-sub-domains';
 
 type Tab = 'USER_OWNED' | 'SHARED' | 'SYSTEM_TEMPLATE';
 
@@ -127,6 +132,7 @@ function DashboardCard({
 
 export default function MyDashboardsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<Tab>('USER_OWNED');
 
   const { data, isLoading } = useDashboards({
@@ -137,18 +143,37 @@ export default function MyDashboardsPage() {
   const createMutation = useCreateDashboard();
   const deleteMutation = useDeleteDashboard();
   const addToast = useRealtimeStore((s) => s.addToast);
+  const allDomains = useDomainStore((s) => s.allDomains);
 
   const dashboards: DashboardListItem[] = data?.data ?? [];
 
   const [isCreating, setIsCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
+  // New dashboard modal state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newZone, setNewZone] = useState<'principal' | 'domain'>(
+    searchParams.get('domain') ? 'domain' : 'principal',
+  );
+  const [newDomainCode, setNewDomainCode] = useState(searchParams.get('domain') ?? '');
+
+  const openCreateModal = () => {
+    setNewTitle('');
+    setNewZone(searchParams.get('domain') ? 'domain' : 'principal');
+    setNewDomainCode(searchParams.get('domain') ?? '');
+    setShowCreateModal(true);
+  };
+
   const handleCreate = async () => {
     setIsCreating(true);
+    setShowCreateModal(false);
     try {
+      const selectedDomain = allDomains.find((d) => d.code === newDomainCode);
       const result = await createMutation.mutateAsync({
-        title: 'New Dashboard',
+        title: newTitle || 'New Dashboard',
         scope: 'PERSONAL',
+        domainCode: newZone === 'domain' && newDomainCode ? newDomainCode : undefined,
       });
       const id = (result as any)?.data?.id;
       if (id) {
@@ -192,7 +217,7 @@ export default function MyDashboardsPage() {
           </p>
         </div>
         <button
-          onClick={handleCreate}
+          onClick={openCreateModal}
           disabled={createMutation.isPending}
           className="flex items-center gap-2 rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#163a5c] disabled:opacity-50 transition-colors"
         >
@@ -246,7 +271,7 @@ export default function MyDashboardsPage() {
             </p>
             {activeTab === 'USER_OWNED' && (
               <button
-                onClick={handleCreate}
+                onClick={openCreateModal}
                 className="mt-3 flex items-center gap-1.5 text-sm font-medium text-[#1F4E79] hover:underline"
               >
                 <Plus className="h-4 w-4" />
@@ -287,6 +312,103 @@ export default function MyDashboardsPage() {
         variant="danger"
         loading={deleteMutation.isPending}
       />
+
+      {/* Create Dashboard Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-800" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Nouveau tableau de bord</h3>
+              <button onClick={() => setShowCreateModal(false)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titre</label>
+                <input
+                  type="text"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="Mon tableau de bord..."
+                  autoFocus
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                />
+              </div>
+
+              {/* Zone */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Zone d&apos;affichage</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewZone('principal')}
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all',
+                      newZone === 'principal'
+                        ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79]'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-600 dark:text-gray-400',
+                    )}
+                  >
+                    <Home className="h-4 w-4" />
+                    Principal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewZone('domain')}
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all',
+                      newZone === 'domain'
+                        ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79]'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-600 dark:text-gray-400',
+                    )}
+                  >
+                    <Globe className="h-4 w-4" />
+                    Domaine
+                  </button>
+                </div>
+              </div>
+
+              {/* Domain selector (only when zone=domain) */}
+              {newZone === 'domain' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Domaine</label>
+                  <select
+                    value={newDomainCode}
+                    onChange={(e) => setNewDomainCode(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  >
+                    <option value="">-- Tous les domaines --</option>
+                    {allDomains.map((d) => (
+                      <option key={d.code} value={d.code}>
+                        {d.name?.fr || d.name?.en || d.code}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleCreate}
+                className="rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white hover:bg-[#163a5c]"
+              >
+                Creer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
