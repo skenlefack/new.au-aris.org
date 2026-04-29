@@ -316,57 +316,69 @@ export default function MyDashboardsPage() {
       {/* Create Dashboard Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-800" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Nouveau tableau de bord</h3>
-              <button onClick={() => setShowCreateModal(false)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+          <div className="mx-4 w-full max-w-lg rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1F4E79]/10">
+                  <LayoutDashboard className="h-5 w-5 text-[#1F4E79]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Nouveau tableau de bord</h3>
+                  <p className="text-xs text-gray-400">Configurez votre tableau de bord personnalise</p>
+                </div>
+              </div>
+              <button onClick={() => setShowCreateModal(false)} className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="space-y-4">
+            {/* Body */}
+            <div className="px-6 py-5 space-y-5">
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titre</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Titre du tableau de bord</label>
                 <input
                   type="text"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Mon tableau de bord..."
+                  placeholder="Ex: Vue d'ensemble Sante animale..."
                   autoFocus
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  className="w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                 />
               </div>
 
               {/* Zone */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Zone d&apos;affichage</label>
-                <div className="grid grid-cols-2 gap-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Zone d&apos;affichage</label>
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setNewZone('principal')}
                     className={cn(
-                      'flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all',
+                      'flex flex-col items-center gap-2 rounded-xl border-2 px-4 py-4 text-sm font-medium transition-all',
                       newZone === 'principal'
-                        ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79]'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-600 dark:text-gray-400',
+                        ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79] shadow-sm'
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700/50',
                     )}
                   >
-                    <Home className="h-4 w-4" />
-                    Principal
+                    <Home className="h-6 w-6" />
+                    <span>Page d&apos;accueil</span>
+                    <span className="text-[10px] font-normal text-gray-400">Tableau de bord principal</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setNewZone('domain')}
                     className={cn(
-                      'flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all',
+                      'flex flex-col items-center gap-2 rounded-xl border-2 px-4 py-4 text-sm font-medium transition-all',
                       newZone === 'domain'
-                        ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79]'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-600 dark:text-gray-400',
+                        ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79] shadow-sm'
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700/50',
                     )}
                   >
-                    <Globe className="h-4 w-4" />
-                    Domaine
+                    <Globe className="h-6 w-6" />
+                    <span>Page domaine</span>
+                    <span className="text-[10px] font-normal text-gray-400">Specifique a un domaine</span>
                   </button>
                 </div>
               </div>
@@ -374,36 +386,48 @@ export default function MyDashboardsPage() {
               {/* Domain selector (only when zone=domain) */}
               {newZone === 'domain' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Domaine</label>
-                  <select
-                    value={newDomainCode}
-                    onChange={(e) => setNewDomainCode(e.target.value)}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                  >
-                    <option value="">-- Tous les domaines --</option>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Domaine concerne</label>
+                  <div className="grid grid-cols-1 gap-2">
                     {allDomains
                       .filter((d) => !['knowledge-hub', 'knowledge'].includes(d.code))
                       .map((d) => (
-                      <option key={d.code} value={d.code}>
-                        {d.name?.fr || d.name?.en || d.code}
-                      </option>
+                      <button
+                        key={d.code}
+                        type="button"
+                        onClick={() => setNewDomainCode(d.code)}
+                        className={cn(
+                          'flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-all',
+                          newDomainCode === d.code
+                            ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79] font-medium shadow-sm'
+                            : 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700/50',
+                        )}
+                      >
+                        <div
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
+                          style={{ backgroundColor: d.color || '#1F4E79' }}
+                        >
+                          {(d.name?.fr || d.name?.en || d.code).charAt(0).toUpperCase()}
+                        </div>
+                        <span>{d.name?.fr || d.name?.en || d.code}</span>
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Actions */}
-            <div className="mt-6 flex justify-end gap-3">
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-700 px-6 py-4">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 Annuler
               </button>
               <button
                 onClick={handleCreate}
-                className="rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white hover:bg-[#163a5c]"
+                disabled={newZone === 'domain' && !newDomainCode}
+                className="rounded-lg bg-[#1F4E79] px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#163a5c] disabled:opacity-50"
               >
                 Creer
               </button>
