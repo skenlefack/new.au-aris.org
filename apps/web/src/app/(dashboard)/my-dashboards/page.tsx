@@ -144,6 +144,7 @@ export default function MyDashboardsPage() {
   const deleteMutation = useDeleteDashboard();
   const addToast = useRealtimeStore((s) => s.addToast);
   const allDomains = useDomainStore((s) => s.allDomains);
+  const subDomainsMetadata = useDomainStore((s) => s.subDomainsMetadata);
 
   const dashboards: DashboardListItem[] = data?.data ?? [];
 
@@ -153,27 +154,36 @@ export default function MyDashboardsPage() {
   // New dashboard modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
-  const [newZone, setNewZone] = useState<'principal' | 'domain'>(
+  const [newZone, setNewZone] = useState<'principal' | 'domain' | 'subdomain'>(
     searchParams.get('domain') ? 'domain' : 'principal',
   );
   const [newDomainCode, setNewDomainCode] = useState(searchParams.get('domain') ?? '');
+  const [newSubDomainCode, setNewSubDomainCode] = useState('');
+  const [treeSearch, setTreeSearch] = useState('');
+  const [shakeModal, setShakeModal] = useState(false);
 
   const openCreateModal = () => {
     setNewTitle('');
     setNewZone(searchParams.get('domain') ? 'domain' : 'principal');
     setNewDomainCode(searchParams.get('domain') ?? '');
+    setNewSubDomainCode('');
+    setTreeSearch('');
     setShowCreateModal(true);
+  };
+
+  const handleBackdropClick = () => {
+    setShakeModal(true);
+    setTimeout(() => setShakeModal(false), 300);
   };
 
   const handleCreate = async () => {
     setIsCreating(true);
     setShowCreateModal(false);
     try {
-      const selectedDomain = allDomains.find((d) => d.code === newDomainCode);
       const result = await createMutation.mutateAsync({
         title: newTitle || 'New Dashboard',
         scope: 'PERSONAL',
-        domainCode: newZone === 'domain' && newDomainCode ? newDomainCode : undefined,
+        domainCode: (newZone === 'domain' || newZone === 'subdomain') && newDomainCode ? newDomainCode : undefined,
       });
       const id = (result as any)?.data?.id;
       if (id) {
@@ -315,10 +325,16 @@ export default function MyDashboardsPage() {
 
       {/* Create Dashboard Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-lg rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={handleBackdropClick}>
+          <div
+            className={cn(
+              'mx-4 flex max-h-[85vh] w-full max-w-2xl flex-col rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800',
+              shakeModal && 'animate-[shake_0.3s_ease-in-out]',
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1F4E79]/10">
                   <LayoutDashboard className="h-5 w-5 text-[#1F4E79]" />
@@ -333,8 +349,8 @@ export default function MyDashboardsPage() {
               </button>
             </div>
 
-            {/* Body */}
-            <div className="px-6 py-5 space-y-5">
+            {/* Body — scrollable */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
               {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Titre du tableau de bord</label>
@@ -348,42 +364,35 @@ export default function MyDashboardsPage() {
                 />
               </div>
 
-              {/* Zone */}
+              {/* Zone — 3 options */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Zone d&apos;affichage</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setNewZone('principal')}
-                    className={cn(
-                      'flex flex-col items-center gap-2 rounded-xl border-2 px-4 py-4 text-sm font-medium transition-all',
-                      newZone === 'principal'
-                        ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79] shadow-sm'
-                        : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700/50',
-                    )}
-                  >
-                    <Home className="h-6 w-6" />
-                    <span>Page d&apos;accueil</span>
-                    <span className="text-[10px] font-normal text-gray-400">Tableau de bord principal</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNewZone('domain')}
-                    className={cn(
-                      'flex flex-col items-center gap-2 rounded-xl border-2 px-4 py-4 text-sm font-medium transition-all',
-                      newZone === 'domain'
-                        ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79] shadow-sm'
-                        : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700/50',
-                    )}
-                  >
-                    <Globe className="h-6 w-6" />
-                    <span>Page domaine</span>
-                    <span className="text-[10px] font-normal text-gray-400">Specifique a un domaine</span>
-                  </button>
+                <div className="grid grid-cols-3 gap-3">
+                  {([
+                    { key: 'principal' as const, icon: Home, label: "Page d'accueil", desc: 'Tableau de bord principal' },
+                    { key: 'domain' as const, icon: Globe, label: 'Page domaine', desc: 'Specifique a un domaine' },
+                    { key: 'subdomain' as const, icon: Layers, label: 'Sous-domaine', desc: 'Specifique a un sous-domaine' },
+                  ]).map((z) => (
+                    <button
+                      key={z.key}
+                      type="button"
+                      onClick={() => { setNewZone(z.key); setNewDomainCode(''); setNewSubDomainCode(''); }}
+                      className={cn(
+                        'flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-3 text-xs font-medium transition-all',
+                        newZone === z.key
+                          ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79] shadow-sm'
+                          : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700/50',
+                      )}
+                    >
+                      <z.icon className="h-5 w-5" />
+                      <span>{z.label}</span>
+                      <span className="text-[9px] font-normal text-gray-400">{z.desc}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Domain selector (only when zone=domain) */}
+              {/* Domain selector (zone=domain) */}
               {newZone === 'domain' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Domaine concerne</label>
@@ -402,10 +411,7 @@ export default function MyDashboardsPage() {
                             : 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700/50',
                         )}
                       >
-                        <div
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
-                          style={{ backgroundColor: d.color || '#1F4E79' }}
-                        >
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white" style={{ backgroundColor: d.color || '#1F4E79' }}>
                           {(d.name?.fr || d.name?.en || d.code).charAt(0).toUpperCase()}
                         </div>
                         <span>{d.name?.fr || d.name?.en || d.code}</span>
@@ -414,10 +420,65 @@ export default function MyDashboardsPage() {
                   </div>
                 </div>
               )}
+
+              {/* Sub-domain tree selector (zone=subdomain) */}
+              {newZone === 'subdomain' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Sous-domaine concerne</label>
+                  <input
+                    type="text"
+                    value={treeSearch}
+                    onChange={(e) => setTreeSearch(e.target.value)}
+                    placeholder="Rechercher un sous-domaine..."
+                    className="mb-3 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                  <div className="max-h-[280px] overflow-y-auto space-y-1 rounded-lg border border-gray-200 dark:border-gray-700 p-2">
+                    {allDomains
+                      .filter((d) => !['knowledge-hub', 'knowledge'].includes(d.code))
+                      .map((domain) => {
+                        const subs = subDomainsMetadata.filter((s) => s.domainCode === domain.code && s.active);
+                        const q = treeSearch.toLowerCase();
+                        const domainName = domain.name?.fr || domain.name?.en || domain.code;
+                        const filteredSubs = q
+                          ? subs.filter((s: any) => (s.labelFr || s.labelEn || s.code || '').toLowerCase().includes(q) || domainName.toLowerCase().includes(q))
+                          : subs;
+                        if (q && filteredSubs.length === 0 && !domainName.toLowerCase().includes(q)) return null;
+                        return (
+                          <div key={domain.code}>
+                            {/* Domain header (not clickable) */}
+                            <div className="flex items-center gap-2 px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: domain.color || '#1F4E79' }} />
+                              {domainName}
+                            </div>
+                            {/* Sub-domains */}
+                            {filteredSubs.length > 0 ? filteredSubs.map((sd: any) => (
+                              <button
+                                key={sd.code || sd.id}
+                                type="button"
+                                onClick={() => { setNewDomainCode(domain.code); setNewSubDomainCode(sd.code); }}
+                                className={cn(
+                                  'ml-4 flex w-[calc(100%-1rem)] items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-all',
+                                  newSubDomainCode === sd.code
+                                    ? 'bg-[#1F4E79]/10 text-[#1F4E79] font-medium'
+                                    : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50',
+                                )}
+                              >
+                                <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: domain.color || '#1F4E79' }} />
+                                {sd.labelFr || sd.labelEn || sd.code}
+                              </button>
+                            )) : (
+                              <p className="ml-4 px-2.5 py-1.5 text-xs text-gray-400 italic">Aucun sous-domaine</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-700 px-6 py-4">
+            <div className="flex items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-700 px-6 py-4 shrink-0">
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
@@ -426,12 +487,22 @@ export default function MyDashboardsPage() {
               </button>
               <button
                 onClick={handleCreate}
-                disabled={newZone === 'domain' && !newDomainCode}
+                disabled={(newZone === 'domain' && !newDomainCode) || (newZone === 'subdomain' && !newSubDomainCode)}
                 className="rounded-lg bg-[#1F4E79] px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#163a5c] disabled:opacity-50"
               >
                 Creer
               </button>
             </div>
+
+            <style>{`
+              @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                20% { transform: translateX(-6px); }
+                40% { transform: translateX(6px); }
+                60% { transform: translateX(-4px); }
+                80% { transform: translateX(4px); }
+              }
+            `}</style>
           </div>
         </div>
       )}
