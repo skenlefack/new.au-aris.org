@@ -182,20 +182,27 @@ export class HistoricalDataService {
         },
       });
 
-      // Publish event
-      await this.publishEvent(
-        'sys.datalake.dataset.imported.v1',
-        dataset.id,
-        {
-          datasetId: dataset.id,
-          name: dto.name,
-          domain: dto.domain,
-          rowCount: rowsInserted,
-          columnCount: analysis.columns.length,
-        },
-        tenantId,
-        userId,
-      );
+      // Publish event (non-blocking — don't fail import if Kafka is unavailable)
+      try {
+        await Promise.race([
+          this.publishEvent(
+            'sys.datalake.dataset.imported.v1',
+            dataset.id,
+            {
+              datasetId: dataset.id,
+              name: dto.name,
+              domain: dto.domain,
+              rowCount: rowsInserted,
+              columnCount: analysis.columns.length,
+            },
+            tenantId,
+            userId,
+          ),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Kafka timeout')), 5000)),
+        ]);
+      } catch {
+        // Kafka publish failed — data is already persisted, continue
+      }
 
       const result = await this.prisma.historicalDataset.findUnique({
         where: { id: dataset.id },
