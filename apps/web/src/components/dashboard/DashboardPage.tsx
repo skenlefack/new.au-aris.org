@@ -343,6 +343,7 @@ function OverviewGrid({
   selectedRec?: string;
   selectedCountry?: string;
 }) {
+  const dashData = useDashboardData();
   return (
     <>
       {/* Row 2: Map + Alerts */}
