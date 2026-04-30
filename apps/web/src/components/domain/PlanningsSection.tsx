@@ -49,7 +49,9 @@ const STATUS_BADGE: Record<string, { classes: string; icon: React.ElementType }>
 export function PlanningsSection({ target }: PlanningsSectionProps) {
   const [filter, setFilter] = useState<StatusFilter>('ALL');
 
-  const domainParam = target.domainCode?.replace(/-/g, '_') ?? undefined;
+  // Map page route codes to DB domain values (e.g. 'livestock-prod' → 'livestock')
+  const DOMAIN_MAP: Record<string, string> = { 'livestock-prod': 'livestock' };
+  const domainParam = DOMAIN_MAP[target.domainCode ?? ''] ?? target.domainCode?.replace(/-/g, '_') ?? undefined;
 
   const { data, isLoading } = useCollectionCampaigns({
     domain: domainParam,

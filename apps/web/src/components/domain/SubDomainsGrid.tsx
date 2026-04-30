@@ -14,15 +14,22 @@ interface SubDomainsGridProps {
   domainCode: string;
 }
 
+// Map page route codes to DB domain values (e.g. 'livestock-prod' → 'livestock')
+const DOMAIN_MAP: Record<string, string> = { 'livestock-prod': 'livestock' };
+function normalizeDomain(code: string): string {
+  return DOMAIN_MAP[code] ?? code.replace(/-/g, '_');
+}
+
 /** Fetch lightweight stats for all sub-domains of a domain in one call */
 function useSubDomainStats(domainCode: string) {
   return useQuery<Record<string, { campaigns: number; forms: number; submissions: number }>>({
     queryKey: ['sub-domain-stats', domainCode],
     queryFn: async () => {
       // Fetch campaigns and forms for this domain — lightweight calls
+      const dbDomain = normalizeDomain(domainCode);
       const [campaignsRes, formsRes] = await Promise.allSettled([
-        collecteClient.get<any>('/api/v1/collecte/campaigns', { domain: domainCode, limit: '200' }),
-        collecteClient.get<any>('/api/v1/form-builder/templates', { domain: domainCode, limit: '200', status: 'PUBLISHED' }),
+        collecteClient.get<any>('/api/v1/collecte/campaigns', { domain: dbDomain, limit: '200' }),
+        collecteClient.get<any>('/api/v1/form-builder/templates', { domain: dbDomain, limit: '200', status: 'PUBLISHED' }),
       ]);
 
       const campaigns = campaignsRes.status === 'fulfilled' ? (campaignsRes.value?.data ?? []) : [];
