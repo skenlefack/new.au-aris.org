@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiClientError } from './client';
 
-const HIST_API_BASE =
+export const HIST_API_BASE =
   process.env.NEXT_PUBLIC_DATALAKE_URL ?? '/api/v1/historical';
 
 /* ------------------------------------------------------------------ */
@@ -34,7 +34,7 @@ function getAuthToken(): string | null {
   } catch { return null; }
 }
 
-async function histFetch<T>(url: string, init?: RequestInit): Promise<T> {
+export async function histFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const base: Record<string, string> = { ...getAuthHeaders(), ...((init?.headers ?? {}) as Record<string, string>) };
   if ((init?.method ?? 'GET').toUpperCase() === 'DELETE') delete base['Content-Type'];
   const res = await fetch(url, {
@@ -452,7 +452,7 @@ export function useDashboardKpis(params?: {
   return useQuery<{ data: DashboardKpis }>({
     queryKey: ['historical-dashboard-kpis', params],
     queryFn: () => histFetch(`${HIST_API_BASE}/dashboard-kpis${suffix}`),
-    enabled: (params?.datasetIds?.length ?? 0) > 0,
+    enabled: true,
   });
 }
 

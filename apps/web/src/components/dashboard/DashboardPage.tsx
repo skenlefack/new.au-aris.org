@@ -26,19 +26,9 @@ import { MetricActivityWidget } from './widgets/MetricActivityWidget';
 import { HealthEpiCurveWidget } from './widgets/HealthEpiCurveWidget';
 import { HealthRainfallWidget } from './widgets/HealthRainfallWidget';
 
-// Demo data
-import {
-  DEMO_KPIS,
-  DEMO_COUNTRY_DATA,
-  DEMO_MONTHLY_TRENDS,
-  DEMO_DISEASES,
-  DEMO_ALERTS,
-  DEMO_HEATMAP_DATA,
-  DEMO_EPI_CURVE,
-  DEMO_RAINFALL,
-  DEMO_ACTIVITIES,
-  filterCountryData,
-} from './demo-data';
+// Real data hook + demo fallbacks
+import { useDashboardData } from './use-dashboard-data';
+import { filterCountryData } from './demo-data';
 
 // Leaflet-based map must be dynamic (no SSR)
 const ChoroplethMap = dynamic(
@@ -131,6 +121,8 @@ function DashboardContent() {
   const dashboardRef = useRef<HTMLDivElement>(null);
   const { filters, setFilter } = useDashboardFilters();
 
+  const dashData = useDashboardData(filters);
+
   const handleCountryClick = useCallback((code: string) => {
     setFilter('country', code);
   }, [setFilter]);
@@ -157,8 +149,8 @@ function DashboardContent() {
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
   }, []);
 
-  // Apply filters to demo data
-  const filteredCountryData = filterCountryData(DEMO_COUNTRY_DATA, {
+  // Apply filters to real data (with demo fallback built into dashData)
+  const filteredCountryData = filterCountryData(dashData.countryData, {
     rec: filters.rec,
     country: filters.country,
   });
@@ -177,7 +169,7 @@ function DashboardContent() {
   }));
 
   // Disease distribution for pie chart
-  const diseaseForPie = DEMO_DISEASES.map((d) => ({
+  const diseaseForPie = dashData.diseases.map((d) => ({
     name: d.code,
     value: d.cases,
     color: d.color,
@@ -185,12 +177,12 @@ function DashboardContent() {
 
   // Filtered alerts
   const filteredAlerts = filters.country !== 'all'
-    ? DEMO_ALERTS.filter((a) => a.countryCode === filters.country)
-    : DEMO_ALERTS;
+    ? dashData.alerts.filter((a) => a.countryCode === filters.country)
+    : dashData.alerts;
 
   // Scope label
   const scopeLabel = filters.country !== 'all'
-    ? DEMO_COUNTRY_DATA.find((c) => c.code === filters.country)?.name ?? filters.country
+    ? dashData.countryData.find((c) => c.code === filters.country)?.name ?? filters.country
     : filters.rec !== 'all'
       ? filters.rec.toUpperCase()
       : 'Continental';
@@ -292,7 +284,7 @@ function DashboardContent() {
         {/* Content area */}
         <div className="px-5 py-5 space-y-5">
           {/* KPI Bar */}
-          <DashboardKpiBar kpis={DEMO_KPIS} />
+          <DashboardKpiBar kpis={dashData.kpis} />
 
           {activePage === 'overview' && (
             <OverviewGrid
@@ -381,23 +373,23 @@ function OverviewGrid({
         <ChartLineWidget
           title="Outbreak Trend"
           subtitle="Monthly outbreaks — last 12 months"
-          data={DEMO_MONTHLY_TRENDS}
+          data={dashData.monthlyTrends}
           lines={[
             { dataKey: 'outbreaks', label: 'Outbreaks', color: '#ef4444', type: 'area' },
             { dataKey: 'submissions', label: 'Submissions', color: '#3b82f6' },
           ]}
           area
-          demo
+          demo={!dashData.isRealData}
         />
         <ChartBarWidget
           title="Cases by Disease"
           subtitle="Top 10 diseases by reported cases"
-          data={DEMO_DISEASES.map((d) => ({ name: d.code, cases: d.cases, color: d.color }))}
+          data={dashData.diseases.map((d) => ({ name: d.code, cases: d.cases, color: d.color }))}
           bars={[{ dataKey: 'cases', label: 'Cases', color: '#3b82f6' }]}
           xKey="name"
           horizontal
           showValues
-          demo
+          demo={!dashData.isRealData}
         />
       </div>
 
@@ -423,13 +415,13 @@ function OverviewGrid({
         <ChartHeatmapWidget
           title="Monthly Activity Heatmap"
           subtitle="Submissions by country × month"
-          data={DEMO_HEATMAP_DATA}
-          demo
+          data={dashData.heatmapData}
+          demo={!dashData.isRealData}
         />
         <MetricActivityWidget
           title="Recent Activity"
           subtitle="Latest system events"
-          activities={DEMO_ACTIVITIES}
+          activities={dashData.activities}
           demo
         />
       </div>
@@ -439,13 +431,13 @@ function OverviewGrid({
         <HealthEpiCurveWidget
           title="Epi Curve — FMD"
           subtitle="Weekly cases, deaths & 4-week moving average"
-          data={DEMO_EPI_CURVE}
-          demo
+          data={dashData.epiCurve}
+          demo={!dashData.isRealData}
         />
         <HealthRainfallWidget
           title="Rainfall vs RVF Cases"
           subtitle="Monthly precipitation and Rift Valley Fever correlation"
-          data={DEMO_RAINFALL}
+          data={dashData.rainfall}
           demo
         />
       </div>
@@ -456,24 +448,25 @@ function OverviewGrid({
 // ─── Trends Grid ────────────────────────────────────────────────────────────
 
 function TrendsGrid() {
+  const dashData = useDashboardData();
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <ChartLineWidget
           title="Outbreak Trend"
           subtitle="Outbreaks, cases, and deaths over 12 months"
-          data={DEMO_MONTHLY_TRENDS}
+          data={dashData.monthlyTrends}
           lines={[
             { dataKey: 'outbreaks', label: 'Outbreaks', color: '#ef4444' },
             { dataKey: 'cases', label: 'Cases', color: '#f97316' },
             { dataKey: 'deaths', label: 'Deaths', color: '#6b7280' },
           ]}
-          demo
+          demo={!dashData.isRealData}
         />
         <ChartLineWidget
           title="Vaccination Trend"
           subtitle="Monthly vaccinations administered"
-          data={DEMO_MONTHLY_TRENDS}
+          data={dashData.monthlyTrends}
           lines={[
             { dataKey: 'vaccinations', label: 'Vaccinations', color: '#22c55e', type: 'area' },
           ]}
@@ -485,7 +478,7 @@ function TrendsGrid() {
         <ChartBarWidget
           title="Submissions per Month"
           subtitle="Data collection volume over time"
-          data={DEMO_MONTHLY_TRENDS}
+          data={dashData.monthlyTrends}
           bars={[{ dataKey: 'submissions', label: 'Submissions', color: 'var(--color-accent, #006B3F)' }]}
           xKey="label"
           demo
@@ -493,21 +486,21 @@ function TrendsGrid() {
         <ChartHeatmapWidget
           title="Country × Month Heatmap"
           subtitle="Submission intensity matrix"
-          data={DEMO_HEATMAP_DATA}
-          demo
+          data={dashData.heatmapData}
+          demo={!dashData.isRealData}
         />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <HealthEpiCurveWidget
           title="Epi Curve — FMD"
           subtitle="52-week epidemiological curve"
-          data={DEMO_EPI_CURVE}
-          demo
+          data={dashData.epiCurve}
+          demo={!dashData.isRealData}
         />
         <HealthRainfallWidget
           title="Rainfall vs RVF"
           subtitle="Climate–disease correlation"
-          data={DEMO_RAINFALL}
+          data={dashData.rainfall}
           demo
         />
       </div>
@@ -518,18 +511,19 @@ function TrendsGrid() {
 // ─── Alerts Grid ────────────────────────────────────────────────────────────
 
 function AlertsGrid({ alerts }: { alerts: any[] }) {
+  const dashData = useDashboardData();
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
       <TableAlertsWidget
         title="All Active Alerts"
         subtitle="Disease alerts across the continent"
-        alerts={alerts.length > 0 ? alerts : DEMO_ALERTS}
+        alerts={alerts.length > 0 ? alerts : dashData.alerts}
         demo
       />
       <MetricActivityWidget
         title="Alert-Related Activity"
         subtitle="Recent actions on alerts"
-        activities={DEMO_ACTIVITIES.filter((a) => a.type === 'alert' || a.type === 'validation')}
+        activities={dashData.activities.filter((a) => a.type === 'alert' || a.type === 'validation')}
         demo
       />
     </div>

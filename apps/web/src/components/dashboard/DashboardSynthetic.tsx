@@ -8,14 +8,10 @@ import {
 } from 'lucide-react';
 import { useDashboardFilters } from './GlobalFilterContext';
 import {
-  DEMO_KPIS,
-  DEMO_COUNTRY_DATA,
-  DEMO_DISEASES,
-  DEMO_ALERTS,
-  DEMO_MONTHLY_TRENDS,
   DEMO_ADMIN1_DATA,
   filterCountryData,
 } from './demo-data';
+import { useDashboardData } from './use-dashboard-data';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend,
@@ -44,18 +40,7 @@ function fmt(n: number): string {
   return String(n);
 }
 
-/* ── KPI items ────────────────────────────────────────────────────────────── */
-
-const KPI_ITEMS = [
-  { key: 'countries', label: 'Countries / Regions', value: `${DEMO_KPIS.countriesReporting}`, icon: Globe, color: '#3b82f6' },
-  { key: 'reports', label: 'Reports', value: fmt(DEMO_KPIS.totalReports), icon: FileBarChart, color: '#10b981' },
-  { key: 'vaccinations', label: 'Vaccinations', value: fmt(DEMO_KPIS.totalVaccinations), icon: Syringe, color: '#8b5cf6' },
-  { key: 'treated', label: 'Animals Treated', value: fmt(DEMO_KPIS.totalTreated), icon: Stethoscope, color: '#f59e0b' },
-  { key: 'trained', label: 'People Trained', value: fmt(DEMO_KPIS.totalTrained), icon: ClipboardCheck, color: '#06b6d4' },
-  { key: 'alerts', label: 'Active Alerts', value: String(DEMO_ALERTS.length), icon: AlertTriangle, color: '#ef4444' },
-  { key: 'validation', label: 'Validation Rate', value: `${DEMO_KPIS.validationRate}%`, icon: ClipboardCheck, color: '#22c55e' },
-  { key: 'records', label: 'Total Records', value: fmt(DEMO_KPIS.totalRecords), icon: FileBarChart, color: '#f97316' },
-];
+/* ── KPI items (built dynamically inside component) ──────────────────────── */
 
 /* ── Compact widget title ─────────────────────────────────────────────────── */
 
@@ -103,6 +88,18 @@ function CompactTooltip({ active, payload, label }: any) {
 
 export function DashboardSynthetic() {
   const { filters, setFilter } = useDashboardFilters();
+  const dashData = useDashboardData(filters);
+
+  const KPI_ITEMS = useMemo(() => [
+    { key: 'countries', label: 'Countries / Regions', value: `${dashData.kpis.countriesReporting}`, icon: Globe, color: '#3b82f6' },
+    { key: 'reports', label: 'Reports', value: fmt(dashData.kpis.totalReports), icon: FileBarChart, color: '#10b981' },
+    { key: 'vaccinations', label: 'Vaccinations', value: fmt(dashData.kpis.totalVaccinations), icon: Syringe, color: '#8b5cf6' },
+    { key: 'treated', label: 'Animals Treated', value: fmt(dashData.kpis.totalTreated), icon: Stethoscope, color: '#f59e0b' },
+    { key: 'trained', label: 'People Trained', value: fmt(dashData.kpis.totalTrained), icon: ClipboardCheck, color: '#06b6d4' },
+    { key: 'alerts', label: 'Active Alerts', value: String(dashData.alerts.length), icon: AlertTriangle, color: '#ef4444' },
+    { key: 'validation', label: 'Validation Rate', value: `${dashData.kpis.validationRate}%`, icon: ClipboardCheck, color: '#22c55e' },
+    { key: 'records', label: 'Total Records', value: fmt(dashData.kpis.totalRecords), icon: FileBarChart, color: '#f97316' },
+  ], [dashData.kpis, dashData.alerts]);
 
   const handleCountryClick = useCallback((code: string) => {
     setFilter('country', code);
@@ -110,7 +107,7 @@ export function DashboardSynthetic() {
 
   /* ── Filtered data ────────────────────────────────────────────────────── */
 
-  const filteredCountryData = filterCountryData(DEMO_COUNTRY_DATA, {
+  const filteredCountryData = filterCountryData(dashData.countryData, {
     rec: filters.rec,
     country: filters.country,
   });
@@ -173,26 +170,26 @@ export function DashboardSynthetic() {
 
   /* Disease data for horizontal bars */
   const diseaseBarData = useMemo(() =>
-    DEMO_DISEASES.slice(0, 8).map((d) => ({ name: d.code, cases: d.cases, color: d.color })),
+    dashData.diseases.slice(0, 8).map((d) => ({ name: d.code, cases: d.cases, color: d.color })),
     [],
   );
 
   /* Disease for pie */
   const diseasePie = useMemo(() =>
-    DEMO_DISEASES.map((d) => ({ name: d.code, value: d.cases, color: d.color })),
+    dashData.diseases.map((d) => ({ name: d.code, value: d.cases, color: d.color })),
     [],
   );
 
   /* Monthly trends for sparkline */
   const trendData = useMemo(() =>
-    DEMO_MONTHLY_TRENDS.map((m) => ({ name: m.label, outbreaks: m.outbreaks, submissions: m.submissions })),
+    dashData.monthlyTrends.map((m) => ({ name: m.label, outbreaks: m.outbreaks, submissions: m.submissions })),
     [],
   );
 
   /* ── Scope label ──────────────────────────────────────────────────────── */
 
   const scopeLabel = filters.country !== 'all'
-    ? DEMO_COUNTRY_DATA.find((c) => c.code === filters.country)?.name ?? filters.country
+    ? dashData.countryData.find((c) => c.code === filters.country)?.name ?? filters.country
     : filters.rec !== 'all'
       ? filters.rec.toUpperCase()
       : 'CONTINENTAL';
@@ -235,7 +232,7 @@ export function DashboardSynthetic() {
         <div className="bg-white dark:bg-gray-800 rounded overflow-hidden flex flex-col">
           <WidgetTitle>
             {isCountrySelected
-              ? `Outbreaks by Region — ${DEMO_COUNTRY_DATA.find((c) => c.code === filters.country)?.name ?? filters.country}`
+              ? `Outbreaks by Region — ${dashData.countryData.find((c) => c.code === filters.country)?.name ?? filters.country}`
               : isRecSelected
                 ? `Outbreaks by Country — ${REC_LABELS[filters.rec] ?? filters.rec.toUpperCase()}`
                 : 'Outbreaks by REC'}
@@ -388,7 +385,7 @@ export function DashboardSynthetic() {
         <div className="bg-white dark:bg-gray-800 rounded overflow-hidden flex flex-col">
           <WidgetTitle>
             {isCountrySelected
-              ? `Top Regions — Cases — ${DEMO_COUNTRY_DATA.find((c) => c.code === filters.country)?.name ?? filters.country}`
+              ? `Top Regions — Cases — ${dashData.countryData.find((c) => c.code === filters.country)?.name ?? filters.country}`
               : 'Top Countries — Cases'}
           </WidgetTitle>
           <div className="flex-1 min-h-0 px-1 py-1">
@@ -428,9 +425,9 @@ export function DashboardSynthetic() {
 
         {/* 2C: Active Alerts (compact table) */}
         <div className="bg-white dark:bg-gray-800 rounded overflow-hidden flex flex-col">
-          <WidgetTitle>Active Alerts ({DEMO_ALERTS.length})</WidgetTitle>
+          <WidgetTitle>Active Alerts ({dashData.alerts.length})</WidgetTitle>
           <div className="flex-1 min-h-0 overflow-y-auto">
-            {DEMO_ALERTS.slice(0, 8).map((alert) => (
+            {dashData.alerts.slice(0, 8).map((alert) => (
               <div
                 key={alert.id}
                 className="flex items-start gap-2 px-2.5 py-1.5 border-b border-gray-100 dark:border-gray-700/30 last:border-0"
