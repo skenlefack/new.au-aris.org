@@ -1207,7 +1207,7 @@ export class CollectionCampaignService {
 
     const where = await this.buildVisibilityFilter(user, query);
 
-    const [data, total] = await Promise.all([
+    const [rawData, total] = await Promise.all([
       (this.prisma as any).collectionCampaign.findMany({
         where,
         skip,
@@ -1220,6 +1220,15 @@ export class CollectionCampaignService {
       }),
       (this.prisma as any).collectionCampaign.count({ where }),
     ]);
+
+    // Enrich each campaign with totalSubmissions from assignments or metadata (historical imports)
+    const data = rawData.map((c: any) => {
+      const fromAssignments = (c.assignments ?? []).reduce(
+        (sum: number, a: any) => sum + (a.completedSubmissions ?? 0), 0,
+      );
+      const totalSubmissions = fromAssignments || (c.metadata?.importedRows ?? 0);
+      return { ...c, totalSubmissions };
+    });
 
     return { data, meta: { total, page, limit } };
   }
@@ -1241,10 +1250,11 @@ export class CollectionCampaignService {
     const canSee = await this.canAccessCampaign(user, campaign);
     if (!canSee) throw new HttpError(404, `Campaign ${id} not found`);
 
-    // Calculate progress
+    // Calculate progress — from assignments or metadata (historical imports)
     const totalAssigned = campaign.assignments.length;
     const totalCompleted = campaign.assignments.filter((a: any) => a.status === 'COMPLETED').length;
-    const totalSubmissions = campaign.assignments.reduce((sum: number, a: any) => sum + a.completedSubmissions, 0);
+    const fromAssignments = campaign.assignments.reduce((sum: number, a: any) => sum + (a.completedSubmissions ?? 0), 0);
+    const totalSubmissions = fromAssignments || (campaign.metadata?.importedRows ?? 0);
 
     return {
       data: {
