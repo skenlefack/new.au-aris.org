@@ -168,6 +168,7 @@ export default function NewCampaignPage() {
       description: Object.values(description).some((v) => v.trim()) ? description : undefined,
       domain: primaryDomain,
       formTemplateId: selectedTemplates[0]?.id ?? '',
+      formTemplateIds: selectedTemplates.map((t: any) => t.id),
       startDate,
       endDate,
       targetCountries: selectedCountries.map((c: CountryConfig) => c.code),

@@ -130,12 +130,15 @@ export default function EditCampaignPage() {
         setTargets([{ domainCode: campaign.domain, subDomainCode: null, isPrimary: true }]);
       }
 
-      // Restore template
-      const tplId = campaign.formTemplateId ?? campaign.templateId;
-      if (tplId) {
-        const matched = (templatesData?.data ?? []).find((t: FormTemplateListItem) => t.id === tplId);
-        if (matched) setSelectedTemplates([matched]);
-      }
+      // Restore templates (multi-template support)
+      const multiIds: string[] = Array.isArray(campaign.formTemplateIds) && campaign.formTemplateIds.length > 0
+        ? campaign.formTemplateIds
+        : [];
+      const singleId = campaign.formTemplateId ?? campaign.templateId;
+      const idsToRestore = multiIds.length > 0 ? multiIds : (singleId ? [singleId] : []);
+      const allTpls = templatesData?.data ?? [];
+      const matched = idsToRestore.map((id: string) => allTpls.find((t: FormTemplateListItem) => t.id === id)).filter(Boolean) as FormTemplateListItem[];
+      if (matched.length > 0) setSelectedTemplates(matched);
 
       // Restore countries
       const countryCodes: string[] = campaign.targetCountries ?? [];
@@ -202,6 +205,7 @@ export default function EditCampaignPage() {
       sendReminders,
       reminderDaysBefore: sendReminders ? parseInt(reminderDays, 10) || 3 : undefined,
       targets: validTargets.length > 0 ? validTargets : undefined,
+      formTemplateIds: selectedTemplates.map((t: FormTemplateListItem) => t.id),
       metadata: {
         ...(campaign?.metadata ?? {}),
         domains: selectedDomains,

@@ -360,6 +360,7 @@ model CollectionCampaign {
   description         Json?
   domain              String                   @db.VarChar(50)
   formTemplateId      String                   @map("form_template_id") @db.Uuid
+  formTemplateIds     String[]                 @default([]) @map("form_template_ids") @db.Uuid
   startDate           DateTime                 @map("start_date") @db.Date
   endDate             DateTime                 @map("end_date") @db.Date
   targetCountries     Json?                    @map("target_countries")   // ["KE", "TZ"]

@@ -136,8 +136,12 @@ export default function CampaignDetailPage() {
   // use hardcoded seed UUIDs that differ from the real DB UUIDs).
   const resolvedTemplates = useMemo(() => {
     if (!campaign) return [];
-    const tplId = campaign.formTemplateId ?? campaign.templateId;
-    const tplIds: string[] = tplId ? [tplId] : [];
+    // Support multi-template: prefer formTemplateIds array, fallback to single formTemplateId
+    const multiIds: string[] = Array.isArray(campaign.formTemplateIds) && campaign.formTemplateIds.length > 0
+      ? campaign.formTemplateIds
+      : [];
+    const singleId = campaign.formTemplateId ?? campaign.templateId;
+    const tplIds: string[] = multiIds.length > 0 ? multiIds : (singleId ? [singleId] : []);
     return tplIds.map((id: string) => {
       // 1. Direct ID match against API templates
       const byId = apiTemplates.find((tpl) => tpl.id === id);

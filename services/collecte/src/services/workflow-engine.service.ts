@@ -1174,6 +1174,7 @@ export class CollectionCampaignService {
         description: dto.description ?? null,
         domain: dto.domain as string, // Backward compat: writes legacy domain field, prefer targets[]
         formTemplateId: dto.formTemplateId as string,
+        formTemplateIds: Array.isArray(dto.formTemplateIds) ? dto.formTemplateIds : (dto.formTemplateId ? [dto.formTemplateId as string] : []),
         startDate,
         endDate,
         targetCountries: dto.targetCountries ?? null,
@@ -1270,7 +1271,7 @@ export class CollectionCampaignService {
     const data: Record<string, unknown> = {};
     for (const key of [
       'name', 'description', 'targetCountries', 'targetRecIds', 'targetAdminAreas',
-      'targetSubmissions', 'targetPerAgent', 'frequency', 'sendReminders', 'reminderDaysBefore', 'metadata',
+      'targetSubmissions', 'targetPerAgent', 'frequency', 'sendReminders', 'reminderDaysBefore', 'metadata', 'formTemplateIds',
     ]) {
       if (dto[key] !== undefined) data[key] = dto[key];
     }
