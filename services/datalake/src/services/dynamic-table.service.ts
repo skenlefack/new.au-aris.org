@@ -375,7 +375,7 @@ export class DynamicTableService {
 
     const valueExpr = operation === 'count'
       ? `COUNT(*)::float`
-      : `${aggFn}(CASE WHEN "${safeValue}" ~ '^[0-9.]+$' THEN "${safeValue}"::numeric ELSE NULL END)::float`;
+      : `${aggFn}(CASE WHEN "${safeValue}"::text ~ '^-?[0-9.]+$' THEN "${safeValue}"::text::numeric ELSE NULL END)::float`;
 
     const sql = `
       ${cte}
@@ -384,8 +384,8 @@ export class DynamicTableService {
         ${groupByCol ? `${groupByCol} as group_key,` : ''}
         ${valueExpr} as value
       FROM unified
-      WHERE "${safeDate}" IS NOT NULL AND "${safeDate}" != ''
-        AND "${safeDate}" ~ '^[12]\\d{3}'
+      WHERE "${safeDate}" IS NOT NULL
+        AND "${safeDate}"::text ~ '^[12]\\d{3}'
       ${where ? `AND ${where.replace('WHERE ', '')}` : ''}
       GROUP BY period${groupByCol ? `, ${groupByCol}` : ''}
       ORDER BY period ASC
