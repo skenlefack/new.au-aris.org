@@ -251,38 +251,30 @@ export interface DashboardKpis {
   countriesReporting: number;
   totalCountries: number;
   totalReports: number;
-  reportsTrend: number;
-  totalVaccinations: number;
-  vaccinationsTrend: number;
-  totalTreated: number;
-  treatedTrend: number;
-  totalTrained: number;
-  trainedTrend: number;
-  validationRate: number;
-  validationTrend: number;
+  totalOutbreaks: number;
+  diseasesMonitored: number;
+  animalsVaccinated: number;
+  vaccinationCampaigns: number;
+  livestockCensused: number;
   datasetsImported: number;
-  datasetsTrend: number;
   totalRecords: number;
-  recordsTrend: number;
+  periodStart: string;
+  periodEnd: string;
 }
 
 export const DEMO_KPIS: DashboardKpis = {
   countriesReporting: 42,
   totalCountries: 55,
-  totalReports: 831,
-  reportsTrend: 12,
-  totalVaccinations: 385400000,
-  vaccinationsTrend: 8,
-  totalTreated: 43700000,
-  treatedTrend: 0,
-  totalTrained: 1890000,
-  trainedTrend: 15,
-  validationRate: 87,
-  validationTrend: 5,
-  datasetsImported: 15,
-  datasetsTrend: 2,
-  totalRecords: 1700000000,
-  recordsTrend: 23,
+  totalReports: 444063,
+  totalOutbreaks: 0,
+  diseasesMonitored: 0,
+  animalsVaccinated: 0,
+  vaccinationCampaigns: 375,
+  livestockCensused: 0,
+  datasetsImported: 12,
+  totalRecords: 450993,
+  periodStart: '2007',
+  periodEnd: '2025',
 };
 
 // ─── Admin1 (sub-national) data ─────────────────────────────────────────────

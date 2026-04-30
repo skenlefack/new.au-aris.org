@@ -91,15 +91,15 @@ export function DashboardSynthetic() {
   const dashData = useDashboardData(filters);
 
   const KPI_ITEMS = useMemo(() => [
-    { key: 'countries', label: 'Countries / Regions', value: `${dashData.kpis.countriesReporting}`, icon: Globe, color: '#3b82f6' },
-    { key: 'reports', label: 'Reports', value: fmt(dashData.kpis.totalReports), icon: FileBarChart, color: '#10b981' },
-    { key: 'vaccinations', label: 'Vaccinations', value: fmt(dashData.kpis.totalVaccinations), icon: Syringe, color: '#8b5cf6' },
-    { key: 'treated', label: 'Animals Treated', value: fmt(dashData.kpis.totalTreated), icon: Stethoscope, color: '#f59e0b' },
-    { key: 'trained', label: 'People Trained', value: fmt(dashData.kpis.totalTrained), icon: ClipboardCheck, color: '#06b6d4' },
-    { key: 'alerts', label: 'Active Alerts', value: String(dashData.alerts.length), icon: AlertTriangle, color: '#ef4444' },
-    { key: 'validation', label: 'Validation Rate', value: `${dashData.kpis.validationRate}%`, icon: ClipboardCheck, color: '#22c55e' },
+    { key: 'countries', label: 'Countries', value: `${dashData.kpis.countriesReporting}/${dashData.kpis.totalCountries}`, icon: Globe, color: '#3b82f6' },
+    { key: 'reports', label: 'Health Reports', value: fmt(dashData.kpis.totalReports), icon: FileBarChart, color: '#10b981' },
+    { key: 'outbreaks', label: 'Outbreaks', value: fmt(dashData.kpis.totalOutbreaks), icon: AlertTriangle, color: '#ef4444' },
+    { key: 'diseases', label: 'Diseases', value: String(dashData.kpis.diseasesMonitored), icon: ClipboardCheck, color: '#06b6d4' },
+    { key: 'vaccinated', label: 'Vaccinated', value: fmt(dashData.kpis.animalsVaccinated), icon: Syringe, color: '#8b5cf6' },
+    { key: 'campaigns', label: 'Vacc. Campaigns', value: fmt(dashData.kpis.vaccinationCampaigns), icon: ClipboardCheck, color: '#22c55e' },
+    { key: 'livestock', label: 'Livestock', value: fmt(dashData.kpis.livestockCensused), icon: FileBarChart, color: '#f59e0b' },
     { key: 'records', label: 'Total Records', value: fmt(dashData.kpis.totalRecords), icon: FileBarChart, color: '#f97316' },
-  ], [dashData.kpis, dashData.alerts]);
+  ], [dashData.kpis]);
 
   const handleCountryClick = useCallback((code: string) => {
     setFilter('country', code);

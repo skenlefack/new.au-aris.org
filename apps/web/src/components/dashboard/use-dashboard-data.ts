@@ -28,13 +28,14 @@ import {
 
 const COUNTRY_NAME_TO_CODE: Record<string, string> = {};
 const COUNTRY_CODE_TO_REC: Record<string, string> = {};
+const COUNTRY_CODE_TO_NAME: Record<string, string> = {};
 for (const c of DEMO_COUNTRY_DATA) {
   COUNTRY_NAME_TO_CODE[c.name.toLowerCase()] = c.code;
   COUNTRY_CODE_TO_REC[c.code] = c.rec;
+  COUNTRY_CODE_TO_NAME[c.code] = c.name;
 }
-// Common variations in historical data
 const COUNTRY_ALIASES: Record<string, string> = {
-  'the gambia': 'GM', 'gambia': 'GM', 'cote d\'ivoire': 'CI', 'ivory coast': 'CI',
+  'the gambia': 'GM', 'gambia': 'GM', "cote d'ivoire": 'CI', 'ivory coast': 'CI',
   'dr congo': 'CD', 'democratic republic of the congo': 'CD', 'congo (dem. rep.)': 'CD',
   'congo': 'CG', 'republic of the congo': 'CG',
   'south africa': 'ZA', 'tanzania': 'TZ', 'united republic of tanzania': 'TZ',
@@ -42,18 +43,22 @@ const COUNTRY_ALIASES: Record<string, string> = {
   'burkina faso': 'BF', 'guinea-bissau': 'GW', 'sierra leone': 'SL',
   'south sudan': 'SS', 'central african republic': 'CF', 'central african rep.': 'CF',
   'equatorial guinea': 'GQ', 'sao tome': 'ST', 'sao tome and principe': 'ST',
+  'lesotho': 'LS', 'botswana': 'BW', 'namibia': 'NA', 'zimbabwe': 'ZW',
+  'zambia': 'ZM', 'malawi': 'MW', 'mozambique': 'MZ', 'madagascar': 'MG',
+  'mauritius': 'MU', 'comoros': 'KM', 'seychelles': 'SC', 'djibouti': 'DJ',
+  'eritrea': 'ER', 'somalia': 'SO', 'sudan': 'SD', 'uganda': 'UG',
+  'rwanda': 'RW', 'burundi': 'BI', 'kenya': 'KE', 'ethiopia': 'ET',
+  'nigeria': 'NG', 'ghana': 'GH', 'senegal': 'SN', 'mali': 'ML',
+  'niger': 'NE', 'chad': 'TD', 'cameroon': 'CM', 'gabon': 'GA',
+  'angola': 'AO', 'guinea': 'GN', 'benin': 'BJ', 'togo': 'TG',
+  'liberia': 'LR', 'mauritania': 'MR', 'egypt': 'EG', 'libya': 'LY',
+  'tunisia': 'TN', 'algeria': 'DZ', 'morocco': 'MA',
 };
 
 function resolveCountryCode(location: string): string | null {
   if (!location) return null;
-  // admin_location format: "Country / Region" or "Country"
   const country = location.split('/')[0].trim().toLowerCase();
   return COUNTRY_NAME_TO_CODE[country] ?? COUNTRY_ALIASES[country] ?? null;
-}
-
-function resolveCountryName(location: string): string {
-  const name = location.split('/')[0].trim();
-  return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 // ── Disease color palette ───────────────────────────────────────────────────
@@ -66,201 +71,260 @@ const DISEASE_COLORS = [
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-// ── Stale time for all dashboard queries ────────────────────────────────────
+const STALE_TIME = 5 * 60_000;
 
-const STALE_TIME = 5 * 60_000; // 5 min
+// ── Dataset categorization ──────────────────────────────────────────────────
+
+interface DatasetInfo {
+  id: string;
+  name: string;
+  rowCount: number;
+  type: 'health' | 'vaccination' | 'mass_vacc' | 'population' | 'other';
+}
+
+function categorizeDataset(d: { id: string; name: string; rowCount: number }): DatasetInfo {
+  const n = d.name.toLowerCase();
+  let type: DatasetInfo['type'] = 'other';
+  if (n.includes('animal health report')) type = 'health';
+  else if (n.includes('monthly vaccination')) type = 'vaccination';
+  else if (n.includes('mass vaccination')) type = 'mass_vacc';
+  else if (n.includes('animal population')) type = 'population';
+  return { ...d, type };
+}
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  MAIN HOOK
 // ═════════════════════════════════════════════════════════════════════════════
 
-export function useDashboardData(filters?: DashboardFilters) {
-  // 1. Get all dataset IDs (needed for cross-query calls)
+export function useDashboardData(_filters?: DashboardFilters) {
+  // 1. Get all datasets
   const datasetsQuery = useQuery<{ data: Array<{ id: string; name: string; rowCount: number; status: string }> }>({
     queryKey: ['dashboard-datasets'],
     queryFn: () => histFetch(`${HIST_API_BASE}?status=READY&limit=100`),
     staleTime: STALE_TIME,
   });
 
-  const datasetIds = (datasetsQuery.data?.data ?? []).map((d) => d.id);
-  const hasDatasets = datasetIds.length > 0;
+  const allDatasets = (datasetsQuery.data?.data ?? []).map(categorizeDataset);
+  const healthIds = allDatasets.filter((d) => d.type === 'health').map((d) => d.id);
+  const vaccIds = allDatasets.filter((d) => d.type === 'vaccination').map((d) => d.id);
+  const massVaccIds = allDatasets.filter((d) => d.type === 'mass_vacc').map((d) => d.id);
+  const popIds = allDatasets.filter((d) => d.type === 'population').map((d) => d.id);
+  const hasHealth = healthIds.length > 0;
 
-  // 2. KPIs from historical
-  const kpisQuery = useQuery<{ data: Record<string, unknown> }>({
-    queryKey: ['dashboard-hist-kpis', datasetIds],
-    queryFn: () => {
-      const qs = new URLSearchParams();
-      if (datasetIds.length) qs.set('datasetIds', datasetIds.join(','));
-      return histFetch(`${HIST_API_BASE}/dashboard-kpis?${qs}`);
-    },
-    enabled: hasDatasets,
-    staleTime: STALE_TIME,
-  });
-
-  // 3. Historical stats
-  const statsQuery = useQuery<{ data: { totalDatasets: number; totalRows: number } }>({
-    queryKey: ['dashboard-hist-stats'],
-    queryFn: () => histFetch(`${HIST_API_BASE}/stats`),
-    staleTime: STALE_TIME,
-  });
-
-  // 4. Cross-aggregate by country (for map + ranked)
-  const countryAggQuery = useQuery<{ data: Array<{ group: string; count: number }> }>({
-    queryKey: ['dashboard-country-agg', datasetIds],
+  // 2. Country distribution (from health reports) — using "distribution" operation
+  const countryDistQuery = useQuery<{ data: Array<{ label: string; value: number }> }>({
+    queryKey: ['dashboard-country-dist', healthIds],
     queryFn: () => histFetch(`${HIST_API_BASE}/cross-aggregate`, {
       method: 'POST',
       body: JSON.stringify({
-        datasetIds,
-        column: 'num_new_outbreaks',
-        operation: 'count',
-        groupBy: 'admin_location',
+        datasetIds: healthIds,
+        column: 'admin_location',
+        operation: 'distribution',
       }),
     }),
-    enabled: hasDatasets,
+    enabled: hasHealth,
     staleTime: STALE_TIME,
   });
 
-  // 5. Cross-aggregate by disease
-  const diseaseAggQuery = useQuery<{ data: Array<{ group: string; count: number }> }>({
-    queryKey: ['dashboard-disease-agg', datasetIds],
+  // 3. Disease distribution
+  const diseaseDistQuery = useQuery<{ data: Array<{ label: string; value: number }> }>({
+    queryKey: ['dashboard-disease-dist', healthIds],
     queryFn: () => histFetch(`${HIST_API_BASE}/cross-aggregate`, {
       method: 'POST',
       body: JSON.stringify({
-        datasetIds,
+        datasetIds: healthIds,
         column: 'disease',
-        operation: 'count',
-        groupBy: 'disease',
+        operation: 'distribution',
       }),
     }),
-    enabled: hasDatasets,
+    enabled: hasHealth,
     staleTime: STALE_TIME,
   });
 
-  // 6. Monthly time series
+  // 4. Sum of num_new_outbreaks (total outbreaks)
+  const outbreaksSumQuery = useQuery<{ data: Array<{ value: number }> }>({
+    queryKey: ['dashboard-outbreaks-sum', healthIds],
+    queryFn: () => histFetch(`${HIST_API_BASE}/cross-aggregate`, {
+      method: 'POST',
+      body: JSON.stringify({
+        datasetIds: healthIds,
+        column: 'num_new_outbreaks',
+        operation: 'sum',
+      }),
+    }),
+    enabled: hasHealth,
+    staleTime: STALE_TIME,
+  });
+
+  // 5. Sum of animals vaccinated (from vaccination reports)
+  const vaccSumQuery = useQuery<{ data: Array<{ value: number }> }>({
+    queryKey: ['dashboard-vacc-sum', vaccIds],
+    queryFn: () => histFetch(`${HIST_API_BASE}/cross-aggregate`, {
+      method: 'POST',
+      body: JSON.stringify({
+        datasetIds: vaccIds,
+        column: 'num_animals_vaccinated',
+        operation: 'sum',
+      }),
+    }),
+    enabled: vaccIds.length > 0,
+    staleTime: STALE_TIME,
+  });
+
+  // 6. Sum of livestock population
+  const popSumQuery = useQuery<{ data: Array<{ value: number }> }>({
+    queryKey: ['dashboard-pop-sum', popIds],
+    queryFn: () => histFetch(`${HIST_API_BASE}/cross-aggregate`, {
+      method: 'POST',
+      body: JSON.stringify({
+        datasetIds: popIds,
+        column: 'num_animals',
+        operation: 'sum',
+      }),
+    }),
+    enabled: popIds.length > 0,
+    staleTime: STALE_TIME,
+  });
+
+  // 7. Monthly time series
   const monthlyQuery = useQuery<{ data: Array<{ period: string; count: number }> }>({
-    queryKey: ['dashboard-monthly-trend', datasetIds],
+    queryKey: ['dashboard-monthly-trend', healthIds],
     queryFn: () => histFetch(`${HIST_API_BASE}/cross-query`, {
       method: 'POST',
       body: JSON.stringify({
-        datasetIds,
+        datasetIds: healthIds,
         dateColumn: 'date_of_report',
         valueColumn: 'num_new_outbreaks',
         interval: 'month',
         operation: 'count',
       }),
     }),
-    enabled: hasDatasets,
+    enabled: hasHealth,
     staleTime: STALE_TIME,
   });
 
-  // 7. Weekly time series (epi curve)
+  // 8. Weekly time series (epi curve)
   const weeklyQuery = useQuery<{ data: Array<{ period: string; count: number }> }>({
-    queryKey: ['dashboard-weekly-trend', datasetIds],
+    queryKey: ['dashboard-weekly-trend', healthIds],
     queryFn: () => histFetch(`${HIST_API_BASE}/cross-query`, {
       method: 'POST',
       body: JSON.stringify({
-        datasetIds,
+        datasetIds: healthIds,
         dateColumn: 'date_of_report',
         valueColumn: 'num_new_outbreaks',
         interval: 'week',
         operation: 'count',
       }),
     }),
-    enabled: hasDatasets,
+    enabled: hasHealth,
     staleTime: STALE_TIME,
   });
 
-  // ── Transform results ────────────────────────────────────────────────────
+  // ── Transform: KPIs ──────────────────────────────────────────────────────
 
-  // KPIs
   const kpis: DashboardKpis = (() => {
-    const raw = kpisQuery.data?.data;
-    const stats = statsQuery.data?.data;
-    if (!raw && !stats) return DEMO_KPIS;
+    const countryRaw = countryDistQuery.data?.data ?? [];
+    const diseaseRaw = diseaseDistQuery.data?.data ?? [];
 
+    // Unique countries
     const uniqueCountries = new Set<string>();
-    for (const row of countryAggQuery.data?.data ?? []) {
-      const code = resolveCountryCode(row.group);
+    for (const row of countryRaw) {
+      const code = resolveCountryCode(row.label);
       if (code) uniqueCountries.add(code);
     }
+
+    const totalReports = allDatasets
+      .filter((d) => d.type === 'health')
+      .reduce((s, d) => s + d.rowCount, 0);
+
+    const totalOutbreaks = outbreaksSumQuery.data?.data?.[0]?.value ?? 0;
+    const diseasesMonitored = diseaseRaw.filter((d) => d.label && d.value > 0).length;
+    const animalsVaccinated = vaccSumQuery.data?.data?.[0]?.value ?? 0;
+    const massVaccRows = allDatasets
+      .filter((d) => d.type === 'mass_vacc')
+      .reduce((s, d) => s + d.rowCount, 0);
+    const livestockCensused = popSumQuery.data?.data?.[0]?.value ?? 0;
+
+    if (!hasHealth) return DEMO_KPIS;
 
     return {
       countriesReporting: uniqueCountries.size || DEMO_KPIS.countriesReporting,
       totalCountries: 55,
-      totalReports: Number(raw?.totalReports ?? 0) || DEMO_KPIS.totalReports,
-      reportsTrend: Number(raw?.pctChangeReports ?? 0),
-      totalVaccinations: DEMO_KPIS.totalVaccinations, // no vaccination data in historical
-      vaccinationsTrend: 0,
-      totalTreated: DEMO_KPIS.totalTreated,
-      treatedTrend: 0,
-      totalTrained: DEMO_KPIS.totalTrained,
-      trainedTrend: 0,
-      validationRate: 55, // historical validation rate
-      validationTrend: 0,
-      datasetsImported: stats?.totalDatasets ?? DEMO_KPIS.datasetsImported,
-      datasetsTrend: 0,
-      totalRecords: stats?.totalRows ?? DEMO_KPIS.totalRecords,
-      recordsTrend: 0,
+      totalReports,
+      totalOutbreaks: Math.round(totalOutbreaks),
+      diseasesMonitored,
+      animalsVaccinated: Math.round(animalsVaccinated),
+      vaccinationCampaigns: massVaccRows,
+      livestockCensused: Math.round(livestockCensused),
+      datasetsImported: allDatasets.length,
+      totalRecords: allDatasets.reduce((s, d) => s + d.rowCount, 0),
+      periodStart: '2007',
+      periodEnd: '2025',
     };
   })();
 
-  // Country data for map + ranked
+  // ── Transform: Country data ──────────────────────────────────────────────
+
   const countryData: CountryOutbreakData[] = (() => {
-    const raw = countryAggQuery.data?.data;
+    const raw = countryDistQuery.data?.data;
     if (!raw || raw.length === 0) return DEMO_COUNTRY_DATA;
 
-    // Aggregate by country code (admin_location may have "Kenya / Nairobi")
-    const byCountry = new Map<string, { name: string; outbreaks: number }>();
+    const byCountry = new Map<string, { name: string; reports: number }>();
     for (const row of raw) {
-      const code = resolveCountryCode(row.group);
+      const code = resolveCountryCode(row.label);
       if (!code) continue;
-      const name = resolveCountryName(row.group);
       const existing = byCountry.get(code);
       if (existing) {
-        existing.outbreaks += row.count;
+        existing.reports += row.value;
       } else {
-        byCountry.set(code, { name, outbreaks: row.count });
+        byCountry.set(code, {
+          name: COUNTRY_CODE_TO_NAME[code] ?? row.label.split('/')[0].trim(),
+          reports: row.value,
+        });
       }
     }
 
-    return Array.from(byCountry.entries()).map(([code, data]) => ({
-      code,
-      name: data.name,
-      outbreaks: data.outbreaks,
-      cases: data.outbreaks, // use outbreaks as proxy for cases
-      deaths: 0,
-      vaccinations: 0,
-      submissions: data.outbreaks,
-      rec: COUNTRY_CODE_TO_REC[code] ?? 'unknown',
-    }));
+    return Array.from(byCountry.entries())
+      .map(([code, data]) => ({
+        code,
+        name: data.name,
+        outbreaks: data.reports,
+        cases: data.reports,
+        deaths: 0,
+        vaccinations: 0,
+        submissions: data.reports,
+        rec: COUNTRY_CODE_TO_REC[code] ?? 'unknown',
+      }))
+      .sort((a, b) => b.outbreaks - a.outbreaks);
   })();
 
-  // Disease data
+  // ── Transform: Disease data ──────────────────────────────────────────────
+
   const diseases: DiseaseData[] = (() => {
-    const raw = diseaseAggQuery.data?.data;
+    const raw = diseaseDistQuery.data?.data;
     if (!raw || raw.length === 0) return DEMO_DISEASES;
 
     return raw
-      .filter((d) => d.group && d.group.trim())
-      .sort((a, b) => b.count - a.count)
+      .filter((d) => d.label && d.label.trim() && d.value > 0)
+      .sort((a, b) => b.value - a.value)
       .slice(0, 15)
       .map((d, i) => ({
-        disease: d.group,
-        code: d.group.length > 12 ? d.group.slice(0, 12) : d.group,
-        cases: d.count,
+        disease: d.label,
+        code: d.label.length > 15 ? d.label.slice(0, 15) : d.label,
+        cases: d.value,
         deaths: 0,
         countriesAffected: 0,
         color: DISEASE_COLORS[i % DISEASE_COLORS.length],
       }));
   })();
 
-  // Monthly trends
+  // ── Transform: Monthly trends ────────────────────────────────────────────
+
   const monthlyTrends: MonthlyTrendPoint[] = (() => {
     const raw = monthlyQuery.data?.data;
     if (!raw || raw.length === 0) return DEMO_MONTHLY_TRENDS;
 
-    // Take last 12 months, sorted
-    const sorted = [...raw].sort((a, b) => a.period.localeCompare(b.period)).slice(-12);
+    const sorted = [...raw].sort((a, b) => a.period.localeCompare(b.period)).slice(-24);
     return sorted.map((d) => {
       const monthIdx = parseInt(d.period.split('-')[1] ?? '1', 10) - 1;
       return {
@@ -275,15 +339,12 @@ export function useDashboardData(filters?: DashboardFilters) {
     });
   })();
 
-  // Heatmap (country × month) — derived from countryData + monthlyTrends
-  const heatmapData: HeatmapCell[] = (() => {
-    if (!countryAggQuery.data?.data || countryAggQuery.data.data.length === 0) return DEMO_HEATMAP_DATA;
-    // For now, use demo heatmap since cross-aggregate doesn't support 2D groupBy
-    // In a future phase, we can build this from per-country monthly queries
-    return DEMO_HEATMAP_DATA;
-  })();
+  // ── Transform: Heatmap ───────────────────────────────────────────────────
 
-  // Epi curve (weekly)
+  const heatmapData: HeatmapCell[] = DEMO_HEATMAP_DATA; // TODO: needs 2D groupBy
+
+  // ── Transform: Epi curve ─────────────────────────────────────────────────
+
   const epiCurve: EpiCurvePoint[] = (() => {
     const raw = weeklyQuery.data?.data;
     if (!raw || raw.length === 0) return DEMO_EPI_CURVE;
@@ -295,24 +356,23 @@ export function useDashboardData(filters?: DashboardFilters) {
       const cases = d.count;
       movingSum += cases;
       if (i >= windowSize) movingSum -= sorted[i - windowSize].count;
-      const movingAvg = Math.round(movingSum / Math.min(i + 1, windowSize));
       return {
         week: `W${String(i + 1).padStart(2, '0')}`,
         weekNum: i + 1,
         cases,
         deaths: 0,
-        movingAvg,
+        movingAvg: Math.round(movingSum / Math.min(i + 1, windowSize)),
       };
     });
   })();
 
-  // These stay as demo (no API)
+  // These stay as demo
   const alerts: AlertData[] = DEMO_ALERTS;
   const activities: ActivityItem[] = DEMO_ACTIVITIES;
   const rainfall: RainfallPoint[] = DEMO_RAINFALL;
 
-  const isLoading = datasetsQuery.isLoading || kpisQuery.isLoading || countryAggQuery.isLoading;
-  const isRealData = hasDatasets && !kpisQuery.isError;
+  const isLoading = datasetsQuery.isLoading;
+  const isRealData = hasHealth && !countryDistQuery.isError;
 
   return {
     kpis,
