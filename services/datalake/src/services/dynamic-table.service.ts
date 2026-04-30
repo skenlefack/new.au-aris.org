@@ -438,12 +438,14 @@ export class DynamicTableService {
     }
 
     const aggFn = operation.toUpperCase();
+    // Cast to text first for regex check — handles both text and numeric (bigint/int) columns
+    const numericExpr = `CASE WHEN "${safeCol}"::text ~ '^-?[0-9.]+$' THEN "${safeCol}"::text::numeric ELSE NULL END`;
     if (groupBy) {
       const safeGroup = this.toPgName(groupBy);
       const sql = `
         ${cte}
         SELECT "${safeGroup}"::text as label,
-               ${aggFn}(CASE WHEN "${safeCol}" ~ '^[0-9.]+$' THEN "${safeCol}"::numeric ELSE NULL END)::float as value
+               ${aggFn}(${numericExpr})::float as value
         FROM unified
         ${where}
         GROUP BY "${safeGroup}"
@@ -455,7 +457,7 @@ export class DynamicTableService {
 
     const sql = `
       ${cte}
-      SELECT ${aggFn}(CASE WHEN "${safeCol}" ~ '^[0-9.]+$' THEN "${safeCol}"::numeric ELSE NULL END)::float as value
+      SELECT ${aggFn}(${numericExpr})::float as value
       FROM unified
       ${where}
     `;
