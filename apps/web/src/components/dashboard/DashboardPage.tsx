@@ -12,6 +12,7 @@ import { DashboardFilterProvider, useDashboardFilters, type DashboardFilters } f
 import { DashboardFilterPanel } from './DashboardFilterPanel';
 import { DashboardKpiBar } from './DashboardKpiBar';
 import { DashboardSynthetic } from './DashboardSynthetic';
+import { DashboardSection } from '../domain/DashboardSection';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useTenantStore, findParentRec, deriveCountryCodeFromEmail } from '@/lib/stores/tenant-store';
 
@@ -306,8 +307,16 @@ function DashboardContent() {
             <AlertsGrid alerts={filteredAlerts} dashData={dashData} />
           )}
 
+          {activePage === 'custom' && (
+            <DashboardSection
+              scope={user?.tenantLevel === 'REC' ? 'REC' : user?.tenantLevel === 'MEMBER_STATE' ? 'COUNTRY' : 'CONTINENTAL'}
+              target={{}}
+              zone="principal"
+            />
+          )}
+
           {/* Default: show overview for unimplemented pages */}
-          {!['overview', 'trends', 'alerts'].includes(activePage) && (
+          {!['overview', 'trends', 'alerts', 'custom'].includes(activePage) && (
             <OverviewGrid
               filteredCountryData={filteredCountryData}
               onCountryClick={handleCountryClick}
@@ -376,8 +385,6 @@ function OverviewGrid({
       </div>
 
       {/* Row 3: Trends */}
-      {/* eslint-disable-next-line no-console */}
-      {console.log('[ARIS-DEBUG] monthlyTrends:', dashData.monthlyTrends?.length, dashData.monthlyTrends?.slice(0,3), 'diseases:', dashData.diseases?.length, 'isRealData:', dashData.isRealData)}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <ChartLineWidget
           title="Outbreak Trend"

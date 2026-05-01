@@ -19,7 +19,7 @@ interface FilterContextValue {
 }
 
 const DEFAULT_FILTERS: DashboardFilters = {
-  period: 'last_12_months',
+  period: 'all',
   rec: 'all',
   country: 'all',
   domain: 'all',

@@ -106,10 +106,13 @@ export function useDashboardData(filters?: DashboardFilters) {
   if (filters?.disease && filters.disease !== 'all') {
     apiFilters['disease'] = filters.disease;
   }
-  // Period → date range
-  if (filters?.period && filters.period !== 'last_12_months') {
+  // Period → date range (all = no filter)
+  if (filters?.period && filters.period !== 'all') {
     const now = new Date();
-    if (filters.period === 'last_6_months') {
+    if (filters.period === 'last_12_months') {
+      const d = new Date(now); d.setMonth(d.getMonth() - 12);
+      apiFilters['dateFrom'] = d.toISOString().slice(0, 10);
+    } else if (filters.period === 'last_6_months') {
       const d = new Date(now); d.setMonth(d.getMonth() - 6);
       apiFilters['dateFrom'] = d.toISOString().slice(0, 10);
     } else if (filters.period === 'last_30_days') {

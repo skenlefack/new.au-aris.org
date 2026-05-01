@@ -3,7 +3,7 @@
 import React from 'react';
 import {
   Filter, RotateCcw, ChevronDown, LayoutDashboard, TrendingUp, Map,
-  Shield, Syringe, ArrowLeftRight, AlertTriangle, Activity, BarChart3,
+  Shield, Syringe, ArrowLeftRight, AlertTriangle, Activity, BarChart3, Palette,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardFilters } from './GlobalFilterContext';
@@ -22,11 +22,13 @@ interface DashboardFilterPanelProps {
 }
 
 const PERIODS = [
+  { value: 'all', label: 'All Years (2007-2025)' },
   { value: 'last_12_months', label: 'Last 12 Months' },
   { value: 'last_6_months', label: 'Last 6 Months' },
-  { value: 'last_30_days', label: 'Last 30 Days' },
-  { value: '2025', label: '2025' },
-  { value: '2024', label: '2024' },
+  ...Array.from({ length: 19 }, (_, i) => {
+    const y = 2025 - i;
+    return { value: String(y), label: String(y) };
+  }),
 ];
 
 const FALLBACK_DOMAINS = [
@@ -50,6 +52,7 @@ const PAGES = [
   { id: 'trade', label: 'Trade & SPS', icon: ArrowLeftRight },
   { id: 'alerts', label: 'Alerts', icon: AlertTriangle },
   { id: 'system', label: 'System', icon: Activity },
+  { id: 'custom', label: 'Personnalisé', icon: Palette },
 ];
 
 function FilterSelect({
@@ -255,6 +258,30 @@ export function DashboardFilterPanel({
           value={filters.domain}
           options={domainOptions}
           onChange={(v) => setFilter('domain', v)}
+        />
+
+        <FilterSelect
+          label="Disease"
+          value={filters.disease}
+          options={[
+            { value: 'all', label: 'All Diseases' },
+            { value: 'RABIES', label: 'Rabies' },
+            { value: 'ANTHRAX', label: 'Anthrax' },
+            { value: 'BLACKLEG', label: 'Blackleg' },
+            { value: 'ANAPLASMOSIS', label: 'Anaplasmosis' },
+            { value: 'BRUCELLA', label: 'Brucella' },
+            { value: 'BABESIOSIS', label: 'Babesiosis' },
+            { value: 'HEARTWATER', label: 'Heartwater' },
+            { value: 'HAEMORRHAGIC_SEPTICAEMIA', label: 'Haemorrhagic Septicaemia' },
+            { value: 'LSD', label: 'Lumpy Skin Disease' },
+            { value: 'NEWCASTLE_DISEASE', label: 'Newcastle Disease' },
+            { value: 'TRYPANOSOMOSIS', label: 'Trypanosomosis' },
+            { value: 'THEILERIOSIS', label: 'Theileriosis' },
+            { value: 'EAST_COAST_FEVER', label: 'East Coast Fever' },
+            { value: 'DERMATOPHILOSIS', label: 'Dermatophilosis' },
+            { value: 'ZERO-CAS', label: 'Zero Cases (No outbreak)' },
+          ]}
+          onChange={(v) => setFilter('disease', v)}
         />
 
         {activeFilterCount > 0 && (
