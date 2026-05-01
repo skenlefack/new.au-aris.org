@@ -95,11 +95,11 @@ export default function I18nSettingsPage() {
     try {
       await bulkMutation.mutateAsync(list);
       setChanges({});
-      toast.success('Language settings saved', {
-        description: 'Your internationalization preferences have been updated successfully.',
+      toast.success(t('languageSaved'), {
+        description: t('languageSavedDesc'),
       });
     } catch (err: any) {
-      toast.error('Failed to save language settings', {
+      toast.error(t('languageSaveFailed'), {
         description: err?.message ?? 'Please try again.',
       });
     }
@@ -269,7 +269,7 @@ export default function I18nSettingsPage() {
                           ? 'cursor-pointer bg-aris-primary-500'
                           : 'cursor-pointer bg-gray-300 dark:bg-gray-600'
                     }`}
-                    title={isDefault ? 'Default language cannot be disabled' : isEnabled ? 'Disable language' : 'Enable language'}
+                    title={isDefault ? t('defaultCannotDisable') : isEnabled ? t('disableLanguage') : t('enableLanguage')}
                   >
                     <span
                       className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm ring-0 transition-transform ${
@@ -441,16 +441,16 @@ export default function I18nSettingsPage() {
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  Langue
+                  {t('languageCol')}
                 </th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  Nombre (1 234 567,89)
+                  {t('numberCol')}
                 </th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  Pourcentage
+                  {t('percentCol')}
                 </th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  Dir.
+                  {t('dirCol')}
                 </th>
               </tr>
             </thead>
@@ -472,7 +472,7 @@ export default function I18nSettingsPage() {
                       </span>
                       {defaultLocale === lang.code && (
                         <span className="rounded-full bg-aris-primary-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-aris-primary-700 dark:bg-aris-primary-900/50 dark:text-aris-primary-300">
-                          défaut
+                          {t('defaultBadge')}
                         </span>
                       )}
                     </div>

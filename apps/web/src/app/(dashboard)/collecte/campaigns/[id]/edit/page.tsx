@@ -29,7 +29,8 @@ import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { useTranslations } from '@/lib/i18n/translations';
-import { TargetsSelector, type TargetFormValue } from '@/components/forms/TargetsSelector';
+import { SubDomainTreeSelector } from '@/components/forms/SubDomainTreeSelector';
+import { useDomainStore } from '@/lib/stores/domain-store';
 
 const FREQUENCY_OPTIONS = [
   { value: 'one_time', tKey: 'oneTime' },
@@ -72,9 +73,7 @@ export default function EditCampaignPage() {
   const [name, setName] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
   const [description, setDescription] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
   const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
-  const [targets, setTargets] = useState<TargetFormValue[]>([
-    { domainCode: '', subDomainCode: null, isPrimary: true },
-  ]);
+  const [selectedSubDomains, setSelectedSubDomains] = useState<string[]>([]);
   const [selectedRecs, setSelectedRecs] = useState<RecConfig[]>([]);
   const [selectedTemplates, setSelectedTemplates] = useState<FormTemplateListItem[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<CountryConfig[]>([]);
@@ -117,17 +116,15 @@ export default function EditCampaignPage() {
       setSendReminders(campaign.sendReminders ?? false);
       setReminderDays(String(campaign.reminderDaysBefore ?? 3));
 
-      // Restore targets
-      const campaignTargets = campaign.targets as TargetFormValue[] | undefined;
-      if (campaignTargets && campaignTargets.length > 0) {
-        setTargets(campaignTargets.map((t: any) => ({
-          domainCode: t.domainCode || '',
-          subDomainCode: t.subDomainCode || null,
-          isPrimary: !!t.isPrimary,
-        })));
-      } else if (campaign.domain) {
-        // Backward compat: reads legacy domain field, prefer targets[]
-        setTargets([{ domainCode: campaign.domain, subDomainCode: null, isPrimary: true }]);
+      // Restore sub-domains from targets or metadata
+      const campaignTargets = campaign.targets as any[] | undefined;
+      if (campaign.metadata?.subDomains && Array.isArray(campaign.metadata.subDomains)) {
+        setSelectedSubDomains(campaign.metadata.subDomains);
+      } else if (campaignTargets && campaignTargets.length > 0) {
+        const subCodes = campaignTargets
+          .filter((t: any) => t.subDomainCode)
+          .map((t: any) => t.subDomainCode as string);
+        if (subCodes.length > 0) setSelectedSubDomains(subCodes);
       }
 
       // Restore templates (multi-template support)
@@ -158,6 +155,13 @@ export default function EditCampaignPage() {
     setSelectedDomains(codes);
     if (codes.length > 0) {
       setSelectedTemplates((prev) => prev.filter((tmpl) => codes.includes(tmpl.domain)));
+      setSelectedSubDomains((prev) => {
+        const subMeta = useDomainStore.getState().subDomainsMetadata;
+        return prev.filter((sdCode) => {
+          const sd = subMeta.find((s) => s.code === sdCode);
+          return sd && codes.includes(sd.domainCode);
+        });
+      });
     }
   };
 
@@ -186,12 +190,29 @@ export default function EditCampaignPage() {
     if (!validate()) return;
     setSubmitError(null);
 
-    // Build targets array for API
-    const validTargets = targets.filter((t) => t.domainCode).map((t) => ({
-      domainCode: t.domainCode,
-      subDomainCode: t.subDomainCode,
-      isPrimary: t.isPrimary,
-    }));
+    // Build targets from domains + sub-domains
+    const subMeta = useDomainStore.getState().subDomainsMetadata;
+    const builtTargets: { domainCode: string; subDomainCode: string | null; isPrimary: boolean }[] = [];
+
+    if (selectedSubDomains.length > 0) {
+      for (const sdCode of selectedSubDomains) {
+        const sd = subMeta.find((s) => s.code === sdCode);
+        if (sd) {
+          builtTargets.push({ domainCode: sd.domainCode, subDomainCode: sd.code, isPrimary: false });
+        }
+      }
+      const domainsWithSubs = new Set(builtTargets.map((t) => t.domainCode));
+      for (const domCode of selectedDomains) {
+        if (!domainsWithSubs.has(domCode)) {
+          builtTargets.push({ domainCode: domCode, subDomainCode: null, isPrimary: false });
+        }
+      }
+    } else {
+      for (const domCode of selectedDomains) {
+        builtTargets.push({ domainCode: domCode, subDomainCode: null, isPrimary: false });
+      }
+    }
+    if (builtTargets.length > 0) builtTargets[0].isPrimary = true;
 
     const payload = {
       id: campaignId,
@@ -204,11 +225,12 @@ export default function EditCampaignPage() {
       frequency,
       sendReminders,
       reminderDaysBefore: sendReminders ? parseInt(reminderDays, 10) || 3 : undefined,
-      targets: validTargets.length > 0 ? validTargets : undefined,
+      targets: builtTargets.length > 0 ? builtTargets : undefined,
       formTemplateIds: selectedTemplates.map((t: FormTemplateListItem) => t.id),
       metadata: {
         ...(campaign?.metadata ?? {}),
         domains: selectedDomains,
+        subDomains: selectedSubDomains,
         recCodes: selectedRecs.map((r) => r.code),
       },
     };
@@ -331,32 +353,43 @@ export default function EditCampaignPage() {
           </div>
         </div>
 
-        {/* ROW 2 — Targets */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <ClipboardList className="h-4 w-4 text-gray-400" /> {t('targets')}
-          </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{t('targetsDesc')}</p>
-          <TargetsSelector value={targets} onChange={setTargets} t={t} />
-        </div>
-
-        {/* ROW 3 — Domains (full width) */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <ClipboardList className="h-4 w-4 text-gray-400" /> {t('domains')}
-          </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{t('selectDomainsDesc')}</p>
-          <div className="flex flex-wrap gap-2">
-            {DOMAIN_OPTIONS.map((d) => {
-              const isSelected = selectedDomains.includes(d.value);
-              return (
-                <button key={d.value} type="button" onClick={() => handleDomainsChange(isSelected ? selectedDomains.filter((v) => v !== d.value) : [...selectedDomains, d.value])}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${isSelected ? 'border-aris-primary-500 bg-aris-primary-50 text-aris-primary-700 dark:border-aris-primary-400 dark:bg-aris-primary-900/20 dark:text-aris-primary-400' : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600'}`}>
-                  {d.label}
-                </button>
-              );
-            })}
+        {/* ROW 2 — Domains + Sub-domains */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5 dark:border-gray-700 dark:bg-gray-900">
+          {/* Domains */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-gray-400" /> {t('domains')}
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('selectDomainsDesc')}</p>
+            <div className="flex flex-wrap gap-2">
+              {DOMAIN_OPTIONS.map((d) => {
+                const isSelected = selectedDomains.includes(d.value);
+                return (
+                  <button key={d.value} type="button" onClick={() => handleDomainsChange(isSelected ? selectedDomains.filter((v) => v !== d.value) : [...selectedDomains, d.value])}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${isSelected ? 'border-aris-primary-500 bg-aris-primary-50 text-aris-primary-700 dark:border-aris-primary-400 dark:bg-aris-primary-900/20 dark:text-aris-primary-400' : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600'}`}>
+                    {d.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
+          {/* Sub-domains (optional) */}
+          {selectedDomains.length > 0 && (
+            <div className="space-y-3 border-t border-gray-100 pt-4 dark:border-gray-800">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('subDomains')}
+                <span className="ml-2 text-xs font-normal text-gray-400">({t('optionalField')})</span>
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('subDomainsDesc')}</p>
+              <SubDomainTreeSelector
+                selectedDomains={selectedDomains}
+                value={selectedSubDomains}
+                onChange={setSelectedSubDomains}
+                t={t}
+              />
+            </div>
+          )}
         </div>
 
         {/* ROW 3 — Form Templates */}
