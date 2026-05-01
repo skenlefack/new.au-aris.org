@@ -187,7 +187,7 @@ export function useDashboardData(_filters?: DashboardFilters) {
   });
 
   // 7. Monthly time series
-  const monthlyQuery = useQuery<{ data: Array<{ period: string; count: number }> }>({
+  const monthlyQuery = useQuery<{ data: Array<{ period: string; value: number }> }>({
     queryKey: ['dashboard-monthly-trend', healthIds],
     queryFn: () => histFetch(`${HIST_API_BASE}/cross-query`, {
       method: 'POST',
@@ -204,7 +204,7 @@ export function useDashboardData(_filters?: DashboardFilters) {
   });
 
   // 8. Weekly time series (epi curve)
-  const weeklyQuery = useQuery<{ data: Array<{ period: string; count: number }> }>({
+  const weeklyQuery = useQuery<{ data: Array<{ period: string; value: number }> }>({
     queryKey: ['dashboard-weekly-trend', healthIds],
     queryFn: () => histFetch(`${HIST_API_BASE}/cross-query`, {
       method: 'POST',
@@ -238,7 +238,8 @@ export function useDashboardData(_filters?: DashboardFilters) {
       .reduce((s, d) => s + d.rowCount, 0);
 
     const totalOutbreaks = outbreaksSumQuery.data?.data?.[0]?.value ?? 0;
-    const diseasesMonitored = diseaseRaw.filter((d) => d.label && d.value > 0).length;
+    const diseasesMonitored = diseaseRaw.filter((d) => d.label && d.value > 0
+      && d.label !== 'ZERO-CAS' && !d.label.match(/^[0-9a-f]{8}-/)).length;
     const animalsVaccinated = vaccSumQuery.data?.data?.[0]?.value ?? 0;
     const massVaccRows = allDatasets
       .filter((d) => d.type === 'mass_vacc')
@@ -305,7 +306,8 @@ export function useDashboardData(_filters?: DashboardFilters) {
     if (!raw || raw.length === 0) return DEMO_DISEASES;
 
     return raw
-      .filter((d) => d.label && d.label.trim() && d.value > 0)
+      .filter((d) => d.label && d.label.trim() && d.value > 0
+        && d.label !== 'ZERO-CAS' && !d.label.match(/^[0-9a-f]{8}-/))
       .sort((a, b) => b.value - a.value)
       .slice(0, 15)
       .map((d, i) => ({
@@ -326,14 +328,17 @@ export function useDashboardData(_filters?: DashboardFilters) {
 
     const sorted = [...raw].sort((a, b) => a.period.localeCompare(b.period)).slice(-24);
     return sorted.map((d) => {
-      const monthIdx = parseInt(d.period.split('-')[1] ?? '1', 10) - 1;
+      // period is ISO date like "2009-01-01T00:00:00.000Z"
+      const date = new Date(d.period);
+      const monthIdx = date.getMonth();
+      const yearMonth = `${date.getFullYear()}-${String(monthIdx + 1).padStart(2, '0')}`;
       return {
-        month: d.period,
-        label: MONTH_LABELS[monthIdx] ?? d.period,
-        outbreaks: d.count,
-        cases: d.count,
+        month: yearMonth,
+        label: `${MONTH_LABELS[monthIdx]} ${date.getFullYear()}`,
+        outbreaks: d.value ?? 0,
+        cases: d.value ?? 0,
         deaths: 0,
-        submissions: d.count,
+        submissions: d.value ?? 0,
         vaccinations: 0,
       };
     });
@@ -353,9 +358,9 @@ export function useDashboardData(_filters?: DashboardFilters) {
     let movingSum = 0;
     const windowSize = 4;
     return sorted.map((d, i) => {
-      const cases = d.count;
+      const cases = d.value ?? 0;
       movingSum += cases;
-      if (i >= windowSize) movingSum -= sorted[i - windowSize].count;
+      if (i >= windowSize) movingSum -= (sorted[i - windowSize].value ?? 0);
       return {
         week: `W${String(i + 1).padStart(2, '0')}`,
         weekNum: i + 1,
