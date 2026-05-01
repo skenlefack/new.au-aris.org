@@ -391,7 +391,7 @@ function OverviewGrid({
         <ChartBarWidget
           title="Cases by Disease"
           subtitle="Top 10 diseases by reported cases"
-          data={dashData.diseases.map((d) => ({ name: d.code, cases: d.cases, color: d.color }))}
+          data={dashData.diseases.map((d: any) => ({ name: d.code, cases: d.cases, color: d.color }))}
           bars={[{ dataKey: 'cases', label: 'Cases', color: '#3b82f6' }]}
           xKey="name"
           horizontal
@@ -528,7 +528,7 @@ function AlertsGrid({ alerts, dashData }: { alerts: any[]; dashData: any }) {
       <MetricActivityWidget
         title="Alert-Related Activity"
         subtitle="Recent actions on alerts"
-        activities={dashData.activities.filter((a) => a.type === 'alert' || a.type === 'validation')}
+        activities={dashData.activities.filter((a: any) => a.type === 'alert' || a.type === 'validation')}
         demo
       />
     </div>
