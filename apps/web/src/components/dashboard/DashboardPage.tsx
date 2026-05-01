@@ -294,15 +294,16 @@ function DashboardContent() {
               rankedRows={rankedRows}
               selectedRec={filters.rec}
               selectedCountry={filters.country}
+              dashData={dashData}
             />
           )}
 
           {activePage === 'trends' && (
-            <TrendsGrid />
+            <TrendsGrid dashData={dashData} />
           )}
 
           {activePage === 'alerts' && (
-            <AlertsGrid alerts={filteredAlerts} />
+            <AlertsGrid alerts={filteredAlerts} dashData={dashData} />
           )}
 
           {/* Default: show overview for unimplemented pages */}
@@ -314,6 +315,7 @@ function DashboardContent() {
               rankedRows={rankedRows}
               selectedRec={filters.rec}
               selectedCountry={filters.country}
+              dashData={dashData}
             />
           )}
         </div>
@@ -331,6 +333,7 @@ function OverviewGrid({
   rankedRows,
   selectedRec,
   selectedCountry,
+  dashData,
 }: {
   filteredCountryData: any[];
   onCountryClick: (code: string) => void;
@@ -338,8 +341,8 @@ function OverviewGrid({
   rankedRows: any[];
   selectedRec?: string;
   selectedCountry?: string;
+  dashData: any;
 }) {
-  const dashData = useDashboardData();
   return (
     <>
       {/* Row 2: Map + Alerts */}
@@ -451,8 +454,7 @@ function OverviewGrid({
 
 // ─── Trends Grid ────────────────────────────────────────────────────────────
 
-function TrendsGrid() {
-  const dashData = useDashboardData();
+function TrendsGrid({ dashData }: { dashData: any }) {
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -514,8 +516,7 @@ function TrendsGrid() {
 
 // ─── Alerts Grid ────────────────────────────────────────────────────────────
 
-function AlertsGrid({ alerts }: { alerts: any[] }) {
-  const dashData = useDashboardData();
+function AlertsGrid({ alerts, dashData }: { alerts: any[]; dashData: any }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
       <TableAlertsWidget
