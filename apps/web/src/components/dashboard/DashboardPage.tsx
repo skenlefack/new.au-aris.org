@@ -362,7 +362,7 @@ function OverviewGrid({
           <TableRankedWidget
             title="Top Diseases"
             subtitle="Most reported diseases"
-            rows={dashData.diseases.slice(0, 10).map((d, i) => ({
+            rows={dashData.diseases.slice(0, 10).map((d: any, i: number) => ({
               rank: i + 1,
               label: d.disease,
               value: d.cases,
