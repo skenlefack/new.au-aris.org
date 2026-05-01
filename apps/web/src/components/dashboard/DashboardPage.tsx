@@ -376,6 +376,8 @@ function OverviewGrid({
       </div>
 
       {/* Row 3: Trends */}
+      {/* eslint-disable-next-line no-console */}
+      {console.log('[ARIS-DEBUG] monthlyTrends:', dashData.monthlyTrends?.length, dashData.monthlyTrends?.slice(0,3), 'diseases:', dashData.diseases?.length, 'isRealData:', dashData.isRealData)}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <ChartLineWidget
           title="Outbreak Trend"
