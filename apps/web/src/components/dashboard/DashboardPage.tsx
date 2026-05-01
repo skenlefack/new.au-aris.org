@@ -290,7 +290,6 @@ function DashboardContent() {
             <OverviewGrid
               filteredCountryData={filteredCountryData}
               onCountryClick={handleCountryClick}
-              filteredAlerts={filteredAlerts}
               diseaseForPie={diseaseForPie}
               rankedRows={rankedRows}
               selectedRec={filters.rec}
@@ -311,7 +310,6 @@ function DashboardContent() {
             <OverviewGrid
               filteredCountryData={filteredCountryData}
               onCountryClick={handleCountryClick}
-              filteredAlerts={filteredAlerts}
               diseaseForPie={diseaseForPie}
               rankedRows={rankedRows}
               selectedRec={filters.rec}
@@ -329,7 +327,6 @@ function DashboardContent() {
 function OverviewGrid({
   filteredCountryData,
   onCountryClick,
-  filteredAlerts,
   diseaseForPie,
   rankedRows,
   selectedRec,
@@ -337,7 +334,6 @@ function OverviewGrid({
 }: {
   filteredCountryData: any[];
   onCountryClick: (code: string) => void;
-  filteredAlerts: any[];
   diseaseForPie: any[];
   rankedRows: any[];
   selectedRec?: string;
@@ -360,11 +356,18 @@ function OverviewGrid({
           />
         </div>
         <div>
-          <TableAlertsWidget
-            title="Active Alerts"
-            subtitle="Recent disease alerts"
-            alerts={filteredAlerts}
-            demo
+          <TableRankedWidget
+            title="Top Diseases"
+            subtitle="Most reported diseases"
+            rows={dashData.diseases.slice(0, 10).map((d, i) => ({
+              rank: i + 1,
+              label: d.disease,
+              value: d.cases,
+              formattedValue: d.cases.toLocaleString(),
+              barPercent: (d.cases / (dashData.diseases[0]?.cases || 1)) * 100,
+              color: d.color,
+            }))}
+            demo={!dashData.isRealData}
           />
         </div>
       </div>

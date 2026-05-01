@@ -96,7 +96,36 @@ function categorizeDataset(d: { id: string; name: string; rowCount: number }): D
 //  MAIN HOOK
 // ═════════════════════════════════════════════════════════════════════════════
 
-export function useDashboardData(_filters?: DashboardFilters) {
+export function useDashboardData(filters?: DashboardFilters) {
+  // ── Build API filters from dashboard filters ────────────────────────────
+  const apiFilters: Record<string, string> = {};
+  if (filters?.country && filters.country !== 'all') {
+    // Map ISO code back to country name for admin_location ILIKE filter
+    apiFilters['admin_location'] = COUNTRY_CODE_TO_NAME[filters.country] ?? filters.country;
+  }
+  if (filters?.disease && filters.disease !== 'all') {
+    apiFilters['disease'] = filters.disease;
+  }
+  // Period → date range
+  if (filters?.period && filters.period !== 'last_12_months') {
+    const now = new Date();
+    if (filters.period === 'last_6_months') {
+      const d = new Date(now); d.setMonth(d.getMonth() - 6);
+      apiFilters['dateFrom'] = d.toISOString().slice(0, 10);
+    } else if (filters.period === 'last_30_days') {
+      const d = new Date(now); d.setDate(d.getDate() - 30);
+      apiFilters['dateFrom'] = d.toISOString().slice(0, 10);
+    } else if (/^\d{4}$/.test(filters.period)) {
+      apiFilters['dateFrom'] = `${filters.period}-01-01`;
+      apiFilters['dateTo'] = `${filters.period}-12-31`;
+    }
+  }
+  // REC filter → expand to country names for client-side filtering (API doesn't know RECs)
+  const recFilter = filters?.rec && filters.rec !== 'all' ? filters.rec : null;
+
+  const hasApiFilters = Object.keys(apiFilters).length > 0;
+  const filterKey = JSON.stringify(apiFilters); // cache key for React Query
+
   // 1. Get all datasets
   const datasetsQuery = useQuery<{ data: Array<{ id: string; name: string; rowCount: number; status: string }> }>({
     queryKey: ['dashboard-datasets'],
@@ -111,15 +140,16 @@ export function useDashboardData(_filters?: DashboardFilters) {
   const popIds = allDatasets.filter((d) => d.type === 'population').map((d) => d.id);
   const hasHealth = healthIds.length > 0;
 
-  // 2. Country distribution (from health reports) — using "distribution" operation
+  // 2. Country distribution
   const countryDistQuery = useQuery<{ data: Array<{ label: string; value: number }> }>({
-    queryKey: ['dashboard-country-dist', healthIds],
+    queryKey: ['dashboard-country-dist', healthIds, filterKey],
     queryFn: () => histFetch(`${HIST_API_BASE}/cross-aggregate`, {
       method: 'POST',
       body: JSON.stringify({
         datasetIds: healthIds,
         column: 'admin_location',
         operation: 'distribution',
+        ...(hasApiFilters && { filters: apiFilters }),
       }),
     }),
     enabled: hasHealth,
@@ -128,43 +158,46 @@ export function useDashboardData(_filters?: DashboardFilters) {
 
   // 3. Disease distribution
   const diseaseDistQuery = useQuery<{ data: Array<{ label: string; value: number }> }>({
-    queryKey: ['dashboard-disease-dist', healthIds],
+    queryKey: ['dashboard-disease-dist', healthIds, filterKey],
     queryFn: () => histFetch(`${HIST_API_BASE}/cross-aggregate`, {
       method: 'POST',
       body: JSON.stringify({
         datasetIds: healthIds,
         column: 'disease',
         operation: 'distribution',
+        ...(hasApiFilters && { filters: apiFilters }),
       }),
     }),
     enabled: hasHealth,
     staleTime: STALE_TIME,
   });
 
-  // 4. Sum of num_new_outbreaks (total outbreaks)
+  // 4. Sum of outbreaks
   const outbreaksSumQuery = useQuery<{ data: Array<{ value: number }> }>({
-    queryKey: ['dashboard-outbreaks-sum', healthIds],
+    queryKey: ['dashboard-outbreaks-sum', healthIds, filterKey],
     queryFn: () => histFetch(`${HIST_API_BASE}/cross-aggregate`, {
       method: 'POST',
       body: JSON.stringify({
         datasetIds: healthIds,
         column: 'num_new_outbreaks',
         operation: 'sum',
+        ...(hasApiFilters && { filters: apiFilters }),
       }),
     }),
     enabled: hasHealth,
     staleTime: STALE_TIME,
   });
 
-  // 5. Sum of animals vaccinated (from vaccination reports)
+  // 5. Sum of animals vaccinated
   const vaccSumQuery = useQuery<{ data: Array<{ value: number }> }>({
-    queryKey: ['dashboard-vacc-sum', vaccIds],
+    queryKey: ['dashboard-vacc-sum', vaccIds, filterKey],
     queryFn: () => histFetch(`${HIST_API_BASE}/cross-aggregate`, {
       method: 'POST',
       body: JSON.stringify({
         datasetIds: vaccIds,
         column: 'num_animals_vaccinated',
         operation: 'sum',
+        ...(hasApiFilters && { filters: apiFilters }),
       }),
     }),
     enabled: vaccIds.length > 0,
@@ -173,13 +206,14 @@ export function useDashboardData(_filters?: DashboardFilters) {
 
   // 6. Sum of livestock population
   const popSumQuery = useQuery<{ data: Array<{ value: number }> }>({
-    queryKey: ['dashboard-pop-sum', popIds],
+    queryKey: ['dashboard-pop-sum', popIds, filterKey],
     queryFn: () => histFetch(`${HIST_API_BASE}/cross-aggregate`, {
       method: 'POST',
       body: JSON.stringify({
         datasetIds: popIds,
         column: 'num_animals',
         operation: 'sum',
+        ...(hasApiFilters && { filters: apiFilters }),
       }),
     }),
     enabled: popIds.length > 0,
@@ -188,7 +222,7 @@ export function useDashboardData(_filters?: DashboardFilters) {
 
   // 7. Monthly time series
   const monthlyQuery = useQuery<{ data: Array<{ period: string; value: number }> }>({
-    queryKey: ['dashboard-monthly-trend', healthIds],
+    queryKey: ['dashboard-monthly-trend', healthIds, filterKey],
     queryFn: () => histFetch(`${HIST_API_BASE}/cross-query`, {
       method: 'POST',
       body: JSON.stringify({
@@ -197,6 +231,7 @@ export function useDashboardData(_filters?: DashboardFilters) {
         valueColumn: 'num_new_outbreaks',
         interval: 'month',
         operation: 'count',
+        ...(hasApiFilters && { filters: apiFilters }),
       }),
     }),
     enabled: hasHealth,
@@ -205,7 +240,7 @@ export function useDashboardData(_filters?: DashboardFilters) {
 
   // 8. Weekly time series (epi curve)
   const weeklyQuery = useQuery<{ data: Array<{ period: string; value: number }> }>({
-    queryKey: ['dashboard-weekly-trend', healthIds],
+    queryKey: ['dashboard-weekly-trend', healthIds, filterKey],
     queryFn: () => histFetch(`${HIST_API_BASE}/cross-query`, {
       method: 'POST',
       body: JSON.stringify({
@@ -214,6 +249,7 @@ export function useDashboardData(_filters?: DashboardFilters) {
         valueColumn: 'num_new_outbreaks',
         interval: 'week',
         operation: 'count',
+        ...(hasApiFilters && { filters: apiFilters }),
       }),
     }),
     enabled: hasHealth,
@@ -296,6 +332,7 @@ export function useDashboardData(_filters?: DashboardFilters) {
         submissions: data.reports,
         rec: COUNTRY_CODE_TO_REC[code] ?? 'unknown',
       }))
+      .filter((c) => !recFilter || c.rec === recFilter)
       .sort((a, b) => b.outbreaks - a.outbreaks);
   })();
 
