@@ -121,6 +121,7 @@ function DashboardContent() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
   const { filters, setFilter } = useDashboardFilters();
+  const user = useAuthStore((s) => s.user);
 
   const dashData = useDashboardData(filters);
 
