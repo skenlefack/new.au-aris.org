@@ -19,6 +19,7 @@ interface DashboardFilterPanelProps {
   onToggle: () => void;
   activePage: string;
   onPageChange: (page: string) => void;
+  diseaseOptions?: Array<{ value: string; label: string }>;
 }
 
 const PERIODS = [
@@ -103,6 +104,7 @@ export function DashboardFilterPanel({
   onToggle,
   activePage,
   onPageChange,
+  diseaseOptions,
 }: DashboardFilterPanelProps) {
   const { filters, setFilter, resetFilters, activeFilterCount } = useDashboardFilters();
   const user = useAuthStore((s) => s.user);
@@ -265,21 +267,7 @@ export function DashboardFilterPanel({
           value={filters.disease}
           options={[
             { value: 'all', label: 'All Diseases' },
-            { value: 'RABIES', label: 'Rabies' },
-            { value: 'ANTHRAX', label: 'Anthrax' },
-            { value: 'BLACKLEG', label: 'Blackleg' },
-            { value: 'ANAPLASMOSIS', label: 'Anaplasmosis' },
-            { value: 'BRUCELLA', label: 'Brucella' },
-            { value: 'BABESIOSIS', label: 'Babesiosis' },
-            { value: 'HEARTWATER', label: 'Heartwater' },
-            { value: 'HAEMORRHAGIC_SEPTICAEMIA', label: 'Haemorrhagic Septicaemia' },
-            { value: 'LSD', label: 'Lumpy Skin Disease' },
-            { value: 'NEWCASTLE_DISEASE', label: 'Newcastle Disease' },
-            { value: 'TRYPANOSOMOSIS', label: 'Trypanosomosis' },
-            { value: 'THEILERIOSIS', label: 'Theileriosis' },
-            { value: 'EAST_COAST_FEVER', label: 'East Coast Fever' },
-            { value: 'DERMATOPHILOSIS', label: 'Dermatophilosis' },
-            { value: 'ZERO-CAS', label: 'Zero Cases (No outbreak)' },
+            ...(diseaseOptions ?? []),
           ]}
           onChange={(v) => setFilter('disease', v)}
         />

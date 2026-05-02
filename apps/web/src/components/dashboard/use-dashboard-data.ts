@@ -127,7 +127,12 @@ export function useDashboardData(filters?: DashboardFilters) {
   const recFilter = filters?.rec && filters.rec !== 'all' ? filters.rec : null;
 
   const hasApiFilters = Object.keys(apiFilters).length > 0;
-  const filterKey = JSON.stringify(apiFilters); // cache key for React Query
+  const filterKey = JSON.stringify(apiFilters);
+
+  // Filters WITHOUT disease (for the disease distribution query itself)
+  const { disease: _excludeDisease, ...apiFiltersNoDisease } = apiFilters;
+  const hasFiltersNoDisease = Object.keys(apiFiltersNoDisease).length > 0;
+  const filterKeyNoDisease = JSON.stringify(apiFiltersNoDisease);
 
   // 1. Get all datasets
   const datasetsQuery = useQuery<{ data: Array<{ id: string; name: string; rowCount: number; status: string }> }>({
@@ -159,16 +164,16 @@ export function useDashboardData(filters?: DashboardFilters) {
     staleTime: STALE_TIME,
   });
 
-  // 3. Disease distribution
+  // 3. Disease distribution (exclude disease filter to show all diseases)
   const diseaseDistQuery = useQuery<{ data: Array<{ label: string; value: number }> }>({
-    queryKey: ['dashboard-disease-dist', healthIds, filterKey],
+    queryKey: ['dashboard-disease-dist', healthIds, filterKeyNoDisease],
     queryFn: () => histFetch(`${HIST_API_BASE}/cross-aggregate`, {
       method: 'POST',
       body: JSON.stringify({
         datasetIds: healthIds,
         column: 'disease',
         operation: 'distribution',
-        ...(hasApiFilters && { filters: apiFilters }),
+        ...(hasFiltersNoDisease && { filters: apiFiltersNoDisease }),
       }),
     }),
     enabled: hasHealth,
@@ -416,6 +421,17 @@ export function useDashboardData(filters?: DashboardFilters) {
   const activities: ActivityItem[] = DEMO_ACTIVITIES;
   const rainfall: RainfallPoint[] = DEMO_RAINFALL;
 
+  // All disease names for the filter dropdown (from unfiltered distribution)
+  const allDiseaseNames: Array<{ value: string; label: string }> = (() => {
+    const raw = diseaseDistQuery.data?.data;
+    if (!raw) return [];
+    return raw
+      .filter((d) => d.label && d.label.trim() && d.value > 0
+        && d.label !== 'ZERO-CAS' && !d.label.match(/^[0-9a-f]{8}-/))
+      .sort((a, b) => b.value - a.value)
+      .map((d) => ({ value: d.label, label: `${d.label} (${d.value.toLocaleString()})` }));
+  })();
+
   const isLoading = datasetsQuery.isLoading;
   const isRealData = hasHealth && !countryDistQuery.isError;
 
@@ -429,6 +445,7 @@ export function useDashboardData(filters?: DashboardFilters) {
     alerts,
     activities,
     rainfall,
+    allDiseaseNames,
     isLoading,
     isRealData,
   };

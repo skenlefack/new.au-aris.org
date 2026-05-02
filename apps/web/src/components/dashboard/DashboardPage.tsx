@@ -200,6 +200,7 @@ function DashboardContent() {
           onToggle={() => setFilterPanelOpen((p) => !p)}
           activePage={activePage}
           onPageChange={setActivePage}
+          diseaseOptions={dashData.allDiseaseNames}
         />
 
         <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
