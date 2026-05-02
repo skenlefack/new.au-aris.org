@@ -113,10 +113,19 @@ export function AdminLocationField({
       : undefined,
   );
 
-  // Fetch ADMIN2 divisions for the selected ADMIN1
-  const { data: admin2Data } = useGeoChildren(
+  // Fetch ADMIN2 divisions for the selected ADMIN1 (primary: children of admin1)
+  const { data: admin2ChildData } = useGeoChildren(
     selectedAdmin1 || undefined,
     { limit: 200 },
+  );
+
+  // Fallback: fetch all ADMIN2 by country when children query returns empty
+  // (handles countries like Kenya where admin2 parentCode points to country, not admin1)
+  const admin2ChildEmpty = selectedAdmin1 && (!admin2ChildData?.data || admin2ChildData.data.length === 0);
+  const { data: admin2ByCountryData } = useGeoEntities(
+    admin2ChildEmpty && selectedCountry
+      ? { level: 'ADMIN2', countryCode: selectedCountry, limit: 500 }
+      : undefined,
   );
 
   const admin1Options = useMemo(() => {
@@ -131,15 +140,20 @@ export function AdminLocationField({
   }, [admin1Data, locale]);
 
   const admin2Options = useMemo(() => {
-    if (!admin2Data?.data) return [];
-    return admin2Data.data
+    // Use children data if available, otherwise fallback to country-level query
+    const items = (admin2ChildData?.data && admin2ChildData.data.length > 0)
+      ? admin2ChildData.data
+      : (admin2ByCountryData?.data ?? []);
+
+    if (items.length === 0) return [];
+    return items
       .map((e) => {
         const n = e.name;
         const label = typeof n === 'string' ? n : (n?.[locale] || n?.en || n?.fr || e.code);
         return { value: e.id, label };
       })
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [admin2Data, locale]);
+  }, [admin2ChildData, admin2ByCountryData, locale]);
 
   const handleChange = (level: number, val: string) => {
     const updated = { ...selections };
