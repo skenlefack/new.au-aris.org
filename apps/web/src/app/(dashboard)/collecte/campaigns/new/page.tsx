@@ -46,11 +46,33 @@ const countryList: CountryConfig[] = Object.values(COUNTRIES).sort((a, b) =>
 
 const allRecs = getAllRecs();
 
+// Domains to exclude from campaign forms
+const EXCLUDED_DOMAINS = new Set(['knowledge-hub']);
+
 export default function NewCampaignPage() {
   const router = useRouter();
   const t = useTranslations('collecte');
   const tAi = useTranslations('ai');
   const createCampaign = useCreateCollectionCampaign();
+  const allDomains = useDomainStore((s) => s.allDomains);
+
+  // Build domain options from store (active only, excluding Knowledge)
+  const domainOptions = useMemo(() => {
+    if (allDomains.length > 0) {
+      return allDomains
+        .filter((d) => !EXCLUDED_DOMAINS.has(d.code))
+        .map((d) => {
+          const formCode = DOMAIN_OPTIONS.find(
+            (opt) => opt.label === (d.name.en || d.name.fr),
+          )?.value;
+          // Fallback: convert store code to form code (hyphens → underscores)
+          const code = formCode ?? d.code.replace(/-/g, '_').replace('_prod', '');
+          return { value: code, label: d.name.en || d.name.fr || d.code };
+        });
+    }
+    // Fallback to static DOMAIN_OPTIONS
+    return DOMAIN_OPTIONS;
+  }, [allDomains]);
 
   // Multilingual name & description
   const [name, setName] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
@@ -413,7 +435,7 @@ export default function NewCampaignPage() {
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">{t('selectDomainsDesc')}</p>
             <div className="flex flex-wrap gap-2">
-              {DOMAIN_OPTIONS.map((d) => {
+              {domainOptions.map((d) => {
                 const isSelected = selectedDomains.includes(d.value);
                 return (
                   <button

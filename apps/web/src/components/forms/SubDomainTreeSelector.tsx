@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import { Search, ChevronRight, ChevronDown, X } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { Search, ChevronRight, ChevronDown, X, CheckSquare, Square } from 'lucide-react';
 import { useDomainStore, type SubDomain } from '@/lib/stores/domain-store';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { useLocaleStore } from '@/lib/stores/locale-store';
@@ -11,7 +11,7 @@ import { useLocaleStore } from '@/lib/stores/locale-store';
 /* ------------------------------------------------------------------ */
 
 interface SubDomainTreeSelectorProps {
-  /** Currently selected domain codes (parent filter) */
+  /** Currently selected domain codes (form-level, e.g. animal_health) */
   selectedDomains: string[];
   /** Currently selected sub-domain codes */
   value: string[];
@@ -22,14 +22,9 @@ interface SubDomainTreeSelectorProps {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
+/*  Code mapping: form ↔ store                                         */
 /* ------------------------------------------------------------------ */
 
-/**
- * DOMAIN_OPTIONS uses underscores (animal_health, trade_sps, climate_env)
- * but the domain store uses hyphens (animal-health, trade-sps, climate-env).
- * We normalise both to match.
- */
 const FORM_TO_STORE: Record<string, string> = {
   animal_health: 'animal-health',
   livestock: 'livestock-prod',
@@ -45,24 +40,24 @@ const STORE_TO_FORM: Record<string, string> = Object.fromEntries(
   Object.entries(FORM_TO_STORE).map(([k, v]) => [v, k]),
 );
 
-/** Convert form-level domain code(s) to store-level code(s) */
 function toStoreCodes(formCodes: string[]): string[] {
   return formCodes.map((c) => FORM_TO_STORE[c] ?? c);
 }
 
+/* ------------------------------------------------------------------ */
+/*  Label helpers                                                      */
+/* ------------------------------------------------------------------ */
+
 function getSubDomainLabel(sd: SubDomain, locale: string): string {
-  switch (locale) {
-    case 'fr': return sd.labelFr || sd.labelEn || sd.code;
-    case 'ar': return sd.labelAr || sd.labelFr || sd.labelEn || sd.code;
-    case 'pt': return sd.labelPt || sd.labelEn || sd.code;
-    default:   return sd.labelEn || sd.labelFr || sd.code;
-  }
+  if (locale === 'fr') return sd.labelFr || sd.labelEn || sd.code;
+  if (locale === 'ar') return sd.labelAr || sd.labelFr || sd.labelEn || sd.code;
+  if (locale === 'pt') return sd.labelPt || sd.labelEn || sd.code;
+  return sd.labelEn || sd.labelFr || sd.code;
 }
 
-function getDomainLabel(code: string): string {
-  // Try store code first, then form code
-  const formCode = STORE_TO_FORM[code] ?? code;
-  return DOMAIN_OPTIONS.find((d) => d.value === formCode || d.value === code)?.label ?? code;
+function getDomainLabel(storeCode: string): string {
+  const formCode = STORE_TO_FORM[storeCode] ?? storeCode;
+  return DOMAIN_OPTIONS.find((d) => d.value === formCode || d.value === storeCode)?.label ?? storeCode;
 }
 
 /* ------------------------------------------------------------------ */
@@ -78,46 +73,57 @@ export function SubDomainTreeSelector({
   const locale = useLocaleStore((s) => s.locale);
   const subDomainsMetadata = useDomainStore((s) => s.subDomainsMetadata);
   const [search, setSearch] = useState('');
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(toStoreCodes(selectedDomains)));
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
-  // Group sub-domains by domain, filtered to selected domains only
+  // Auto-expand newly added domains
+  const storeCodes = useMemo(() => toStoreCodes(selectedDomains), [selectedDomains]);
+  useEffect(() => {
+    // When domains change, make sure none of the new ones are collapsed
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      for (const code of storeCodes) next.delete(code);
+      return next;
+    });
+  }, [storeCodes]);
+
+  // Build tree: group sub-domains by store-level domain code
   const tree = useMemo(() => {
-    // Convert form-level codes (underscores) to store-level codes (hyphens)
-    const storeCodes = toStoreCodes(selectedDomains);
     const groups: Record<string, SubDomain[]> = {};
+    const q = search.toLowerCase();
 
     for (const sd of subDomainsMetadata) {
       if (!sd.active) continue;
-      if (storeCodes.length > 0 && !storeCodes.includes(sd.domainCode)) continue;
+      if (!storeCodes.includes(sd.domainCode)) continue;
 
-      const q = search.toLowerCase();
       if (q) {
-        const matchLabel =
+        const match =
           sd.labelEn.toLowerCase().includes(q) ||
           sd.labelFr.toLowerCase().includes(q) ||
           (sd.labelPt?.toLowerCase().includes(q) ?? false) ||
           (sd.labelAr?.toLowerCase().includes(q) ?? false) ||
           sd.code.toLowerCase().includes(q);
-        if (!matchLabel) continue;
+        if (!match) continue;
       }
 
       if (!groups[sd.domainCode]) groups[sd.domainCode] = [];
       groups[sd.domainCode].push(sd);
     }
 
-    // Sort sub-domains within each group
-    for (const key of Object.keys(groups)) {
-      groups[key].sort((a, b) => a.displayOrder - b.displayOrder);
+    // Sort sub-domains within each group by displayOrder
+    for (const subs of Object.values(groups)) {
+      subs.sort((a, b) => a.displayOrder - b.displayOrder);
     }
 
-    return groups;
-  }, [subDomainsMetadata, selectedDomains, search]);
+    // Sort groups in the same order as selectedDomains
+    const ordered: [string, SubDomain[]][] = [];
+    for (const sc of storeCodes) {
+      if (groups[sc]) ordered.push([sc, groups[sc]]);
+    }
+    return ordered;
+  }, [subDomainsMetadata, storeCodes, search]);
 
-  // Auto-expand domains that have search matches
-  const domainsWithResults = Object.keys(tree);
-
-  const toggleExpand = (domainCode: string) => {
-    setExpanded((prev) => {
+  const toggleCollapse = (domainCode: string) => {
+    setCollapsed((prev) => {
       const next = new Set(prev);
       if (next.has(domainCode)) next.delete(domainCode);
       else next.add(domainCode);
@@ -126,41 +132,34 @@ export function SubDomainTreeSelector({
   };
 
   const toggleSubDomain = (code: string) => {
-    if (value.includes(code)) {
-      onChange(value.filter((c) => c !== code));
-    } else {
-      onChange([...value, code]);
-    }
+    onChange(
+      value.includes(code)
+        ? value.filter((c) => c !== code)
+        : [...value, code],
+    );
   };
 
   const selectAllInDomain = (domainCode: string) => {
-    const domainSubs = tree[domainCode] ?? [];
-    const domainCodes = domainSubs.map((sd) => sd.code);
-    const allSelected = domainCodes.every((c) => value.includes(c));
-
+    const entry = tree.find(([dc]) => dc === domainCode);
+    if (!entry) return;
+    const domainSubCodes = entry[1].map((sd) => sd.code);
+    const allSelected = domainSubCodes.every((c) => value.includes(c));
     if (allSelected) {
-      // Deselect all in this domain
-      onChange(value.filter((c) => !domainCodes.includes(c)));
+      onChange(value.filter((c) => !domainSubCodes.includes(c)));
     } else {
-      // Select all in this domain
-      const existing = new Set(value);
-      for (const c of domainCodes) existing.add(c);
-      onChange([...existing]);
+      const set = new Set(value);
+      for (const c of domainSubCodes) set.add(c);
+      onChange([...set]);
     }
   };
 
-  const removeSubDomain = (code: string) => {
-    onChange(value.filter((c) => c !== code));
-  };
-
-  // Resolve label for selected chips
   const getChipLabel = (code: string) => {
     const sd = subDomainsMetadata.find((s) => s.code === code);
     if (!sd) return code;
-    const domLabel = getDomainLabel(sd.domainCode);
-    const sdLabel = getSubDomainLabel(sd, locale);
-    return `${domLabel} › ${sdLabel}`;
+    return `${getDomainLabel(sd.domainCode)} › ${getSubDomainLabel(sd, locale)}`;
   };
+
+  // ── Guard states ──
 
   if (selectedDomains.length === 0) {
     return (
@@ -170,7 +169,7 @@ export function SubDomainTreeSelector({
     );
   }
 
-  const totalAvailable = Object.values(tree).reduce((sum, arr) => sum + arr.length, 0);
+  const totalAvailable = tree.reduce((sum, [, subs]) => sum + subs.length, 0);
 
   if (totalAvailable === 0 && !search) {
     return (
@@ -179,6 +178,8 @@ export function SubDomainTreeSelector({
       </p>
     );
   }
+
+  // ── Render ──
 
   return (
     <div className="space-y-3">
@@ -193,7 +194,7 @@ export function SubDomainTreeSelector({
               {getChipLabel(code)}
               <button
                 type="button"
-                onClick={() => removeSubDomain(code)}
+                onClick={() => onChange(value.filter((c) => c !== code))}
                 className="ml-0.5 rounded-full p-0.5 hover:bg-aris-primary-200 dark:hover:bg-aris-primary-800 transition-colors"
               >
                 <X className="h-3 w-3" />
@@ -215,77 +216,89 @@ export function SubDomainTreeSelector({
         />
       </div>
 
-      {/* Tree view */}
-      <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
-        {domainsWithResults.length === 0 && search ? (
+      {/* Tree */}
+      <div className="max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+        {tree.length === 0 && search ? (
           <p className="px-4 py-3 text-xs text-gray-400 italic">{t('noSubDomainsMatch')}</p>
         ) : (
-          domainsWithResults.map((domainCode) => {
-            const subDomains = tree[domainCode];
-            const isExpanded = expanded.has(domainCode) || !!search;
-            const allSelected = subDomains.every((sd) => value.includes(sd.code));
-            const someSelected = subDomains.some((sd) => value.includes(sd.code));
+          tree.map(([domainCode, subDomains]) => {
+            const isOpen = !collapsed.has(domainCode) || !!search;
+            const selectedCount = subDomains.filter((sd) => value.includes(sd.code)).length;
+            const allSelected = selectedCount === subDomains.length;
 
             return (
               <div key={domainCode} className="border-b border-gray-100 last:border-0 dark:border-gray-800">
                 {/* Domain header */}
-                <button
-                  type="button"
-                  onClick={() => toggleExpand(domainCode)}
-                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-gray-800 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800/50 transition-colors"
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  )}
-                  <span className="flex-1">{getDomainLabel(domainCode)}</span>
-                  <span className="text-[10px] text-gray-400">
-                    {subDomains.filter((sd) => value.includes(sd.code)).length}/{subDomains.length}
-                  </span>
-                  {/* Select all toggle */}
+                <div className="flex items-center gap-1 pr-2">
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      selectAllInDomain(domainCode);
-                    }}
-                    className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                    onClick={() => toggleCollapse(domainCode)}
+                    className="flex flex-1 items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-gray-800 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800/50 transition-colors"
+                  >
+                    {isOpen ? (
+                      <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    )}
+                    <span className="flex-1">{getDomainLabel(domainCode)}</span>
+                    <span className="text-[10px] text-gray-400 tabular-nums">
+                      {selectedCount}/{subDomains.length}
+                    </span>
+                  </button>
+
+                  {/* Select all / none */}
+                  <button
+                    type="button"
+                    onClick={() => selectAllInDomain(domainCode)}
+                    className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] font-medium transition-colors ${
                       allSelected
                         ? 'bg-aris-primary-100 text-aris-primary-700 dark:bg-aris-primary-900/30 dark:text-aris-primary-400'
-                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-800'
                     }`}
+                    title={allSelected ? t('deselectAll') : t('selectAllBtn')}
                   >
+                    {allSelected ? (
+                      <CheckSquare className="h-3 w-3" />
+                    ) : (
+                      <Square className="h-3 w-3" />
+                    )}
                     {allSelected ? t('deselectAll') : t('selectAllBtn')}
                   </button>
-                </button>
+                </div>
 
-                {/* Sub-domain list */}
-                {isExpanded && (
-                  <div className="pb-1">
+                {/* Sub-domain checkboxes */}
+                {isOpen && (
+                  <div className="pb-1.5">
                     {subDomains.map((sd) => {
-                      const isSelected = value.includes(sd.code);
+                      const isChecked = value.includes(sd.code);
                       return (
                         <label
                           key={sd.code}
-                          className={`flex cursor-pointer items-center gap-2.5 px-4 py-1.5 pl-9 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/30 ${
-                            isSelected ? 'text-aris-primary-700 dark:text-aris-primary-300' : 'text-gray-600 dark:text-gray-400'
+                          className={`flex cursor-pointer items-center gap-2.5 py-1.5 pl-10 pr-4 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/30 ${
+                            isChecked
+                              ? 'text-aris-primary-700 dark:text-aris-primary-300'
+                              : 'text-gray-600 dark:text-gray-400'
                           }`}
                         >
                           <input
                             type="checkbox"
-                            checked={isSelected}
+                            checked={isChecked}
                             onChange={() => toggleSubDomain(sd.code)}
                             className="h-3.5 w-3.5 rounded border-gray-300 text-aris-primary-600 focus:ring-aris-primary-500 dark:border-gray-600"
                           />
-                          <span className="flex-1">{getSubDomainLabel(sd, locale)}</span>
+                          <span className="flex-1 truncate">{getSubDomainLabel(sd, locale)}</span>
                           {sd.typeEnum && (
-                            <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${
-                              sd.typeEnum === 'VALUE_CHAIN' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                : sd.typeEnum === 'PATHOLOGY' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                : sd.typeEnum === 'ORGANIZATIONAL' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                            }`}>
+                            <span
+                              className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium ${
+                                sd.typeEnum === 'VALUE_CHAIN'
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                  : sd.typeEnum === 'PATHOLOGY'
+                                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                    : sd.typeEnum === 'ORGANIZATIONAL'
+                                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                      : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                              }`}
+                            >
                               {sd.typeEnum.replace('_', ' ')}
                             </span>
                           )}

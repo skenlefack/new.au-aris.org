@@ -61,6 +61,8 @@ function toDateInputValue(dateStr: string | undefined): string {
   try { return new Date(dateStr).toISOString().split('T')[0]; } catch { return ''; }
 }
 
+const EXCLUDED_DOMAINS = new Set(['knowledge-hub']);
+
 export default function EditCampaignPage() {
   const router = useRouter();
   const params = useParams();
@@ -69,6 +71,22 @@ export default function EditCampaignPage() {
 
   const { data: campaignRes, isLoading: campaignLoading } = useCollectionCampaign(campaignId);
   const updateCampaign = useUpdateCollectionCampaign();
+  const allDomains = useDomainStore((s) => s.allDomains);
+
+  const domainOptions = useMemo(() => {
+    if (allDomains.length > 0) {
+      return allDomains
+        .filter((d) => !EXCLUDED_DOMAINS.has(d.code))
+        .map((d) => {
+          const formCode = DOMAIN_OPTIONS.find(
+            (opt) => opt.label === (d.name.en || d.name.fr),
+          )?.value;
+          const code = formCode ?? d.code.replace(/-/g, '_').replace('_prod', '');
+          return { value: code, label: d.name.en || d.name.fr || d.code };
+        });
+    }
+    return DOMAIN_OPTIONS;
+  }, [allDomains]);
 
   const [name, setName] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
   const [description, setDescription] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
@@ -362,7 +380,7 @@ export default function EditCampaignPage() {
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">{t('selectDomainsDesc')}</p>
             <div className="flex flex-wrap gap-2">
-              {DOMAIN_OPTIONS.map((d) => {
+              {domainOptions.map((d) => {
                 const isSelected = selectedDomains.includes(d.value);
                 return (
                   <button key={d.value} type="button" onClick={() => handleDomainsChange(isSelected ? selectedDomains.filter((v) => v !== d.value) : [...selectedDomains, d.value])}
