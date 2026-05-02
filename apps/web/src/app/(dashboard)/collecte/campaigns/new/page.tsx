@@ -127,17 +127,25 @@ export default function NewCampaignPage() {
     });
   }, [templatesData, selectedDomains]);
 
+  // Form codes use underscores (animal_health), store uses hyphens (animal-health)
+  const FORM_TO_STORE: Record<string, string> = {
+    animal_health: 'animal-health', livestock: 'livestock-prod', fisheries: 'fisheries',
+    trade_sps: 'trade-sps', wildlife: 'wildlife', apiculture: 'apiculture',
+    climate_env: 'climate-env', governance: 'governance',
+  };
+
   // When domains change, clear templates and sub-domains that no longer match
   const handleDomainsChange = (codes: string[]) => {
     setSelectedDomains(codes);
     if (codes.length > 0) {
       setSelectedTemplates((prev) => prev.filter((tmpl) => codes.includes(tmpl.domain)));
-      // Keep only sub-domains belonging to still-selected domains
+      // Convert form codes to store codes before comparing with sub-domain domainCode
+      const storeCodes = codes.map((c) => FORM_TO_STORE[c] ?? c);
       setSelectedSubDomains((prev) => {
         const subMeta = useDomainStore.getState().subDomainsMetadata;
         return prev.filter((sdCode) => {
           const sd = subMeta.find((s) => s.code === sdCode);
-          return sd && codes.includes(sd.domainCode);
+          return sd && storeCodes.includes(sd.domainCode);
         });
       });
     }
