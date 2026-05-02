@@ -371,6 +371,7 @@ function OverviewGrid({
         </div>
         <div>
           <ChartBarWidget
+            key={dashData.selectedYear ?? 'all-years'}
             title={dashData.selectedYear ? `Outbreaks ${dashData.selectedYear} — by Month` : 'Annual Outbreaks (2007-2025)'}
             subtitle={dashData.selectedYear ? `Monthly breakdown for ${dashData.selectedYear}` : 'Outbreak reports per year'}
             data={dashData.selectedYear

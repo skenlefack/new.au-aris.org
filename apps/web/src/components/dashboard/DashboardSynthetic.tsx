@@ -426,7 +426,7 @@ export function DashboardSynthetic() {
         {/* 2C: Annual/Monthly Outbreaks (bar chart) */}
         <div className="bg-white dark:bg-gray-800 rounded overflow-hidden flex flex-col">
           <WidgetTitle>{dashData.selectedYear ? `Outbreaks ${dashData.selectedYear} — Monthly` : 'Annual Outbreaks (2007-2025)'}</WidgetTitle>
-          <div className="flex-1 min-h-0 px-1 py-1">
+          <div className="flex-1 min-h-0 px-1 py-1" key={dashData.selectedYear ?? 'all-years'}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={dashData.selectedYear
