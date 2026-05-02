@@ -3222,7 +3222,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'ET': {
     code3: 'ETH',
-    levelTypes: {"1":{"en":"City","fr":"Ville","pt":"City"},"2":{"en":"Zone","fr":"Zone","pt":"Zona"}},
+    levelTypes: {"1":{"en":"City","fr":"Ville","pt":"City"},"2":{"en":"Zone","fr":"Zone","pt":"Zona"},"3":{"en":"Woreda","fr":"Woreda","pt":"Woreda"}},
     admin1: [
       { gid: 'ETH.1_1', code: 'ET.AA', name: 'AddisAbeba' },
       { gid: 'ETH.2_1', code: 'ET.AF', name: 'Afar' },
@@ -3860,7 +3860,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'KE': {
     code3: 'KEN',
-    levelTypes: {"1":{"en":"County","fr":"Comté","pt":"Condado"},"2":{"en":"Constituency","fr":"Circonscription","pt":"Circunscrição"}},
+    levelTypes: {"1":{"en":"County","fr":"Comté","pt":"Condado"},"2":{"en":"Constituency","fr":"Circonscription","pt":"Circunscrição"},"3":{"en":"Ward","fr":"Quartier","pt":"Bairro"}},
     admin1: [
       { gid: 'KEN.1_1', code: 'KE.BA', name: 'Baringo' },
       { gid: 'KEN.2_1', code: 'KE.BO', name: 'Bomet' },
@@ -5248,7 +5248,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'NG': {
     code3: 'NGA',
-    levelTypes: {"1":{"en":"State","fr":"État","pt":"Estado"},"2":{"en":"LocalAuthority","fr":"LocalAuthority","pt":"LocalAuthority"}},
+    levelTypes: {"1":{"en":"State","fr":"État","pt":"Estado"},"2":{"en":"Local Government Area","fr":"Zone de gouvernement local","pt":"Área de governo local"},"3":{"en":"Ward","fr":"Quartier","pt":"Bairro"}},
     admin1: [
       { gid: 'NGA.1_1', code: 'NG.AB', name: 'Abia' },
       { gid: 'NGA.2_1', code: 'NG.AD', name: 'Adamawa' },
@@ -6277,7 +6277,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'SN': {
     code3: 'SEN',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Department","fr":"Département","pt":"Departamento"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Department","fr":"Département","pt":"Departamento"},"3":{"en":"Arrondissement","fr":"Arrondissement","pt":"Município"}},
     admin1: [
       { gid: 'SEN.1_1', code: 'SN.DK', name: 'Dakar' },
       { gid: 'SEN.2_1', code: 'SN.DB', name: 'Diourbel' },
@@ -7030,7 +7030,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'TZ': {
     code3: 'TZA',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"Ward","fr":"Quartier","pt":"Bairro"}},
     admin1: [
       { gid: 'TZA.1_1', code: 'TZ.AS', name: 'Arusha' },
       { gid: 'TZA.2_1', code: 'TZ.DS', name: 'DaresSalaam' },

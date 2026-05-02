@@ -95,6 +95,7 @@ export function AdminLocationField({
 
   const selectedCountry = selections['level_0'] || '';
   const selectedAdmin1 = selections['level_1'] || '';
+  const selectedAdmin2 = selections['level_2'] || '';
 
   // Sorted country list — filtered by user scope
   const countryOptions = useMemo(
@@ -140,7 +141,6 @@ export function AdminLocationField({
   }, [admin1Data, locale]);
 
   const admin2Options = useMemo(() => {
-    // Use children data if available, otherwise fallback to country-level query
     const items = (admin2ChildData?.data && admin2ChildData.data.length > 0)
       ? admin2ChildData.data
       : (admin2ByCountryData?.data ?? []);
@@ -154,6 +154,35 @@ export function AdminLocationField({
       })
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [admin2ChildData, admin2ByCountryData, locale]);
+
+  // Fetch ADMIN3 divisions for the selected ADMIN2
+  const { data: admin3ChildData } = useGeoChildren(
+    selectedAdmin2 || undefined,
+    { limit: 500 },
+  );
+
+  // Fallback: fetch all ADMIN3 by country when children query returns empty
+  const admin3ChildEmpty = selectedAdmin2 && (!admin3ChildData?.data || admin3ChildData.data.length === 0);
+  const { data: admin3ByCountryData } = useGeoEntities(
+    admin3ChildEmpty && selectedCountry
+      ? { level: 'ADMIN3', countryCode: selectedCountry, limit: 500 }
+      : undefined,
+  );
+
+  const admin3Options = useMemo(() => {
+    const items = (admin3ChildData?.data && admin3ChildData.data.length > 0)
+      ? admin3ChildData.data
+      : (admin3ByCountryData?.data ?? []);
+
+    if (items.length === 0) return [];
+    return items
+      .map((e) => {
+        const n = e.name;
+        const label = typeof n === 'string' ? n : (n?.[locale] || n?.en || n?.fr || e.code);
+        return { value: e.id, label };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [admin3ChildData, admin3ByCountryData, locale]);
 
   const handleChange = (level: number, val: string) => {
     const updated = { ...selections };
@@ -180,6 +209,8 @@ export function AdminLocationField({
         return admin1Options;
       case 2:
         return admin2Options;
+      case 3:
+        return admin3Options;
       default:
         return [];
     }
