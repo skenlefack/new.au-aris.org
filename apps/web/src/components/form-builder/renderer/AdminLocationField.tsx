@@ -5,10 +5,12 @@ import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { COUNTRIES } from '@/data/countries-config';
 import { RECS } from '@/data/recs-config';
+import { ADMIN_DIVISIONS } from '@/data/admin-divisions';
 import { useGeoEntities, useGeoChildren } from '@/lib/api/geo-hooks';
+import { useAdminLevels, type AdminLevel } from '@/lib/api/settings-hooks';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import type { Locale } from '@/lib/i18n/config';
+// Note: removed unused 'Locale' import
 
 interface AdminLocationFieldProps {
   levels: number[];
@@ -17,7 +19,8 @@ interface AdminLocationFieldProps {
   onChange: (value: Record<string, string> | null) => void;
 }
 
-const LEVEL_LABELS: Record<number, Record<string, string>> = {
+/** Generic fallback labels when no country-specific config exists */
+const GENERIC_LEVEL_LABELS: Record<number, Record<string, string>> = {
   0: { en: 'Country', fr: 'Pays', pt: 'País', ar: 'البلد', es: 'País' },
   1: { en: 'Region / Province', fr: 'Région / Province', pt: 'Região / Província', ar: 'المنطقة / المحافظة', es: 'Región / Provincia' },
   2: { en: 'District / Department', fr: 'District / Département', pt: 'Distrito / Departamento', ar: 'المقاطعة / الإدارة', es: 'Distrito / Departamento' },
@@ -25,8 +28,41 @@ const LEVEL_LABELS: Record<number, Record<string, string>> = {
   4: { en: 'Ward / Village', fr: 'Quartier / Village', pt: 'Bairro / Aldeia', ar: 'الحي / القرية', es: 'Barrio / Aldea' },
 };
 
-function getLevelLabel(level: number, locale: string): string {
-  const labels = LEVEL_LABELS[level];
+/**
+ * Get the label for an admin level, using country-specific config when available.
+ * Priority: API admin levels > GADM levelTypes > generic fallback
+ */
+function getLevelLabel(
+  level: number,
+  locale: string,
+  countryCode: string | undefined,
+  apiAdminLevels: AdminLevel[] | undefined,
+): string {
+  if (level === 0) {
+    return GENERIC_LEVEL_LABELS[0][locale] || 'Country';
+  }
+
+  // 1. Try API admin levels (from Settings > Countries > Admin Levels)
+  if (apiAdminLevels && apiAdminLevels.length > 0) {
+    const al = apiAdminLevels.find((a) => a.level === level);
+    if (al?.name) {
+      return al.name[locale] || al.name.en || al.name.fr || `Level ${level}`;
+    }
+  }
+
+  // 2. Try GADM levelTypes for the country
+  if (countryCode) {
+    const gadm = ADMIN_DIVISIONS[countryCode];
+    if (gadm?.levelTypes?.[String(level)]) {
+      const lt = gadm.levelTypes[String(level)];
+      if (locale === 'fr') return lt.fr || lt.en;
+      if (locale === 'pt') return lt.pt || lt.en;
+      return lt.en;
+    }
+  }
+
+  // 3. Generic fallback
+  const labels = GENERIC_LEVEL_LABELS[level];
   if (!labels) return `Level ${level}`;
   return labels[locale] || labels.en || `Level ${level}`;
 }
@@ -96,6 +132,15 @@ export function AdminLocationField({
   const selectedCountry = selections['level_0'] || '';
   const selectedAdmin1 = selections['level_1'] || '';
   const selectedAdmin2 = selections['level_2'] || '';
+
+  // Fetch country-specific admin level labels (from Settings or GADM fallback)
+  const countryConfig = selectedCountry ? COUNTRIES[selectedCountry] : undefined;
+  const { data: adminLevelsData } = useAdminLevels(
+    countryConfig?.tenantId ?? selectedCountry,
+    selectedCountry || undefined,
+    { enabled: !!selectedCountry },
+  );
+  const adminLevels: AdminLevel[] = adminLevelsData?.data ?? [];
 
   // Sorted country list — filtered by user scope
   const countryOptions = useMemo(
@@ -234,7 +279,7 @@ export function AdminLocationField({
           const isRequired = requiredLevels.includes(level);
           const disabled = isLevelDisabled(level);
           const options = getOptionsForLevel(level);
-          const levelLabel = getLevelLabel(level, locale);
+          const levelLabel = getLevelLabel(level, locale, selectedCountry || undefined, adminLevels);
           return (
             <div key={level}>
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
