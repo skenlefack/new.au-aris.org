@@ -25,6 +25,31 @@ interface SubDomainTreeSelectorProps {
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
+/**
+ * DOMAIN_OPTIONS uses underscores (animal_health, trade_sps, climate_env)
+ * but the domain store uses hyphens (animal-health, trade-sps, climate-env).
+ * We normalise both to match.
+ */
+const FORM_TO_STORE: Record<string, string> = {
+  animal_health: 'animal-health',
+  livestock: 'livestock-prod',
+  fisheries: 'fisheries',
+  trade_sps: 'trade-sps',
+  wildlife: 'wildlife',
+  apiculture: 'apiculture',
+  climate_env: 'climate-env',
+  governance: 'governance',
+};
+
+const STORE_TO_FORM: Record<string, string> = Object.fromEntries(
+  Object.entries(FORM_TO_STORE).map(([k, v]) => [v, k]),
+);
+
+/** Convert form-level domain code(s) to store-level code(s) */
+function toStoreCodes(formCodes: string[]): string[] {
+  return formCodes.map((c) => FORM_TO_STORE[c] ?? c);
+}
+
 function getSubDomainLabel(sd: SubDomain, locale: string): string {
   switch (locale) {
     case 'fr': return sd.labelFr || sd.labelEn || sd.code;
@@ -35,7 +60,9 @@ function getSubDomainLabel(sd: SubDomain, locale: string): string {
 }
 
 function getDomainLabel(code: string): string {
-  return DOMAIN_OPTIONS.find((d) => d.value === code)?.label ?? code;
+  // Try store code first, then form code
+  const formCode = STORE_TO_FORM[code] ?? code;
+  return DOMAIN_OPTIONS.find((d) => d.value === formCode || d.value === code)?.label ?? code;
 }
 
 /* ------------------------------------------------------------------ */
@@ -51,16 +78,17 @@ export function SubDomainTreeSelector({
   const locale = useLocaleStore((s) => s.locale);
   const subDomainsMetadata = useDomainStore((s) => s.subDomainsMetadata);
   const [search, setSearch] = useState('');
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(selectedDomains));
+  const [expanded, setExpanded] = useState<Set<string>>(new Set(toStoreCodes(selectedDomains)));
 
   // Group sub-domains by domain, filtered to selected domains only
   const tree = useMemo(() => {
-    const domainsToShow = selectedDomains.length > 0 ? selectedDomains : [];
+    // Convert form-level codes (underscores) to store-level codes (hyphens)
+    const storeCodes = toStoreCodes(selectedDomains);
     const groups: Record<string, SubDomain[]> = {};
 
     for (const sd of subDomainsMetadata) {
       if (!sd.active) continue;
-      if (domainsToShow.length > 0 && !domainsToShow.includes(sd.domainCode)) continue;
+      if (storeCodes.length > 0 && !storeCodes.includes(sd.domainCode)) continue;
 
       const q = search.toLowerCase();
       if (q) {
