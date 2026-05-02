@@ -56,6 +56,89 @@ const PAGES = [
   { id: 'custom', label: 'Personnalisé', icon: Palette },
 ];
 
+function SearchableFilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  const [search, setSearch] = React.useState('');
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const filtered = search
+    ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
+    : options;
+
+  const selectedLabel = options.find((o) => o.value === value)?.label ?? value;
+
+  return (
+    <div ref={ref}>
+      <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">
+        {label}
+      </label>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={cn(
+          'w-full text-left rounded-lg border border-gray-200 dark:border-gray-700',
+          'bg-white dark:bg-gray-800 px-3 py-2 text-xs font-medium',
+          'text-gray-700 dark:text-gray-300 truncate',
+        )}
+      >
+        {selectedLabel}
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-[220px] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+          <div className="p-2">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={placeholder ?? 'Search...'}
+              className="w-full rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-2 py-1.5 text-xs focus:outline-none focus:ring-1"
+              autoFocus
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {filtered.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => { onChange(opt.value); setOpen(false); setSearch(''); }}
+                className={cn(
+                  'w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 truncate',
+                  opt.value === value && 'font-bold text-blue-600 dark:text-blue-400',
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <p className="px-3 py-2 text-xs text-gray-400">No results</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FilterSelect({
   label,
   value,
@@ -262,7 +345,7 @@ export function DashboardFilterPanel({
           onChange={(v) => setFilter('domain', v)}
         />
 
-        <FilterSelect
+        <SearchableFilterSelect
           label="Disease"
           value={filters.disease}
           options={[
@@ -270,6 +353,7 @@ export function DashboardFilterPanel({
             ...(diseaseOptions ?? []),
           ]}
           onChange={(v) => setFilter('disease', v)}
+          placeholder="Search diseases..."
         />
 
         {activeFilterCount > 0 && (

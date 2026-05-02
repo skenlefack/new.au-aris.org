@@ -170,20 +170,20 @@ export function DashboardSynthetic() {
 
   /* Disease data for horizontal bars */
   const diseaseBarData = useMemo(() =>
-    dashData.diseases.slice(0, 8).map((d) => ({ name: d.code, cases: d.cases, color: d.color })),
-    [],
+    dashData.diseases.slice(0, 8).map((d: any) => ({ name: d.code, cases: d.cases, color: d.color })),
+    [dashData.diseases],
   );
 
   /* Disease for pie */
   const diseasePie = useMemo(() =>
-    dashData.diseases.map((d) => ({ name: d.code, value: d.cases, color: d.color })),
-    [],
+    dashData.diseases.map((d: any) => ({ name: d.code, value: d.cases, color: d.color })),
+    [dashData.diseases],
   );
 
   /* Monthly trends for sparkline */
   const trendData = useMemo(() =>
-    dashData.monthlyTrends.map((m) => ({ name: m.label, outbreaks: m.outbreaks, submissions: m.submissions })),
-    [],
+    dashData.monthlyTrends.map((m: any) => ({ name: m.label, outbreaks: m.outbreaks, submissions: m.submissions })),
+    [dashData.monthlyTrends],
   );
 
   /* ── Scope label ──────────────────────────────────────────────────────── */
@@ -423,32 +423,31 @@ export function DashboardSynthetic() {
           </div>
         </div>
 
-        {/* 2C: Active Alerts (compact table) */}
+        {/* 2C: Top Diseases (ranked) */}
         <div className="bg-white dark:bg-gray-800 rounded overflow-hidden flex flex-col">
-          <WidgetTitle>Active Alerts ({dashData.alerts.length})</WidgetTitle>
+          <WidgetTitle>Top Diseases ({dashData.diseases.length})</WidgetTitle>
           <div className="flex-1 min-h-0 overflow-y-auto">
-            {dashData.alerts.slice(0, 8).map((alert) => (
-              <div
-                key={alert.id}
-                className="flex items-start gap-2 px-2.5 py-1.5 border-b border-gray-100 dark:border-gray-700/30 last:border-0"
-              >
-                <span className={
-                  alert.severity === 'critical'
-                    ? 'mt-0.5 flex-shrink-0 h-2 w-2 rounded-full bg-red-500'
-                    : alert.severity === 'warning'
-                      ? 'mt-0.5 flex-shrink-0 h-2 w-2 rounded-full bg-amber-500'
-                      : 'mt-0.5 flex-shrink-0 h-2 w-2 rounded-full bg-blue-400'
-                } />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-semibold text-gray-800 dark:text-gray-200 truncate">
-                    {alert.disease} — {alert.country}
-                  </p>
-                  <p className="text-[9px] text-gray-400 truncate">
-                    {alert.message}
-                  </p>
+            {dashData.diseases.slice(0, 10).map((d: any, i: number) => {
+              const maxCases = dashData.diseases[0]?.cases || 1;
+              const pct = Math.round((d.cases / maxCases) * 100);
+              return (
+                <div
+                  key={d.disease}
+                  className="flex items-center gap-2 px-2.5 py-1.5 border-b border-gray-100 dark:border-gray-700/30 last:border-0"
+                >
+                  <span className="text-[9px] font-bold text-gray-400 w-4 text-right">{i + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-semibold text-gray-800 dark:text-gray-200 truncate">{d.disease}</p>
+                    <div className="mt-0.5 h-1 w-full rounded-full bg-gray-100 dark:bg-gray-700">
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: d.color }} />
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-bold text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                    {d.cases.toLocaleString()}
+                  </span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
