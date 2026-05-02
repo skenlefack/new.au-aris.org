@@ -371,9 +371,12 @@ function OverviewGrid({
         </div>
         <div>
           <ChartBarWidget
-            title="Annual Outbreaks"
-            subtitle="Outbreak reports per year (2007-2025)"
-            data={dashData.yearlyOutbreaks.map((d: any) => ({ name: d.year, outbreaks: d.outbreaks }))}
+            title={dashData.selectedYear ? `Outbreaks ${dashData.selectedYear} — by Month` : 'Annual Outbreaks (2007-2025)'}
+            subtitle={dashData.selectedYear ? `Monthly breakdown for ${dashData.selectedYear}` : 'Outbreak reports per year'}
+            data={dashData.selectedYear
+              ? dashData.monthlyTrends.map((d: any) => ({ name: d.label, outbreaks: d.outbreaks }))
+              : dashData.yearlyOutbreaks.map((d: any) => ({ name: d.year, outbreaks: d.outbreaks }))
+            }
             bars={[{ dataKey: 'outbreaks', label: 'Outbreaks', color: '#ef4444' }]}
             xKey="name"
             demo={!dashData.isRealData}

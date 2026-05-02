@@ -423,13 +423,19 @@ export function DashboardSynthetic() {
           </div>
         </div>
 
-        {/* 2C: Annual Outbreaks (bar chart) */}
+        {/* 2C: Annual/Monthly Outbreaks (bar chart) */}
         <div className="bg-white dark:bg-gray-800 rounded overflow-hidden flex flex-col">
-          <WidgetTitle>Annual Outbreaks (2007-2025)</WidgetTitle>
+          <WidgetTitle>{dashData.selectedYear ? `Outbreaks ${dashData.selectedYear} — Monthly` : 'Annual Outbreaks (2007-2025)'}</WidgetTitle>
           <div className="flex-1 min-h-0 px-1 py-1">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dashData.yearlyOutbreaks} margin={{ top: 4, right: 8, bottom: 2, left: 4 }}>
-                <XAxis dataKey="year" tick={{ fontSize: 8 }} interval={1} />
+              <BarChart
+                data={dashData.selectedYear
+                  ? trendData.map((d: any) => ({ name: d.name, outbreaks: d.outbreaks }))
+                  : dashData.yearlyOutbreaks
+                }
+                margin={{ top: 4, right: 8, bottom: 2, left: 4 }}
+              >
+                <XAxis dataKey={dashData.selectedYear ? 'name' : 'year'} tick={{ fontSize: 8 }} interval={dashData.selectedYear ? 0 : 1} />
                 <YAxis tick={{ fontSize: 8 }} width={35} />
                 <Tooltip content={<CompactTooltip />} />
                 <Bar dataKey="outbreaks" fill="#ef4444" radius={[2, 2, 0, 0]} />

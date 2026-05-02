@@ -479,6 +479,7 @@ export function useDashboardData(filters?: DashboardFilters) {
     activities,
     rainfall,
     yearlyOutbreaks,
+    selectedYear: filters?.period && /^\d{4}$/.test(filters.period) ? filters.period : null,
     allDiseaseNames,
     isLoading,
     isRealData,
