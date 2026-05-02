@@ -174,6 +174,18 @@ export function AdminLocationField({
       : undefined,
   );
 
+  // Resolve the selected Admin1's name/code to filter GADM fallback
+  const selectedAdmin1Name = useMemo(() => {
+    if (!selectedAdmin1 || !admin1Data?.data) return undefined;
+    const a1 = admin1Data.data.find((e) => e.id === selectedAdmin1);
+    if (!a1) return undefined;
+    const n = a1.name;
+    return {
+      name: typeof n === 'string' ? n : (n?.en || n?.fr || ''),
+      code: a1.code,
+    };
+  }, [selectedAdmin1, admin1Data]);
+
   const admin1Options = useMemo(() => {
     if (!admin1Data?.data) return [];
     return admin1Data.data
@@ -186,19 +198,49 @@ export function AdminLocationField({
   }, [admin1Data, locale]);
 
   const admin2Options = useMemo(() => {
-    const items = (admin2ChildData?.data && admin2ChildData.data.length > 0)
-      ? admin2ChildData.data
-      : (admin2ByCountryData?.data ?? []);
+    // 1. If API children query returned data, use it directly
+    if (admin2ChildData?.data && admin2ChildData.data.length > 0) {
+      return admin2ChildData.data
+        .map((e) => {
+          const n = e.name;
+          const label = typeof n === 'string' ? n : (n?.[locale] || n?.en || n?.fr || e.code);
+          return { value: e.id, label };
+        })
+        .sort((a, b) => a.label.localeCompare(b.label));
+    }
 
-    if (items.length === 0) return [];
-    return items
+    // 2. Fallback: try GADM local data filtered by Admin1
+    if (selectedCountry && selectedAdmin1Name) {
+      const gadm = ADMIN_DIVISIONS[selectedCountry];
+      if (gadm?.admin2) {
+        // Find the GADM admin1 matching the selected one (by name or code)
+        const gadmParent = gadm.admin1.find(
+          (a1) => a1.name === selectedAdmin1Name.name
+            || a1.code === selectedAdmin1Name.code
+            || a1.name.toLowerCase() === selectedAdmin1Name.name.toLowerCase(),
+        );
+        if (gadmParent) {
+          const filtered = gadm.admin2.filter((a2) => a2.parentGid === gadmParent.gid);
+          if (filtered.length > 0) {
+            return filtered
+              .map((a2) => ({ value: a2.gid, label: a2.name }))
+              .sort((a, b) => a.label.localeCompare(b.label));
+          }
+        }
+      }
+    }
+
+    // 3. Last resort: all ADMIN2 from API (unfiltered — better than nothing)
+    const fallbackItems = admin2ByCountryData?.data ?? [];
+    if (fallbackItems.length === 0) return [];
+    return fallbackItems
       .map((e) => {
         const n = e.name;
         const label = typeof n === 'string' ? n : (n?.[locale] || n?.en || n?.fr || e.code);
         return { value: e.id, label };
       })
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [admin2ChildData, admin2ByCountryData, locale]);
+  }, [admin2ChildData, admin2ByCountryData, selectedCountry, selectedAdmin1Name, locale]);
 
   // Fetch ADMIN3 divisions for the selected ADMIN2
   const { data: admin3ChildData } = useGeoChildren(
