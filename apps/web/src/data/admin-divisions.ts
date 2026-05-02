@@ -41,7 +41,7 @@ export interface CountryAdminData {
 export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   'AO': {
     code3: 'AGO',
-    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"Municpality|CityCouncil","fr":"Municpality|CityCouncil","pt":"Municpality|CityCouncil"}},
+    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"Municpality|CityCouncil","fr":"Municpality|CityCouncil","pt":"Municpality|CityCouncil"},"3":{"en":"Commune","fr":"Commune","pt":"Comuna"}},
     admin1: [
       { gid: 'AGO.1_1', code: 'AO.BO', name: 'Bengo' },
       { gid: 'AGO.2_1', code: 'AO.BG', name: 'Benguela' },
@@ -230,7 +230,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'BF': {
     code3: 'BFA',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Province","fr":"Province","pt":"Província"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Province","fr":"Province","pt":"Província"},"3":{"en":"Department","fr":"Département","pt":"Departamento"}},
     admin1: [
       { gid: 'BFA.1_1', code: 'BF.BO', name: 'BoucleduMouhoun' },
       { gid: 'BFA.2_1', code: 'BF.CD', name: 'Cascades' },
@@ -296,7 +296,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'BI': {
     code3: 'BDI',
-    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"Commune","fr":"Commune","pt":"Comuna"}},
+    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"Commune","fr":"Commune","pt":"Comuna"},"3":{"en":"Commune","fr":"Commune","pt":"Comuna"}},
     admin1: [
       { gid: 'BDI.1_1', code: 'BI.BB', name: 'Bubanza' },
       { gid: 'BDI.2_1', code: 'BI.BM', name: 'BujumburaMairie' },
@@ -454,7 +454,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'BJ': {
     code3: 'BEN',
-    levelTypes: {"1":{"en":"Department","fr":"Département","pt":"Departamento"},"2":{"en":"Commune","fr":"Commune","pt":"Comuna"}},
+    levelTypes: {"1":{"en":"Department","fr":"Département","pt":"Departamento"},"2":{"en":"Commune","fr":"Commune","pt":"Comuna"},"3":{"en":"Arrondissement","fr":"Arrondissement","pt":"Município"}},
     admin1: [
       { gid: 'BEN.1_1', code: 'BJ.AL', name: 'Alibori' },
       { gid: 'BEN.2_1', code: 'BJ.AK', name: 'Atakora' },
@@ -552,7 +552,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'BW': {
     code3: 'BWA',
-    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"},"2":{"en":"Sub-district","fr":"Sub-district","pt":"Sub-district"}},
+    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"},"2":{"en":"Sub-district","fr":"Sub-district","pt":"Sub-district"},"3":{"en":"Sub-district","fr":"Sous-district","pt":"Subdistrito"}},
     admin1: [
       { gid: 'BWA.1_1', code: 'BW.CE', name: 'Central' },
       { gid: 'BWA.2_1', code: 'BW.CH', name: 'Chobe' },
@@ -606,7 +606,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'CD': {
     code3: 'COD',
-    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"Territory","fr":"Territory","pt":"Territory"}},
+    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"Territory","fr":"Territory","pt":"Territory"},"3":{"en":"Territory","fr":"Territoire","pt":"Território"}},
     admin1: [
       { gid: 'COD.1_1', code: 'CD.BU', name: 'Bas-Uele' },
       { gid: 'COD.2_1', code: 'CD.ET', name: 'Équateur' },
@@ -880,7 +880,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'CF': {
     code3: 'CAF',
-    levelTypes: {"1":{"en":"Prefecture","fr":"Préfecture","pt":"Prefeitura"},"2":{"en":"Sub-prefecture","fr":"Sous-préfecture","pt":"Sub-prefecture"}},
+    levelTypes: {"1":{"en":"Prefecture","fr":"Préfecture","pt":"Prefeitura"},"2":{"en":"Sub-prefecture","fr":"Sous-préfecture","pt":"Sub-prefecture"},"3":{"en":"Sub-prefecture","fr":"Sous-préfecture","pt":"Sub-prefeitura"}},
     admin1: [
       { gid: 'CAF.1_1', code: 'CF.BB', name: 'Bamingui-Bangoran' },
       { gid: 'CAF.2_1', code: 'CF.BG', name: 'Bangui' },
@@ -956,7 +956,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'CG': {
     code3: 'COG',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"District","fr":"District","pt":"Distrito"}},
     admin1: [
       { gid: 'COG.1_1', code: 'CG.BO', name: 'Bouenza' },
       { gid: 'COG.2_1', code: 'CG.BR', name: 'Brazzaville' },
@@ -1024,7 +1024,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'CI': {
     code3: 'CIV',
-    levelTypes: {"1":{"en":"Autonomousdistrict","fr":"Autonomousdistrict","pt":"Autonomousdistrict"},"2":{"en":"Autonomousdistrict","fr":"Autonomousdistrict","pt":"Autonomousdistrict"}},
+    levelTypes: {"1":{"en":"Autonomousdistrict","fr":"Autonomousdistrict","pt":"Autonomousdistrict"},"2":{"en":"Autonomousdistrict","fr":"Autonomousdistrict","pt":"Autonomousdistrict"},"3":{"en":"Sub-prefecture","fr":"Sous-préfecture","pt":"Sub-prefeitura"}},
     admin1: [
       { gid: 'CIV.1_1', code: 'CI.AB', name: 'Abidjan' },
       { gid: 'CIV.2_1', code: 'CI.BA', name: 'Bas-Sassandra' },
@@ -1079,7 +1079,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'CM': {
     code3: 'CMR',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Department","fr":"Département","pt":"Departamento"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Department","fr":"Département","pt":"Departamento"},"3":{"en":"Sub-division","fr":"Arrondissement","pt":"Subdivisão"}},
     admin1: [
       { gid: 'CMR.1_1', code: 'CM.AD', name: 'Adamaoua' },
       { gid: 'CMR.2_1', code: 'CM.CE', name: 'Centre' },
@@ -1155,7 +1155,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'CV': {
     code3: 'CPV',
-    levelTypes: {"1":{"en":"County","fr":"Comté","pt":"Condado"}},
+    levelTypes: {"1":{"en":"County","fr":"Comté","pt":"Condado"},"3":{"en":"Parish","fr":"Paroisse","pt":"Freguesia"}},
     admin1: [
       { gid: 'CPV.1_1', code: 'CV.BV', name: 'BoaVista' },
       { gid: 'CPV.2_1', code: 'CV.BR', name: 'Brava' },
@@ -1185,7 +1185,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'DJ': {
     code3: 'DJI',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"NA","fr":"NA","pt":"NA"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"NA","fr":"NA","pt":"NA"},"3":{"en":"Ward","fr":"Quartier","pt":"Bairro"}},
     admin1: [
       { gid: 'DJI.1_2', code: 'DJ.AS', name: 'AliSabieh' },
       { gid: 'DJI.6_1', code: 'DJ.AR', name: 'Arta' },
@@ -1220,7 +1220,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'DZ': {
     code3: 'DZA',
-    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"Chef-Lieu-Wilaya","fr":"Chef-Lieu-Wilaya","pt":"Chef-Lieu-Wilaya"}},
+    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"Chef-Lieu-Wilaya","fr":"Chef-Lieu-Wilaya","pt":"Chef-Lieu-Wilaya"},"3":{"en":"Commune","fr":"Commune","pt":"Comuna"}},
     admin1: [
       { gid: 'DZA.1_1', code: 'DZ.AR', name: 'Adrar' },
       { gid: 'DZA.2_1', code: 'DZ.AD', name: 'AïnDefla' },
@@ -2780,7 +2780,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'EG': {
     code3: 'EGY',
-    levelTypes: {"1":{"en":"Governorate","fr":"Gouvernorat","pt":"Governadorato"},"2":{"en":"Subdivision","fr":"Subdivision","pt":"Subdivision"}},
+    levelTypes: {"1":{"en":"Governorate","fr":"Gouvernorat","pt":"Governadorato"},"2":{"en":"Subdivision","fr":"Subdivision","pt":"Subdivision"},"3":{"en":"District","fr":"District","pt":"Distrito"}},
     admin1: [
       { gid: 'EGY.1_1', code: 'EG.DQ', name: 'AdDaqahliyah' },
       { gid: 'EGY.2_1', code: 'EG.BA', name: 'AlBahralAhmar' },
@@ -3158,7 +3158,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'ER': {
     code3: 'ERI',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"Sub-region","fr":"Sous-région","pt":"Sub-região"}},
     admin1: [
       { gid: 'ERI.6_1', code: 'ER.AN', name: 'Anseba' },
       { gid: 'ERI.5_1', code: 'ER.DU', name: 'Debub' },
@@ -3320,7 +3320,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'GA': {
     code3: 'GAB',
-    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"Department","fr":"Département","pt":"Departamento"}},
+    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"Department","fr":"Département","pt":"Departamento"},"3":{"en":"Commune","fr":"Commune","pt":"Comuna"}},
     admin1: [
       { gid: 'GAB.1_1', code: 'GA.ES', name: 'Estuaire' },
       { gid: 'GAB.2_1', code: 'GA.HO', name: 'Haut-Ogooué' },
@@ -3374,7 +3374,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'GH': {
     code3: 'GHA',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Municipality","fr":"Municipalité","pt":"Município"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Municipality","fr":"Municipalité","pt":"Município"},"3":{"en":"Sub-district","fr":"Sous-district","pt":"Subdistrito"}},
     admin1: [
       { gid: 'GHA1_2', code: 'GH-A1-1', name: 'Ahafo' },
       { gid: 'GHA2_2', code: 'GH-A1-2', name: 'Ashanti' },
@@ -3658,7 +3658,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'GM': {
     code3: 'GMB',
-    levelTypes: {"1":{"en":"IndependentCity","fr":"IndependentCity","pt":"IndependentCity"},"2":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"IndependentCity","fr":"IndependentCity","pt":"IndependentCity"},"2":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"Ward","fr":"Quartier","pt":"Bairro"}},
     admin1: [
       { gid: 'GMB.1_1', code: 'GM.BJ', name: 'Banjul' },
       { gid: 'GMB.2_1', code: 'GM.LR', name: 'LowerRiver' },
@@ -3709,7 +3709,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'GN': {
     code3: 'GIN',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Prefecture","fr":"Préfecture","pt":"Prefeitura"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Prefecture","fr":"Préfecture","pt":"Prefeitura"},"3":{"en":"Sub-prefecture","fr":"Sous-préfecture","pt":"Sub-prefeitura"}},
     admin1: [
       { gid: 'GIN.1_1', code: 'GN-A1-1', name: 'Boké' },
       { gid: 'GIN.2_1', code: 'GN-A1-2', name: 'Conakry' },
@@ -3759,7 +3759,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'GQ': {
     code3: 'GNQ',
-    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"Districts|Municipals","fr":"Districts|Municipals","pt":"Districts|Municipals"}},
+    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"Districts|Municipals","fr":"Districts|Municipals","pt":"Districts|Municipals"},"3":{"en":"Ward","fr":"Quartier","pt":"Bairro"}},
     admin1: [
       { gid: 'GNQ.1_1', code: 'GQ.AN', name: 'Annobón' },
       { gid: 'GNQ.2_1', code: 'GQ.BN', name: 'BiokoNorte' },
@@ -3806,7 +3806,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'GW': {
     code3: 'GNB',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Sector","fr":"Secteur","pt":"Sector"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Sector","fr":"Secteur","pt":"Sector"},"3":{"en":"Section","fr":"Section","pt":"Secção"}},
     admin1: [
       { gid: 'GNB.1_1', code: 'GW.BA', name: 'Bafatá' },
       { gid: 'GNB.2_1', code: 'GW.BM', name: 'Biombo' },
@@ -4215,7 +4215,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'KM': {
     code3: 'COM',
-    levelTypes: {"1":{"en":"AutonomousIsland","fr":"AutonomousIsland","pt":"AutonomousIsland"}},
+    levelTypes: {"1":{"en":"AutonomousIsland","fr":"AutonomousIsland","pt":"AutonomousIsland"},"3":{"en":"Commune","fr":"Commune","pt":"Comuna"}},
     admin1: [
       { gid: 'COM.3_1', code: 'KM.MO', name: 'Mwali' },
       { gid: 'COM.2_1', code: 'KM.GC', name: 'Njazídja' },
@@ -4226,7 +4226,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'LR': {
     code3: 'LBR',
-    levelTypes: {"1":{"en":"County","fr":"Comté","pt":"Condado"},"2":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"County","fr":"Comté","pt":"Condado"},"2":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"Clan","fr":"Clan","pt":"Clã"}},
     admin1: [
       { gid: 'LBR.1_1', code: 'LR.BM', name: 'Bomi' },
       { gid: 'LBR.2_1', code: 'LR.BG', name: 'Bong' },
@@ -4315,7 +4315,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'LS': {
     code3: 'LSO',
-    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"Ward","fr":"Quartier","pt":"Bairro"}},
     admin1: [
       { gid: 'LSO.1_1', code: 'LS.BE', name: 'Berea' },
       { gid: 'LSO.2_1', code: 'LS.BB', name: 'Butha-Buthe' },
@@ -4333,7 +4333,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'LY': {
     code3: 'LBY',
-    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"Municipality","fr":"Municipalité","pt":"Município"}},
     admin1: [
       { gid: 'LBY.1_1', code: 'LY.BN', name: 'AlButnan' },
       { gid: 'LBY.2_1', code: 'LY.JK', name: 'AlJabalalAkhdar' },
@@ -4363,7 +4363,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'MA': {
     code3: 'MAR',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Province","fr":"Province","pt":"Província"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Province","fr":"Province","pt":"Província"},"3":{"en":"Commune","fr":"Commune","pt":"Comuna"}},
     admin1: [
       { gid: 'MAR.1_1', code: 'MA.CO', name: 'Chaouia-Ouardigha' },
       { gid: 'MAR.2_1', code: 'MA.DA', name: 'Doukkala-Abda' },
@@ -4440,7 +4440,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'MG': {
     code3: 'MDG',
-    levelTypes: {"1":{"en":"NA","fr":"NA","pt":"NA"},"2":{"en":"NA","fr":"NA","pt":"NA"}},
+    levelTypes: {"1":{"en":"NA","fr":"NA","pt":"NA"},"2":{"en":"NA","fr":"NA","pt":"NA"},"3":{"en":"Commune","fr":"Commune","pt":"Comuna"}},
     admin1: [
       { gid: 'MDG.1_1', code: 'MG-A1-1', name: 'Antananarivo' },
       { gid: 'MDG.2_1', code: 'MG-A1-2', name: 'Antsiranana' },
@@ -4476,7 +4476,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'ML': {
     code3: 'MLI',
-    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"},"2":{"en":"Circle","fr":"Cercle","pt":"Circle"}},
+    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"},"2":{"en":"Circle","fr":"Cercle","pt":"Circle"},"3":{"en":"Commune","fr":"Commune","pt":"Comuna"}},
     admin1: [
       { gid: 'MLI.1_1', code: 'ML.BA', name: 'Bamako' },
       { gid: 'MLI.2_1', code: 'ML.GA', name: 'Gao' },
@@ -4543,7 +4543,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'MR': {
     code3: 'MRT',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Department","fr":"Département","pt":"Departamento"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Department","fr":"Département","pt":"Departamento"},"3":{"en":"Commune","fr":"Commune","pt":"Comuna"}},
     admin1: [
       { gid: 'MRT.1_1', code: 'MR.AD', name: 'Adrar' },
       { gid: 'MRT.2_1', code: 'MR.AS', name: 'Assaba' },
@@ -4608,7 +4608,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'MU': {
     code3: 'MUS',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"3":{"en":"Ward","fr":"Quartier","pt":"Bairro"}},
     admin1: [
       { gid: 'MUS.1_1', code: 'MU.AG', name: 'AgalegaIslands' },
       { gid: 'MUS.2_1', code: 'MU.BL', name: 'BlackRiver' },
@@ -4628,7 +4628,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'MW': {
     code3: 'MWI',
-    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"},"2":{"en":"Town","fr":"Town","pt":"Town"}},
+    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"},"2":{"en":"Town","fr":"Town","pt":"Town"},"3":{"en":"Traditional Authority","fr":"Autorité traditionnelle","pt":"Autoridade tradicional"}},
     admin1: [
       { gid: 'MWI.1_1', code: 'MW.BA', name: 'Balaka' },
       { gid: 'MWI.2_1', code: 'MW.BL', name: 'Blantyre' },
@@ -4920,7 +4920,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'MZ': {
     code3: 'MOZ',
-    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"Administrative Post","fr":"Poste administratif","pt":"Posto administrativo"}},
     admin1: [
       { gid: 'MOZ.1_1', code: 'MZ.CD', name: 'CaboDelgado' },
       { gid: 'MOZ.2_1', code: 'MZ.GA', name: 'Gaza' },
@@ -5068,7 +5068,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'NA': {
     code3: 'NAM',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Constituency","fr":"Circonscription","pt":"Circunscrição"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Constituency","fr":"Circonscription","pt":"Circunscrição"},"3":{"en":"Constituency","fr":"Circonscription","pt":"Circunscrição"}},
     admin1: [
       { gid: 'NAM.1_1', code: 'NA.KA', name: '!Karas' },
       { gid: 'NAM.2_1', code: 'NA.ER', name: 'Erongo' },
@@ -5196,7 +5196,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'NE': {
     code3: 'NER',
-    levelTypes: {"1":{"en":"Department","fr":"Département","pt":"Departamento"},"2":{"en":"Arrondissement","fr":"Arrondissement","pt":"Arrondissement"}},
+    levelTypes: {"1":{"en":"Department","fr":"Département","pt":"Departamento"},"2":{"en":"Arrondissement","fr":"Arrondissement","pt":"Arrondissement"},"3":{"en":"Commune","fr":"Commune","pt":"Comuna"}},
     admin1: [
       { gid: 'NER.1_1', code: 'NE.AG', name: 'Agadez' },
       { gid: 'NER.2_1', code: 'NE.DF', name: 'Diffa' },
@@ -6068,7 +6068,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'RW': {
     code3: 'RWA',
-    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"Sector","fr":"Secteur","pt":"Setor"}},
     admin1: [
       { gid: 'RWA.1_1', code: 'RW.NO', name: 'Amajyaruguru' },
       { gid: 'RWA.2_1', code: 'RW.SU', name: 'Amajyepfo' },
@@ -6111,7 +6111,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'SC': {
     code3: 'SYC',
-    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"Ward","fr":"Quartier","pt":"Bairro"}},
     admin1: [
       { gid: 'SYC.1_1', code: 'SC.PI', name: 'AnseauxPins' },
       { gid: 'SYC.2_1', code: 'SC.AB', name: 'AnseBoileau' },
@@ -6145,7 +6145,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'SD': {
     code3: 'SDN',
-    levelTypes: {"1":{"en":"State","fr":"État","pt":"Estado"},"2":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"State","fr":"État","pt":"Estado"},"2":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"Locality","fr":"Localité","pt":"Localidade"}},
     admin1: [
       { gid: 'SDN.1_1', code: 'SD.GZ', name: 'AlJazirah' },
       { gid: 'SDN.2_1', code: 'SD.GD', name: 'AlQadarif' },
@@ -6251,7 +6251,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'SL': {
     code3: 'SLE',
-    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"Chiefdom","fr":"Chefferie","pt":"Chefia"}},
     admin1: [
       { gid: 'SLE.1_1', code: 'SL.EA', name: 'Eastern' },
       { gid: 'SLE.2_1', code: 'SL.NO', name: 'Northern' },
@@ -6344,7 +6344,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'SO': {
     code3: 'SOM',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"District","fr":"District","pt":"Distrito"}},
     admin1: [
       { gid: 'SOM.1_1', code: 'SO.AW', name: 'Awdal' },
       { gid: 'SOM.2_1', code: 'SO.BK', name: 'Bakool' },
@@ -6444,7 +6444,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'SS': {
     code3: 'SSD',
-    levelTypes: {"1":{"en":"State","fr":"État","pt":"Estado"},"2":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"State","fr":"État","pt":"Estado"},"2":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"Payam","fr":"Payam","pt":"Payam"}},
     admin1: [
       { gid: 'SSD.1_1', code: 'SD.BG', name: 'CentralEquatoria' },
       { gid: 'SSD.2_1', code: 'SD.EE', name: 'EasternEquatoria' },
@@ -6507,7 +6507,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'ST': {
     code3: 'STP',
-    levelTypes: {"1":{"en":"Municipality","fr":"Municipalité","pt":"Município"},"2":{"en":"NA","fr":"NA","pt":"NA"}},
+    levelTypes: {"1":{"en":"Municipality","fr":"Municipalité","pt":"Município"},"2":{"en":"NA","fr":"NA","pt":"NA"},"3":{"en":"Ward","fr":"Quartier","pt":"Bairro"}},
     admin1: [
       { gid: 'STP.1_1', code: 'ST.PR', name: 'Príncipe' },
       { gid: 'STP.2_1', code: 'ST.ST', name: 'SãoTomé' },
@@ -6524,7 +6524,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'SZ': {
     code3: 'SWZ',
-    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"},"2":{"en":"Constituency","fr":"Circonscription","pt":"Circunscrição"}},
+    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"},"2":{"en":"Constituency","fr":"Circonscription","pt":"Circunscrição"},"3":{"en":"Tinkhundla","fr":"Tinkhundla","pt":"Tinkhundla"}},
     admin1: [
       { gid: 'SWZ.1_1', code: 'SZ.HH', name: 'Hhohho' },
       { gid: 'SWZ.2_1', code: 'SZ.LU', name: 'Lubombo' },
@@ -6591,7 +6591,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'TD': {
     code3: 'TCD',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Department","fr":"Département","pt":"Departamento"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Department","fr":"Département","pt":"Departamento"},"3":{"en":"Sub-prefecture","fr":"Sous-préfecture","pt":"Sub-prefeitura"}},
     admin1: [
       { gid: 'TCD.1_1', code: 'TD.BG', name: 'BarhelGhazel' },
       { gid: 'TCD.2_1', code: 'TD.BA', name: 'Batha' },
@@ -6677,7 +6677,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'TG': {
     code3: 'TGO',
-    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Prefecture","fr":"Préfecture","pt":"Prefeitura"}},
+    levelTypes: {"1":{"en":"Region","fr":"Région","pt":"Região"},"2":{"en":"Prefecture","fr":"Préfecture","pt":"Prefeitura"},"3":{"en":"Canton","fr":"Canton","pt":"Cantão"}},
     admin1: [
       { gid: 'TGO.1_1', code: 'TG.CE', name: 'Centre' },
       { gid: 'TGO.2_1', code: 'TG.KA', name: 'Kara' },
@@ -6730,7 +6730,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'TN': {
     code3: 'TUN',
-    levelTypes: {"1":{"en":"Governorate","fr":"Gouvernorat","pt":"Governadorato"},"2":{"en":"Delegation","fr":"Delegation","pt":"Delegation"}},
+    levelTypes: {"1":{"en":"Governorate","fr":"Gouvernorat","pt":"Governadorato"},"2":{"en":"Delegation","fr":"Delegation","pt":"Delegation"},"3":{"en":"Delegation","fr":"Délégation","pt":"Delegação"}},
     admin1: [
       { gid: 'TUN.1_1', code: 'TN.AN', name: 'Ariana' },
       { gid: 'TUN.2_1', code: 'TN.BJ', name: 'Béja' },
@@ -7255,7 +7255,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'UG': {
     code3: 'UGA',
-    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"},"2":{"en":"County","fr":"Comté","pt":"Condado"}},
+    levelTypes: {"1":{"en":"District","fr":"District","pt":"Distrito"},"2":{"en":"County","fr":"Comté","pt":"Condado"},"3":{"en":"Sub-county","fr":"Sous-comté","pt":"Subcondado"}},
     admin1: [
       { gid: 'UGA.1_1', code: 'UG.AD', name: 'Adjumani' },
       { gid: 'UGA.2_1', code: 'UG.AC', name: 'Apac' },
@@ -7487,7 +7487,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'ZA': {
     code3: 'ZAF',
-    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"DistrictMunicipality","fr":"DistrictMunicipality","pt":"DistrictMunicipality"}},
+    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"DistrictMunicipality","fr":"DistrictMunicipality","pt":"DistrictMunicipality"},"3":{"en":"Local Municipality","fr":"Municipalité locale","pt":"Município local"}},
     admin1: [
       { gid: 'ZAF.1_1', code: 'ZA.EC', name: 'EasternCape' },
       { gid: 'ZAF.2_1', code: 'ZA.FS', name: 'FreeState' },
@@ -7556,7 +7556,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'ZM': {
     code3: 'ZMB',
-    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"Province","fr":"Province","pt":"Província"},"2":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"Ward","fr":"Quartier","pt":"Bairro"}},
     admin1: [
       { gid: 'ZMB.1_1', code: 'ZM.CE', name: 'Central' },
       { gid: 'ZMB.2_1', code: 'ZM.CO', name: 'Copperbelt' },
@@ -7689,7 +7689,7 @@ export const ADMIN_DIVISIONS: Record<string, CountryAdminData> = {
   },
   'ZW': {
     code3: 'ZWE',
-    levelTypes: {"1":{"en":"City","fr":"Ville","pt":"City"},"2":{"en":"District","fr":"District","pt":"Distrito"}},
+    levelTypes: {"1":{"en":"City","fr":"Ville","pt":"City"},"2":{"en":"District","fr":"District","pt":"Distrito"},"3":{"en":"Ward","fr":"Quartier","pt":"Bairro"}},
     admin1: [
       { gid: 'ZWE.1_1', code: 'ZW.BU', name: 'Bulawayo' },
       { gid: 'ZWE.2_1', code: 'ZW.HA', name: 'Harare' },
