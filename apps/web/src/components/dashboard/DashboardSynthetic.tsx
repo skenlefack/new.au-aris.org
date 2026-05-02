@@ -423,31 +423,18 @@ export function DashboardSynthetic() {
           </div>
         </div>
 
-        {/* 2C: Top Diseases (ranked) */}
+        {/* 2C: Annual Outbreaks (bar chart) */}
         <div className="bg-white dark:bg-gray-800 rounded overflow-hidden flex flex-col">
-          <WidgetTitle>Top Diseases ({dashData.diseases.length})</WidgetTitle>
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            {dashData.diseases.slice(0, 10).map((d: any, i: number) => {
-              const maxCases = dashData.diseases[0]?.cases || 1;
-              const pct = Math.round((d.cases / maxCases) * 100);
-              return (
-                <div
-                  key={d.disease}
-                  className="flex items-center gap-2 px-2.5 py-1.5 border-b border-gray-100 dark:border-gray-700/30 last:border-0"
-                >
-                  <span className="text-[9px] font-bold text-gray-400 w-4 text-right">{i + 1}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-semibold text-gray-800 dark:text-gray-200 truncate">{d.disease}</p>
-                    <div className="mt-0.5 h-1 w-full rounded-full bg-gray-100 dark:bg-gray-700">
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: d.color }} />
-                    </div>
-                  </div>
-                  <span className="text-[9px] font-bold text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                    {d.cases.toLocaleString()}
-                  </span>
-                </div>
-              );
-            })}
+          <WidgetTitle>Annual Outbreaks (2007-2025)</WidgetTitle>
+          <div className="flex-1 min-h-0 px-1 py-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dashData.yearlyOutbreaks} margin={{ top: 4, right: 8, bottom: 2, left: 4 }}>
+                <XAxis dataKey="year" tick={{ fontSize: 8 }} interval={1} />
+                <YAxis tick={{ fontSize: 8 }} width={35} />
+                <Tooltip content={<CompactTooltip />} />
+                <Bar dataKey="outbreaks" fill="#ef4444" radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>

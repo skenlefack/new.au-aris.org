@@ -264,6 +264,24 @@ export function useDashboardData(filters?: DashboardFilters) {
     staleTime: STALE_TIME,
   });
 
+  // 9. Yearly time series (for annual outbreak bar chart)
+  const yearlyQuery = useQuery<{ data: Array<{ period: string; value: number }> }>({
+    queryKey: ['dashboard-yearly-trend', healthIds, filterKey],
+    queryFn: () => histFetch(`${HIST_API_BASE}/cross-query`, {
+      method: 'POST',
+      body: JSON.stringify({
+        datasetIds: healthIds,
+        dateColumn: 'date_of_report',
+        valueColumn: 'num_new_outbreaks',
+        interval: 'year',
+        operation: 'count',
+        ...(hasApiFilters && { filters: apiFilters }),
+      }),
+    }),
+    enabled: hasHealth,
+    staleTime: STALE_TIME,
+  });
+
   // ── Transform: KPIs ──────────────────────────────────────────────────────
 
   const kpis: DashboardKpis = (() => {
@@ -421,6 +439,21 @@ export function useDashboardData(filters?: DashboardFilters) {
   const activities: ActivityItem[] = DEMO_ACTIVITIES;
   const rainfall: RainfallPoint[] = DEMO_RAINFALL;
 
+  // ── Transform: Yearly outbreaks ──────────────────────────────────────────
+
+  const yearlyOutbreaks: Array<{ year: string; outbreaks: number }> = (() => {
+    const raw = yearlyQuery.data?.data;
+    if (!raw || raw.length === 0) return [];
+    return raw
+      .map((d) => {
+        const date = new Date(d.period);
+        const year = date.getFullYear();
+        return { year: String(year), outbreaks: d.value ?? 0 };
+      })
+      .filter((d) => parseInt(d.year) >= 2007 && parseInt(d.year) <= 2025)
+      .sort((a, b) => a.year.localeCompare(b.year));
+  })();
+
   // All disease names for the filter dropdown (from unfiltered distribution)
   const allDiseaseNames: Array<{ value: string; label: string }> = (() => {
     const raw = diseaseDistQuery.data?.data;
@@ -445,6 +478,7 @@ export function useDashboardData(filters?: DashboardFilters) {
     alerts,
     activities,
     rainfall,
+    yearlyOutbreaks,
     allDiseaseNames,
     isLoading,
     isRealData,

@@ -370,17 +370,12 @@ function OverviewGrid({
           />
         </div>
         <div>
-          <TableRankedWidget
-            title="Top Diseases"
-            subtitle="Most reported diseases"
-            rows={dashData.diseases.slice(0, 10).map((d: any, i: number) => ({
-              rank: i + 1,
-              label: d.disease,
-              value: d.cases,
-              formattedValue: d.cases.toLocaleString(),
-              barPercent: (d.cases / (dashData.diseases[0]?.cases || 1)) * 100,
-              color: d.color,
-            }))}
+          <ChartBarWidget
+            title="Annual Outbreaks"
+            subtitle="Outbreak reports per year (2007-2025)"
+            data={dashData.yearlyOutbreaks.map((d: any) => ({ name: d.year, outbreaks: d.outbreaks }))}
+            bars={[{ dataKey: 'outbreaks', label: 'Outbreaks', color: '#ef4444' }]}
+            xKey="name"
             demo={!dashData.isRealData}
           />
         </div>
