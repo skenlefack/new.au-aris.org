@@ -2,8 +2,8 @@
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft, CheckCircle2, AlertCircle, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSubmitCampaignForm } from '@/lib/api/hooks';
 import { useCollectionCampaign } from '@/lib/api/workflow-hooks';
@@ -42,8 +42,10 @@ function extractSchema(tpl: FormTemplateListItem | undefined): FormSchema | null
 export default function CampaignSubmitPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const campaignId = params.id as string;
   const templateId = params.templateId as string;
+  const isPreview = searchParams.get('preview') === '1';
 
   const { data: campaignRes, isLoading: campaignLoading } = useCollectionCampaign(campaignId);
   const submitMutation = useSubmitCampaignForm();
@@ -142,7 +144,9 @@ export default function CampaignSubmitPage() {
     );
   }
 
-  if (campaign.status !== 'ACTIVE') {
+  // Allow ACTIVE for submission, PLANNED for preview only
+  const allowAccess = campaign.status === 'ACTIVE' || (campaign.status === 'PLANNED' && isPreview);
+  if (!allowAccess) {
     return (
       <div className="space-y-4 pb-12">
         <Link
@@ -159,6 +163,9 @@ export default function CampaignSubmitPage() {
       </div>
     );
   }
+
+  // Force preview mode for PLANNED campaigns (cannot submit data)
+  const previewMode = isPreview || campaign.status === 'PLANNED';
 
   return (
     <div className="space-y-6 pb-12">
@@ -180,10 +187,17 @@ export default function CampaignSubmitPage() {
               Campaign: {campaign.name}
             </p>
           </div>
-          <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            Active
-          </span>
+          {previewMode ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
+              <Eye className="h-3.5 w-3.5" />
+              Preview
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Active
+            </span>
+          )}
         </div>
       </div>
 
@@ -211,7 +225,8 @@ export default function CampaignSubmitPage() {
         <FormRenderer
           schema={schema}
           formName={templateName}
-          onSubmit={handleSubmit}
+          preview={previewMode}
+          onSubmit={previewMode ? undefined : handleSubmit}
         />
       ) : (
         <div className="rounded-xl border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">

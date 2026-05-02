@@ -1948,7 +1948,9 @@
     "searchSubDomains": "Rechercher des sous-domaines...",
     "noSubDomainsMatch": "Aucun sous-domaine ne correspond à votre recherche.",
     "selectAllBtn": "Tout",
-    "deselectAll": "Aucun"
+    "deselectAll": "Aucun",
+    "previewForm": "Aperçu",
+    "simulateFormDesc": "Mode aperçu — vous pouvez remplir les champs pour tester le formulaire, mais les données ne seront pas envoyées."
   },
   "masterData": {
     "title": "Données de référence",

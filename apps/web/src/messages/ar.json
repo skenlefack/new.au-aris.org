@@ -1949,7 +1949,9 @@
     "searchSubDomains": "البحث في النطاقات الفرعية...",
     "noSubDomainsMatch": "لا توجد نطاقات فرعية تطابق بحثك.",
     "selectAllBtn": "الكل",
-    "deselectAll": "لا شيء"
+    "deselectAll": "لا شيء",
+    "previewForm": "معاينة",
+    "simulateFormDesc": "وضع المعاينة — يمكنك ملء الحقول لاختبار النموذج، لكن البيانات لن تُرسل."
   },
   "masterData": {
     "title": "البيانات المرجعية",

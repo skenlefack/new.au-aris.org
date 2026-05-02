@@ -1948,7 +1948,9 @@
     "searchSubDomains": "Search sub-domains...",
     "noSubDomainsMatch": "No sub-domains match your search.",
     "selectAllBtn": "All",
-    "deselectAll": "None"
+    "deselectAll": "None",
+    "previewForm": "Preview",
+    "simulateFormDesc": "Preview mode — you can fill in fields to test the form, but data will not be submitted."
   },
   "masterData": {
     "title": "Master Data",

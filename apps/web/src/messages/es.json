@@ -1949,7 +1949,9 @@
     "searchSubDomains": "Buscar subdominios...",
     "noSubDomainsMatch": "Ningún subdominio coincide con su búsqueda.",
     "selectAllBtn": "Todos",
-    "deselectAll": "Ninguno"
+    "deselectAll": "Ninguno",
+    "previewForm": "Vista previa",
+    "simulateFormDesc": "Modo vista previa — puede rellenar los campos para probar el formulario, pero los datos no se enviarán."
   },
   "masterData": {
     "title": "Datos Maestros",
