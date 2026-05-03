@@ -426,29 +426,25 @@ export function DashboardSynthetic() {
         {/* 2C: Annual/Monthly Outbreaks (bar chart) */}
         <div className="bg-white dark:bg-gray-800 rounded overflow-hidden flex flex-col">
           <WidgetTitle>{dashData.selectedYear ? `Outbreaks ${dashData.selectedYear} — Monthly` : 'Annual Outbreaks (2007-2025)'}</WidgetTitle>
-          {dashData.selectedYear ? (
-            <div className="flex-1 min-h-0 px-1 py-1">
-              <ResponsiveContainer width="100%" height="100%">
+          <div className="flex-1 min-h-0 px-1 py-1" key={`outbreak-chart-${dashData.selectedYear ?? 'all'}`}>
+            <ResponsiveContainer key={`rc-${dashData.selectedYear ?? 'all'}`} width="100%" height="100%">
+              {dashData.selectedYear ? (
                 <BarChart data={trendData.map((d: any) => ({ name: d.name, outbreaks: d.outbreaks }))} margin={{ top: 4, right: 8, bottom: 2, left: 4 }}>
                   <XAxis dataKey="name" tick={{ fontSize: 8 }} interval={0} />
                   <YAxis tick={{ fontSize: 8 }} width={35} />
                   <Tooltip content={<CompactTooltip />} />
                   <Bar dataKey="outbreaks" fill="#ef4444" radius={[2, 2, 0, 0]} />
                 </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="flex-1 min-h-0 px-1 py-1">
-              <ResponsiveContainer width="100%" height="100%">
+              ) : (
                 <BarChart data={dashData.yearlyOutbreaks} margin={{ top: 4, right: 8, bottom: 2, left: 4 }}>
                   <XAxis dataKey="year" tick={{ fontSize: 8 }} interval={1} />
                   <YAxis tick={{ fontSize: 8 }} width={35} />
                   <Tooltip content={<CompactTooltip />} />
                   <Bar dataKey="outbreaks" fill="#ef4444" radius={[2, 2, 0, 0]} />
                 </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+              )}
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
