@@ -172,10 +172,37 @@ export default function CampaignDetailPage() {
     const codes: string[] = (campaign.targetCountries ?? []).length > 0
       ? (campaign.targetCountries ?? [])
       : (campaign.progress?.distinctCountries ?? []);
-    return codes.map((code: string) => {
-      const c = COUNTRIES[code.toUpperCase()];
-      return c ? { code: c.code, name: c.name, flag: c.flag } : { code, name: code, flag: '' };
-    });
+
+    // Build reverse lookup: name → CountryConfig (for when backend returns names instead of codes)
+    const byName: Record<string, typeof COUNTRIES[string]> = {};
+    for (const cfg of Object.values(COUNTRIES)) {
+      byName[cfg.name.toLowerCase()] = cfg;
+      if (cfg.nameFr) byName[cfg.nameFr.toLowerCase()] = cfg;
+    }
+    // Common aliases in historical data
+    const ALIASES: Record<string, string> = {
+      'congo dr': 'cd', 'dr congo': 'cd', 'drc': 'cd', 'congo brazaville': 'cg',
+      'congo (rep. of)': 'cg', 'car': 'cf', 'the gambia': 'gm', 'tchad': 'td',
+      'guinea conakry': 'gn', 'swaziland': 'sz', "cote d'ivoire": 'ci',
+      "côte d'ivoire": 'ci', 'south africa': 'za', 'south sudan': 'ss',
+      'sierra leone': 'sl', 'burkina faso': 'bf', 'guinea-bissau': 'gw',
+      'cape verde': 'cv', 'sao tome': 'st', 'equatorial guinea': 'gq',
+    };
+    for (const [alias, code] of Object.entries(ALIASES)) {
+      if (COUNTRIES[code.toUpperCase()]) byName[alias] = COUNTRIES[code.toUpperCase()];
+    }
+
+    const seen = new Set<string>();
+    const results: { code: string; name: string; flag: string }[] = [];
+    for (const val of codes) {
+      // Try ISO code first, then name lookup
+      const c = COUNTRIES[val.toUpperCase()] ?? byName[val.toLowerCase()];
+      const key = c ? c.code : val;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      results.push(c ? { code: c.code, name: c.name, flag: c.flag } : { code: val, name: val, flag: '' });
+    }
+    return results;
   }, [campaign]);
 
   if (isLoading) {
