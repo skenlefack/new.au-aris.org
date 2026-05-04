@@ -15,7 +15,7 @@ import Image from 'next/image';
 import {
   Search, Folder, Building2, Flag, ChevronRight, FileText,
   FolderTree, Eye, TrendingUp, Clock, Tag, ArrowRight, Flame, BookOpen,
-  HeartPulse, Beef, Fish, TreePine, Flower2, CloudSun, Globe2,
+  HeartPulse, Beef, Fish, TreePine, Flower2, CloudSun,
 } from 'lucide-react';
 import {
   usePublicCategoryTree,
@@ -54,22 +54,24 @@ export default function PublicKnowledgePortalPage() {
     [allHits],
   );
 
-  // Separate value-chain categories from other continental categories
-  const { valueChains, continental, recs, countries } = useMemo(() => {
-    const vc: KnowledgeCategory[] = [];
+  // Group root categories by scope — value chains are continental but displayed first
+  const { continental, recs, countries } = useMemo(() => {
     const cont: KnowledgeCategory[] = [];
     const r: KnowledgeCategory[] = [];
     const c: KnowledgeCategory[] = [];
     for (const cat of tree.data?.data ?? []) {
-      if (cat.scope === 'CONTINENTAL') {
-        if (VALUE_CHAIN_SLUGS.has(cat.slug)) vc.push(cat);
-        else cont.push(cat);
-      } else if (cat.scope === 'REC') r.push(cat);
+      if (cat.scope === 'CONTINENTAL') cont.push(cat);
+      else if (cat.scope === 'REC') r.push(cat);
       else if (cat.scope === 'COUNTRY') c.push(cat);
     }
-    // Sort value chains by sortOrder
-    vc.sort((a, b) => a.sortOrder - b.sortOrder);
-    return { valueChains: vc, continental: cont, recs: r, countries: c };
+    // Sort continental: value chains first (by sortOrder), then others
+    cont.sort((a, b) => {
+      const aIsVc = VALUE_CHAIN_SLUGS.has(a.slug) ? 0 : 1;
+      const bIsVc = VALUE_CHAIN_SLUGS.has(b.slug) ? 0 : 1;
+      if (aIsVc !== bIsVc) return aIsVc - bIsVc;
+      return a.sortOrder - b.sortOrder;
+    });
+    return { continental: cont, recs: r, countries: c };
   }, [tree.data]);
 
   // Top categories by publication count
@@ -161,58 +163,24 @@ export default function PublicKnowledgePortalPage() {
         </div>
       </section>
 
-      {/* ── Value Chains — Primary entry ───────────────────── */}
-      <section className="border-t bg-gradient-to-b from-white to-gray-50/80 px-6 py-12 dark:from-gray-900 dark:to-gray-900/80">
-        <div className="mx-auto max-w-6xl">
-          <header className="mb-8 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
-              <Globe2 className="h-6 w-6" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
-              Browse by Value Chain
-            </h2>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              Explore AU-IBAR knowledge resources across the 7 continental value chains
-            </p>
-          </header>
-
-          {tree.isLoading ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="h-44 animate-pulse rounded-2xl border bg-gray-100 dark:bg-gray-800" />
-              ))}
-            </div>
-          ) : valueChains.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {valueChains.map((vc) => (
-                <ValueChainCard key={vc.id} cat={vc} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-sm italic text-gray-400">Value chain categories not yet available.</p>
-          )}
-        </div>
-      </section>
-
       {/* ── Main grid: Scope browse + Sidebar ─────────────── */}
       <section className="border-t bg-gray-50/50 px-6 py-12 dark:bg-gray-900/50">
         <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1fr_340px]">
 
           {/* ─── Left: Browse by scope ─────────────────────── */}
           <div className="space-y-12">
-            {/* Continental (non-value-chain categories) */}
-            {continental.length > 0 && (
-              <ScopeBlock
-                icon={<BookOpen className="h-5 w-5" />}
-                label="Continental Resources"
-                tagline="AU-IBAR continental publications, policies and guidelines"
-                color="#7c3aed"
-                categories={continental}
-                loading={tree.isLoading}
-              />
-            )}
+            {/* Continental — value chains + general categories */}
+            <ScopeBlock
+              icon={<BookOpen className="h-5 w-5" />}
+              label="Continental Resources"
+              tagline="AU-IBAR continental publications, policies and guidelines"
+              color="#7c3aed"
+              categories={continental}
+              loading={tree.isLoading}
+              useValueChainCards
+            />
 
-            {/* RECs */}
+            {/* RECs — collapsed */}
             <ScopeBlock
               icon={<Building2 className="h-5 w-5" />}
               label="Regional Economic Communities"
@@ -220,10 +188,11 @@ export default function PublicKnowledgePortalPage() {
               color="#2563eb"
               categories={recs}
               twoColumns
+              collapsed
               loading={tree.isLoading}
             />
 
-            {/* Countries */}
+            {/* Countries — collapsed */}
             <ScopeBlock
               icon={<Flag className="h-5 w-5" />}
               label="Member States"
@@ -470,7 +439,7 @@ function WidgetSkeleton({ count }: { count: number }) {
 }
 
 function ScopeBlock({
-  icon, label, tagline, color, categories, twoColumns, collapsed, loading,
+  icon, label, tagline, color, categories, twoColumns, collapsed, loading, useValueChainCards,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -480,8 +449,13 @@ function ScopeBlock({
   twoColumns?: boolean;
   collapsed?: boolean;
   loading?: boolean;
+  useValueChainCards?: boolean;
 }) {
   const [open, setOpen] = useState(!collapsed);
+
+  // When using value chain cards, separate VC categories from others
+  const vcCats = useValueChainCards ? categories.filter((c) => VALUE_CHAIN_SLUGS.has(c.slug)) : [];
+  const otherCats = useValueChainCards ? categories.filter((c) => !VALUE_CHAIN_SLUGS.has(c.slug)) : categories;
 
   return (
     <div className="space-y-4">
@@ -504,17 +478,30 @@ function ScopeBlock({
       </header>
 
       {loading ? (
-        <div className={`grid gap-3 ${twoColumns ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
-          {Array.from({ length: twoColumns ? 2 : 3 }).map((_, i) => (
-            <div key={i} className="h-24 animate-pulse rounded-lg border bg-gray-100 dark:bg-gray-800" />
+        <div className={`grid gap-3 ${useValueChainCards ? 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : twoColumns ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
+          {Array.from({ length: useValueChainCards ? 7 : twoColumns ? 2 : 3 }).map((_, i) => (
+            <div key={i} className={`animate-pulse rounded-lg border bg-gray-100 dark:bg-gray-800 ${useValueChainCards ? 'h-44 rounded-2xl' : 'h-24'}`} />
           ))}
         </div>
       ) : categories.length > 0 ? (
-        open && (
-          <div className={`grid gap-3 ${twoColumns ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
-            {categories.map((cat) => (
-              <CategoryRootCard key={cat.id} cat={cat} accent={color} />
-            ))}
+        (!collapsed || open) && (
+          <div className="space-y-6">
+            {/* Value chain cards (large visual cards) */}
+            {vcCats.length > 0 && (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {vcCats.map((cat) => (
+                  <ValueChainCard key={cat.id} cat={cat} />
+                ))}
+              </div>
+            )}
+            {/* Other categories (standard cards) */}
+            {otherCats.length > 0 && (
+              <div className={`grid gap-3 ${twoColumns ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
+                {otherCats.map((cat) => (
+                  <CategoryRootCard key={cat.id} cat={cat} accent={color} />
+                ))}
+              </div>
+            )}
           </div>
         )
       ) : (
