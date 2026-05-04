@@ -1249,7 +1249,7 @@ export class CollectionCampaignService {
                  ELSE data->>'admin_location'
                END AS country
              FROM public.submissions
-             WHERE campaign_id = $1
+             WHERE campaign_id = $1::uuid
                AND data->>'admin_location' IS NOT NULL
                AND length(data->>'admin_location') > 1`,
             c.id,
