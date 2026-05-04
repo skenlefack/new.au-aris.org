@@ -1251,11 +1251,23 @@ export class CollectionCampaignService {
                FROM public.submissions
                WHERE campaign_id = $1::uuid
                  AND data->>'admin_location' IS NOT NULL
-                 AND length(data->>'admin_location') > 2
              ) sub
-             WHERE loc ~ '^[A-Za-z]'
-               AND loc !~* '^(total|unknown|other|n/a|none|null)$'
-               AND length(loc) > 2`,
+             WHERE loc IN (
+               'Algeria','Angola','Benin','Botswana','Burkina Faso','Burundi','Cameroon','CAR',
+               'Cape Verde','Central African Republic','Chad','Comoros','Congo Brazaville',
+               'Congo (Rep. of)','Congo DR','DR Congo','DRC',
+               'Cote d''Ivoire','Côte d''Ivoire','Djibouti','Egypt','Equatorial Guinea',
+               'Eritrea','Eswatini','Ethiopia','Gabon','Gambia','The Gambia','Ghana','Guinea',
+               'Guinea Conakry','Guinea-Bissau','Kenya','Lesotho','Liberia','Libya',
+               'Madagascar','Malawi','Mali','Mauritania','Mauritius','Morocco','Mozambique',
+               'Namibia','Niger','Nigeria','Rwanda','Sao Tome','Senegal','Seychelles',
+               'Sierra Leone','Somalia','South Africa','South Sudan','Sudan','Swaziland',
+               'Tanzania','Tchad','Togo','Tunisia','Uganda','Zambia','Zimbabwe',
+               'ZA','KE','ET','NG','GH','TZ','UG','ZW','BW','MZ','SD','SN','BJ','CM','TD',
+               'CD','CG','DJ','EG','ER','GA','GM','GN','GW','LR','LS','LY','MG','ML','MR',
+               'MU','MW','NA','NE','RW','SC','SL','SO','SS','SZ','TN','DZ','AO','BF','BI',
+               'CF','CI','CV','GQ','KM','MA','ST','TG','ZM'
+             )`,
             c.id,
           ),
         ]);
