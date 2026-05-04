@@ -166,10 +166,13 @@ export default function CampaignDetailPage() {
     [resolvedTemplates],
   );
 
-  // Resolve country info
+  // Resolve country info — from targetCountries or from submission-derived distinctCountries
   const countryInfos: { code: string; name: string; flag: string }[] = useMemo(() => {
     if (!campaign) return [];
-    return (campaign.targetCountries ?? []).map((code: string) => {
+    const codes: string[] = (campaign.targetCountries ?? []).length > 0
+      ? (campaign.targetCountries ?? [])
+      : (campaign.progress?.distinctCountries ?? []);
+    return codes.map((code: string) => {
       const c = COUNTRIES[code.toUpperCase()];
       return c ? { code: c.code, name: c.name, flag: c.flag } : { code, name: code, flag: '' };
     });
@@ -214,12 +217,13 @@ export default function CampaignDetailPage() {
   const statusCfg = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG.PLANNED;
   const progress = campaign.progress;
   const totalSubmissions = progress?.totalSubmissions ?? 0;
-  const validated = 0; // CollectionCampaign tracks via assignments, not submission-level validation
-  const rejected = 0;
-  const pending = totalSubmissions - validated - rejected;
+  const validated = progress?.validated ?? 0;
+  const rejected = progress?.rejected ?? 0;
+  const pending = progress?.pending ?? (totalSubmissions - validated - rejected);
   const target = campaign.targetSubmissions ?? 0;
   const pct = progress?.completionRate ?? (target > 0 ? Math.round((totalSubmissions / target) * 100) : 0);
   const agentCount = progress?.totalAgents ?? (Array.isArray(campaign.assignments) ? campaign.assignments.length : 0);
+  const progressCountries: string[] = progress?.distinctCountries ?? [];
 
   const handleStatusChange = async (newStatus: 'ACTIVE' | 'COMPLETED' | 'CANCELLED') => {
     try {
@@ -413,7 +417,7 @@ export default function CampaignDetailPage() {
               <Globe className="h-4 w-4 text-gray-400" />
               {t('targetCountries')} ({countryInfos.length})
             </h3>
-            {countryInfos.length === 0 ? (
+            {countryInfos.length === 0 && progressCountries.length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400">{t('noCountriesSpecified')}</p>
             ) : (
               <div className="flex flex-wrap gap-2">

@@ -1221,14 +1221,65 @@ export class CollectionCampaignService {
       (this.prisma as any).collectionCampaign.count({ where }),
     ]);
 
-    // Enrich each campaign with totalSubmissions from assignments or metadata (historical imports)
-    const data = rawData.map((c: any) => {
+    // Enrich each campaign with real submission stats from submissions table
+    // Campaign ID may exist in both campaigns + collection_campaigns tables (same UUID)
+    const data = await Promise.all(rawData.map(async (c: any) => {
       const fromAssignments = (c.assignments ?? []).reduce(
         (sum: number, a: any) => sum + (a.completedSubmissions ?? 0), 0,
       );
-      const totalSubmissions = fromAssignments || (c.metadata?.importedRows ?? 0);
-      return { ...c, totalSubmissions };
-    });
+
+      // Check if submissions exist for this campaign ID (same ID shared with Campaign table)
+      const submissionCount = await (this.prisma as any).submission.count({ where: { campaignId: c.id } }).catch(() => 0);
+
+      let totalSubmissions = 0;
+      let validated = 0;
+      let rejected = 0;
+      let pending = 0;
+      let distinctCountries: string[] = [];
+
+      if (submissionCount > 0) {
+        // Real submissions exist — get detailed stats
+        const [val, rej, countriesRaw] = await Promise.all([
+          (this.prisma as any).submission.count({ where: { campaignId: c.id, status: 'VALIDATED' } }),
+          (this.prisma as any).submission.count({ where: { campaignId: c.id, status: 'REJECTED' } }),
+          (this.prisma as any).$queryRawUnsafe(
+            `SELECT DISTINCT
+               CASE
+                 WHEN data->>'admin_location' LIKE '%/%' THEN trim(split_part(data->>'admin_location', '/', 1))
+                 ELSE data->>'admin_location'
+               END AS country
+             FROM public.submissions
+             WHERE campaign_id = $1
+               AND data->>'admin_location' IS NOT NULL
+               AND length(data->>'admin_location') > 1`,
+            c.id,
+          ),
+        ]);
+        totalSubmissions = submissionCount;
+        validated = val;
+        rejected = rej;
+        pending = submissionCount - val - rej;
+        distinctCountries = (countriesRaw as any[]).map((r: any) => r.country).filter(Boolean);
+      } else {
+        totalSubmissions = fromAssignments || (c.metadata?.importedRows ?? 0);
+      }
+
+      return {
+        ...c,
+        totalSubmissions,
+        progress: {
+          totalSubmissions,
+          validated,
+          rejected,
+          pending,
+          completionRate: c.targetSubmissions
+            ? Math.round((totalSubmissions / c.targetSubmissions) * 100)
+            : 0,
+          totalAgents: (c.assignments ?? []).length,
+          distinctCountries,
+        },
+      };
+    }));
 
     return { data, meta: { total, page, limit } };
   }
@@ -1250,11 +1301,45 @@ export class CollectionCampaignService {
     const canSee = await this.canAccessCampaign(user, campaign);
     if (!canSee) throw new HttpError(404, `Campaign ${id} not found`);
 
-    // Calculate progress — from assignments or metadata (historical imports)
+    // Calculate progress — from real submissions or assignments/metadata
     const totalAssigned = campaign.assignments.length;
     const totalCompleted = campaign.assignments.filter((a: any) => a.status === 'COMPLETED').length;
     const fromAssignments = campaign.assignments.reduce((sum: number, a: any) => sum + (a.completedSubmissions ?? 0), 0);
-    const totalSubmissions = fromAssignments || (campaign.metadata?.importedRows ?? 0);
+
+    // Check if submissions exist for this campaign ID (same ID shared with Campaign table)
+    const submissionCount = await (this.prisma as any).submission.count({ where: { campaignId: id } }).catch(() => 0);
+
+    let totalSubmissions = 0;
+    let validated = 0;
+    let rejected = 0;
+    let pending = 0;
+    let distinctCountries: string[] = [];
+
+    if (submissionCount > 0) {
+      const [val, rej, countriesRaw] = await Promise.all([
+        (this.prisma as any).submission.count({ where: { campaignId: id, status: 'VALIDATED' } }),
+        (this.prisma as any).submission.count({ where: { campaignId: id, status: 'REJECTED' } }),
+        (this.prisma as any).$queryRawUnsafe(
+          `SELECT DISTINCT
+             CASE
+               WHEN data->>'admin_location' LIKE '%/%' THEN trim(split_part(data->>'admin_location', '/', 1))
+               ELSE data->>'admin_location'
+             END AS country
+           FROM public.submissions
+           WHERE campaign_id = $1
+             AND data->>'admin_location' IS NOT NULL
+             AND length(data->>'admin_location') > 1`,
+          id,
+        ),
+      ]);
+      totalSubmissions = submissionCount;
+      validated = val;
+      rejected = rej;
+      pending = submissionCount - val - rej;
+      distinctCountries = (countriesRaw as any[]).map((r: any) => r.country).filter(Boolean);
+    } else {
+      totalSubmissions = fromAssignments || (campaign.metadata?.importedRows ?? 0);
+    }
 
     return {
       data: {
@@ -1263,10 +1348,14 @@ export class CollectionCampaignService {
           totalAgents: totalAssigned,
           completedAgents: totalCompleted,
           totalSubmissions,
+          validated,
+          rejected,
+          pending,
           targetSubmissions: campaign.targetSubmissions,
           completionRate: campaign.targetSubmissions
             ? Math.round((totalSubmissions / campaign.targetSubmissions) * 100)
             : 0,
+          distinctCountries,
         },
       },
     };
