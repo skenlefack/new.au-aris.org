@@ -202,6 +202,7 @@ export default function PublicKnowledgePortalPage() {
               categories={countries}
               twoColumns
               collapsed
+              collapsedCount={55}
               loading={tree.isLoading}
             />
           </div>
@@ -423,7 +424,7 @@ function WidgetSkeleton({ count }: { count: number }) {
 }
 
 function ScopeBlock({
-  icon, label, tagline, color, categories, twoColumns, collapsed, loading, useValueChainCards,
+  icon, label, tagline, color, categories, twoColumns, collapsed, collapsedCount, loading, useValueChainCards,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -432,6 +433,7 @@ function ScopeBlock({
   categories: KnowledgeCategory[];
   twoColumns?: boolean;
   collapsed?: boolean;
+  collapsedCount?: number;
   loading?: boolean;
   useValueChainCards?: boolean;
 }) {
@@ -439,6 +441,7 @@ function ScopeBlock({
 
   // No separation needed — all continental categories use the same card style
   const _ = useValueChainCards; // consumed for type-checking
+  const displayCount = collapsedCount ?? categories.length;
 
   return (
     <div className="space-y-4">
@@ -455,7 +458,7 @@ function ScopeBlock({
             onClick={() => setOpen(!open)}
             className="rounded-md border px-3 py-1.5 text-sm hover:bg-white dark:hover:bg-gray-800"
           >
-            {open ? 'Collapse' : `Show all ${categories.length}`}
+            {open ? 'Collapse' : `Show all ${displayCount}`}
           </button>
         )}
       </header>
