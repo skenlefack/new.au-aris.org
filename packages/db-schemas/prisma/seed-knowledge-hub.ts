@@ -272,7 +272,7 @@ async function main(): Promise<void> {
     await seedRoot(
       rootId,
       'continental',
-      { en: 'Continental', fr: 'Continental', pt: 'Continental', ar: 'قاري' },
+      { en: 'General Resources', fr: 'Ressources générales', pt: 'Recursos Gerais', ar: 'موارد عامة' },
       'CONTINENTAL',
       null,
       null,

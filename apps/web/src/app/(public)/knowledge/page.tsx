@@ -342,7 +342,6 @@ function ValueChainCard({ cat }: { cat: KnowledgeCategory }) {
 
   const icon = VALUE_CHAIN_ICONS[cat.slug];
   const color = cat.color ?? '#16a34a';
-  const subNames = (cat.children ?? []).slice(0, 3).map((c) => c.nameEn);
 
   return (
     <Link
@@ -350,14 +349,14 @@ function ValueChainCard({ cat }: { cat: KnowledgeCategory }) {
       className="group relative flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg dark:bg-gray-800"
       style={{ borderTop: `4px solid ${color}` }}
     >
-      <div className="flex flex-1 flex-col p-5">
+      <div className="flex flex-1 flex-col p-4">
         {/* Icon + badge */}
-        <div className="mb-4 flex items-start justify-between">
+        <div className="mb-3 flex items-start justify-between">
           <span
-            className="flex h-14 w-14 items-center justify-center rounded-xl"
+            className="flex h-12 w-12 items-center justify-center rounded-xl"
             style={{ backgroundColor: color + '15', color }}
           >
-            {icon ?? <Folder className="h-8 w-8" />}
+            {icon ?? <Folder className="h-7 w-7" />}
           </span>
           <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
             {totalPubs} doc{totalPubs !== 1 ? 's' : ''}
@@ -365,33 +364,17 @@ function ValueChainCard({ cat }: { cat: KnowledgeCategory }) {
         </div>
 
         {/* Title */}
-        <h3 className="text-base font-bold text-gray-900 group-hover:text-emerald-700 dark:text-white dark:group-hover:text-emerald-400">
+        <h3 className="text-sm font-bold text-gray-900 group-hover:text-emerald-700 dark:text-white dark:group-hover:text-emerald-400">
           {cat.nameEn}
         </h3>
         {cat.nameFr && cat.nameFr !== cat.nameEn && (
           <p className="mt-0.5 text-xs text-gray-400">{cat.nameFr}</p>
         )}
-
-        {/* Subcategories preview */}
-        {subNames.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1">
-            {subNames.map((name) => (
-              <span key={name} className="rounded-md bg-gray-50 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-700/50 dark:text-gray-400">
-                {name}
-              </span>
-            ))}
-            {(cat.children?.length ?? 0) > 3 && (
-              <span className="rounded-md bg-gray-50 px-2 py-0.5 text-xs text-gray-400 dark:bg-gray-700/50">
-                +{(cat.children?.length ?? 0) - 3}
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Footer */}
       <div
-        className="flex items-center justify-between px-5 py-3 text-xs font-medium"
+        className="flex items-center justify-between px-4 py-2.5 text-xs font-medium"
         style={{ backgroundColor: color + '08', color }}
       >
         <span>Explore resources</span>
@@ -453,9 +436,8 @@ function ScopeBlock({
 }) {
   const [open, setOpen] = useState(!collapsed);
 
-  // When using value chain cards, separate VC categories from others
-  const vcCats = useValueChainCards ? categories.filter((c) => VALUE_CHAIN_SLUGS.has(c.slug)) : [];
-  const otherCats = useValueChainCards ? categories.filter((c) => !VALUE_CHAIN_SLUGS.has(c.slug)) : categories;
+  // No separation needed — all continental categories use the same card style
+  const _ = useValueChainCards; // consumed for type-checking
 
   return (
     <div className="space-y-4">
@@ -485,24 +467,19 @@ function ScopeBlock({
         </div>
       ) : categories.length > 0 ? (
         (!collapsed || open) && (
-          <div className="space-y-6">
-            {/* Value chain cards (large visual cards) */}
-            {vcCats.length > 0 && (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {vcCats.map((cat) => (
-                  <ValueChainCard key={cat.id} cat={cat} />
-                ))}
-              </div>
-            )}
-            {/* Other categories (standard cards) */}
-            {otherCats.length > 0 && (
-              <div className={`grid gap-3 ${twoColumns ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
-                {otherCats.map((cat) => (
-                  <CategoryRootCard key={cat.id} cat={cat} accent={color} />
-                ))}
-              </div>
-            )}
-          </div>
+          useValueChainCards ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {categories.map((cat) => (
+                <ValueChainCard key={cat.id} cat={cat} />
+              ))}
+            </div>
+          ) : (
+            <div className={`grid gap-3 ${twoColumns ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
+              {categories.map((cat) => (
+                <CategoryRootCard key={cat.id} cat={cat} accent={color} />
+              ))}
+            </div>
+          )
         )
       ) : (
         <p className="text-sm italic text-gray-400">No categories available yet.</p>
