@@ -73,7 +73,7 @@ export async function resolveSubDomainId(prisma: PrismaClient, code: string): Pr
 async function dashboardExists(prisma: PrismaClient, code: string): Promise<boolean> {
   const rows: any[] = await (prisma as any).$queryRawUnsafe(
     `SELECT id FROM dashboard_builder.dashboards
-     WHERE ownership = 'SYSTEM_TEMPLATE' AND description LIKE $1 LIMIT 1`,
+     WHERE ownership = 'SYSTEM_TEMPLATE'::dashboard_builder."DashboardOwnership" AND description LIKE $1 LIMIT 1`,
     `%[${code}]%`,
   );
   return rows.length > 0;
@@ -112,7 +112,8 @@ export async function createStrategicDashboard(
     `INSERT INTO dashboard_builder.dashboards
        (id, ownership, scope, domain_id, sub_domain_id, value_chain_code,
         title_en, title_fr, description, grid_columns, row_height, is_default, created_at, updated_at)
-     VALUES (gen_random_uuid(), 'SYSTEM_TEMPLATE', $1, $2::uuid, $3::uuid, $4,
+     VALUES (gen_random_uuid(), 'SYSTEM_TEMPLATE'::dashboard_builder."DashboardOwnership",
+             $1::dashboard_builder."DashboardScope", $2::uuid, $3::uuid, $4,
              $5, $6, $7, 12, 80, true, NOW(), NOW())
      RETURNING id`,
     def.scope, domainId, subDomainId, def.valueChainCode || null,
@@ -143,7 +144,8 @@ export async function createStrategicDashboard(
             type, data_source, grid_x, grid_y, grid_w, grid_h,
             title_en, title_fr, config, filters, created_at, updated_at)
          VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3, $4,
-                 $5, $6, $7, $8, $9, $10,
+                 $5::dashboard_builder."WidgetType", $6::dashboard_builder."WidgetDataSource",
+                 $7, $8, $9, $10,
                  $11, $12, $13::jsonb, $14::jsonb, NOW(), NOW())`,
         dashboardId, sectionId, colIdx, sortOrd,
         w.type, w.dataSource, w.gridX || 0, w.gridY || 0, w.gridW || 3, w.gridH || 2,
