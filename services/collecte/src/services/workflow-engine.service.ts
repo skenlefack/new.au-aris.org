@@ -1243,15 +1243,19 @@ export class CollectionCampaignService {
           (this.prisma as any).submission.count({ where: { campaignId: c.id, status: 'VALIDATED' } }),
           (this.prisma as any).submission.count({ where: { campaignId: c.id, status: 'REJECTED' } }),
           (this.prisma as any).$queryRawUnsafe(
-            `SELECT DISTINCT
-               CASE
+            `SELECT DISTINCT loc AS country FROM (
+               SELECT CASE
                  WHEN data->>'admin_location' LIKE '%/%' THEN trim(split_part(data->>'admin_location', '/', 1))
                  ELSE data->>'admin_location'
-               END AS country
-             FROM public.submissions
-             WHERE campaign_id = $1::uuid
-               AND data->>'admin_location' IS NOT NULL
-               AND length(data->>'admin_location') > 1`,
+               END AS loc
+               FROM public.submissions
+               WHERE campaign_id = $1::uuid
+                 AND data->>'admin_location' IS NOT NULL
+                 AND length(data->>'admin_location') > 2
+             ) sub
+             WHERE loc ~ '^[A-Za-z]'
+               AND loc !~* '^(total|unknown|other|n/a|none|null)$'
+               AND length(loc) > 2`,
             c.id,
           ),
         ]);
