@@ -309,19 +309,6 @@ export default function PublicKnowledgePortalPage() {
               </SidebarWidget>
             )}
 
-            {/* Newsletter / Subscribe CTA */}
-            <div className="overflow-hidden rounded-xl border bg-gradient-to-br from-emerald-600 to-emerald-700 p-5 text-white shadow-lg">
-              <h3 className="text-sm font-bold">Stay informed</h3>
-              <p className="mt-1 text-xs leading-relaxed text-emerald-100">
-                Get the latest AU-IBAR publications, policy briefs and research updates delivered to your inbox.
-              </p>
-              <Link
-                href="mailto:ibar.office@au-ibar.org?subject=Knowledge Hub Subscription"
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-white/20 px-4 py-2 text-xs font-semibold backdrop-blur transition-colors hover:bg-white/30"
-              >
-                Subscribe <ArrowRight className="h-3 w-3" />
-              </Link>
-            </div>
           </aside>
         </div>
       </section>
