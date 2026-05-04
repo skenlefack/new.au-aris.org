@@ -13,8 +13,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  Search, Folder, Building2, Flag, ChevronRight, FileText,
-  FolderTree, Eye, TrendingUp, Clock, Tag, ArrowRight, Flame, BookOpen,
+  Search, Folder, Building2, Flag, ChevronRight,
+  TrendingUp, Clock, Tag, ArrowRight, Flame, BookOpen,
   HeartPulse, Beef, Fish, TreePine, Flower2, CloudSun,
 } from 'lucide-react';
 import {
@@ -136,8 +136,19 @@ export default function PublicKnowledgePortalPage() {
             </div>
           </form>
 
+          {/* Inline stats — soft, under the search bar */}
+          {!stats.isLoading && (
+            <p className="mt-4 text-xs text-gray-400 dark:text-gray-500">
+              {[
+                stats.data?.data?.publications != null && `${stats.data.data.publications} publications`,
+                stats.data?.data?.categories != null && `${stats.data.data.categories} categories`,
+                stats.data?.data?.contributingTenants != null && `${stats.data.data.contributingTenants} contributors`,
+              ].filter(Boolean).join(' \u00B7 ')}
+            </p>
+          )}
+
           {(popularTags.data?.data?.length ?? 0) > 0 && (
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 text-xs text-gray-500">
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5 text-xs text-gray-500">
               <span>Popular:</span>
               {popularTags.data!.data.slice(0, 6).map((t) => (
                 <button
@@ -150,16 +161,6 @@ export default function PublicKnowledgePortalPage() {
               ))}
             </div>
           )}
-        </div>
-      </section>
-
-      {/* ── KPI Stats row ──────────────────────────────────── */}
-      <section className="border-t bg-white px-6 py-8 dark:bg-gray-900">
-        <div className="mx-auto grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard icon={<FileText className="h-5 w-5" />} label="Publications" value={stats.data?.data?.publications} accent="#7c3aed" loading={stats.isLoading} />
-          <StatCard icon={<FolderTree className="h-5 w-5" />} label="Categories" value={stats.data?.data?.categories} accent="#2563eb" loading={stats.isLoading} />
-          <StatCard icon={<Eye className="h-5 w-5" />} label="Total views" value={stats.data?.data?.totalViews} accent="#16a34a" loading={stats.isLoading} />
-          <StatCard icon={<Building2 className="h-5 w-5" />} label="Contributors" value={stats.data?.data?.contributingTenants} accent="#ea580c" loading={stats.isLoading} />
         </div>
       </section>
 
@@ -484,31 +485,6 @@ function ScopeBlock({
       ) : (
         <p className="text-sm italic text-gray-400">No categories available yet.</p>
       )}
-    </div>
-  );
-}
-
-function StatCard({ icon, label, value, accent, loading }: {
-  icon: React.ReactNode;
-  label: string;
-  value: number | undefined;
-  accent: string;
-  loading?: boolean;
-}) {
-  const formatted = value === undefined ? '\u2014' : value >= 1000 ? value.toLocaleString() : String(value);
-  return (
-    <div className="group relative overflow-hidden rounded-xl border bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-800" style={{ borderTop: `3px solid ${accent}` }}>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">{label}</p>
-          <p className="mt-2 text-3xl font-bold tabular-nums text-gray-900 dark:text-white">
-            {loading ? <span className="inline-block h-8 w-20 animate-pulse rounded bg-gray-200 dark:bg-gray-700" /> : formatted}
-          </p>
-        </div>
-        <span className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: accent + '15', color: accent }}>
-          {icon}
-        </span>
-      </div>
     </div>
   );
 }
