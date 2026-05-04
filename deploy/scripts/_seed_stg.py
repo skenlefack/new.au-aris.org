@@ -46,7 +46,8 @@ SEEDS = [
     ("functions",   "aris-stg-credential", "seed-functions.ts"),
     ("master-data", "aris-stg-credential", "seed-master-data.ts"),
     ("workflow",    "aris-stg-workflow",    "seed-workflow.ts"),
-    ("bi",          "aris-stg-credential", "seed-bi.ts"),
+    ("bi",            "aris-stg-credential",    "seed-bi.ts"),
+    ("knowledge-hub", "aris-stg-knowledge-hub", "seed-knowledge-hub.ts"),
 ]
 
 

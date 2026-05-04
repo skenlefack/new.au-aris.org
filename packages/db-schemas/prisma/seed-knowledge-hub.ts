@@ -47,6 +47,94 @@ const DEFAULT_SUBCATEGORIES: CategoryDef[] = [
 ];
 
 /**
+ * The 7 AU-IBAR value chains — seeded as top-level CONTINENTAL categories.
+ * Each value chain gets the same 6 default subcategories.
+ */
+interface ValueChainDef {
+  slug: string;
+  nameEn: string;
+  nameFr: string;
+  namePt: string;
+  nameAr: string;
+  icon: string;
+  color: string;
+  sortOrder: number;
+}
+
+const VALUE_CHAINS: ValueChainDef[] = [
+  {
+    slug: 'animal-health',
+    nameEn: 'Animal Health & One Health',
+    nameFr: 'Santé animale & Une seule santé',
+    namePt: 'Saúde Animal & Saúde Única',
+    nameAr: 'صحة الحيوان والصحة الواحدة',
+    icon: 'HeartPulse',
+    color: '#dc2626',
+    sortOrder: 10,
+  },
+  {
+    slug: 'livestock-production',
+    nameEn: 'Livestock Production & Pastoralism',
+    nameFr: 'Production animale & Pastoralisme',
+    namePt: 'Produção Pecuária & Pastoralismo',
+    nameAr: 'الإنتاج الحيواني والرعي',
+    icon: 'Beef',
+    color: '#b45309',
+    sortOrder: 20,
+  },
+  {
+    slug: 'fisheries-aquaculture',
+    nameEn: 'Fisheries & Aquaculture',
+    nameFr: 'Pêche & Aquaculture',
+    namePt: 'Pescas & Aquicultura',
+    nameAr: 'المصايد وتربية الأحياء المائية',
+    icon: 'Fish',
+    color: '#0284c7',
+    sortOrder: 30,
+  },
+  {
+    slug: 'wildlife-biodiversity',
+    nameEn: 'Wildlife & Biodiversity',
+    nameFr: 'Faune sauvage & Biodiversité',
+    namePt: 'Vida Selvagem & Biodiversidade',
+    nameAr: 'الحياة البرية والتنوع البيولوجي',
+    icon: 'TreePine',
+    color: '#15803d',
+    sortOrder: 40,
+  },
+  {
+    slug: 'apiculture-pollination',
+    nameEn: 'Apiculture & Pollination',
+    nameFr: 'Apiculture & Pollinisation',
+    namePt: 'Apicultura & Polinização',
+    nameAr: 'تربية النحل والتلقيح',
+    icon: 'Flower2',
+    color: '#eab308',
+    sortOrder: 50,
+  },
+  {
+    slug: 'trade-markets',
+    nameEn: 'Trade, Markets & SPS',
+    nameFr: 'Commerce, Marchés & SPS',
+    namePt: 'Comércio, Mercados & SPS',
+    nameAr: 'التجارة والأسواق والصحة النباتية',
+    icon: 'TrendingUp',
+    color: '#7c3aed',
+    sortOrder: 60,
+  },
+  {
+    slug: 'climate-environment',
+    nameEn: 'Climate & Environment',
+    nameFr: 'Climat & Environnement',
+    namePt: 'Clima & Ambiente',
+    nameAr: 'المناخ والبيئة',
+    icon: 'CloudSun',
+    color: '#0891b2',
+    sortOrder: 70,
+  },
+];
+
+/**
  * Deterministic UUID for a category — derived from (tenantId, slug) so the
  * seed remains idempotent across runs and environments.
  *
@@ -191,6 +279,47 @@ async function main(): Promise<void> {
       'Globe2',
       '#7c3aed',
     );
+  }
+
+  // 2b. Value chain roots (CONTINENTAL scope, one per AU-IBAR value chain)
+  console.log(`  → Seeding ${VALUE_CHAINS.length} value chain categories...`);
+  for (const vc of VALUE_CHAINS) {
+    const vcRootId = deterministicUuid(`khub:vc:${vc.slug}`);
+    await upsertCategory({
+      id: vcRootId,
+      parentId: null,
+      slug: vc.slug,
+      nameEn: vc.nameEn,
+      nameFr: vc.nameFr,
+      namePt: vc.namePt,
+      nameAr: vc.nameAr,
+      scope: 'CONTINENTAL',
+      scopeTenantId: null,
+      recParentTenantId: null,
+      icon: vc.icon,
+      color: vc.color,
+      sortOrder: vc.sortOrder,
+    });
+
+    // Each value chain gets the same 6 default subcategories
+    for (const sub of DEFAULT_SUBCATEGORIES) {
+      const subSlug = `${vc.slug}--${sub.slug}`;
+      await upsertCategory({
+        id: deterministicUuid(`khub:vc:${vcRootId}:${sub.slug}`),
+        parentId: vcRootId,
+        slug: subSlug,
+        nameEn: sub.nameEn,
+        nameFr: sub.nameFr,
+        namePt: sub.namePt,
+        nameAr: sub.nameAr,
+        scope: 'CONTINENTAL',
+        scopeTenantId: null,
+        recParentTenantId: null,
+        icon: sub.icon,
+        color: sub.color,
+        sortOrder: sub.sortOrder,
+      });
+    }
   }
 
   // 3. REC roots

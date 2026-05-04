@@ -3,13 +3,10 @@
 // Public Knowledge Portal landing page.
 //
 // Layout:
-//   1. Hero with search bar + popular tags
-//   2. Main grid: Browse-by-scope (left) + Right sidebar with widgets
-//      - Most viewed publications
-//      - Latest publications
-//      - Popular categories
-//      - Popular tags cloud
-//      - Newsletter CTA
+//   1. Hero with AU logo, title, search bar, popular tags
+//   2. Value Chains grid — 7 AU-IBAR value chains as primary entry point
+//   3. Browse by scope (Continental, RECs, Member States)
+//   4. Right sidebar: Most viewed, Latest, Popular categories, Tags, Newsletter
 
 import { useState, useMemo, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
@@ -18,6 +15,7 @@ import Image from 'next/image';
 import {
   Search, Folder, Building2, Flag, ChevronRight, FileText,
   FolderTree, Eye, TrendingUp, Clock, Tag, ArrowRight, Flame, BookOpen,
+  HeartPulse, Beef, Fish, TreePine, Flower2, CloudSun, Globe2,
 } from 'lucide-react';
 import {
   usePublicCategoryTree,
@@ -28,6 +26,19 @@ import {
   type KnowledgeCategory,
 } from '@/lib/api/knowledge-hub-hooks';
 
+/** Map value-chain slugs to Lucide icons for the hero grid */
+const VALUE_CHAIN_ICONS: Record<string, React.ReactNode> = {
+  'animal-health':          <HeartPulse className="h-8 w-8" />,
+  'livestock-production':   <Beef className="h-8 w-8" />,
+  'fisheries-aquaculture':  <Fish className="h-8 w-8" />,
+  'wildlife-biodiversity':  <TreePine className="h-8 w-8" />,
+  'apiculture-pollination': <Flower2 className="h-8 w-8" />,
+  'trade-markets':          <TrendingUp className="h-8 w-8" />,
+  'climate-environment':    <CloudSun className="h-8 w-8" />,
+};
+
+const VALUE_CHAIN_SLUGS = new Set(Object.keys(VALUE_CHAIN_ICONS));
+
 export default function PublicKnowledgePortalPage() {
   const router = useRouter();
   const [q, setQ] = useState('');
@@ -36,8 +47,6 @@ export default function PublicKnowledgePortalPage() {
   const stats = usePublicKnowledgeStats();
   const popularTags = usePublicPopularTags(12);
   const latest = useKnowledgeSearch({ limit: 5, page: 1, q: ' ' });
-  // Most viewed — sort by viewCount (the search returns by publishedAt desc by default,
-  // but we can reuse latest data sorted client-side for now)
   const allHits = latest.data?.data?.hits ?? [];
 
   const mostViewed = useMemo(
@@ -45,17 +54,22 @@ export default function PublicKnowledgePortalPage() {
     [allHits],
   );
 
-  // Group root categories by scope
-  const grouped = useMemo(() => {
-    const continental: KnowledgeCategory[] = [];
-    const recs: KnowledgeCategory[] = [];
-    const countries: KnowledgeCategory[] = [];
+  // Separate value-chain categories from other continental categories
+  const { valueChains, continental, recs, countries } = useMemo(() => {
+    const vc: KnowledgeCategory[] = [];
+    const cont: KnowledgeCategory[] = [];
+    const r: KnowledgeCategory[] = [];
+    const c: KnowledgeCategory[] = [];
     for (const cat of tree.data?.data ?? []) {
-      if (cat.scope === 'CONTINENTAL') continental.push(cat);
-      else if (cat.scope === 'REC') recs.push(cat);
-      else if (cat.scope === 'COUNTRY') countries.push(cat);
+      if (cat.scope === 'CONTINENTAL') {
+        if (VALUE_CHAIN_SLUGS.has(cat.slug)) vc.push(cat);
+        else cont.push(cat);
+      } else if (cat.scope === 'REC') r.push(cat);
+      else if (cat.scope === 'COUNTRY') c.push(cat);
     }
-    return { continental, recs, countries };
+    // Sort value chains by sortOrder
+    vc.sort((a, b) => a.sortOrder - b.sortOrder);
+    return { valueChains: vc, continental: cont, recs: r, countries: c };
   }, [tree.data]);
 
   // Top categories by publication count
@@ -147,20 +161,53 @@ export default function PublicKnowledgePortalPage() {
         </div>
       </section>
 
-      {/* ── Main grid: Content + Sidebar ───────────────────── */}
+      {/* ── Value Chains — Primary entry ───────────────────── */}
+      <section className="border-t bg-gradient-to-b from-white to-gray-50/80 px-6 py-12 dark:from-gray-900 dark:to-gray-900/80">
+        <div className="mx-auto max-w-6xl">
+          <header className="mb-8 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
+              <Globe2 className="h-6 w-6" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
+              Browse by Value Chain
+            </h2>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              Explore AU-IBAR knowledge resources across the 7 continental value chains
+            </p>
+          </header>
+
+          {tree.isLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className="h-44 animate-pulse rounded-2xl border bg-gray-100 dark:bg-gray-800" />
+              ))}
+            </div>
+          ) : valueChains.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {valueChains.map((vc) => (
+                <ValueChainCard key={vc.id} cat={vc} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-sm italic text-gray-400">Value chain categories not yet available.</p>
+          )}
+        </div>
+      </section>
+
+      {/* ── Main grid: Scope browse + Sidebar ─────────────── */}
       <section className="border-t bg-gray-50/50 px-6 py-12 dark:bg-gray-900/50">
         <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1fr_340px]">
 
           {/* ─── Left: Browse by scope ─────────────────────── */}
           <div className="space-y-12">
-            {/* Continental */}
-            {grouped.continental.length > 0 && (
+            {/* Continental (non-value-chain categories) */}
+            {continental.length > 0 && (
               <ScopeBlock
                 icon={<BookOpen className="h-5 w-5" />}
                 label="Continental Resources"
                 tagline="AU-IBAR continental publications, policies and guidelines"
                 color="#7c3aed"
-                categories={grouped.continental}
+                categories={continental}
                 loading={tree.isLoading}
               />
             )}
@@ -171,7 +218,7 @@ export default function PublicKnowledgePortalPage() {
               label="Regional Economic Communities"
               tagline="Content published by ECOWAS, SADC, EAC, IGAD, ECCAS, UMA, COMESA, CEN-SAD"
               color="#2563eb"
-              categories={grouped.recs}
+              categories={recs}
               twoColumns
               loading={tree.isLoading}
             />
@@ -182,7 +229,7 @@ export default function PublicKnowledgePortalPage() {
               label="Member States"
               tagline="National publications and announcements from all 55 AU member states"
               color="#16a34a"
-              categories={grouped.countries}
+              categories={countries}
               twoColumns
               collapsed
               loading={tree.isLoading}
@@ -308,6 +355,80 @@ export default function PublicKnowledgePortalPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+// ─── Value Chain Card ───────────────────────────────────────────────────────
+
+function ValueChainCard({ cat }: { cat: KnowledgeCategory }) {
+  const totalPubs = useMemo(() => {
+    let n = cat.publicationCount ?? 0;
+    const visit = (cs?: KnowledgeCategory[]) => {
+      if (!cs) return;
+      for (const c of cs) { n += c.publicationCount ?? 0; visit(c.children); }
+    };
+    visit(cat.children);
+    return n;
+  }, [cat]);
+
+  const icon = VALUE_CHAIN_ICONS[cat.slug];
+  const color = cat.color ?? '#16a34a';
+  const subNames = (cat.children ?? []).slice(0, 3).map((c) => c.nameEn);
+
+  return (
+    <Link
+      href={`/knowledge/c/${cat.slug}`}
+      className="group relative flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg dark:bg-gray-800"
+      style={{ borderTop: `4px solid ${color}` }}
+    >
+      <div className="flex flex-1 flex-col p-5">
+        {/* Icon + badge */}
+        <div className="mb-4 flex items-start justify-between">
+          <span
+            className="flex h-14 w-14 items-center justify-center rounded-xl"
+            style={{ backgroundColor: color + '15', color }}
+          >
+            {icon ?? <Folder className="h-8 w-8" />}
+          </span>
+          <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+            {totalPubs} doc{totalPubs !== 1 ? 's' : ''}
+          </span>
+        </div>
+
+        {/* Title */}
+        <h3 className="text-base font-bold text-gray-900 group-hover:text-emerald-700 dark:text-white dark:group-hover:text-emerald-400">
+          {cat.nameEn}
+        </h3>
+        {cat.nameFr && cat.nameFr !== cat.nameEn && (
+          <p className="mt-0.5 text-xs text-gray-400">{cat.nameFr}</p>
+        )}
+
+        {/* Subcategories preview */}
+        {subNames.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1">
+            {subNames.map((name) => (
+              <span key={name} className="rounded-md bg-gray-50 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-700/50 dark:text-gray-400">
+                {name}
+              </span>
+            ))}
+            {(cat.children?.length ?? 0) > 3 && (
+              <span className="rounded-md bg-gray-50 px-2 py-0.5 text-xs text-gray-400 dark:bg-gray-700/50">
+                +{(cat.children?.length ?? 0) - 3}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div
+        className="flex items-center justify-between px-5 py-3 text-xs font-medium"
+        style={{ backgroundColor: color + '08', color }}
+      >
+        <span>Explore resources</span>
+        <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+      </div>
+    </Link>
   );
 }
 
