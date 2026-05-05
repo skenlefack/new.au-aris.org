@@ -9,6 +9,7 @@ import org.auibar.aris.mobile.data.remote.dto.BeneficiariesByCountryResponse
 import org.auibar.aris.mobile.data.remote.dto.KpiResponse
 import org.auibar.aris.mobile.data.remote.dto.SubmissionsByDomainResponse
 import org.auibar.aris.mobile.data.remote.dto.SubmissionsTimelineResponse
+import kotlinx.serialization.Serializable
 import javax.inject.Inject
 
 @Serializable
