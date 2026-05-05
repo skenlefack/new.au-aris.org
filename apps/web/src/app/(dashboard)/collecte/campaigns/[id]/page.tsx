@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -18,10 +18,8 @@ import {
   Target,
   ClipboardEdit,
   Eye,
-  Download,
-  Upload,
 } from 'lucide-react';
-import { ExportModal, ImportModal } from './ExportImportModals';
+// import { ExportModal, ImportModal } from './ExportImportModals';
 import { cn } from '@/lib/utils';
 import {
   useCollectionCampaign,
@@ -266,9 +264,9 @@ export default function CampaignDetailPage() {
   const agentCount = progress?.totalAgents ?? (Array.isArray(campaign.assignments) ? campaign.assignments.length : 0);
   const progressCountries: string[] = progress?.distinctCountries ?? [];
 
-  // Export/Import modal state
-  const [exportModal, setExportModal] = useState<{ open: boolean; tpl?: typeof resolvedTemplates[0] }>({ open: false });
-  const [importModal, setImportModal] = useState<{ open: boolean; tpl?: typeof resolvedTemplates[0] }>({ open: false });
+  // Export/Import modal state (temporarily disabled for debugging)
+  // const [exportModal, setExportModal] = useState<{ open: boolean; tpl?: typeof resolvedTemplates[0] }>({ open: false });
+  // const [importModal, setImportModal] = useState<{ open: boolean; tpl?: typeof resolvedTemplates[0] }>({ open: false });
 
   const handleStatusChange = async (newStatus: 'ACTIVE' | 'COMPLETED' | 'CANCELLED') => {
     try {
@@ -449,21 +447,7 @@ export default function CampaignDetailPage() {
                           {t('previewForm')}
                         </Link>
                       )}
-                      {/* Export & Import buttons */}
-                      <button
-                        onClick={() => setExportModal({ open: true, tpl: rt })}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400 dark:hover:bg-indigo-900/30 shrink-0"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        Export
-                      </button>
-                      <button
-                        onClick={() => setImportModal({ open: true, tpl: rt })}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30 shrink-0"
-                      >
-                        <Upload className="h-3.5 w-3.5" />
-                        Import
-                      </button>
+                      {/* Export & Import buttons — temporarily disabled */}
                     </div>
                   );
                 })}
@@ -633,23 +617,7 @@ export default function CampaignDetailPage() {
         </div>
       </div>
 
-      {/* Export/Import Modals */}
-      {exportModal.open && exportModal.tpl?.tpl && (
-        <ExportModal
-          open={exportModal.open}
-          onClose={() => setExportModal({ open: false })}
-          campaignId={campaignId}
-          template={exportModal.tpl.tpl}
-        />
-      )}
-      {importModal.open && importModal.tpl?.tpl && (
-        <ImportModal
-          open={importModal.open}
-          onClose={() => setImportModal({ open: false })}
-          campaignId={campaignId}
-          template={importModal.tpl.tpl}
-        />
-      )}
+      {/* Export/Import Modals — temporarily disabled */}
     </div>
   );
 }
