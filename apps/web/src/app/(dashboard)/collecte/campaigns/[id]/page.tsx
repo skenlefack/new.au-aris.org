@@ -54,6 +54,17 @@ function i18nStr(val: unknown, locale?: string): string {
   return String(val);
 }
 
+/** Ensure a value that might be an i18n object is always a plain string */
+function safeStr(val: unknown): string {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object' && val !== null) {
+    const obj = val as Record<string, string>;
+    return obj.en ?? obj.fr ?? obj.pt ?? Object.values(obj).find((v) => typeof v === 'string') ?? '';
+  }
+  return String(val);
+}
+
 // Fallback templates — same deterministic UUIDs as new/edit pages
 const SEED_TEMPLATES: FormTemplateListItem[] = [
   { id: 'a0000001-0001-4000-8000-000000000001', tenantId: '', name: 'AU-IBAR Monthly Animal Health Report', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
@@ -149,15 +160,15 @@ export default function CampaignDetailPage() {
     return tplIds.map((id: string) => {
       // 1. Direct ID match against API templates
       const byId = apiTemplates.find((tpl) => tpl.id === id);
-      if (byId) return { name: byId.name, tpl: byId, tplId: id };
+      if (byId) return { name: safeStr(byId.name), tpl: byId, tplId: id };
 
       // 2. Seed UUID → get name → match against API templates by name
       const seed = SEED_TEMPLATES.find((s) => s.id === id);
       if (seed) {
         const byName = apiTemplates.find((tpl) => tpl.name === seed.name);
-        if (byName) return { name: seed.name, tpl: byName, tplId: id };
+        if (byName) return { name: safeStr(seed.name), tpl: byName, tplId: id };
         // API offline — use seed for display (no schema)
-        return { name: seed.name, tpl: seed, tplId: id };
+        return { name: safeStr(seed.name), tpl: seed, tplId: id };
       }
 
       return { name: id.slice(0, 8) + '...', tpl: undefined, tplId: id };
