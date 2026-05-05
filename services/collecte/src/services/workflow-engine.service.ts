@@ -1271,7 +1271,7 @@ export class CollectionCampaignService {
             c.id,
           ),
         ]);
-        totalSubmissions = Math.max(submissionCount, c.targetSubmissions ?? 0);
+        totalSubmissions = Math.max(submissionCount, c.metadata?.importedRows ?? 0);
         validated = val;
         rejected = rej;
         pending = submissionCount - val - rej;
