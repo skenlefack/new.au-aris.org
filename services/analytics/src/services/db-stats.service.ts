@@ -211,25 +211,27 @@ export class DbStatsService {
     try {
       const { rows: [r] } = await client.query(`
         SELECT
-          -- Countries reporting (distinct admin_location in health reports)
-          (SELECT COUNT(DISTINCT admin_location)
+          -- Countries reporting (distinct country names from admin_location, alphabetic only)
+          (SELECT COUNT(DISTINCT SPLIT_PART(admin_location, ' / ', 1))
            FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
-           WHERE admin_location IS NOT NULL AND admin_location != '')::int AS countries_reporting,
+           WHERE admin_location ~ '^[A-Za-z]' AND LENGTH(admin_location) > 3)::int AS countries_reporting,
           -- Total health reports
           (SELECT COUNT(*)
            FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo)::int AS health_reports,
-          -- Outbreaks (rows where outbreak_in_month is yes/true)
+          -- Outbreaks (real outbreaks only, exclude ZERO-CAS / noise)
           (SELECT COUNT(*)
            FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
-           WHERE LOWER(outbreak_in_month) IN ('yes','true','1','oui'))::int AS outbreaks,
-          -- Diseases monitored (distinct disease values)
+           WHERE LOWER(outbreak_in_month) IN ('yes','true','1','oui')
+             AND disease ~ '^[A-Za-z]' AND UPPER(disease) NOT LIKE '%ZERO%')::int AS outbreaks,
+          -- Diseases monitored (distinct clean disease names only)
           (SELECT COUNT(DISTINCT disease)
            FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
-           WHERE disease IS NOT NULL AND disease != '')::int AS diseases_monitored,
-          -- Vaccination campaigns
+           WHERE disease ~ '^[A-Za-z]' AND LENGTH(disease) > 2
+             AND UPPER(disease) NOT LIKE '%ZERO%')::int AS diseases_monitored,
+          -- Vaccination reports count
           (SELECT COUNT(*)
            FROM historical.hdata_animal_health_monthly_vaccination_report_historical_mol9y)::int AS vaccination_reports,
-          -- Mass vaccination records
+          -- Mass vaccination campaigns
           (SELECT COUNT(*)
            FROM historical.hdata_animal_health_mass_vaccination_historical_mol9z9wh)::int AS mass_vaccinations,
           -- Livestock census records
@@ -281,25 +283,21 @@ export class DbStatsService {
 
     const client = await this.pool.connect();
     try {
-      // Disease distribution (top 8)
+      // Disease distribution (top 8, clean names only — exclude UUIDs, ZERO, noise)
       const { rows: diseaseRows } = await client.query(`
         SELECT disease AS label, COUNT(*)::int AS value
         FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
-        WHERE disease IS NOT NULL AND disease != ''
+        WHERE disease ~ '^[A-Za-z]' AND LENGTH(disease) > 2
+          AND UPPER(disease) NOT LIKE '%ZERO%'
         GROUP BY disease ORDER BY value DESC LIMIT 8
       `);
 
-      // Country distribution (top 10, extract country from admin_location)
+      // Country distribution (top 10, clean country names only)
       const { rows: countryRows } = await client.query(`
-        SELECT
-          CASE
-            WHEN admin_location LIKE '%/%' THEN SPLIT_PART(admin_location, ' / ', 1)
-            ELSE admin_location
-          END AS label,
-          COUNT(*)::int AS value
+        SELECT SPLIT_PART(admin_location, ' / ', 1) AS label, COUNT(*)::int AS value
         FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
-        WHERE admin_location IS NOT NULL AND admin_location != ''
-        GROUP BY label ORDER BY value DESC LIMIT 10
+        WHERE admin_location ~ '^[A-Za-z]' AND LENGTH(admin_location) > 3
+        GROUP BY label HAVING COUNT(*) > 100 ORDER BY value DESC LIMIT 10
       `);
 
       // Monthly trend (last 12 months of report dates)
