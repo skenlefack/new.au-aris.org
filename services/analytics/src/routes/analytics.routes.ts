@@ -153,13 +153,31 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
       .send(csv);
   });
 
-  // ── Continental KPIs (all domains aggregated) ──
+  // ── Continental KPIs (all domains aggregated) — reads from PostgreSQL historical tables ──
 
   app.get(`${PREFIX}/continental/kpis`, {
     preHandler: [app.authHookFn, tenantHook()],
   }, async (_request: FastifyRequest, reply: FastifyReply) => {
+    // Use DbStatsService for real data from historical tables
+    if (app.dbStatsService) {
+      const data = await app.dbStatsService.getContinentalKpis();
+      return reply.code(200).send({ data });
+    }
+    // Fallback to Redis-based (empty when no Kafka events)
     const data = await app.crossDomainService.getContinentalKpis();
     return reply.code(200).send({ data });
+  });
+
+  // ── Dashboard Charts (disease/country distribution + monthly trend) ──
+
+  app.get(`${PREFIX}/dashboard/charts`, {
+    preHandler: [app.authHookFn, tenantHook()],
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
+    if (app.dbStatsService) {
+      const data = await app.dbStatsService.getDashboardCharts();
+      return reply.code(200).send({ data });
+    }
+    return reply.code(200).send({ data: { diseaseDistribution: [], countryDistribution: [], monthlyTrend: [] } });
   });
 
   // ── Generic Domain KPIs (mobile app uses /{domainKey}/kpis) ──

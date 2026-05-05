@@ -46,7 +46,7 @@ data class Campaign(
     val completionRate: Double
         get() {
             val target = targetSubmissions ?: totalSubmissions.coerceAtLeast(1)
-            return if (target > 0) (validatedSubmissions.toDouble() / target * 100.0) else 0.0
+            return if (target > 0) (totalSubmissions.toDouble() / target * 100.0).coerceAtMost(100.0) else 0.0
         }
 
     val targetUiModels: List<TargetUiModel>

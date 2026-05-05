@@ -614,4 +614,29 @@
     <!-- Flash Alerts (Chantier D) -->
     <string name="flash_alerts">Flash Alerts</string>
     <string name="no_flash_alerts">No flash alerts</string>
+
+    <!-- Data Validation -->
+    <string name="validation">Validation</string>
+    <string name="validation_title">Data Validation</string>
+    <string name="validation_subtitle">Review and validate submitted data</string>
+    <string name="validation_pending_reviews">Pending Reviews</string>
+    <string name="validation_approved_week">Approved This Week</string>
+    <string name="validation_avg_time">Avg Processing Time</string>
+    <string name="validation_all_levels">All Levels</string>
+    <string name="validation_all_statuses">All Statuses</string>
+    <string name="validation_all_types">All Types</string>
+    <string name="validation_returned">Returned</string>
+    <string name="validation_health_event">Health Event</string>
+    <string name="validation_vaccination">Vaccination</string>
+    <string name="validation_lab_result">Lab Result</string>
+    <string name="validation_census">Census</string>
+    <string name="validation_no_items">No items to validate</string>
+    <string name="validation_no_items_hint">All submissions have been reviewed</string>
+    <string name="validation_approve">Approve</string>
+    <string name="validation_reject">Reject</string>
+    <string name="validation_return">Return</string>
+    <string name="validation_add_comment">Add a comment\u2026</string>
+    <string name="validation_page_info">Page %1$d of %2$d (%3$d items)</string>
+    <string name="validation_previous">Previous</string>
+    <string name="validation_next">Next</string>
 </resources>

@@ -194,6 +194,143 @@ export class DbStatsService {
     };
   }
 
+  /**
+   * Continental KPIs computed from historical tables + submissions.
+   * Returns the same KpiCard[] format as CrossDomainService for compatibility.
+   */
+  async getContinentalKpis(): Promise<{
+    kpis: Array<{ key: string; label: string; value: number; unit: string; trend: string; trendPercent: number }>;
+    asOf: string;
+  }> {
+    const cached = await this.redis.get('analytics:continental-kpis');
+    if (cached) {
+      try { return JSON.parse(cached); } catch { /* re-fetch */ }
+    }
+
+    const client = await this.pool.connect();
+    try {
+      const { rows: [r] } = await client.query(`
+        SELECT
+          -- Countries reporting (distinct admin_location in health reports)
+          (SELECT COUNT(DISTINCT admin_location)
+           FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
+           WHERE admin_location IS NOT NULL AND admin_location != '')::int AS countries_reporting,
+          -- Total health reports
+          (SELECT COUNT(*)
+           FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo)::int AS health_reports,
+          -- Outbreaks (rows where outbreak_in_month is yes/true)
+          (SELECT COUNT(*)
+           FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
+           WHERE LOWER(outbreak_in_month) IN ('yes','true','1','oui'))::int AS outbreaks,
+          -- Diseases monitored (distinct disease values)
+          (SELECT COUNT(DISTINCT disease)
+           FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
+           WHERE disease IS NOT NULL AND disease != '')::int AS diseases_monitored,
+          -- Vaccination campaigns
+          (SELECT COUNT(*)
+           FROM historical.hdata_animal_health_monthly_vaccination_report_historical_mol9y)::int AS vaccination_reports,
+          -- Mass vaccination records
+          (SELECT COUNT(*)
+           FROM historical.hdata_animal_health_mass_vaccination_historical_mol9z9wh)::int AS mass_vaccinations,
+          -- Livestock census records
+          (SELECT COUNT(*)
+           FROM historical.hdata_livestock_prod_animal_population_and_composition_histor_m)::int AS livestock_censused,
+          -- Total records across all historical tables
+          (SELECT
+            (SELECT COUNT(*) FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo) +
+            (SELECT COUNT(*) FROM historical.hdata_animal_health_monthly_vaccination_report_historical_mol9y) +
+            (SELECT COUNT(*) FROM historical.hdata_animal_health_mass_vaccination_historical_mol9z9wh) +
+            (SELECT COUNT(*) FROM historical.hdata_livestock_prod_animal_population_and_composition_histor_m)
+          )::int AS total_records
+      `);
+
+      const kpis = [
+        { key: 'countries_reporting', label: 'Countries Reporting', value: r.countries_reporting ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
+        { key: 'health_reports', label: 'Health Reports', value: r.health_reports ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
+        { key: 'outbreaks', label: 'Outbreaks', value: r.outbreaks ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
+        { key: 'diseases_monitored', label: 'Diseases Monitored', value: r.diseases_monitored ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
+        { key: 'vaccination_reports', label: 'Animals Vaccinated', value: r.vaccination_reports ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
+        { key: 'mass_vaccinations', label: 'Vaccination Campaigns', value: r.mass_vaccinations ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
+        { key: 'livestock_censused', label: 'Livestock Censused', value: r.livestock_censused ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
+        { key: 'total_records', label: 'Total Records', value: r.total_records ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
+      ];
+
+      const result = { kpis, asOf: new Date().toISOString() };
+      await this.redis.set('analytics:continental-kpis', JSON.stringify(result), CACHE_TTL);
+      return result;
+    } catch (err) {
+      console.error('[DbStatsService] Continental KPIs query failed:', err);
+      return { kpis: [], asOf: new Date().toISOString() };
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Dashboard chart data: disease distribution, country distribution, monthly trend.
+   */
+  async getDashboardCharts(): Promise<{
+    diseaseDistribution: Array<{ label: string; value: number }>;
+    countryDistribution: Array<{ label: string; value: number }>;
+    monthlyTrend: Array<{ month: string; outbreaks: number; reports: number }>;
+  }> {
+    const cached = await this.redis.get('analytics:dashboard-charts');
+    if (cached) {
+      try { return JSON.parse(cached); } catch { /* re-fetch */ }
+    }
+
+    const client = await this.pool.connect();
+    try {
+      // Disease distribution (top 8)
+      const { rows: diseaseRows } = await client.query(`
+        SELECT disease AS label, COUNT(*)::int AS value
+        FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
+        WHERE disease IS NOT NULL AND disease != ''
+        GROUP BY disease ORDER BY value DESC LIMIT 8
+      `);
+
+      // Country distribution (top 10, extract country from admin_location)
+      const { rows: countryRows } = await client.query(`
+        SELECT
+          CASE
+            WHEN admin_location LIKE '%/%' THEN SPLIT_PART(admin_location, ' / ', 1)
+            ELSE admin_location
+          END AS label,
+          COUNT(*)::int AS value
+        FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
+        WHERE admin_location IS NOT NULL AND admin_location != ''
+        GROUP BY label ORDER BY value DESC LIMIT 10
+      `);
+
+      // Monthly trend (last 12 months of report dates)
+      const { rows: trendRows } = await client.query(`
+        SELECT
+          TO_CHAR(date_of_report, 'Mon') AS month,
+          COUNT(*) FILTER (WHERE LOWER(outbreak_in_month) IN ('yes','true','1','oui'))::int AS outbreaks,
+          COUNT(*)::int AS reports
+        FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
+        WHERE date_of_report IS NOT NULL
+        GROUP BY EXTRACT(YEAR FROM date_of_report), EXTRACT(MONTH FROM date_of_report), TO_CHAR(date_of_report, 'Mon')
+        ORDER BY MAX(date_of_report) DESC
+        LIMIT 12
+      `);
+
+      const result = {
+        diseaseDistribution: diseaseRows.map((r: any) => ({ label: r.label, value: r.value })),
+        countryDistribution: countryRows.map((r: any) => ({ label: r.label, value: r.value })),
+        monthlyTrend: trendRows.reverse().map((r: any) => ({ month: r.month, outbreaks: r.outbreaks, reports: r.reports })),
+      };
+
+      await this.redis.set('analytics:dashboard-charts', JSON.stringify(result), CACHE_TTL);
+      return result;
+    } catch (err) {
+      console.error('[DbStatsService] Dashboard charts query failed:', err);
+      return { diseaseDistribution: [], countryDistribution: [], monthlyTrend: [] };
+    } finally {
+      client.release();
+    }
+  }
+
   async close(): Promise<void> {
     await this.pool.end();
   }

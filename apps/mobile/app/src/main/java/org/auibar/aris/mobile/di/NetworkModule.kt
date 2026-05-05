@@ -28,6 +28,7 @@ import org.auibar.aris.mobile.data.remote.api.AuthApi
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
 import org.auibar.aris.mobile.data.remote.api.DashboardMobileApi
 import org.auibar.aris.mobile.data.remote.api.FlashAlertApi
+import org.auibar.aris.mobile.data.remote.api.ValidationApi
 import org.auibar.aris.mobile.data.remote.api.IndicatorApi
 import org.auibar.aris.mobile.data.remote.api.KnowledgeApi
 import org.auibar.aris.mobile.data.remote.api.MessageApi
@@ -213,4 +214,8 @@ object NetworkModule {
     @Singleton
     fun provideFlashAlertApi(client: HttpClient, tokenManager: TokenManager): FlashAlertApi =
         FlashAlertApi(client, ServerEnvironment.fromName(tokenManager.serverEnvironment).baseUrl)
+
+    @Provides
+    @Singleton
+    fun provideValidationApi(client: HttpClient): ValidationApi = ValidationApi(client)
 }

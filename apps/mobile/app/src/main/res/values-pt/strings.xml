@@ -579,4 +579,29 @@
     <string name="unsupported_widget">Widget n\u00e3o suportado</string>
     <string name="flash_alerts">Alertas flash</string>
     <string name="no_flash_alerts">Nenhum alerta flash</string>
+
+    <!-- Data Validation -->
+    <string name="validation">Valida\u00e7\u00e3o</string>
+    <string name="validation_title">Valida\u00e7\u00e3o de Dados</string>
+    <string name="validation_subtitle">Revisar e validar os dados enviados</string>
+    <string name="validation_pending_reviews">Pendentes</string>
+    <string name="validation_approved_week">Aprovados esta semana</string>
+    <string name="validation_avg_time">Tempo m\u00e9dio</string>
+    <string name="validation_all_levels">Todos os n\u00edveis</string>
+    <string name="validation_all_statuses">Todos os status</string>
+    <string name="validation_all_types">Todos os tipos</string>
+    <string name="validation_returned">Devolvido</string>
+    <string name="validation_health_event">Evento sanit\u00e1rio</string>
+    <string name="validation_vaccination">Vacina\u00e7\u00e3o</string>
+    <string name="validation_lab_result">Resultado de laborat\u00f3rio</string>
+    <string name="validation_census">Censo</string>
+    <string name="validation_no_items">Nenhum item para validar</string>
+    <string name="validation_no_items_hint">Todos os envios foram revisados</string>
+    <string name="validation_approve">Aprovar</string>
+    <string name="validation_reject">Rejeitar</string>
+    <string name="validation_return">Devolver</string>
+    <string name="validation_add_comment">Adicionar coment\u00e1rio\u2026</string>
+    <string name="validation_page_info">P\u00e1gina %1$d de %2$d (%3$d itens)</string>
+    <string name="validation_previous">Anterior</string>
+    <string name="validation_next">Pr\u00f3ximo</string>
 </resources>

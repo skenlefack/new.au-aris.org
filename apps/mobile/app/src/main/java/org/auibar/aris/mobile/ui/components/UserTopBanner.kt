@@ -16,8 +16,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -45,15 +49,18 @@ import org.auibar.aris.mobile.ui.theme.GradientDarkGreen
 import org.auibar.aris.mobile.ui.theme.GradientMidGreen
 import org.auibar.aris.mobile.ui.theme.GradientTeal
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserTopBanner(
     userName: String,
     userEmail: String,
     userRole: String?,
     tenantLevel: String?,
+    unreadNotifications: Int = 0,
     modifier: Modifier = Modifier,
     onProfileClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
 ) {
     val badgeStyle = RoleConfig.badgeStyleFor(userRole)
@@ -132,6 +139,45 @@ fun UserTopBanner(
             }
 
             Spacer(modifier = Modifier.width(8.dp))
+
+            // ── Notification bell icon ────────────────────────────
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.15f))
+                    .clickable { onNotificationsClick() },
+                contentAlignment = Alignment.Center,
+            ) {
+                if (unreadNotifications > 0) {
+                    BadgedBox(
+                        badge = {
+                            Badge {
+                                Text(
+                                    text = if (unreadNotifications > 99) "99+" else "$unreadNotifications",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                )
+                            }
+                        },
+                    ) {
+                        Icon(
+                            Icons.Default.Notifications,
+                            contentDescription = stringResource(R.string.notifications),
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                } else {
+                    Icon(
+                        Icons.Default.Notifications,
+                        contentDescription = stringResource(R.string.notifications),
+                        tint = Color.White.copy(alpha = 0.8f),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(6.dp))
 
             // ── Right: Avatar with dropdown ────────────────────────
             Box {

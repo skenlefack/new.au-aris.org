@@ -96,6 +96,7 @@ fun HomeDashboardScreen(
     @Suppress("UNUSED_VARIABLE")
     val pendingCount by viewModel.pendingCount.collectAsStateWithLifecycle()
     val serverKpis by viewModel.kpis.collectAsStateWithLifecycle()
+    val chartsData by viewModel.charts.collectAsStateWithLifecycle()
 
     // Use server KPIs if available, otherwise fallback to static data
     val displayKpis = remember(serverKpis) {
@@ -109,6 +110,37 @@ fun HomeDashboardScreen(
     val userDomains = viewModel.userDomains
     val activeDomains = viewModel.activeDomains
     val windowType = LocalWindowType.current
+
+    // Build chart data from API or fall back to static
+    val chartColors = listOf(ChartRed, ChartOrange, ChartYellow, ChartGreen, ChartTeal, ChartCyan, ChartBlue, ChartPurple)
+    val liveDiseaseDist = remember(chartsData) {
+        if (chartsData.diseaseDistribution.isNotEmpty()) {
+            chartsData.diseaseDistribution.mapIndexed { i, e ->
+                PieSlice(e.label.take(20), e.value.toFloat(), chartColors[i % chartColors.size])
+            }
+        } else diseaseDistribution
+    }
+    val liveCasesByDisease = remember(chartsData) {
+        if (chartsData.diseaseDistribution.isNotEmpty()) {
+            chartsData.diseaseDistribution.mapIndexed { i, e ->
+                BarEntry(e.label.take(10), e.value.toFloat(), chartColors[i % chartColors.size])
+            }
+        } else casesByDisease
+    }
+    val liveTopCountries = remember(chartsData) {
+        if (chartsData.countryDistribution.isNotEmpty()) {
+            chartsData.countryDistribution.map { e ->
+                BarEntry(e.label.take(12), e.value.toFloat(), ChartDeepGreen)
+            }
+        } else topCountries
+    }
+    val liveMonthlyTrend = remember(chartsData) {
+        if (chartsData.monthlyTrend.isNotEmpty()) {
+            chartsData.monthlyTrend.map { e ->
+                TrendPoint(e.month, e.outbreaks.toFloat(), e.reports.toFloat())
+            }
+        } else monthlyTrend
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -155,13 +187,13 @@ fun HomeDashboardScreen(
             item {
                 Row(Modifier.fillMaxWidth()) {
                     Box(Modifier.weight(1f)) {
-                        WidgetCard(title = "OUTBREAKS BY REC") {
-                            HorizontalBarChart(entries = outbreaksByRec)
+                        WidgetCard(title = "TOP COUNTRIES \u2014 REPORTS") {
+                            HorizontalBarChart(entries = liveTopCountries)
                         }
                     }
                     Box(Modifier.weight(1f)) {
                         WidgetCard(title = "DISEASE DISTRIBUTION") {
-                            DonutChart(slices = diseaseDistribution)
+                            DonutChart(slices = liveDiseaseDist)
                         }
                     }
                 }
@@ -170,46 +202,46 @@ fun HomeDashboardScreen(
                 Row(Modifier.fillMaxWidth()) {
                     Box(Modifier.weight(1f)) {
                         WidgetCard(title = "CASES BY DISEASE") {
-                            HorizontalBarChart(entries = casesByDisease)
+                            HorizontalBarChart(entries = liveCasesByDisease)
                         }
                     }
                     Box(Modifier.weight(1f)) {
                         WidgetCard(title = "TOP COUNTRIES \u2014 CASES") {
-                            HorizontalBarChart(entries = topCountries)
+                            HorizontalBarChart(entries = liveTopCountries)
                         }
                     }
                 }
             }
             item {
                 WidgetCard(title = "MONTHLY TREND \u2014 OUTBREAKS & SUBMISSIONS") {
-                    LineChart(points = monthlyTrend)
+                    LineChart(points = liveMonthlyTrend)
                 }
             }
         } else {
             // Phone: single column
             item {
-                WidgetCard(title = "OUTBREAKS BY REC") {
-                    HorizontalBarChart(entries = outbreaksByRec)
+                WidgetCard(title = "TOP COUNTRIES \u2014 REPORTS") {
+                    HorizontalBarChart(entries = liveTopCountries)
                 }
             }
             item {
                 WidgetCard(title = "DISEASE DISTRIBUTION") {
-                    DonutChart(slices = diseaseDistribution)
+                    DonutChart(slices = liveDiseaseDist)
                 }
             }
             item {
                 WidgetCard(title = "CASES BY DISEASE") {
-                    HorizontalBarChart(entries = casesByDisease)
+                    HorizontalBarChart(entries = liveCasesByDisease)
                 }
             }
             item {
                 WidgetCard(title = "MONTHLY TREND \u2014 OUTBREAKS & SUBMISSIONS") {
-                    LineChart(points = monthlyTrend)
+                    LineChart(points = liveMonthlyTrend)
                 }
             }
             item {
                 WidgetCard(title = "TOP COUNTRIES \u2014 CASES") {
-                    HorizontalBarChart(entries = topCountries)
+                    HorizontalBarChart(entries = liveTopCountries)
                 }
             }
         }

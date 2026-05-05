@@ -11,6 +11,26 @@ import org.auibar.aris.mobile.data.remote.dto.SubmissionsByDomainResponse
 import org.auibar.aris.mobile.data.remote.dto.SubmissionsTimelineResponse
 import javax.inject.Inject
 
+@Serializable
+data class ChartEntry(
+    val label: String = "",
+    val value: Int = 0,
+)
+
+@Serializable
+data class TrendEntry(
+    val month: String = "",
+    val outbreaks: Int = 0,
+    val reports: Int = 0,
+)
+
+@Serializable
+data class DashboardChartsResponse(
+    val diseaseDistribution: List<ChartEntry> = emptyList(),
+    val countryDistribution: List<ChartEntry> = emptyList(),
+    val monthlyTrend: List<TrendEntry> = emptyList(),
+)
+
 class AnalyticsApi @Inject constructor(
     private val client: HttpClient,
 ) {
@@ -24,6 +44,10 @@ class AnalyticsApi @Inject constructor(
 
     suspend fun getDomainKpis(domainKey: String): ApiResponse<KpiResponse> {
         return client.get("/api/v1/analytics/$domainKey/kpis").body()
+    }
+
+    suspend fun getDashboardCharts(): ApiResponse<DashboardChartsResponse> {
+        return client.get("/api/v1/analytics/dashboard/charts").body()
     }
 
     suspend fun getSubmissionsByDomain(): ApiResponse<SubmissionsByDomainResponse> {

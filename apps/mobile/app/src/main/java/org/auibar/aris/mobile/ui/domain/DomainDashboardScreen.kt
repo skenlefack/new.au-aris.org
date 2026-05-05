@@ -337,26 +337,180 @@ private fun StatMini(value: String, label: String) {
     }
 }
 
-// ── Campaign Row ────────────────────────────────────────────
+// ── Campaign Card (full-width, vertical layout with stats) ──
 @Composable
 private fun CampaignRow(campaign: Campaign, domainColor: Color, onClick: () -> Unit) {
-    Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clickable(onClick = onClick), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
-        Column(Modifier.padding(14.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(campaign.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                StatusChip(status = campaign.status, domainColor = domainColor)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column {
+            // ── Top accent bar ──
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(domainColor),
+            )
+
+            Column(Modifier.padding(16.dp)) {
+                // ── Title + Status ──
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Text(
+                        campaign.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    StatusChip(status = campaign.status, domainColor = domainColor)
+                }
+
+                // ── Description ──
+                campaign.description?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+
+                Spacer(Modifier.height(14.dp))
+
+                // ── Progress section ──
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    Column {
+                        Text(
+                            "${campaign.totalSubmissions}",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = domainColor,
+                        )
+                        Text(
+                            if (campaign.targetSubmissions != null && campaign.targetSubmissions > 0)
+                                "/ ${campaign.targetSubmissions} target"
+                            else "submissions",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    // Percentage badge
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(domainColor.copy(alpha = 0.1f))
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                    ) {
+                        Text(
+                            "${String.format("%.0f", campaign.completionRate)}%",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = domainColor,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                // ── Progress bar ──
+                val progress = (campaign.completionRate / 100.0).coerceIn(0.0, 1.0).toFloat()
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                    color = domainColor,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+
+                Spacer(Modifier.height(14.dp))
+
+                // ── Stats row (Validated / Pending / Rejected) ──
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    CampaignStat(
+                        value = "${campaign.validatedSubmissions}",
+                        label = "Validated",
+                        color = Color(0xFF2E7D32),
+                    )
+                    CampaignStat(
+                        value = "${campaign.pendingSubmissions}",
+                        label = "Pending",
+                        color = Color(0xFFE65100),
+                    )
+                    CampaignStat(
+                        value = "${campaign.rejectedSubmissions}",
+                        label = "Rejected",
+                        color = Color(0xFFC62828),
+                    )
+                }
+
+                // ── Dates ──
+                if (campaign.startDate > 0 || campaign.endDate > 0) {
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        if (campaign.startDate > 0) {
+                            DateLabel(label = "Start", timestamp = campaign.startDate)
+                        }
+                        if (campaign.endDate > 0) {
+                            DateLabel(label = "End", timestamp = campaign.endDate)
+                        }
+                    }
+                }
             }
-            campaign.description?.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
-            }
-            Spacer(Modifier.height(10.dp))
-            val progress = (campaign.completionRate / 100.0).coerceIn(0.0, 1.0).toFloat()
-            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)), color = domainColor, trackColor = MaterialTheme.colorScheme.surfaceVariant)
-            Spacer(Modifier.height(4.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("${campaign.validatedSubmissions}/${campaign.totalSubmissions} submissions", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("${String.format("%.0f", campaign.completionRate)}%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = domainColor)
-            }
+        }
+    }
+}
+
+@Composable
+private fun CampaignStat(value: String, label: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            value,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = color,
+        )
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun DateLabel(label: String, timestamp: Long) {
+    val formatted = remember(timestamp) {
+        try {
+            val sdf = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault())
+            sdf.format(java.util.Date(timestamp))
+        } catch (_: Exception) { "" }
+    }
+    if (formatted.isNotEmpty()) {
+        Column {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(formatted, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
         }
     }
 }

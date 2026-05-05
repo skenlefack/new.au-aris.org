@@ -204,18 +204,11 @@ fun DashboardScreen(
                 )
             }
         } else {
-            item {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    items(campaigns.take(8), key = { it.id }) { campaign ->
-                        CampaignCard(
-                            campaign = campaign,
-                            onClick = { onCampaignClick(campaign.id) },
-                        )
-                    }
-                }
+            items(campaigns.take(8), key = { it.id }) { campaign ->
+                CampaignCardFull(
+                    campaign = campaign,
+                    onClick = { onCampaignClick(campaign.id) },
+                )
             }
         }
     }
@@ -371,10 +364,10 @@ private fun QuickActionCard(
     }
 }
 
-// ── Campaign Card (horizontal scroll) ────────────────────────────────
+// ── Campaign Card (full-width, vertical with stats) ─────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CampaignCard(
+private fun CampaignCardFull(
     campaign: Campaign,
     onClick: () -> Unit,
 ) {
@@ -384,65 +377,171 @@ private fun CampaignCard(
 
     Card(
         onClick = onClick,
-        modifier = Modifier.width(220.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            // Domain color accent bar
+        Column {
+            // Accent bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
                     .background(domainColor),
             )
-            Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = campaign.name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = campaign.domain,
-                style = MaterialTheme.typography.labelSmall,
-                color = domainColor,
-            )
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Title + Status
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = campaign.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = campaign.domain.replaceFirstChar { it.uppercase() },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = domainColor,
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    // Status chip
+                    val (statusBg, statusLabel) = when (campaign.status.uppercase()) {
+                        "ACTIVE" -> Color(0xFF2E7D32) to "Active"
+                        "PLANNED" -> Color(0xFF1565C0) to "Planned"
+                        "COMPLETED" -> Color(0xFF6A1B9A) to "Completed"
+                        else -> Color(0xFF757575) to campaign.status
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(statusBg.copy(alpha = 0.12f))
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                    ) {
+                        Text(
+                            statusLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = statusBg,
+                        )
+                    }
+                }
 
-            // Progress section
-            if (campaign.totalSubmissions > 0) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(Modifier.height(14.dp))
+
+                // Progress section: big number + percentage
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    Column {
+                        Text(
+                            "${campaign.totalSubmissions}",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = domainColor,
+                        )
+                        Text(
+                            if (campaign.targetSubmissions != null && campaign.targetSubmissions > 0)
+                                "/ ${campaign.targetSubmissions} target"
+                            else "submissions",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(domainColor.copy(alpha = 0.1f))
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                    ) {
+                        Text(
+                            "${String.format("%.0f", campaign.completionRate)}%",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = domainColor,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                // Progress bar
                 val progress = (campaign.completionRate / 100.0).coerceIn(0.0, 1.0).toFloat()
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp)),
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
                     color = domainColor,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${campaign.validatedSubmissions}/${campaign.totalSubmissions} · ${String.format("%.0f", campaign.completionRate)}%",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = campaign.status,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+
+                Spacer(Modifier.height(14.dp))
+
+                // Stats row: Validated / Pending / Rejected
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    CampaignStatItem("${campaign.validatedSubmissions}", stringResource(R.string.validated), Color(0xFF2E7D32))
+                    CampaignStatItem("${campaign.pendingSubmissions}", stringResource(R.string.pending), Color(0xFFE65100))
+                    CampaignStatItem("${campaign.rejectedSubmissions}", stringResource(R.string.rejected), Color(0xFFC62828))
+                }
+
+                // Dates
+                if (campaign.startDate > 0 || campaign.endDate > 0) {
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        if (campaign.startDate > 0) {
+                            CampaignDateLabel(stringResource(R.string.campaign_start), campaign.startDate)
+                        }
+                        if (campaign.endDate > 0) {
+                            CampaignDateLabel(stringResource(R.string.campaign_end), campaign.endDate)
+                        }
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun CampaignStatItem(value: String, label: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = color)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun CampaignDateLabel(label: String, timestamp: Long) {
+    val formatted = remember(timestamp) {
+        try {
+            val sdf = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault())
+            sdf.format(java.util.Date(timestamp))
+        } catch (_: Exception) { "" }
+    }
+    if (formatted.isNotEmpty()) {
+        Column {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(formatted, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
         }
     }
 }

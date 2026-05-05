@@ -8,9 +8,7 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -86,6 +84,7 @@ import org.auibar.aris.mobile.ui.lock.SetPinScreen
 import org.auibar.aris.mobile.ui.navigation.AppLockViewModel
 import org.auibar.aris.mobile.ui.submission.SubmissionListScreen
 import org.auibar.aris.mobile.ui.tenant.TenantHierarchyScreen
+import org.auibar.aris.mobile.ui.validation.ValidationListScreen
 import org.auibar.aris.mobile.util.AppLockManager
 
 object ArisRoutes {
@@ -99,6 +98,7 @@ object ArisRoutes {
     const val FORM_FILL_BASE = "form/{campaignId}"
     const val SUBMISSIONS = "submissions"
     const val NOTIFICATIONS = "notifications"
+    const val VALIDATION = "validation"
     const val SETTINGS = "settings"
     const val LIVESTOCK_CENSUS = "livestock-census/{campaignId}"
     const val PRODUCTION_RECORD = "production-record/{campaignId}"
@@ -193,7 +193,7 @@ val bottomNavItems = listOf(
     BottomNavItem(ArisRoutes.HOME, Icons.Default.Dashboard, R.string.dashboard),
     BottomNavItem(ArisRoutes.DASHBOARD, Icons.Default.Apps, R.string.domains),
     BottomNavItem(ArisRoutes.CAMPAIGNS, Icons.AutoMirrored.Filled.List, R.string.campaigns),
-    BottomNavItem(ArisRoutes.NOTIFICATIONS, Icons.Default.Notifications, R.string.notifications),
+    BottomNavItem(ArisRoutes.VALIDATION, Icons.AutoMirrored.Filled.FactCheck, R.string.validation),
 )
 
 private val bottomNavRoutes = bottomNavItems.map { it.route }.toSet()
@@ -211,6 +211,8 @@ fun ArisNavGraph(
     val showBanner = currentRoute != null && currentRoute !in hideBannerRoutes
 
     val bannerViewModel: AppBannerViewModel = hiltViewModel()
+    val notifViewModel: NotificationListViewModel = hiltViewModel()
+    val bannerUnreadCount by notifViewModel.unreadCount.collectAsStateWithLifecycle()
 
     Scaffold(
         bottomBar = {
@@ -226,6 +228,7 @@ fun ArisNavGraph(
                     userEmail = bannerViewModel.userEmail,
                     userRole = bannerViewModel.userRole,
                     tenantLevel = bannerViewModel.tenantLevel,
+                    unreadNotifications = bannerUnreadCount,
                     modifier = Modifier.zIndex(1f),
                     onProfileClick = {
                         navController.navigate(ArisRoutes.SETTINGS) {
@@ -234,6 +237,11 @@ fun ArisNavGraph(
                     },
                     onSettingsClick = {
                         navController.navigate(ArisRoutes.SETTINGS) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNotificationsClick = {
+                        navController.navigate(ArisRoutes.NOTIFICATIONS) {
                             launchSingleTop = true
                         }
                     },
@@ -414,6 +422,10 @@ fun ArisNavGraph(
                 deepLinks = listOf(navDeepLink { uriPattern = "aris://notifications" }),
             ) {
                 NotificationListScreen()
+            }
+
+            composable(ArisRoutes.VALIDATION) {
+                ValidationListScreen()
             }
 
             composable(ArisRoutes.SETTINGS) {
@@ -907,11 +919,8 @@ fun ArisNavGraph(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArisBottomBar(navController: NavHostController) {
-    val notificationViewModel: NotificationListViewModel = hiltViewModel()
-    val unreadCount by notificationViewModel.unreadCount.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
@@ -930,22 +939,7 @@ fun ArisBottomBar(navController: NavHostController) {
                     }
                 },
                 icon = {
-                    if (item.route == ArisRoutes.NOTIFICATIONS && unreadCount > 0) {
-                        BadgedBox(
-                            badge = {
-                                Badge {
-                                    Text(
-                                        text = if (unreadCount > 99) "99+" else "$unreadCount",
-                                        style = MaterialTheme.typography.labelSmall,
-                                    )
-                                }
-                            },
-                        ) {
-                            Icon(item.icon, contentDescription = stringResource(item.labelRes))
-                        }
-                    } else {
-                        Icon(item.icon, contentDescription = stringResource(item.labelRes))
-                    }
+                    Icon(item.icon, contentDescription = stringResource(item.labelRes))
                 },
                 label = { Text(stringResource(item.labelRes)) },
             )

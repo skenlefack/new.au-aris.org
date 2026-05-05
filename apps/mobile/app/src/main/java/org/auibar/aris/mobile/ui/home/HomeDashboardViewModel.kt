@@ -9,6 +9,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.auibar.aris.mobile.data.remote.api.AnalyticsApi
+import org.auibar.aris.mobile.data.remote.api.ChartEntry
+import org.auibar.aris.mobile.data.remote.api.DashboardChartsResponse
+import org.auibar.aris.mobile.data.remote.api.TrendEntry
 import org.auibar.aris.mobile.data.remote.dto.KpiCard
 import org.auibar.aris.mobile.data.repository.DashboardRepository
 import org.auibar.aris.mobile.ui.components.DomainInfo
@@ -19,6 +23,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeDashboardViewModel @Inject constructor(
     private val dashboardRepository: DashboardRepository,
+    private val analyticsApi: AnalyticsApi,
     private val tokenManager: TokenManager,
 ) : ViewModel() {
 
@@ -26,34 +31,47 @@ class HomeDashboardViewModel @Inject constructor(
         .getPendingCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
-    /** Domain codes assigned to the current user (empty = all domains). */
     val userDomains: List<String> = tokenManager.getUserDomainList()
-
-    /** System-active domains (filtered by server settings). */
     val activeDomains: List<DomainInfo> = getActiveDomains(tokenManager)
 
     private val _kpis = MutableStateFlow<List<KpiCard>>(emptyList())
     val kpis: StateFlow<List<KpiCard>> = _kpis.asStateFlow()
 
+    private val _charts = MutableStateFlow(DashboardChartsResponse())
+    val charts: StateFlow<DashboardChartsResponse> = _charts.asStateFlow()
+
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     init {
-        loadKpis()
+        loadAll()
     }
 
-    private fun loadKpis() {
+    private fun loadAll() {
         viewModelScope.launch {
             _isLoading.value = true
-            val result = dashboardRepository.getContinentalKpis()
-            if (result.isSuccess) {
-                _kpis.value = result.getOrDefault(emptyList())
+            // Load KPIs and charts in parallel
+            val kpiJob = launch {
+                val result = dashboardRepository.getContinentalKpis()
+                if (result.isSuccess) {
+                    _kpis.value = result.getOrDefault(emptyList())
+                }
             }
+            val chartsJob = launch {
+                try {
+                    val response = analyticsApi.getDashboardCharts()
+                    _charts.value = response.data
+                } catch (_: Exception) {
+                    // Keep default empty charts
+                }
+            }
+            kpiJob.join()
+            chartsJob.join()
             _isLoading.value = false
         }
     }
 
     fun refresh() {
-        loadKpis()
+        loadAll()
     }
 }

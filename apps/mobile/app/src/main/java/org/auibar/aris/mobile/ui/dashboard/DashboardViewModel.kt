@@ -104,6 +104,20 @@ class DashboardViewModel @Inject constructor(
                 campaignsLoading = false,
                 error = if (result.isFailure) result.exceptionOrNull()?.message else _uiState.value.error,
             )
+            // Enrich campaigns with stats (detail endpoint has progress)
+            enrichCampaignStats()
+        }
+    }
+
+    /** Fetch detail for each campaign to populate stats (totalSubmissions, validated, rejected). */
+    private suspend fun enrichCampaignStats() {
+        val campaigns = recentCampaigns.value.take(8)
+        campaigns.forEach { campaign ->
+            try {
+                campaignRepository.refreshCampaignDetail(campaign.id)
+            } catch (_: Exception) {
+                // Best effort — skip if detail fails
+            }
         }
     }
 }
