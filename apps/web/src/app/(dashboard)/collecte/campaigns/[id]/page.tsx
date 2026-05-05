@@ -54,17 +54,6 @@ function i18nStr(val: unknown, locale?: string): string {
   return String(val);
 }
 
-/** Ensure a value that might be an i18n object is always a plain string */
-function safeStr(val: unknown): string {
-  if (!val) return '';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'object' && val !== null) {
-    const obj = val as Record<string, string>;
-    return obj.en ?? obj.fr ?? obj.pt ?? Object.values(obj).find((v) => typeof v === 'string') ?? '';
-  }
-  return String(val);
-}
-
 // Fallback templates — same deterministic UUIDs as new/edit pages
 const SEED_TEMPLATES: FormTemplateListItem[] = [
   { id: 'a0000001-0001-4000-8000-000000000001', tenantId: '', name: 'AU-IBAR Monthly Animal Health Report', domain: 'animal_health', version: 1, status: 'PUBLISHED', dataClassification: 'RESTRICTED', createdBy: 'system', publishedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', schema: null, uiSchema: null },
@@ -160,15 +149,15 @@ export default function CampaignDetailPage() {
     return tplIds.map((id: string) => {
       // 1. Direct ID match against API templates
       const byId = apiTemplates.find((tpl) => tpl.id === id);
-      if (byId) return { name: safeStr(byId.name), tpl: byId, tplId: id };
+      if (byId) return { name: byId.name, tpl: byId, tplId: id };
 
       // 2. Seed UUID → get name → match against API templates by name
       const seed = SEED_TEMPLATES.find((s) => s.id === id);
       if (seed) {
         const byName = apiTemplates.find((tpl) => tpl.name === seed.name);
-        if (byName) return { name: safeStr(seed.name), tpl: byName, tplId: id };
+        if (byName) return { name: seed.name, tpl: byName, tplId: id };
         // API offline — use seed for display (no schema)
-        return { name: safeStr(seed.name), tpl: seed, tplId: id };
+        return { name: seed.name, tpl: seed, tplId: id };
       }
 
       return { name: id.slice(0, 8) + '...', tpl: undefined, tplId: id };
@@ -180,43 +169,13 @@ export default function CampaignDetailPage() {
     [resolvedTemplates],
   );
 
-  // Resolve country info — from targetCountries or from submission-derived distinctCountries
+  // Resolve country info
   const countryInfos: { code: string; name: string; flag: string }[] = useMemo(() => {
     if (!campaign) return [];
-    const codes: string[] = (campaign.targetCountries ?? []).length > 0
-      ? (campaign.targetCountries ?? [])
-      : (campaign.progress?.distinctCountries ?? []);
-
-    // Build reverse lookup: name → CountryConfig (for when backend returns names instead of codes)
-    const byName: Record<string, typeof COUNTRIES[string]> = {};
-    for (const cfg of Object.values(COUNTRIES)) {
-      byName[cfg.name.toLowerCase()] = cfg;
-      if (cfg.nameFr) byName[cfg.nameFr.toLowerCase()] = cfg;
-    }
-    // Common aliases in historical data
-    const ALIASES: Record<string, string> = {
-      'congo dr': 'cd', 'dr congo': 'cd', 'drc': 'cd', 'congo brazaville': 'cg',
-      'congo (rep. of)': 'cg', 'car': 'cf', 'the gambia': 'gm', 'tchad': 'td',
-      'guinea conakry': 'gn', 'swaziland': 'sz', "cote d'ivoire": 'ci',
-      "côte d'ivoire": 'ci', 'south africa': 'za', 'south sudan': 'ss',
-      'sierra leone': 'sl', 'burkina faso': 'bf', 'guinea-bissau': 'gw',
-      'cape verde': 'cv', 'sao tome': 'st', 'equatorial guinea': 'gq',
-    };
-    for (const [alias, code] of Object.entries(ALIASES)) {
-      if (COUNTRIES[code.toUpperCase()]) byName[alias] = COUNTRIES[code.toUpperCase()];
-    }
-
-    const seen = new Set<string>();
-    const results: { code: string; name: string; flag: string }[] = [];
-    for (const val of codes) {
-      // Try ISO code first, then name lookup
-      const c = COUNTRIES[val.toUpperCase()] ?? byName[val.toLowerCase()];
-      const key = c ? c.code : val;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      results.push(c ? { code: c.code, name: c.name, flag: c.flag } : { code: val, name: val, flag: '' });
-    }
-    return results;
+    return (campaign.targetCountries ?? []).map((code: string) => {
+      const c = COUNTRIES[code.toUpperCase()];
+      return c ? { code: c.code, name: c.name, flag: c.flag } : { code, name: code, flag: '' };
+    });
   }, [campaign]);
 
   if (isLoading) {
@@ -258,17 +217,15 @@ export default function CampaignDetailPage() {
   const statusCfg = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG.PLANNED;
   const progress = campaign.progress;
   const totalSubmissions = progress?.totalSubmissions ?? 0;
-  const validated = progress?.validated ?? 0;
-  const rejected = progress?.rejected ?? 0;
-  const pending = progress?.pending ?? (totalSubmissions - validated - rejected);
+  const validated = 0; // CollectionCampaign tracks via assignments, not submission-level validation
+  const rejected = 0;
+  const pending = totalSubmissions - validated - rejected;
   const target = campaign.targetSubmissions ?? 0;
   const pct = progress?.completionRate ?? (target > 0 ? Math.round((totalSubmissions / target) * 100) : 0);
   const agentCount = progress?.totalAgents ?? (Array.isArray(campaign.assignments) ? campaign.assignments.length : 0);
-  const progressCountries: string[] = progress?.distinctCountries ?? [];
 
-  // Export/Import modal state
-  const [exportModal, setExportModal] = useState<{ open: boolean; tpl?: typeof resolvedTemplates[0] }>({ open: false });
-  const [importModal, setImportModal] = useState<{ open: boolean; tpl?: typeof resolvedTemplates[0] }>({ open: false });
+  const [exportModal, setExportModal] = useState<{ open: boolean; tpl?: (typeof resolvedTemplates)[0] }>({ open: false });
+  const [importModal, setImportModal] = useState<{ open: boolean; tpl?: (typeof resolvedTemplates)[0] }>({ open: false });
 
   const handleStatusChange = async (newStatus: 'ACTIVE' | 'COMPLETED' | 'CANCELLED') => {
     try {
@@ -449,7 +406,6 @@ export default function CampaignDetailPage() {
                           {t('previewForm')}
                         </Link>
                       )}
-                      {/* Export & Import buttons */}
                       <button
                         onClick={() => setExportModal({ open: true, tpl: rt })}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400 dark:hover:bg-indigo-900/30 shrink-0"
@@ -477,7 +433,7 @@ export default function CampaignDetailPage() {
               <Globe className="h-4 w-4 text-gray-400" />
               {t('targetCountries')} ({countryInfos.length})
             </h3>
-            {countryInfos.length === 0 && progressCountries.length === 0 ? (
+            {countryInfos.length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400">{t('noCountriesSpecified')}</p>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -636,7 +592,7 @@ export default function CampaignDetailPage() {
       {/* Export/Import Modals */}
       {exportModal.open && exportModal.tpl?.tpl && (
         <ExportModal
-          open={exportModal.open}
+          open
           onClose={() => setExportModal({ open: false })}
           campaignId={campaignId}
           template={exportModal.tpl.tpl}
@@ -644,7 +600,7 @@ export default function CampaignDetailPage() {
       )}
       {importModal.open && importModal.tpl?.tpl && (
         <ImportModal
-          open={importModal.open}
+          open
           onClose={() => setImportModal({ open: false })}
           campaignId={campaignId}
           template={importModal.tpl.tpl}
