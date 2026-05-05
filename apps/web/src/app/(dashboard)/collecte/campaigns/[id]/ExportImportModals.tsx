@@ -42,6 +42,17 @@ function ml(t?: { en?: string; fr?: string }): string {
   return t?.en || t?.fr || '';
 }
 
+/** Safely extract a display string from a template name (may be string or i18n object) */
+function tplName(name: unknown): string {
+  if (!name) return '';
+  if (typeof name === 'string') return name;
+  if (typeof name === 'object' && name !== null) {
+    const obj = name as Record<string, string>;
+    return obj.en ?? obj.fr ?? obj.pt ?? Object.values(obj).find((v) => typeof v === 'string') ?? '';
+  }
+  return String(name);
+}
+
 function flattenFields(sections: SchemaSection[]): { code: string; label: string; type: string }[] {
   const rows: { code: string; label: string; type: string }[] = [];
   const sorted = [...sections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -142,12 +153,12 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
 
         if (format === 'json') {
           const blob = new Blob([JSON.stringify(filtered.map((s: any) => s.data), null, 2)], { type: 'application/json' });
-          downloadBlob(blob, `${template.name}_export.json`);
+          downloadBlob(blob, `${tplName(template.name)}_export.json`);
         } else if (format === 'csv') {
           const headers = fields.map((f) => f.code);
           const rows = filtered.map((s: any) => headers.map((h) => String(s.data?.[h] ?? '')));
           const csv = [headers.join(','), ...rows.map((r: string[]) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(','))].join('\n');
-          downloadBlob(new Blob([csv], { type: 'text/csv' }), `${template.name}_export.csv`);
+          downloadBlob(new Blob([csv], { type: 'text/csv' }), `${tplName(template.name)}_export.csv`);
         } else {
           // XLSX export
           const ExcelJS = (await import('exceljs')).default;
@@ -176,21 +187,21 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
           const buffer = await wb.xlsx.writeBuffer();
           downloadBlob(
             new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
-            `${template.name}_export.xlsx`,
+            `${tplName(template.name)}_export.xlsx`,
           );
         }
       } else {
         // Server-side export returned a file
         const blob = await res.blob();
         const ext = format === 'json' ? 'json' : format === 'csv' ? 'csv' : 'xlsx';
-        downloadBlob(blob, `${template.name}_export.${ext}`);
+        downloadBlob(blob, `${tplName(template.name)}_export.${ext}`);
       }
     } catch (err: any) {
       setError(err?.message || 'Export failed');
     } finally {
       setExporting(false);
     }
-  }, [campaignId, format, filters, fields, template.name]);
+  }, [campaignId, format, filters, fields, tplName(template.name)]);
 
   if (!open) return null;
 
@@ -203,7 +214,7 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
             <Download className="h-5 w-5" />
             <div>
               <h2 className="text-base font-semibold">Export Data</h2>
-              <p className="text-xs text-blue-100">{template.name}</p>
+              <p className="text-xs text-blue-100">{tplName(template.name)}</p>
             </div>
           </div>
           <button onClick={onClose} className="rounded-lg p-1.5 text-white/80 hover:text-white hover:bg-white/10">
@@ -381,7 +392,7 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
     // Instructions sheet
     const wsInst = wb.addWorksheet('Instructions');
     wsInst.addRow(['ARIS 4.0 — Import Template']);
-    wsInst.addRow([`Form: ${template.name}`]);
+    wsInst.addRow([`Form: ${tplName(template.name)}`]);
     wsInst.addRow([`Version: ${template.version}`]);
     wsInst.addRow([`Fields: ${fields.length}`]);
     wsInst.addRow(['']);
@@ -399,8 +410,8 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
 
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    downloadBlob(blob, `ARIS_Import_Template_${template.name.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
-  }, [fields, template.name, template.version]);
+    downloadBlob(blob, `ARIS_Import_Template_${tplName(template.name).replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
+  }, [fields, tplName(template.name), template.version]);
 
   const handleImport = useCallback(async () => {
     if (!file) return;
@@ -502,7 +513,7 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
             <Upload className="h-5 w-5" />
             <div>
               <h2 className="text-base font-semibold">Import Data</h2>
-              <p className="text-xs text-emerald-100">{template.name}</p>
+              <p className="text-xs text-emerald-100">{tplName(template.name)}</p>
             </div>
           </div>
           <button onClick={onClose} className="rounded-lg p-1.5 text-white/80 hover:text-white hover:bg-white/10">
