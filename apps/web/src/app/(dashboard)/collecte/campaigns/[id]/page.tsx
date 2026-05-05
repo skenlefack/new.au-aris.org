@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, lazy, Suspense } from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -18,12 +18,7 @@ import {
   Target,
   ClipboardEdit,
   Eye,
-  Download,
-  Upload,
 } from 'lucide-react';
-
-const ExportModal = lazy(() => import('./ExportImportModals').then((m) => ({ default: m.ExportModal })));
-const ImportModal = lazy(() => import('./ExportImportModals').then((m) => ({ default: m.ImportModal })));
 import { cn } from '@/lib/utils';
 import {
   useCollectionCampaign,
@@ -226,11 +221,6 @@ export default function CampaignDetailPage() {
   const pct = progress?.completionRate ?? (target > 0 ? Math.round((totalSubmissions / target) * 100) : 0);
   const agentCount = progress?.totalAgents ?? (Array.isArray(campaign.assignments) ? campaign.assignments.length : 0);
 
-  const [exportTpl, setExportTpl] = useState<string | null>(null);
-  const [importTpl, setImportTpl] = useState<string | null>(null);
-  const exportTemplate = resolvedTemplates.find((rt) => rt.tplId === exportTpl);
-  const importTemplate = resolvedTemplates.find((rt) => rt.tplId === importTpl);
-
   const handleStatusChange = async (newStatus: 'ACTIVE' | 'COMPLETED' | 'CANCELLED') => {
     try {
       if (newStatus === 'ACTIVE') {
@@ -411,17 +401,15 @@ export default function CampaignDetailPage() {
                         </Link>
                       )}
                       <button
-                        onClick={() => setExportTpl(rt.tplId)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400 dark:hover:bg-indigo-900/30 shrink-0"
+                        onClick={() => alert('export')}
+                        className="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700"
                       >
-                        <Download className="h-3.5 w-3.5" />
                         Export
                       </button>
                       <button
-                        onClick={() => setImportTpl(rt.tplId)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30 shrink-0"
+                        onClick={() => alert('import')}
+                        className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700"
                       >
-                        <Upload className="h-3.5 w-3.5" />
                         Import
                       </button>
                     </div>
@@ -592,28 +580,6 @@ export default function CampaignDetailPage() {
           )}
         </div>
       </div>
-
-      {/* Export/Import Modals (lazy loaded) */}
-      {exportTpl && exportTemplate?.tpl && (
-        <Suspense fallback={null}>
-          <ExportModal
-            open
-            onClose={() => setExportTpl(null)}
-            campaignId={campaignId}
-            template={exportTemplate.tpl}
-          />
-        </Suspense>
-      )}
-      {importTpl && importTemplate?.tpl && (
-        <Suspense fallback={null}>
-          <ImportModal
-            open
-            onClose={() => setImportTpl(null)}
-            campaignId={campaignId}
-            template={importTemplate.tpl}
-          />
-        </Suspense>
-      )}
     </div>
   );
 }
