@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -18,6 +18,15 @@ import {
   Target,
   ClipboardEdit,
   Eye,
+  Download,
+  Upload,
+  X,
+  FileSpreadsheet,
+  Filter,
+  Loader2,
+  AlertCircle,
+  FileDown,
+  Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -221,6 +230,10 @@ export default function CampaignDetailPage() {
   const pct = progress?.completionRate ?? (target > 0 ? Math.round((totalSubmissions / target) * 100) : 0);
   const agentCount = progress?.totalAgents ?? (Array.isArray(campaign.assignments) ? campaign.assignments.length : 0);
 
+  const [modalState, setModalState] = useState<{ type: 'export' | 'import' | null; tplId: string | null }>({ type: null, tplId: null });
+  const modalTemplate = resolvedTemplates.find((rt) => rt.tplId === modalState.tplId);
+  const closeModal = useCallback(() => setModalState({ type: null, tplId: null }), []);
+
   const handleStatusChange = async (newStatus: 'ACTIVE' | 'COMPLETED' | 'CANCELLED') => {
     try {
       if (newStatus === 'ACTIVE') {
@@ -401,15 +414,17 @@ export default function CampaignDetailPage() {
                         </Link>
                       )}
                       <button
-                        onClick={() => alert('export')}
-                        className="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700"
+                        onClick={() => setModalState({ type: 'export', tplId: rt.tplId })}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400 shrink-0"
                       >
+                        <Download className="h-3.5 w-3.5" />
                         Export
                       </button>
                       <button
-                        onClick={() => alert('import')}
-                        className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700"
+                        onClick={() => setModalState({ type: 'import', tplId: rt.tplId })}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 shrink-0"
                       >
+                        <Upload className="h-3.5 w-3.5" />
                         Import
                       </button>
                     </div>
@@ -580,6 +595,253 @@ export default function CampaignDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Export Modal */}
+      {modalState.type === 'export' && modalTemplate?.tpl && (
+        <CampaignExportModal
+          onClose={closeModal}
+          campaignId={campaignId}
+          templateName={String(typeof modalTemplate.tpl.name === 'object' ? (modalTemplate.tpl.name as any).en || '' : modalTemplate.tpl.name || '')}
+          schema={modalTemplate.tpl.schema}
+        />
+      )}
+
+      {/* Import Modal */}
+      {modalState.type === 'import' && modalTemplate?.tpl && (
+        <CampaignImportModal
+          onClose={closeModal}
+          campaignId={campaignId}
+          templateName={String(typeof modalTemplate.tpl.name === 'object' ? (modalTemplate.tpl.name as any).en || '' : modalTemplate.tpl.name || '')}
+          schema={modalTemplate.tpl.schema}
+        />
+      )}
     </div>
   );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INLINE MODALS — Export & Import
+// ═══════════════════════════════════════════════════════════════
+
+interface ModalField { code: string; label: string; type: string }
+
+function extractFields(schema: unknown): ModalField[] {
+  const s = schema as { sections?: { name?: { en?: string }; fields?: { code?: string; label?: { en?: string; fr?: string }; type?: string }[] }[] } | undefined;
+  if (!s?.sections) return [];
+  const rows: ModalField[] = [];
+  for (const sec of s.sections) {
+    for (const f of sec.fields || []) {
+      if (f.code) rows.push({ code: f.code, label: f.label?.en || f.label?.fr || f.code, type: f.type || 'text' });
+    }
+  }
+  return rows;
+}
+
+function CampaignExportModal({ onClose, campaignId, templateName, schema }: { onClose: () => void; campaignId: string; templateName: string; schema: unknown }) {
+  const [format, setFormat] = useState<'xlsx' | 'csv' | 'json'>('xlsx');
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState('');
+  const fields = useMemo(() => extractFields(schema), [schema]);
+  const filterableFields = useMemo(() => fields.filter((f) => ['select', 'master-data-select', 'date', 'text', 'number'].includes(f.type)).slice(0, 8), [fields]);
+
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    setError('');
+    try {
+      const token = localStorage.getItem('accessToken') || '';
+      const res = await fetch(`/api/v1/collecte/submissions?campaign=${campaignId}&limit=50000`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      const submissions: any[] = json?.data || [];
+      if (submissions.length === 0) { setError('No data to export'); setExporting(false); return; }
+
+      // Apply filters
+      let filtered = submissions;
+      for (const [key, val] of Object.entries(filters)) {
+        if (val) filtered = filtered.filter((s: any) => String(s.data?.[key] ?? '').toLowerCase().includes(val.toLowerCase()));
+      }
+
+      if (format === 'json') {
+        download(new Blob([JSON.stringify(filtered.map((s: any) => s.data), null, 2)], { type: 'application/json' }), `${templateName}_export.json`);
+      } else if (format === 'csv') {
+        const headers = fields.map((f) => f.code);
+        const csv = [headers.join(','), ...filtered.map((s: any) => headers.map((h) => `"${String(s.data?.[h] ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+        download(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }), `${templateName}_export.csv`);
+      } else {
+        const ExcelJS = (await import('exceljs')).default;
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('Data');
+        const hr = ws.addRow(fields.map((f) => f.label));
+        hr.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } }; });
+        for (const sub of filtered) ws.addRow(fields.map((f) => sub.data?.[f.code] ?? ''));
+        ws.columns.forEach((col, i) => { col.width = Math.max(12, (fields[i]?.label.length ?? 10) + 4); });
+        const buf = await wb.xlsx.writeBuffer();
+        download(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${templateName}_export.xlsx`);
+      }
+      onClose();
+    } catch (err: any) { setError(err?.message || 'Export failed'); } finally { setExporting(false); }
+  }, [campaignId, format, filters, fields, templateName, onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl dark:bg-gray-900" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600">
+          <div className="flex items-center gap-3 text-white">
+            <Download className="h-5 w-5" />
+            <div><h2 className="text-base font-semibold">Export Data</h2><p className="text-xs text-blue-100">{templateName}</p></div>
+          </div>
+          <button onClick={onClose} className="text-white/80 hover:text-white"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+          <div>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Format</label>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {(['xlsx', 'csv', 'json'] as const).map((f) => (
+                <button key={f} onClick={() => setFormat(f)} className={cn('flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-xs font-medium', format === f ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/20' : 'border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-400')}>
+                  <FileSpreadsheet className="h-5 w-5" />{f.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+          {filterableFields.length > 0 && (
+            <div>
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase flex items-center gap-1.5"><Filter className="h-3.5 w-3.5" />Filters</label>
+              <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
+                {filterableFields.map((f) => (
+                  <div key={f.code} className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500 w-28 truncate shrink-0">{f.label}</label>
+                    <input type="text" placeholder={`Filter...`} value={filters[f.code] || ''} onChange={(e) => setFilters((p) => ({ ...p, [f.code]: e.target.value }))} className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {error && <div className="flex items-center gap-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 px-3 py-2"><AlertCircle className="h-4 w-4 text-red-500" /><p className="text-xs text-red-600">{error}</p></div>}
+        </div>
+        <div className="border-t px-6 py-4 flex justify-between bg-gray-50 dark:bg-gray-800/50">
+          <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-gray-600">Cancel</button>
+          <button onClick={handleExport} disabled={exporting} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}{exporting ? 'Exporting...' : `Export ${format.toUpperCase()}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CampaignImportModal({ onClose, campaignId, templateName, schema }: { onClose: () => void; campaignId: string; templateName: string; schema: unknown }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState<{ success: number; errors: number; total: number } | null>(null);
+  const [error, setError] = useState('');
+  const fields = useMemo(() => extractFields(schema), [schema]);
+
+  const handleGenTemplate = useCallback(async () => {
+    const ExcelJS = (await import('exceljs')).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Data Entry', { views: [{ state: 'frozen', ySplit: 1 }] });
+    const hr = ws.addRow(fields.map((f) => f.code));
+    hr.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } }; });
+    ws.addRow(fields.map((f) => f.label)); // row 2 = labels for reference
+    for (let i = 0; i < 50; i++) ws.addRow([]);
+    ws.columns.forEach((col, i) => { col.width = Math.max(14, (fields[i]?.label.length ?? 10) + 4); });
+    const buf = await wb.xlsx.writeBuffer();
+    download(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `ARIS_Template_${templateName.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
+  }, [fields, templateName]);
+
+  const handleImport = useCallback(async () => {
+    if (!file) return;
+    setImporting(true); setError(''); setResult(null);
+    try {
+      const ExcelJS = (await import('exceljs')).default;
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(await file.arrayBuffer());
+      const ws = wb.worksheets[0];
+      if (!ws || ws.rowCount < 2) { setError('File is empty'); setImporting(false); return; }
+      const headers: string[] = [];
+      ws.getRow(1).eachCell((cell, col) => { headers[col - 1] = String(cell.value ?? '').trim(); });
+      const startRow = fields.some((f) => f.label === String(ws.getRow(2).getCell(1).value ?? '')) ? 3 : 2;
+      const rows: Record<string, unknown>[] = [];
+      for (let r = startRow; r <= ws.rowCount; r++) {
+        const row = ws.getRow(r);
+        const d: Record<string, unknown> = {};
+        let hasVal = false;
+        headers.forEach((h, i) => { if (!h) return; const v = row.getCell(i + 1).value; if (v != null && v !== '') { d[h] = v; hasVal = true; } });
+        if (hasVal) rows.push(d);
+      }
+      if (rows.length === 0) { setError('No data rows found'); setImporting(false); return; }
+      const token = localStorage.getItem('accessToken') || '';
+      let success = 0, errors = 0;
+      for (let i = 0; i < rows.length; i += 20) {
+        const batch = rows.slice(i, i + 20);
+        await Promise.all(batch.map((data) => fetch('/api/v1/collecte/submissions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ campaignId, data }) }).then((r) => { if (r.ok) success++; else errors++; }).catch(() => { errors++; })));
+      }
+      setResult({ success, errors, total: rows.length });
+    } catch (err: any) { setError(err?.message || 'Import failed'); } finally { setImporting(false); }
+  }, [file, campaignId, fields]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl dark:bg-gray-900" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-600">
+          <div className="flex items-center gap-3 text-white">
+            <Upload className="h-5 w-5" />
+            <div><h2 className="text-base font-semibold">Import Data</h2><p className="text-xs text-emerald-100">{templateName}</p></div>
+          </div>
+          <button onClick={onClose} className="text-white/80 hover:text-white"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="p-6 space-y-5">
+          <button onClick={handleGenTemplate} className="w-full flex items-center gap-3 rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/10 p-4 hover:bg-emerald-100">
+            <FileDown className="h-8 w-8 text-emerald-500" />
+            <div className="text-left"><p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Download Reference Template</p><p className="text-xs text-emerald-600/70">{fields.length} fields ready for data entry</p></div>
+          </button>
+          <div className={cn('rounded-xl border-2 border-dashed p-8 text-center', file ? 'border-green-300 bg-green-50' : 'border-gray-300')}>
+            {file ? (
+              <div className="flex flex-col items-center gap-2">
+                <FileSpreadsheet className="h-10 w-10 text-green-500" />
+                <p className="text-sm font-medium">{file.name}</p>
+                <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+                <button onClick={() => { setFile(null); setResult(null); }} className="text-xs text-red-500">Remove</button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <Upload className="h-10 w-10 text-gray-400" />
+                <p className="text-sm text-gray-600">Drag & drop or select a file</p>
+                <label className="cursor-pointer rounded-lg bg-gray-100 px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-200">
+                  Browse<input type="file" accept=".xlsx,.xls,.csv" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setFile(f); setResult(null); setError(''); } }} className="hidden" />
+                </label>
+              </div>
+            )}
+          </div>
+          {result && (
+            <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+              <div className="flex items-center gap-2 mb-2"><Check className="h-4 w-4 text-green-600" /><span className="text-sm font-medium">Import Complete</span></div>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div><p className="text-lg font-bold">{result.total}</p><p className="text-[10px] text-gray-500 uppercase">Total</p></div>
+                <div><p className="text-lg font-bold text-green-600">{result.success}</p><p className="text-[10px] text-gray-500 uppercase">Success</p></div>
+                <div><p className="text-lg font-bold text-red-600">{result.errors}</p><p className="text-[10px] text-gray-500 uppercase">Errors</p></div>
+              </div>
+            </div>
+          )}
+          {error && <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2"><AlertCircle className="h-4 w-4 text-red-500" /><p className="text-xs text-red-600">{error}</p></div>}
+        </div>
+        <div className="border-t px-6 py-4 flex justify-between bg-gray-50 dark:bg-gray-800/50">
+          <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-gray-600">{result ? 'Close' : 'Cancel'}</button>
+          {!result && <button onClick={handleImport} disabled={!file || importing} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
+            {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}{importing ? 'Importing...' : 'Import'}
+          </button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function download(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
 }
