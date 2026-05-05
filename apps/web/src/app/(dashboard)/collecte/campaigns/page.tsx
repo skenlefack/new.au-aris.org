@@ -142,9 +142,9 @@ export default function CampaignsPage() {
             const statusCfg = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG['PLANNED'];
             const targetCountries = campaign.targetCountries ?? [];
             const progress = campaign.progress ?? {};
-            const submitted = progress.totalSubmissions ?? campaign.totalSubmissions ?? 0;
+            const submitted = progress.submitted ?? 0;
             const target = campaign.targetSubmissions ?? 0;
-            const pct = progress.completionRate ?? (target > 0 ? Math.round((submitted / target) * 100) : 0);
+            const pct = target > 0 ? Math.round((submitted / target) * 100) : 0;
 
             return (
               <div
@@ -196,9 +196,9 @@ export default function CampaignsPage() {
                         <Users className="h-3.5 w-3.5" />
                         {campaign._count?.assignments ?? 0} {t('agents').toLowerCase()}
                       </span>
-                      {(targetCountries.length > 0 || (progress.distinctCountries ?? []).length > 0) && (
+                      {targetCountries.length > 0 && (
                         <span className="flex items-center gap-1">
-                          🌍 {(targetCountries.length > 0 ? targetCountries : progress.distinctCountries ?? []).length} {t('countries') ?? 'pays'}
+                          {targetCountries.join(', ')}
                         </span>
                       )}
                     </div>
