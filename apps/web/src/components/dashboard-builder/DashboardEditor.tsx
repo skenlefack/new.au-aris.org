@@ -37,6 +37,8 @@ interface DashboardEditorProps {
   ) => void;
   onWidgetConfigure?: (widget: DashboardWidget) => void;
   onWidgetRemove?: (widgetId: string) => void;
+  onWidgetDuplicate?: (widgetId: string) => void;
+  onSectionDuplicate?: (sectionId: string) => void;
 }
 
 let tempIdCounter = 0;
@@ -55,6 +57,8 @@ export function DashboardEditor({
   onAddWidget,
   onWidgetConfigure,
   onWidgetRemove,
+  onWidgetDuplicate,
+  onSectionDuplicate,
 }: DashboardEditorProps) {
   const [activeDragItem, setActiveDragItem] = useState<{
     type: 'widget' | 'section';
@@ -308,6 +312,8 @@ export function DashboardEditor({
             onSectionRemove={handleSectionRemove}
             onWidgetConfigure={onWidgetConfigure}
             onWidgetRemove={onWidgetRemove}
+            onWidgetDuplicate={onWidgetDuplicate}
+            onSectionDuplicate={onSectionDuplicate}
           />
 
           {/* Add section button */}

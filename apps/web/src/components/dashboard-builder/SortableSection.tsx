@@ -17,6 +17,8 @@ interface SortableSectionProps {
   onSectionRemove?: (sectionId: string) => void;
   onWidgetConfigure?: (widget: DashboardWidget) => void;
   onWidgetRemove?: (widgetId: string) => void;
+  onWidgetDuplicate?: (widgetId: string) => void;
+  onSectionDuplicate?: (sectionId: string) => void;
 }
 
 export function SortableSection({
@@ -29,6 +31,8 @@ export function SortableSection({
   onSectionRemove,
   onWidgetConfigure,
   onWidgetRemove,
+  onWidgetDuplicate,
+  onSectionDuplicate,
 }: SortableSectionProps) {
   const {
     listeners,
@@ -64,8 +68,8 @@ export function SortableSection({
         section={section}
         editable={editable}
         dragListeners={listeners}
-        onTitleChange={(title) =>
-          onSectionUpdate?.(section.id, { titleFr: title, titleEn: title })
+        onTitleChange={({ titleFr, titleEn }) =>
+          onSectionUpdate?.(section.id, { titleFr, titleEn })
         }
         onColumnCountChange={(count) =>
           onSectionUpdate?.(section.id, { columnCount: count })
@@ -74,6 +78,7 @@ export function SortableSection({
           onSectionUpdate?.(section.id, { isCollapsed: !section.isCollapsed })
         }
         onRemove={() => onSectionRemove?.(section.id)}
+        onDuplicate={() => onSectionDuplicate?.(section.id)}
       />
 
       {!section.isCollapsed && (
@@ -97,6 +102,7 @@ export function SortableSection({
               onSelect={() => onColumnSelect?.(section.id, colIdx)}
               onWidgetConfigure={onWidgetConfigure}
               onWidgetRemove={onWidgetRemove}
+              onWidgetDuplicate={onWidgetDuplicate}
             />
           ))}
         </div>

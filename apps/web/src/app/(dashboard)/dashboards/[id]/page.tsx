@@ -2,7 +2,9 @@
 
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Edit3, Maximize2, Star, ArrowLeft } from 'lucide-react';
+import { Edit3, Maximize2, Star, ArrowLeft, Download, FileText } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import {
   useDashboard,
   useDashboardRender,
@@ -36,6 +38,28 @@ export default function DashboardViewPage() {
 
   const handleFullscreen = () => {
     document.documentElement.requestFullscreen?.();
+  };
+
+  const handleExportPng = async () => {
+    const el = document.getElementById('dashboard-content');
+    if (!el) return;
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+    const link = document.createElement('a');
+    link.download = `dashboard-${id}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
+  const handleExportPdf = async () => {
+    const el = document.getElementById('dashboard-content');
+    if (!el) return;
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('l', 'mm', 'a3');
+    const width = pdf.internal.pageSize.getWidth();
+    const height = (canvas.height * width) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+    pdf.save(`dashboard-${id}.pdf`);
   };
 
   if (isLoading) {
@@ -96,6 +120,20 @@ export default function DashboardViewPage() {
             {dashboard.isDefault ? 'Default' : 'Set as default'}
           </button>
           <button
+            onClick={handleExportPng}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Export PNG
+          </button>
+          <button
+            onClick={handleExportPdf}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <FileText className="h-4 w-4" />
+            Export PDF
+          </button>
+          <button
             onClick={handleFullscreen}
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
@@ -113,7 +151,7 @@ export default function DashboardViewPage() {
       </div>
 
       {/* Sections view */}
-      <div className="mt-6">
+      <div id="dashboard-content" className="mt-6">
         <SectionList
           sections={dashboard.sections ?? []}
           widgetData={widgetData}

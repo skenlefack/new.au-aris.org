@@ -2,13 +2,15 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Save, X, Share2, ArrowLeft, Sparkles } from 'lucide-react';
+import { Save, X, Share2, ArrowLeft, Sparkles, Undo2, Redo2 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   useDashboard,
   useUpdateDashboard,
   useAddWidget,
   useRemoveWidget,
   useSaveLayout,
+  useShareDashboard,
   type WidgetType,
   type DashboardWidget,
   type DashboardSection,
@@ -27,6 +29,7 @@ export default function DashboardEditPage() {
   const addWidget = useAddWidget();
   const removeWidget = useRemoveWidget();
   const saveLayout = useSaveLayout();
+  const shareDashboard = useShareDashboard();
 
   const dashboard = dashboardData?.data;
   const d = dashboard as any;
@@ -40,6 +43,54 @@ export default function DashboardEditPage() {
   // Track whether user has made local edits (drag/reorder) to avoid overwriting
   const hasLocalEdits = useRef(false);
 
+  // Undo/Redo history
+  const MAX_HISTORY = 30;
+  const [history, setHistory] = useState<DashboardSection[][]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
+  const pushHistory = useCallback((sections: DashboardSection[]) => {
+    setHistory((prev) => {
+      const newHistory = prev.slice(0, historyIndex + 1);
+      newHistory.push(JSON.parse(JSON.stringify(sections)));
+      if (newHistory.length > MAX_HISTORY) newHistory.shift();
+      return newHistory;
+    });
+    setHistoryIndex((prev) => Math.min(prev + 1, MAX_HISTORY - 1));
+  }, [historyIndex]);
+
+  const handleUndo = useCallback(() => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      setLocalSections(JSON.parse(JSON.stringify(history[newIndex])));
+      hasLocalEdits.current = true;
+    }
+  }, [historyIndex, history]);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      setLocalSections(JSON.parse(JSON.stringify(history[newIndex])));
+      hasLocalEdits.current = true;
+    }
+  }, [historyIndex, history]);
+
+  // Keyboard shortcuts: Ctrl+Z / Ctrl+Shift+Z
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleUndo, handleRedo]);
+
   // Initialize title once
   if (d && !titleInitRef.current) {
     setTitle(d.title || d.title_fr || d.titleFr || '');
@@ -52,14 +103,52 @@ export default function DashboardEditPage() {
   useEffect(() => {
     if (dashboard?.sections && !hasLocalEdits.current) {
       setLocalSections(dashboard.sections);
+      // Initialize undo history with the first server state
+      if (history.length === 0) {
+        setHistory([JSON.parse(JSON.stringify(dashboard.sections))]);
+        setHistoryIndex(0);
+      }
     }
-  }, [dashboard?.sections]);
+  }, [dashboard?.sections]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Widget config panel
   const [configWidget, setConfigWidget] = useState<DashboardWidget | null>(null);
 
   // AI suggestion dialog
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
+
+  // Share dialog
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareTargetType, setShareTargetType] = useState<'TENANT' | 'ROLE' | 'USER'>('TENANT');
+  const [shareTargetId, setShareTargetId] = useState('');
+  const [sharePermission, setSharePermission] = useState<'VIEW' | 'EDIT'>('VIEW');
+
+  const SHARE_ROLES = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN', 'DATA_STEWARD', 'ANALYST'] as const;
+
+  const handleShare = () => {
+    if (!shareTargetId && shareTargetType !== 'TENANT') {
+      toast.error('Please provide a target');
+      return;
+    }
+    shareDashboard.mutate(
+      {
+        dashboardId: id,
+        targetType: shareTargetType,
+        targetId: shareTargetType === 'TENANT' ? 'public' : shareTargetId,
+        permission: sharePermission,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Dashboard shared successfully');
+          setShareOpen(false);
+          setShareTargetId('');
+        },
+        onError: () => {
+          toast.error('Failed to share dashboard');
+        },
+      },
+    );
+  };
 
   const handleAiAccept = useCallback(
     (draft: any) => {
@@ -161,8 +250,9 @@ export default function DashboardEditPage() {
 
   const handleSectionsChange = useCallback((newSections: DashboardSection[]) => {
     hasLocalEdits.current = true;
+    pushHistory(newSections);
     setLocalSections(newSections);
-  }, []);
+  }, [pushHistory]);
 
   const handleRemoveWidget = useCallback(
     (widgetId: string) => {
@@ -182,6 +272,61 @@ export default function DashboardEditPage() {
   const handleConfigureWidget = useCallback((widget: DashboardWidget) => {
     setConfigWidget(widget);
   }, []);
+
+  const handleDuplicateWidget = useCallback(
+    (widgetId: string) => {
+      setLocalSections((prev) => {
+        return prev.map((sec) => {
+          const idx = sec.widgets.findIndex((w) => w.id === widgetId);
+          if (idx === -1) return sec;
+          const original = sec.widgets[idx];
+          const copy: DashboardWidget = {
+            ...original,
+            id: `temp-widget-${Date.now()}`,
+            title: `Copy of ${original.title}`,
+            sortOrder: original.sortOrder + 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          const newWidgets = [...sec.widgets];
+          newWidgets.splice(idx + 1, 0, copy);
+          return { ...sec, widgets: newWidgets };
+        });
+      });
+      hasLocalEdits.current = true;
+    },
+    [],
+  );
+
+  const handleDuplicateSection = useCallback(
+    (sectionId: string) => {
+      setLocalSections((prev) => {
+        const idx = prev.findIndex((s) => s.id === sectionId);
+        if (idx === -1) return prev;
+        const original = prev[idx];
+        const newSectionId = `temp-section-${Date.now()}`;
+        const copy: DashboardSection = {
+          ...original,
+          id: newSectionId,
+          titleFr: `Copy of ${original.titleFr || ''}`,
+          titleEn: `Copy of ${original.titleEn || ''}`,
+          sortOrder: original.sortOrder + 1,
+          widgets: original.widgets.map((w, i) => ({
+            ...w,
+            id: `temp-widget-${Date.now()}-${i}`,
+            sectionId: newSectionId,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          })),
+        };
+        const result = [...prev];
+        result.splice(idx + 1, 0, copy);
+        return result;
+      });
+      hasLocalEdits.current = true;
+    },
+    [],
+  );
 
   const handleSave = async () => {
     // 1. Update title if changed
@@ -274,11 +419,123 @@ export default function DashboardEditPage() {
             Cancel
           </button>
           <button
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            onClick={handleUndo}
+            disabled={historyIndex <= 0}
+            title="Undo (Ctrl+Z)"
+            className="rounded-lg border border-gray-200 dark:border-gray-700 p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
-            <Share2 className="h-4 w-4" />
-            Share
+            <Undo2 className="h-4 w-4" />
           </button>
+          <button
+            onClick={handleRedo}
+            disabled={historyIndex >= history.length - 1}
+            title="Redo (Ctrl+Shift+Z)"
+            className="rounded-lg border border-gray-200 dark:border-gray-700 p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <Redo2 className="h-4 w-4" />
+          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShareOpen(!shareOpen)}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <Share2 className="h-4 w-4" />
+              Share
+            </button>
+            {shareOpen && (
+              <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl p-4 space-y-3">
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Share Dashboard</p>
+
+                {/* Target type */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-500">Share with</label>
+                  <div className="flex gap-1">
+                    {(['TENANT', 'ROLE', 'USER'] as const).map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => { setShareTargetType(t); setShareTargetId(''); }}
+                        className={`flex-1 rounded px-2 py-1 text-xs font-medium transition-colors ${
+                          shareTargetType === t
+                            ? 'bg-[#1F4E79] text-white'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        {t === 'TENANT' ? 'Public' : t === 'ROLE' ? 'Role' : 'User'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Role selector */}
+                {shareTargetType === 'ROLE' && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-500">Role</label>
+                    <select
+                      value={shareTargetId}
+                      onChange={(e) => setShareTargetId(e.target.value)}
+                      className="w-full rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1.5 text-xs text-gray-700 dark:text-gray-200"
+                    >
+                      <option value="">Select a role...</option>
+                      {SHARE_ROLES.map((r) => (
+                        <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* User ID input */}
+                {shareTargetType === 'USER' && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-500">User ID</label>
+                    <input
+                      type="text"
+                      value={shareTargetId}
+                      onChange={(e) => setShareTargetId(e.target.value)}
+                      placeholder="Enter user ID..."
+                      className="w-full rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1.5 text-xs text-gray-700 dark:text-gray-200"
+                    />
+                  </div>
+                )}
+
+                {/* Permission */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-500">Permission</label>
+                  <div className="flex gap-2">
+                    {(['VIEW', 'EDIT'] as const).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setSharePermission(p)}
+                        className={`flex-1 rounded px-2 py-1 text-xs font-medium transition-colors ${
+                          sharePermission === p
+                            ? 'bg-[#1F4E79] text-white'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    onClick={() => setShareOpen(false)}
+                    className="rounded px-3 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    disabled={shareDashboard.isPending}
+                    className="rounded bg-[#1F4E79] px-3 py-1 text-xs font-medium text-white hover:bg-[#163a5c] disabled:opacity-50"
+                  >
+                    {shareDashboard.isPending ? 'Sharing...' : 'Share'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
           <button
             onClick={handleSave}
             disabled={isSaving}
@@ -302,6 +559,8 @@ export default function DashboardEditPage() {
           onAddWidget={handleAddWidget}
           onWidgetConfigure={handleConfigureWidget}
           onWidgetRemove={handleRemoveWidget}
+          onWidgetDuplicate={handleDuplicateWidget}
+          onSectionDuplicate={handleDuplicateSection}
         />
       </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect } from 'react';
-import { GripVertical, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { GripVertical, Trash2, ChevronDown, ChevronRight, Copy } from 'lucide-react';
 import type { DashboardSection } from '@/lib/api/dashboard-hooks';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 
@@ -9,10 +9,11 @@ interface SectionHeaderProps {
   section: DashboardSection;
   editable?: boolean;
   dragListeners?: SyntheticListenerMap;
-  onTitleChange?: (title: string) => void;
+  onTitleChange?: (titles: { titleFr: string; titleEn: string }) => void;
   onColumnCountChange?: (count: number) => void;
   onToggleCollapse?: () => void;
   onRemove?: () => void;
+  onDuplicate?: () => void;
 }
 
 const COL_OPTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
@@ -25,18 +26,22 @@ export function SectionHeader({
   onColumnCountChange,
   onToggleCollapse,
   onRemove,
+  onDuplicate,
 }: SectionHeaderProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputFrRef = useRef<HTMLInputElement>(null);
+  const inputEnRef = useRef<HTMLInputElement>(null);
 
-  // Keep input value in sync with section prop
+  // Keep input values in sync with section prop
   useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.value = section.titleFr ?? '';
-    }
+    if (inputFrRef.current) inputFrRef.current.value = section.titleFr ?? '';
+    if (inputEnRef.current) inputEnRef.current.value = section.titleEn ?? '';
   }, [section.id]);
 
   const handleBlur = () => {
-    onTitleChange?.(inputRef.current?.value ?? '');
+    onTitleChange?.({
+      titleFr: inputFrRef.current?.value ?? '',
+      titleEn: inputEnRef.current?.value ?? '',
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -69,17 +74,30 @@ export function SectionHeader({
           : <ChevronDown className="h-4 w-4" />}
       </button>
 
-      {/* Title — uncontrolled input for smooth typing */}
+      {/* Title — two side-by-side inputs for FR/EN */}
       {editable ? (
-        <input
-          ref={inputRef}
-          type="text"
-          defaultValue={section.titleFr ?? ''}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          className="flex-1 min-w-0 bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 border-none outline-none focus:ring-1 focus:ring-[#1F4E79]/30 rounded px-1"
-          placeholder="Section title..."
-        />
+        <div className="flex flex-1 min-w-0 items-center gap-1">
+          <span className="text-[10px] font-bold text-gray-400 uppercase flex-shrink-0">FR</span>
+          <input
+            ref={inputFrRef}
+            type="text"
+            defaultValue={section.titleFr ?? ''}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            className="flex-1 min-w-0 bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 border-none outline-none focus:ring-1 focus:ring-[#1F4E79]/30 rounded px-1"
+            placeholder="Titre section..."
+          />
+          <span className="text-[10px] font-bold text-gray-400 uppercase flex-shrink-0 ml-1">EN</span>
+          <input
+            ref={inputEnRef}
+            type="text"
+            defaultValue={section.titleEn ?? ''}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            className="flex-1 min-w-0 bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 border-none outline-none focus:ring-1 focus:ring-[#1F4E79]/30 rounded px-1"
+            placeholder="Section title..."
+          />
+        </div>
       ) : (
         <span className="flex-1 min-w-0 text-sm font-semibold text-gray-700 dark:text-gray-200 truncate">
           {section.titleFr || section.titleEn || ''}
@@ -114,6 +132,18 @@ export function SectionHeader({
       <span className="text-xs text-gray-400 tabular-nums flex-shrink-0">
         {section.widgets.length}
       </span>
+
+      {/* Duplicate */}
+      {editable && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onDuplicate?.(); }}
+          className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/30 dark:hover:text-blue-400 flex-shrink-0"
+          title="Duplicate section"
+        >
+          <Copy className="h-3.5 w-3.5" />
+        </button>
+      )}
 
       {/* Delete */}
       {editable && (

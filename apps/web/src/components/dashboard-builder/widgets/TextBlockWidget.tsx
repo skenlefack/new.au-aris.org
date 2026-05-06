@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import DOMPurify from 'dompurify';
 
 interface TextBlockWidgetProps {
   content: string;
@@ -10,7 +11,7 @@ interface TextBlockWidgetProps {
 export function TextBlockWidget({ content, format = 'plain' }: TextBlockWidgetProps) {
   if (format === 'markdown') {
     // Simple markdown rendering: bold, italic, headings, lists, links
-    const html = content
+    const rawHtml = content
       .replace(/^### (.+)$/gm, '<h3 class="text-base font-semibold mb-1">$1</h3>')
       .replace(/^## (.+)$/gm, '<h2 class="text-lg font-semibold mb-1">$1</h2>')
       .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold mb-2">$1</h1>')
@@ -20,10 +21,14 @@ export function TextBlockWidget({ content, format = 'plain' }: TextBlockWidgetPr
       .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc">$1</li>')
       .replace(/\n/g, '<br/>');
 
+    const sanitized = DOMPurify.sanitize(rawHtml, {
+      ADD_ATTR: ['target', 'rel', 'class'],
+    });
+
     return (
       <div
         className="h-full overflow-auto p-4 text-sm text-gray-700 dark:text-gray-300 leading-relaxed"
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: sanitized }}
       />
     );
   }

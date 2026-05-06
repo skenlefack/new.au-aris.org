@@ -118,7 +118,7 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
       );
 
     case 'MAP':
-      return <MapWidget title={widget.title} config={cfg} />;
+      return <MapWidget title={widget.title} config={cfg} data={cfg.data} />;
 
     case 'TABLE':
       return (

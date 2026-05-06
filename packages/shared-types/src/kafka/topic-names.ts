@@ -134,6 +134,7 @@ export const TOPIC_SYS_ANALYTICS_INDICATOR_UPDATED = 'sys.analytics.indicator.up
 export const TOPIC_SYS_ANALYTICS_INDICATOR_VALUE_CREATED = 'sys.analytics.indicator.value-created.v1' as const;
 export const TOPIC_SYS_ANALYTICS_INDICATOR_VALUE_UPDATED = 'sys.analytics.indicator.value-updated.v1' as const;
 export const TOPIC_SYS_ANALYTICS_INDICATOR_COMPUTE_FAILED = 'sys.analytics.indicator.compute-failed.v1' as const;
+export const TOPIC_SYS_ANALYTICS_KPI_SCORE_UPDATED = 'sys.analytics.kpi.score-updated.v1' as const;
 
 // ── Dashboard Builder Topics ──
 export const TOPIC_SYS_ANALYTICS_DASHBOARD_CREATED = 'sys.analytics.dashboard.created.v1' as const;
@@ -305,6 +306,7 @@ export const ALL_TOPICS = [
   TOPIC_SYS_ANALYTICS_INDICATOR_VALUE_CREATED,
   TOPIC_SYS_ANALYTICS_INDICATOR_VALUE_UPDATED,
   TOPIC_SYS_ANALYTICS_INDICATOR_COMPUTE_FAILED,
+  TOPIC_SYS_ANALYTICS_KPI_SCORE_UPDATED,
   TOPIC_SYS_ANALYTICS_DASHBOARD_CREATED,
   TOPIC_SYS_ANALYTICS_DASHBOARD_UPDATED,
   TOPIC_SYS_ANALYTICS_DASHBOARD_DELETED,

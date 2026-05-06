@@ -6,11 +6,14 @@
  */
 
 import { createHash } from 'crypto';
+import { create, all } from 'mathjs';
 import type { Pool } from 'pg';
 import type { RedisClient } from '../services/redis-client';
 import type { IndicatorService } from '../indicators/indicator.service';
 import type { DashboardService } from './dashboard.service';
 import type { RenderQuery } from './dashboard.schemas';
+
+const math = create(all);
 
 const RESOLVE_CACHE_PREFIX = 'analytics:widget-resolve:';
 const RESOLVE_CACHE_TTL = 300; // 5 min
@@ -321,10 +324,12 @@ export class WidgetResolver {
 
     let computedValue: number | null = null;
     try {
-      // Safe evaluation: only allow numbers and basic operators
-      const sanitized = expression.replace(/[^0-9+\-*/().% ]/g, '');
-      if (sanitized.length > 0) {
-        computedValue = Function(`"use strict"; return (${sanitized});`)() as number;
+      // Safe evaluation via mathjs — only allow numbers and basic operators
+      const sanitizedExpression = expression.replace(/[^0-9+\-*/().% ]/g, '');
+      if (sanitizedExpression.length > 0) {
+        const result = math.evaluate(sanitizedExpression);
+        computedValue = typeof result === 'number' ? result : Number(result);
+        if (isNaN(computedValue)) computedValue = null;
       }
     } catch {
       computedValue = null;

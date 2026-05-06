@@ -20,6 +20,7 @@ interface DroppableColumnProps {
   onSelect?: () => void;
   onWidgetConfigure?: (widget: DashboardWidget) => void;
   onWidgetRemove?: (widgetId: string) => void;
+  onWidgetDuplicate?: (widgetId: string) => void;
 }
 
 export function DroppableColumn({
@@ -32,6 +33,7 @@ export function DroppableColumn({
   onSelect,
   onWidgetConfigure,
   onWidgetRemove,
+  onWidgetDuplicate,
 }: DroppableColumnProps) {
   const droppableId = `column-${sectionId}-${columnIndex}`;
   const { setNodeRef, isOver } = useDroppable({
@@ -67,6 +69,7 @@ export function DroppableColumn({
             editable={editable}
             onConfigure={() => onWidgetConfigure?.(widget)}
             onRemove={() => onWidgetRemove?.(widget.id)}
+            onDuplicate={() => onWidgetDuplicate?.(widget.id)}
           />
         ))}
       </SortableContext>

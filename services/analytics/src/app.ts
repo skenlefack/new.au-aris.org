@@ -17,6 +17,7 @@ import { IndicatorService } from './indicators/indicator.service';
 import { FormulaEvaluator } from './indicators/formula-evaluator';
 import { registerIndicatorRoutes } from './indicators/indicator.routes';
 import { registerAutoFromFormConsumer } from './indicators/auto-from-form.consumer';
+import { registerAutoFromKpiConsumer } from './indicators/auto-from-kpi.consumer';
 import { registerCompositeRecomputeConsumer } from './indicators/composite-recompute.consumer';
 import { DashboardService } from './dashboards/dashboard.service';
 import { WidgetResolver } from './dashboards/widget-resolver';
@@ -112,6 +113,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   // --- Kafka Consumers (12 aggregation + 2 indicator subscriptions + flash detector) ---
   await registerConsumers(app, aggregationService, domainAggregationService);
   await registerAutoFromFormConsumer(app, indicatorService.getPool());
+  await registerAutoFromKpiConsumer(app, indicatorService.getPool());
   await registerCompositeRecomputeConsumer(app, indicatorService.getPool(), formulaEvaluator);
   await registerFlashDetectorConsumer(app, reportService.getPool());
 

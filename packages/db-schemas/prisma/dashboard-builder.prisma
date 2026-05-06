@@ -38,6 +38,15 @@ enum WidgetType {
   COMPOSITE_FORMULA
   ALERT_FEED
   PROGRESS_BAR
+  STAT_CARD
+  DIVIDER
+  IMAGE
+  LIST
+  RANKED_LIST
+  ACTIVITY_FEED
+  EPI_CURVE
+  DUAL_AXIS
+  COUNTER
 
   @@schema("dashboard_builder")
 }

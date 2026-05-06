@@ -95,13 +95,41 @@ def deploy_env(env_key):
 
     # Step 3: Run the seed
     print("\n  [3/3] Running seed-strategic-dashboards.ts...")
-    # Use full path for node/npx to handle PATH issues on staging
-    seed_cmd = (
-        f"export PATH=/usr/local/bin:/usr/bin:/opt/aris/node_modules/.bin:$PATH && "
-        f"cd {env['git_dir']} && "
-        f"DATABASE_URL=\"{env['db_url']}\" "
-        f"npx tsx packages/db-schemas/prisma/seed-strategic-dashboards.ts 2>&1"
-    )
+
+    if env_key == "staging":
+        # Staging has no node installed on host — copy seed files into container, then run
+        container = "aris-stg-analytics"
+        git_dir = env["git_dir"]
+        seed_files = [
+            "seed-strategic-helpers.ts",
+            "seed-strategic-dashboards.ts",
+            "seed-dashboards-transversal.ts",
+            "seed-dashboards-animal-health.ts",
+            "seed-dashboards-livestock.ts",
+            "seed-dashboards-trade-fish-wildlife.ts",
+            "seed-dashboards-gov-climate-api.ts",
+        ]
+        # Copy files into container
+        print("    Copying seed files into container...")
+        for f in seed_files:
+            cp_cmd = f"{SUDO} bash -c 'docker cp {git_dir}/packages/db-schemas/prisma/{f} {container}:/app/packages/db-schemas/prisma/{f}'"
+            code, out, err = ssh_exec(ssh, cp_cmd, timeout=15)
+            if code != 0:
+                print(f"    WARN: copy {f} failed: {err}")
+
+        seed_cmd = (
+            f"{SUDO} bash -c '"
+            f"docker exec -w /app -e DATABASE_URL=\"{env['db_url']}\" "
+            f"{container} npx tsx packages/db-schemas/prisma/seed-strategic-dashboards.ts"
+            f"' 2>&1"
+        )
+    else:
+        # Production has node installed on host
+        seed_cmd = (
+            f"cd {env['git_dir']} && "
+            f"DATABASE_URL=\"{env['db_url']}\" "
+            f"npx tsx packages/db-schemas/prisma/seed-strategic-dashboards.ts 2>&1"
+        )
     code, out, err = ssh_exec(ssh, seed_cmd, timeout=180)
 
     if out:

@@ -18,6 +18,8 @@ interface SectionListProps {
   onSectionRemove?: (sectionId: string) => void;
   onWidgetConfigure?: (widget: DashboardWidget) => void;
   onWidgetRemove?: (widgetId: string) => void;
+  onWidgetDuplicate?: (widgetId: string) => void;
+  onSectionDuplicate?: (sectionId: string) => void;
 }
 
 export function SectionList({
@@ -30,6 +32,8 @@ export function SectionList({
   onSectionRemove,
   onWidgetConfigure,
   onWidgetRemove,
+  onWidgetDuplicate,
+  onSectionDuplicate,
 }: SectionListProps) {
   const sortedSections = [...sections].sort((a, b) => a.sortOrder - b.sortOrder);
   const sectionIds = sortedSections.map((s) => s.id);
@@ -66,6 +70,8 @@ export function SectionList({
             onSectionRemove={onSectionRemove}
             onWidgetConfigure={onWidgetConfigure}
             onWidgetRemove={onWidgetRemove}
+            onWidgetDuplicate={onWidgetDuplicate}
+            onSectionDuplicate={onSectionDuplicate}
           />
         ))}
       </div>
