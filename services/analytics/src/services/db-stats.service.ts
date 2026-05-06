@@ -211,15 +211,15 @@ export class DbStatsService {
     try {
       const { rows: [r] } = await client.query(`
         SELECT
-          -- Countries reporting (distinct real country names, exclude numeric/noise)
+          -- Countries reporting (distinct real country names with >50 reports)
           (SELECT COUNT(*) FROM (
-            SELECT DISTINCT SPLIT_PART(admin_location, ' / ', 1) AS c
+            SELECT SPLIT_PART(admin_location, ' / ', 1) AS c
             FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
             WHERE admin_location ~ '^[A-Za-z]'
               AND LENGTH(SPLIT_PART(admin_location, ' / ', 1)) > 2
               AND SPLIT_PART(admin_location, ' / ', 1) !~ '[0-9]'
               AND SPLIT_PART(admin_location, ' / ', 1) NOT IN ('Total','QUARANTINE')
-            HAVING COUNT(*) > 50
+            GROUP BY c HAVING COUNT(*) > 50
           ) x)::int AS countries_reporting,
           -- Total health reports
           (SELECT COUNT(*)
