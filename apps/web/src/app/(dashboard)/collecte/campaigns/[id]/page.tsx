@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -221,8 +221,6 @@ export default function CampaignDetailPage() {
   const pct = progress?.completionRate ?? (target > 0 ? Math.round((totalSubmissions / target) * 100) : 0);
   const agentCount = progress?.totalAgents ?? (Array.isArray(campaign.assignments) ? campaign.assignments.length : 0);
 
-  const [showModal, setShowModal] = useState<string | null>(null);
-
   const handleStatusChange = async (newStatus: 'ACTIVE' | 'COMPLETED' | 'CANCELLED') => {
     try {
       if (newStatus === 'ACTIVE') {
@@ -402,18 +400,18 @@ export default function CampaignDetailPage() {
                           {t('previewForm')}
                         </Link>
                       )}
-                      <button
-                        onClick={() => setShowModal('export')}
-                        className="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700"
+                      <Link
+                        href={`/collecte/campaigns/${campaignId}/export/${linkId}`}
+                        className="inline-flex items-center gap-1 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400 shrink-0"
                       >
                         Export
-                      </button>
-                      <button
-                        onClick={() => setShowModal('import')}
-                        className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700"
+                      </Link>
+                      <Link
+                        href={`/collecte/campaigns/${campaignId}/import/${linkId}`}
+                        className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 shrink-0"
                       >
                         Import
-                      </button>
+                      </Link>
                     </div>
                   );
                 })}
@@ -582,16 +580,6 @@ export default function CampaignDetailPage() {
           )}
         </div>
       </div>
-
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowModal(null)}>
-          <div className="w-96 rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold mb-4">{showModal === 'export' ? 'Export' : 'Import'}</h2>
-            <p className="text-sm text-gray-600 mb-4">Modal test - {showModal}</p>
-            <button onClick={() => setShowModal(null)} className="rounded bg-blue-600 px-4 py-2 text-sm text-white">Close</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
