@@ -78,6 +78,7 @@ export function DraggableWidget({
   return (
     <div
       ref={setNodeRef}
+      data-widget-id={widget.id}
       style={{
         transform: tx,
         transition: transition ?? undefined,

@@ -1,16 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Edit3, Maximize2, Star, ArrowLeft, Download, FileText } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import { Edit3, Maximize2, Star, ArrowLeft, Download } from 'lucide-react';
 import {
   useDashboard,
   useDashboardRender,
   useSetDashboardPreference,
 } from '@/lib/api/dashboard-hooks';
 import { SectionList } from '@/components/dashboard-builder/SectionList';
+import { ExportDashboardDialog } from '@/components/dashboard-builder/ExportDashboardDialog';
 
 export default function DashboardViewPage() {
   const params = useParams();
@@ -20,6 +19,8 @@ export default function DashboardViewPage() {
   const { data: dashboardData, isLoading } = useDashboard(id);
   const { data: renderData } = useDashboardRender(id);
   const setPreference = useSetDashboardPreference();
+
+  const [exportOpen, setExportOpen] = useState(false);
 
   const dashboard = dashboardData?.data;
   const widgetData = (renderData?.data?.widgetData ?? {}) as Record<
@@ -38,28 +39,6 @@ export default function DashboardViewPage() {
 
   const handleFullscreen = () => {
     document.documentElement.requestFullscreen?.();
-  };
-
-  const handleExportPng = async () => {
-    const el = document.getElementById('dashboard-content');
-    if (!el) return;
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true });
-    const link = document.createElement('a');
-    link.download = `dashboard-${id}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-  };
-
-  const handleExportPdf = async () => {
-    const el = document.getElementById('dashboard-content');
-    if (!el) return;
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('l', 'mm', 'a3');
-    const width = pdf.internal.pageSize.getWidth();
-    const height = (canvas.height * width) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, width, height);
-    pdf.save(`dashboard-${id}.pdf`);
   };
 
   if (isLoading) {
@@ -120,18 +99,11 @@ export default function DashboardViewPage() {
             {dashboard.isDefault ? 'Default' : 'Set as default'}
           </button>
           <button
-            onClick={handleExportPng}
+            onClick={() => setExportOpen(true)}
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             <Download className="h-4 w-4" />
-            Export PNG
-          </button>
-          <button
-            onClick={handleExportPdf}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-          >
-            <FileText className="h-4 w-4" />
-            Export PDF
+            Export
           </button>
           <button
             onClick={handleFullscreen}
@@ -158,6 +130,14 @@ export default function DashboardViewPage() {
           editable={false}
         />
       </div>
+
+      <ExportDashboardDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        dashboardId={id}
+        dashboardTitle={title}
+        sections={dashboard.sections ?? []}
+      />
     </div>
   );
 }
