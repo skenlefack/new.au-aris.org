@@ -211,22 +211,40 @@ export class DbStatsService {
     try {
       const { rows: [r] } = await client.query(`
         SELECT
-          -- Countries reporting (match against AU 55 Member State names)
-          (SELECT COUNT(DISTINCT LOWER(SPLIT_PART(admin_location, ' / ', 1)))
-           FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
-           WHERE LOWER(SPLIT_PART(admin_location, ' / ', 1)) IN (
-             'algeria','angola','benin','botswana','burkina faso','burundi','cameroon',
-             'cape verde','car','chad','comoros','congo brazaville','cote d''ivoire',
-             'cote d''ivore','côte d''ivoire','djibouti','dr congo','drc','egypt',
-             'equatorial guinea','eritrea','eswatini','swaziland','ethiopia','gabon',
-             'gambia','the gambia','ghana','guinea','guinée','guinea conackry',
-             'guinea conakry','guinee conakry','guinea-bissau','kenya','lesotho',
-             'liberia','libya','madagascar','malawi','mali','mauritania','mauritius',
-             'mozambique','namibia','niger','nigeria','rwanda','sahrawi republic',
-             'sao tome and principe','senegal','sénégal','seychelles','sierra leone',
-             'somalia','south africa','south sudan','sudan','tanzania','togo','tunisia',
-             'tunisa','uganda','zambia','zimbabwe'
-           ))::int AS countries_reporting,
+          -- Countries reporting: normalize variant spellings → canonical name, then count distinct
+          (SELECT COUNT(DISTINCT canonical) FROM (
+            SELECT CASE LOWER(SPLIT_PART(admin_location, ' / ', 1))
+              WHEN 'swaziland' THEN 'eswatini'
+              WHEN 'cote d''ivore' THEN 'cote d''ivoire'
+              WHEN 'côte d''ivoire' THEN 'cote d''ivoire'
+              WHEN 'tunisa' THEN 'tunisia'
+              WHEN 'sénégal' THEN 'senegal'
+              WHEN 'guinée' THEN 'guinea'
+              WHEN 'guinea conackry' THEN 'guinea'
+              WHEN 'guinea conakry' THEN 'guinea'
+              WHEN 'guinee conakry' THEN 'guinea'
+              WHEN 'the gambia' THEN 'gambia'
+              WHEN 'drc' THEN 'dr congo'
+              WHEN 'car' THEN 'central african republic'
+              WHEN 'congo brazaville' THEN 'congo'
+              ELSE LOWER(SPLIT_PART(admin_location, ' / ', 1))
+            END AS canonical
+            FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
+            WHERE LOWER(SPLIT_PART(admin_location, ' / ', 1)) IN (
+              'algeria','angola','benin','botswana','burkina faso','burundi','cameroon',
+              'cape verde','car','chad','comoros','congo brazaville',
+              'cote d''ivoire','cote d''ivore','côte d''ivoire',
+              'djibouti','dr congo','drc','egypt',
+              'equatorial guinea','eritrea','eswatini','swaziland','ethiopia','gabon',
+              'gambia','the gambia','ghana','guinea','guinée','guinea conackry',
+              'guinea conakry','guinee conakry','guinea-bissau','kenya','lesotho',
+              'liberia','libya','madagascar','malawi','mali','mauritania','mauritius',
+              'mozambique','namibia','niger','nigeria','rwanda',
+              'sao tome and principe','senegal','sénégal','seychelles','sierra leone',
+              'somalia','south africa','south sudan','sudan','tanzania','togo','tunisia',
+              'tunisa','uganda','zambia','zimbabwe'
+            )
+          ) x)::int AS countries_reporting,
           -- Total health reports
           (SELECT COUNT(*)
            FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo)::int AS health_reports,
