@@ -71,7 +71,7 @@ export default function ExportPage() {
   }, [campaignId, format, filters, fields, name]);
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-12">
+    <div className="space-y-6 pb-12">
       <Link href={`/collecte/campaigns/${campaignId}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
         <ArrowLeft className="h-4 w-4" /> Back to campaign
       </Link>
