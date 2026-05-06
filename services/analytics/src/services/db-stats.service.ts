@@ -224,26 +224,27 @@ export class DbStatsService {
           -- Total health reports
           (SELECT COUNT(*)
            FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo)::int AS health_reports,
-          -- Outbreaks: SUM of num_new_outbreaks (numeric column)
-          (SELECT COALESCE(SUM(num_new_outbreaks), 0)
-           FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
-           WHERE num_new_outbreaks IS NOT NULL AND num_new_outbreaks > 0)::bigint AS outbreaks,
+          -- Outbreaks: SUM of num_new_outbreaks (cast text to numeric)
+          (SELECT COALESCE(SUM(
+            CASE WHEN num_new_outbreaks ~ '^[0-9]+\.?[0-9]*$' THEN num_new_outbreaks::numeric ELSE 0 END
+          ), 0)
+           FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo)::bigint AS outbreaks,
           -- Diseases monitored (distinct clean alpha-only disease names)
           (SELECT COUNT(DISTINCT disease)
            FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
            WHERE disease ~ '^[A-Za-z_]+$' AND LENGTH(disease) > 2
              AND UPPER(disease) NOT LIKE '%ZERO%')::int AS diseases_monitored,
-          -- Animals vaccinated: SUM from monthly vaccination reports
+          -- Animals vaccinated: SUM from monthly vaccination reports (bigint column)
           (SELECT COALESCE(SUM(num_animals_vaccinated), 0)
            FROM historical.hdata_animal_health_monthly_vaccination_report_historical_mol9y
-           WHERE num_animals_vaccinated IS NOT NULL AND num_animals_vaccinated > 0)::bigint AS animals_vaccinated,
+           WHERE num_animals_vaccinated IS NOT NULL)::bigint AS animals_vaccinated,
           -- Mass vaccination campaigns count
           (SELECT COUNT(*)
            FROM historical.hdata_animal_health_mass_vaccination_historical_mol9z9wh)::int AS mass_vaccinations,
-          -- Livestock censused: SUM of num_animals from population table
+          -- Livestock censused: SUM of num_animals from population table (bigint column)
           (SELECT COALESCE(SUM(num_animals), 0)
            FROM historical.hdata_livestock_prod_animal_population_and_composition_histor_m
-           WHERE num_animals IS NOT NULL AND num_animals > 0)::bigint AS livestock_censused,
+           WHERE num_animals IS NOT NULL)::bigint AS livestock_censused,
           -- Total records across all historical tables
           (SELECT
             (SELECT COUNT(*) FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo) +
