@@ -211,32 +211,39 @@ export class DbStatsService {
     try {
       const { rows: [r] } = await client.query(`
         SELECT
-          -- Countries reporting (distinct country names from admin_location, alphabetic only)
-          (SELECT COUNT(DISTINCT SPLIT_PART(admin_location, ' / ', 1))
-           FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
-           WHERE admin_location ~ '^[A-Za-z]' AND LENGTH(admin_location) > 3)::int AS countries_reporting,
+          -- Countries reporting (distinct real country names, exclude numeric/noise)
+          (SELECT COUNT(*) FROM (
+            SELECT DISTINCT SPLIT_PART(admin_location, ' / ', 1) AS c
+            FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
+            WHERE admin_location ~ '^[A-Za-z]'
+              AND LENGTH(SPLIT_PART(admin_location, ' / ', 1)) > 2
+              AND SPLIT_PART(admin_location, ' / ', 1) !~ '[0-9]'
+              AND SPLIT_PART(admin_location, ' / ', 1) NOT IN ('Total','QUARANTINE')
+            HAVING COUNT(*) > 50
+          ) x)::int AS countries_reporting,
           -- Total health reports
           (SELECT COUNT(*)
            FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo)::int AS health_reports,
-          -- Outbreaks (real outbreaks only, exclude ZERO-CAS / noise)
-          (SELECT COUNT(*)
+          -- Outbreaks: SUM of num_new_outbreaks (numeric column)
+          (SELECT COALESCE(SUM(num_new_outbreaks), 0)
            FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
-           WHERE LOWER(outbreak_in_month) IN ('yes','true','1','oui')
-             AND disease ~ '^[A-Za-z]' AND UPPER(disease) NOT LIKE '%ZERO%')::int AS outbreaks,
-          -- Diseases monitored (distinct clean disease names only)
+           WHERE num_new_outbreaks IS NOT NULL AND num_new_outbreaks > 0)::bigint AS outbreaks,
+          -- Diseases monitored (distinct clean alpha-only disease names)
           (SELECT COUNT(DISTINCT disease)
            FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
-           WHERE disease ~ '^[A-Za-z]' AND LENGTH(disease) > 2
+           WHERE disease ~ '^[A-Za-z_]+$' AND LENGTH(disease) > 2
              AND UPPER(disease) NOT LIKE '%ZERO%')::int AS diseases_monitored,
-          -- Vaccination reports count
-          (SELECT COUNT(*)
-           FROM historical.hdata_animal_health_monthly_vaccination_report_historical_mol9y)::int AS vaccination_reports,
-          -- Mass vaccination campaigns
+          -- Animals vaccinated: SUM from monthly vaccination reports
+          (SELECT COALESCE(SUM(num_animals_vaccinated), 0)
+           FROM historical.hdata_animal_health_monthly_vaccination_report_historical_mol9y
+           WHERE num_animals_vaccinated IS NOT NULL AND num_animals_vaccinated > 0)::bigint AS animals_vaccinated,
+          -- Mass vaccination campaigns count
           (SELECT COUNT(*)
            FROM historical.hdata_animal_health_mass_vaccination_historical_mol9z9wh)::int AS mass_vaccinations,
-          -- Livestock census records
-          (SELECT COUNT(*)
-           FROM historical.hdata_livestock_prod_animal_population_and_composition_histor_m)::int AS livestock_censused,
+          -- Livestock censused: SUM of num_animals from population table
+          (SELECT COALESCE(SUM(num_animals), 0)
+           FROM historical.hdata_livestock_prod_animal_population_and_composition_histor_m
+           WHERE num_animals IS NOT NULL AND num_animals > 0)::bigint AS livestock_censused,
           -- Total records across all historical tables
           (SELECT
             (SELECT COUNT(*) FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo) +
@@ -246,15 +253,16 @@ export class DbStatsService {
           )::int AS total_records
       `);
 
+      const countriesReporting = Number(r.countries_reporting ?? 0);
       const kpis = [
-        { key: 'countries_reporting', label: 'Countries Reporting', value: r.countries_reporting ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
-        { key: 'health_reports', label: 'Health Reports', value: r.health_reports ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
-        { key: 'outbreaks', label: 'Outbreaks', value: r.outbreaks ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
-        { key: 'diseases_monitored', label: 'Diseases Monitored', value: r.diseases_monitored ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
-        { key: 'vaccination_reports', label: 'Animals Vaccinated', value: r.vaccination_reports ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
-        { key: 'mass_vaccinations', label: 'Vaccination Campaigns', value: r.mass_vaccinations ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
-        { key: 'livestock_censused', label: 'Livestock Censused', value: r.livestock_censused ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
-        { key: 'total_records', label: 'Total Records', value: r.total_records ?? 0, unit: '', trend: 'stable', trendPercent: 0 },
+        { key: 'countries_reporting', label: 'Countries', value: countriesReporting, unit: '/55', trend: 'stable', trendPercent: 0 },
+        { key: 'health_reports', label: 'Health Reports', value: Number(r.health_reports ?? 0), unit: '', trend: 'stable', trendPercent: 0 },
+        { key: 'outbreaks', label: 'Outbreaks', value: Number(r.outbreaks ?? 0), unit: '', trend: 'stable', trendPercent: 0 },
+        { key: 'diseases_monitored', label: 'Diseases', value: Number(r.diseases_monitored ?? 0), unit: '', trend: 'stable', trendPercent: 0 },
+        { key: 'animals_vaccinated', label: 'Vaccinated', value: Number(r.animals_vaccinated ?? 0), unit: '', trend: 'stable', trendPercent: 0 },
+        { key: 'mass_vaccinations', label: 'Vacc. Campaigns', value: Number(r.mass_vaccinations ?? 0), unit: '', trend: 'stable', trendPercent: 0 },
+        { key: 'livestock_censused', label: 'Livestock', value: Number(r.livestock_censused ?? 0), unit: '', trend: 'stable', trendPercent: 0 },
+        { key: 'total_records', label: 'Total Records', value: Number(r.total_records ?? 0), unit: '', trend: 'stable', trendPercent: 0 },
       ];
 
       const result = { kpis, asOf: new Date().toISOString() };

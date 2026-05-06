@@ -102,7 +102,7 @@ private val KPI_DEFS = listOf(
     KpiDef("health_reports", Icons.Default.BarChart, "monthly reports"),
     KpiDef("outbreaks", Icons.Default.BugReport, "declared"),
     KpiDef("diseases_monitored", Icons.Default.Science, "monitored"),
-    KpiDef("vaccination_reports", Icons.Default.Vaccines, "total"),
+    KpiDef("animals_vaccinated", Icons.Default.Vaccines, "total"),
     KpiDef("mass_vaccinations", Icons.Default.LocalHospital, "mass campaigns"),
     KpiDef("livestock_censused", Icons.Default.Pets, "head count"),
     KpiDef("total_records", Icons.Default.Dataset, "datasets"),
@@ -261,8 +261,9 @@ private fun KpiBar(kpiMap: Map<String, org.auibar.aris.mobile.data.remote.dto.Kp
             items(KPI_DEFS) { def ->
                 val kpi = kpiMap[def.key]
                 val value = kpi?.value ?: 0.0
+                val unit = kpi?.unit ?: ""
                 val label = kpi?.label ?: def.key.replace("_", " ").replaceFirstChar { it.uppercase() }
-                val formatted = formatCompact(value)
+                val formatted = formatCompact(value) + unit
 
                 Column(
                     modifier = Modifier
