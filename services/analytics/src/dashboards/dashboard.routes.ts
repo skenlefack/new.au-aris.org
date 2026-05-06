@@ -15,8 +15,10 @@
  *   POST   /dashboards/:id/widgets/batch            — batch update positions
  *   DELETE /dashboards/:id/widgets/:widgetId        — remove widget
  *
+ *   GET    /dashboards/:id/shares                   — list active shares
  *   POST   /dashboards/:id/share                    — share dashboard
- *   DELETE /dashboards/:id/share/:shareId           — revoke share
+ *   PATCH  /dashboards/:id/share/:shareId           — update share
+ *   DELETE /dashboards/:id/share/:shareId           — revoke share (soft)
  *
  *   POST   /dashboards/preferences                  — set user preference
  */
@@ -33,6 +35,8 @@ import {
   BatchUpdateWidgetsSchema,
   SaveLayoutSchema,
   CreateShareSchema,
+  UpdateShareSchema,
+  ListSharesQuerySchema,
   SetPreferenceSchema,
   ListDashboardsQuerySchema,
   DefaultForQuerySchema,
@@ -46,6 +50,8 @@ import type {
   BatchUpdateWidgetsDto,
   SaveLayoutDto,
   CreateShareDto,
+  UpdateShareDto,
+  ListSharesQuery,
   SetPreferenceDto,
   ListDashboardsQuery,
   DefaultForQuery,
@@ -75,7 +81,7 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
     reply: FastifyReply,
   ) => {
     const user = request.user as AuthenticatedUser;
-    const result = await app.dashboardService.list(request.query, user.userId);
+    const result = await app.dashboardService.list(request.query, user.userId, user.role, user.tenantId);
     return reply.code(200).send(result);
   });
 
@@ -102,7 +108,7 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
     reply: FastifyReply,
   ) => {
     const user = request.user as AuthenticatedUser;
-    const data = await app.dashboardService.getById(request.params.id, user.userId);
+    const data = await app.dashboardService.getById(request.params.id, user.userId, user.role, user.tenantId);
     return reply.code(200).send({ data });
   });
 
@@ -242,6 +248,33 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
   // ═══════════════════════════════════════════════════════════════════════
   //  Shares
   // ═══════════════════════════════════════════════════════════════════════
+
+  // GET /dashboards/:id/shares — list active shares
+  app.get(`${PREFIX}/:id/shares`, {
+    preHandler: [app.authHookFn, tenantHook()],
+    schema: { querystring: ListSharesQuerySchema, tags: ['dashboards'] },
+  }, async (
+    request: FastifyRequest<{ Params: DashboardIdParam; Querystring: ListSharesQuery }>,
+    reply: FastifyReply,
+  ) => {
+    const user = request.user as AuthenticatedUser;
+    const query = request.query as ListSharesQuery;
+    const data = await app.dashboardService.listShares(request.params.id, user.userId, query.page, query.limit);
+    return reply.send(data);
+  });
+
+  // PATCH /dashboards/:id/share/:shareId — update share
+  app.patch(`${PREFIX}/:id/share/:shareId`, {
+    preHandler: [app.authHookFn, tenantHook()],
+    schema: { body: UpdateShareSchema, tags: ['dashboards'] },
+  }, async (
+    request: FastifyRequest<{ Params: ShareIdParam; Body: UpdateShareDto }>,
+    reply: FastifyReply,
+  ) => {
+    const user = request.user as AuthenticatedUser;
+    const data = await app.dashboardService.updateShare(request.params.id, request.params.shareId, request.body, user.userId);
+    return reply.send({ data });
+  });
 
   app.post(`${PREFIX}/:id/share`, {
     preHandler: [app.authHookFn, tenantHook()],

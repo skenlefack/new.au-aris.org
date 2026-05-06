@@ -141,6 +141,7 @@ export const TOPIC_SYS_ANALYTICS_DASHBOARD_CREATED = 'sys.analytics.dashboard.cr
 export const TOPIC_SYS_ANALYTICS_DASHBOARD_UPDATED = 'sys.analytics.dashboard.updated.v1' as const;
 export const TOPIC_SYS_ANALYTICS_DASHBOARD_DELETED = 'sys.analytics.dashboard.deleted.v1' as const;
 export const TOPIC_SYS_ANALYTICS_WIDGET_UPDATED = 'sys.analytics.widget.updated.v1' as const;
+export const TOPIC_SYS_ANALYTICS_DASHBOARD_SHARED = 'sys.analytics.dashboard.shared.v1' as const;
 
 // ── Interop V2 Topics ──
 export const TOPIC_AU_INTEROP_DHIS2_SYNCED = 'au.interop.dhis2.synced.v1' as const;
@@ -311,6 +312,7 @@ export const ALL_TOPICS = [
   TOPIC_SYS_ANALYTICS_DASHBOARD_UPDATED,
   TOPIC_SYS_ANALYTICS_DASHBOARD_DELETED,
   TOPIC_SYS_ANALYTICS_WIDGET_UPDATED,
+  TOPIC_SYS_ANALYTICS_DASHBOARD_SHARED,
   TOPIC_AU_INTEROP_DHIS2_SYNCED,
   TOPIC_AU_INTEROP_FHIR_SYNCED,
   TOPIC_AU_INTEROP_OMS_SYNCED,

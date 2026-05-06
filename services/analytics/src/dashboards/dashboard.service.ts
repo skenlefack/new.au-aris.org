@@ -14,6 +14,7 @@ import {
   TOPIC_SYS_ANALYTICS_DASHBOARD_UPDATED,
   TOPIC_SYS_ANALYTICS_DASHBOARD_DELETED,
   TOPIC_SYS_ANALYTICS_WIDGET_UPDATED,
+  TOPIC_SYS_ANALYTICS_DASHBOARD_SHARED,
 } from '@aris/shared-types';
 import type {
   CreateDashboardDto,
@@ -23,6 +24,7 @@ import type {
   BatchUpdateWidgetsDto,
   SaveLayoutDto,
   CreateShareDto,
+  UpdateShareDto,
   SetPreferenceDto,
   ListDashboardsQuery,
   DefaultForQuery,
@@ -54,6 +56,8 @@ export class DashboardService {
   async list(
     filters: ListDashboardsQuery,
     userId: string,
+    userRole?: string,
+    userTenantId?: string,
   ): Promise<{ data: unknown[]; meta: { total: number; page: number; limit: number } }> {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
@@ -68,13 +72,22 @@ export class DashboardService {
       conditions.push(`d.ownership = $${idx++}`);
       params.push(filters.ownership);
     } else {
-      conditions.push(`(d.ownership = 'SYSTEM_TEMPLATE' OR d.owner_user_id = $${idx} OR EXISTS (
+      // $idx = userId, $idx+1 = userRole, $idx+2 = userTenantId
+      const userIdx = idx++;
+      const roleIdx = idx++;
+      const tenantIdx = idx++;
+      conditions.push(`(d.ownership = 'SYSTEM_TEMPLATE' OR d.owner_user_id = $${userIdx} OR EXISTS (
         SELECT 1 FROM dashboard_builder.dashboard_shares s
-        WHERE s.dashboard_id = d.id
-          AND (s.shared_with_user_id = $${idx} OR s.is_public = true)
+        WHERE s.dashboard_id = d.id AND s.status = 'ACTIVE'
+          AND (s.expires_at IS NULL OR s.expires_at > NOW())
+          AND (
+            s.shared_with_user_id = $${userIdx}
+            OR s.shared_with_role = $${roleIdx}
+            OR s.shared_with_tenant_id = $${tenantIdx}
+            OR s.share_type = 'PUBLIC'
+          )
       ))`);
-      params.push(userId);
-      idx++;
+      params.push(userId, userRole ?? null, userTenantId ?? null);
     }
 
     if (filters.scope) {
@@ -125,14 +138,14 @@ export class DashboardService {
     return { data: rows, meta: { total, page, limit } };
   }
 
-  async getById(id: string, userId: string): Promise<unknown> {
+  async getById(id: string, userId: string, userRole?: string, userTenantId?: string): Promise<unknown> {
     const cacheKey = `${CACHE_PREFIX}${id}`;
     const cached = await this.redis.get(cacheKey);
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
         // Check access even on cached results
-        if (this.hasAccess(parsed, userId)) return parsed;
+        if (this.hasAccess(parsed, { userId, role: userRole, tenantId: userTenantId })) return parsed;
       } catch { /* stale */ }
     }
 
@@ -188,7 +201,7 @@ export class DashboardService {
     }
 
     const dashboard = rows[0];
-    if (!this.hasAccess(dashboard, userId)) {
+    if (!this.hasAccess(dashboard, { userId, role: userRole, tenantId: userTenantId })) {
       throw Object.assign(new Error('Access denied'), { statusCode: 403 });
     }
 
@@ -763,22 +776,90 @@ export class DashboardService {
   async share(dashboardId: string, input: CreateShareDto, userId: string): Promise<unknown> {
     await this.verifyOwnership(dashboardId, userId);
 
+    // Validate shareType ↔ fields
+    if (input.shareType === 'USER' && !input.sharedWithUserId) throw Object.assign(new Error('sharedWithUserId required for USER share'), { statusCode: 400 });
+    if (input.shareType === 'ROLE' && !input.sharedWithRole) throw Object.assign(new Error('sharedWithRole required for ROLE share'), { statusCode: 400 });
+    if ((input.shareType === 'COUNTRY' || input.shareType === 'REC') && !input.sharedWithTenantId) throw Object.assign(new Error('sharedWithTenantId required for COUNTRY/REC share'), { statusCode: 400 });
+
+    // Deduplication check
+    const dupCheck = await this.pool.query(
+      `SELECT id FROM dashboard_builder.dashboard_shares
+       WHERE dashboard_id = $1 AND share_type = $2 AND status = 'ACTIVE'
+         AND (shared_with_user_id IS NOT DISTINCT FROM $3)
+         AND (shared_with_role IS NOT DISTINCT FROM $4)
+         AND (shared_with_tenant_id IS NOT DISTINCT FROM $5)
+       LIMIT 1`,
+      [dashboardId, input.shareType, input.sharedWithUserId ?? null, input.sharedWithRole ?? null, input.sharedWithTenantId ?? null],
+    );
+    if (dupCheck.rows.length > 0) throw Object.assign(new Error('Share already exists for this target'), { statusCode: 409 });
+
     const id = randomUUID();
+    const isPublic = input.shareType === 'PUBLIC';
     const { rows } = await this.pool.query(
       `INSERT INTO dashboard_builder.dashboard_shares
-        (id, dashboard_id, shared_with_user_id, shared_with_role, is_public, permission, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
+        (id, dashboard_id, shared_with_user_id, shared_with_role, shared_with_tenant_id,
+         is_public, permission, share_type, share_label, expires_at, status, created_by, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'ACTIVE',$11,NOW())
        RETURNING *`,
-      [
-        id,
-        dashboardId,
-        input.sharedWithUserId ?? null,
-        input.sharedWithRole ?? null,
-        input.isPublic ?? false,
-        input.permission ?? 'VIEW',
-        userId,
-      ],
+      [id, dashboardId, input.sharedWithUserId ?? null, input.sharedWithRole ?? null,
+       input.sharedWithTenantId ?? null, isPublic, input.permission ?? 'VIEW',
+       input.shareType, input.shareLabel ?? null, input.expiresAt ?? null, userId],
     );
+
+    await this.redis.del(`${CACHE_PREFIX}${dashboardId}`);
+
+    // Publish Kafka event
+    this.publishWithTimeout(TOPIC_SYS_ANALYTICS_DASHBOARD_SHARED, dashboardId, {
+      dashboardId, shareType: input.shareType,
+      targetId: input.sharedWithUserId ?? input.sharedWithRole ?? input.sharedWithTenantId ?? 'public',
+      targetLabel: input.shareLabel, permission: input.permission ?? 'VIEW', sharedBy: userId,
+    }).catch(() => {});
+
+    return rows[0];
+  }
+
+  async listShares(dashboardId: string, userId: string, page = 1, limit = 20): Promise<{ data: unknown[]; meta: { total: number; page: number; limit: number } }> {
+    await this.verifyOwnership(dashboardId, userId);
+
+    const countResult = await this.pool.query(
+      `SELECT COUNT(*)::int as total FROM dashboard_builder.dashboard_shares WHERE dashboard_id = $1 AND status = 'ACTIVE'`,
+      [dashboardId],
+    );
+    const total = countResult.rows[0].total;
+    const offset = (page - 1) * limit;
+
+    const { rows } = await this.pool.query(
+      `SELECT id, dashboard_id, shared_with_user_id, shared_with_role, shared_with_tenant_id,
+              is_public, permission, share_type, share_label, expires_at, status, created_by, created_at
+       FROM dashboard_builder.dashboard_shares
+       WHERE dashboard_id = $1 AND status = 'ACTIVE'
+       ORDER BY created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [dashboardId, limit, offset],
+    );
+
+    return { data: rows, meta: { total, page, limit } };
+  }
+
+  async updateShare(dashboardId: string, shareId: string, input: UpdateShareDto, userId: string): Promise<unknown> {
+    await this.verifyOwnership(dashboardId, userId);
+
+    const sets: string[] = [];
+    const params: unknown[] = [];
+    let idx = 1;
+
+    if (input.permission !== undefined) { sets.push(`permission = $${idx++}`); params.push(input.permission); }
+    if (input.expiresAt !== undefined) { sets.push(`expires_at = $${idx++}`); params.push(input.expiresAt); }
+    if (input.status !== undefined) { sets.push(`status = $${idx++}`); params.push(input.status); }
+
+    if (sets.length === 0) return {};
+
+    params.push(shareId, dashboardId);
+    const { rows } = await this.pool.query(
+      `UPDATE dashboard_builder.dashboard_shares SET ${sets.join(', ')} WHERE id = $${idx++} AND dashboard_id = $${idx++} RETURNING *`,
+      params,
+    );
+    if (rows.length === 0) throw Object.assign(new Error('Share not found'), { statusCode: 404 });
 
     await this.redis.del(`${CACHE_PREFIX}${dashboardId}`);
     return rows[0];
@@ -788,13 +869,10 @@ export class DashboardService {
     await this.verifyOwnership(dashboardId, userId);
 
     const { rowCount } = await this.pool.query(
-      `DELETE FROM dashboard_builder.dashboard_shares WHERE id = $1 AND dashboard_id = $2`,
+      `UPDATE dashboard_builder.dashboard_shares SET status = 'REVOKED' WHERE id = $1 AND dashboard_id = $2 AND status = 'ACTIVE'`,
       [shareId, dashboardId],
     );
-
-    if (rowCount === 0) {
-      throw Object.assign(new Error('Share not found'), { statusCode: 404 });
-    }
+    if (rowCount === 0) throw Object.assign(new Error('Share not found'), { statusCode: 404 });
 
     await this.redis.del(`${CACHE_PREFIX}${dashboardId}`);
   }
@@ -850,15 +928,25 @@ export class DashboardService {
   //  Helpers
   // ═══════════════════════════════════════════════════════════════════════
 
-  private hasAccess(dashboard: Record<string, unknown>, userId: string): boolean {
+  private hasAccess(dashboard: Record<string, unknown>, user: { userId: string; role?: string; tenantId?: string }): boolean {
     if (dashboard.ownership === 'SYSTEM_TEMPLATE') return true;
-    if (dashboard.owner_user_id === userId) return true;
-    // Check shares array if loaded
+    if (dashboard.owner_user_id === user.userId) return true;
     const shares = dashboard.shares as Array<Record<string, unknown>> | undefined;
-    if (shares && shares.some((s) => s.shared_with_user_id === userId || s.is_public)) {
-      return true;
-    }
-    return false;
+    if (!shares) return false;
+    const now = new Date();
+    return shares.some((s) => {
+      if (s.status !== 'ACTIVE') return false;
+      if (s.expires_at && new Date(s.expires_at as string) < now) return false;
+      const st = s.share_type || (s.is_public ? 'PUBLIC' : s.shared_with_role ? 'ROLE' : 'USER');
+      switch (st) {
+        case 'PUBLIC': return true;
+        case 'USER': return s.shared_with_user_id === user.userId;
+        case 'ROLE': return s.shared_with_role === user.role;
+        case 'COUNTRY': return s.shared_with_tenant_id === user.tenantId;
+        case 'REC': return s.shared_with_tenant_id === user.tenantId;
+        default: return false;
+      }
+    });
   }
 
   private async verifyOwnership(dashboardId: string, userId: string): Promise<void> {

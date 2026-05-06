@@ -595,27 +595,8 @@ export function useRemoveWidget() {
 
 // ─── Sharing & preferences ──────────────────────────────────────────────────
 
-export function useShareDashboard() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      dashboardId,
-      ...body
-    }: {
-      dashboardId: string;
-      targetType: 'USER' | 'ROLE' | 'TENANT';
-      targetId: string;
-      permission: 'VIEW' | 'EDIT';
-    }) =>
-      analyticsClient.post(
-        `/analytics/dashboards/${dashboardId}/share`,
-        body,
-      ),
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: KEYS.detail(vars.dashboardId) });
-    },
-  });
-}
+// Dashboard sharing — re-export from dedicated hooks file
+export { useShareDashboard } from './dashboard-share-hooks';
 
 export function useSetDashboardPreference() {
   const qc = useQueryClient();

@@ -10,7 +10,6 @@ import {
   useAddWidget,
   useRemoveWidget,
   useSaveLayout,
-  useShareDashboard,
   type WidgetType,
   type DashboardWidget,
   type DashboardSection,
@@ -18,6 +17,7 @@ import {
 import { DashboardEditor } from '@/components/dashboard-builder/DashboardEditor';
 import { WidgetConfigPanel } from '@/components/dashboard-builder/WidgetConfigPanel';
 import { AiSuggestionDialog } from '@/components/ai/AiSuggestionDialog';
+import { ShareDashboardDialog } from '@/components/dashboard-builder/ShareDashboardDialog';
 
 export default function DashboardEditPage() {
   const params = useParams();
@@ -29,7 +29,6 @@ export default function DashboardEditPage() {
   const addWidget = useAddWidget();
   const removeWidget = useRemoveWidget();
   const saveLayout = useSaveLayout();
-  const shareDashboard = useShareDashboard();
 
   const dashboard = dashboardData?.data;
   const d = dashboard as any;
@@ -119,36 +118,6 @@ export default function DashboardEditPage() {
 
   // Share dialog
   const [shareOpen, setShareOpen] = useState(false);
-  const [shareTargetType, setShareTargetType] = useState<'TENANT' | 'ROLE' | 'USER'>('TENANT');
-  const [shareTargetId, setShareTargetId] = useState('');
-  const [sharePermission, setSharePermission] = useState<'VIEW' | 'EDIT'>('VIEW');
-
-  const SHARE_ROLES = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN', 'DATA_STEWARD', 'ANALYST'] as const;
-
-  const handleShare = () => {
-    if (!shareTargetId && shareTargetType !== 'TENANT') {
-      toast.error('Please provide a target');
-      return;
-    }
-    shareDashboard.mutate(
-      {
-        dashboardId: id,
-        targetType: shareTargetType,
-        targetId: shareTargetType === 'TENANT' ? 'public' : shareTargetId,
-        permission: sharePermission,
-      },
-      {
-        onSuccess: () => {
-          toast.success('Dashboard shared successfully');
-          setShareOpen(false);
-          setShareTargetId('');
-        },
-        onError: () => {
-          toast.error('Failed to share dashboard');
-        },
-      },
-    );
-  };
 
   const handleAiAccept = useCallback(
     (draft: any) => {
@@ -434,108 +403,13 @@ export default function DashboardEditPage() {
           >
             <Redo2 className="h-4 w-4" />
           </button>
-          <div className="relative">
-            <button
-              onClick={() => setShareOpen(!shareOpen)}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            >
-              <Share2 className="h-4 w-4" />
-              Share
-            </button>
-            {shareOpen && (
-              <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl p-4 space-y-3">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Share Dashboard</p>
-
-                {/* Target type */}
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500">Share with</label>
-                  <div className="flex gap-1">
-                    {(['TENANT', 'ROLE', 'USER'] as const).map((t) => (
-                      <button
-                        key={t}
-                        onClick={() => { setShareTargetType(t); setShareTargetId(''); }}
-                        className={`flex-1 rounded px-2 py-1 text-xs font-medium transition-colors ${
-                          shareTargetType === t
-                            ? 'bg-[#1F4E79] text-white'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        {t === 'TENANT' ? 'Public' : t === 'ROLE' ? 'Role' : 'User'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Role selector */}
-                {shareTargetType === 'ROLE' && (
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-500">Role</label>
-                    <select
-                      value={shareTargetId}
-                      onChange={(e) => setShareTargetId(e.target.value)}
-                      className="w-full rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1.5 text-xs text-gray-700 dark:text-gray-200"
-                    >
-                      <option value="">Select a role...</option>
-                      {SHARE_ROLES.map((r) => (
-                        <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* User ID input */}
-                {shareTargetType === 'USER' && (
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-500">User ID</label>
-                    <input
-                      type="text"
-                      value={shareTargetId}
-                      onChange={(e) => setShareTargetId(e.target.value)}
-                      placeholder="Enter user ID..."
-                      className="w-full rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1.5 text-xs text-gray-700 dark:text-gray-200"
-                    />
-                  </div>
-                )}
-
-                {/* Permission */}
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500">Permission</label>
-                  <div className="flex gap-2">
-                    {(['VIEW', 'EDIT'] as const).map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => setSharePermission(p)}
-                        className={`flex-1 rounded px-2 py-1 text-xs font-medium transition-colors ${
-                          sharePermission === p
-                            ? 'bg-[#1F4E79] text-white'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex justify-end gap-2 pt-1">
-                  <button
-                    onClick={() => setShareOpen(false)}
-                    className="rounded px-3 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleShare}
-                    disabled={shareDashboard.isPending}
-                    className="rounded bg-[#1F4E79] px-3 py-1 text-xs font-medium text-white hover:bg-[#163a5c] disabled:opacity-50"
-                  >
-                    {shareDashboard.isPending ? 'Sharing...' : 'Share'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          <button
+            onClick={() => setShareOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <Share2 className="h-4 w-4" />
+            Share
+          </button>
           <button
             onClick={handleSave}
             disabled={isSaving}
@@ -580,6 +454,13 @@ export default function DashboardEditPage() {
         type="dashboard"
         onAccept={handleAiAccept}
         context={{ domainCode: (dashboard as any).domainCode, scope: (dashboard as any).scope }}
+      />
+
+      <ShareDashboardDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        dashboardId={id}
+        dashboardTitle={title}
       />
     </div>
   );

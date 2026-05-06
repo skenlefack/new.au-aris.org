@@ -166,13 +166,38 @@ export type WidgetIdParam = Static<typeof WidgetIdParamSchema>;
 
 // ── Share ──
 
+export const ShareTypeSchema = Type.Union([
+  Type.Literal('USER'),
+  Type.Literal('ROLE'),
+  Type.Literal('COUNTRY'),
+  Type.Literal('REC'),
+  Type.Literal('PUBLIC'),
+]);
+
 export const CreateShareSchema = Type.Object({
+  shareType: ShareTypeSchema,
   sharedWithUserId: Type.Optional(Type.String({ format: 'uuid' })),
   sharedWithRole: Type.Optional(Type.String({ maxLength: 30 })),
+  sharedWithTenantId: Type.Optional(Type.String({ format: 'uuid' })),
   isPublic: Type.Optional(Type.Boolean({ default: false })),
   permission: Type.Optional(SharePermissionSchema),
+  shareLabel: Type.Optional(Type.String({ maxLength: 120 })),
+  expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
 });
 export type CreateShareDto = Static<typeof CreateShareSchema>;
+
+export const UpdateShareSchema = Type.Object({
+  permission: Type.Optional(SharePermissionSchema),
+  expiresAt: Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
+  status: Type.Optional(Type.Union([Type.Literal('ACTIVE'), Type.Literal('REVOKED')])),
+});
+export type UpdateShareDto = Static<typeof UpdateShareSchema>;
+
+export const ListSharesQuerySchema = Type.Object({
+  page: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 50, default: 20 })),
+});
+export type ListSharesQuery = Static<typeof ListSharesQuerySchema>;
 
 export const ShareIdParamSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),

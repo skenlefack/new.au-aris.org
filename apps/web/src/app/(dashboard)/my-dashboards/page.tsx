@@ -48,9 +48,11 @@ const SCOPE_LABELS: Record<DashboardScope, string> = {
 function DashboardCard({
   dashboard,
   onDelete,
+  isShared,
 }: {
   dashboard: DashboardListItem;
   onDelete?: (id: string) => void;
+  isShared?: boolean;
 }) {
   return (
     <div className="group relative rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-shadow">
@@ -72,11 +74,19 @@ function DashboardCard({
               )}
             </div>
           </div>
-          {dashboard.isDefault && (
-            <span className="rounded-full bg-[#C9A227]/10 px-2 py-0.5 text-[10px] font-semibold text-[#C9A227]">
-              Default
-            </span>
-          )}
+          <div className="flex items-center gap-1.5">
+            {isShared && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                <Share2 className="h-3 w-3" />
+                Shared with you
+              </span>
+            )}
+            {dashboard.isDefault && (
+              <span className="rounded-full bg-[#C9A227]/10 px-2 py-0.5 text-[10px] font-semibold text-[#C9A227]">
+                Default
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Meta */}
@@ -300,6 +310,7 @@ export default function MyDashboardsPage() {
                 key={d.id}
                 dashboard={d}
                 onDelete={activeTab === 'USER_OWNED' ? handleDelete : undefined}
+                isShared={activeTab === 'SHARED'}
               />
             ))}
           </div>

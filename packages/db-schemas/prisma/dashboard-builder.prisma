@@ -209,6 +209,13 @@ model DashboardShare {
   // ── Permission ──
   permission       SharePermission  @default(VIEW)
 
+  // ── Extended sharing (5 target types) ──
+  sharedWithTenantId String?  @map("shared_with_tenant_id") @db.Uuid
+  shareType          String   @default("USER") @map("share_type") @db.VarChar(10)
+  shareLabel         String?  @map("share_label") @db.VarChar(120)
+  expiresAt          DateTime? @map("expires_at") @db.Timestamptz
+  status             String   @default("ACTIVE") @map("status") @db.VarChar(10)
+
   // ── Audit ──
   createdBy        String           @map("created_by") @db.Uuid
   createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz
@@ -216,6 +223,9 @@ model DashboardShare {
   @@index([dashboardId], map: "idx_share_dashboard_id")
   @@index([sharedWithUserId], map: "idx_share_user_id")
   @@index([isPublic], map: "idx_share_is_public")
+  @@index([sharedWithTenantId], map: "idx_share_tenant_id")
+  @@index([status], map: "idx_share_status")
+  @@index([shareType], map: "idx_share_type")
   @@map("dashboard_shares")
   @@schema("dashboard_builder")
 }
