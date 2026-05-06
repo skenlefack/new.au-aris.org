@@ -211,16 +211,22 @@ export class DbStatsService {
     try {
       const { rows: [r] } = await client.query(`
         SELECT
-          -- Countries reporting (distinct real country names with >50 reports)
-          (SELECT COUNT(*) FROM (
-            SELECT SPLIT_PART(admin_location, ' / ', 1) AS c
-            FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
-            WHERE admin_location ~ '^[A-Za-z]'
-              AND LENGTH(SPLIT_PART(admin_location, ' / ', 1)) > 2
-              AND SPLIT_PART(admin_location, ' / ', 1) !~ '[0-9]'
-              AND SPLIT_PART(admin_location, ' / ', 1) NOT IN ('Total','QUARANTINE')
-            GROUP BY c HAVING COUNT(*) > 50
-          ) x)::int AS countries_reporting,
+          -- Countries reporting (match against AU 55 Member State names)
+          (SELECT COUNT(DISTINCT LOWER(SPLIT_PART(admin_location, ' / ', 1)))
+           FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo
+           WHERE LOWER(SPLIT_PART(admin_location, ' / ', 1)) IN (
+             'algeria','angola','benin','botswana','burkina faso','burundi','cameroon',
+             'cape verde','car','chad','comoros','congo brazaville','cote d''ivoire',
+             'cote d''ivore','côte d''ivoire','djibouti','dr congo','drc','egypt',
+             'equatorial guinea','eritrea','eswatini','swaziland','ethiopia','gabon',
+             'gambia','the gambia','ghana','guinea','guinée','guinea conackry',
+             'guinea conakry','guinee conakry','guinea-bissau','kenya','lesotho',
+             'liberia','libya','madagascar','malawi','mali','mauritania','mauritius',
+             'mozambique','namibia','niger','nigeria','rwanda','sahrawi republic',
+             'sao tome and principe','senegal','sénégal','seychelles','sierra leone',
+             'somalia','south africa','south sudan','sudan','tanzania','togo','tunisia',
+             'tunisa','uganda','zambia','zimbabwe'
+           ))::int AS countries_reporting,
           -- Total health reports
           (SELECT COUNT(*)
            FROM historical.hdata_animal_health_au_ibar_monthly_animal_health_report_his_mo)::int AS health_reports,
