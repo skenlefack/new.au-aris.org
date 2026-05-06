@@ -99,18 +99,21 @@ export default function PublicKnowledgePortalPage() {
       {/* ── Hero ────────────────────────────────────────────── */}
       <section className="px-6 pt-16 pb-12 text-center">
         <div className="mx-auto flex max-w-3xl flex-col items-center">
-          <Link href="/">
+          <Link href="/" className="mb-4 flex items-center gap-3">
             <Image
               src="/au-logo.png"
               alt="African Union"
               width={96}
               height={96}
-              className="mb-4 h-24 w-24 object-contain drop-shadow-md"
+              className="h-24 w-24 object-contain drop-shadow-md"
               priority
             />
+            <span className="text-5xl font-extrabold tracking-tight md:text-6xl" style={{ color: '#800020' }}>
+              ARIS
+            </span>
           </Link>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white md:text-5xl">
-            AU-IBAR Knowledge Hub
+            AU-ARIS Knowledge Hub
           </h1>
           <p className="mt-3 max-w-xl text-lg text-gray-600 dark:text-gray-300">
             Search policies, reports, news and technical resources from across the African Union
