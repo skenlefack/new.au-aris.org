@@ -54,9 +54,10 @@ export const CreateIndicatorTypeSchema = Type.Object({
 });
 export type CreateIndicatorTypeDto = Static<typeof CreateIndicatorTypeSchema>;
 
-export const UpdateIndicatorTypeSchema = Type.Partial(
-  Type.Omit(CreateIndicatorTypeSchema, ['code']),
-);
+export const UpdateIndicatorTypeSchema = Type.Intersect([
+  Type.Partial(Type.Omit(CreateIndicatorTypeSchema, ['code'])),
+  Type.Object({ active: Type.Optional(Type.Boolean()) }),
+]);
 export type UpdateIndicatorTypeDto = Static<typeof UpdateIndicatorTypeSchema>;
 
 // ── Indicator ──
@@ -94,9 +95,10 @@ export const CreateIndicatorSchema = Type.Object({
 });
 export type CreateIndicatorDto = Static<typeof CreateIndicatorSchema>;
 
-export const UpdateIndicatorSchema = Type.Partial(
-  Type.Omit(CreateIndicatorSchema, ['code']),
-);
+export const UpdateIndicatorSchema = Type.Intersect([
+  Type.Partial(Type.Omit(CreateIndicatorSchema, ['code'])),
+  Type.Object({ active: Type.Optional(Type.Boolean()) }),
+]);
 export type UpdateIndicatorDto = Static<typeof UpdateIndicatorSchema>;
 
 // ── Indicator Value ──

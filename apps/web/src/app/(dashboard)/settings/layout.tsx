@@ -63,7 +63,6 @@ export default function SettingsLayout({
     { href: '/settings/translations', label: t('translations'), icon: <Wand2 className="h-4 w-4" />, section: 'translations' },
     { href: '/settings/data-quality', label: t('dataQuality'), icon: <ShieldCheck className="h-4 w-4" />, section: 'data-quality' },
     { href: '/settings/statistics', label: t('statistics'), icon: <TrendingUp className="h-4 w-4" />, section: 'statistics' },
-    { href: '/settings/kpis', label: t('kpiIndicators'), icon: <Activity className="h-4 w-4" />, section: 'kpis' },
     { href: '/settings/domains', label: t('domains'), icon: <Layers className="h-4 w-4" />, section: 'domains' },
     { href: '/settings/sub-domains', label: t('subDomains') !== 'subDomains' ? t('subDomains') : 'Sub-domains', icon: <Network className="h-4 w-4" />, section: 'sub-domains' },
     { href: '/settings/indicator-types', label: t('indicatorTypes') !== 'indicatorTypes' ? t('indicatorTypes') : 'Indicator Types', icon: <BarChart3 className="h-4 w-4" />, section: 'indicator-types' },

@@ -30,6 +30,16 @@ import type {
 const CACHE_PREFIX = 'analytics:indicator:';
 const CACHE_TTL = 300; // 5 min
 
+/** Convert snake_case DB row keys to camelCase for frontend consumption. */
+function toCamelCase(row: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+    result[camel] = value;
+  }
+  return result;
+}
+
 export class IndicatorService {
   private pool: Pool;
 
@@ -59,8 +69,9 @@ export class IndicatorService {
     const { rows } = await this.pool.query(
       `SELECT * FROM analytics.indicator_types WHERE active = true ORDER BY display_order, code`,
     );
-    await this.redis.set(cacheKey, JSON.stringify(rows), CACHE_TTL);
-    return rows;
+    const camelRows = rows.map(toCamelCase);
+    await this.redis.set(cacheKey, JSON.stringify(camelRows), CACHE_TTL);
+    return camelRows;
   }
 
   async createIndicatorType(dto: CreateIndicatorTypeDto): Promise<unknown> {
@@ -76,7 +87,7 @@ export class IndicatorService {
       ],
     );
     await this.redis.del(`${CACHE_PREFIX}types`);
-    return rows[0];
+    return toCamelCase(rows[0]);
   }
 
   async updateIndicatorType(code: string, dto: UpdateIndicatorTypeDto): Promise<unknown> {
@@ -87,7 +98,7 @@ export class IndicatorService {
     const fieldMap: Record<string, string> = {
       labelFr: 'label_fr', labelEn: 'label_en', labelAr: 'label_ar', labelPt: 'label_pt',
       description: 'description', color: 'color', iconName: 'icon_name',
-      externalRef: 'external_ref', displayOrder: 'display_order',
+      externalRef: 'external_ref', displayOrder: 'display_order', active: 'active',
     };
 
     for (const [key, col] of Object.entries(fieldMap)) {
@@ -108,7 +119,7 @@ export class IndicatorService {
     );
     if (rows.length === 0) throw Object.assign(new Error('Indicator type not found'), { statusCode: 404 });
     await this.redis.del(`${CACHE_PREFIX}types`);
-    return rows[0];
+    return toCamelCase(rows[0]);
   }
 
   async deleteIndicatorType(code: string): Promise<void> {
@@ -122,7 +133,7 @@ export class IndicatorService {
 
   private async getIndicatorTypeByCode(code: string): Promise<unknown> {
     const { rows } = await this.pool.query(`SELECT * FROM analytics.indicator_types WHERE code = $1`, [code]);
-    return rows[0] ?? null;
+    return rows[0] ? toCamelCase(rows[0]) : null;
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -168,7 +179,7 @@ export class IndicatorService {
       params,
     );
 
-    return { data: rows, meta: { total, page, limit } };
+    return { data: rows.map(toCamelCase), meta: { total, page, limit } };
   }
 
   async getIndicatorById(id: string): Promise<unknown> {
@@ -189,8 +200,9 @@ export class IndicatorService {
     );
     if (rows.length === 0) throw Object.assign(new Error('Indicator not found'), { statusCode: 404 });
 
-    await this.redis.set(cacheKey, JSON.stringify(rows[0]), CACHE_TTL);
-    return rows[0];
+    const camelRow = toCamelCase(rows[0]);
+    await this.redis.set(cacheKey, JSON.stringify(camelRow), CACHE_TTL);
+    return camelRow;
   }
 
   async getIndicatorByCode(code: string): Promise<unknown> {
@@ -204,7 +216,7 @@ export class IndicatorService {
       [code],
     );
     if (rows.length === 0) throw Object.assign(new Error('Indicator not found'), { statusCode: 404 });
-    return rows[0];
+    return toCamelCase(rows[0]);
   }
 
   async createIndicator(dto: CreateIndicatorDto, userId?: string): Promise<unknown> {
@@ -237,8 +249,9 @@ export class IndicatorService {
       ],
     );
 
-    await this.publishWithTimeout(TOPIC_SYS_ANALYTICS_INDICATOR_CREATED, id, rows[0]);
-    return rows[0];
+    const camelRow = toCamelCase(rows[0]);
+    await this.publishWithTimeout(TOPIC_SYS_ANALYTICS_INDICATOR_CREATED, id, camelRow);
+    return camelRow;
   }
 
   async updateIndicator(id: string, dto: UpdateIndicatorDto): Promise<unknown> {
@@ -255,6 +268,7 @@ export class IndicatorService {
       unit: 'unit', decimalPlaces: 'decimal_places', formatPattern: 'format_pattern',
       targetValue: 'target_value', thresholds: 'thresholds', betterIsHigher: 'better_is_higher',
       isPublic: 'is_public', externalFrameworkReference: 'external_framework_reference', notes: 'notes',
+      active: 'active',
     };
 
     const sets: string[] = [];
@@ -280,9 +294,10 @@ export class IndicatorService {
     );
     if (rows.length === 0) throw Object.assign(new Error('Indicator not found'), { statusCode: 404 });
 
+    const camelRow = toCamelCase(rows[0]);
     await this.redis.del(`${CACHE_PREFIX}${id}`);
-    await this.publishWithTimeout(TOPIC_SYS_ANALYTICS_INDICATOR_UPDATED, id, rows[0]);
-    return rows[0];
+    await this.publishWithTimeout(TOPIC_SYS_ANALYTICS_INDICATOR_UPDATED, id, camelRow);
+    return camelRow;
   }
 
   async deleteIndicator(id: string): Promise<void> {
@@ -328,7 +343,7 @@ export class IndicatorService {
       params,
     );
 
-    return { data: rows, meta: { total, page, limit } };
+    return { data: rows.map(toCamelCase), meta: { total, page, limit } };
   }
 
   async getLatestValue(indicatorId: string): Promise<unknown> {
@@ -339,7 +354,7 @@ export class IndicatorService {
        LIMIT 1`,
       [indicatorId],
     );
-    return rows[0] ?? null;
+    return rows[0] ? toCamelCase(rows[0]) : null;
   }
 
   async createValue(indicatorId: string, dto: CreateIndicatorValueDto, userId?: string): Promise<unknown> {
@@ -358,11 +373,12 @@ export class IndicatorService {
       ],
     );
 
+    const camelValueRow = toCamelCase(rows[0]);
     await this.publishWithTimeout(TOPIC_SYS_ANALYTICS_INDICATOR_VALUE_CREATED, id, {
       indicatorId,
-      ...rows[0],
+      ...camelValueRow,
     });
-    return rows[0];
+    return camelValueRow;
   }
 
   async bulkCreateValues(
