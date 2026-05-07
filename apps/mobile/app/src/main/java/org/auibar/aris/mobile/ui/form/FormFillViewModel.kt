@@ -229,13 +229,28 @@ class FormFillViewModel @Inject constructor(
     private fun loadAdmin2(admin1Id: String) {
         viewModelScope.launch {
             try {
+                // Primary: children of admin1
                 val items = campaignApi.getGeoUnits(null, admin1Id)
                 if (items.isNotEmpty()) {
                     _uiState.value = _uiState.value.copy(admin2Options = items.map { SelectOption(value = it.id, label = it.displayLabel()) })
-                    Log.d(TAG, "Admin2 from API: ${items.size}")
+                    Log.d(TAG, "Admin2 from API (parentId=$admin1Id): ${items.size}")
                     return@launch
                 }
-            } catch (_: Exception) {}
+                // Fallback: some countries have admin2 parentId pointing to country, not admin1
+                // Get the selected country and load admin2 from country level with ADMIN2 filter
+                val countryId = _uiState.value.values["_country"]
+                if (!countryId.isNullOrBlank()) {
+                    val admin2All = campaignApi.getGeoUnits("ADMIN2", countryId)
+                    if (admin2All.isNotEmpty()) {
+                        _uiState.value = _uiState.value.copy(admin2Options = admin2All.map { SelectOption(value = it.id, label = it.displayLabel()) })
+                        Log.d(TAG, "Admin2 fallback (country=$countryId): ${admin2All.size}")
+                        return@launch
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Admin2 API failed: ${e.message}")
+            }
+            // Room fallback
             val children = geoDao.getChildren(admin1Id).map { SelectOption(value = it.id, label = it.name) }
             _uiState.value = _uiState.value.copy(admin2Options = children)
         }

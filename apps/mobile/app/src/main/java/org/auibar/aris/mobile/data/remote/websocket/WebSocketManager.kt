@@ -241,10 +241,17 @@ class WebSocketManager @Inject constructor(
     }
 
     private fun scheduleReconnect() {
+        // Stop after 10 attempts to avoid battery drain when offline
+        if (reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) {
+            Log.w(TAG, "Max reconnect attempts ($MAX_RECONNECT_ATTEMPTS) reached, stopping")
+            shouldReconnect = false
+            _connectionState.value = ConnectionState.DISCONNECTED
+            return
+        }
         scope.launch {
             reconnectAttempt++
             val delayMs = calculateBackoff(reconnectAttempt)
-            Log.d(TAG, "Reconnecting in ${delayMs}ms (attempt $reconnectAttempt)")
+            Log.d(TAG, "Reconnecting in ${delayMs}ms (attempt $reconnectAttempt/$MAX_RECONNECT_ATTEMPTS)")
             _connectionState.value = ConnectionState.RECONNECTING
             delay(delayMs)
             if (shouldReconnect) {
@@ -284,8 +291,9 @@ class WebSocketManager @Inject constructor(
 
     companion object {
         private const val TAG = "WebSocketManager"
-        private const val BASE_DELAY_MS = 1000L
-        private const val MAX_DELAY_MS = 30_000L
+        private const val BASE_DELAY_MS = 2000L
+        private const val MAX_DELAY_MS = 60_000L
+        private const val MAX_RECONNECT_ATTEMPTS = 10
 
         /**
          * Exponential backoff: base * 2^(attempt-1), capped at MAX_DELAY_MS.
