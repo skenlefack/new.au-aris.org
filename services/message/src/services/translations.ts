@@ -33,10 +33,10 @@ const labels: Record<string, Record<Locale, string>> = {
     ar: 'إشعار ARIS — الاتحاد الأفريقي المكتب الأفريقي المشترك للموارد الحيوانية',
   },
   'layout.automated_notice': {
-    en: 'This is an automated notification from ARIS 4.0',
-    fr: 'Ceci est une notification automatique d\'ARIS 4.0',
-    pt: 'Esta é uma notificação automática do ARIS 4.0',
-    ar: 'هذا إشعار آلي من ARIS 4.0',
+    en: 'This is an automated notification from ARIS',
+    fr: 'Ceci est une notification automatique d\'ARIS',
+    pt: 'Esta é uma notificação automática do ARIS',
+    ar: 'هذا إشعار آلي من ARIS',
   },
   'layout.unsubscribe': {
     en: 'Unsubscribe',

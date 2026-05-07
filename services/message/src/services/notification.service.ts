@@ -143,7 +143,7 @@ export class NotificationService {
       subject: 'ARIS — Test Email (Postmark / SMTP)',
       body: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-          <h2 style="color:#1a1a1a">Test Email — ARIS 4.0</h2>
+          <h2 style="color:#1a1a1a">Test Email — ARIS</h2>
           <p style="color:#444">This is a test email sent from the ARIS notification system.</p>
           <p style="color:#444">If you received this, your email provider is configured correctly.</p>
           <p style="color:#888;font-size:12px;margin-top:24px">Sent at: ${new Date().toISOString()}</p>
