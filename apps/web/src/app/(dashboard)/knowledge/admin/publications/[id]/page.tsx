@@ -6,7 +6,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Send, Trash2, Archive } from 'lucide-react';
+import { ArrowLeft, Send, Trash2, Archive, Pencil } from 'lucide-react';
 import {
   usePublication,
   useSubmitPublication,
@@ -61,6 +61,14 @@ export default function PublicationDetailPage() {
 
       {/* Actions */}
       <div className="flex flex-wrap gap-2 rounded-lg border bg-card p-4">
+        {(pub.status === 'DRAFT' || pub.status === 'REJECTED') && (isOwner || isReviewer) && (
+          <Link
+            href={`/knowledge/admin/publications/${pub.id}/edit`}
+            className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+          >
+            <Pencil className="h-4 w-4" /> Edit
+          </Link>
+        )}
         {(pub.status === 'DRAFT' || pub.status === 'REJECTED') && isOwner && (
           <button
             onClick={() => submitMut.mutate(pub.id)}

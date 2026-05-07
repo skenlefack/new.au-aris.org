@@ -39,9 +39,14 @@ const VALUE_CHAIN_ICONS: Record<string, React.ReactNode> = {
 
 const VALUE_CHAIN_SLUGS = new Set(Object.keys(VALUE_CHAIN_ICONS));
 
+/** Shorthand: build a LocalisedText from flat category fields and pick the best locale. */
+const catName = (cat: KnowledgeCategory, locale = 'en') =>
+  pickLocale({ en: cat.nameEn, fr: cat.nameFr ?? undefined, pt: cat.namePt ?? undefined, ar: cat.nameAr ?? undefined }, locale);
+
 export default function PublicKnowledgePortalPage() {
   const router = useRouter();
   const [q, setQ] = useState('');
+  const locale = 'en'; // TODO: wire to browser locale or URL param
 
   const tree = usePublicCategoryTree();
   const stats = usePublicKnowledgeStats();
@@ -182,6 +187,7 @@ export default function PublicKnowledgePortalPage() {
               categories={continental}
               loading={tree.isLoading}
               useValueChainCards
+              locale={locale}
             />
 
             {/* RECs — collapsed */}
@@ -194,6 +200,7 @@ export default function PublicKnowledgePortalPage() {
               twoColumns
               collapsed
               loading={tree.isLoading}
+              locale={locale}
             />
 
             {/* Countries — collapsed */}
@@ -207,6 +214,7 @@ export default function PublicKnowledgePortalPage() {
               collapsed
               collapsedCount={55}
               loading={tree.isLoading}
+              locale={locale}
             />
           </div>
 
@@ -226,7 +234,7 @@ export default function PublicKnowledgePortalPage() {
                           {i + 1}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium group-hover:text-emerald-700">{pickLocale(hit.title, 'en')}</p>
+                          <p className="truncate text-sm font-medium group-hover:text-emerald-700">{pickLocale(hit.title, locale)}</p>
                           <p className="text-xs text-gray-400">{hit.type}</p>
                         </div>
                       </Link>
@@ -247,7 +255,7 @@ export default function PublicKnowledgePortalPage() {
                   {allHits.slice(0, 5).map((hit) => (
                     <li key={hit.id}>
                       <Link href={`/knowledge/p/${hit.slug}`} className="group block">
-                        <p className="truncate text-sm font-medium group-hover:text-emerald-700">{pickLocale(hit.title, 'en')}</p>
+                        <p className="truncate text-sm font-medium group-hover:text-emerald-700">{pickLocale(hit.title, locale)}</p>
                         <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
                           <span className="rounded bg-blue-50 px-1.5 py-0.5 font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">{hit.type}</span>
                           {hit.publishedAt && <span>{new Date(hit.publishedAt).toLocaleDateString()}</span>}
@@ -280,7 +288,7 @@ export default function PublicKnowledgePortalPage() {
                       >
                         <div className="flex items-center gap-2 overflow-hidden">
                           <Folder className="h-3.5 w-3.5 shrink-0 text-orange-500" />
-                          <span className="truncate text-sm group-hover:text-emerald-700">{cat.nameEn}</span>
+                          <span className="truncate text-sm group-hover:text-emerald-700">{catName(cat, locale)}</span>
                         </div>
                         <span className="ml-2 shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                           {cat.totalPubs}
@@ -321,7 +329,7 @@ export default function PublicKnowledgePortalPage() {
 
 // ─── Value Chain Card ───────────────────────────────────────────────────────
 
-function ValueChainCard({ cat }: { cat: KnowledgeCategory }) {
+function ValueChainCard({ cat, locale = 'en' }: { cat: KnowledgeCategory; locale?: string }) {
   const totalPubs = useMemo(() => {
     let n = cat.publicationCount ?? 0;
     const visit = (cs?: KnowledgeCategory[]) => {
@@ -357,9 +365,9 @@ function ValueChainCard({ cat }: { cat: KnowledgeCategory }) {
 
         {/* Title */}
         <h3 className="text-sm font-bold text-gray-900 group-hover:text-emerald-700 dark:text-white dark:group-hover:text-emerald-400">
-          {cat.nameEn}
+          {catName(cat, locale)}
         </h3>
-        {cat.nameFr && cat.nameFr !== cat.nameEn && (
+        {locale === 'en' && cat.nameFr && cat.nameFr !== cat.nameEn && (
           <p className="mt-0.5 text-xs text-gray-400">{cat.nameFr}</p>
         )}
       </div>
@@ -414,7 +422,7 @@ function WidgetSkeleton({ count }: { count: number }) {
 }
 
 function ScopeBlock({
-  icon, label, tagline, color, categories, twoColumns, collapsed, collapsedCount, loading, useValueChainCards,
+  icon, label, tagline, color, categories, twoColumns, collapsed, collapsedCount, loading, useValueChainCards, locale = 'en',
 }: {
   icon: React.ReactNode;
   label: string;
@@ -426,6 +434,7 @@ function ScopeBlock({
   collapsedCount?: number;
   loading?: boolean;
   useValueChainCards?: boolean;
+  locale?: string;
 }) {
   const [open, setOpen] = useState(!collapsed);
 
@@ -464,13 +473,13 @@ function ScopeBlock({
           useValueChainCards ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {categories.map((cat) => (
-                <ValueChainCard key={cat.id} cat={cat} />
+                <ValueChainCard key={cat.id} cat={cat} locale={locale} />
               ))}
             </div>
           ) : (
             <div className={`grid gap-3 ${twoColumns ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
               {categories.map((cat) => (
-                <CategoryRootCard key={cat.id} cat={cat} accent={color} />
+                <CategoryRootCard key={cat.id} cat={cat} accent={color} locale={locale} />
               ))}
             </div>
           )
@@ -482,7 +491,7 @@ function ScopeBlock({
   );
 }
 
-function CategoryRootCard({ cat, accent }: { cat: KnowledgeCategory; accent: string }) {
+function CategoryRootCard({ cat, accent, locale = 'en' }: { cat: KnowledgeCategory; accent: string; locale?: string }) {
   const totalPubs = useMemo(() => {
     let n = cat.publicationCount ?? 0;
     const visit = (cs?: KnowledgeCategory[]) => {
@@ -501,10 +510,10 @@ function CategoryRootCard({ cat, accent }: { cat: KnowledgeCategory; accent: str
     >
       <Folder className="mt-0.5 h-4 w-4 shrink-0" style={{ color: accent }} />
       <div className="flex-1 overflow-hidden">
-        <div className="font-semibold group-hover:text-emerald-700">{cat.nameEn}</div>
+        <div className="font-semibold group-hover:text-emerald-700">{catName(cat, locale)}</div>
         {(cat.children?.length ?? 0) > 0 && (
           <div className="mt-1 truncate text-xs text-gray-400">
-            {cat.children!.map((c) => c.nameEn).slice(0, 4).join(' \u00B7 ')}
+            {cat.children!.map((c) => catName(c, locale)).slice(0, 4).join(' \u00B7 ')}
             {(cat.children!.length ?? 0) > 4 ? ' \u2026' : ''}
           </div>
         )}

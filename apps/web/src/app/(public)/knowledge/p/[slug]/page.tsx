@@ -34,23 +34,26 @@ export default function PublicPublicationPage() {
 
   const pub = data.data;
   const availableLocales = LOCALES.filter((l) => pub.title?.[l] || pub.contentHtml?.[l]);
+  const catLabel = (cat: { nameEn: string; nameFr?: string | null; namePt?: string | null; nameAr?: string | null }) =>
+    pickLocale({ en: cat.nameEn, fr: cat.nameFr ?? undefined, pt: cat.namePt ?? undefined, ar: cat.nameAr ?? undefined }, locale);
+
   const breadcrumbItems: BreadcrumbItem[] = [
     ...(pub.category
-      ? [{ label: pub.category.nameEn, href: `/knowledge/c/${pub.category.slug}` }]
+      ? [{ label: catLabel(pub.category), href: `/knowledge/c/${pub.category.slug}` }]
       : []),
-    { label: pickLocale(pub.title, 'en') || 'Publication' },
+    { label: pickLocale(pub.title, locale) || 'Publication' },
   ];
 
   return (
     <>
-      <PublicKnowledgeHeader context={pub.category?.nameEn} />
+      <PublicKnowledgeHeader context={pub.category ? catLabel(pub.category) : undefined} />
     <article className="mx-auto max-w-4xl px-6 py-8">
       <KnowledgeBreadcrumb items={breadcrumbItems} />
 
       <header className="mt-6 space-y-3">
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <span className="rounded bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700">{pub.type}</span>
-          {pub.category && <span>· {pub.category.nameEn}</span>}
+          {pub.category && <span>· {catLabel(pub.category)}</span>}
           {pub.publishedAt && <span>· {new Date(pub.publishedAt).toLocaleDateString()}</span>}
         </div>
 

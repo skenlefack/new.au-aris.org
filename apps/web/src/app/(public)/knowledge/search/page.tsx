@@ -17,6 +17,7 @@ import { KnowledgeBreadcrumb } from '@/components/knowledge/KnowledgeBreadcrumb'
 
 function SearchResultsInner() {
   const params = useSearchParams();
+  const locale = 'en'; // TODO: wire to browser locale or URL param
   const initialQ = params.get('q') ?? '';
   const [page, setPage] = useState(1);
   const [type, setType] = useState<PublicationType | undefined>();
@@ -164,7 +165,7 @@ function SearchResultsInner() {
                   <Link href={`/knowledge/p/${hit.slug}`} className="group block">
                     <p className="text-xs text-gray-500">/{hit.scope?.toLowerCase()} · {hit.type}</p>
                     <h2 className="text-lg font-medium text-blue-700 group-hover:underline">
-                      {pickLocale(hit.title, 'en')}
+                      {pickLocale(hit.title, locale)}
                     </h2>
                     {hit.highlight ? (
                       <p
@@ -172,7 +173,7 @@ function SearchResultsInner() {
                         dangerouslySetInnerHTML={{ __html: hit.highlight }}
                       />
                     ) : hit.summary ? (
-                      <p className="mt-1 text-sm text-gray-600">{pickLocale(hit.summary, 'en')}</p>
+                      <p className="mt-1 text-sm text-gray-600">{pickLocale(hit.summary, locale)}</p>
                     ) : null}
                     {hit.tags.length > 0 && (
                       <div className="mt-2 flex gap-1.5">

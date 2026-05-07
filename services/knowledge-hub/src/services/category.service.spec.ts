@@ -348,6 +348,168 @@ describe('CategoryService', () => {
   });
 
   // ────────────────────────────────────────────────────────────
+  // update
+  // ────────────────────────────────────────────────────────────
+
+  describe('update', () => {
+    it('updates category name/icon/color fields', async () => {
+      const existing = makeCategory({ id: 'cat-upd', scope: 'CONTINENTAL' });
+      prisma.knowledgeCategory.findUnique.mockResolvedValue(existing);
+
+      const updated = { ...existing, nameEn: 'Updated Health', icon: 'heart', color: '#FF0000' };
+      prisma.knowledgeCategory.update.mockResolvedValue(updated);
+
+      const result = await service.update(
+        'cat-upd',
+        { nameEn: 'Updated Health', icon: 'heart', color: '#FF0000' } as any,
+        continentalManager,
+      );
+
+      expect(result.data).toEqual(updated);
+      const updateCall = prisma.knowledgeCategory.update.mock.calls[0][0];
+      expect(updateCall.data.nameEn).toBe('Updated Health');
+      expect(updateCall.data.icon).toBe('heart');
+      expect(updateCall.data.color).toBe('#FF0000');
+    });
+
+    it('rejects update if category not found (404)', async () => {
+      prisma.knowledgeCategory.findUnique.mockResolvedValue(null);
+
+      const err = await service.update('cat-missing', { nameEn: 'X' } as any, continentalManager).catch((e) => e);
+      expect(err.statusCode).toBe(404);
+      expect(err.message).toMatch(/Category not found/);
+    });
+
+    it('rejects update if user cannot manage category (403)', async () => {
+      const recCat = makeCategory({
+        id: 'cat-rec',
+        scope: 'REC',
+        scopeTenantId: 't-ecowas',
+        isSystem: false,
+      });
+      prisma.knowledgeCategory.findUnique.mockResolvedValue(recCat);
+
+      const err = await service.update('cat-rec', { nameEn: 'X' } as any, recUser).catch((e) => e);
+      expect(err.statusCode).toBe(403);
+    });
+
+    it('does not allow re-parenting a system category', async () => {
+      const systemCat = makeCategory({ id: 'cat-sys', isSystem: true, scope: 'CONTINENTAL' });
+      prisma.knowledgeCategory.findUnique.mockResolvedValue(systemCat);
+
+      const err = await service.update(
+        'cat-sys',
+        { parentId: 'cat-other' } as any,
+        continentalManager,
+      ).catch((e) => e);
+      expect(err.statusCode).toBe(400);
+      expect(err.message).toMatch(/System categories cannot be re-parented/);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────
+  // findById
+  // ────────────────────────────────────────────────────────────
+
+  describe('findById', () => {
+    it('returns category when user has visibility', async () => {
+      const cat = makeCategory({ id: 'cat-vis', scope: 'CONTINENTAL', isActive: true });
+      prisma.knowledgeCategory.findUnique.mockResolvedValue(cat);
+
+      const result = await service.findById('cat-vis', continentalManager);
+
+      expect(result.data).toEqual(cat);
+      expect(prisma.knowledgeCategory.findUnique).toHaveBeenCalledWith({ where: { id: 'cat-vis' } });
+    });
+
+    it('returns 404 when category does not exist', async () => {
+      prisma.knowledgeCategory.findUnique.mockResolvedValue(null);
+
+      const err = await service.findById('cat-gone', continentalManager).catch((e) => e);
+      expect(err.statusCode).toBe(404);
+      expect(err.message).toMatch(/Category not found/);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────
+  // findBySlug
+  // ────────────────────────────────────────────────────────────
+
+  describe('findBySlug', () => {
+    it('returns category by slug', async () => {
+      const cat = makeCategory({ slug: 'animal-health', scope: 'CONTINENTAL', isActive: true });
+      prisma.knowledgeCategory.findUnique.mockResolvedValue(cat);
+
+      const result = await service.findBySlug('animal-health', continentalManager);
+
+      expect(result.data).toEqual(cat);
+      expect(prisma.knowledgeCategory.findUnique).toHaveBeenCalledWith({ where: { slug: 'animal-health' } });
+    });
+
+    it('returns 404 when slug not found', async () => {
+      prisma.knowledgeCategory.findUnique.mockResolvedValue(null);
+
+      const err = await service.findBySlug('nonexistent-slug', recUser).catch((e) => e);
+      expect(err.statusCode).toBe(404);
+      expect(err.message).toMatch(/Category not found/);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────
+  // tree
+  // ────────────────────────────────────────────────────────────
+
+  describe('tree', () => {
+    it('returns hierarchical tree structure', async () => {
+      const parent = makeCategory({ id: 'cat-root', parentId: null, slug: 'root', nameEn: 'Root' });
+      const child = makeCategory({ id: 'cat-child', parentId: 'cat-root', slug: 'child', nameEn: 'Child' });
+      prisma.knowledgeCategory.findMany.mockResolvedValue([parent, child]);
+
+      const result = await service.tree({}, continentalManager);
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].id).toBe('cat-root');
+      expect(result.data[0].children).toHaveLength(1);
+      expect(result.data[0].children![0].id).toBe('cat-child');
+    });
+
+    it('includes publication counts when requested', async () => {
+      const cat = makeCategory({ id: 'cat-counted', parentId: null });
+      prisma.knowledgeCategory.findMany.mockResolvedValue([cat]);
+      prisma.knowledgePublication.count.mockResolvedValue(0); // not used directly — groupBy is
+
+      // The tree method calls knowledgePublication.groupBy
+      const mockGroupBy = vi.fn().mockResolvedValue([
+        { categoryId: 'cat-counted', _count: { _all: 5 } },
+      ]);
+      (prisma as any).knowledgePublication.groupBy = mockGroupBy;
+
+      const result = await service.tree({ withCounts: true }, continentalManager);
+
+      expect(result.data[0].publicationCount).toBe(5);
+      expect(mockGroupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          by: ['categoryId'],
+          where: { status: 'PUBLISHED' },
+        }),
+      );
+    });
+
+    it('filters by scope/tenant visibility for MEMBER_STATE user', async () => {
+      prisma.knowledgeCategory.findMany.mockResolvedValue([]);
+
+      await service.tree({}, countryUser);
+
+      const findManyCall = prisma.knowledgeCategory.findMany.mock.calls[0][0];
+      expect(findManyCall.where.OR).toEqual([
+        { scope: 'CONTINENTAL' },
+        { scope: 'REC' },
+        { scope: 'COUNTRY', scopeTenantId: 't-ke' },
+      ]);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────
   // list
   // ────────────────────────────────────────────────────────────
 

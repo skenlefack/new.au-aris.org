@@ -20,8 +20,13 @@ import {
 import { PublicKnowledgeHeader } from '@/components/knowledge/PublicHeader';
 import { KnowledgeBreadcrumb, type BreadcrumbItem } from '@/components/knowledge/KnowledgeBreadcrumb';
 
+/** Shorthand: build a LocalisedText from flat category fields and pick the best locale. */
+const catName = (cat: KnowledgeCategory, locale = 'en') =>
+  pickLocale({ en: cat.nameEn, fr: cat.nameFr ?? undefined, pt: cat.namePt ?? undefined, ar: cat.nameAr ?? undefined }, locale);
+
 export default function PublicCategoryPage() {
   const { slug } = useParams<{ slug: string }>();
+  const locale = 'en'; // TODO: wire to browser locale or URL param
 
   const cat = useQuery({
     queryKey: ['knowledge', 'public-category', slug],
@@ -59,7 +64,7 @@ export default function PublicCategoryPage() {
   }, [cat.data, tree.data]);
 
   const breadcrumbItems: BreadcrumbItem[] = ancestors.map((c, i) => ({
-    label: c.nameEn,
+    label: catName(c, locale),
     href: i === ancestors.length - 1 ? undefined : `/knowledge/c/${c.slug}`,
   }));
 
@@ -70,7 +75,7 @@ export default function PublicCategoryPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      <PublicKnowledgeHeader context={cat.data?.data?.nameEn} />
+      <PublicKnowledgeHeader context={cat.data?.data ? catName(cat.data.data, locale) : undefined} />
 
       <div className="mx-auto max-w-6xl px-6 py-8">
         <KnowledgeBreadcrumb items={breadcrumbItems} className="mb-4" />
@@ -88,7 +93,7 @@ export default function PublicCategoryPage() {
               >
                 <Folder className="h-5 w-5" />
               </span>
-              <h1 className="text-3xl font-bold">{cat.data.data.nameEn}</h1>
+              <h1 className="text-3xl font-bold">{catName(cat.data.data, locale)}</h1>
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{cat.data.data.scope}</span>
             </div>
             {cat.data.data.descriptionEn && (
@@ -112,7 +117,7 @@ export default function PublicCategoryPage() {
                 >
                   <Folder className="h-4 w-4 text-muted-foreground" />
                   <div className="flex-1">
-                    <div className="text-sm font-medium group-hover:text-emerald-700">{sub.nameEn}</div>
+                    <div className="text-sm font-medium group-hover:text-emerald-700">{catName(sub, locale)}</div>
                     {sub.publicationCount !== undefined && sub.publicationCount > 0 && (
                       <div className="text-xs text-muted-foreground">{sub.publicationCount} publication{sub.publicationCount !== 1 ? 's' : ''}</div>
                     )}
@@ -146,9 +151,9 @@ export default function PublicCategoryPage() {
                     <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
                       {hit.type}
                     </span>
-                    <h3 className="mt-2 font-semibold">{pickLocale(hit.title, 'en')}</h3>
+                    <h3 className="mt-2 font-semibold">{pickLocale(hit.title, locale)}</h3>
                     {hit.summary && (
-                      <p className="mt-1 line-clamp-2 text-sm text-gray-500">{pickLocale(hit.summary, 'en')}</p>
+                      <p className="mt-1 line-clamp-2 text-sm text-gray-500">{pickLocale(hit.summary, locale)}</p>
                     )}
                     {hit.publishedAt && (
                       <p className="mt-3 text-xs text-gray-400">

@@ -11,6 +11,7 @@ function makePrisma() {
       update: vi.fn(),
       delete: vi.fn(),
       count: vi.fn(),
+      aggregate: vi.fn(),
     },
     knowledgePublicationReview: { create: vi.fn() },
     knowledgePublicationAttachment: {
@@ -18,8 +19,9 @@ function makePrisma() {
       deleteMany: vi.fn(),
       findMany: vi.fn(),
     },
-    knowledgeCategory: { findUnique: vi.fn() },
+    knowledgeCategory: { findUnique: vi.fn(), count: vi.fn() },
     $transaction: vi.fn(),
+    $queryRaw: vi.fn(),
   };
 }
 
@@ -469,6 +471,332 @@ describe('PublicationService', () => {
       prisma.knowledgePublication.findUnique.mockResolvedValue(null);
 
       await expect(service.delete('pub-missing', author)).rejects.toThrow(/Publication not found/);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────
+  // update
+  // ────────────────────────────────────────────────────────────
+
+  describe('update', () => {
+    it('updates title/summary/content for DRAFT publication', async () => {
+      const draft = makePublication({ status: 'DRAFT', createdBy: 'u-2', tenantId: 't-igad' });
+      prisma.knowledgePublication.findUnique.mockResolvedValue(draft);
+
+      const updated = { ...draft, title: { en: 'Updated Title' }, summary: { en: 'New summary' } };
+      prisma.knowledgePublication.update.mockResolvedValue(updated);
+
+      const result = await service.update(
+        'pub-1',
+        { title: { en: 'Updated Title' }, summary: { en: 'New summary' }, contentHtml: { en: '<p>New</p>' } } as any,
+        author,
+      );
+
+      expect(result.data.title).toEqual({ en: 'Updated Title' });
+      const updateCall = prisma.knowledgePublication.update.mock.calls[0][0];
+      expect(updateCall.data.title).toEqual({ en: 'Updated Title' });
+      expect(updateCall.data.summary).toEqual({ en: 'New summary' });
+      expect(updateCall.data.updatedBy).toBe('u-2');
+    });
+
+    it('allows update of REJECTED publication by author', async () => {
+      const rejected = makePublication({ status: 'REJECTED', createdBy: 'u-2', tenantId: 't-igad' });
+      prisma.knowledgePublication.findUnique.mockResolvedValue(rejected);
+
+      const updated = { ...rejected, status: 'DRAFT', title: { en: 'Fixed Title' }, rejectionReason: null };
+      prisma.knowledgePublication.update.mockResolvedValue(updated);
+
+      const result = await service.update(
+        'pub-1',
+        { title: { en: 'Fixed Title' } } as any,
+        author,
+      );
+
+      expect(result.data.status).toBe('DRAFT');
+      expect(result.data.rejectionReason).toBeNull();
+      const updateCall = prisma.knowledgePublication.update.mock.calls[0][0];
+      expect(updateCall.data.status).toBe('DRAFT');
+      expect(updateCall.data.rejectionReason).toBeNull();
+    });
+
+    it('rejects update if publication not found (404)', async () => {
+      prisma.knowledgePublication.findUnique.mockResolvedValue(null);
+
+      const err = await service.update('pub-missing', { title: { en: 'X' } } as any, author).catch((e) => e);
+      expect(err.statusCode).toBe(404);
+      expect(err.message).toMatch(/Publication not found/);
+    });
+
+    it('rejects update if user is not author and not reviewer (403)', async () => {
+      const draft = makePublication({ status: 'DRAFT', createdBy: 'u-2', tenantId: 't-ke' });
+      prisma.knowledgePublication.findUnique.mockResolvedValue(draft);
+
+      const err = await service.update('pub-1', { title: { en: 'X' } } as any, otherUser).catch((e) => e);
+      expect(err.statusCode).toBe(403);
+    });
+
+    it('updates attachments (add/remove)', async () => {
+      const draft = makePublication({ status: 'DRAFT', createdBy: 'u-2', tenantId: 't-igad' });
+      prisma.knowledgePublication.findUnique.mockResolvedValue(draft);
+
+      const updated = { ...draft };
+      prisma.knowledgePublication.update.mockResolvedValue(updated);
+
+      await service.update(
+        'pub-1',
+        {
+          attachments: [
+            { fileId: 'file-1', kind: 'DOCUMENT', sortOrder: 0 },
+            { fileId: 'file-2', kind: 'IMAGE', caption: 'Cover', sortOrder: 1 },
+          ],
+        } as any,
+        author,
+      );
+
+      const updateCall = prisma.knowledgePublication.update.mock.calls[0][0];
+      expect(updateCall.data.attachments.deleteMany).toEqual({});
+      expect(updateCall.data.attachments.create).toHaveLength(2);
+      expect(updateCall.data.attachments.create[0].fileId).toBe('file-1');
+      expect(updateCall.data.attachments.create[1].caption).toBe('Cover');
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────
+  // findOne
+  // ────────────────────────────────────────────────────────────
+
+  describe('findOne', () => {
+    it('returns publication with full details', async () => {
+      const pub = makePublication({ status: 'PUBLISHED', visibility: 'PUBLIC' });
+      prisma.knowledgePublication.findUnique.mockResolvedValue(pub);
+      prisma.knowledgePublication.update.mockResolvedValue(pub); // view count increment
+
+      const result = await service.findOne('pub-1', reviewer);
+
+      expect(result.data).toEqual(pub);
+      expect(prisma.knowledgePublication.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'pub-1' },
+          include: expect.objectContaining({ category: true }),
+        }),
+      );
+    });
+
+    it('increments view count for PUBLISHED publication (best-effort)', async () => {
+      const pub = makePublication({ status: 'PUBLISHED', visibility: 'PUBLIC' });
+      prisma.knowledgePublication.findUnique.mockResolvedValue(pub);
+      prisma.knowledgePublication.update.mockResolvedValue(pub);
+
+      await service.findOne('pub-1', null);
+
+      // View count increment is fire-and-forget; verify update was called
+      expect(prisma.knowledgePublication.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'pub-1' },
+          data: { viewCount: { increment: 1 } },
+        }),
+      );
+    });
+
+    it('returns 404 when not found', async () => {
+      prisma.knowledgePublication.findUnique.mockResolvedValue(null);
+
+      const err = await service.findOne('pub-gone', reviewer).catch((e) => e);
+      expect(err.statusCode).toBe(404);
+      expect(err.message).toMatch(/Publication not found/);
+    });
+
+    it('rejects if user lacks read access (403/404)', async () => {
+      // DRAFT publication, not the author, not a reviewer, not public
+      const draft = makePublication({ status: 'DRAFT', createdBy: 'u-2', visibility: 'PRIVATE' });
+      prisma.knowledgePublication.findUnique.mockResolvedValue(draft);
+
+      const err = await service.findOne('pub-1', otherUser).catch((e) => e);
+      expect(err.statusCode).toBe(404); // assertReadAccess throws 404 to hide existence
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────
+  // findBySlug
+  // ────────────────────────────────────────────────────────────
+
+  describe('findBySlug', () => {
+    it('returns published publication by slug', async () => {
+      const pub = makePublication({ status: 'PUBLISHED', visibility: 'PUBLIC', slug: 'test-slug' });
+      prisma.knowledgePublication.findUnique.mockResolvedValue(pub);
+
+      const result = await service.findBySlug('test-slug', null);
+
+      expect(result.data).toEqual(pub);
+      expect(prisma.knowledgePublication.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { slug: 'test-slug' } }),
+      );
+    });
+
+    it('returns 404 for non-existent slug', async () => {
+      prisma.knowledgePublication.findUnique.mockResolvedValue(null);
+
+      const err = await service.findBySlug('no-such-slug', null).catch((e) => e);
+      expect(err.statusCode).toBe(404);
+      expect(err.message).toMatch(/Publication not found/);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────
+  // findAll
+  // ────────────────────────────────────────────────────────────
+
+  describe('findAll', () => {
+    it('returns paginated results', async () => {
+      const pubs = [makePublication({ id: 'pub-a' }), makePublication({ id: 'pub-b' })];
+      prisma.knowledgePublication.findMany.mockResolvedValue(pubs);
+      prisma.knowledgePublication.count.mockResolvedValue(2);
+
+      const result = await service.findAll(reviewer, { page: 1, limit: 10 } as any);
+
+      expect(result.data).toHaveLength(2);
+      expect(result.meta).toEqual({ total: 2, page: 1, limit: 10 });
+    });
+
+    it('filters by status', async () => {
+      prisma.knowledgePublication.findMany.mockResolvedValue([]);
+      prisma.knowledgePublication.count.mockResolvedValue(0);
+
+      await service.findAll(reviewer, { status: 'PUBLISHED' } as any);
+
+      const findCall = prisma.knowledgePublication.findMany.mock.calls[0][0];
+      expect(findCall.where.status).toBe('PUBLISHED');
+    });
+
+    it('filters by categoryId', async () => {
+      prisma.knowledgePublication.findMany.mockResolvedValue([]);
+      prisma.knowledgePublication.count.mockResolvedValue(0);
+
+      await service.findAll(reviewer, { categoryId: 'cat-1' } as any);
+
+      const findCall = prisma.knowledgePublication.findMany.mock.calls[0][0];
+      expect(findCall.where.categoryId).toBe('cat-1');
+    });
+
+    it('filters by type', async () => {
+      prisma.knowledgePublication.findMany.mockResolvedValue([]);
+      prisma.knowledgePublication.count.mockResolvedValue(0);
+
+      await service.findAll(reviewer, { type: 'ARTICLE' } as any);
+
+      const findCall = prisma.knowledgePublication.findMany.mock.calls[0][0];
+      expect(findCall.where.type).toBe('ARTICLE');
+    });
+
+    it('filters by "mine" (only user publications)', async () => {
+      prisma.knowledgePublication.findMany.mockResolvedValue([]);
+      prisma.knowledgePublication.count.mockResolvedValue(0);
+
+      await service.findAll(author, { mine: true } as any);
+
+      const findCall = prisma.knowledgePublication.findMany.mock.calls[0][0];
+      expect(findCall.where.createdBy).toBe('u-2');
+    });
+
+    it('respects visibility rules (non-reviewer sees only own + PUBLISHED)', async () => {
+      prisma.knowledgePublication.findMany.mockResolvedValue([]);
+      prisma.knowledgePublication.count.mockResolvedValue(0);
+
+      await service.findAll(otherUser, {} as any);
+
+      const findCall = prisma.knowledgePublication.findMany.mock.calls[0][0];
+      expect(findCall.where.OR).toEqual([
+        { createdBy: 'u-3' },
+        { status: 'PUBLISHED', visibility: { in: ['PUBLIC', 'PRIVATE'] } },
+      ]);
+    });
+
+    it('unauthenticated user sees only PUBLISHED + PUBLIC', async () => {
+      prisma.knowledgePublication.findMany.mockResolvedValue([]);
+      prisma.knowledgePublication.count.mockResolvedValue(0);
+
+      await service.findAll(null, {} as any);
+
+      const findCall = prisma.knowledgePublication.findMany.mock.calls[0][0];
+      expect(findCall.where.status).toBe('PUBLISHED');
+      expect(findCall.where.visibility).toBe('PUBLIC');
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────
+  // publicStats
+  // ────────────────────────────────────────────────────────────
+
+  describe('publicStats', () => {
+    it('returns publication count, category count, view total, contributing tenants', async () => {
+      prisma.knowledgePublication.count.mockResolvedValue(42);
+      (prisma as any).knowledgeCategory.count.mockResolvedValue(8);
+      prisma.knowledgePublication.findMany.mockResolvedValue([
+        { tenantId: 't-igad' },
+        { tenantId: 't-ke' },
+        { tenantId: 't-et' },
+      ]);
+      prisma.knowledgePublication.aggregate.mockResolvedValue({
+        _sum: { viewCount: 1500 },
+      });
+
+      const result = await service.publicStats();
+
+      expect(result.data.publications).toBe(42);
+      expect(result.data.categories).toBe(8);
+      expect(result.data.contributingTenants).toBe(3);
+      expect(result.data.totalViews).toBe(1500);
+    });
+
+    it('handles zero views gracefully', async () => {
+      prisma.knowledgePublication.count.mockResolvedValue(0);
+      (prisma as any).knowledgeCategory.count.mockResolvedValue(0);
+      prisma.knowledgePublication.findMany.mockResolvedValue([]);
+      prisma.knowledgePublication.aggregate.mockResolvedValue({
+        _sum: { viewCount: null },
+      });
+
+      const result = await service.publicStats();
+
+      expect(result.data.totalViews).toBe(0);
+      expect(result.data.contributingTenants).toBe(0);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────
+  // allTags / publicPopularTags
+  // ────────────────────────────────────────────────────────────
+
+  describe('allTags', () => {
+    it('returns distinct tags from all publications', async () => {
+      prisma.$queryRaw.mockResolvedValue([
+        { tag: 'avian-flu' },
+        { tag: 'fisheries' },
+        { tag: 'trade' },
+      ]);
+
+      const result = await service.allTags();
+
+      expect(result.data).toEqual(['avian-flu', 'fisheries', 'trade']);
+    });
+  });
+
+  describe('publicPopularTags', () => {
+    it('returns top tags by frequency', async () => {
+      prisma.$queryRaw.mockResolvedValue([
+        { tag: 'health', count: BigInt(25) },
+        { tag: 'trade', count: BigInt(12) },
+        { tag: 'fisheries', count: BigInt(8) },
+      ]);
+
+      const result = await service.publicPopularTags(3);
+
+      expect(result.data).toEqual([
+        { tag: 'health', count: 25 },
+        { tag: 'trade', count: 12 },
+        { tag: 'fisheries', count: 8 },
+      ]);
+      expect(result.data).toHaveLength(3);
     });
   });
 
