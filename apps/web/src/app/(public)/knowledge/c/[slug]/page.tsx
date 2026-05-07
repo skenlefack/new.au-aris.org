@@ -19,6 +19,7 @@ import {
 } from '@/lib/api/knowledge-hub-hooks';
 import { PublicKnowledgeHeader } from '@/components/knowledge/PublicHeader';
 import { KnowledgeBreadcrumb, type BreadcrumbItem } from '@/components/knowledge/KnowledgeBreadcrumb';
+import { useKnowledgeLocale } from '@/components/knowledge/LocaleSwitcher';
 
 /** Shorthand: build a LocalisedText from flat category fields and pick the best locale. */
 const catName = (cat: KnowledgeCategory, locale = 'en') =>
@@ -26,7 +27,7 @@ const catName = (cat: KnowledgeCategory, locale = 'en') =>
 
 export default function PublicCategoryPage() {
   const { slug } = useParams<{ slug: string }>();
-  const locale = 'en'; // TODO: wire to browser locale or URL param
+  const [locale] = useKnowledgeLocale();
 
   const cat = useQuery({
     queryKey: ['knowledge', 'public-category', slug],

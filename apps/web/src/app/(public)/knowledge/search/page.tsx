@@ -14,10 +14,11 @@ import {
 } from '@/lib/api/knowledge-hub-hooks';
 import { PublicKnowledgeHeader } from '@/components/knowledge/PublicHeader';
 import { KnowledgeBreadcrumb } from '@/components/knowledge/KnowledgeBreadcrumb';
+import { useKnowledgeLocale } from '@/components/knowledge/LocaleSwitcher';
 
 function SearchResultsInner() {
   const params = useSearchParams();
-  const locale = 'en'; // TODO: wire to browser locale or URL param
+  const [locale] = useKnowledgeLocale();
   const initialQ = params.get('q') ?? '';
   const [page, setPage] = useState(1);
   const [type, setType] = useState<PublicationType | undefined>();

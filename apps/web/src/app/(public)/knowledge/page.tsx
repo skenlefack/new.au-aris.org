@@ -25,6 +25,7 @@ import {
   pickLocale,
   type KnowledgeCategory,
 } from '@/lib/api/knowledge-hub-hooks';
+import { LocaleSwitcher, useKnowledgeLocale } from '@/components/knowledge/LocaleSwitcher';
 
 /** Map value-chain slugs to Lucide icons for the hero grid */
 const VALUE_CHAIN_ICONS: Record<string, React.ReactNode> = {
@@ -46,7 +47,7 @@ const catName = (cat: KnowledgeCategory, locale = 'en') =>
 export default function PublicKnowledgePortalPage() {
   const router = useRouter();
   const [q, setQ] = useState('');
-  const locale = 'en'; // TODO: wire to browser locale or URL param
+  const [locale, setLocale] = useKnowledgeLocale();
 
   const tree = usePublicCategoryTree();
   const stats = usePublicKnowledgeStats();
@@ -101,6 +102,11 @@ export default function PublicKnowledgePortalPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-white dark:from-emerald-950 dark:via-gray-900 dark:to-gray-900">
+      {/* ── Language switcher — fixed top-right ─────────────── */}
+      <div className="absolute right-6 top-4 z-40">
+        <LocaleSwitcher locale={locale} onChange={setLocale} />
+      </div>
+
       {/* ── Hero ────────────────────────────────────────────── */}
       <section className="px-6 pt-16 pb-12 text-center">
         <div className="mx-auto flex max-w-3xl flex-col items-center">

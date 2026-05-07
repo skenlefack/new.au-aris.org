@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Search } from 'lucide-react';
+import { LocaleSwitcher, useKnowledgeLocale } from '@/components/knowledge/LocaleSwitcher';
 
 interface Props {
   initialQuery?: string;
@@ -20,6 +21,7 @@ interface Props {
 export function PublicKnowledgeHeader({ initialQuery = '', context }: Props) {
   const router = useRouter();
   const [q, setQ] = useState(initialQuery);
+  const [locale, setLocale] = useKnowledgeLocale();
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -70,6 +72,8 @@ export function PublicKnowledgeHeader({ initialQuery = '', context }: Props) {
             {context}
           </span>
         )}
+
+        <LocaleSwitcher locale={locale} onChange={setLocale} />
       </div>
     </header>
   );

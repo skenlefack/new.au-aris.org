@@ -5,18 +5,18 @@
 // downloadable attachments via the drive-service.
 
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
 import Link from 'next/link';
 import { Download } from 'lucide-react';
 import { usePublicPublication, pickLocale } from '@/lib/api/knowledge-hub-hooks';
 import { PublicKnowledgeHeader } from '@/components/knowledge/PublicHeader';
 import { KnowledgeBreadcrumb, type BreadcrumbItem } from '@/components/knowledge/KnowledgeBreadcrumb';
+import { useKnowledgeLocale, type KnowledgeLocale } from '@/components/knowledge/LocaleSwitcher';
 
 const LOCALES = ['en', 'fr', 'pt', 'ar'] as const;
 
 export default function PublicPublicationPage() {
   const { slug } = useParams<{ slug: string }>();
-  const [locale, setLocale] = useState<(typeof LOCALES)[number]>('en');
+  const [locale, setLocale] = useKnowledgeLocale();
   const { data, isLoading, error } = usePublicPublication(slug);
 
   if (isLoading) return (
