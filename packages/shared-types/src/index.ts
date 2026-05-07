@@ -42,3 +42,6 @@ export type {
 // Kafka contracts
 export type { KafkaEvent, KafkaHeaders } from './kafka';
 export * from './kafka/topic-names';
+
+// Sync types
+export * from './sync';

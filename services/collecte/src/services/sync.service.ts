@@ -463,6 +463,235 @@ export class SyncService {
     }
   }
 
+  /**
+   * Get server-side changes since a given timestamp.
+   * Used by mobile clients to pull updates without pushing submissions.
+   */
+  async getDelta(
+    tenantId: string,
+    userId: string,
+    since: string,
+    types?: ('campaigns' | 'templates' | 'referentials' | 'submissions')[],
+  ) {
+    const sinceDate = new Date(since);
+    const includeAll = !types || types.length === 0;
+
+    // Updated campaigns
+    const updatedCampaigns = includeAll || types!.includes('campaigns')
+      ? await (this.prisma as any).$queryRawUnsafe(
+          `SELECT id, name, status, target, updated_at as "updatedAt"
+           FROM collecte.campaigns
+           WHERE tenant_id = $1 AND updated_at > $2 AND status != 'ARCHIVED'
+           ORDER BY updated_at DESC
+           LIMIT 100`,
+          tenantId,
+          sinceDate,
+        )
+      : [];
+
+    // Deleted (archived) campaigns
+    const deletedCampaigns = includeAll || types!.includes('campaigns')
+      ? (await (this.prisma as any).$queryRawUnsafe(
+          `SELECT id FROM collecte.campaigns
+           WHERE tenant_id = $1 AND status = 'ARCHIVED' AND updated_at > $2`,
+          tenantId,
+          sinceDate,
+        )).map((r: any) => r.id)
+      : [];
+
+    // Updated templates
+    const updatedTemplates = includeAll || types!.includes('templates')
+      ? await (this.prisma as any).$queryRawUnsafe(
+          `SELECT id, name, domain, version, updated_at as "updatedAt"
+           FROM form_builder.form_templates
+           WHERE (tenant_id = $1 OR tenant_id IS NULL) AND updated_at > $2
+           ORDER BY updated_at DESC
+           LIMIT 100`,
+          tenantId,
+          sinceDate,
+        )
+      : [];
+
+    // Workflow updates for user's submissions
+    const workflowUpdates = includeAll || types!.includes('submissions')
+      ? await (this.prisma as any).$queryRawUnsafe(
+          `SELECT s.id as "submissionId", wi.current_level as "level", wi.status, wi.updated_at as "updatedAt"
+           FROM collecte.submissions s
+           JOIN workflow.workflow_instances wi ON wi.id = s.workflow_instance_id
+           WHERE s.tenant_id = $1 AND s.submitted_by = $2 AND wi.updated_at > $3
+           ORDER BY wi.updated_at DESC
+           LIMIT 100`,
+          tenantId,
+          userId,
+          sinceDate,
+        )
+      : [];
+
+    // Referential updates (species, diseases, geo)
+    const updatedReferentials = includeAll || types!.includes('referentials')
+      ? await this.getReferentialUpdates(tenantId, sinceDate)
+      : [];
+
+    return {
+      updatedCampaigns: (updatedCampaigns as any[]).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        status: c.status,
+        target: c.target ?? 0,
+        updatedAt: c.updatedAt instanceof Date ? c.updatedAt.toISOString() : String(c.updatedAt),
+      })),
+      updatedTemplates: (updatedTemplates as any[]).map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        domain: t.domain ?? '',
+        version: t.version ?? 1,
+        updatedAt: t.updatedAt instanceof Date ? t.updatedAt.toISOString() : String(t.updatedAt),
+      })),
+      updatedReferentials,
+      workflowUpdates: (workflowUpdates as any[]).map((w: any) => ({
+        submissionId: w.submissionId,
+        level: w.level ?? 1,
+        status: w.status ?? 'PENDING',
+        updatedAt: w.updatedAt instanceof Date ? w.updatedAt.toISOString() : String(w.updatedAt),
+      })),
+      deletedCampaigns,
+      serverTime: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Get sync status summary for a user (and optionally a specific device).
+   */
+  async getStatus(
+    tenantId: string,
+    userId: string,
+    deviceId?: string,
+  ) {
+    const deviceFilter = deviceId ? `AND device_id = '${deviceId}'` : '';
+
+    // Count submissions by status
+    const counts = await (this.prisma as any).$queryRawUnsafe(
+      `SELECT
+         COUNT(*) FILTER (WHERE synced_at IS NULL) as "pendingCount",
+         COUNT(*) FILTER (WHERE synced_at IS NOT NULL AND status != 'FAILED') as "syncedCount",
+         COUNT(*) FILTER (WHERE status = 'FAILED') as "failedCount",
+         COUNT(*) as "totalSubmissions"
+       FROM collecte.submissions
+       WHERE tenant_id = $1 AND submitted_by = $2 ${deviceFilter}`,
+      tenantId,
+      userId,
+    );
+
+    // Count conflicts (submissions with version conflicts logged)
+    const conflictResult = await (this.prisma as any).$queryRawUnsafe(
+      `SELECT COUNT(*) as "conflictCount"
+       FROM collecte.submissions
+       WHERE tenant_id = $1 AND submitted_by = $2 AND status = 'CONFLICT' ${deviceFilter}`,
+      tenantId,
+      userId,
+    );
+
+    // Get last sync timestamp
+    const lastSyncResult = await (this.prisma as any).$queryRawUnsafe(
+      `SELECT synced_at as "lastSyncAt"
+       FROM collecte.sync_logs
+       WHERE tenant_id = $1 AND user_id = $2
+       ORDER BY synced_at DESC
+       LIMIT 1`,
+      tenantId,
+      userId,
+    );
+
+    const row = (counts as any[])[0] ?? {};
+    const conflictRow = (conflictResult as any[])[0] ?? {};
+    const syncRow = (lastSyncResult as any[])[0];
+
+    return {
+      userId,
+      deviceId: deviceId ?? undefined,
+      lastSyncAt: syncRow?.lastSyncAt
+        ? (syncRow.lastSyncAt instanceof Date ? syncRow.lastSyncAt.toISOString() : String(syncRow.lastSyncAt))
+        : null,
+      pendingCount: Number(row.pendingCount ?? 0),
+      syncedCount: Number(row.syncedCount ?? 0),
+      failedCount: Number(row.failedCount ?? 0),
+      conflictCount: Number(conflictRow.conflictCount ?? 0),
+      totalSubmissions: Number(row.totalSubmissions ?? 0),
+    };
+  }
+
+  /**
+   * Get counts of recently updated referential data (species, diseases, geo).
+   */
+  private async getReferentialUpdates(
+    tenantId: string,
+    since: Date,
+  ): Promise<Array<{ type: string; count: number; lastUpdated: string }>> {
+    const results: Array<{ type: string; count: number; lastUpdated: string }> = [];
+
+    try {
+      // Species updates
+      const speciesResult = await (this.prisma as any).$queryRawUnsafe(
+        `SELECT COUNT(*) as count, MAX(updated_at) as "lastUpdated"
+         FROM master_data.species
+         WHERE updated_at > $1`,
+        since,
+      );
+      const speciesRow = (speciesResult as any[])[0];
+      if (speciesRow && Number(speciesRow.count) > 0) {
+        results.push({
+          type: 'species',
+          count: Number(speciesRow.count),
+          lastUpdated: speciesRow.lastUpdated instanceof Date
+            ? speciesRow.lastUpdated.toISOString()
+            : String(speciesRow.lastUpdated),
+        });
+      }
+    } catch { /* table may not exist */ }
+
+    try {
+      // Disease updates
+      const diseaseResult = await (this.prisma as any).$queryRawUnsafe(
+        `SELECT COUNT(*) as count, MAX(updated_at) as "lastUpdated"
+         FROM master_data.diseases
+         WHERE updated_at > $1`,
+        since,
+      );
+      const diseaseRow = (diseaseResult as any[])[0];
+      if (diseaseRow && Number(diseaseRow.count) > 0) {
+        results.push({
+          type: 'diseases',
+          count: Number(diseaseRow.count),
+          lastUpdated: diseaseRow.lastUpdated instanceof Date
+            ? diseaseRow.lastUpdated.toISOString()
+            : String(diseaseRow.lastUpdated),
+        });
+      }
+    } catch { /* table may not exist */ }
+
+    try {
+      // Geo updates
+      const geoResult = await (this.prisma as any).$queryRawUnsafe(
+        `SELECT COUNT(*) as count, MAX(updated_at) as "lastUpdated"
+         FROM master_data.admin_boundaries
+         WHERE updated_at > $1`,
+        since,
+      );
+      const geoRow = (geoResult as any[])[0];
+      if (geoRow && Number(geoRow.count) > 0) {
+        results.push({
+          type: 'geo',
+          count: Number(geoRow.count),
+          lastUpdated: geoRow.lastUpdated instanceof Date
+            ? geoRow.lastUpdated.toISOString()
+            : String(geoRow.lastUpdated),
+        });
+      }
+    } catch { /* table may not exist */ }
+
+    return results;
+  }
+
   private async publishSubmittedEvent(
     submissionId: string,
     payload: SubmissionPayload,

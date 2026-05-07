@@ -26,3 +26,14 @@ export const SyncRequestSchema = Type.Object({
   lastSyncAt: Type.String({ format: 'date-time' }),
 });
 export type SyncRequestBody = Static<typeof SyncRequestSchema>;
+
+export const DeltaQuerySchema = Type.Object({
+  since: Type.String({ format: 'date-time' }),
+  types: Type.Optional(Type.Array(Type.String())),
+});
+export type DeltaQueryParams = Static<typeof DeltaQuerySchema>;
+
+export const StatusQuerySchema = Type.Object({
+  deviceId: Type.Optional(Type.String()),
+});
+export type StatusQueryParams = Static<typeof StatusQuerySchema>;
