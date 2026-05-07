@@ -57,22 +57,9 @@ class MainActivity : ComponentActivity() {
     private val pendingUpdateInfo = mutableStateOf<UpdateInfo?>(null)
 
     override fun attachBaseContext(newBase: Context) {
-        // Apply locale before super to ensure correct language from the start
-        // LocaleManager is not yet injected here, so read language from prefs directly
-        val lang = try {
-            val masterKey = androidx.security.crypto.MasterKey.Builder(newBase)
-                .setKeyScheme(androidx.security.crypto.MasterKey.KeyScheme.AES256_GCM)
-                .build()
-            val prefs = androidx.security.crypto.EncryptedSharedPreferences.create(
-                newBase,
-                "aris_secure_prefs",
-                masterKey,
-                androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-            )
-            prefs.getString("language", "en") ?: "en"
-        } catch (_: Exception) { "en" }
-
+        // Read language from plain SharedPreferences (fast, no crypto overhead)
+        val lang = newBase.getSharedPreferences("aris_locale", Context.MODE_PRIVATE)
+            .getString("language", "en") ?: "en"
         val locale = java.util.Locale(lang)
         java.util.Locale.setDefault(locale)
         val config = android.content.res.Configuration(newBase.resources.configuration)

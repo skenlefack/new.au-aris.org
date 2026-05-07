@@ -1,6 +1,7 @@
 package org.auibar.aris.mobile.ui.components
 
 import android.app.Activity
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -112,6 +113,9 @@ fun LanguageSwitcher(
                         expanded = false
                         if (lang.code != currentLang) {
                             localeManager.setLanguage(lang.code)
+                            // Write to plain prefs for fast attachBaseContext read
+                            context.getSharedPreferences("aris_locale", Context.MODE_PRIVATE)
+                                .edit().putString("language", lang.code).apply()
                             // Recreate activity to apply new locale
                             (context as? Activity)?.recreate()
                         }

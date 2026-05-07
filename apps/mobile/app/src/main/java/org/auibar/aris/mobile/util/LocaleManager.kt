@@ -8,7 +8,6 @@ import javax.inject.Singleton
 
 /**
  * Manages the application locale based on user preference stored in TokenManager.
- * Applies the selected locale to the app configuration.
  */
 @Singleton
 class LocaleManager @Inject constructor(
