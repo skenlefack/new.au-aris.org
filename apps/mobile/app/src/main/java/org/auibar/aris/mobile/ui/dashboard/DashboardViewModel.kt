@@ -98,14 +98,15 @@ class DashboardViewModel @Inject constructor(
     fun refreshCampaigns() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(campaignsLoading = true)
-            campaignRefresher.forceRefresh()
-            val result = campaignRepository.refreshCampaigns()
-            _uiState.value = _uiState.value.copy(
-                campaignsLoading = false,
-                error = if (result.isFailure) result.exceptionOrNull()?.message else _uiState.value.error,
-            )
-            // Enrich campaigns with stats (detail endpoint has progress)
-            enrichCampaignStats()
+            try {
+                campaignRefresher.forceRefresh()
+                campaignRepository.refreshCampaigns()
+                // Enrich campaigns with stats (detail endpoint has progress)
+                enrichCampaignStats()
+            } catch (_: Exception) {
+                // Offline or error — show cached data
+            }
+            _uiState.value = _uiState.value.copy(campaignsLoading = false)
         }
     }
 

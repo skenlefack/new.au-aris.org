@@ -116,44 +116,51 @@ class DomainDashboardViewModel @Inject constructor(
     }
 
     private suspend fun loadSubDomains() {
-        for (code in listOf(backendDomain, domainKey).distinct()) {
-            val dtos = campaignApi.getSubDomains(code)
-            if (dtos.isNotEmpty()) {
-                val items = dtos.filter { it.active }.sortedBy { it.displayOrder }.map { dto ->
-                    SubDomainUi(
-                        id = dto.id, code = dto.code,
-                        labelEn = dto.labelEn.ifBlank { dto.code },
-                        labelFr = dto.labelFr.ifBlank { dto.labelEn.ifBlank { dto.code } },
-                    )
+        try {
+            for (code in listOf(backendDomain, domainKey).distinct()) {
+                val dtos = campaignApi.getSubDomains(code)
+                if (dtos.isNotEmpty()) {
+                    val items = dtos.filter { it.active }.sortedBy { it.displayOrder }.map { dto ->
+                        SubDomainUi(
+                            id = dto.id, code = dto.code,
+                            labelEn = dto.labelEn.ifBlank { dto.code },
+                            labelFr = dto.labelFr.ifBlank { dto.labelEn.ifBlank { dto.code } },
+                        )
+                    }
+                    _uiState.value = _uiState.value.copy(subDomains = items)
+                    Log.d(TAG, "Sub-domains: ${items.size} for code=$code")
+                    return
                 }
-                _uiState.value = _uiState.value.copy(subDomains = items)
-                Log.d(TAG, "Sub-domains: ${items.size} for code=$code")
-                return
             }
+        } catch (e: Exception) {
+            Log.w(TAG, "Sub-domains fetch failed (offline?): ${e.message}")
         }
     }
 
     private suspend fun loadCampaigns() {
-        // If sub-domain mode, filter by subDomainCode
-        val dtos = if (subDomainCode != null) {
-            campaignApi.getCampaignsBySubDomain(backendDomain, subDomainCode)
-        } else {
-            campaignApi.getAllCampaignsByDomain(backendDomain)
-        }
+        try {
+            // If sub-domain mode, filter by subDomainCode
+            val dtos = if (subDomainCode != null) {
+                campaignApi.getCampaignsBySubDomain(backendDomain, subDomainCode)
+            } else {
+                campaignApi.getAllCampaignsByDomain(backendDomain)
+            }
 
-        if (dtos.isNotEmpty()) {
-            val now = System.currentTimeMillis()
-            campaignDao.upsertAll(dtos.map { it.toEntity(now) })
-            val active = dtos.count { it.status == "ACTIVE" }
-            val totalSubs = dtos.sumOf { it.targetSubmissions ?: 0 }
-            _uiState.value = _uiState.value.copy(
-                activeCampaigns = active, totalSubmissions = totalSubs,
-                completionRate = if (totalSubs > 0) 100 else 0,
-                totalCampaigns = dtos.size,
-            )
-            Log.d(TAG, "Campaigns: ${dtos.size} ($active active) for ${subDomainCode ?: backendDomain}")
-        } else {
-            Log.d(TAG, "No campaigns for ${subDomainCode ?: backendDomain}")
+            if (dtos.isNotEmpty()) {
+                val now = System.currentTimeMillis()
+                campaignDao.upsertAll(dtos.map { it.toEntity(now) })
+                val active = dtos.count { it.status == "ACTIVE" }
+                val totalSubs = dtos.sumOf { it.targetSubmissions ?: 0 }
+                _uiState.value = _uiState.value.copy(
+                    activeCampaigns = active, totalSubmissions = totalSubs,
+                    completionRate = if (totalSubs > 0) 100 else 0,
+                    totalCampaigns = dtos.size,
+                )
+                Log.d(TAG, "Campaigns: ${dtos.size} ($active active) for ${subDomainCode ?: backendDomain}")
+            }
+        } catch (e: Exception) {
+            // Offline — Room Flow will show cached campaigns
+            Log.w(TAG, "Campaign fetch failed (offline?): ${e.message}")
         }
     }
 
