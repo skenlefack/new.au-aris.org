@@ -60,9 +60,13 @@ class MainActivity : ComponentActivity() {
         // Apply locale before super to ensure correct language from the start
         // LocaleManager is not yet injected here, so read language from prefs directly
         val lang = try {
+            val masterKey = androidx.security.crypto.MasterKey.Builder(newBase)
+                .setKeyScheme(androidx.security.crypto.MasterKey.KeyScheme.AES256_GCM)
+                .build()
             val prefs = androidx.security.crypto.EncryptedSharedPreferences.create(
-                "aris_secure_prefs", "aris_master_key",
                 newBase,
+                "aris_secure_prefs",
+                masterKey,
                 androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                 androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
             )

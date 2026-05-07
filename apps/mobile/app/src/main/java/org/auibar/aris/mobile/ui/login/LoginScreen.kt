@@ -120,30 +120,29 @@ fun LoginScreen(
                     ),
             )
 
-            // Language switcher (top right)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp, end = 16.dp),
-                contentAlignment = Alignment.TopEnd,
-            ) {
-                LanguageSwitcher(
-                    localeManager = viewModel.localeManager,
-                    tint = Color.White,
-                    bgAlpha = 0.2f,
-                )
-            }
-
             // Content
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 28.dp),
-                verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Spacer(modifier = Modifier.height(60.dp))
+                // Language switcher (top right)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    contentAlignment = Alignment.TopEnd,
+                ) {
+                    LanguageSwitcher(
+                        localeManager = viewModel.localeManager,
+                        tint = Color.White,
+                        bgAlpha = 0.2f,
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(40.dp))
 
                 // AU Logo
                 Box(
