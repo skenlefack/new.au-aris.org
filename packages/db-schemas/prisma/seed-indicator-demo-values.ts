@@ -358,12 +358,11 @@ const DEMO_DATA: DemoValue[] = [
 // SQL Templates
 // =============================================================================
 
-const UPSERT_SQL = `
+// Simple INSERT (we DELETE old demo values first, then insert fresh)
+const INSERT_SQL = `
   INSERT INTO analytics.indicator_values
     (id, indicator_id, year, month, quarter, country_code, rec_code, is_continental, value, source, created_at, updated_at)
   VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, 'demo-seed', NOW(), NOW())
-  ON CONFLICT (indicator_id, year, COALESCE(month,-1), COALESCE(quarter,-1), COALESCE(country_code,''), COALESCE(rec_code,''), is_continental)
-  DO UPDATE SET value = EXCLUDED.value, source = 'demo-seed', updated_at = NOW()
 `;
 
 // =============================================================================
@@ -405,6 +404,10 @@ async function main() {
   }
   console.log(`Loaded ${idMap.size} active indicator definitions\n`);
 
+  // Clean previous demo-seed values
+  const { rowCount: deleted } = await pool.query(`DELETE FROM analytics.indicator_values WHERE source LIKE 'demo-seed%'`);
+  console.log(`Cleaned ${deleted ?? 0} previous demo values\n`);
+
   let totalInserted = 0;
   let skipped = 0;
   let errors = 0;
@@ -433,18 +436,18 @@ async function main() {
           if (demo.isMonthly && year === 2025) {
             for (const m of MONTHS) {
               const mVal = vary(val * SEASONAL_FACTORS[m], 10, `${demo.code}-continental-${year}-${m}`);
-              await pool.query(UPSERT_SQL, [indicatorId, year, m, null, null, null, true, mVal]);
+              await pool.query(INSERT_SQL, [indicatorId, year, m, null, null, null, true, mVal]);
               totalInserted++;
             }
           } else if (demo.isQuarterly) {
             for (const q of QUARTERS) {
               const qVal = vary(val, 5, `${demo.code}-continental-${year}-Q${q}`);
-              await pool.query(UPSERT_SQL, [indicatorId, year, null, q, null, null, true, qVal]);
+              await pool.query(INSERT_SQL, [indicatorId, year, null, q, null, null, true, qVal]);
               totalInserted++;
             }
           } else {
             // Annual only
-            await pool.query(UPSERT_SQL, [indicatorId, year, null, null, null, null, true, Math.round(val * 100) / 100]);
+            await pool.query(INSERT_SQL, [indicatorId, year, null, null, null, null, true, Math.round(val * 100) / 100]);
             totalInserted++;
           }
         }
@@ -468,12 +471,12 @@ async function main() {
             // Monthly: 12 months for 2025 only
             for (const m of MONTHS) {
               const mVal = vary(yearVal * SEASONAL_FACTORS[m], 10, `${demo.code}-${cc}-${year}-${m}`);
-              await pool.query(UPSERT_SQL, [indicatorId, year, m, null, cc, rec, false, mVal]);
+              await pool.query(INSERT_SQL, [indicatorId, year, m, null, cc, rec, false, mVal]);
               totalInserted++;
             }
           } else if (demo.isMonthly && year < 2025) {
             // For prior years with monthly indicators, just insert annual value
-            await pool.query(UPSERT_SQL, [indicatorId, year, null, null, cc, rec, false, Math.round(yearVal * 100) / 100]);
+            await pool.query(INSERT_SQL, [indicatorId, year, null, null, cc, rec, false, Math.round(yearVal * 100) / 100]);
             totalInserted++;
           }
 
@@ -482,19 +485,19 @@ async function main() {
             if (year >= 2024) {
               for (const q of QUARTERS) {
                 const qVal = vary(yearVal, 5, `${demo.code}-${cc}-${year}-Q${q}`);
-                await pool.query(UPSERT_SQL, [indicatorId, year, null, q, cc, rec, false, qVal]);
+                await pool.query(INSERT_SQL, [indicatorId, year, null, q, cc, rec, false, qVal]);
                 totalInserted++;
               }
             } else {
               // 2023: annual only
-              await pool.query(UPSERT_SQL, [indicatorId, year, null, null, cc, rec, false, Math.round(yearVal * 100) / 100]);
+              await pool.query(INSERT_SQL, [indicatorId, year, null, null, cc, rec, false, Math.round(yearVal * 100) / 100]);
               totalInserted++;
             }
           }
 
           if (!demo.isMonthly && !demo.isQuarterly) {
             // Pure annual
-            await pool.query(UPSERT_SQL, [indicatorId, year, null, null, cc, rec, false, Math.round(yearVal * 100) / 100]);
+            await pool.query(INSERT_SQL, [indicatorId, year, null, null, cc, rec, false, Math.round(yearVal * 100) / 100]);
             totalInserted++;
           }
         }
@@ -531,8 +534,7 @@ async function main() {
         AND iv.is_continental = false
         AND iv.source LIKE 'demo-seed%'
       GROUP BY iv.indicator_id, iv.year, iv.month, iv.quarter, i.aggregation
-      ON CONFLICT (indicator_id, year, COALESCE(month,-1), COALESCE(quarter,-1), COALESCE(country_code,''), COALESCE(rec_code,''), is_continental)
-      DO UPDATE SET value = EXCLUDED.value, source = 'demo-seed-continental', updated_at = NOW()
+      -- No ON CONFLICT needed: we DELETE demo-seed values at the start
     `);
     console.log(`  [OK] Continental aggregation: ${res.rowCount} rows`);
     totalInserted += res.rowCount ?? 0;
@@ -564,8 +566,7 @@ async function main() {
         AND iv.is_continental = false
         AND iv.source LIKE 'demo-seed%'
       GROUP BY iv.indicator_id, iv.year, iv.month, iv.quarter, iv.rec_code, i.aggregation
-      ON CONFLICT (indicator_id, year, COALESCE(month,-1), COALESCE(quarter,-1), COALESCE(country_code,''), COALESCE(rec_code,''), is_continental)
-      DO UPDATE SET value = EXCLUDED.value, source = 'demo-seed-rec', updated_at = NOW()
+      -- No ON CONFLICT needed: we DELETE demo-seed values at the start
     `);
     console.log(`  [OK] REC aggregation: ${res.rowCount} rows`);
     totalInserted += res.rowCount ?? 0;
