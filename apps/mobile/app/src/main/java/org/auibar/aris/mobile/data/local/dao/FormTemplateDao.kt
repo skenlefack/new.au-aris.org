@@ -21,6 +21,9 @@ interface FormTemplateDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(templates: List<FormTemplateEntity>)
 
+    @Query("SELECT id FROM form_templates")
+    suspend fun getAllIds(): List<String>
+
     @Query("DELETE FROM form_templates")
     suspend fun deleteAll()
 }

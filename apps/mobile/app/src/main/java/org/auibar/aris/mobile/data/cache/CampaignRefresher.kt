@@ -30,6 +30,7 @@ class CampaignRefresher @Inject constructor(
     /** Force refresh — called on pull-to-refresh. */
     suspend fun forceRefresh() {
         refreshCampaigns()
+        prefetchMissingTemplates()
     }
 
     /** Refresh templates for a specific campaign. */
@@ -54,6 +55,28 @@ class CampaignRefresher @Inject constructor(
             Log.d(TAG, "Template refreshed: ${dto.id}")
         } catch (e: Exception) {
             Log.w(TAG, "Template refresh failed, using cache", e)
+        }
+    }
+
+    /** Pre-fetch all templates for active campaigns that aren't cached yet. */
+    private suspend fun prefetchMissingTemplates() {
+        try {
+            val campaigns = campaignDao.getAllActiveSync()
+            val templateIds = campaigns.map { it.templateId }.filter { it.isNotBlank() }.distinct()
+            val existingIds = formTemplateDao.getAllIds().toSet()
+            val missing = templateIds.filter { it !in existingIds }
+            for (id in missing) {
+                try {
+                    refreshTemplateForCampaign(id)
+                } catch (_: Exception) {
+                    // Skip individual template failures
+                }
+            }
+            if (missing.isNotEmpty()) {
+                Log.d(TAG, "Pre-cached ${missing.size} missing templates")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Template pre-cache failed", e)
         }
     }
 

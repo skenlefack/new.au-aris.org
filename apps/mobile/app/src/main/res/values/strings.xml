@@ -639,4 +639,12 @@
     <string name="validation_page_info">Page %1$d of %2$d (%3$d items)</string>
     <string name="validation_previous">Previous</string>
     <string name="validation_next">Next</string>
+
+    <!-- Sync Status -->
+    <string name="sync_status_offline">You are offline</string>
+    <string name="sync_status_pending">%d pending</string>
+    <string name="sync_status_syncing">Syncing\u2026</string>
+
+    <!-- Stale Data -->
+    <string name="stale_data_warning">Data may be outdated (last updated %s ago). Connect to refresh.</string>
 </resources>

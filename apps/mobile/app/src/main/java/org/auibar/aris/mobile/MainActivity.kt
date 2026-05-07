@@ -17,10 +17,15 @@ import org.auibar.aris.mobile.ui.components.rememberWindowType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.runtime.LaunchedEffect
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
+import org.auibar.aris.mobile.sync.SyncWorker
 import org.auibar.aris.mobile.data.remote.websocket.WebSocketManager
-import org.auibar.aris.mobile.ui.components.OfflineBanner
+import org.auibar.aris.mobile.ui.components.SyncStatusBar
 import org.auibar.aris.mobile.ui.components.UpdatePromptDialog
 import org.auibar.aris.mobile.ui.navigation.ArisNavGraph
 import org.auibar.aris.mobile.ui.navigation.ArisRoutes
@@ -117,8 +122,27 @@ class MainActivity : ComponentActivity() {
                     val isOnline by connectivityObserver.isOnline.collectAsStateWithLifecycle(
                         initialValue = true,
                     )
+
+                    // Auto-sync when coming back online
+                    val context = this@MainActivity
+                    LaunchedEffect(Unit) {
+                        connectivityObserver.isOnline
+                            .distinctUntilChanged()
+                            .drop(1)  // skip initial emission
+                            .filter { it }  // only online transitions
+                            .collect {
+                                SyncWorker.triggerNow(context)
+                            }
+                    }
+
                     Column(modifier = Modifier.fillMaxSize()) {
-                        OfflineBanner(isOffline = !isOnline)
+                        SyncStatusBar(
+                            isOffline = !isOnline,
+                            pendingCount = 0,
+                            lastSyncTime = null,
+                            isSyncing = false,
+                            onSyncNow = { SyncWorker.triggerNow(context) },
+                        )
                         val navController = rememberNavController()
                         ArisNavGraph(
                             navController = navController,

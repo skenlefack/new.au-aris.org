@@ -9,10 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.auibar.aris.mobile.data.remote.api.AnalyticsApi
-import org.auibar.aris.mobile.data.remote.api.ChartEntry
 import org.auibar.aris.mobile.data.remote.api.DashboardChartsResponse
-import org.auibar.aris.mobile.data.remote.api.TrendEntry
 import org.auibar.aris.mobile.data.remote.dto.KpiCard
 import org.auibar.aris.mobile.data.repository.DashboardRepository
 import org.auibar.aris.mobile.ui.components.DomainInfo
@@ -23,7 +20,6 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeDashboardViewModel @Inject constructor(
     private val dashboardRepository: DashboardRepository,
-    private val analyticsApi: AnalyticsApi,
     private val tokenManager: TokenManager,
 ) : ViewModel() {
 
@@ -58,11 +54,9 @@ class HomeDashboardViewModel @Inject constructor(
                 }
             }
             val chartsJob = launch {
-                try {
-                    val response = analyticsApi.getDashboardCharts()
-                    _charts.value = response.data
-                } catch (_: Exception) {
-                    // Keep default empty charts
+                val result = dashboardRepository.getCharts()
+                if (result.isSuccess) {
+                    _charts.value = result.getOrDefault(DashboardChartsResponse())
                 }
             }
             kpiJob.join()

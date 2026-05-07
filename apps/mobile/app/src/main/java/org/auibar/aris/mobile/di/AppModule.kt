@@ -102,9 +102,10 @@ object AppModule {
         analyticsApi: AnalyticsApi,
         campaignRepository: CampaignRepository,
         submissionRepository: SubmissionRepository,
+        kpiSnapshotDao: org.auibar.aris.mobile.data.local.dao.KpiSnapshotDao,
         cachePolicy: CachePolicy,
         tokenManager: TokenManager,
-    ): DashboardRepository = DashboardRepository(analyticsApi, campaignRepository, submissionRepository, cachePolicy, tokenManager)
+    ): DashboardRepository = DashboardRepository(analyticsApi, campaignRepository, submissionRepository, kpiSnapshotDao, cachePolicy, tokenManager)
 
     @Provides
     @Singleton

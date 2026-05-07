@@ -8,6 +8,7 @@ import org.auibar.aris.mobile.data.local.dao.DashboardDao
 import org.auibar.aris.mobile.data.local.dao.DashboardWidgetDao
 import org.auibar.aris.mobile.data.local.dao.DiseaseDao
 import org.auibar.aris.mobile.data.local.dao.FlashAlertDao
+import org.auibar.aris.mobile.data.local.dao.KpiSnapshotDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateTargetDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
@@ -35,6 +36,7 @@ import org.auibar.aris.mobile.data.local.entity.GpsTrackEntity
 import org.auibar.aris.mobile.data.local.entity.IndicatorEntity
 import org.auibar.aris.mobile.data.local.entity.IndicatorValueEntity
 import org.auibar.aris.mobile.data.local.entity.KnowledgeCategoryEntity
+import org.auibar.aris.mobile.data.local.entity.KpiSnapshotEntity
 import org.auibar.aris.mobile.data.local.entity.KnowledgePublicationEntity
 import org.auibar.aris.mobile.data.local.entity.MessageEntity
 import org.auibar.aris.mobile.data.local.entity.NotificationEntity
@@ -73,8 +75,10 @@ import org.auibar.aris.mobile.data.local.entity.UserDashboardPreferenceEntity
         FlashAlertEntity::class,
         // New v10 entities — user preferences
         UserDashboardPreferenceEntity::class,
+        // New v11 entities — KPI snapshots
+        KpiSnapshotEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 abstract class ArisDatabase : RoomDatabase() {
@@ -98,4 +102,5 @@ abstract class ArisDatabase : RoomDatabase() {
     abstract fun userDashboardPreferenceDao(): UserDashboardPreferenceDao
     abstract fun reportDao(): ReportDao
     abstract fun flashAlertDao(): FlashAlertDao
+    abstract fun kpiSnapshotDao(): KpiSnapshotDao
 }
