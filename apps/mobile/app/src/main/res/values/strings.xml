@@ -641,7 +641,8 @@
     <string name="validation_next">Next</string>
 
     <!-- Sync Status -->
-    <string name="sync_status_offline">You are offline</string>
+    <string name="sync_status_online">Online</string>
+    <string name="sync_status_offline">Offline</string>
     <string name="sync_status_pending">%d pending</string>
     <string name="sync_status_syncing">Syncing\u2026</string>
 
