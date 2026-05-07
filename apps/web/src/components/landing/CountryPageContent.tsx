@@ -37,6 +37,7 @@ import { getMinistry } from '@/data/countries-config';
 import type { CountryConfig } from '@/data/countries-config';
 import type { RecConfig } from '@/data/recs-config';
 import type { TrendDir, StatusLevel } from '@/data/country-domain-stats';
+import { CountryFlag } from '@/components/ui/CountryFlag';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   HeartPulse, Wheat, Fish, TreePine, Bug, Cloud, Building2, TrendingUp,
@@ -93,15 +94,15 @@ export function CountryPageContent({
         <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-[#D4A843] via-[#E8C875] to-[#D4A843]" />
 
         {/* Large transparent flag */}
-        <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[6rem] opacity-10 sm:right-12 sm:text-[8rem]">
-          {country.flag}
+        <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 opacity-10 sm:right-12">
+          <CountryFlag code={country.code} size={120} />
         </div>
 
         <div className="relative mx-auto max-w-[1440px] px-4 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             {/* Left: Flag + Title */}
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <span className="text-4xl sm:text-5xl">{country.flag}</span>
+              <CountryFlag code={country.code} size={48} />
               <div>
                 <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl lg:text-4xl">
                   {countryName}

@@ -15,6 +15,7 @@ import type { Locale } from '@/lib/i18n/config';
 import { LOCALES } from '@/lib/i18n/config';
 import { useTranslations } from '@/lib/i18n/translations';
 import { usePublicPlatformConfig } from '@/hooks/usePlatformConfig';
+import { CountryFlag } from '@/components/ui/CountryFlag';
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -231,8 +232,8 @@ export function LoginPanel({ context }: LoginPanelProps) {
     <div className="w-full">
       {/* Header with logo */}
       <div className="mb-6 flex items-center gap-3">
-        {context?.level === 'country' && context.flag ? (
-          <span className="text-4xl">{context.flag}</span>
+        {context?.level === 'country' && context.countryCode ? (
+          <CountryFlag code={context.countryCode} size={42} />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img

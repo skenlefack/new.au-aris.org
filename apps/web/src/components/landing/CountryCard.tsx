@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import type { CountryConfig } from '@/data/countries-config';
+import { CountryFlag } from '@/components/ui/CountryFlag';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { getLocalizedField } from '@/lib/i18n/localize';
@@ -24,7 +25,7 @@ export function CountryCard({ country, accentColor = '#006B3F' }: CountryCardPro
       className="group relative flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
     >
       {/* Flag */}
-      <span className="text-4xl leading-none">{country.flag}</span>
+      <CountryFlag code={country.code} size={36} />
 
       {/* Info */}
       <div className="min-w-0 flex-1">
