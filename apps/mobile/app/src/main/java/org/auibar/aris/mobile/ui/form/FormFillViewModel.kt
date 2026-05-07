@@ -153,17 +153,39 @@ class FormFillViewModel @Inject constructor(
         }
     }
 
-    /** Load options from /api/v1/master-data/ref/{type}/for-select for each type. */
+    /** Load options from /api/v1/master-data/ref/{type}/for-select, with Room fallback. */
     private suspend fun loadMasterDataOptions(types: List<String>): Map<String, List<SelectOption>> {
         val results = mutableMapOf<String, List<SelectOption>>()
         types.map { type ->
             viewModelScope.async {
-                val items = campaignApi.getRefDataForSelect(type)
-                val options = items.map { item ->
-                    SelectOption(value = item.id, label = item.displayLabel())
+                // Try API first
+                try {
+                    val items = campaignApi.getRefDataForSelect(type)
+                    if (items.isNotEmpty()) {
+                        val options = items.map { item ->
+                            SelectOption(value = item.id, label = item.displayLabel())
+                        }
+                        Log.d(TAG, "Ref data $type from API: ${options.size} options")
+                        return@async type to options
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Ref data $type API failed (offline?): ${e.message}")
                 }
-                Log.d(TAG, "Ref data $type: ${options.size} options")
-                type to options
+                // Fallback to Room for known types
+                val roomOptions = when (type) {
+                    "species" -> speciesDao.getAll().map {
+                        SelectOption(value = it.id, label = "${it.commonName} (${it.scientificName})")
+                    }
+                    "diseases" -> diseaseDao.getAll().map {
+                        SelectOption(value = it.id, label = it.name)
+                    }
+                    "geo", "countries" -> geoDao.getByLevel("COUNTRY").map {
+                        SelectOption(value = it.id, label = it.name)
+                    }
+                    else -> emptyList()
+                }
+                Log.d(TAG, "Ref data $type from Room: ${roomOptions.size} options")
+                type to roomOptions
             }
         }.awaitAll().forEach { (type, options) ->
             results[type] = options

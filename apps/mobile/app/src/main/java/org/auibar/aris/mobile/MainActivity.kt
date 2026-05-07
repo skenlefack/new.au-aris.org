@@ -136,17 +136,11 @@ class MainActivity : ComponentActivity() {
                     }
 
                     Column(modifier = Modifier.fillMaxSize()) {
-                        SyncStatusBar(
-                            isOffline = !isOnline,
-                            pendingCount = 0,
-                            lastSyncTime = null,
-                            isSyncing = false,
-                            onSyncNow = { SyncWorker.triggerNow(context) },
-                        )
                         val navController = rememberNavController()
                         ArisNavGraph(
                             navController = navController,
                             startDestination = ArisRoutes.SPLASH,
+                            isOnline = isOnline,
                         )
                     }
                 }

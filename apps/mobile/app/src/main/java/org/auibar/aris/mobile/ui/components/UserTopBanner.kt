@@ -58,6 +58,7 @@ fun UserTopBanner(
     userRole: String?,
     tenantLevel: String?,
     unreadNotifications: Int = 0,
+    isOnline: Boolean = true,
     localeManager: LocaleManager? = null,
     modifier: Modifier = Modifier,
     onProfileClick: () -> Unit = {},
@@ -92,6 +93,15 @@ fun UserTopBanner(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // ── Online/Offline dot ─────────────────────────────────
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(if (isOnline) Color(0xFF4CAF50) else Color(0xFF9E9E9E)),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+
             // ── Left: AU Logo ──────────────────────────────────────
             Image(
                 painter = painterResource(id = R.drawable.au_logo),

@@ -204,6 +204,7 @@ private val hideBannerRoutes = setOf(ArisRoutes.SPLASH, ArisRoutes.LOGIN, ArisRo
 fun ArisNavGraph(
     navController: NavHostController,
     startDestination: String = ArisRoutes.SPLASH,
+    isOnline: Boolean = true,
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -229,6 +230,7 @@ fun ArisNavGraph(
                     userRole = bannerViewModel.userRole,
                     tenantLevel = bannerViewModel.tenantLevel,
                     unreadNotifications = bannerUnreadCount,
+                    isOnline = isOnline,
                     localeManager = bannerViewModel.localeManager,
                     modifier = Modifier.zIndex(1f),
                     onProfileClick = {
