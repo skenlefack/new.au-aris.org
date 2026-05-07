@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.ui.theme.GoldAccent
+import org.auibar.aris.mobile.util.LocaleManager
 import org.auibar.aris.mobile.ui.theme.GradientDarkGreen
 import org.auibar.aris.mobile.ui.theme.GradientMidGreen
 import org.auibar.aris.mobile.ui.theme.GradientTeal
@@ -57,6 +58,7 @@ fun UserTopBanner(
     userRole: String?,
     tenantLevel: String?,
     unreadNotifications: Int = 0,
+    localeManager: LocaleManager? = null,
     modifier: Modifier = Modifier,
     onProfileClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
@@ -138,7 +140,17 @@ fun UserTopBanner(
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+
+            // ── Language switcher ─────────────────────────────────
+            if (localeManager != null) {
+                LanguageSwitcher(
+                    localeManager = localeManager,
+                    tint = Color.White,
+                    bgAlpha = 0.15f,
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+            }
 
             // ── Notification bell icon ────────────────────────────
             Box(

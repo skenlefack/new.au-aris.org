@@ -229,6 +229,7 @@ fun ArisNavGraph(
                     userRole = bannerViewModel.userRole,
                     tenantLevel = bannerViewModel.tenantLevel,
                     unreadNotifications = bannerUnreadCount,
+                    localeManager = bannerViewModel.localeManager,
                     modifier = Modifier.zIndex(1f),
                     onProfileClick = {
                         navController.navigate(ArisRoutes.SETTINGS) {

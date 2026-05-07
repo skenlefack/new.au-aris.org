@@ -59,7 +59,22 @@ class MainActivity : ComponentActivity() {
     override fun attachBaseContext(newBase: Context) {
         // Apply locale before super to ensure correct language from the start
         // LocaleManager is not yet injected here, so read language from prefs directly
-        super.attachBaseContext(newBase)
+        val lang = try {
+            val prefs = androidx.security.crypto.EncryptedSharedPreferences.create(
+                "aris_secure_prefs", "aris_master_key",
+                newBase,
+                androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+            )
+            prefs.getString("language", "en") ?: "en"
+        } catch (_: Exception) { "en" }
+
+        val locale = java.util.Locale(lang)
+        java.util.Locale.setDefault(locale)
+        val config = android.content.res.Configuration(newBase.resources.configuration)
+        config.setLocale(locale)
+        config.setLayoutDirection(locale)
+        super.attachBaseContext(newBase.createConfigurationContext(config))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.data.remote.websocket.WebSocketManager
 import org.auibar.aris.mobile.data.repository.AuthRepository
 import org.auibar.aris.mobile.data.repository.LoginResult
+import org.auibar.aris.mobile.util.LocaleManager
 import javax.inject.Inject
 
 data class LoginUiState(
@@ -26,6 +27,7 @@ data class LoginUiState(
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val webSocketManager: WebSocketManager,
+    val localeManager: LocaleManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())

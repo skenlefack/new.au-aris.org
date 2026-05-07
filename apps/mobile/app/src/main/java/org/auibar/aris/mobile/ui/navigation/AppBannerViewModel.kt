@@ -3,6 +3,7 @@ package org.auibar.aris.mobile.ui.navigation
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import org.auibar.aris.mobile.data.repository.AuthRepository
+import org.auibar.aris.mobile.util.LocaleManager
 import org.auibar.aris.mobile.util.TokenManager
 import javax.inject.Inject
 
@@ -10,6 +11,7 @@ import javax.inject.Inject
 class AppBannerViewModel @Inject constructor(
     private val tokenManager: TokenManager,
     private val authRepository: AuthRepository,
+    val localeManager: LocaleManager,
 ) : ViewModel() {
 
     val userName: String get() = tokenManager.userFullName ?: ""

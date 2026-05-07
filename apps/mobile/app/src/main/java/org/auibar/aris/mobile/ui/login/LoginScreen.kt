@@ -71,8 +71,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.auibar.aris.mobile.R
+import org.auibar.aris.mobile.ui.components.LanguageSwitcher
 import org.auibar.aris.mobile.ui.components.LoadingSpinner
 import org.auibar.aris.mobile.ui.theme.ErrorLight
+import org.auibar.aris.mobile.util.LocaleManager
 
 // AU Style Guide primary colours
 private val AuCorporateGreen = Color(0xFF1A5632)
@@ -117,6 +119,20 @@ fun LoginScreen(
                         ),
                     ),
             )
+
+            // Language switcher (top right)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp, end = 16.dp),
+                contentAlignment = Alignment.TopEnd,
+            ) {
+                LanguageSwitcher(
+                    localeManager = viewModel.localeManager,
+                    tint = Color.White,
+                    bgAlpha = 0.2f,
+                )
+            }
 
             // Content
             Column(
