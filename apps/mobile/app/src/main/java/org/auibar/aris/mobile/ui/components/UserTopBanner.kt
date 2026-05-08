@@ -93,15 +93,6 @@ fun UserTopBanner(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // ── Online/Offline dot ─────────────────────────────────
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(if (isOnline) Color(0xFF4CAF50) else Color(0xFF9E9E9E)),
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-
             // ── Left: AU Logo ──────────────────────────────────────
             Image(
                 painter = painterResource(id = R.drawable.au_logo),
@@ -201,7 +192,7 @@ fun UserTopBanner(
 
             Spacer(modifier = Modifier.width(6.dp))
 
-            // ── Right: Avatar with dropdown ────────────────────────
+            // ── Right: Avatar with dropdown + online dot ────────────
             Box {
                 Box(
                     modifier = Modifier
@@ -218,6 +209,17 @@ fun UserTopBanner(
                         fontWeight = FontWeight.Bold,
                     )
                 }
+                // Online/Offline indicator dot (bottom-right of avatar)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(12.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .padding(1.5.dp)
+                        .clip(CircleShape)
+                        .background(if (isOnline) Color(0xFF4CAF50) else Color(0xFF9E9E9E)),
+                )
 
                 DropdownMenu(
                     expanded = showMenu,
