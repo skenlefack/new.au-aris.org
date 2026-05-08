@@ -148,15 +148,30 @@ export class WidgetResolver {
 
   /**
    * INDICATOR — look up an indicator by code, get latest value + trend.
+   * Also supports indicatorCode from config.indicatorCode or config.kpiCode (fallback).
    */
   private async resolveIndicator(
     config: Record<string, unknown>,
     globalFilters: RenderQuery,
   ): Promise<unknown> {
-    const indicatorCode = config.indicatorCode as string;
+    const indicatorCode = (config.indicatorCode as string) || (config.kpiCode as string);
     if (!indicatorCode) throw new Error('indicatorCode is required for INDICATOR data source');
 
-    const indicator = await this.indicatorService.getIndicatorByCode(indicatorCode);
+    let indicator: unknown;
+    try {
+      indicator = await this.indicatorService.getIndicatorByCode(indicatorCode);
+    } catch {
+      // Try with dashes replaced by underscores and vice versa
+      const altCode = indicatorCode.includes('-')
+        ? indicatorCode.replace(/-/g, '_')
+        : indicatorCode.replace(/_/g, '-');
+      try {
+        indicator = await this.indicatorService.getIndicatorByCode(altCode);
+      } catch {
+        return { indicator: { code: indicatorCode }, value: null, trend: null, history: [], error: `Indicator not found: ${indicatorCode}` };
+      }
+    }
+
     const indicatorObj = indicator as Record<string, unknown>;
     const indicatorId = indicatorObj.id as string;
 
@@ -170,7 +185,7 @@ export class WidgetResolver {
     });
 
     return {
-      indicator: { id: indicatorId, code: indicatorCode, name_en: indicatorObj.name_en, name_fr: indicatorObj.name_fr },
+      indicator: { id: indicatorId, code: indicatorObj.code ?? indicatorCode, name_en: indicatorObj.name_en, name_fr: indicatorObj.name_fr, unit: indicatorObj.unit },
       value: latestValue,
       trend: this.computeTrend(historyResult.data),
       history: historyResult.data,
@@ -227,53 +242,137 @@ export class WidgetResolver {
   }
 
   /**
-   * KPI_CONTINENTAL — read from kpi_definitions / country_kpi_scores.
+   * KPI_CONTINENTAL — read from kpi_definitions / country_kpi_scores,
+   * or fall back to indicator_values aggregation by domain/country.
    */
   private async resolveKpiContinental(
     config: Record<string, unknown>,
     globalFilters: RenderQuery,
   ): Promise<unknown> {
-    const kpiCode = config.kpiCode as string;
-    if (!kpiCode) throw new Error('kpiCode is required for KPI_CONTINENTAL data source');
+    const kpiCode = config.kpiCode as string | undefined;
+    const domain = config.domain as string | undefined;
+    const metric = config.metric as string | undefined;
+    const groupBy = config.groupBy as string | undefined;
+    const limit = (config.limit as number) ?? 20;
 
-    const conditions: string[] = ['k.code = $1'];
-    const params: unknown[] = [kpiCode];
-    let idx = 2;
+    // ── Path A: KPI code provided → original flow via kpi_definitions ──
+    if (kpiCode) {
+      const { rows: defRows } = await this.pool.query(
+        `SELECT * FROM analytics.kpi_definitions WHERE code = $1`,
+        [kpiCode],
+      );
 
-    // Get definition
-    const { rows: defRows } = await this.pool.query(
-      `SELECT * FROM analytics.kpi_definitions WHERE code = $1`,
-      [kpiCode],
-    );
+      if (defRows.length === 0) {
+        throw new Error(`KPI definition not found: ${kpiCode}`);
+      }
 
-    if (defRows.length === 0) {
-      throw new Error(`KPI definition not found: ${kpiCode}`);
+      const scoreConditions: string[] = ['s.kpi_definition_id = $1'];
+      const scoreParams: unknown[] = [defRows[0].id];
+      let scoreIdx = 2;
+
+      if (globalFilters.countryCode) {
+        scoreConditions.push(`s.country_code = $${scoreIdx++}`);
+        scoreParams.push(globalFilters.countryCode);
+      }
+      if (globalFilters.year) {
+        scoreConditions.push(`s.year = $${scoreIdx++}`);
+        scoreParams.push(globalFilters.year);
+      }
+
+      const { rows: scoreRows } = await this.pool.query(
+        `SELECT * FROM analytics.country_kpi_scores s WHERE ${scoreConditions.join(' AND ')} ORDER BY s.year DESC, s.country_code`,
+        scoreParams,
+      );
+
+      return {
+        definition: defRows[0],
+        value: scoreRows.length > 0 ? scoreRows[0].score : null,
+        byCountry: scoreRows,
+      };
     }
 
-    // Get country scores
-    const scoreConditions: string[] = ['s.kpi_definition_id = $1'];
-    const scoreParams: unknown[] = [defRows[0].id];
-    let scoreIdx = 2;
+    // ── Path B: Domain-based aggregation from indicator_values ──
+    if (domain) {
+      // Resolve domain UUID
+      const { rows: domRows } = await this.pool.query(
+        `SELECT id FROM governance.domains WHERE code = $1 LIMIT 1`,
+        [domain],
+      );
+      const domainId = domRows.length > 0 ? domRows[0].id : null;
 
-    if (globalFilters.countryCode) {
-      scoreConditions.push(`s.country_code = $${scoreIdx++}`);
-      scoreParams.push(globalFilters.countryCode);
+      if (!domainId) {
+        return { data: [], byCountry: [], message: `Domain not found: ${domain}` };
+      }
+
+      // Get indicator values grouped by country for this domain
+      const yearFilter = globalFilters.year ?? new Date().getFullYear();
+      const conditions: string[] = [
+        'i.domain_id = $1',
+        'i.active = true',
+        'iv.year = $2',
+        'iv.country_code IS NOT NULL',
+        'iv.is_continental = false',
+      ];
+      const params: unknown[] = [domainId, yearFilter];
+      let idx = 3;
+
+      if (globalFilters.countryCode) {
+        conditions.push(`iv.country_code = $${idx++}`);
+        params.push(globalFilters.countryCode);
+      }
+
+      // Determine grouping based on config
+      let groupColumn = 'iv.country_code';
+      let nameColumn = 'iv.country_code';
+      if (groupBy === 'rec') {
+        groupColumn = 'iv.rec_code';
+        nameColumn = 'iv.rec_code';
+        // Replace country_code filter with rec filter
+        const cIdx = conditions.indexOf('iv.country_code IS NOT NULL');
+        if (cIdx >= 0) conditions[cIdx] = 'iv.rec_code IS NOT NULL';
+      } else if (groupBy === 'disease' || groupBy === 'species') {
+        // Group by indicator code instead (each indicator = one disease/species)
+        groupColumn = 'i.code';
+        nameColumn = 'i.name_en';
+      }
+
+      const { rows } = await this.pool.query(
+        `SELECT ${nameColumn} as name, ${groupColumn} as key,
+                SUM(iv.value)::float as value, COUNT(*)::int as count
+         FROM analytics.indicator_values iv
+         JOIN analytics.indicators i ON i.id = iv.indicator_id
+         WHERE ${conditions.join(' AND ')}
+         GROUP BY ${groupColumn}, ${nameColumn}
+         ORDER BY value DESC
+         LIMIT $${idx}`,
+        [...params, limit],
+      );
+
+      // Also get time series (last 12 months or years)
+      const { rows: trendRows } = await this.pool.query(
+        `SELECT iv.year, iv.month, SUM(iv.value)::float as value
+         FROM analytics.indicator_values iv
+         JOIN analytics.indicators i ON i.id = iv.indicator_id
+         WHERE i.domain_id = $1 AND i.active = true AND iv.is_continental = true
+           AND iv.year >= $2
+         GROUP BY iv.year, iv.month
+         ORDER BY iv.year, iv.month
+         LIMIT 24`,
+        [domainId, yearFilter - 2],
+      );
+
+      return {
+        data: rows,
+        byCountry: rows.filter((r: any) => r.key?.length === 2), // ISO country codes
+        trend: trendRows,
+        domain,
+        year: yearFilter,
+        groupBy: groupBy || 'country',
+      };
     }
-    if (globalFilters.year) {
-      scoreConditions.push(`s.year = $${scoreIdx++}`);
-      scoreParams.push(globalFilters.year);
-    }
 
-    const { rows: scoreRows } = await this.pool.query(
-      `SELECT * FROM analytics.country_kpi_scores s WHERE ${scoreConditions.join(' AND ')} ORDER BY s.year DESC, s.country_code`,
-      scoreParams,
-    );
-
-    return {
-      definition: defRows[0],
-      value: scoreRows.length > 0 ? scoreRows[0].score : null,
-      byCountry: scoreRows,
-    };
+    // ── Path C: Neither kpiCode nor domain → error ──
+    throw new Error('kpiCode or domain is required for KPI_CONTINENTAL data source');
   }
 
   /**
