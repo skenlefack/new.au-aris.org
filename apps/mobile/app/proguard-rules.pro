@@ -76,3 +76,6 @@
 # ── Don't obfuscate crash reports ──
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# SLF4J
+-dontwarn org.slf4j.**
