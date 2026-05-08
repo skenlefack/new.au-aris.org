@@ -21,7 +21,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "org.auibar.aris.mobile"
+        applicationId = "org.auibar.aris"
         minSdk = 26
         targetSdk = 34
         versionCode = 4
