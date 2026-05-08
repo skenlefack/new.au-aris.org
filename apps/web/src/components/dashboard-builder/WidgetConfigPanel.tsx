@@ -411,9 +411,9 @@ function IndicatorPicker({
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400"
           placeholder="Search indicators by name or code..."
         />
-        {isOpen && (
+        {isOpen ? (
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-180" />
-        )}
+        ) : null}
       </div>
 
       {/* Dropdown results */}
@@ -737,7 +737,7 @@ function KpiPicker({
         )}
       </div>
 
-      {isOpen && filteredKpis.length > 0 && (
+      {isOpen && filteredKpis.length > 0 ? (
         <div className="relative z-10">
           <div className="absolute top-0 left-0 right-0 max-h-48 overflow-y-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
             {filteredKpis.map((code) => (
@@ -758,7 +758,7 @@ function KpiPicker({
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Validation feedback */}
       {currentCode && !isKnownCode && (
