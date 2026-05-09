@@ -339,7 +339,7 @@ function IndicatorPicker({
 }: {
   config: Record<string, unknown>;
   onChange: (u: Record<string, unknown>) => void;
-}) {
+}): JSX.Element {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -417,7 +417,7 @@ function IndicatorPicker({
       </div>
 
       {/* Dropdown results */}
-      {Boolean(isOpen) ? (
+      {isOpen ? (
         <div className="relative z-10">
           <div className="absolute top-0 left-0 right-0 max-h-52 overflow-y-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
             {isLoading ? (
@@ -433,7 +433,7 @@ function IndicatorPicker({
                   type="button"
                   onClick={() => handleSelect(indicator)}
                   className={`w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-colors ${
-                    config.indicatorCode === indicator.code ? 'bg-[#1F4E79]/5 dark:bg-[#1F4E79]/20' : ''
+                    (config.indicatorCode as string) === indicator.code ? 'bg-[#1F4E79]/5 dark:bg-[#1F4E79]/20' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between">
