@@ -417,7 +417,7 @@ function IndicatorPicker({
       </div>
 
       {/* Dropdown results */}
-      {Boolean(isOpen) && (
+      {Boolean(isOpen) ? (
         <div className="relative z-10">
           <div className="absolute top-0 left-0 right-0 max-h-52 overflow-y-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
             {isLoading ? (
