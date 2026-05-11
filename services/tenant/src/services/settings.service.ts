@@ -1224,26 +1224,70 @@ export class SettingsService {
 
   // ───────────────────── Functions ─────────────────────
 
-  private buildFunctionTenantFilter(caller: AuthenticatedUser): Record<string, unknown> {
+  private async buildFunctionTenantFilter(caller: AuthenticatedUser): Promise<Record<string, unknown>> {
     if (!caller.tenantId) {
       throw new HttpError(403, 'Missing tenant context');
     }
     switch (caller.tenantLevel) {
       case 'CONTINENTAL': return {};
-      case 'REC': return { tenant: { OR: [{ id: caller.tenantId }, { parentId: caller.tenantId }] } };
-      case 'MEMBER_STATE': return { tenantId: caller.tenantId };
+      case 'REC':
+        return {
+          OR: [
+            { tenant: { level: 'CONTINENTAL' } },          // continental functions
+            { tenantId: caller.tenantId },                  // own REC functions
+            { tenant: { parentId: caller.tenantId } },      // child country functions
+          ],
+        };
+      case 'MEMBER_STATE': {
+        // Resolve parent REC tenant so national admins see continental + REC + own functions
+        const myTenant = await (this.prisma as any).tenant.findUnique({
+          where: { id: caller.tenantId },
+          select: { parentId: true },
+        });
+        const parentIds: string[] = [];
+        if (myTenant?.parentId) parentIds.push(myTenant.parentId);
+        return {
+          OR: [
+            { tenant: { level: 'CONTINENTAL' } },          // continental functions
+            ...(parentIds.length ? [{ tenantId: { in: parentIds } }] : []), // parent REC functions
+            { tenantId: caller.tenantId },                  // own national functions
+          ],
+        };
+      }
       default: return { tenantId: caller.tenantId };
     }
   }
 
-  private async assertFunctionTenantAccess(fn: { tenantId: string }, caller: AuthenticatedUser): Promise<void> {
+  private async assertFunctionTenantAccess(fn: { tenantId: string }, caller: AuthenticatedUser, mode: 'read' | 'write' = 'write'): Promise<void> {
     if (caller.tenantLevel === 'CONTINENTAL') return;
     if (caller.tenantLevel === 'MEMBER_STATE') {
-      if (fn.tenantId !== caller.tenantId) throw new HttpError(403, 'Access denied: function belongs to a different tenant');
-      return;
+      if (fn.tenantId === caller.tenantId) return; // own function
+      if (mode === 'read') {
+        // National admins can read continental + parent REC functions
+        const fnTenant = await (this.prisma as any).tenant.findUnique({
+          where: { id: fn.tenantId },
+          select: { level: true, id: true },
+        });
+        if (fnTenant?.level === 'CONTINENTAL') return;
+        // Check if fn belongs to parent REC
+        const myTenant = await (this.prisma as any).tenant.findUnique({
+          where: { id: caller.tenantId },
+          select: { parentId: true },
+        });
+        if (myTenant?.parentId && fn.tenantId === myTenant.parentId) return;
+      }
+      throw new HttpError(403, 'Access denied: function belongs to a different tenant');
     }
     if (caller.tenantLevel === 'REC') {
       if (fn.tenantId === caller.tenantId) return;
+      if (mode === 'read') {
+        // REC admins can read continental functions
+        const fnTenant = await (this.prisma as any).tenant.findUnique({
+          where: { id: fn.tenantId },
+          select: { level: true },
+        });
+        if (fnTenant?.level === 'CONTINENTAL') return;
+      }
       // Check if the function's tenant is a child of the caller's tenant
       const fnTenant = await (this.prisma as any).tenant.findUnique({
         where: { id: fn.tenantId },
@@ -1270,7 +1314,7 @@ export class SettingsService {
       ? { [query.sort]: query.order ?? 'asc' }
       : [{ level: 'asc' as const }, { sortOrder: 'asc' as const }];
 
-    const where: Record<string, unknown> = { ...this.buildFunctionTenantFilter(user) };
+    const where: Record<string, unknown> = { ...(await this.buildFunctionTenantFilter(user)) };
     if (query.search) {
       where.OR = [
         { code: { contains: query.search, mode: 'insensitive' } },

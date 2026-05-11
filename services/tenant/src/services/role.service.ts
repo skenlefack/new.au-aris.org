@@ -70,12 +70,32 @@ export class RoleService {
     const where: Record<string, unknown> = {};
     const andConditions: Record<string, unknown>[] = [];
 
-    // Show global system roles + tenant-scoped roles
-    if (caller.tenantLevel !== 'CONTINENTAL') {
+    // Show global system roles + tenant-hierarchy-scoped roles
+    if (caller.tenantLevel === 'REC') {
       andConditions.push({
         OR: [
-          { tenantId: null },         // global system roles
-          { tenantId: caller.tenantId }, // tenant-specific custom roles
+          { tenantId: null },                              // global system roles
+          { tenant: { level: 'CONTINENTAL' } },            // continental custom roles
+          { tenantId: caller.tenantId },                   // own REC roles
+          { tenant: { parentId: caller.tenantId } },       // child country roles
+        ],
+      });
+    } else if (caller.tenantLevel === 'MEMBER_STATE') {
+      // Resolve parent REC in the query itself using nested relation filter
+      andConditions.push({
+        OR: [
+          { tenantId: null },                              // global system roles
+          { tenant: { level: 'CONTINENTAL' } },            // continental custom roles
+          { tenantId: caller.tenantId },                   // own national roles
+          // Parent REC roles: tenant is a REC that is the parent of caller's tenant
+          { tenant: { level: 'REC', children: { some: { id: caller.tenantId } } } },
+        ],
+      });
+    } else if (caller.tenantLevel !== 'CONTINENTAL') {
+      andConditions.push({
+        OR: [
+          { tenantId: null },
+          { tenantId: caller.tenantId },
         ],
       });
     }

@@ -64,11 +64,8 @@ export function useSettingsAccess() {
         case 'recs':
           return isRecAdmin;
         case 'countries':
-          return isRecAdmin || isNationalAdmin;
         case 'functions':
-          return isRecAdmin || isNationalAdmin;
         case 'users':
-          return isRecAdmin || isNationalAdmin;
         case 'roles':
           return isRecAdmin || isNationalAdmin;
         case 'general':
@@ -89,10 +86,20 @@ export function useSettingsAccess() {
           return isRecAdmin || isNationalAdmin;
         case 'infrastructures':
           return isRecAdmin || isNationalAdmin;
+        case 'statistics':
+        case 'sub-domains':
+        case 'indicator-types':
+        case 'indicators':
+        case 'kpis':
+          return isRecAdmin || isNationalAdmin;
+        case 'sessions':
+        case 'sync-monitoring':
+        case 'ai-console':
+        case 'tenant':
+          return isRecAdmin;
         case 'bi-access':
-          return false; // only super/continental admins
         case 'system':
-          return false;
+          return false; // only super/continental admins
         default:
           return false;
       }
