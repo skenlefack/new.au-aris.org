@@ -1258,10 +1258,7 @@ export default function UsersPage() {
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Email</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Organisation</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Functions</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Roles</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Domains</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-[80px]">Login</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-[70px]">Active</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right w-[120px]">Actions</th>
               </tr>
@@ -1323,24 +1320,6 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1 max-w-[140px]">
-                        {user.functions && user.functions.length > 0 ? (
-                          <>
-                            {user.functions.slice(0, 2).map((uf) => (
-                              <span key={uf.id} className="inline-flex items-center rounded-full bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 text-[10px] font-medium text-indigo-700 dark:text-indigo-400 whitespace-nowrap">
-                                {uf.function?.name?.en ?? uf.function?.code}
-                              </span>
-                            ))}
-                            {user.functions.length > 2 && (
-                              <span className="text-[10px] text-gray-400 self-center">+{user.functions.length - 2}</span>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-[11px] text-gray-400 dark:text-gray-500">--</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1 max-w-[140px]">
                         {effectiveRolesList.length > 0 ? (
                           <>
                             {effectiveRolesList.slice(0, 2).map((role) => (
@@ -1362,29 +1341,6 @@ export default function UsersPage() {
                           </span>
                         )}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1 max-w-[160px]">
-                        {user.domains && user.domains.length > 0 ? (
-                          <>
-                            {user.domains.slice(0, 2).map((d) => (
-                              <DomainBadge key={d.code} code={d.code} name={d.name} color={d.color} size="xs" />
-                            ))}
-                            {user.domains.length > 2 && (
-                              <span className="text-[10px] text-gray-400 dark:text-gray-500 self-center">
-                                +{user.domains.length - 2}
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-[11px] text-gray-400 dark:text-gray-500">--</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                        {formatRelativeTime(user.lastLoginAt)}
-                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <button
@@ -1432,7 +1388,7 @@ export default function UsersPage() {
 
               {users.length === 0 && !isLoading && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-16 text-center">
+                  <td colSpan={6} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
                         <Users className="h-6 w-6 text-gray-400" />
