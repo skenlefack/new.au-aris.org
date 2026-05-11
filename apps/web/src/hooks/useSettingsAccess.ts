@@ -86,12 +86,13 @@ export function useSettingsAccess() {
           return isRecAdmin || isNationalAdmin;
         case 'infrastructures':
           return isRecAdmin || isNationalAdmin;
+        case 'kpis':
+          return isRecAdmin || isNationalAdmin;
         case 'statistics':
         case 'sub-domains':
         case 'indicator-types':
         case 'indicators':
-        case 'kpis':
-          return isRecAdmin || isNationalAdmin;
+          return false; // global catalogues — super/continental admins only
         case 'sessions':
         case 'sync-monitoring':
         case 'ai-console':
