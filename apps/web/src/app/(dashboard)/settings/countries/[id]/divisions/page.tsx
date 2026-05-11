@@ -33,9 +33,9 @@ const emptyML: Record<string, string> = { en: '', fr: '', pt: '', ar: '' };
 
 export default function DivisionsPage() {
   const { id: countryId } = useParams<{ id: string }>();
-  const { isSuperAdmin, isContinentalAdmin } = useSettingsAccess();
+  const { isSuperAdmin, isContinentalAdmin, isRecAdmin, isNationalAdmin } = useSettingsAccess();
   const t = useTranslations('settings');
-  const canEdit = isSuperAdmin || isContinentalAdmin;
+  const canEdit = isSuperAdmin || isContinentalAdmin || isRecAdmin || isNationalAdmin;
 
   // Country info
   const { data: countryData, isLoading: countryLoading } = useSettingsCountry(countryId);

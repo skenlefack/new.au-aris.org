@@ -33,6 +33,44 @@ export class GeoService {
     private readonly cache: StandaloneCacheService,
   ) {}
 
+  /**
+   * Transform a DB GeoEntity row into the multilingual format expected by the frontend.
+   * DB stores: name (string), nameEn, nameFr, namePt, nameAr
+   * Frontend expects: name: { en, fr, pt, ar }
+   */
+  private toMultilingual(entity: any): any {
+    if (!entity) return entity;
+    return {
+      ...entity,
+      name: {
+        en: entity.nameEn || entity.name || '',
+        fr: entity.nameFr || entity.name || '',
+        pt: entity.namePt || '',
+        ar: entity.nameAr || '',
+      },
+    };
+  }
+
+  /**
+   * Extract flat name fields from a multilingual name object for DB storage.
+   */
+  private fromMultilingual(nameObj: any): { name: string; nameEn: string; nameFr: string; namePt: string; nameAr: string } {
+    if (typeof nameObj === 'string') {
+      return { name: nameObj, nameEn: nameObj, nameFr: nameObj, namePt: '', nameAr: '' };
+    }
+    if (nameObj && typeof nameObj === 'object') {
+      const en = nameObj.en || '';
+      return {
+        name: en,
+        nameEn: en,
+        nameFr: nameObj.fr || '',
+        namePt: nameObj.pt || '',
+        nameAr: nameObj.ar || '',
+      };
+    }
+    return { name: '', nameEn: '', nameFr: '', namePt: '', nameAr: '' };
+  }
+
   async create(dto: any, user: AuthUser): Promise<ApiResponse<any>> {
     const existing = await (this.prisma as any).geoEntity.findUnique({
       where: { code: dto.code },
@@ -50,17 +88,20 @@ export class GeoService {
       }
     }
 
+    // Accept multilingual name object or flat fields
+    const nameFields = dto.nameEn
+      ? { name: dto.nameEn, nameEn: dto.nameEn, nameFr: dto.nameFr || '', namePt: dto.namePt || '', nameAr: dto.nameAr || '' }
+      : this.fromMultilingual(dto.name);
+
     const entity = await (this.prisma as any).geoEntity.create({
       data: {
         code: dto.code,
-        name: dto.name,
-        nameEn: dto.nameEn,
-        nameFr: dto.nameFr,
+        ...nameFields,
         level: dto.level,
         parentId: dto.parentId ?? null,
         countryCode: dto.countryCode,
-        centroidLat: dto.centroidLat ?? null,
-        centroidLng: dto.centroidLng ?? null,
+        centroidLat: dto.centroidLat ?? dto.latitude ?? null,
+        centroidLng: dto.centroidLng ?? dto.longitude ?? null,
         isActive: dto.isActive ?? true,
       },
     });
@@ -76,7 +117,7 @@ export class GeoService {
 
     await this.publishEvent(entity, user);
     await this.cache.invalidateByPattern('master-data', 'geo');
-    return { data: entity };
+    return { data: this.toMultilingual(entity) };
   }
 
   async findAll(
@@ -109,10 +150,26 @@ export class GeoService {
 
     const cacheKey = `aris:master-data:geo:list:${JSON.stringify({ where, skip, limit, orderBy })}`;
     return this.cache.getOrSet(cacheKey, async () => {
-      const [data, total] = await Promise.all([
-        (this.prisma as any).geoEntity.findMany({ where, skip, take: limit, orderBy }),
+      const [rawData, total] = await Promise.all([
+        (this.prisma as any).geoEntity.findMany({
+          where, skip, take: limit, orderBy,
+          include: { parent: { select: { name: true, nameEn: true, nameFr: true, namePt: true, nameAr: true } } },
+        }),
         (this.prisma as any).geoEntity.count({ where }),
       ]);
+      const data = rawData.map((e: any) => {
+        const ml = this.toMultilingual(e);
+        if (e.parent) {
+          ml.parentName = {
+            en: e.parent.nameEn || e.parent.name || '',
+            fr: e.parent.nameFr || e.parent.name || '',
+            pt: e.parent.namePt || '',
+            ar: e.parent.nameAr || '',
+          };
+        }
+        delete ml.parent;
+        return ml;
+      });
       return { data, meta: { total, page, limit } };
     }, DEFAULT_TTLS.QUERY_RESULT);
   }
@@ -122,7 +179,7 @@ export class GeoService {
     return this.cache.getOrSet(cacheKey, async () => {
       const entity = await (this.prisma as any).geoEntity.findUnique({ where: { id } });
       if (!entity) throw new HttpError(404, `GeoEntity ${id} not found`);
-      return { data: entity };
+      return { data: this.toMultilingual(entity) };
     }, DEFAULT_TTLS.MASTER_DATA);
   }
 
@@ -131,7 +188,7 @@ export class GeoService {
     return this.cache.getOrSet(cacheKey, async () => {
       const entity = await (this.prisma as any).geoEntity.findUnique({ where: { code } });
       if (!entity) throw new HttpError(404, `GeoEntity with code "${code}" not found`);
-      return { data: entity };
+      return { data: this.toMultilingual(entity) };
     }, DEFAULT_TTLS.MASTER_DATA);
   }
 
@@ -141,17 +198,29 @@ export class GeoService {
       throw new HttpError(404, `GeoEntity ${id} not found`);
     }
 
+    // Build update data — accept multilingual name object
+    const updateData: Record<string, unknown> = {
+      version: { increment: 1 },
+    };
+    if (dto.name !== undefined && typeof dto.name === 'object') {
+      const ml = this.fromMultilingual(dto.name);
+      Object.assign(updateData, ml);
+    } else {
+      if (dto.name !== undefined) updateData.name = dto.name;
+      if (dto.nameEn !== undefined) updateData.nameEn = dto.nameEn;
+      if (dto.nameFr !== undefined) updateData.nameFr = dto.nameFr;
+      if (dto.namePt !== undefined) updateData.namePt = dto.namePt;
+      if (dto.nameAr !== undefined) updateData.nameAr = dto.nameAr;
+    }
+    if (dto.centroidLat !== undefined) updateData.centroidLat = dto.centroidLat;
+    if (dto.centroidLng !== undefined) updateData.centroidLng = dto.centroidLng;
+    if (dto.latitude !== undefined) updateData.centroidLat = dto.latitude;
+    if (dto.longitude !== undefined) updateData.centroidLng = dto.longitude;
+    if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
+
     const entity = await (this.prisma as any).geoEntity.update({
       where: { id },
-      data: {
-        ...(dto.name !== undefined && { name: dto.name }),
-        ...(dto.nameEn !== undefined && { nameEn: dto.nameEn }),
-        ...(dto.nameFr !== undefined && { nameFr: dto.nameFr }),
-        ...(dto.centroidLat !== undefined && { centroidLat: dto.centroidLat }),
-        ...(dto.centroidLng !== undefined && { centroidLng: dto.centroidLng }),
-        ...(dto.isActive !== undefined && { isActive: dto.isActive }),
-        version: { increment: 1 },
-      },
+      data: updateData,
     });
 
     await this.audit.log({
@@ -167,7 +236,7 @@ export class GeoService {
 
     await this.publishEvent(entity, user);
     await this.cache.invalidateByPattern('master-data', 'geo');
-    return { data: entity };
+    return { data: this.toMultilingual(entity) };
   }
 
   async findChildren(
@@ -185,12 +254,20 @@ export class GeoService {
 
     const where = { parentId, isActive: true };
 
+    const parentName = {
+      en: parent.nameEn || parent.name || '',
+      fr: parent.nameFr || parent.name || '',
+      pt: parent.namePt || '',
+      ar: parent.nameAr || '',
+    };
+
     const cacheKey = `aris:master-data:geo:children:${parentId}:${JSON.stringify({ skip, limit })}`;
     return this.cache.getOrSet(cacheKey, async () => {
-      const [data, total] = await Promise.all([
+      const [rawData, total] = await Promise.all([
         (this.prisma as any).geoEntity.findMany({ where, skip, take: limit, orderBy: { code: 'asc' } }),
         (this.prisma as any).geoEntity.count({ where }),
       ]);
+      const data = rawData.map((e: any) => ({ ...this.toMultilingual(e), parentName }));
       return { data, meta: { total, page, limit } };
     }, DEFAULT_TTLS.QUERY_RESULT);
   }

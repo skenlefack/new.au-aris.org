@@ -277,7 +277,7 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
   // PUT /api/v1/settings/countries/:id/admin-levels — bulk upsert admin levels
   app.put<{ Params: UuidParamInput; Body: AdminLevelsBulkBodyInput }>('/api/v1/settings/countries/:id/admin-levels', {
     schema: { params: UuidParamSchema, body: AdminLevelsBulkBodySchema },
-    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN)],
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.settingsService.upsertAdminLevels(request.params.id, request.body.levels, user);
@@ -286,7 +286,7 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
   // DELETE /api/v1/settings/countries/:id/admin-levels/:level — delete one admin level
   app.delete<{ Params: AdminLevelParamInput }>('/api/v1/settings/countries/:id/admin-levels/:level', {
     schema: { params: AdminLevelParamSchema },
-    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN, UserRole.NATIONAL_ADMIN)],
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.settingsService.deleteAdminLevel(request.params.id, request.params.level, user);

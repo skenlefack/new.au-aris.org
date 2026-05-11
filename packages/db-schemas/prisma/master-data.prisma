@@ -81,6 +81,8 @@ model GeoEntity {
   name        String   @db.VarChar(255)
   nameEn      String   @map("name_en") @db.VarChar(255)
   nameFr      String   @map("name_fr") @db.VarChar(255)
+  namePt      String   @default("") @map("name_pt") @db.VarChar(255)
+  nameAr      String   @default("") @map("name_ar") @db.VarChar(255)
   level       GeoLevel
   parentId    String?  @map("parent_id") @db.Uuid
   countryCode String   @map("country_code") @db.VarChar(3)
