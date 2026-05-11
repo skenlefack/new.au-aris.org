@@ -556,7 +556,7 @@ function UserForm({
 
         {/* ---- Section: Organisation / Tenant ---- */}
         {canAssignTenant && assignableTenants.length > 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 overflow-hidden">
+          <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
             <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
               <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-gray-400" />
@@ -596,7 +596,7 @@ function UserForm({
                   <>
                     {/* Backdrop to close dropdown */}
                     <div className="fixed inset-0 z-10" onClick={() => setTenantDropdownOpen(false)} />
-                    <div className="absolute z-20 mt-1 w-full max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+                    <div className="absolute z-20 bottom-full mb-1 w-full max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
                       {filteredTenants.length === 0 ? (
                         <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                           No matching organisation found
