@@ -116,6 +116,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.decorate('permissionResolver', permissionResolver);
   app.decorate('auditService', auditService);
   app.decorate('sessionService', sessionService);
+  app.decorate('lockoutService', lockout);
   app.decorate('i18n', i18n);
 
   // Routes

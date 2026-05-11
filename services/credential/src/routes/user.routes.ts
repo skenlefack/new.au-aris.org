@@ -86,6 +86,30 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     return app.userService.update(request.params.id, request.body, user);
   });
 
+  // GET /api/v1/credential/users/locked — list locked accounts (SUPER_ADMIN, CONTINENTAL_ADMIN)
+  app.get('/api/v1/credential/users/locked', {
+    preHandler: [
+      ...authAndTenant,
+      rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN),
+    ],
+  }, async () => {
+    const locked = await app.lockoutService.listLocked();
+    return { data: locked };
+  });
+
+  // POST /api/v1/credential/users/unlock — unlock an account (SUPER_ADMIN, CONTINENTAL_ADMIN)
+  app.post<{ Body: { email: string } }>('/api/v1/credential/users/unlock', {
+    preHandler: [
+      ...authAndTenant,
+      rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN),
+    ],
+  }, async (request) => {
+    const { email } = request.body;
+    if (!email) return { statusCode: 400, message: 'email is required' };
+    await app.lockoutService.resetAttempts(email);
+    return { data: { email, unlocked: true } };
+  });
+
   // DELETE /api/v1/credential/users/:id — hard-delete users who never logged in
   app.delete<{ Params: UuidParamInput }>('/api/v1/credential/users/:id', {
     schema: { params: UuidParamSchema },

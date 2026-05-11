@@ -734,6 +734,31 @@ export function useToggleUserActive() {
   });
 }
 
+// ── Account Lockout ──
+
+export interface LockedAccount {
+  email: string;
+  attempts: number;
+  ttl: number;
+}
+
+export function useLockedAccounts() {
+  return useQuery<{ data: LockedAccount[] }>({
+    queryKey: ['settings', 'locked-accounts'],
+    queryFn: () => tenantFetch('/api/v1/credential/users/locked'),
+    refetchInterval: 30_000,
+  });
+}
+
+export function useUnlockAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (email: string) =>
+      tenantPost('/api/v1/credential/users/unlock', { email }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings', 'locked-accounts'] }),
+  });
+}
+
 // ── User-Function Assignment ──
 
 export function useUserFunctions(userId: string) {

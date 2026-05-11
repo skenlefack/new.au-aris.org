@@ -39,6 +39,8 @@ import {
   useToggleUserActive,
   useSettingsRoles,
   useSettingsFunctions,
+  useLockedAccounts,
+  useUnlockAccount,
   type ManagedUser,
   type RoleItem,
   type FunctionItem,
@@ -993,6 +995,66 @@ function UserForm({
 }
 
 /* ================================================================ */
+/*  Locked Accounts Panel                                            */
+/* ================================================================ */
+
+function LockedAccountsPanel() {
+  const me = useAuthStore((s) => s.user);
+  const isSuperOrContinental = me?.role === 'SUPER_ADMIN' || me?.role === 'CONTINENTAL_ADMIN';
+  const { data, isLoading } = useLockedAccounts();
+  const unlockMut = useUnlockAccount();
+
+  if (!isSuperOrContinental) return null;
+
+  const locked = data?.data ?? [];
+  if (isLoading || locked.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+      <div className="mb-3 flex items-center gap-2">
+        <Lock className="h-4 w-4 text-red-600 dark:text-red-400" />
+        <h3 className="text-sm font-semibold text-red-800 dark:text-red-300">
+          Locked Accounts ({locked.length})
+        </h3>
+      </div>
+      <div className="space-y-2">
+        {locked.map((acc) => {
+          const minutes = Math.ceil(acc.ttl / 60);
+          return (
+            <div
+              key={acc.email}
+              className="flex items-center justify-between rounded-lg bg-white px-3 py-2 dark:bg-gray-800"
+            >
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{acc.email}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {acc.attempts} failed attempts — auto-unlock in {minutes} min
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await unlockMut.mutateAsync(acc.email);
+                    toast.success(`${acc.email} unlocked`);
+                  } catch {
+                    toast.error('Failed to unlock account');
+                  }
+                }}
+                disabled={unlockMut.isPending}
+                className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50 dark:border-red-700 dark:bg-gray-900 dark:text-red-400 dark:hover:bg-red-900/30"
+              >
+                <Lock className="h-3 w-3" />
+                Unlock
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /*  Delete Confirm Dialog                                            */
 /* ================================================================ */
 
@@ -1198,6 +1260,9 @@ export default function UsersPage() {
           </div>
         </div>
       </div>
+
+      {/* Locked Accounts Panel */}
+      <LockedAccountsPanel />
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
