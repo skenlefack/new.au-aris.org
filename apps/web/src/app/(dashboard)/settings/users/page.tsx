@@ -46,7 +46,7 @@ import {
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
-import { useTenantStore, type TenantNode } from '@/lib/stores/tenant-store';
+import { useTenantStore, PLACEHOLDER_TENANT_TREE, type TenantNode } from '@/lib/stores/tenant-store';
 import * as LucideIcons from 'lucide-react';
 
 /* ================================================================ */
@@ -184,14 +184,15 @@ function UserForm({
     || currentUser?.role === 'CONTINENTAL_ADMIN'
     || currentUser?.role === 'REC_ADMIN';
 
-  // Build flat list of assignable tenants based on current user's level
+  // Build flat list of assignable tenants — use placeholder if API tree has no children
   const assignableTenants = useMemo(() => {
     if (!canAssignTenant) return [];
-    const result: { id: string; name: string; code: string; level: string; group?: string }[] = [];
+    // Use the tree that has the most data (API tree or placeholder)
+    const tree = (tenantTree[0]?.children?.length ?? 0) > 0 ? tenantTree : PLACEHOLDER_TENANT_TREE;
+    const result: { id: string; name: string; code: string; level: string; recName?: string }[] = [];
 
     const collectNodes = (nodes: TenantNode[], parentRecName?: string) => {
       for (const node of nodes) {
-        // SUPER_ADMIN / CONTINENTAL_ADMIN can assign to any tenant
         // REC_ADMIN can only assign within their own REC subtree
         if (currentUser?.role === 'REC_ADMIN' && node.level === 'CONTINENTAL') continue;
         if (currentUser?.role === 'REC_ADMIN' && node.level === 'REC' && node.id !== currentUser?.tenantId) continue;
@@ -201,20 +202,38 @@ function UserForm({
           name: node.name,
           code: node.code,
           level: node.level,
-          group: parentRecName,
+          recName: parentRecName,
         });
 
         if (node.children) {
           const recName = node.level === 'REC' ? node.name : parentRecName;
-          // For REC_ADMIN, only recurse into their own REC
           if (currentUser?.role === 'REC_ADMIN' && node.level === 'REC' && node.id !== currentUser?.tenantId) continue;
           collectNodes(node.children, recName);
         }
       }
     };
-    collectNodes(tenantTree);
+    collectNodes(tree);
     return result;
   }, [canAssignTenant, tenantTree, currentUser]);
+
+  // Tenant search state
+  const [tenantSearch, setTenantSearch] = useState('');
+  const [tenantDropdownOpen, setTenantDropdownOpen] = useState(false);
+
+  const filteredTenants = useMemo(() => {
+    if (!tenantSearch.trim()) return assignableTenants;
+    const q = tenantSearch.toLowerCase();
+    return assignableTenants.filter(
+      (t) => t.name.toLowerCase().includes(q) || t.code.toLowerCase().includes(q) || (t.recName ?? '').toLowerCase().includes(q),
+    );
+  }, [assignableTenants, tenantSearch]);
+
+  const selectedTenantLabel = useMemo(() => {
+    const t = assignableTenants.find((x) => x.id === form.tenantId);
+    if (!t) return '';
+    const suffix = t.level === 'CONTINENTAL' ? '(Continental)' : t.level === 'REC' ? '(REC)' : t.recName ? `(${t.recName})` : '';
+    return `${t.name} ${suffix}`.trim();
+  }, [assignableTenants, form.tenantId]);
   const createMut = useCreateUser();
   const updateMut = useUpdateUser();
   const [showPassword, setShowPassword] = useState(false);
@@ -550,45 +569,130 @@ function UserForm({
             </div>
             <div className="px-6 py-5">
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Country / Organisation</label>
-              <select
-                value={form.tenantId}
-                onChange={(e) => setForm((p) => ({ ...p, tenantId: e.target.value }))}
-                required
-                className="w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
-              >
-                <option value="">-- Select organisation --</option>
-                {/* Continental level */}
-                {assignableTenants.filter((t) => t.level === 'CONTINENTAL').map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} (Continental)
-                  </option>
-                ))}
-                {/* Group by REC */}
-                {tenantTree[0]?.children?.map((rec) => {
-                  const recTenant = assignableTenants.find((t) => t.id === rec.id);
-                  const children = assignableTenants.filter((t) => t.level === 'MEMBER_STATE' && t.group === rec.name);
-                  if (!recTenant && children.length === 0) return null;
-                  return (
-                    <optgroup key={rec.id} label={rec.name}>
-                      {recTenant && (
-                        <option value={recTenant.id}>
-                          {recTenant.name} (REC)
-                        </option>
+              <div className="relative">
+                {/* Search input */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={tenantDropdownOpen ? tenantSearch : selectedTenantLabel}
+                    onChange={(e) => { setTenantSearch(e.target.value); if (!tenantDropdownOpen) setTenantDropdownOpen(true); }}
+                    onFocus={() => { setTenantDropdownOpen(true); setTenantSearch(''); }}
+                    placeholder="Search country, REC or organisation..."
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50/50 pl-9 pr-9 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
+                  />
+                  {form.tenantId && !tenantDropdownOpen && (
+                    <button
+                      type="button"
+                      onClick={() => { setForm((p) => ({ ...p, tenantId: '' })); setTenantSearch(''); }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Dropdown list */}
+                {tenantDropdownOpen && (
+                  <>
+                    {/* Backdrop to close dropdown */}
+                    <div className="fixed inset-0 z-10" onClick={() => setTenantDropdownOpen(false)} />
+                    <div className="absolute z-20 mt-1 w-full max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+                      {filteredTenants.length === 0 ? (
+                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                          No matching organisation found
+                        </div>
+                      ) : (
+                        (() => {
+                          // Group by level/REC for visual sections
+                          const continental = filteredTenants.filter((t) => t.level === 'CONTINENTAL');
+                          const recs = filteredTenants.filter((t) => t.level === 'REC');
+                          const countries = filteredTenants.filter((t) => t.level === 'MEMBER_STATE');
+
+                          // Group countries by REC
+                          const countryGroups = new Map<string, typeof countries>();
+                          for (const c of countries) {
+                            const key = c.recName ?? 'Other';
+                            if (!countryGroups.has(key)) countryGroups.set(key, []);
+                            countryGroups.get(key)!.push(c);
+                          }
+
+                          return (
+                            <>
+                              {/* Continental */}
+                              {continental.map((t) => (
+                                <button
+                                  key={t.id}
+                                  type="button"
+                                  onClick={() => { setForm((p) => ({ ...p, tenantId: t.id })); setTenantDropdownOpen(false); setTenantSearch(''); }}
+                                  className={cn(
+                                    'flex items-center gap-3 w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20',
+                                    form.tenantId === t.id && 'bg-blue-50 dark:bg-blue-900/20',
+                                  )}
+                                >
+                                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-purple-100 text-[10px] font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 flex-shrink-0">AU</span>
+                                  <div className="min-w-0">
+                                    <p className="font-medium text-gray-900 dark:text-white truncate">{t.name}</p>
+                                    <p className="text-[10px] text-purple-600 dark:text-purple-400">Continental</p>
+                                  </div>
+                                  {form.tenantId === t.id && <CheckCircle2 className="h-4 w-4 text-blue-600 ml-auto flex-shrink-0" />}
+                                </button>
+                              ))}
+
+                              {/* RECs */}
+                              {recs.map((t) => (
+                                <button
+                                  key={t.id}
+                                  type="button"
+                                  onClick={() => { setForm((p) => ({ ...p, tenantId: t.id })); setTenantDropdownOpen(false); setTenantSearch(''); }}
+                                  className={cn(
+                                    'flex items-center gap-3 w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20',
+                                    form.tenantId === t.id && 'bg-blue-50 dark:bg-blue-900/20',
+                                  )}
+                                >
+                                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 flex-shrink-0">{t.code.slice(0, 2)}</span>
+                                  <div className="min-w-0">
+                                    <p className="font-medium text-gray-900 dark:text-white truncate">{t.name}</p>
+                                    <p className="text-[10px] text-blue-600 dark:text-blue-400">REC</p>
+                                  </div>
+                                  {form.tenantId === t.id && <CheckCircle2 className="h-4 w-4 text-blue-600 ml-auto flex-shrink-0" />}
+                                </button>
+                              ))}
+
+                              {/* Countries grouped by REC */}
+                              {Array.from(countryGroups.entries()).map(([recName, members]) => (
+                                <div key={recName}>
+                                  <div className="sticky top-0 bg-gray-50 dark:bg-gray-800 px-4 py-1.5 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-t border-gray-100 dark:border-gray-700">
+                                    {recName}
+                                  </div>
+                                  {members.map((t) => (
+                                    <button
+                                      key={t.id}
+                                      type="button"
+                                      onClick={() => { setForm((p) => ({ ...p, tenantId: t.id })); setTenantDropdownOpen(false); setTenantSearch(''); }}
+                                      className={cn(
+                                        'flex items-center gap-3 w-full px-4 py-2 text-left text-sm transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20',
+                                        form.tenantId === t.id && 'bg-blue-50 dark:bg-blue-900/20',
+                                      )}
+                                    >
+                                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 flex-shrink-0">{t.code}</span>
+                                      <div className="min-w-0">
+                                        <p className="font-medium text-gray-900 dark:text-white truncate">{t.name}</p>
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500">Member State</p>
+                                      </div>
+                                      {form.tenantId === t.id && <CheckCircle2 className="h-4 w-4 text-blue-600 ml-auto flex-shrink-0" />}
+                                    </button>
+                                  ))}
+                                </div>
+                              ))}
+                            </>
+                          );
+                        })()
                       )}
-                      {children.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </optgroup>
-                  );
-                })}
-              </select>
-              {form.tenantId && (
-                <p className="mt-1.5 text-[11px] text-gray-400">
-                  Tenant ID: <span className="font-mono text-gray-500">{form.tenantId}</span>
-                </p>
-              )}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         )}
