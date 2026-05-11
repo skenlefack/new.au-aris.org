@@ -46,6 +46,7 @@ import {
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
+import { useTenantStore, type TenantNode } from '@/lib/stores/tenant-store';
 import * as LucideIcons from 'lucide-react';
 
 /* ================================================================ */
@@ -176,6 +177,44 @@ function UserForm({
   const currentUser = useAuthStore((s) => s.user);
   const allDomains = useDomainStore((s) => s.allDomains);
   const locale = useLocaleStore((s) => s.locale);
+  const tenantTree = useTenantStore((s) => s.tenantTree);
+
+  // Determine if current user can assign to other tenants
+  const canAssignTenant = currentUser?.role === 'SUPER_ADMIN'
+    || currentUser?.role === 'CONTINENTAL_ADMIN'
+    || currentUser?.role === 'REC_ADMIN';
+
+  // Build flat list of assignable tenants based on current user's level
+  const assignableTenants = useMemo(() => {
+    if (!canAssignTenant) return [];
+    const result: { id: string; name: string; code: string; level: string; group?: string }[] = [];
+
+    const collectNodes = (nodes: TenantNode[], parentRecName?: string) => {
+      for (const node of nodes) {
+        // SUPER_ADMIN / CONTINENTAL_ADMIN can assign to any tenant
+        // REC_ADMIN can only assign within their own REC subtree
+        if (currentUser?.role === 'REC_ADMIN' && node.level === 'CONTINENTAL') continue;
+        if (currentUser?.role === 'REC_ADMIN' && node.level === 'REC' && node.id !== currentUser?.tenantId) continue;
+
+        result.push({
+          id: node.id,
+          name: node.name,
+          code: node.code,
+          level: node.level,
+          group: parentRecName,
+        });
+
+        if (node.children) {
+          const recName = node.level === 'REC' ? node.name : parentRecName;
+          // For REC_ADMIN, only recurse into their own REC
+          if (currentUser?.role === 'REC_ADMIN' && node.level === 'REC' && node.id !== currentUser?.tenantId) continue;
+          collectNodes(node.children, recName);
+        }
+      }
+    };
+    collectNodes(tenantTree);
+    return result;
+  }, [canAssignTenant, tenantTree, currentUser]);
   const createMut = useCreateUser();
   const updateMut = useUpdateUser();
   const [showPassword, setShowPassword] = useState(false);
@@ -496,6 +535,63 @@ function UserForm({
             )}
           </div>
         </div>
+
+        {/* ---- Section: Organisation / Tenant ---- */}
+        {canAssignTenant && assignableTenants.length > 0 && (
+          <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 overflow-hidden">
+            <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-gray-400" />
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Organisation</h2>
+              </div>
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                Select the organisation (AU-IBAR, REC or Member State) this user belongs to
+              </p>
+            </div>
+            <div className="px-6 py-5">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Country / Organisation</label>
+              <select
+                value={form.tenantId}
+                onChange={(e) => setForm((p) => ({ ...p, tenantId: e.target.value }))}
+                required
+                className="w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
+              >
+                <option value="">-- Select organisation --</option>
+                {/* Continental level */}
+                {assignableTenants.filter((t) => t.level === 'CONTINENTAL').map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} (Continental)
+                  </option>
+                ))}
+                {/* Group by REC */}
+                {tenantTree[0]?.children?.map((rec) => {
+                  const recTenant = assignableTenants.find((t) => t.id === rec.id);
+                  const children = assignableTenants.filter((t) => t.level === 'MEMBER_STATE' && t.group === rec.name);
+                  if (!recTenant && children.length === 0) return null;
+                  return (
+                    <optgroup key={rec.id} label={rec.name}>
+                      {recTenant && (
+                        <option value={recTenant.id}>
+                          {recTenant.name} (REC)
+                        </option>
+                      )}
+                      {children.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
+              </select>
+              {form.tenantId && (
+                <p className="mt-1.5 text-[11px] text-gray-400">
+                  Tenant ID: <span className="font-mono text-gray-500">{form.tenantId}</span>
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ---- Section: Functions ---- */}
         <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 overflow-hidden">
@@ -1058,6 +1154,7 @@ export default function UsersPage() {
               <tr>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Email</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Organisation</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Functions</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Roles</th>
                 <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Domains</th>
@@ -1105,6 +1202,22 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 font-mono truncate max-w-[180px]">{user.email}</td>
+                    <td className="px-4 py-3">
+                      {user.tenant ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className={cn(
+                            'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium whitespace-nowrap',
+                            user.tenant.level === 'CONTINENTAL' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400' :
+                            user.tenant.level === 'REC' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' :
+                            'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400',
+                          )}>
+                            {user.tenant.name}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-gray-400 dark:text-gray-500">--</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1 max-w-[140px]">
                         {user.functions && user.functions.length > 0 ? (
@@ -1216,7 +1329,7 @@ export default function UsersPage() {
 
               {users.length === 0 && !isLoading && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center">
+                  <td colSpan={9} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
                         <Users className="h-6 w-6 text-gray-400" />
