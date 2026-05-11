@@ -16,6 +16,7 @@ export const UpdateUserSchema = Type.Object({
     Type.Literal('ar'),
   ])),
   avatarUrl: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  tenantId: Type.Optional(Type.String({ format: 'uuid' })),
   domainIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
 });
 

@@ -178,6 +178,10 @@ export class UserService {
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
     if (dto.locale !== undefined) updateData.locale = dto.locale;
     if (dto.avatarUrl !== undefined) updateData.avatarUrl = dto.avatarUrl;
+    if (dto.tenantId !== undefined) {
+      if (caller.role !== UserRole.SUPER_ADMIN) throw new HttpError(403, 'Only SUPER_ADMIN can change user tenant');
+      updateData.tenantId = dto.tenantId;
+    }
 
     const user = await (this.prisma as any).user.update({ where: { id }, data: updateData, select: USER_SELECT });
 
