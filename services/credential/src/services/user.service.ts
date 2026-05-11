@@ -157,7 +157,7 @@ export class UserService {
   async update(id: string, dto: Record<string, unknown>, caller: AuthenticatedUser): Promise<ApiResponse<any>> {
     const existing = await (this.prisma as any).user.findUnique({ where: { id }, select: { ...USER_SELECT, tenantId: true } });
     if (!existing) throw new HttpError(404, `User ${id} not found`);
-    this.verifyTenantAccess(caller, existing.tenantId);
+    await this.verifyTenantAccess(caller, existing.tenantId);
 
     if (dto.role !== undefined && dto.role !== existing.role) {
       if (caller.role !== UserRole.SUPER_ADMIN) throw new HttpError(403, 'Only SUPER_ADMIN can change user roles');
@@ -287,7 +287,7 @@ export class UserService {
       select: { id: true, tenantId: true, lastLoginAt: true, email: true },
     });
     if (!existing) throw new HttpError(404, `User ${id} not found`);
-    this.verifyTenantAccess(caller, existing.tenantId);
+    await this.verifyTenantAccess(caller, existing.tenantId);
 
     // Only allow hard-delete for users who never logged in
     if (existing.lastLoginAt) {
@@ -310,16 +310,25 @@ export class UserService {
   private buildTenantFilter(caller: AuthenticatedUser): Record<string, unknown> {
     switch (caller.tenantLevel) {
       case TenantLevel.CONTINENTAL: return {};
+      // REC admin sees: users in the REC tenant + users in child country tenants
       case TenantLevel.REC: return { tenant: { OR: [{ id: caller.tenantId }, { parentId: caller.tenantId }] } };
+      // National admin sees only users in their own country tenant
       case TenantLevel.MEMBER_STATE: return { tenantId: caller.tenantId };
       default: return { tenantId: caller.tenantId };
     }
   }
 
-  private verifyTenantAccess(caller: AuthenticatedUser, targetTenantId: string): void {
+  private async verifyTenantAccess(caller: AuthenticatedUser, targetTenantId: string): Promise<void> {
     if (caller.tenantLevel === TenantLevel.CONTINENTAL) return;
     if (caller.tenantId === targetTenantId) return;
-    if (caller.tenantLevel === TenantLevel.REC) return;
+    if (caller.tenantLevel === TenantLevel.REC) {
+      // REC admin can modify users in child country tenants
+      const target = await (this.prisma as any).tenant.findUnique({
+        where: { id: targetTenantId },
+        select: { parentId: true },
+      });
+      if (target?.parentId === caller.tenantId) return;
+    }
     throw new HttpError(403, 'Cannot modify users in another tenant');
   }
 }

@@ -1613,6 +1613,23 @@ export class SettingsService {
 
   // ───────────────────── Users Management ─────────────────────
 
+  /**
+   * Assert that the caller can access/modify a user in the given tenant.
+   * CONTINENTAL → all; REC → own REC + child countries; MEMBER_STATE → own tenant only.
+   */
+  private async assertUserAccess(caller: AuthenticatedUser, targetTenantId: string): Promise<void> {
+    if (caller.tenantLevel === 'CONTINENTAL') return;
+    if (caller.tenantId === targetTenantId) return;
+    if (caller.tenantLevel === 'REC') {
+      const target = await (this.prisma as any).tenant.findUnique({
+        where: { id: targetTenantId },
+        select: { parentId: true },
+      });
+      if (target?.parentId === caller.tenantId) return;
+    }
+    throw new HttpError(403, 'Access denied: user is outside your scope');
+  }
+
   private buildUserTenantFilter(caller: AuthenticatedUser): Record<string, unknown> {
     switch (caller.tenantLevel) {
       case 'CONTINENTAL': return {};
@@ -1727,10 +1744,8 @@ export class SettingsService {
     });
     if (!raw) throw new HttpError(404, `User ${id} not found`);
 
-    // Access check
-    if (caller.tenantLevel === 'MEMBER_STATE' && raw.tenantId !== caller.tenantId) {
-      throw new HttpError(403, 'Access denied');
-    }
+    // Access check — enforce tenant scope
+    await this.assertUserAccess(caller, raw.tenantId);
 
     const { userDomains, ...rest } = raw;
     const user = { ...rest, domains: userDomains?.map((ud: any) => ud.domain) ?? [] };
@@ -1842,6 +1857,9 @@ export class SettingsService {
   async updateUser(id: string, dto: Record<string, unknown>, caller: AuthenticatedUser) {
     const existing = await (this.prisma as any).user.findUnique({ where: { id } });
     if (!existing) throw new HttpError(404, `User ${id} not found`);
+
+    // Enforce tenant scope
+    await this.assertUserAccess(caller, existing.tenantId);
 
     // Only SUPER_ADMIN can change system role
     if (dto.role !== undefined && dto.role !== existing.role) {
