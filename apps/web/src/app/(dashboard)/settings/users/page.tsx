@@ -46,7 +46,7 @@ import {
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
-import { useTenantStore, PLACEHOLDER_TENANT_TREE, type TenantNode } from '@/lib/stores/tenant-store';
+import { useTenantStore, type TenantNode } from '@/lib/stores/tenant-store';
 import * as LucideIcons from 'lucide-react';
 
 /* ================================================================ */
@@ -187,8 +187,6 @@ function UserForm({
   // Build flat list of assignable tenants — use placeholder if API tree has no children
   const assignableTenants = useMemo(() => {
     if (!canAssignTenant) return [];
-    // Use the tree that has the most data (API tree or placeholder)
-    const tree = (tenantTree[0]?.children?.length ?? 0) > 0 ? tenantTree : PLACEHOLDER_TENANT_TREE;
     const result: { id: string; name: string; code: string; level: string; recName?: string }[] = [];
 
     const collectNodes = (nodes: TenantNode[], parentRecName?: string) => {
@@ -212,7 +210,7 @@ function UserForm({
         }
       }
     };
-    collectNodes(tree);
+    collectNodes(tenantTree);
     return result;
   }, [canAssignTenant, tenantTree, currentUser]);
 
