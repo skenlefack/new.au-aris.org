@@ -20,7 +20,7 @@ export function useSettingsAccess() {
 
   return {
     // REC management
-    canManageRecs: isSuperAdmin || isContinentalAdmin,
+    canManageRecs: isSuperAdmin || isContinentalAdmin || isRecAdmin,
     canCreateRec: isSuperAdmin,
     canDeleteRec: isSuperAdmin,
     canEditRecStats: isSuperAdmin || isContinentalAdmin || isRecAdmin,

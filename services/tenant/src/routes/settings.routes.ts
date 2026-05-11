@@ -137,10 +137,10 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
     return reply.code(201).send(result);
   });
 
-  // PUT /api/v1/settings/recs/:id — update REC (SUPER_ADMIN, CONTINENTAL_ADMIN)
+  // PUT /api/v1/settings/recs/:id — update REC (SUPER_ADMIN, CONTINENTAL_ADMIN, REC_ADMIN for own REC)
   app.put<{ Params: UuidParamInput; Body: RecBodyInput }>('/api/v1/settings/recs/:id', {
     schema: { params: UuidParamSchema, body: RecBodySchema },
-    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN)],
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.settingsService.updateRec(request.params.id, request.body as Record<string, unknown>, user);
@@ -203,10 +203,10 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
     return reply.code(201).send(result);
   });
 
-  // PUT /api/v1/settings/countries/:id — update country (SUPER_ADMIN, CONTINENTAL_ADMIN)
+  // PUT /api/v1/settings/countries/:id — update country (SUPER_ADMIN, CONTINENTAL_ADMIN, REC_ADMIN for own REC countries)
   app.put<{ Params: UuidParamInput; Body: CountryBodyInput }>('/api/v1/settings/countries/:id', {
     schema: { params: UuidParamSchema, body: CountryBodySchema },
-    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN, UserRole.REC_ADMIN)],
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.settingsService.updateCountry(request.params.id, request.body as Record<string, unknown>, user);

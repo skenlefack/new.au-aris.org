@@ -97,6 +97,34 @@ export class SettingsService {
    * REC → only RECs matching the tenant's recCode + countries in those RECs
    * MEMBER_STATE → only country matching tenantId + RECs that country belongs to
    */
+  /**
+   * Assert that the caller can write to a specific REC.
+   * CONTINENTAL → all RECs; REC → only own REC; others → denied.
+   */
+  private async assertRecWriteAccess(recId: string, user: AuthenticatedUser): Promise<void> {
+    if (user.tenantLevel === 'CONTINENTAL') return;
+    if (user.tenantLevel === 'REC') {
+      const rec = await (this.prisma as any).rec.findUnique({ where: { id: recId }, select: { code: true } });
+      if (!rec) throw new HttpError(404, `REC ${recId} not found`);
+      const scope = await this.getUserScope(user);
+      if (scope.recCodes.includes(rec.code)) return;
+    }
+    throw new HttpError(403, 'Access denied: you can only modify your own REC');
+  }
+
+  /**
+   * Assert that the caller can write to a specific country.
+   * CONTINENTAL → all; REC → countries in own REC; NATIONAL → own country only.
+   */
+  private async assertCountryWriteAccess(countryId: string, user: AuthenticatedUser): Promise<void> {
+    if (user.tenantLevel === 'CONTINENTAL') return;
+    const country = await (this.prisma as any).country.findUnique({ where: { id: countryId }, select: { code: true } });
+    if (!country) throw new HttpError(404, `Country ${countryId} not found`);
+    const scope = await this.getUserScope(user);
+    if (scope.countryCodes.includes(country.code)) return;
+    throw new HttpError(403, 'Access denied: country is outside your scope');
+  }
+
   async getUserScope(user?: AuthenticatedUser): Promise<UserScope> {
     if (!user) return { all: true, recCodes: [], countryCodes: [] };
 
@@ -276,6 +304,9 @@ export class SettingsService {
   }
 
   async updateRec(id: string, dto: Record<string, unknown>, user: AuthenticatedUser) {
+    // Scope check: REC_ADMIN can only update their own REC
+    await this.assertRecWriteAccess(id, user);
+
     const updateData: Record<string, unknown> = {};
     if (dto.name !== undefined) updateData.name = dto.name as Prisma.InputJsonValue;
     if (dto.fullName !== undefined) updateData.fullName = dto.fullName as Prisma.InputJsonValue;
@@ -341,6 +372,7 @@ export class SettingsService {
   }
 
   async updateRecStats(id: string, stats: Record<string, unknown>, user: AuthenticatedUser) {
+    await this.assertRecWriteAccess(id, user);
     try {
       const rec = await (this.prisma as any).rec.update({
         where: { id },
@@ -491,6 +523,7 @@ export class SettingsService {
   }
 
   async updateCountry(id: string, dto: Record<string, unknown>, user: AuthenticatedUser) {
+    await this.assertCountryWriteAccess(id, user);
     const updateData: Record<string, unknown> = {};
     if (dto.code !== undefined) updateData.code = dto.code;
     if (dto.name !== undefined) updateData.name = dto.name as Prisma.InputJsonValue;
@@ -541,6 +574,7 @@ export class SettingsService {
   }
 
   async updateCountryStats(id: string, stats: Record<string, unknown>, user: AuthenticatedUser) {
+    await this.assertCountryWriteAccess(id, user);
     try {
       const country = await (this.prisma as any).country.update({
         where: { id },
@@ -556,6 +590,7 @@ export class SettingsService {
   }
 
   async updateCountrySectors(id: string, sectors: Record<string, unknown>, user: AuthenticatedUser) {
+    await this.assertCountryWriteAccess(id, user);
     try {
       const country = await (this.prisma as any).country.update({
         where: { id },
