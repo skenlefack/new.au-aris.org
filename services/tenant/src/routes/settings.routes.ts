@@ -155,10 +155,10 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
     return app.settingsService.deleteRec(request.params.id, user);
   });
 
-  // PATCH /api/v1/settings/recs/:id/sort — update REC sort order (SUPER_ADMIN)
+  // PATCH /api/v1/settings/recs/:id/sort — update REC sort order (SUPER_ADMIN, CONTINENTAL_ADMIN)
   app.patch<{ Params: UuidParamInput; Body: RecSortBodyInput }>('/api/v1/settings/recs/:id/sort', {
     schema: { params: UuidParamSchema, body: RecSortBodySchema },
-    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN)],
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.settingsService.updateRecSort(request.params.id, request.body.sortOrder, user);
