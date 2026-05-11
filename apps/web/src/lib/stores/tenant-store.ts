@@ -224,10 +224,35 @@ export const useTenantStore = create<TenantState>()(
         set({ isLoading: true });
         try {
           const response = await apiClient.get<{ data: TenantNode[] }>(
-            '/tenants',
+            '/tenants?limit=100',
           );
-          const tree = response?.data;
-          if (tree && Array.isArray(tree) && tree.length > 0) {
+          const flat = response?.data;
+          if (flat && Array.isArray(flat) && flat.length > 0) {
+            // Build tree from flat list using parentId
+            const nodeMap = new Map<string, TenantNode & { parentId?: string | null }>();
+            for (const t of flat) {
+              nodeMap.set(t.id, { ...t, children: [] });
+            }
+            const roots: TenantNode[] = [];
+            for (const node of nodeMap.values()) {
+              if (node.parentId && nodeMap.has(node.parentId)) {
+                const parent = nodeMap.get(node.parentId)!;
+                if (!parent.children) parent.children = [];
+                parent.children.push(node);
+              } else {
+                roots.push(node);
+              }
+            }
+            // Sort children alphabetically by name
+            const sortChildren = (nodes: TenantNode[]) => {
+              nodes.sort((a, b) => a.name.localeCompare(b.name));
+              for (const n of nodes) {
+                if (n.children && n.children.length > 0) sortChildren(n.children);
+              }
+            };
+            sortChildren(roots);
+
+            const tree = roots.length > 0 ? roots : flat;
             set({ tenantTree: tree });
 
             // If no tenant is currently selected, default to root
