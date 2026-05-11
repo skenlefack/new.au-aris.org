@@ -127,13 +127,22 @@ export default function RolesPage() {
     return LEVELS.filter((l) => l.key === 'national');
   }, [isSuperAdmin, isContinentalAdmin, isRecAdmin]);
 
-  // Check if a role belongs to the current user's tenant (editable)
+  // Check if the role is editable by the current user
+  // System roles (tenantId=null) and continental roles are read-only for REC/NATIONAL
+  // REC_ADMIN can edit own REC roles + child country roles
+  // NATIONAL_ADMIN can only edit own country roles
   const isOwnRole = useCallback((role: RoleItem) => {
     if (isSuperAdmin || isContinentalAdmin) return true;
-    // System roles (tenantId=null) are read-only for non-continental
+    // System roles (tenantId=null) are always read-only
     if (!role.tenantId) return false;
-    return role.tenantId === user?.tenantId;
-  }, [isSuperAdmin, isContinentalAdmin, user?.tenantId]);
+    // Continental-level roles are read-only
+    if (role.tenant?.level === 'CONTINENTAL') return false;
+    // Own tenant roles
+    if (role.tenantId === user?.tenantId) return true;
+    // REC_ADMIN: child country roles
+    if (isRecAdmin && role.tenant?.level === 'MEMBER_STATE') return true;
+    return false;
+  }, [isSuperAdmin, isContinentalAdmin, isRecAdmin, user?.tenantId]);
 
   // List state
   const [activeTab, setActiveTab] = useState<string>('');

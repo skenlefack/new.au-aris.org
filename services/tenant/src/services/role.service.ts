@@ -57,6 +57,50 @@ export class RoleService {
     } catch {}
   }
 
+  // ───────────────────── Scope helpers ─────────────────────
+
+  /**
+   * Assert the caller can write (update/delete) a role.
+   * - CONTINENTAL: can write all roles
+   * - REC: can write own REC roles + child country roles; continental/system roles are read-only
+   * - MEMBER_STATE: can only write own national roles; everything else is read-only
+   */
+  private async assertRoleWriteAccess(role: { tenantId: string | null; isSystem?: boolean }, caller: AuthenticatedUser): Promise<void> {
+    if (caller.tenantLevel === 'CONTINENTAL') return;
+
+    // System roles (tenantId=null) are read-only for everyone except continental
+    if (!role.tenantId) {
+      throw new HttpError(403, 'Access denied: system roles are read-only');
+    }
+
+    // Check if role belongs to a continental tenant
+    const roleTenant = await (this.prisma as any).tenant.findUnique({
+      where: { id: role.tenantId },
+      select: { level: true, parentId: true },
+    });
+    if (!roleTenant) throw new HttpError(404, 'Role tenant not found');
+
+    if (roleTenant.level === 'CONTINENTAL') {
+      throw new HttpError(403, 'Access denied: continental roles are read-only');
+    }
+
+    if (caller.tenantLevel === 'MEMBER_STATE') {
+      // National admins can only modify their own roles
+      if (role.tenantId === caller.tenantId) return;
+      throw new HttpError(403, 'Access denied: role belongs to a different tenant');
+    }
+
+    if (caller.tenantLevel === 'REC') {
+      // Own REC roles
+      if (role.tenantId === caller.tenantId) return;
+      // Child country roles (tenant's parent is caller's tenant)
+      if (roleTenant.parentId === caller.tenantId) return;
+      throw new HttpError(403, 'Access denied: role is outside your REC scope');
+    }
+
+    throw new HttpError(403, 'Access denied');
+  }
+
   // ───────────────────── Roles CRUD ─────────────────────
 
   async listRoles(query: {
@@ -190,6 +234,8 @@ export class RoleService {
     const existing = await (this.prisma as any).role.findUnique({ where: { id } });
     if (!existing) throw new HttpError(404, `Role ${id} not found`);
 
+    await this.assertRoleWriteAccess(existing, caller);
+
     // System roles: only allow updating permissions, name, description, color, icon
     const updateData: Record<string, unknown> = {};
     if (dto.name !== undefined) updateData.name = dto.name as Prisma.InputJsonValue;
@@ -222,6 +268,8 @@ export class RoleService {
     });
     if (!existing) throw new HttpError(404, `Role ${id} not found`);
     if (existing.isSystem) throw new HttpError(400, 'Cannot delete a system role');
+
+    await this.assertRoleWriteAccess(existing, caller);
     if (existing._count.userRoles > 0) {
       throw new HttpError(409, `Cannot delete role with ${existing._count.userRoles} assigned users`);
     }
@@ -256,6 +304,8 @@ export class RoleService {
   async updateRolePermissions(roleId: string, permissionIds: string[], caller: AuthenticatedUser) {
     const role = await (this.prisma as any).role.findUnique({ where: { id: roleId } });
     if (!role) throw new HttpError(404, `Role ${roleId} not found`);
+
+    await this.assertRoleWriteAccess(role, caller);
 
     // Delete all existing and recreate
     await (this.prisma as any).rolePermission.deleteMany({ where: { roleId } });
