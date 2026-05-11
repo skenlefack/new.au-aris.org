@@ -144,13 +144,15 @@ export class SettingsService {
     let scope: UserScope;
 
     if (tenant.level === 'REC' && tenant.recCode) {
-      // REC-level: find all countries in this REC (case-insensitive match)
+      // REC-level: find all countries in this REC
+      // Try both original case and lowercase since REC table stores lowercase codes
+      const recCodeLower = tenant.recCode.toLowerCase();
       const links = await (this.prisma as any).countryRec.findMany({
-        where: { rec: { code: { equals: tenant.recCode, mode: 'insensitive' } } },
+        where: { rec: { code: { in: [tenant.recCode, recCodeLower] } } },
         select: { country: { select: { code: true } } },
       });
       const countryCodes = links.map((l: any) => l.country.code as string);
-      scope = { all: false, recCodes: [tenant.recCode.toLowerCase()], countryCodes };
+      scope = { all: false, recCodes: [recCodeLower], countryCodes };
     } else if (tenant.level === 'MEMBER_STATE' && tenant.countryCode) {
       // Country-level: find RECs this country belongs to
       const links = await (this.prisma as any).countryRec.findMany({
