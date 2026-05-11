@@ -6,6 +6,7 @@ import {
   useSettingsCountry, useCreateCountry, useUpdateCountry, useSettingsRecs, useAdminLevels, useUpsertAdminLevels, type AdminLevel,
   useStatisticDefinitions, useCountryStatistics, useUpsertCountryStatistics,
   useKpiDefinitions, useCountryKpiScores, useUpsertCountryKpiScores,
+  useAddCountryRec, useRemoveCountryRec,
 } from '@/lib/api/settings-hooks';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
@@ -29,6 +30,9 @@ export default function CountryDetailPage() {
   const { data: recsData } = useSettingsRecs();
   const createMutation = useCreateCountry();
   const updateMutation = useUpdateCountry();
+  const addRecMutation = useAddCountryRec();
+  const removeRecMutation = useRemoveCountryRec();
+  const canEditRecs = isSuperAdmin || isContinentalAdmin;
 
   // Resolved country code (from API or fallback)
   const resolvedCode: string | undefined = (data?.data as any)?.code;
@@ -396,14 +400,31 @@ export default function CountryDetailPage() {
         <div className="flex flex-wrap gap-2">
           {allRecs.map((rec: any) => {
             const isMember = data?.data?.recs?.some((cr: any) => cr.rec?.id === rec.id || cr.recId === rec.id);
+            const toggling = addRecMutation.isPending || removeRecMutation.isPending;
             return (
-              <span
+              <button
                 key={rec.id}
-                className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium"
+                type="button"
+                disabled={!canEditRecs || toggling}
+                onClick={async () => {
+                  if (!canEditRecs) return;
+                  try {
+                    if (isMember) {
+                      await removeRecMutation.mutateAsync({ countryId: id, recId: rec.id });
+                    } else {
+                      await addRecMutation.mutateAsync({ countryId: id, recId: rec.id });
+                    }
+                    toast.success(isMember ? `Removed from ${rec.name?.en ?? rec.code}` : `Added to ${rec.name?.en ?? rec.code}`);
+                  } catch {
+                    toast.error('Failed to update REC membership');
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-70"
                 style={{
                   borderColor: isMember ? rec.accentColor : '#e5e7eb',
                   backgroundColor: isMember ? `${rec.accentColor}10` : 'transparent',
                   color: isMember ? rec.accentColor : '#9ca3af',
+                  cursor: canEditRecs ? 'pointer' : 'default',
                 }}
               >
                 <div
@@ -411,10 +432,15 @@ export default function CountryDetailPage() {
                   style={{ backgroundColor: isMember ? rec.accentColor : '#d1d5db' }}
                 />
                 {rec.name?.en ?? rec.code}
-              </span>
+              </button>
             );
           })}
         </div>
+        {canEditRecs && (
+          <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+            {t('clickToToggleRec') !== 'clickToToggleRec' ? t('clickToToggleRec') : 'Click a REC badge to add or remove this country'}
+          </p>
+        )}
       </section>}
 
       {/* Admin Levels (edit mode only) */}

@@ -245,21 +245,21 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
     return app.settingsService.updateCountrySectors(request.params.id, request.body.sectorPerformance, user);
   });
 
-  // POST /api/v1/settings/countries/:id/recs — add country to REC (SUPER_ADMIN)
+  // POST /api/v1/settings/countries/:id/recs — add country to REC (SUPER_ADMIN, CONTINENTAL_ADMIN)
   app.post<{ Params: UuidParamInput; Body: { recId: string } }>('/api/v1/settings/countries/:id/recs', {
     schema: {
       params: UuidParamSchema,
     },
-    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN)],
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
   }, async (request, reply) => {
     const result = await app.settingsService.addCountryRec(request.params.id, request.body.recId);
     return reply.code(201).send(result);
   });
 
-  // DELETE /api/v1/settings/countries/:id/recs/:recId — remove country from REC (SUPER_ADMIN)
+  // DELETE /api/v1/settings/countries/:id/recs/:recId — remove country from REC (SUPER_ADMIN, CONTINENTAL_ADMIN)
   app.delete<{ Params: CountryRecParamsInput }>('/api/v1/settings/countries/:id/recs/:recId', {
     schema: { params: CountryRecParamsSchema },
-    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN)],
+    preHandler: [...authAndTenant, rolesHook(UserRole.SUPER_ADMIN, UserRole.CONTINENTAL_ADMIN)],
   }, async (request) => {
     return app.settingsService.removeCountryRec(request.params.id, request.params.recId);
   });
