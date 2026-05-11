@@ -68,7 +68,7 @@ export async function registerRefDataRoutes(app: FastifyInstance): Promise<void>
   /** Filter ref-data type access by user domains (SUPER_ADMIN sees all) */
   function assertTypeAccess(type: string, user: { role?: string; domains?: string[] }): void {
     if (user.role === 'SUPER_ADMIN') return;
-    const userDomains = (user as any).domains ?? [];
+    const userDomains = Object.keys((user as any).domains ?? {});
     if (userDomains.length === 0) return; // no restriction if no domains assigned
     const allowed = getAllowedRefDataTypes(userDomains);
     if (!allowed.has(type)) {
