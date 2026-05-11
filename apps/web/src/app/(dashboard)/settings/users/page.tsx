@@ -226,12 +226,6 @@ function UserForm({
     );
   }, [assignableTenants, tenantSearch]);
 
-  const selectedTenantLabel = useMemo(() => {
-    const t = assignableTenants.find((x) => x.id === form.tenantId);
-    if (!t) return '';
-    const suffix = t.level === 'CONTINENTAL' ? '(Continental)' : t.level === 'REC' ? '(REC)' : t.recName ? `(${t.recName})` : '';
-    return `${t.name} ${suffix}`.trim();
-  }, [assignableTenants, form.tenantId]);
   const createMut = useCreateUser();
   const updateMut = useUpdateUser();
   const [showPassword, setShowPassword] = useState(false);
@@ -268,6 +262,13 @@ function UserForm({
     }
     return { ...EMPTY_FORM, tenantId: currentUser?.tenantId ?? '' };
   });
+
+  const selectedTenantLabel = useMemo(() => {
+    const t = assignableTenants.find((x) => x.id === form.tenantId);
+    if (!t) return '';
+    const suffix = t.level === 'CONTINENTAL' ? '(Continental)' : t.level === 'REC' ? '(REC)' : t.recName ? `(${t.recName})` : '';
+    return `${t.name} ${suffix}`.trim();
+  }, [assignableTenants, form.tenantId]);
 
   // Compute derived role IDs from selected functions
   const derivedRoleIds = useMemo(() => {
