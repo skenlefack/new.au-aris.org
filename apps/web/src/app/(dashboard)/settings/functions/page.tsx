@@ -115,11 +115,20 @@ export default function FunctionsPage() {
     return LEVELS.filter((l) => l.key === 'national');
   }, [isSuperAdmin, isContinentalAdmin, isRecAdmin]);
 
-  // Check if a function belongs to the current user's tenant (editable)
+  // Check if the function is editable by the current user
+  // Continental functions are read-only for REC_ADMIN and NATIONAL_ADMIN
+  // REC_ADMIN can edit own REC functions + child country functions
+  // NATIONAL_ADMIN can only edit own country functions
   const isOwnFunction = useCallback((fn: FunctionItem) => {
     if (isSuperAdmin || isContinentalAdmin) return true;
-    return fn.tenantId === user?.tenantId;
-  }, [isSuperAdmin, isContinentalAdmin, user?.tenantId]);
+    // Continental-level functions are always read-only for non-continental users
+    if (fn.tenant?.level === 'CONTINENTAL' || fn.level === 'continental') return false;
+    // Own tenant functions
+    if (fn.tenantId === user?.tenantId) return true;
+    // REC_ADMIN: child country functions (tenant.parentId would match, but we check tenant.level)
+    if (isRecAdmin && fn.tenant?.level === 'MEMBER_STATE') return true;
+    return false;
+  }, [isSuperAdmin, isContinentalAdmin, isRecAdmin, user?.tenantId]);
 
   // View state
   const [view, setView] = useState<'list' | 'form'>('list');
