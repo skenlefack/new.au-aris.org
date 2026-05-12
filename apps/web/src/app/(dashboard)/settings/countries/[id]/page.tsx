@@ -395,53 +395,15 @@ export default function CountryDetailPage() {
       </section>
 
       {/* REC memberships (edit mode only) */}
-      {!isNew && <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-        <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">{t('recMemberships')}</h2>
-        <div className="flex flex-wrap gap-2">
-          {allRecs.map((rec: any) => {
-            const isMember = data?.data?.recs?.some((cr: any) => cr.rec?.id === rec.id || cr.recId === rec.id);
-            const toggling = addRecMutation.isPending || removeRecMutation.isPending;
-            return (
-              <button
-                key={rec.id}
-                type="button"
-                disabled={!canEditRecs || toggling}
-                onClick={async () => {
-                  if (!canEditRecs) return;
-                  try {
-                    if (isMember) {
-                      await removeRecMutation.mutateAsync({ countryId: id, recId: rec.id });
-                    } else {
-                      await addRecMutation.mutateAsync({ countryId: id, recId: rec.id });
-                    }
-                    toast.success(isMember ? `Removed from ${rec.name?.en ?? rec.code}` : `Added to ${rec.name?.en ?? rec.code}`);
-                  } catch {
-                    toast.error('Failed to update REC membership');
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-70"
-                style={{
-                  borderColor: isMember ? rec.accentColor : '#e5e7eb',
-                  backgroundColor: isMember ? `${rec.accentColor}10` : 'transparent',
-                  color: isMember ? rec.accentColor : '#9ca3af',
-                  cursor: canEditRecs ? 'pointer' : 'default',
-                }}
-              >
-                <div
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: isMember ? rec.accentColor : '#d1d5db' }}
-                />
-                {rec.name?.en ?? rec.code}
-              </button>
-            );
-          })}
-        </div>
-        {canEditRecs && (
-          <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
-            {t('clickToToggleRec') !== 'clickToToggleRec' ? t('clickToToggleRec') : 'Click a REC badge to add or remove this country'}
-          </p>
-        )}
-      </section>}
+      {!isNew && <RecMemberships
+        countryId={id}
+        allRecs={allRecs}
+        currentRecs={data?.data?.recs ?? []}
+        canEdit={canEditRecs}
+        addMutation={addRecMutation}
+        removeMutation={removeRecMutation}
+        t={t}
+      />}
 
       {/* Admin Levels (edit mode only) */}
       {!isNew && <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
@@ -923,6 +885,116 @@ function CountryKpiScoresSection({ countryId }: { countryId: string }) {
           );
         })}
       </div>
+    </section>
+  );
+}
+
+// ── REC Memberships toggle component ─────────────────────────────────────────
+
+function RecMemberships({
+  countryId,
+  allRecs,
+  currentRecs,
+  canEdit,
+  addMutation,
+  removeMutation,
+  t,
+}: {
+  countryId: string;
+  allRecs: any[];
+  currentRecs: any[];
+  canEdit: boolean;
+  addMutation: ReturnType<typeof useAddCountryRec>;
+  removeMutation: ReturnType<typeof useRemoveCountryRec>;
+  t: (key: string) => string;
+}) {
+  // Local optimistic state to prevent double-clicks and show instant feedback
+  const [optimisticRecs, setOptimisticRecs] = React.useState<Set<string> | null>(null);
+  const [togglingId, setTogglingId] = React.useState<string | null>(null);
+
+  // Compute current membership set from server data
+  const serverMemberIds = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const cr of currentRecs) {
+      const rid = cr.rec?.id ?? cr.recId;
+      if (rid) set.add(rid);
+    }
+    return set;
+  }, [currentRecs]);
+
+  // Use optimistic state if available, otherwise server state
+  const memberIds = optimisticRecs ?? serverMemberIds;
+
+  // Sync optimistic state when server data updates
+  React.useEffect(() => {
+    setOptimisticRecs(null);
+  }, [serverMemberIds]);
+
+  const handleToggle = React.useCallback(async (recId: string, recName: string) => {
+    if (!canEdit || togglingId) return;
+    const isMember = memberIds.has(recId);
+
+    // Optimistic update
+    setTogglingId(recId);
+    const newSet = new Set(memberIds);
+    if (isMember) {
+      newSet.delete(recId);
+    } else {
+      newSet.add(recId);
+    }
+    setOptimisticRecs(newSet);
+
+    try {
+      if (isMember) {
+        await removeMutation.mutateAsync({ countryId, recId });
+      } else {
+        await addMutation.mutateAsync({ countryId, recId });
+      }
+      toast.success(isMember ? `Removed from ${recName}` : `Added to ${recName}`);
+    } catch {
+      // Revert optimistic update on error
+      setOptimisticRecs(null);
+      toast.error('Failed to update REC membership');
+    } finally {
+      setTogglingId(null);
+    }
+  }, [canEdit, togglingId, memberIds, countryId, addMutation, removeMutation]);
+
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+      <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">{t('recMemberships')}</h2>
+      <div className="flex flex-wrap gap-2">
+        {allRecs.map((rec: any) => {
+          const isMember = memberIds.has(rec.id);
+          const isToggling = togglingId === rec.id;
+          return (
+            <button
+              key={rec.id}
+              type="button"
+              disabled={!canEdit || !!togglingId}
+              onClick={() => handleToggle(rec.id, rec.name?.en ?? rec.code)}
+              className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-70"
+              style={{
+                borderColor: isMember ? rec.accentColor : '#e5e7eb',
+                backgroundColor: isMember ? `${rec.accentColor}10` : 'transparent',
+                color: isMember ? rec.accentColor : '#9ca3af',
+                cursor: canEdit ? 'pointer' : 'default',
+              }}
+            >
+              <div
+                className={`h-2.5 w-2.5 rounded-full ${isToggling ? 'animate-pulse' : ''}`}
+                style={{ backgroundColor: isMember ? rec.accentColor : '#d1d5db' }}
+              />
+              {rec.name?.en ?? rec.code}
+            </button>
+          );
+        })}
+      </div>
+      {canEdit && (
+        <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+          {t('clickToToggleRec') !== 'clickToToggleRec' ? t('clickToToggleRec') : 'Click a REC badge to add or remove this country'}
+        </p>
+      )}
     </section>
   );
 }
