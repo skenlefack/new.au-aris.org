@@ -5,7 +5,7 @@ import { getHighlights, getGauges } from '@/data/country-domain-stats';
 import { getPublicCountryByCode, getPublicDomains } from '@/lib/api/public-data';
 import { CountryPageContent } from '@/components/landing/CountryPageContent';
 
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
 
 interface Props {
   params: { countryCode: string };
