@@ -136,14 +136,15 @@ export function getFieldTypeDefinition(type: string): FieldTypeDefinition | unde
 }
 
 export const DOMAIN_OPTIONS = [
-  { value: 'animal_health', label: 'Animal Health' },
-  { value: 'livestock', label: 'Livestock & Production' },
+  { value: 'animal-health', label: 'Animal Health' },
+  { value: 'livestock-prod', label: 'Livestock & Production' },
   { value: 'fisheries', label: 'Fisheries & Aquaculture' },
-  { value: 'trade_sps', label: 'Trade & SPS' },
+  { value: 'trade-sps', label: 'Trade & SPS' },
   { value: 'wildlife', label: 'Wildlife & Biodiversity' },
   { value: 'apiculture', label: 'Apiculture' },
-  { value: 'climate_env', label: 'Climate & Environment' },
+  { value: 'climate-env', label: 'Climate & Environment' },
   { value: 'governance', label: 'Governance & Capacities' },
+  { value: 'knowledge-hub', label: 'Knowledge Management' },
 ];
 
 export const MASTER_DATA_TYPES = [
