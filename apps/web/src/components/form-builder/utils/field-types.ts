@@ -144,7 +144,6 @@ export const DOMAIN_OPTIONS = [
   { value: 'apiculture', label: 'Apiculture' },
   { value: 'climate-env', label: 'Climate & Environment' },
   { value: 'governance', label: 'Governance & Capacities' },
-  { value: 'knowledge-hub', label: 'Knowledge Management' },
 ];
 
 export const MASTER_DATA_TYPES = [

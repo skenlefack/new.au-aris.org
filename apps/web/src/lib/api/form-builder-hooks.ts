@@ -50,7 +50,7 @@ const fb = {
     return fbFetch<T>(url);
   },
   post: <T>(path: string, body?: unknown): Promise<T> =>
-    fbFetch<T>(`${FB_API_BASE}${path}`, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
+    fbFetch<T>(`${FB_API_BASE}${path}`, { method: 'POST', body: JSON.stringify(body ?? {}) }),
   put: <T>(path: string, body?: unknown): Promise<T> =>
     fbFetch<T>(`${FB_API_BASE}${path}`, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
   patch: <T>(path: string, body?: unknown): Promise<T> =>
