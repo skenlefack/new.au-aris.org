@@ -177,10 +177,26 @@ export class RefDataService {
       where['isActive'] = true;
     }
 
-    // Apply parent filters
+    // Apply parent filters — with code-based matching for species-linked types
     const parentField = PARENT_FILTERS[type];
     if (parentField && query[parentField]) {
-      where[parentField] = query[parentField];
+      if (parentField === 'speciesId') {
+        const speciesRec = await (this.prisma as any).refSpecies.findUnique({
+          where: { id: query[parentField] },
+          select: { code: true },
+        });
+        if (speciesRec) {
+          const allIds = await (this.prisma as any).refSpecies.findMany({
+            where: { code: speciesRec.code, isActive: true },
+            select: { id: true },
+          });
+          where[parentField] = { in: allIds.map((s: any) => s.id) };
+        } else {
+          where[parentField] = query[parentField];
+        }
+      } else {
+        where[parentField] = query[parentField];
+      }
     }
 
     // Additional type-specific filters
@@ -263,10 +279,27 @@ export class RefDataService {
     const visibilityFilter = await this.buildVisibilityFilter(user);
     const where: Record<string, unknown> = { isActive: true, OR: visibilityFilter };
 
-    // Apply parent filters
+    // Apply parent filters — with code-based matching for species-linked types
     const parentField = PARENT_FILTERS[type];
     if (parentField && query[parentField]) {
-      where[parentField] = query[parentField];
+      if (parentField === 'speciesId') {
+        // Match by species code (not just ID) to handle multi-scope species
+        const speciesRecord = await (this.prisma as any).refSpecies.findUnique({
+          where: { id: query[parentField] },
+          select: { code: true },
+        });
+        if (speciesRecord) {
+          const allSpeciesIds = await (this.prisma as any).refSpecies.findMany({
+            where: { code: speciesRecord.code, isActive: true },
+            select: { id: true },
+          });
+          where[parentField] = { in: allSpeciesIds.map((s: any) => s.id) };
+        } else {
+          where[parentField] = query[parentField];
+        }
+      } else {
+        where[parentField] = query[parentField];
+      }
     }
 
     // Category filter (e.g. species category=AQUATIC)
@@ -274,9 +307,21 @@ export class RefDataService {
       where['category'] = query.category;
     }
 
-    // Disease by species
+    // Disease by species — also match by code for multi-scope species
     if (type === 'diseases' && query.speciesId) {
-      where['diseaseSpecies'] = { some: { speciesId: query.speciesId } };
+      const speciesRecord = await (this.prisma as any).refSpecies.findUnique({
+        where: { id: query.speciesId },
+        select: { code: true },
+      });
+      if (speciesRecord) {
+        const allIds = await (this.prisma as any).refSpecies.findMany({
+          where: { code: speciesRecord.code, isActive: true },
+          select: { id: true },
+        });
+        where['diseaseSpecies'] = { some: { speciesId: { in: allIds.map((s: any) => s.id) } } };
+      } else {
+        where['diseaseSpecies'] = { some: { speciesId: query.speciesId } };
+      }
     }
     // Species by disease (which species can catch this disease)
     if (type === 'species' && query.diseaseId) {

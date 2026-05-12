@@ -262,7 +262,7 @@ export function RepeaterField({ field, value, onChange, formValues }: RepeaterFi
                     value={row[sf.code]}
                     onChange={(v) => handleRowFieldChange(rowIndex, sf.code, v)}
                     error={rowErrors[rowIndex]?.[sf.code]}
-                    formValues={formValues}
+                    formValues={{ ...formValues, ...row }}
                   />
                 </div>
               ))}
