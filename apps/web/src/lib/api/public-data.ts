@@ -12,7 +12,7 @@ const API_BASE = process.env['NEXT_PUBLIC_TENANT_API_URL']
 export async function getPublicRecs() {
   try {
     const res = await fetch(`${API_BASE}/api/v1/public/recs`, {
-      next: { revalidate: 300 },
+      cache: 'no-store',
     });
     if (res.ok) return res.json();
   } catch {
@@ -42,7 +42,7 @@ export async function getPublicRecs() {
 export async function getPublicRecByCode(code: string) {
   try {
     const res = await fetch(`${API_BASE}/api/v1/public/recs/${code}`, {
-      next: { revalidate: 300 },
+      cache: 'no-store',
     });
     if (res.ok) return res.json();
   } catch {
@@ -87,7 +87,7 @@ export async function getPublicRecByCode(code: string) {
 export async function getPublicCountryByCode(code: string) {
   try {
     const res = await fetch(`${API_BASE}/api/v1/public/countries/${code}`, {
-      next: { revalidate: 300 },
+      cache: 'no-store',
     });
     if (res.ok) return res.json();
   } catch {
@@ -130,7 +130,7 @@ export async function getPublicCountryByCode(code: string) {
 export async function getPublicStats() {
   try {
     const res = await fetch(`${API_BASE}/api/v1/public/stats`, {
-      next: { revalidate: 300 },
+      cache: 'no-store',
     });
     if (res.ok) return res.json();
   } catch {
