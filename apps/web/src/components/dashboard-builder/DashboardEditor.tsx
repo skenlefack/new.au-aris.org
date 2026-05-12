@@ -21,6 +21,7 @@ import type {
 } from '@/lib/api/dashboard-hooks';
 import { SectionList } from './SectionList';
 import { WidgetPalette } from './WidgetPalette';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface DashboardEditorProps {
   title: string;
@@ -60,6 +61,7 @@ export function DashboardEditor({
   onWidgetDuplicate,
   onSectionDuplicate,
 }: DashboardEditorProps) {
+  const t = useTranslations('dashboard');
   const [activeDragItem, setActiveDragItem] = useState<{
     type: 'widget' | 'section';
     widget?: DashboardWidget;
@@ -291,14 +293,14 @@ export function DashboardEditor({
               value={title}
               onChange={(e) => onTitleChange(e.target.value)}
               className="w-full bg-transparent text-xl font-bold text-gray-900 dark:text-white border-none outline-none focus:ring-0 placeholder-gray-300"
-              placeholder="Dashboard title..."
+              placeholder={t('dashboardTitlePlaceholder')}
             />
             <textarea
               value={description ?? ''}
               onChange={(e) => onDescriptionChange?.(e.target.value)}
               rows={1}
               className="mt-2 w-full bg-transparent text-sm text-gray-500 dark:text-gray-400 border-none outline-none focus:ring-0 placeholder-gray-300 resize-none"
-              placeholder="Add a description..."
+              placeholder={t('addDescription')}
             />
           </div>
 
@@ -323,7 +325,7 @@ export function DashboardEditor({
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 py-3 text-sm font-medium text-gray-500 hover:border-[#1F4E79]/40 hover:text-[#1F4E79] transition-colors"
           >
             <Plus className="h-4 w-4" />
-            Add Section
+            {t('addSection')}
           </button>
         </div>
       </div>
@@ -344,7 +346,7 @@ export function DashboardEditor({
         )}
         {activeDragItem?.type === 'section' && (
           <div className="rounded-lg border-2 border-[#1F4E79]/30 bg-[#1F4E79]/5 py-3 px-6 text-sm font-medium text-[#1F4E79] shadow-2xl pointer-events-none">
-            Moving section...
+            {t('movingSection')}
           </div>
         )}
       </DragOverlay>

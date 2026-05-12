@@ -28,177 +28,40 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { WidgetType } from '@/lib/api/dashboard-hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface WidgetTemplate {
   type: WidgetType;
-  label: string;
-  description: string;
+  labelKey: string;
+  descKey: string;
   icon: LucideIcon;
   defaultLayout: { w: number; h: number };
 }
 
 const WIDGET_TEMPLATES: WidgetTemplate[] = [
-  {
-    type: 'KPI_CARD',
-    label: 'KPI Card',
-    description: 'Single value with trend indicator',
-    icon: Activity,
-    defaultLayout: { w: 3, h: 2 },
-  },
-  {
-    type: 'LINE',
-    label: 'Line Chart',
-    description: 'Time series and trend lines',
-    icon: TrendingUp,
-    defaultLayout: { w: 6, h: 4 },
-  },
-  {
-    type: 'BAR',
-    label: 'Bar Chart',
-    description: 'Compare categorical data',
-    icon: BarChart3,
-    defaultLayout: { w: 6, h: 4 },
-  },
-  {
-    type: 'STACKED_BAR',
-    label: 'Stacked Bar',
-    description: 'Grouped categories breakdown',
-    icon: Layers,
-    defaultLayout: { w: 6, h: 4 },
-  },
-  {
-    type: 'AREA',
-    label: 'Area Chart',
-    description: 'Cumulative trend visualization',
-    icon: AreaChart,
-    defaultLayout: { w: 6, h: 4 },
-  },
-  {
-    type: 'PIE',
-    label: 'Pie Chart',
-    description: 'Proportional breakdown',
-    icon: PieChart,
-    defaultLayout: { w: 4, h: 4 },
-  },
-  {
-    type: 'MAP',
-    label: 'Map',
-    description: 'Geographic data display',
-    icon: Map,
-    defaultLayout: { w: 6, h: 5 },
-  },
-  {
-    type: 'TABLE',
-    label: 'Table',
-    description: 'Tabular data with rows/columns',
-    icon: Table2,
-    defaultLayout: { w: 6, h: 4 },
-  },
-  {
-    type: 'GAUGE',
-    label: 'Gauge',
-    description: 'Progress toward a target',
-    icon: Gauge,
-    defaultLayout: { w: 3, h: 3 },
-  },
-  {
-    type: 'TEXT_BLOCK',
-    label: 'Text Block',
-    description: 'Free text or markdown content',
-    icon: Type,
-    defaultLayout: { w: 4, h: 3 },
-  },
-  {
-    type: 'ALERT_FEED',
-    label: 'Alert Feed',
-    description: 'List of alerts and notifications',
-    icon: Bell,
-    defaultLayout: { w: 4, h: 4 },
-  },
-  {
-    type: 'STAT_CARD',
-    label: 'Statistics',
-    description: 'Big number with comparison',
-    icon: Hash,
-    defaultLayout: { w: 3, h: 2 },
-  },
-  {
-    type: 'PROGRESS_BAR',
-    label: 'Progress Bar',
-    description: 'Progress toward a goal',
-    icon: BarChart,
-    defaultLayout: { w: 4, h: 2 },
-  },
-  {
-    type: 'DIVIDER',
-    label: 'Divider',
-    description: 'Visual separator',
-    icon: Minus,
-    defaultLayout: { w: 12, h: 1 },
-  },
-  {
-    type: 'IMAGE',
-    label: 'Image',
-    description: 'Display an image',
-    icon: ImageIcon,
-    defaultLayout: { w: 4, h: 3 },
-  },
-  {
-    type: 'IFRAME',
-    label: 'Embed',
-    description: 'Embed external content',
-    icon: Globe,
-    defaultLayout: { w: 6, h: 4 },
-  },
-  {
-    type: 'LIST',
-    label: 'List',
-    description: 'List of items with values',
-    icon: ListIcon,
-    defaultLayout: { w: 4, h: 3 },
-  },
-  {
-    type: 'HEATMAP',
-    label: 'Heatmap',
-    description: 'Table with color-coded cells',
-    icon: Grid3X3,
-    defaultLayout: { w: 6, h: 4 },
-  },
-  {
-    type: 'RANKED_LIST',
-    label: 'Ranked List',
-    description: 'Ranked items with bar indicators',
-    icon: Medal,
-    defaultLayout: { w: 4, h: 4 },
-  },
-  {
-    type: 'ACTIVITY_FEED',
-    label: 'Activity Feed',
-    description: 'Timeline of recent activities',
-    icon: Clock,
-    defaultLayout: { w: 4, h: 4 },
-  },
-  {
-    type: 'EPI_CURVE',
-    label: 'Epi Curve',
-    description: 'Epidemiological curve with moving average',
-    icon: HeartPulse,
-    defaultLayout: { w: 6, h: 4 },
-  },
-  {
-    type: 'DUAL_AXIS',
-    label: 'Dual Axis',
-    description: 'Two metrics on separate Y axes',
-    icon: GitBranch,
-    defaultLayout: { w: 6, h: 4 },
-  },
-  {
-    type: 'COUNTER',
-    label: 'Counter',
-    description: 'Big number with label and icon',
-    icon: Calculator,
-    defaultLayout: { w: 3, h: 2 },
-  },
+  { type: 'KPI_CARD', labelKey: 'widgetKpiCard', descKey: 'widgetKpiCardDesc', icon: Activity, defaultLayout: { w: 3, h: 2 } },
+  { type: 'LINE', labelKey: 'widgetLine', descKey: 'widgetLineDesc', icon: TrendingUp, defaultLayout: { w: 6, h: 4 } },
+  { type: 'BAR', labelKey: 'widgetBar', descKey: 'widgetBarDesc', icon: BarChart3, defaultLayout: { w: 6, h: 4 } },
+  { type: 'STACKED_BAR', labelKey: 'widgetStackedBar', descKey: 'widgetStackedBarDesc', icon: Layers, defaultLayout: { w: 6, h: 4 } },
+  { type: 'AREA', labelKey: 'widgetArea', descKey: 'widgetAreaDesc', icon: AreaChart, defaultLayout: { w: 6, h: 4 } },
+  { type: 'PIE', labelKey: 'widgetPie', descKey: 'widgetPieDesc', icon: PieChart, defaultLayout: { w: 4, h: 4 } },
+  { type: 'MAP', labelKey: 'widgetMap', descKey: 'widgetMapDesc', icon: Map, defaultLayout: { w: 6, h: 5 } },
+  { type: 'TABLE', labelKey: 'widgetTable', descKey: 'widgetTableDesc', icon: Table2, defaultLayout: { w: 6, h: 4 } },
+  { type: 'GAUGE', labelKey: 'widgetGauge', descKey: 'widgetGaugeDesc', icon: Gauge, defaultLayout: { w: 3, h: 3 } },
+  { type: 'TEXT_BLOCK', labelKey: 'widgetTextBlock', descKey: 'widgetTextBlockDesc', icon: Type, defaultLayout: { w: 4, h: 3 } },
+  { type: 'ALERT_FEED', labelKey: 'widgetAlertFeed', descKey: 'widgetAlertFeedDesc', icon: Bell, defaultLayout: { w: 4, h: 4 } },
+  { type: 'STAT_CARD', labelKey: 'widgetStatCard', descKey: 'widgetStatCardDesc', icon: Hash, defaultLayout: { w: 3, h: 2 } },
+  { type: 'PROGRESS_BAR', labelKey: 'widgetProgressBar', descKey: 'widgetProgressBarDesc', icon: BarChart, defaultLayout: { w: 4, h: 2 } },
+  { type: 'DIVIDER', labelKey: 'widgetDivider', descKey: 'widgetDividerDesc', icon: Minus, defaultLayout: { w: 12, h: 1 } },
+  { type: 'IMAGE', labelKey: 'widgetImage', descKey: 'widgetImageDesc', icon: ImageIcon, defaultLayout: { w: 4, h: 3 } },
+  { type: 'IFRAME', labelKey: 'widgetEmbed', descKey: 'widgetEmbedDesc', icon: Globe, defaultLayout: { w: 6, h: 4 } },
+  { type: 'LIST', labelKey: 'widgetList', descKey: 'widgetListDesc', icon: ListIcon, defaultLayout: { w: 4, h: 3 } },
+  { type: 'HEATMAP', labelKey: 'widgetHeatmap', descKey: 'widgetHeatmapDesc', icon: Grid3X3, defaultLayout: { w: 6, h: 4 } },
+  { type: 'RANKED_LIST', labelKey: 'widgetRankedList', descKey: 'widgetRankedListDesc', icon: Medal, defaultLayout: { w: 4, h: 4 } },
+  { type: 'ACTIVITY_FEED', labelKey: 'widgetActivityFeed', descKey: 'widgetActivityFeedDesc', icon: Clock, defaultLayout: { w: 4, h: 4 } },
+  { type: 'EPI_CURVE', labelKey: 'widgetEpiCurve', descKey: 'widgetEpiCurveDesc', icon: HeartPulse, defaultLayout: { w: 6, h: 4 } },
+  { type: 'DUAL_AXIS', labelKey: 'widgetDualAxis', descKey: 'widgetDualAxisDesc', icon: GitBranch, defaultLayout: { w: 6, h: 4 } },
+  { type: 'COUNTER', labelKey: 'widgetCounter', descKey: 'widgetCounterDesc', icon: Calculator, defaultLayout: { w: 3, h: 2 } },
 ];
 
 interface WidgetPaletteProps {
@@ -206,14 +69,16 @@ interface WidgetPaletteProps {
 }
 
 export function WidgetPalette({ onAdd }: WidgetPaletteProps) {
+  const t = useTranslations('dashboard');
+
   return (
     <div className="flex h-full flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
       <div className="border-b border-gray-200 dark:border-gray-800 px-4 py-3">
         <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-          Widgets
+          {t('widgets')}
         </h2>
         <p className="mt-0.5 text-xs text-gray-400">
-          Click to add to dashboard
+          {t('clickToAdd')}
         </p>
       </div>
       <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
@@ -230,10 +95,10 @@ export function WidgetPalette({ onAdd }: WidgetPaletteProps) {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {tmpl.label}
+                  {t(tmpl.labelKey)}
                 </p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 leading-snug">
-                  {tmpl.description}
+                  {t(tmpl.descKey)}
                 </p>
               </div>
             </button>

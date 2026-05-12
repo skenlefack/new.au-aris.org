@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useCollectionCampaigns } from '@/lib/api/workflow-hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface PlanningTarget {
   domainCode?: string;
@@ -26,11 +27,11 @@ interface PlanningsSectionProps {
 
 type StatusFilter = 'ALL' | 'ACTIVE' | 'PLANNED' | 'COMPLETED';
 
-const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
-  { value: 'ALL', label: 'Tous' },
-  { value: 'ACTIVE', label: 'Actives' },
-  { value: 'PLANNED', label: 'A venir' },
-  { value: 'COMPLETED', label: 'Terminees' },
+const STATUS_FILTER_KEYS: { value: StatusFilter; tKey: string }[] = [
+  { value: 'ALL', tKey: 'filterAll' },
+  { value: 'ACTIVE', tKey: 'filterActive' },
+  { value: 'PLANNED', tKey: 'filterUpcoming' },
+  { value: 'COMPLETED', tKey: 'filterCompleted' },
 ];
 
 const STATUS_BADGE: Record<string, { classes: string; icon: React.ElementType }> = {
@@ -47,6 +48,7 @@ const STATUS_BADGE: Record<string, { classes: string; icon: React.ElementType }>
  * progress, and a "new campaign" CTA.
  */
 export function PlanningsSection({ target }: PlanningsSectionProps) {
+  const t = useTranslations('collecte');
   const [filter, setFilter] = useState<StatusFilter>('ALL');
 
   // Map page route codes to DB domain values (e.g. 'livestock-prod' → 'livestock')
@@ -92,7 +94,7 @@ export function PlanningsSection({ target }: PlanningsSectionProps) {
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-[#1F4E79]" />
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-            Planifications
+            {t('plannings')}
           </h2>
           {!isLoading && (
             <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-400">
@@ -104,7 +106,7 @@ export function PlanningsSection({ target }: PlanningsSectionProps) {
         <div className="flex items-center gap-2">
           {/* Status filter pills */}
           <div className="flex items-center gap-1 rounded-lg border border-gray-200 p-0.5 dark:border-gray-600">
-            {STATUS_FILTERS.map((sf) => (
+            {STATUS_FILTER_KEYS.map((sf) => (
               <button
                 key={sf.value}
                 onClick={() => setFilter(sf.value)}
@@ -115,7 +117,7 @@ export function PlanningsSection({ target }: PlanningsSectionProps) {
                     : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
                 )}
               >
-                {sf.label}
+                {t(sf.tKey)}
               </button>
             ))}
           </div>
@@ -126,7 +128,7 @@ export function PlanningsSection({ target }: PlanningsSectionProps) {
             className="flex items-center gap-1 rounded-md bg-[#1F4E79] px-2.5 py-1.5 text-xs font-medium text-white hover:bg-[#1a4060]"
           >
             <Plus className="h-3 w-3" />
-            Nouvelle campagne
+            {t('newCampaignShort')}
           </Link>
         </div>
       </div>
@@ -144,15 +146,15 @@ export function PlanningsSection({ target }: PlanningsSectionProps) {
             <Calendar className="h-10 w-10 text-gray-300 dark:text-gray-600" />
             <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">
               {filter !== 'ALL'
-                ? 'Aucune campagne pour ce filtre'
-                : 'Aucune campagne planifiee'}
+                ? t('noCampaignsForFilter')
+                : t('noCampaignsPlanned')}
             </p>
             <Link
               href={`/collecte/campaigns/new${target.domainCode ? `?domain=${domainParam}` : ''}`}
               className="mt-3 flex items-center gap-1 rounded-lg bg-[#1F4E79] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#1a4060]"
             >
               <Plus className="h-3.5 w-3.5" />
-              Creer une campagne
+              {t('createACampaign')}
             </Link>
           </div>
         ) : (
@@ -170,7 +172,7 @@ export function PlanningsSection({ target }: PlanningsSectionProps) {
               href={campaignUrl}
               className="text-xs font-medium text-[#1F4E79] hover:underline dark:text-blue-400"
             >
-              Voir toutes les campagnes
+              {t('viewAllCampaigns')}
             </Link>
           </div>
         )}
@@ -184,6 +186,7 @@ export function PlanningsSection({ target }: PlanningsSectionProps) {
 const CARD_COLORS = ['#C62828', '#1565C0', '#2E7D32', '#E65100', '#6A1B9A', '#00838F'];
 
 function CampaignCard({ campaign }: { campaign: any }) {
+  const t = useTranslations('collecte');
   const c = campaign;
   const name =
     typeof c.name === 'object'
@@ -235,8 +238,8 @@ function CampaignCard({ campaign }: { campaign: any }) {
           </p>
           <p className="text-[10px] text-gray-400">
             {c.targetSubmissions
-              ? `/ ${c.targetSubmissions.toLocaleString()} cible`
-              : 'soumissions'}
+              ? `/ ${c.targetSubmissions.toLocaleString()} ${t('targetLabel')}`
+              : t('submissionsLabel')}
           </p>
         </div>
         <div className="text-right">

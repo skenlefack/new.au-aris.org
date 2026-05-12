@@ -6,6 +6,7 @@ import {
   Shield, Syringe, ArrowLeftRight, AlertTriangle, Activity, BarChart3, Palette,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useDashboardFilters } from './GlobalFilterContext';
 import { getAllRecs, getRecsForCountry, type RecConfig } from '@/data/recs-config';
 import { COUNTRIES, getCountriesByRec } from '@/data/countries-config';
@@ -22,39 +23,48 @@ interface DashboardFilterPanelProps {
   diseaseOptions?: Array<{ value: string; label: string }>;
 }
 
-const PERIODS = [
-  { value: 'all', label: 'All Years (2007-2025)' },
-  { value: 'last_12_months', label: 'Last 12 Months' },
-  { value: 'last_6_months', label: 'Last 6 Months' },
-  ...Array.from({ length: 19 }, (_, i) => {
-    const y = 2025 - i;
-    return { value: String(y), label: String(y) };
-  }),
-];
+function usePeriods() {
+  const t = useTranslations('dashboard');
+  return [
+    { value: 'all', label: t('allYears') },
+    { value: 'last_12_months', label: t('last12Months') },
+    { value: 'last_6_months', label: t('last6Months') },
+    ...Array.from({ length: 19 }, (_, i) => {
+      const y = 2025 - i;
+      return { value: String(y), label: String(y) };
+    }),
+  ];
+}
 
-const FALLBACK_DOMAINS = [
-  { value: 'all', label: 'All Domains' },
-  { value: 'animal-health', label: 'Animal Health' },
-  { value: 'livestock-prod', label: 'Livestock' },
-  { value: 'fisheries', label: 'Fisheries' },
-  { value: 'trade-sps', label: 'Trade & SPS' },
-  { value: 'wildlife', label: 'Wildlife' },
-  { value: 'apiculture', label: 'Apiculture' },
-  { value: 'climate-env', label: 'Climate & Env' },
-  { value: 'governance', label: 'Governance' },
-];
+function useFallbackDomains() {
+  const t = useTranslations('dashboard');
+  return [
+    { value: 'all', label: t('allDomains') },
+    { value: 'animal-health', label: t('domainAnimalHealth') },
+    { value: 'livestock-prod', label: t('domainLivestock') },
+    { value: 'fisheries', label: t('domainFisheries') },
+    { value: 'trade-sps', label: t('domainTradeSps') },
+    { value: 'wildlife', label: t('domainWildlife') },
+    { value: 'apiculture', label: t('domainApiculture') },
+    { value: 'climate-env', label: t('domainClimateEnv') },
+    { value: 'governance', label: t('domainGovernance') },
+  ];
+}
 
-const PAGES = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'by-rec', label: 'By REC', icon: Map },
-  { id: 'trends', label: 'Trends', icon: TrendingUp },
-  { id: 'surveillance', label: 'Surveillance', icon: Shield },
-  { id: 'vaccination', label: 'Vaccination', icon: Syringe },
-  { id: 'trade', label: 'Trade & SPS', icon: ArrowLeftRight },
-  { id: 'alerts', label: 'Alerts', icon: AlertTriangle },
-  { id: 'system', label: 'System', icon: Activity },
-  { id: 'custom', label: 'Personnalisé', icon: Palette },
-];
+function usePages() {
+  const t = useTranslations('dashboard');
+  return [
+    { id: 'overview', label: t('pageOverview'), icon: LayoutDashboard },
+    { id: 'by-rec', label: t('pageByRec'), icon: Map },
+    { id: 'trends', label: t('pageTrends'), icon: TrendingUp },
+    { id: 'surveillance', label: t('pageSurveillance'), icon: Shield },
+    { id: 'vaccination', label: t('pageVaccination'), icon: Syringe },
+    { id: 'trade', label: t('pageTrade'), icon: ArrowLeftRight },
+    { id: 'alerts', label: t('pageAlerts'), icon: AlertTriangle },
+    { id: 'system', label: t('pageSystem'), icon: Activity },
+    { id: 'custom', label: t('pageCustom'), icon: Palette },
+  ];
+}
 
 function SearchableFilterSelect({
   label,
@@ -69,6 +79,7 @@ function SearchableFilterSelect({
   onChange: (value: string) => void;
   placeholder?: string;
 }) {
+  const t = useTranslations('dashboard');
   const [search, setSearch] = React.useState('');
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
@@ -110,7 +121,7 @@ function SearchableFilterSelect({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={placeholder ?? 'Search...'}
+              placeholder={placeholder ?? t('searchDiseases')}
               className="w-full rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-2 py-1.5 text-xs focus:outline-none focus:ring-1"
               autoFocus
             />
@@ -130,7 +141,7 @@ function SearchableFilterSelect({
               </button>
             ))}
             {filtered.length === 0 && (
-              <p className="px-3 py-2 text-xs text-gray-400">No results</p>
+              <p className="px-3 py-2 text-xs text-gray-400">{t('noResults')}</p>
             )}
           </div>
         </div>
@@ -189,6 +200,7 @@ export function DashboardFilterPanel({
   onPageChange,
   diseaseOptions,
 }: DashboardFilterPanelProps) {
+  const t = useTranslations('dashboard');
   const { filters, setFilter, resetFilters, activeFilterCount } = useDashboardFilters();
   const user = useAuthStore((s) => s.user);
   const userDomains = useDomainStore((s) => s.userDomains);
@@ -197,11 +209,15 @@ export function DashboardFilterPanel({
   const tenantTree = useTenantStore((s) => s.tenantTree);
   const selectedTenant = useTenantStore((s) => s.selectedTenant);
 
+  const PERIODS = usePeriods();
+  const FALLBACK_DOMAINS = useFallbackDomains();
+  const PAGES = usePages();
+
   // Build domain options from store (user's domains or all for SUPER_ADMIN)
   const storeDomains = userDomains.length > 0 ? userDomains : allDomains;
   const domainOptions: Array<{ value: string; label: string }> = storeDomains.length > 0
     ? [
-        { value: 'all', label: 'All Domains' },
+        { value: 'all', label: t('allDomains') },
         ...storeDomains.map((d) => ({
           value: d.code,
           label: d.name?.[locale] || d.name?.en || d.code,
@@ -241,7 +257,7 @@ export function DashboardFilterPanel({
   } else {
     // CONTINENTAL / SUPER_ADMIN: all RECs
     recOptions = [
-      { value: 'all', label: 'All RECs' },
+      { value: 'all', label: t('allRecs') },
       ...allRecs.map((r: RecConfig) => ({ value: r.code, label: r.name })),
     ];
   }
@@ -264,7 +280,7 @@ export function DashboardFilterPanel({
       ? getCountriesByRec(filters.rec)
       : Object.values(COUNTRIES).sort((a, b) => a.name.localeCompare(b.name));
     countryOptions = [
-      { value: 'all', label: 'All Countries' },
+      { value: 'all', label: t('allCountries') },
       ...countryList.map((c) => ({ value: c.code, label: c.name })),
     ];
   }
@@ -275,7 +291,7 @@ export function DashboardFilterPanel({
         <button
           onClick={onToggle}
           className="relative rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 transition-colors"
-          title="Show filters"
+          title={t('showFilters')}
         >
           <Filter className="h-4 w-4" />
           {activeFilterCount > 0 && (
@@ -294,7 +310,7 @@ export function DashboardFilterPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-gray-400" />
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Filters</span>
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('filters')}</span>
             {activeFilterCount > 0 && (
               <span
                 className="flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-white"
@@ -307,7 +323,7 @@ export function DashboardFilterPanel({
           <button
             onClick={onToggle}
             className="rounded p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 transition-colors text-xs"
-            title="Collapse filters"
+            title={t('collapseFilters')}
           >
             ←
           </button>
@@ -316,14 +332,14 @@ export function DashboardFilterPanel({
 
       <div className="px-4 py-3 space-y-3">
         <FilterSelect
-          label="Period"
+          label={t('filterPeriod')}
           value={filters.period}
           options={PERIODS}
           onChange={(v) => setFilter('period', v)}
         />
 
         <FilterSelect
-          label="REC"
+          label={t('filterRec')}
           value={filters.rec}
           options={recOptions}
           onChange={(v) => setFilter('rec', v)}
@@ -331,7 +347,7 @@ export function DashboardFilterPanel({
         />
 
         <FilterSelect
-          label="Country"
+          label={t('filterCountry')}
           value={filters.country}
           options={countryOptions}
           onChange={(v) => setFilter('country', v)}
@@ -339,21 +355,21 @@ export function DashboardFilterPanel({
         />
 
         <FilterSelect
-          label="Domain"
+          label={t('filterDomain')}
           value={filters.domain}
           options={domainOptions}
           onChange={(v) => setFilter('domain', v)}
         />
 
         <SearchableFilterSelect
-          label="Disease"
+          label={t('filterDisease')}
           value={filters.disease}
           options={[
-            { value: 'all', label: 'All Diseases' },
+            { value: 'all', label: t('allDiseases') },
             ...(diseaseOptions ?? []),
           ]}
           onChange={(v) => setFilter('disease', v)}
-          placeholder="Search diseases..."
+          placeholder={t('searchDiseases')}
         />
 
         {activeFilterCount > 0 && (
@@ -362,7 +378,7 @@ export function DashboardFilterPanel({
             className="flex items-center gap-1.5 w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             <RotateCcw className="h-3 w-3" />
-            Reset All Filters
+            {t('resetAllFilters')}
           </button>
         )}
       </div>
@@ -370,7 +386,7 @@ export function DashboardFilterPanel({
       {/* Dashboard Pages */}
       <div className="border-t border-gray-100 dark:border-gray-800 px-4 py-3">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
-          Dashboard Pages
+          {t('dashboardPages')}
         </p>
         <div className="space-y-0.5">
           {PAGES.map((page) => {
@@ -402,7 +418,7 @@ export function DashboardFilterPanel({
       {/* BI Tools links */}
       <div className="border-t border-gray-100 dark:border-gray-800 px-4 py-3">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
-          BI Tools
+          {t('biTools')}
         </p>
         <div className="space-y-0.5">
           <a
@@ -411,7 +427,7 @@ export function DashboardFilterPanel({
           >
             <BarChart3 className="h-3 w-3" />
             Superset
-            <span className="ml-auto text-[9px] rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5">Active</span>
+            <span className="ml-auto text-[9px] rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5">{t('biActive')}</span>
           </a>
           <a
             href="/bi-tools/metabase"
@@ -419,7 +435,7 @@ export function DashboardFilterPanel({
           >
             <BarChart3 className="h-3 w-3" />
             Metabase
-            <span className="ml-auto text-[9px] rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5">Active</span>
+            <span className="ml-auto text-[9px] rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5">{t('biActive')}</span>
           </a>
           <a
             href="/bi-tools/grafana"
@@ -427,7 +443,7 @@ export function DashboardFilterPanel({
           >
             <BarChart3 className="h-3 w-3" />
             Grafana
-            <span className="ml-auto text-[9px] rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5">Active</span>
+            <span className="ml-auto text-[9px] rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5">{t('biActive')}</span>
           </a>
         </div>
       </div>

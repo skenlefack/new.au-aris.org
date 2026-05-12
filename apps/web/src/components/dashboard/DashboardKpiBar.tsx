@@ -5,6 +5,7 @@ import {
   Globe, FileBarChart, Syringe, Stethoscope, GraduationCap,
   ClipboardCheck, Database, Layers,
 } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 import type { DashboardKpis } from './demo-data';
 
 interface KpiItem {
@@ -45,9 +46,10 @@ interface DashboardKpiBarProps {
 }
 
 export function DashboardKpiBar({ kpis }: DashboardKpiBarProps) {
+  const t = useTranslations('dashboard');
   const items: KpiItem[] = [
     {
-      label: 'Countries Reporting',
+      label: t('kpiCountriesReporting'),
       value: kpis.countriesReporting,
       formatted: `${kpis.countriesReporting}/${kpis.totalCountries}`,
       trend: 0,
@@ -55,59 +57,59 @@ export function DashboardKpiBar({ kpis }: DashboardKpiBarProps) {
       icon: <Globe className="h-4 w-4" />,
     },
     {
-      label: 'Health Reports',
+      label: t('kpiHealthReports'),
       value: kpis.totalReports,
       formatted: formatCompact(kpis.totalReports),
       trend: 0,
-      trendLabel: 'monthly reports',
+      trendLabel: t('kpiMonthlyReports'),
       icon: <FileBarChart className="h-4 w-4" />,
     },
     {
-      label: 'Outbreaks',
+      label: t('kpiOutbreaks'),
       value: kpis.totalOutbreaks,
       formatted: formatCompact(kpis.totalOutbreaks),
       trend: 0,
-      trendLabel: 'declared',
+      trendLabel: t('kpiDeclared'),
       icon: <Stethoscope className="h-4 w-4" />,
     },
     {
-      label: 'Diseases',
+      label: t('kpiDiseases'),
       value: kpis.diseasesMonitored,
       formatted: String(kpis.diseasesMonitored),
       trend: 0,
-      trendLabel: 'monitored',
+      trendLabel: t('kpiMonitored'),
       icon: <ClipboardCheck className="h-4 w-4" />,
     },
     {
-      label: 'Animals Vaccinated',
+      label: t('kpiAnimalsVaccinated'),
       value: kpis.animalsVaccinated,
       formatted: formatCompact(kpis.animalsVaccinated),
       trend: 0,
-      trendLabel: 'total',
+      trendLabel: t('kpiTotal'),
       icon: <Syringe className="h-4 w-4" />,
     },
     {
-      label: 'Vacc. Campaigns',
+      label: t('kpiVaccCampaigns'),
       value: kpis.vaccinationCampaigns,
       formatted: formatCompact(kpis.vaccinationCampaigns),
       trend: 0,
-      trendLabel: 'mass campaigns',
+      trendLabel: t('kpiMassCampaigns'),
       icon: <GraduationCap className="h-4 w-4" />,
     },
     {
-      label: 'Livestock Censused',
+      label: t('kpiLivestockCensused'),
       value: kpis.livestockCensused,
       formatted: formatCompact(kpis.livestockCensused),
       trend: 0,
-      trendLabel: 'head count',
+      trendLabel: t('kpiHeadCount'),
       icon: <Database className="h-4 w-4" />,
     },
     {
-      label: 'Total Records',
+      label: t('kpiTotalRecords'),
       value: kpis.totalRecords,
       formatted: formatCompact(kpis.totalRecords),
       trend: 0,
-      trendLabel: `${kpis.datasetsImported} datasets`,
+      trendLabel: `${kpis.datasetsImported} ${t('kpiDatasets')}`,
       icon: <Layers className="h-4 w-4" />,
     },
   ];

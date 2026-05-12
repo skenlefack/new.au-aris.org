@@ -6,6 +6,7 @@ import {
   Globe, FileBarChart, Syringe, Stethoscope,
   ClipboardCheck, AlertTriangle, Map as MapIcon,
 } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useDashboardFilters } from './GlobalFilterContext';
 import {
   DEMO_ADMIN1_DATA,
@@ -87,19 +88,20 @@ function CompactTooltip({ active, payload, label }: any) {
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
 export function DashboardSynthetic() {
+  const t = useTranslations('dashboard');
   const { filters, setFilter } = useDashboardFilters();
   const dashData = useDashboardData(filters);
 
   const KPI_ITEMS = useMemo(() => [
-    { key: 'countries', label: 'Countries', value: `${dashData.kpis.countriesReporting}/${dashData.kpis.totalCountries}`, icon: Globe, color: '#3b82f6' },
-    { key: 'reports', label: 'Health Reports', value: fmt(dashData.kpis.totalReports), icon: FileBarChart, color: '#10b981' },
-    { key: 'outbreaks', label: 'Outbreaks', value: fmt(dashData.kpis.totalOutbreaks), icon: AlertTriangle, color: '#ef4444' },
-    { key: 'diseases', label: 'Diseases', value: String(dashData.kpis.diseasesMonitored), icon: ClipboardCheck, color: '#06b6d4' },
-    { key: 'vaccinated', label: 'Vaccinated', value: fmt(dashData.kpis.animalsVaccinated), icon: Syringe, color: '#8b5cf6' },
-    { key: 'campaigns', label: 'Vacc. Campaigns', value: fmt(dashData.kpis.vaccinationCampaigns), icon: ClipboardCheck, color: '#22c55e' },
-    { key: 'livestock', label: 'Livestock', value: fmt(dashData.kpis.livestockCensused), icon: FileBarChart, color: '#f59e0b' },
-    { key: 'records', label: 'Total Records', value: fmt(dashData.kpis.totalRecords), icon: FileBarChart, color: '#f97316' },
-  ], [dashData.kpis]);
+    { key: 'countries', label: t('kpiCountries'), value: `${dashData.kpis.countriesReporting}/${dashData.kpis.totalCountries}`, icon: Globe, color: '#3b82f6' },
+    { key: 'reports', label: t('kpiHealthReports'), value: fmt(dashData.kpis.totalReports), icon: FileBarChart, color: '#10b981' },
+    { key: 'outbreaks', label: t('kpiOutbreaks'), value: fmt(dashData.kpis.totalOutbreaks), icon: AlertTriangle, color: '#ef4444' },
+    { key: 'diseases', label: t('kpiDiseases'), value: String(dashData.kpis.diseasesMonitored), icon: ClipboardCheck, color: '#06b6d4' },
+    { key: 'vaccinated', label: t('kpiVaccinated'), value: fmt(dashData.kpis.animalsVaccinated), icon: Syringe, color: '#8b5cf6' },
+    { key: 'campaigns', label: t('kpiVaccCampaigns'), value: fmt(dashData.kpis.vaccinationCampaigns), icon: ClipboardCheck, color: '#22c55e' },
+    { key: 'livestock', label: t('kpiLivestock'), value: fmt(dashData.kpis.livestockCensused), icon: FileBarChart, color: '#f59e0b' },
+    { key: 'records', label: t('kpiTotalRecords'), value: fmt(dashData.kpis.totalRecords), icon: FileBarChart, color: '#f97316' },
+  ], [dashData.kpis, t]);
 
   const handleCountryClick = useCallback((code: string) => {
     setFilter('country', code);
@@ -192,7 +194,7 @@ export function DashboardSynthetic() {
     ? dashData.countryData.find((c) => c.code === filters.country)?.name ?? filters.country
     : filters.rec !== 'all'
       ? filters.rec.toUpperCase()
-      : 'CONTINENTAL';
+      : t('continental');
 
   /* ═══════════════════════════════════════════════════════════════════════ */
   /*  RENDER                                                                */
@@ -232,15 +234,15 @@ export function DashboardSynthetic() {
         <div className="bg-white dark:bg-gray-800 rounded overflow-hidden flex flex-col">
           <WidgetTitle>
             {isCountrySelected
-              ? `Outbreaks by Region — ${dashData.countryData.find((c) => c.code === filters.country)?.name ?? filters.country}`
+              ? `${t('outbreaksByRegion')} — ${dashData.countryData.find((c) => c.code === filters.country)?.name ?? filters.country}`
               : isRecSelected
-                ? `Outbreaks by Country — ${REC_LABELS[filters.rec] ?? filters.rec.toUpperCase()}`
-                : 'Outbreaks by REC'}
+                ? `${t('outbreaksByCountry')} — ${REC_LABELS[filters.rec] ?? filters.rec.toUpperCase()}`
+                : t('outbreaksByRec')}
           </WidgetTitle>
           <div className="flex-1 min-h-0 px-1 py-1">
             {isCountrySelected && admin1Data.length === 0 ? (
               <div className="flex items-center justify-center h-full text-xs text-gray-400">
-                No admin-level data available for this country
+                {t('noAdminLevelData')}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -277,7 +279,7 @@ export function DashboardSynthetic() {
 
         {/* 1B: Disease Distribution (pie + legend) */}
         <div className="bg-white dark:bg-gray-800 rounded overflow-hidden flex flex-col">
-          <WidgetTitle>Disease Distribution</WidgetTitle>
+          <WidgetTitle>{t('diseaseDistribution')}</WidgetTitle>
           <div className="flex-1 min-h-0 flex items-center">
             <div className="w-[55%] h-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -314,7 +316,7 @@ export function DashboardSynthetic() {
 
         {/* 1C: Species / Top diseases by cases (horizontal bars with values) */}
         <div className="bg-white dark:bg-gray-800 rounded overflow-hidden flex flex-col">
-          <WidgetTitle>Cases by Disease</WidgetTitle>
+          <WidgetTitle>{t('casesByDisease')}</WidgetTitle>
           <div className="flex-1 min-h-0 px-1 py-1">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -344,7 +346,7 @@ export function DashboardSynthetic() {
 
         {/* 1D: Top Activities / Outbreaks trend line */}
         <div className="bg-white dark:bg-gray-800 rounded overflow-hidden flex flex-col">
-          <WidgetTitle>Monthly Trend — Outbreaks & Submissions</WidgetTitle>
+          <WidgetTitle>{t('monthlyTrendTitle')}</WidgetTitle>
           <div className="flex-1 min-h-0 px-1 py-1">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendData} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
@@ -353,8 +355,8 @@ export function DashboardSynthetic() {
                 <YAxis tick={{ fontSize: 9, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={30} />
                 <Tooltip content={<CompactTooltip />} />
                 <Legend iconSize={8} wrapperStyle={{ fontSize: '10px', paddingTop: 0 }} />
-                <Line dataKey="outbreaks" name="Outbreaks" stroke="#ef4444" strokeWidth={2} dot={false} />
-                <Line dataKey="submissions" name="Submissions" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                <Line dataKey="outbreaks" name={t('kpiOutbreaks')} stroke="#ef4444" strokeWidth={2} dot={false} />
+                <Line dataKey="submissions" name={t('submissions')} stroke="#3b82f6" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -365,7 +367,7 @@ export function DashboardSynthetic() {
         {/* 2A: Africa Choropleth Map (spans 2 cols) */}
         <div className="col-span-2 bg-white dark:bg-gray-800 rounded overflow-hidden flex flex-col">
           <WidgetTitle>
-            {scopeLabel} — Outbreak Map
+            {scopeLabel} — {t('outbreakMap')}
           </WidgetTitle>
           <div className="flex-1 min-h-0 relative">
             <ChoroplethMap
@@ -385,13 +387,13 @@ export function DashboardSynthetic() {
         <div className="bg-white dark:bg-gray-800 rounded overflow-hidden flex flex-col">
           <WidgetTitle>
             {isCountrySelected
-              ? `Top Regions — Cases — ${dashData.countryData.find((c) => c.code === filters.country)?.name ?? filters.country}`
-              : 'Top Countries — Cases'}
+              ? `${t('topRegionsCases')} — ${dashData.countryData.find((c) => c.code === filters.country)?.name ?? filters.country}`
+              : t('topCountriesCases')}
           </WidgetTitle>
           <div className="flex-1 min-h-0 px-1 py-1">
             {isCountrySelected && admin1CasesData.length === 0 ? (
               <div className="flex items-center justify-center h-full text-xs text-gray-400">
-                No admin-level data available for this country
+                {t('noAdminLevelData')}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -425,7 +427,7 @@ export function DashboardSynthetic() {
 
         {/* 2C: Annual/Monthly Outbreaks (bar chart) */}
         <div className="bg-white dark:bg-gray-800 rounded overflow-hidden flex flex-col">
-          <WidgetTitle>{dashData.selectedYear ? `Outbreaks ${dashData.selectedYear} — Monthly` : 'Annual Outbreaks (2007-2025)'}</WidgetTitle>
+          <WidgetTitle>{dashData.selectedYear ? `${t('kpiOutbreaks')} ${dashData.selectedYear} — ${t('monthly')}` : t('annualOutbreaks')}</WidgetTitle>
           <div className="flex-1 min-h-0 px-1 py-1" key={`outbreak-chart-${dashData.selectedYear ?? 'all'}`}>
             <ResponsiveContainer key={`rc-${dashData.selectedYear ?? 'all'}`} width="100%" height="100%">
               {dashData.selectedYear ? (
@@ -451,10 +453,10 @@ export function DashboardSynthetic() {
       {/* ── Footer disclaimer ───────────────────────────────────────────── */}
       <div className="flex-shrink-0 flex items-center justify-between px-3 py-1 bg-gray-200/80 dark:bg-gray-800/80 text-[9px] text-gray-500 dark:text-gray-500 border-t border-gray-300/50 dark:border-gray-700/50">
         <span>
-          <strong>Data source:</strong> AU-IBAR ARIS 4.0 — RECs and Countries notifications
+          <strong>{t('dataSource')}:</strong> {t('dataSourceDesc')}
         </span>
         <span>
-          <strong>Disclaimer:</strong> The data is sourced from ARIS historical data and country notifications submitted through the ARIS validation process.
+          <strong>{t('disclaimer')}:</strong> {t('disclaimerDesc')}
         </span>
         <span>AU-IBAR {new Date().getFullYear()}</span>
       </div>

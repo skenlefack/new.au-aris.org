@@ -135,7 +135,7 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
         const submissions = json?.data || [];
 
         if (submissions.length === 0) {
-          setError('No data to export');
+          setError(t('noDataToExport'));
           setExporting(false);
           return;
         }
@@ -197,7 +197,7 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
         downloadBlob(blob, `${tplName(template.name)}_export.${ext}`);
       }
     } catch (err: any) {
-      setError(err?.message || 'Export failed');
+      setError(err?.message || t('exportFailed'));
     } finally {
       setExporting(false);
     }
@@ -213,7 +213,7 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
           <div className="flex items-center gap-3 text-white">
             <Download className="h-5 w-5" />
             <div>
-              <h2 className="text-base font-semibold">Export Data</h2>
+              <h2 className="text-base font-semibold">{t('exportData')}</h2>
               <p className="text-xs text-blue-100">{tplName(template.name)}</p>
             </div>
           </div>
@@ -225,7 +225,7 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
         <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
           {/* Format selection */}
           <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">Format</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">{t('format')}</label>
             <div className="mt-2 grid grid-cols-3 gap-2">
               {(['xlsx', 'csv', 'json'] as const).map((f) => (
                 <button
@@ -250,11 +250,11 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Filter className="h-3.5 w-3.5" />
-                Filters {activeFilterCount > 0 && <span className="rounded-full bg-blue-100 text-blue-700 px-1.5 text-[10px] dark:bg-blue-900/30 dark:text-blue-300">{activeFilterCount}</span>}
+                {t('filters')} {activeFilterCount > 0 && <span className="rounded-full bg-blue-100 text-blue-700 px-1.5 text-[10px] dark:bg-blue-900/30 dark:text-blue-300">{activeFilterCount}</span>}
               </label>
               {activeFilterCount > 0 && (
                 <button onClick={() => setFilters({})} className="text-[10px] text-red-500 hover:text-red-600">
-                  Clear all
+                  {t('clearAll')}
                 </button>
               )}
             </div>
@@ -266,7 +266,7 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
                   </label>
                   <input
                     type="text"
-                    placeholder={`Filter by ${f.label}...`}
+                    placeholder={t('filterByField', { field: f.label })}
                     value={filters[f.code] || ''}
                     onChange={(e) => handleFilterChange(f.code, e.target.value)}
                     className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-gray-900 dark:text-white placeholder:text-gray-400"
@@ -274,7 +274,7 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
                 </div>
               ))}
               {filterableFields.length === 0 && (
-                <p className="text-xs text-gray-400 italic py-2">No filterable fields available</p>
+                <p className="text-xs text-gray-400 italic py-2">{t('noFilterableFields')}</p>
               )}
             </div>
           </div>
@@ -291,7 +291,7 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
         {/* Footer */}
         <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between bg-gray-50 dark:bg-gray-800/50">
           <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-            Cancel
+            {t('cancel')}
           </button>
           <button
             onClick={handleExport}
@@ -299,7 +299,7 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            {exporting ? 'Exporting...' : `Export ${format.toUpperCase()}`}
+            {exporting ? t('exporting') : t('exportFormat', { format: format.toUpperCase() })}
           </button>
         </div>
       </div>
@@ -336,7 +336,7 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
       setResult(null);
       setError('');
     } else {
-      setError('Please upload an Excel (.xlsx) or CSV file');
+      setError(t('uploadExcelCsvError'));
     }
   }, []);
 
@@ -428,7 +428,7 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
       // Read first sheet
       const ws = wb.worksheets[0];
       if (!ws || ws.rowCount < 2) {
-        setError('File is empty or has no data rows');
+        setError(t('fileEmptyOrNoData'));
         setImporting(false);
         return;
       }
@@ -464,7 +464,7 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
       }
 
       if (rows.length === 0) {
-        setError('No data rows found in file');
+        setError(t('noDataRowsFound'));
         setImporting(false);
         return;
       }
@@ -496,7 +496,7 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
 
       setResult({ success, errors, total: rows.length });
     } catch (err: any) {
-      setError(err?.message || 'Import failed');
+      setError(err?.message || t('importFailed'));
     } finally {
       setImporting(false);
     }
@@ -512,7 +512,7 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
           <div className="flex items-center gap-3 text-white">
             <Upload className="h-5 w-5" />
             <div>
-              <h2 className="text-base font-semibold">Import Data</h2>
+              <h2 className="text-base font-semibold">{t('importData')}</h2>
               <p className="text-xs text-emerald-100">{tplName(template.name)}</p>
             </div>
           </div>
@@ -529,9 +529,9 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
           >
             <FileDown className="h-8 w-8 text-emerald-500" />
             <div>
-              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Download Reference Template</p>
+              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">{t('downloadRefTemplate')}</p>
               <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">
-                Generate an Excel template with {fields.length} fields ready for data entry
+                {t('generateTemplateDesc', { count: String(fields.length) })}
               </p>
             </div>
           </button>
@@ -561,21 +561,21 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
                   onClick={() => { setFile(null); setResult(null); }}
                   className="mt-1 text-xs text-red-500 hover:text-red-600"
                 >
-                  Remove
+                  {t('remove')}
                 </button>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2">
                 <Upload className="h-10 w-10 text-gray-400" />
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Drag & drop your Excel file here
+                  {t('dragDropExcel')}
                 </p>
-                <p className="text-xs text-gray-400">or</p>
+                <p className="text-xs text-gray-400">{t('or')}</p>
                 <label className="cursor-pointer rounded-lg bg-gray-100 dark:bg-gray-800 px-4 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
-                  Browse files
+                  {t('browseFiles')}
                   <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileSelect} className="hidden" />
                 </label>
-                <p className="mt-1 text-[10px] text-gray-400">.xlsx, .xls, .csv</p>
+                <p className="mt-1 text-[10px] text-gray-400">{t('supportedFormats')}</p>
               </div>
             )}
           </div>
@@ -590,20 +590,20 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
             )}>
               <div className="flex items-center gap-2 mb-2">
                 <Check className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium text-gray-900 dark:text-white">Import Complete</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{t('importComplete')}</span>
               </div>
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div>
                   <p className="text-lg font-bold text-gray-900 dark:text-white">{result.total}</p>
-                  <p className="text-[10px] text-gray-500 uppercase">Total rows</p>
+                  <p className="text-[10px] text-gray-500 uppercase">{t('totalRows')}</p>
                 </div>
                 <div>
                   <p className="text-lg font-bold text-green-600">{result.success}</p>
-                  <p className="text-[10px] text-gray-500 uppercase">Success</p>
+                  <p className="text-[10px] text-gray-500 uppercase">{t('success')}</p>
                 </div>
                 <div>
                   <p className="text-lg font-bold text-red-600">{result.errors}</p>
-                  <p className="text-[10px] text-gray-500 uppercase">Errors</p>
+                  <p className="text-[10px] text-gray-500 uppercase">{t('errors')}</p>
                 </div>
               </div>
             </div>
@@ -621,7 +621,7 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
         {/* Footer */}
         <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between bg-gray-50 dark:bg-gray-800/50">
           <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-            {result ? 'Close' : 'Cancel'}
+            {result ? t('close') : t('cancel')}
           </button>
           {!result && (
             <button
@@ -630,7 +630,7 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
               className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
             >
               {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {importing ? 'Importing...' : `Import ${file ? `(${file.name.split('.').pop()?.toUpperCase()})` : ''}`}
+              {importing ? t('importing') : t('importFormat', { format: file ? file.name.split('.').pop()?.toUpperCase() ?? '' : '' })}
             </button>
           )}
         </div>

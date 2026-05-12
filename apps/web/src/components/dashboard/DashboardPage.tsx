@@ -8,6 +8,7 @@ import {
   LayoutGrid, Layers, Maximize, Minimize,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { DashboardFilterProvider, useDashboardFilters, type DashboardFilters } from './GlobalFilterContext';
 import { DashboardFilterPanel } from './DashboardFilterPanel';
 import { DashboardKpiBar } from './DashboardKpiBar';
@@ -76,6 +77,7 @@ function TitleIcon({ isFullscreen, size = 'md' }: { isFullscreen: boolean; size?
 }
 
 function ViewToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: ViewMode) => void }) {
+  const t = useTranslations('dashboard');
   return (
     <div className="flex items-center rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-0.5">
       <button
@@ -87,10 +89,10 @@ function ViewToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: ViewMode
             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200',
         )}
         style={mode === 'synthetic' ? { backgroundColor: 'var(--color-accent)' } : undefined}
-        title="Synthetic view — everything on one screen"
+        title={t('syntheticViewTooltip')}
       >
         <LayoutGrid className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Synthetic</span>
+        <span className="hidden sm:inline">{t('synthetic')}</span>
       </button>
       <button
         onClick={() => onChange('detailed')}
@@ -101,10 +103,10 @@ function ViewToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: ViewMode
             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200',
         )}
         style={mode === 'detailed' ? { backgroundColor: 'var(--color-accent)' } : undefined}
-        title="Detailed view — scrollable with full widgets"
+        title={t('detailedViewTooltip')}
       >
         <Layers className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Detailed</span>
+        <span className="hidden sm:inline">{t('detailed')}</span>
       </button>
     </div>
   );
@@ -122,6 +124,7 @@ function DashboardContent() {
   const dashboardRef = useRef<HTMLDivElement>(null);
   const { filters, setFilter } = useDashboardFilters();
   const user = useAuthStore((s) => s.user);
+  const t = useTranslations('dashboard');
 
   const dashData = useDashboardData(filters);
 
@@ -187,7 +190,7 @@ function DashboardContent() {
     ? dashData.countryData.find((c) => c.code === filters.country)?.name ?? filters.country
     : filters.rec !== 'all'
       ? filters.rec.toUpperCase()
-      : 'Continental';
+      : t('continental');
 
   /* ── Synthetic mode: full-screen, no filter panel, no header chrome ───── */
 
@@ -208,17 +211,17 @@ function DashboardContent() {
           <div className="flex-shrink-0 flex items-center justify-between bg-slate-50/95 dark:bg-gray-950/95 border-b border-gray-200/80 dark:border-gray-800 px-4 py-1.5">
             <h1 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <TitleIcon isFullscreen={isFullscreen} size="sm" />
-              ARIS — {scopeLabel} Dashboard
+              {t('arisDashboard', { scope: scopeLabel })}
             </h1>
             <div className="flex items-center gap-2">
               <ViewToggle mode={viewMode} onChange={setViewMode} />
-              <button className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title="Export PDF">
+              <button className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title={t('exportPdf')}>
                 <Download className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={toggleFullscreen}
                 className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                title={isFullscreen ? t('exitFullscreen') : t('fullscreen')}
               >
                 {isFullscreen ? <Minimize className="h-3.5 w-3.5" /> : <Maximize className="h-3.5 w-3.5" />}
               </button>
@@ -254,9 +257,9 @@ function DashboardContent() {
             <div>
               <h1 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <TitleIcon isFullscreen={isFullscreen} />
-                {activePage === 'overview' ? 'Overview' : activePage.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                {activePage === 'overview' ? t('overview') : activePage.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                 <span className="text-sm font-normal text-gray-400 dark:text-gray-500">
-                  — {scopeLabel} Dashboard
+                  {t('scopeDashboard', { scope: scopeLabel })}
                 </span>
               </h1>
             </div>
@@ -264,20 +267,20 @@ function DashboardContent() {
               <ViewToggle mode={viewMode} onChange={setViewMode} />
               <span className="hidden sm:flex items-center gap-1.5 text-[10px] text-gray-400">
                 <Clock className="h-3 w-3" />
-                Auto-refresh: 5m
+                {t('autoRefresh')}
                 <RefreshCw className="h-3 w-3 ml-1" />
               </span>
-              <button className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title="Export PDF">
+              <button className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title={t('exportPdf')}>
                 <Download className="h-4 w-4" />
               </button>
               <button
                 onClick={toggleFullscreen}
                 className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                title={isFullscreen ? t('exitFullscreen') : t('fullscreen')}
               >
                 {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
               </button>
-              <button className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title="Settings">
+              <button className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title={t('settings')}>
                 <Settings className="h-4 w-4" />
               </button>
             </div>
@@ -354,14 +357,15 @@ function OverviewGrid({
   selectedCountry?: string;
   dashData: any;
 }) {
+  const t = useTranslations('dashboard');
   return (
     <>
       {/* Row 2: Map + Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
           <ChoroplethMap
-            title="Continental Outbreak Map"
-            subtitle="Active outbreaks by country"
+            title={t('continentalOutbreakMap')}
+            subtitle={t('activeOutbreaksByCountry')}
             data={filteredCountryData}
             onCountryClick={onCountryClick}
             demo
@@ -372,19 +376,19 @@ function OverviewGrid({
         <div>
           {dashData.selectedYear ? (
             <ChartBarWidget
-              title={`Outbreaks ${dashData.selectedYear} — by Month`}
-              subtitle={`Monthly breakdown for ${dashData.selectedYear}`}
+              title={t('outbreaksByMonth', { year: dashData.selectedYear })}
+              subtitle={t('monthlyBreakdown', { year: dashData.selectedYear })}
               data={dashData.monthlyTrends.map((d: any) => ({ name: d.label, outbreaks: d.outbreaks }))}
-              bars={[{ dataKey: 'outbreaks', label: 'Outbreaks', color: '#ef4444' }]}
+              bars={[{ dataKey: 'outbreaks', label: t('seriesOutbreaks'), color: '#ef4444' }]}
               xKey="name"
               demo={!dashData.isRealData}
             />
           ) : (
             <ChartBarWidget
-              title="Annual Outbreaks (2007-2025)"
-              subtitle="Outbreak reports per year"
+              title={t('annualOutbreaks')}
+              subtitle={t('outbreakReportsPerYear')}
               data={dashData.yearlyOutbreaks.map((d: any) => ({ name: d.year, outbreaks: d.outbreaks }))}
-              bars={[{ dataKey: 'outbreaks', label: 'Outbreaks', color: '#ef4444' }]}
+              bars={[{ dataKey: 'outbreaks', label: t('seriesOutbreaks'), color: '#ef4444' }]}
               xKey="name"
               demo={!dashData.isRealData}
             />
@@ -395,21 +399,21 @@ function OverviewGrid({
       {/* Row 3: Trends */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <ChartLineWidget
-          title="Outbreak Trend"
-          subtitle="Monthly outbreaks — last 12 months"
+          title={t('outbreakTrend')}
+          subtitle={t('monthlyOutbreaksLast12')}
           data={dashData.monthlyTrends}
           lines={[
-            { dataKey: 'outbreaks', label: 'Outbreaks', color: '#ef4444', type: 'area' },
-            { dataKey: 'submissions', label: 'Submissions', color: '#3b82f6' },
+            { dataKey: 'outbreaks', label: t('seriesOutbreaks'), color: '#ef4444', type: 'area' },
+            { dataKey: 'submissions', label: t('seriesSubmissions'), color: '#3b82f6' },
           ]}
           area
           demo={!dashData.isRealData}
         />
         <ChartBarWidget
-          title="Cases by Disease"
-          subtitle="Top 10 diseases by reported cases"
+          title={t('casesByDisease')}
+          subtitle={t('top10DiseasesByCases')}
           data={dashData.diseases.map((d: any) => ({ name: d.code, cases: d.cases, color: d.color }))}
-          bars={[{ dataKey: 'cases', label: 'Cases', color: '#3b82f6' }]}
+          bars={[{ dataKey: 'cases', label: t('seriesCases'), color: '#3b82f6' }]}
           xKey="name"
           horizontal
           showValues
@@ -420,15 +424,15 @@ function OverviewGrid({
       {/* Row 4: Pie + Ranked table */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <ChartPieWidget
-          title="Disease Distribution"
-          subtitle="Cases by disease type"
+          title={t('diseaseDistribution')}
+          subtitle={t('casesByDiseaseType')}
           data={diseaseForPie}
           donut
           demo
         />
         <TableRankedWidget
-          title="Top Countries by Submissions"
-          subtitle="Data collection activity ranking"
+          title={t('topCountriesBySubmissions')}
+          subtitle={t('dataCollectionRanking')}
           rows={rankedRows}
           demo
         />
@@ -437,14 +441,14 @@ function OverviewGrid({
       {/* Row 5: Heatmap + Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <ChartHeatmapWidget
-          title="Monthly Activity Heatmap"
-          subtitle="Submissions by country × month"
+          title={t('monthlyActivityHeatmap')}
+          subtitle={t('submissionsByCountryMonth')}
           data={dashData.heatmapData}
           demo={!dashData.isRealData}
         />
         <MetricActivityWidget
-          title="Recent Activity"
-          subtitle="Latest system events"
+          title={t('recentActivity')}
+          subtitle={t('latestSystemEvents')}
           activities={dashData.activities}
           demo
         />
@@ -453,14 +457,14 @@ function OverviewGrid({
       {/* Row 6: Epi Curve + Rainfall */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <HealthEpiCurveWidget
-          title="Epi Curve — FMD"
-          subtitle="Weekly cases, deaths & 4-week moving average"
+          title={t('epiCurveFmd')}
+          subtitle={t('weeklyCasesDeathsAvg')}
           data={dashData.epiCurve}
           demo={!dashData.isRealData}
         />
         <HealthRainfallWidget
-          title="Rainfall vs RVF Cases"
-          subtitle="Monthly precipitation and Rift Valley Fever correlation"
+          title={t('rainfallVsRvfCases')}
+          subtitle={t('rainfallRvfCorrelation')}
           data={dashData.rainfall}
           demo
         />
@@ -472,26 +476,27 @@ function OverviewGrid({
 // ─── Trends Grid ────────────────────────────────────────────────────────────
 
 function TrendsGrid({ dashData }: { dashData: any }) {
+  const t = useTranslations('dashboard');
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <ChartLineWidget
-          title="Outbreak Trend"
-          subtitle="Outbreaks, cases, and deaths over 12 months"
+          title={t('outbreakTrend')}
+          subtitle={t('outbreaksCasesDeaths12m')}
           data={dashData.monthlyTrends}
           lines={[
-            { dataKey: 'outbreaks', label: 'Outbreaks', color: '#ef4444' },
-            { dataKey: 'cases', label: 'Cases', color: '#f97316' },
-            { dataKey: 'deaths', label: 'Deaths', color: '#6b7280' },
+            { dataKey: 'outbreaks', label: t('seriesOutbreaks'), color: '#ef4444' },
+            { dataKey: 'cases', label: t('seriesCases'), color: '#f97316' },
+            { dataKey: 'deaths', label: t('seriesDeaths'), color: '#6b7280' },
           ]}
           demo={!dashData.isRealData}
         />
         <ChartLineWidget
-          title="Vaccination Trend"
-          subtitle="Monthly vaccinations administered"
+          title={t('vaccinationTrend')}
+          subtitle={t('monthlyVaccinations')}
           data={dashData.monthlyTrends}
           lines={[
-            { dataKey: 'vaccinations', label: 'Vaccinations', color: '#22c55e', type: 'area' },
+            { dataKey: 'vaccinations', label: t('seriesVaccinations'), color: '#22c55e', type: 'area' },
           ]}
           area
           demo
@@ -499,30 +504,30 @@ function TrendsGrid({ dashData }: { dashData: any }) {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <ChartBarWidget
-          title="Submissions per Month"
-          subtitle="Data collection volume over time"
+          title={t('submissionsPerMonth')}
+          subtitle={t('dataCollectionVolume')}
           data={dashData.monthlyTrends}
-          bars={[{ dataKey: 'submissions', label: 'Submissions', color: 'var(--color-accent, #006B3F)' }]}
+          bars={[{ dataKey: 'submissions', label: t('seriesSubmissions'), color: 'var(--color-accent, #006B3F)' }]}
           xKey="label"
           demo
         />
         <ChartHeatmapWidget
-          title="Country × Month Heatmap"
-          subtitle="Submission intensity matrix"
+          title={t('countryMonthHeatmap')}
+          subtitle={t('submissionIntensity')}
           data={dashData.heatmapData}
           demo={!dashData.isRealData}
         />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <HealthEpiCurveWidget
-          title="Epi Curve — FMD"
-          subtitle="52-week epidemiological curve"
+          title={t('epiCurveFmd')}
+          subtitle={t('week52EpiCurve')}
           data={dashData.epiCurve}
           demo={!dashData.isRealData}
         />
         <HealthRainfallWidget
-          title="Rainfall vs RVF"
-          subtitle="Climate–disease correlation"
+          title={t('rainfallVsRvf')}
+          subtitle={t('climateCorrelation')}
           data={dashData.rainfall}
           demo
         />
@@ -534,17 +539,18 @@ function TrendsGrid({ dashData }: { dashData: any }) {
 // ─── Alerts Grid ────────────────────────────────────────────────────────────
 
 function AlertsGrid({ alerts, dashData }: { alerts: any[]; dashData: any }) {
+  const t = useTranslations('dashboard');
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
       <TableAlertsWidget
-        title="All Active Alerts"
-        subtitle="Disease alerts across the continent"
+        title={t('allActiveAlerts')}
+        subtitle={t('alertsAcrossContinent')}
         alerts={alerts.length > 0 ? alerts : dashData.alerts}
         demo
       />
       <MetricActivityWidget
-        title="Alert-Related Activity"
-        subtitle="Recent actions on alerts"
+        title={t('alertRelatedActivity')}
+        subtitle={t('recentActionsOnAlerts')}
         activities={dashData.activities.filter((a: any) => a.type === 'alert' || a.type === 'validation')}
         demo
       />

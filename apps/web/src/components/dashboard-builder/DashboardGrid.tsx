@@ -6,6 +6,7 @@ import { Settings, Trash2, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DashboardWidget } from '@/lib/api/dashboard-hooks';
 import { WidgetRenderer } from './WidgetRenderer';
+import { useTranslations } from '@/lib/i18n/translations';
 
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -42,6 +43,7 @@ export function DashboardGrid({
   onWidgetConfigure,
   onWidgetRemove,
 }: DashboardGridProps) {
+  const t = useTranslations('dashboard');
   // Measure container width for react-grid-layout v2 (no WidthProvider)
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(1200);
@@ -99,12 +101,12 @@ export function DashboardGrid({
         <div className="flex min-h-[300px] items-center justify-center rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
           <div className="text-center">
             <p className="text-lg font-medium text-gray-500 dark:text-gray-400">
-              No widgets yet
+              {t('noWidgetsYet')}
             </p>
             <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
               {editable
-                ? 'Use the palette on the left to add widgets'
-                : 'This dashboard has no widgets configured'}
+                ? t('useThePalette')
+                : t('noWidgetsConfigured')}
             </p>
           </div>
         </div>
@@ -153,14 +155,14 @@ export function DashboardGrid({
                 <button
                   onClick={() => onWidgetConfigure?.(widget)}
                   className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                  title="Configure widget"
+                  title={t('configureWidget')}
                 >
                   <Settings className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => onWidgetRemove?.(widget.id)}
                   className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400"
-                  title="Remove widget"
+                  title={t('removeWidget')}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>

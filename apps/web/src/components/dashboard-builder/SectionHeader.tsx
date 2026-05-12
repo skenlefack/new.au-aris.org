@@ -4,6 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import { GripVertical, Trash2, ChevronDown, ChevronRight, Copy } from 'lucide-react';
 import type { DashboardSection } from '@/lib/api/dashboard-hooks';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface SectionHeaderProps {
   section: DashboardSection;
@@ -28,6 +29,7 @@ export function SectionHeader({
   onRemove,
   onDuplicate,
 }: SectionHeaderProps) {
+  const t = useTranslations('dashboard');
   const inputFrRef = useRef<HTMLInputElement>(null);
   const inputEnRef = useRef<HTMLInputElement>(null);
 
@@ -85,7 +87,7 @@ export function SectionHeader({
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             className="flex-1 min-w-0 bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 border-none outline-none focus:ring-1 focus:ring-[#1F4E79]/30 rounded px-1"
-            placeholder="Titre section..."
+            placeholder={t('sectionTitlePlaceholderFr')}
           />
           <span className="text-[10px] font-bold text-gray-400 uppercase flex-shrink-0 ml-1">EN</span>
           <input
@@ -95,7 +97,7 @@ export function SectionHeader({
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             className="flex-1 min-w-0 bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 border-none outline-none focus:ring-1 focus:ring-[#1F4E79]/30 rounded px-1"
-            placeholder="Section title..."
+            placeholder={t('sectionTitlePlaceholderEn')}
           />
         </div>
       ) : (
@@ -139,7 +141,7 @@ export function SectionHeader({
           type="button"
           onClick={(e) => { e.stopPropagation(); onDuplicate?.(); }}
           className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/30 dark:hover:text-blue-400 flex-shrink-0"
-          title="Duplicate section"
+          title={t('duplicateSection')}
         >
           <Copy className="h-3.5 w-3.5" />
         </button>

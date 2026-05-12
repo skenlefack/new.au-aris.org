@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const ClimateChart = dynamic(() => import('./ClimateChart'), { ssr: false });
 import {
@@ -28,12 +29,16 @@ import { DomainCurveSection } from '@/components/domain/DomainCurveSection';
 import { QuickAlertCard, type AlertField } from '@/components/domain/QuickAlertCard';
 import { useDomainConfig } from '@/lib/hooks/use-domain-config';
 
-const CLIMATE_ALERT_FIELDS: AlertField[] = [
-  { name: 'location', label: 'Location', type: 'text', placeholder: 'e.g. Sahel region, Niger', required: true },
-  { name: 'issueType', label: 'Issue Type', type: 'select', required: true, options: ['Drought', 'Flood', 'Heat Wave', 'Desertification', 'Water Scarcity', 'Other'] },
-  { name: 'severity', label: 'Severity', type: 'select', required: true, options: ['Low', 'Moderate', 'High', 'Critical'] },
-  { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Describe the climate event...' },
-];
+// Alert fields are built inside the component to use translations
+function useClimateAlertFields(): AlertField[] {
+  const t = useTranslations('climate');
+  return [
+    { name: 'location', label: t('alertLocation'), type: 'text', placeholder: t('alertLocationPlaceholder'), required: true },
+    { name: 'issueType', label: t('alertIssueType'), type: 'select', required: true, options: [t('issueDrought'), t('issueFlood'), t('issueHeatWave'), t('issueDesertification'), t('issueWaterScarcity'), t('issueOther')] },
+    { name: 'severity', label: t('alertSeverity'), type: 'select', required: true, options: [t('severityLow'), t('severityModerate'), t('severityHigh'), t('severityCritical')] },
+    { name: 'description', label: t('alertDescription'), type: 'textarea', placeholder: t('alertDescriptionPlaceholder') },
+  ];
+}
 
 const PLACEHOLDER_KPIS: ClimateEnvKpis = {
   monitoringStations: 1_840,
@@ -52,8 +57,10 @@ const PLACEHOLDER_TRENDS = [
 ];
 
 export default function ClimatePage() {
+  const t = useTranslations('climate');
   const { data: kpiData, isLoading: kpiLoading } = useClimateEnvKpis();
   const { sections } = useDomainConfig('climate-env');
+  const alertFields = useClimateAlertFields();
 
   const kpis = { ...PLACEHOLDER_KPIS, ...kpiData };
   const trends = PLACEHOLDER_TRENDS;
@@ -64,10 +71,10 @@ export default function ClimatePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Climate & Environment
+            {t('title')}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Water stress, rangelands, climate hotspots, and environmental monitoring
+            {t('subtitle')}
           </p>
         </div>
       </div>
@@ -88,7 +95,7 @@ export default function ClimatePage() {
           <div className="rounded-card border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                Monitoring Stations
+                {t('monitoringStations')}
               </p>
               <Cloud className="h-5 w-5 text-teal-600" />
             </div>
@@ -96,14 +103,14 @@ export default function ClimatePage() {
               {kpis.monitoringStations.toLocaleString()}
             </p>
             <p className="mt-1 text-xs text-gray-400">
-              Across 55 member states
+              {t('across55States')}
             </p>
           </div>
 
           <div className="rounded-card border border-blue-200 bg-blue-50 p-4 shadow-sm">
             <div className="flex items-start justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-blue-600">
-                Water Stress Index
+                {t('waterStressIndex')}
               </p>
               <Droplets className="h-5 w-5 text-blue-500" />
             </div>
@@ -111,14 +118,14 @@ export default function ClimatePage() {
               {kpis.waterStressIndex.toFixed(1)}%
             </p>
             <p className="mt-1 text-xs text-blue-400">
-              Continental average
+              {t('continentalAverage')}
             </p>
           </div>
 
           <div className="rounded-card border border-orange-200 bg-orange-50 p-4 shadow-sm">
             <div className="flex items-start justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-orange-600">
-                Rangeland Degradation
+                {t('rangelandDegradation')}
               </p>
               <TreePine className="h-5 w-5 text-orange-500" />
             </div>
@@ -126,14 +133,14 @@ export default function ClimatePage() {
               {kpis.rangelandDegradation.toFixed(1)}%
             </p>
             <p className="mt-1 text-xs text-orange-400">
-              Area affected
+              {t('areaAffected')}
             </p>
           </div>
 
           <div className="rounded-card border border-red-200 bg-red-50 p-4 shadow-sm">
             <div className="flex items-start justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-red-600">
-                Climate Hotspots
+                {t('climateHotspots')}
               </p>
               <Flame className="h-5 w-5 text-red-500" />
             </div>
@@ -141,7 +148,7 @@ export default function ClimatePage() {
               {kpis.climateHotspots}
             </p>
             <p className="mt-1 text-xs text-red-400">
-              Active vulnerability zones
+              {t('activeVulnerabilityZones')}
             </p>
           </div>
         </div>
@@ -151,10 +158,10 @@ export default function ClimatePage() {
       {sections.chart && (
         <div className="rounded-card border border-gray-200 bg-white p-6">
           <h2 className="text-sm font-semibold text-gray-900">
-            Temperature & Rainfall Trends
+            {t('temperatureRainfallTrends')}
           </h2>
           <p className="mt-1 text-xs text-gray-400">
-            Continental averages (2021-2026)
+            {t('continentalAverages')}
           </p>
           <div className="mt-4 h-64">
             <ClimateChart data={trends} />
@@ -178,8 +185,8 @@ export default function ClimatePage() {
                 <Droplets className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-900">Water Stress</p>
-                <p className="text-xs text-gray-400">Water availability & stress indices</p>
+                <p className="text-sm font-semibold text-gray-900">{t('waterStress')}</p>
+                <p className="text-xs text-gray-400">{t('waterAvailability')}</p>
               </div>
             </div>
             <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-blue-600" />
@@ -194,8 +201,8 @@ export default function ClimatePage() {
                 <TreePine className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-900">Rangelands</p>
-                <p className="text-xs text-gray-400">Vegetation & degradation monitoring</p>
+                <p className="text-sm font-semibold text-gray-900">{t('rangelands')}</p>
+                <p className="text-xs text-gray-400">{t('vegetationMonitoring')}</p>
               </div>
             </div>
             <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-green-600" />
@@ -210,8 +217,8 @@ export default function ClimatePage() {
                 <Flame className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-900">Hotspots</p>
-                <p className="text-xs text-gray-400">Climate vulnerability zones</p>
+                <p className="text-sm font-semibold text-gray-900">{t('hotspots')}</p>
+                <p className="text-xs text-gray-400">{t('climateVulnerabilityZones')}</p>
               </div>
             </div>
             <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-red-600" />
@@ -226,8 +233,8 @@ export default function ClimatePage() {
                 <Thermometer className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-900">Climate Data</p>
-                <p className="text-xs text-gray-400">Temperature, rainfall & wind</p>
+                <p className="text-sm font-semibold text-gray-900">{t('climateData')}</p>
+                <p className="text-xs text-gray-400">{t('temperatureRainfallWind')}</p>
               </div>
             </div>
             <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-teal-600" />
@@ -239,7 +246,7 @@ export default function ClimatePage() {
       {(sections.campaigns || sections.alertForm) && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {sections.campaigns && <DomainCampaignsSection domain="climate-env" />}
-          {sections.alertForm && <QuickAlertCard domain="climate-env" alertFields={CLIMATE_ALERT_FIELDS} title="Report Climate Event" />}
+          {sections.alertForm && <QuickAlertCard domain="climate-env" alertFields={alertFields} title={t('reportClimateEvent')} />}
         </div>
       )}
     </div>

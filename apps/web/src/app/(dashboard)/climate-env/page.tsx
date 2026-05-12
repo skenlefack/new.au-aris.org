@@ -129,10 +129,10 @@ export default function ClimateEnvPage() {
       {/* Water Stress Trends Chart */}
       {sections.chart && <div className="rounded-card border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-          Water Stress Index by Region
+          {t('waterStressByRegion')}
         </h2>
         <p className="mt-1 text-xs text-gray-400">
-          Annual water stress index trends across African regions (% baseline withdrawal)
+          {t('waterStressByRegionDesc')}
         </p>
         <div className="mt-4 h-64">
           <WaterStressChart data={waterTrends} />
@@ -222,9 +222,9 @@ export default function ClimateEnvPage() {
             <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Climate & Environment Alerts</h3>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('title')} — {t('alerts')}</h3>
               </div>
-              <p className="mt-1 text-xs text-gray-400">Configure alert forms for environmental hazards</p>
+              <p className="mt-1 text-xs text-gray-400">{t('configureAlertForms')}</p>
               <div className="mt-4 space-y-2">
                 <Link
                   href="/collecte/forms?domain=climate_env&formType=EVENT_ALERT"
@@ -235,8 +235,8 @@ export default function ClimateEnvPage() {
                       <FileText className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Form Builder</p>
-                      <p className="text-[10px] text-gray-400">Create or edit alert form templates</p>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('formBuilder')}</p>
+                      <p className="text-[10px] text-gray-400">{t('createEditAlertForms')}</p>
                     </div>
                   </div>
                   <ArrowRight className="h-4 w-4 text-gray-300" />

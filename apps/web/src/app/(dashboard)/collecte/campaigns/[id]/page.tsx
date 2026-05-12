@@ -252,7 +252,7 @@ export default function CampaignDetailPage() {
               {i18nStr(campaign.name, locale)}
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {i18nStr(campaign.description, locale) || 'No description provided'}
+              {i18nStr(campaign.description, locale) || t('noDescriptionProvided')}
             </p>
           </div>
           <div className="ml-4 flex items-center gap-2 shrink-0">
@@ -404,13 +404,13 @@ export default function CampaignDetailPage() {
                         href={`/collecte/campaigns/${campaignId}/export/${linkId}`}
                         className="inline-flex items-center gap-1 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400 shrink-0"
                       >
-                        Export
+                        {t('export')}
                       </Link>
                       <Link
                         href={`/collecte/campaigns/${campaignId}/import/${linkId}`}
                         className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 shrink-0"
                       >
-                        Import
+                        {t('import')}
                       </Link>
                     </div>
                   );
@@ -450,7 +450,7 @@ export default function CampaignDetailPage() {
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{t('campaignInfo')}</h3>
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between items-center">
-                <dt className="text-gray-500 dark:text-gray-400">Status</dt>
+                <dt className="text-gray-500 dark:text-gray-400">{t('status')}</dt>
                 <dd>
                   <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium', statusCfg.bg, statusCfg.color)}>
                     {statusCfg.icon}
@@ -508,7 +508,7 @@ export default function CampaignDetailPage() {
 
           {/* Quick Actions */}
           <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Actions</h3>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">{t('actions')}</h3>
             <div className="space-y-2">
               {!editable && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">

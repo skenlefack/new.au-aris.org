@@ -141,13 +141,13 @@ export default function HotspotsPage() {
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-aris-primary-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
             <option value="">{t('allRiskTypes')}</option>
-            <option value="Drought">Drought</option>
-            <option value="Flood">Flood</option>
-            <option value="Desertification">Desertification</option>
-            <option value="Extreme Heat">Extreme Heat</option>
-            <option value="Water Scarcity">Water Scarcity</option>
-            <option value="Cyclone">Cyclone</option>
-            <option value="Disease-Climate Nexus">Disease-Climate Nexus</option>
+            <option value="Drought">{t('riskDrought')}</option>
+            <option value="Flood">{t('riskFlood')}</option>
+            <option value="Desertification">{t('riskDesertification')}</option>
+            <option value="Extreme Heat">{t('riskExtremeHeat')}</option>
+            <option value="Water Scarcity">{t('riskWaterScarcity')}</option>
+            <option value="Cyclone">{t('riskCyclone')}</option>
+            <option value="Disease-Climate Nexus">{t('riskDiseaseClimateNexus')}</option>
           </select>
         </div>
       </div>

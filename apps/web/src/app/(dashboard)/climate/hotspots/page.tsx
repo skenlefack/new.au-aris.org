@@ -13,6 +13,7 @@ import { useClimateHotspots, type ClimateHotspot } from '@/lib/api/hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const PLACEHOLDER_DATA: ClimateHotspot[] = [
   { id: 'hs-1', name: 'Lake Chad Basin', country: 'Chad', countryCode: 'TD', lat: 13.0, lng: 14.0, riskLevel: 'critical', riskType: 'Water Scarcity', affectedPopulation: 2_500_000, livestockAtRisk: 1_800_000, lastAssessed: '2026-01-20', createdAt: '2026-01-20T10:00:00Z', updatedAt: '2026-02-15T08:00:00Z' },
@@ -30,6 +31,7 @@ const RISK_STYLES: Record<string, string> = {
 };
 
 export default function HotspotsPage() {
+  const t = useTranslations('climate');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [riskLevelFilter, setRiskLevelFilter] = useState('');
@@ -59,9 +61,9 @@ export default function HotspotsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Climate Hotspots</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('hotspotsTitle')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Climate vulnerability zones and risk assessment
+            {t('hotspotsSubtitle')}
           </p>
         </div>
       </div>
@@ -72,7 +74,7 @@ export default function HotspotsPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search hotspots..."
+            placeholder={t('searchHotspots')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-200"
@@ -85,23 +87,23 @@ export default function HotspotsPage() {
             onChange={(e) => { setRiskLevelFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-teal-500 focus:outline-none"
           >
-            <option value="">All Risk Levels</option>
-            <option value="low">Low</option>
-            <option value="moderate">Moderate</option>
-            <option value="high">High</option>
-            <option value="critical">Critical</option>
+            <option value="">{t('allRiskLevels')}</option>
+            <option value="low">{t('severityLow')}</option>
+            <option value="moderate">{t('severityModerate')}</option>
+            <option value="high">{t('severityHigh')}</option>
+            <option value="critical">{t('severityCritical')}</option>
           </select>
           <select
             value={riskTypeFilter}
             onChange={(e) => { setRiskTypeFilter(e.target.value); setPage(1); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-teal-500 focus:outline-none"
           >
-            <option value="">All Types</option>
-            <option value="Drought">Drought</option>
-            <option value="Flooding">Flooding</option>
-            <option value="Desertification">Desertification</option>
-            <option value="Water Scarcity">Water Scarcity</option>
-            <option value="Heat Stress">Heat Stress</option>
+            <option value="">{t('allTypes')}</option>
+            <option value="Drought">{t('riskDrought')}</option>
+            <option value="Flooding">{t('riskFlooding')}</option>
+            <option value="Desertification">{t('riskDesertification')}</option>
+            <option value="Water Scarcity">{t('riskWaterScarcity')}</option>
+            <option value="Heat Stress">{t('riskHeatStress')}</option>
           </select>
         </div>
       </div>
@@ -111,7 +113,7 @@ export default function HotspotsPage() {
         <TableSkeleton rows={5} cols={7} />
       ) : isError ? (
         <QueryError
-          message={error instanceof Error ? error.message : 'Failed to load hotspot data'}
+          message={error instanceof Error ? error.message : t('failedToLoadHotspots')}
           onRetry={() => refetch()}
         />
       ) : (
@@ -120,13 +122,13 @@ export default function HotspotsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Name / Location</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Type</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-500">Risk Level</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Affected Pop.</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Livestock at Risk</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Last Assessed</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Coordinates</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('colNameLocation')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('colType')}</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-500">{t('colRiskLevel')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('colAffectedPop')}</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">{t('colLivestockAtRisk')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('colLastAssessed')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">{t('colCoordinates')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -159,7 +161,7 @@ export default function HotspotsPage() {
                 {records.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                      No climate hotspots found
+                      {t('noHotspotsFound')}
                     </td>
                   </tr>
                 )}
@@ -170,7 +172,7 @@ export default function HotspotsPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
             <p className="text-xs text-gray-500">
-              Showing {records.length} of {meta.total} records
+              {t('showingRecords', { count: String(records.length), total: String(meta.total) })}
             </p>
             <div className="flex items-center gap-1">
               <button
@@ -181,7 +183,7 @@ export default function HotspotsPage() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="px-2 text-xs text-gray-600">
-                Page {page} of {totalPages || 1}
+                {t('pageOf', { page: String(page), total: String(totalPages || 1) })}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

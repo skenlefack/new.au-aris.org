@@ -25,6 +25,7 @@ import {
 } from '@/lib/api/dashboard-share-hooks';
 import { RECS, REC_ORDER } from '@/data/recs-config';
 import { COUNTRIES } from '@/data/countries-config';
+import { useTranslations } from '@/lib/i18n/translations';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -105,6 +106,7 @@ function UserTab({
   onSelect: (t: SelectedTarget) => void;
   selected: SelectedTarget | null;
 }) {
+  const t = useTranslations('dashboard');
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
 
@@ -124,7 +126,7 @@ function UserTab({
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by name or email..."
+          placeholder={t('searchByNameOrEmail')}
           className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
         />
       </div>
@@ -137,12 +139,12 @@ function UserTab({
         )}
         {!isLoading && debouncedQuery.length < 2 && (
           <p className="px-4 py-6 text-center text-sm text-gray-400">
-            Type at least 2 characters to search
+            {t('typeAtLeast2Chars')}
           </p>
         )}
         {!isLoading && debouncedQuery.length >= 2 && users.length === 0 && (
           <p className="px-4 py-6 text-center text-sm text-gray-400">
-            No users found
+            {t('noUsersFound')}
           </p>
         )}
         {users.map((u) => {
@@ -228,6 +230,7 @@ function CountryTab({
   onSelect: (t: SelectedTarget) => void;
   selected: SelectedTarget | null;
 }) {
+  const t = useTranslations('dashboard');
   const [filter, setFilter] = useState('');
 
   const filtered = useMemo(
@@ -250,7 +253,7 @@ function CountryTab({
           type="text"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          placeholder="Filter countries..."
+          placeholder={t('filterCountries')}
           className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
         />
       </div>
@@ -258,7 +261,7 @@ function CountryTab({
       <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700">
         {filtered.length === 0 && (
           <p className="px-4 py-6 text-center text-sm text-gray-400">
-            No countries match
+            {t('noCountriesMatch')}
           </p>
         )}
         {filtered.map((c) => {
@@ -283,7 +286,7 @@ function CountryTab({
               </span>
               {c.tenantId && (
                 <span className="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                  Active
+                  {t('active')}
                 </span>
               )}
               {isSelected && (
@@ -304,6 +307,7 @@ function RecTab({
   onSelect: (t: SelectedTarget) => void;
   selected: SelectedTarget | null;
 }) {
+  const t = useTranslations('dashboard');
   return (
     <div className="grid grid-cols-2 gap-2">
       {REC_ORDER.map((code) => {
@@ -336,7 +340,7 @@ function RecTab({
                 {rec.name}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {rec.memberCount} members
+                {rec.memberCount} {t('members')}
               </p>
             </div>
             {isSelected && (
@@ -356,6 +360,7 @@ function PublicTab({
   isPublic: boolean;
   onToggle: () => void;
 }) {
+  const t = useTranslations('dashboard');
   return (
     <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
       <div className="flex items-start gap-4">
@@ -364,11 +369,10 @@ function PublicTab({
         </div>
         <div className="flex-1">
           <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-            Public Access
+            {t('publicAccess')}
           </h4>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Make this dashboard visible to all authenticated users in your
-            organization. Anyone with access to ARIS can view it.
+            {t('publicAccessDesc')}
           </p>
         </div>
         <button
@@ -393,6 +397,7 @@ function PublicTab({
 // ─── Active Shares List ─────────────────────────────────────────────────────
 
 function ActiveSharesList({ dashboardId }: { dashboardId: string }) {
+  const t = useTranslations('dashboard');
   const { data, isLoading } = useDashboardShares(dashboardId);
   const revokeMutation = useRevokeShare();
 
@@ -405,8 +410,8 @@ function ActiveSharesList({ dashboardId }: { dashboardId: string }) {
     revokeMutation.mutate(
       { dashboardId, shareId: share.id },
       {
-        onSuccess: () => toast.success('Share revoked'),
-        onError: () => toast.error('Failed to revoke share'),
+        onSuccess: () => toast.success(t('shareRevoked')),
+        onError: () => toast.error(t('shareRevokeFailed')),
       },
     );
   };
@@ -422,7 +427,7 @@ function ActiveSharesList({ dashboardId }: { dashboardId: string }) {
   if (shares.length === 0) {
     return (
       <p className="py-4 text-center text-sm text-gray-400">
-        No active shares
+        {t('noActiveShares')}
       </p>
     );
   }
@@ -465,7 +470,7 @@ function ActiveSharesList({ dashboardId }: { dashboardId: string }) {
               onClick={() => handleRevoke(share)}
               disabled={revokeMutation.isPending}
               className="rounded p-1 text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-900/30 dark:hover:text-red-400"
-              title="Revoke share"
+              title={t('revokeShare')}
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -492,6 +497,7 @@ export function ShareDashboardDialog({
   const [expiresAt, setExpiresAt] = useState<string>('');
   const [isPublicToggle, setIsPublicToggle] = useState(false);
 
+  const t = useTranslations('dashboard');
   const shareMutation = useShareDashboard();
 
   // Reset state when opening
@@ -547,18 +553,18 @@ export function ShareDashboardDialog({
         input.sharedWithTenantId = selectedTarget.id;
       }
     } else {
-      toast.error('Please select a target to share with');
+      toast.error(t('selectTarget'));
       return;
     }
 
     shareMutation.mutate(input, {
       onSuccess: () => {
-        toast.success('Dashboard shared successfully');
+        toast.success(t('shareSuccess'));
         setSelectedTarget(null);
         setIsPublicToggle(false);
       },
       onError: (err) => {
-        toast.error((err as Error).message ?? 'Failed to share dashboard');
+        toast.error((err as Error).message ?? t('shareFailed'));
       },
     });
   };
@@ -581,7 +587,7 @@ export function ShareDashboardDialog({
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Share Dashboard
+              {t('shareDashboard')}
             </h2>
             {dashboardTitle && (
               <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
@@ -649,7 +655,7 @@ export function ShareDashboardDialog({
           {/* Permission selector */}
           <div className="mb-4">
             <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Permission
+              {t('permission')}
             </label>
             <div className="flex gap-2">
               <button
@@ -661,7 +667,7 @@ export function ShareDashboardDialog({
                 }`}
               >
                 <Eye className="h-4 w-4" />
-                View
+                {t('permissionView')}
               </button>
               <button
                 onClick={() => setPermission('CLONE')}
@@ -672,7 +678,7 @@ export function ShareDashboardDialog({
                 }`}
               >
                 <Copy className="h-4 w-4" />
-                Clone
+                {t('permissionClone')}
               </button>
             </div>
           </div>
@@ -680,7 +686,7 @@ export function ShareDashboardDialog({
           {/* Expiry */}
           <div className="mb-4">
             <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Expires (optional)
+              {t('expiresOptional')}
             </label>
             <input
               type="date"
@@ -700,7 +706,7 @@ export function ShareDashboardDialog({
             {shareMutation.isPending && (
               <Loader2 className="h-4 w-4 animate-spin" />
             )}
-            Share Dashboard
+            {t('shareDashboard')}
           </button>
 
           {/* ── Divider ────────────────────────────────────── */}
@@ -709,7 +715,7 @@ export function ShareDashboardDialog({
           {/* ── Active shares ──────────────────────────────── */}
           <div>
             <h3 className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Active Shares
+              {t('activeShares')}
             </h3>
             <ActiveSharesList dashboardId={dashboardId} />
           </div>

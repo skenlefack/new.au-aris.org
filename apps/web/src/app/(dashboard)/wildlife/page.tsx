@@ -125,7 +125,7 @@ export default function WildlifePage() {
 
         <div className="rounded-card border border-red-200 bg-red-50 p-4 shadow-sm dark:border-red-800 dark:bg-red-900/20">
           <div className="flex items-start justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider text-red-600">Wildlife Crimes</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-red-600">{t('wildlifeCrimes')}</p>
             <AlertTriangle className="h-5 w-5 text-red-500" />
           </div>
           <p className="mt-2 text-2xl font-bold text-red-700 dark:text-red-400">
@@ -138,10 +138,10 @@ export default function WildlifePage() {
       {/* Species Inventory Chart */}
       {sections.chart && <div className="rounded-card border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-          Species Inventory by Conservation Status
+          {t('speciesInventory')}
         </h2>
         <p className="mt-1 text-xs text-gray-400">
-          Continental species count by taxonomic category and IUCN status
+          {t('speciesInventoryDesc')}
         </p>
         <div className="mt-4 h-64">
           <InventoryChart data={inventory} />
@@ -215,9 +215,9 @@ export default function WildlifePage() {
             <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Wildlife Alerts</h3>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('wildlifeAlerts')}</h3>
               </div>
-              <p className="mt-1 text-xs text-gray-400">Configure alert forms for wildlife threats</p>
+              <p className="mt-1 text-xs text-gray-400">{t('configureAlertFormsWildlife')}</p>
               <div className="mt-4 space-y-2">
                 <Link
                   href="/collecte/forms?domain=wildlife&formType=EVENT_ALERT"
@@ -228,8 +228,8 @@ export default function WildlifePage() {
                       <FileText className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Form Builder</p>
-                      <p className="text-[10px] text-gray-400">Create or edit alert form templates</p>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('formBuilder')}</p>
+                      <p className="text-[10px] text-gray-400">{t('createEditAlertForms')}</p>
                     </div>
                   </div>
                   <ArrowRight className="h-4 w-4 text-gray-300" />

@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import type { DashboardSection, DashboardWidget } from '@/lib/api/dashboard-hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -49,6 +50,7 @@ function sanitizeFilename(name: string): string {
 export function ExportDashboardDialog({
   open, onClose, dashboardId, dashboardTitle, sections,
 }: ExportDashboardDialogProps) {
+  const t = useTranslations('dashboard');
   const [format, setFormat] = useState<ExportFormat>('png');
   const [scope, setScope] = useState<ExportScope>('full');
   const [selectedWidgetIds, setSelectedWidgetIds] = useState<Set<string>>(new Set());
@@ -60,7 +62,7 @@ export function ExportDashboardDialog({
     const widgets: (DashboardWidget & { sectionTitle: string })[] = [];
     for (const sec of sections) {
       for (const w of sec.widgets || []) {
-        widgets.push({ ...w, sectionTitle: sec.titleEn || sec.titleFr || 'Section' });
+        widgets.push({ ...w, sectionTitle: sec.titleEn || sec.titleFr || t('section') });
       }
     }
     return widgets;
@@ -111,7 +113,7 @@ export function ExportDashboardDialog({
       if (scope === 'full') {
         // Export entire dashboard
         const el = document.getElementById('dashboard-content');
-        if (!el) { toast.error('Dashboard content not found'); return; }
+        if (!el) { toast.error(t('dashboardContentNotFound')); return; }
 
         const canvas = await captureElement(el, quality);
 
@@ -120,7 +122,7 @@ export function ExportDashboardDialog({
           link.download = `${filename}_${timestamp}.png`;
           link.href = canvas.toDataURL('image/png');
           link.click();
-          toast.success('Dashboard exported as PNG');
+          toast.success(t('exportedAsPng'));
         } else {
           const imgData = canvas.toDataURL('image/png');
           const pdf = new jsPDF('l', 'mm', 'a3');
@@ -143,12 +145,12 @@ export function ExportDashboardDialog({
           pdf.addImage(imgData, 'PNG', 7, imgTop, scaledWidth, scaledHeight);
 
           pdf.save(`${filename}_${timestamp}.pdf`);
-          toast.success('Dashboard exported as PDF');
+          toast.success(t('exportedAsPdf'));
         }
       } else {
         // Export selected widgets
         if (selectedWidgetIds.size === 0) {
-          toast.error('Please select at least one widget');
+          toast.error(t('selectAtLeastOneWidget'));
           return;
         }
 
@@ -166,7 +168,7 @@ export function ExportDashboardDialog({
           }
 
           if (canvases.length === 0) {
-            toast.error('Could not capture selected widgets');
+            toast.error(t('couldNotCapture'));
             return;
           }
 
@@ -211,7 +213,7 @@ export function ExportDashboardDialog({
             link.href = combined.toDataURL('image/png');
             link.click();
           }
-          toast.success(`${selectedWidgetIds.size} widget(s) exported as PNG`);
+          toast.success(t('widgetsExportedPng').replace('{count}', String(selectedWidgetIds.size)));
         } else {
           // PDF with one widget per page (or arranged in grid)
           const pdf = new jsPDF('l', 'mm', 'a3');
@@ -257,12 +259,12 @@ export function ExportDashboardDialog({
           }
 
           pdf.save(`${filename}_${selectedWidgetIds.size}widgets_${timestamp}.pdf`);
-          toast.success(`${selectedWidgetIds.size} widget(s) exported as PDF`);
+          toast.success(t('widgetsExportedPdf').replace('{count}', String(selectedWidgetIds.size)));
         }
       }
     } catch (err) {
       console.error('Export failed:', err);
-      toast.error('Export failed. Please try again.');
+      toast.error(t('exportFailed'));
     } finally {
       setIsExporting(false);
     }
@@ -289,7 +291,7 @@ export function ExportDashboardDialog({
               <Download className="h-4 w-4 text-[#1F4E79]" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Export Dashboard</h3>
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">{t('exportDashboard')}</h3>
               <p className="text-xs text-gray-400">{dashboardTitle}</p>
             </div>
           </div>
@@ -303,11 +305,11 @@ export function ExportDashboardDialog({
 
           {/* Format selector */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Format</label>
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('format')}</label>
             <div className="flex gap-2">
               {([
-                { key: 'png' as ExportFormat, icon: ImageIcon, label: 'PNG Image', desc: 'High-res image' },
-                { key: 'pdf' as ExportFormat, icon: FileText, label: 'PDF Document', desc: 'Printable document' },
+                { key: 'png' as ExportFormat, icon: ImageIcon, label: t('pngImage'), desc: t('highResImage') },
+                { key: 'pdf' as ExportFormat, icon: FileText, label: t('pdfDocument'), desc: t('printableDocument') },
               ]).map((f) => (
                 <button key={f.key} onClick={() => setFormat(f.key)}
                   className={`flex flex-1 items-center gap-2 rounded-lg border px-3 py-2.5 text-left transition-colors ${
@@ -327,11 +329,11 @@ export function ExportDashboardDialog({
 
           {/* Scope selector */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Scope</label>
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('scope')}</label>
             <div className="flex gap-2">
               {([
-                { key: 'full' as ExportScope, icon: Layers, label: 'Full Dashboard', desc: 'All sections & widgets' },
-                { key: 'selected' as ExportScope, icon: LayoutGrid, label: 'Selected Widgets', desc: 'Choose specific widgets' },
+                { key: 'full' as ExportScope, icon: Layers, label: t('fullDashboard'), desc: t('allSectionsWidgets') },
+                { key: 'selected' as ExportScope, icon: LayoutGrid, label: t('selectedWidgets'), desc: t('chooseSpecificWidgets') },
               ]).map((s) => (
                 <button key={s.key} onClick={() => setScope(s.key)}
                   className={`flex flex-1 items-center gap-2 rounded-lg border px-3 py-2.5 text-left transition-colors ${
@@ -351,7 +353,7 @@ export function ExportDashboardDialog({
 
           {/* Quality selector */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Quality</label>
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('quality')}</label>
             <div className="flex gap-2">
               {([1, 2, 3] as const).map((q) => (
                 <button key={q} onClick={() => setQuality(q)}
@@ -360,7 +362,7 @@ export function ExportDashboardDialog({
                       ? 'bg-[#1F4E79] text-white'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
                   }`}>
-                  {q}x {q === 1 ? '(Fast)' : q === 2 ? '(Balanced)' : '(High)'}
+                  {q}x {q === 1 ? `(${t('qualityFast')})` : q === 2 ? `(${t('qualityBalanced')})` : `(${t('qualityHigh')})`}
                 </button>
               ))}
             </div>
@@ -371,11 +373,11 @@ export function ExportDashboardDialog({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Select widgets ({selectedCount}/{totalCount})
+                  {t('selectWidgets')} ({selectedCount}/{totalCount})
                 </label>
                 <div className="flex gap-2">
-                  <button onClick={selectAll} className="text-[10px] font-medium text-[#1F4E79] hover:underline">Select all</button>
-                  <button onClick={deselectAll} className="text-[10px] font-medium text-gray-400 hover:underline">Deselect all</button>
+                  <button onClick={selectAll} className="text-[10px] font-medium text-[#1F4E79] hover:underline">{t('selectAll')}</button>
+                  <button onClick={deselectAll} className="text-[10px] font-medium text-gray-400 hover:underline">{t('deselectAll')}</button>
                 </div>
               </div>
 
@@ -398,7 +400,7 @@ export function ExportDashboardDialog({
                           <Square className="h-3.5 w-3.5 text-gray-300" />
                         )}
                         <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                          {sec.titleEn || sec.titleFr || 'Section'}
+                          {sec.titleEn || sec.titleFr || t('section')}
                         </span>
                         <span className="ml-auto text-[10px] text-gray-400">{secSelected}/{sectionWidgets.length}</span>
                       </button>
@@ -428,8 +430,8 @@ export function ExportDashboardDialog({
         <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 px-5 py-3 flex-shrink-0">
           <p className="text-xs text-gray-400">
             {scope === 'full'
-              ? `${totalCount} widgets in ${sections.length} sections`
-              : `${selectedCount} widget(s) selected`}
+              ? t('widgetsInSections').replace('{count}', String(totalCount)).replace('{sections}', String(sections.length))
+              : t('widgetsSelected').replace('{count}', String(selectedCount))}
           </p>
           <div className="flex gap-2">
             <button onClick={handleClose} disabled={isExporting}
@@ -442,12 +444,12 @@ export function ExportDashboardDialog({
               {isExporting ? (
                 <>
                   <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Exporting...
+                  {t('exporting')}
                 </>
               ) : (
                 <>
                   <Download className="h-4 w-4" />
-                  Export {format.toUpperCase()}
+                  {t('exportFormat').replace('{format}', format.toUpperCase())}
                 </>
               )}
             </button>
