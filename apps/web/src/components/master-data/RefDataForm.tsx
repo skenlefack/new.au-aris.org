@@ -9,6 +9,7 @@ import {
   useRefDataItem,
   useCreateRefData,
   useUpdateRefData,
+  useRefDataForSelect,
   type RefDataType,
   type MultilingualValue,
 } from '@/lib/api/ref-data-hooks';
@@ -53,6 +54,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
   const [oieCode, setOieCode] = useState('');
   const [isNotifiable, setIsNotifiable] = useState(false);
   const [isZoonotic, setIsZoonotic] = useState(false);
+  const [selectedSpeciesIds, setSelectedSpeciesIds] = useState<string[]>([]);
   const [category, setCategory] = useState('');
   const [severity, setSeverity] = useState('');
   const [fieldType, setFieldType] = useState('');
@@ -123,6 +125,10 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
       setOieCode(d.oieCode ?? '');
       setIsNotifiable(d.isNotifiable ?? false);
       setIsZoonotic(d.isZoonotic ?? false);
+      // Load disease-species associations
+      if (d.diseaseSpecies && Array.isArray(d.diseaseSpecies)) {
+        setSelectedSpeciesIds(d.diseaseSpecies.map((ds: any) => ds.speciesId || ds.species?.id).filter(Boolean));
+      }
       setCategory(d.category ?? '');
       setSeverity(d.severity ?? '');
       setFieldType(d.type ?? '');
@@ -210,6 +216,7 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
       payload.isNotifiable = isNotifiable;
       payload.isZoonotic = isZoonotic;
       if (category) payload.category = category;
+      payload.speciesIds = selectedSpeciesIds;
     }
     if (type === 'clinical-signs') {
       if (diseaseId) payload.diseaseId = diseaseId;
@@ -577,6 +584,11 @@ export function RefDataForm({ type, mode, itemId }: RefDataFormProps) {
               <span className="font-medium text-gray-700 dark:text-gray-300">Zoonotic</span>
             </label>
           </div>
+          {/* Susceptible Species multi-select */}
+          <DiseaseSpeciesSelect
+            selectedIds={selectedSpeciesIds}
+            onChange={setSelectedSpeciesIds}
+          />
         </div>
       );
     }
@@ -1316,5 +1328,89 @@ function TypeSelect({ entityType, value, onChange }: { entityType: string; value
         <option key={o.value} value={o.value}>{o.label}</option>
       ))}
     </select>
+  );
+}
+
+/* ── Disease-Species multi-select ─────────────────────────────── */
+
+function DiseaseSpeciesSelect({
+  selectedIds,
+  onChange,
+}: {
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const { data, isLoading } = useRefDataForSelect('species' as RefDataType);
+  const allSpecies = React.useMemo(() => {
+    if (!data?.data) return [];
+    return data.data
+      .map((s) => ({ id: s.id, label: s.name?.en || s.code || s.id }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [data]);
+
+  const [search, setSearch] = React.useState('');
+
+  const filtered = React.useMemo(() => {
+    if (!search.trim()) return allSpecies;
+    const q = search.toLowerCase();
+    return allSpecies.filter((s) => s.label.toLowerCase().includes(q));
+  }, [allSpecies, search]);
+
+  const selectedSet = React.useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  const toggle = (id: string) => {
+    if (selectedSet.has(id)) {
+      onChange(selectedIds.filter((x) => x !== id));
+    } else {
+      onChange([...selectedIds, id]);
+    }
+  };
+
+  const selectAll = () => onChange(filtered.map((s) => s.id));
+  const clearAll = () => onChange([]);
+
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Susceptible Species
+        <span className="ml-2 text-xs font-normal text-gray-400">({selectedIds.length} selected)</span>
+      </label>
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700">
+        {/* Search + actions */}
+        <div className="flex items-center gap-2 border-b border-gray-100 px-3 py-2 dark:border-gray-800">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search species..."
+            className="flex-1 bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400 dark:text-gray-300"
+          />
+          <button type="button" onClick={selectAll} className="text-xs text-aris-primary-600 hover:underline">All</button>
+          <button type="button" onClick={clearAll} className="text-xs text-gray-400 hover:underline">Clear</button>
+        </div>
+        {/* Scrollable checkbox list */}
+        <div className="max-h-48 overflow-y-auto p-2">
+          {isLoading ? (
+            <p className="py-4 text-center text-xs text-gray-400">Loading species...</p>
+          ) : filtered.length === 0 ? (
+            <p className="py-4 text-center text-xs text-gray-400">No species found</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 sm:grid-cols-3">
+              {filtered.map((s) => (
+                <label key={s.id} className="flex items-center gap-1.5 rounded px-1.5 py-1 text-xs hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedSet.has(s.id)}
+                    onChange={() => toggle(s.id)}
+                    className="h-3.5 w-3.5 rounded border-gray-300 text-aris-primary-600 focus:ring-aris-primary-500"
+                  />
+                  <span className="truncate text-gray-700 dark:text-gray-300">{s.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

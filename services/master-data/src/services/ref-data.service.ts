@@ -333,9 +333,12 @@ export class RefDataService {
     const scope = dto.scope ?? this.inferScope(user);
     const ownerId = dto.ownerId ?? this.inferOwnerId(user, scope);
 
+    // Extract relation IDs before passing to Prisma
+    const { speciesIds, ...createData } = dto;
+
     const entity = await (this.prisma as any)[modelName].create({
       data: {
-        ...dto,
+        ...createData,
         scope,
         ownerId,
         ownerType: scope === 'continental' ? 'continental' : scope === 'regional' ? 'rec' : 'country',
@@ -343,17 +346,34 @@ export class RefDataService {
       },
     });
 
+    // Handle disease-species junction for diseases
+    if (type === 'diseases' && Array.isArray(speciesIds) && speciesIds.length > 0) {
+      await (this.prisma as any).refDiseaseSpecies.createMany({
+        data: speciesIds.map((speciesId: string) => ({
+          diseaseId: entity.id,
+          speciesId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    // Re-fetch with includes
+    const include = INCLUDES[type] ?? undefined;
+    const result = include
+      ? await (this.prisma as any)[modelName].findUnique({ where: { id: entity.id }, include })
+      : entity;
+
     await this.audit.log({
       entityType: `Ref:${type}`,
       entityId: entity.id,
       action: 'CREATE',
       user,
-      newVersion: entity as unknown as object,
+      newVersion: result as unknown as object,
       dataClassification: 'PUBLIC',
     });
 
-    await this.publishEvent(type, entity, user);
-    return { data: entity };
+    await this.publishEvent(type, result, user);
+    return { data: result };
   }
 
   async update(type: string, id: string, dto: any, user: AuthUser) {
@@ -367,12 +387,33 @@ export class RefDataService {
     this.checkWriteAccess(existing, user);
 
     // Remove fields that shouldn't be updated directly
-    const { id: _, createdAt, updatedAt, createdBy, scope, ownerId, ownerType, ...updateData } = dto;
+    const { id: _, createdAt, updatedAt, createdBy, scope, ownerId, ownerType, speciesIds, ...updateData } = dto;
 
     const entity = await (this.prisma as any)[modelName].update({
       where: { id },
       data: updateData,
     });
+
+    // Handle disease-species junction for diseases
+    if (type === 'diseases' && Array.isArray(speciesIds)) {
+      // Replace all existing associations
+      await (this.prisma as any).refDiseaseSpecies.deleteMany({ where: { diseaseId: id } });
+      if (speciesIds.length > 0) {
+        await (this.prisma as any).refDiseaseSpecies.createMany({
+          data: speciesIds.map((speciesId: string) => ({
+            diseaseId: id,
+            speciesId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    // Re-fetch with includes
+    const include = INCLUDES[type] ?? undefined;
+    const result = include
+      ? await (this.prisma as any)[modelName].findUnique({ where: { id }, include })
+      : entity;
 
     await this.audit.log({
       entityType: `Ref:${type}`,
@@ -380,12 +421,12 @@ export class RefDataService {
       action: 'UPDATE',
       user,
       previousVersion: existing as unknown as object,
-      newVersion: entity as unknown as object,
+      newVersion: result as unknown as object,
       dataClassification: 'PUBLIC',
     });
 
-    await this.publishEvent(type, entity, user);
-    return { data: entity };
+    await this.publishEvent(type, result, user);
+    return { data: result };
   }
 
   async deactivate(type: string, id: string, user: AuthUser) {
