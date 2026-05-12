@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Upload, FileSpreadsheet, FileDown, Loader2, AlertCircle, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useFormBuilderTemplate } from '@/lib/api/form-builder-hooks';
 
 function tplName(name: unknown): string {
@@ -26,6 +27,7 @@ function extractFields(schema: unknown): Field[] {
 
 export default function ImportPage() {
   const { id: campaignId, templateId } = useParams<{ id: string; templateId: string }>();
+  const t = useTranslations('collecte');
   const { data: tplRes } = useFormBuilderTemplate(templateId);
   const template = tplRes?.data;
   const name = tplName(template?.name);
@@ -57,7 +59,7 @@ export default function ImportPage() {
       const wb = new ExcelJS.Workbook();
       await wb.xlsx.load(await file.arrayBuffer());
       const ws = wb.worksheets[0];
-      if (!ws || ws.rowCount < 2) { setError('File is empty'); setImporting(false); return; }
+      if (!ws || ws.rowCount < 2) { setError(t('fileEmpty')); setImporting(false); return; }
       const headers: string[] = [];
       ws.getRow(1).eachCell((cell, col) => { headers[col - 1] = String(cell.value ?? '').trim(); });
       const startRow = fields.some((f) => f.label === String(ws.getRow(2).getCell(1).value ?? '')) ? 3 : 2;
@@ -67,7 +69,7 @@ export default function ImportPage() {
         headers.forEach((h, i) => { if (!h) return; const v = row.getCell(i + 1).value; if (v != null && v !== '') { d[h] = v; has = true; } });
         if (has) rows.push(d);
       }
-      if (rows.length === 0) { setError('No data rows found'); setImporting(false); return; }
+      if (rows.length === 0) { setError(t('noDataRowsFound')); setImporting(false); return; }
       const token = localStorage.getItem('accessToken') || '';
       let success = 0, errors = 0;
       for (let i = 0; i < rows.length; i += 20) {
@@ -77,13 +79,13 @@ export default function ImportPage() {
         ));
       }
       setResult({ success, errors, total: rows.length });
-    } catch (e: any) { setError(e?.message || 'Import failed'); } finally { setImporting(false); }
+    } catch (e: any) { setError(e?.message || t('importFailed')); } finally { setImporting(false); }
   }, [file, campaignId, fields]);
 
   return (
     <div className="space-y-6 pb-12">
       <Link href={`/collecte/campaigns/${campaignId}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
-        <ArrowLeft className="h-4 w-4" /> Back to campaign
+        <ArrowLeft className="h-4 w-4" /> {t('backToCampaign')}
       </Link>
 
       <div className="rounded-2xl border bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
@@ -91,8 +93,8 @@ export default function ImportPage() {
           <div className="flex items-center gap-3 text-white">
             <Upload className="h-6 w-6" />
             <div>
-              <h1 className="text-lg font-semibold">Import Data</h1>
-              <p className="text-sm text-emerald-100">{name || 'Loading...'}</p>
+              <h1 className="text-lg font-semibold">{t('importData')}</h1>
+              <p className="text-sm text-emerald-100">{name || t('loading')}</p>
             </div>
           </div>
         </div>
@@ -102,8 +104,8 @@ export default function ImportPage() {
           <button onClick={handleGenTemplate} disabled={!template} className="w-full flex items-center gap-4 rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50 p-5 hover:bg-emerald-100 transition-colors text-left">
             <FileDown className="h-10 w-10 text-emerald-500 shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-emerald-700">Download Reference Template</p>
-              <p className="text-xs text-emerald-600/70 mt-0.5">{fields.length} fields ready for data entry</p>
+              <p className="text-sm font-semibold text-emerald-700">{t('downloadRefTemplate')}</p>
+              <p className="text-xs text-emerald-600/70 mt-0.5">{t('fieldsReadyForEntry').replace('{count}', String(fields.length))}</p>
             </div>
           </button>
 
@@ -114,14 +116,14 @@ export default function ImportPage() {
                 <FileSpreadsheet className="h-12 w-12 text-green-500" />
                 <p className="text-sm font-medium text-gray-900">{file.name}</p>
                 <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
-                <button onClick={() => { setFile(null); setResult(null); }} className="text-xs text-red-500 hover:text-red-600 mt-1">Remove</button>
+                <button onClick={() => { setFile(null); setResult(null); }} className="text-xs text-red-500 hover:text-red-600 mt-1">{t('remove')}</button>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3">
                 <Upload className="h-12 w-12 text-gray-400" />
-                <p className="text-sm text-gray-600">Select your Excel file</p>
+                <p className="text-sm text-gray-600">{t('selectExcelFile')}</p>
                 <label className="cursor-pointer rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200">
-                  Browse files
+                  {t('browseFiles')}
                   <input type="file" accept=".xlsx,.xls,.csv" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setFile(f); setResult(null); setError(''); } }} className="hidden" />
                 </label>
                 <p className="text-[11px] text-gray-400">.xlsx, .xls, .csv</p>
@@ -132,11 +134,11 @@ export default function ImportPage() {
           {/* Result */}
           {result && (
             <div className="rounded-xl border border-green-200 bg-green-50 p-5">
-              <div className="flex items-center gap-2 mb-3"><Check className="h-5 w-5 text-green-600" /><span className="font-semibold text-gray-900">Import Complete</span></div>
+              <div className="flex items-center gap-2 mb-3"><Check className="h-5 w-5 text-green-600" /><span className="font-semibold text-gray-900">{t('importComplete')}</span></div>
               <div className="grid grid-cols-3 gap-4 text-center">
-                <div><p className="text-2xl font-bold">{result.total}</p><p className="text-xs text-gray-500 uppercase mt-0.5">Total</p></div>
-                <div><p className="text-2xl font-bold text-green-600">{result.success}</p><p className="text-xs text-gray-500 uppercase mt-0.5">Success</p></div>
-                <div><p className="text-2xl font-bold text-red-600">{result.errors}</p><p className="text-xs text-gray-500 uppercase mt-0.5">Errors</p></div>
+                <div><p className="text-2xl font-bold">{result.total}</p><p className="text-xs text-gray-500 uppercase mt-0.5">{t('totalRows')}</p></div>
+                <div><p className="text-2xl font-bold text-green-600">{result.success}</p><p className="text-xs text-gray-500 uppercase mt-0.5">{t('success')}</p></div>
+                <div><p className="text-2xl font-bold text-red-600">{result.errors}</p><p className="text-xs text-gray-500 uppercase mt-0.5">{t('errors')}</p></div>
               </div>
             </div>
           )}
@@ -146,7 +148,7 @@ export default function ImportPage() {
           {!result && (
             <button onClick={handleImport} disabled={!file || importing} className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
               {importing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
-              {importing ? 'Importing...' : 'Import Data'}
+              {importing ? t('importing') : t('importData')}
             </button>
           )}
         </div>

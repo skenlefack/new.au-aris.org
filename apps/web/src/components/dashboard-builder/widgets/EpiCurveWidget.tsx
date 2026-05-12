@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -26,10 +27,11 @@ interface EpiCurveWidgetProps {
 }
 
 export function EpiCurveWidget({ data, title }: EpiCurveWidgetProps) {
+  const t = useTranslations('dashboard');
   if (!data || data.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-gray-400">
-        Configure data source
+        {t('dbConfigureDataSource')}
       </div>
     );
   }
@@ -44,16 +46,16 @@ export function EpiCurveWidget({ data, title }: EpiCurveWidgetProps) {
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis dataKey="week" tick={{ fontSize: 11 }} label={{ value: 'Epi Week', position: 'insideBottom', offset: -2, fontSize: 10 }} />
+          <XAxis dataKey="week" tick={{ fontSize: 11 }} label={{ value: t('dbEpiWeek'), position: 'insideBottom', offset: -2, fontSize: 10 }} />
           <YAxis tick={{ fontSize: 11 }} />
           <Tooltip />
           <Legend wrapperStyle={{ fontSize: 11 }} />
-          <Bar dataKey="cases" name="Cases" fill="#3b82f6" radius={[2, 2, 0, 0]} />
-          <Bar dataKey="deaths" name="Deaths" fill="#ef4444" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="cases" name={t('dbCases')} fill="#3b82f6" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="deaths" name={t('dbDeaths')} fill="#ef4444" radius={[2, 2, 0, 0]} />
           {data.some((d) => d.movingAvg != null) && (
             <Line
               dataKey="movingAvg"
-              name="Moving Avg"
+              name={t('dbMovingAvg')}
               type="monotone"
               stroke="#f97316"
               strokeWidth={2}

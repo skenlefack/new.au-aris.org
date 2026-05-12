@@ -3,6 +3,7 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { MapPin, Navigation, Hexagon, Maximize2, Minimize2, Plus, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const GeoPointMap = lazy(() => import('./GeoPointMap').then((m) => ({ default: m.GeoPointMap })));
 const GeoPolygonMap = lazy(() => import('./GeoPolygonMap').then((m) => ({ default: m.GeoPolygonMap })));
@@ -18,17 +19,13 @@ interface GeoSelectorFieldProps {
   countryCode?: string;
 }
 
-const MODE_CONFIG: Record<GeoMode, { label: string; icon: React.ElementType }> = {
-  point: { label: 'Point', icon: Navigation },
-  line: { label: 'Line', icon: MapPin },
-  polygon: { label: 'Polygon', icon: Hexagon },
+const MODE_CONFIG: Record<GeoMode, { tKey: string; icon: React.ElementType }> = {
+  point: { tKey: 'fbPoint', icon: Navigation },
+  line: { tKey: 'fbLine', icon: MapPin },
+  polygon: { tKey: 'fbPolygon', icon: Hexagon },
 };
 
-const MapFallback = (
-  <div className="h-48 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">
-    Loading map...
-  </div>
-);
+// MapFallback is now rendered inside the component to access translations
 
 // Country center coordinates for map positioning
 const COUNTRY_CENTERS: Record<string, [number, number]> = {
@@ -42,6 +39,7 @@ export function GeoSelectorField({
   defaultMode = 'point',
   countryCode,
 }: GeoSelectorFieldProps) {
+  const t = useTranslations('collecte');
   const [activeMode, setActiveMode] = useState<GeoMode>(defaultMode);
   const [expanded, setExpanded] = useState(false);
 
@@ -75,7 +73,7 @@ export function GeoSelectorField({
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />
-                {config.label}
+                {t(config.tKey)}
               </button>
             );
           })}
@@ -87,7 +85,7 @@ export function GeoSelectorField({
               disabled={mapSize === 'xlarge'}
               onClick={() => setMapSize((s) => s === 'normal' ? 'large' : 'xlarge')}
               className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-30 dark:border-gray-700 dark:hover:bg-gray-700"
-              title="Increase height"
+              title={t('fbIncreaseHeight')}
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -96,7 +94,7 @@ export function GeoSelectorField({
               disabled={mapSize === 'normal'}
               onClick={() => setMapSize((s) => s === 'xlarge' ? 'large' : 'normal')}
               className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-30 dark:border-gray-700 dark:hover:bg-gray-700"
-              title="Decrease height"
+              title={t('fbDecreaseHeight')}
             >
               <Minus className="h-4 w-4" />
             </button>
@@ -106,14 +104,18 @@ export function GeoSelectorField({
           type="button"
           onClick={() => setExpanded(!expanded)}
           className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700"
-          title={expanded ? 'Reduce' : 'Fullscreen'}
+          title={expanded ? t('fbReduce') : t('fbFullscreen')}
         >
           {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
         </button>
       </div>
 
       {/* Map component */}
-      <Suspense fallback={MapFallback}>
+      <Suspense fallback={
+        <div className="h-48 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">
+          {t('fbLoadingMap')}
+        </div>
+      }>
         {activeMode === 'point' ? (
           <GeoPointMap
             value={

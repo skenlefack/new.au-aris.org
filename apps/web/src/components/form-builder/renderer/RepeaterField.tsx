@@ -3,6 +3,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import type { FormField, MultilingualText } from '../utils/form-schema';
 import { FieldRenderer } from './FieldRenderer';
 import { useFormMobile } from './FormRenderer';
@@ -152,11 +153,12 @@ function normalizeSubField(raw: Record<string, unknown>, index: number): FormFie
 }
 
 export function RepeaterField({ field, value, onChange, formValues }: RepeaterFieldProps) {
+  const t = useTranslations('collecte');
   const mobile = useFormMobile();
   const rawSubFields = (field.properties.fields || []) as Array<Record<string, unknown>>;
   const minRows = (field.properties.minRows as number) || 1;
   const maxRows = (field.properties.maxRows as number) || 10;
-  const addLabel = ml(field.properties.addLabel as MultilingualText) || 'Add row';
+  const addLabel = ml(field.properties.addLabel as MultilingualText) || t('fbAddRow');
 
   // Normalize sub-fields once
   const subFields = useMemo(
@@ -214,7 +216,7 @@ export function RepeaterField({ field, value, onChange, formValues }: RepeaterFi
   if (subFields.length === 0) {
     return (
       <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-        <p className="text-xs text-gray-400">No sub-fields configured for this repeater</p>
+        <p className="text-xs text-gray-400">{t('fbNoSubFieldsRepeater')}</p>
       </div>
     );
   }
@@ -235,7 +237,7 @@ export function RepeaterField({ field, value, onChange, formValues }: RepeaterFi
                 type="button"
                 onClick={() => removeRow(rowIndex)}
                 className="text-red-400 hover:text-red-500 p-0.5"
-                title="Remove row"
+                title={t('fbRemoveRow')}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>

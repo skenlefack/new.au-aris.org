@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from '@/lib/i18n/translations';
 import type { DashboardWidget } from '@/lib/api/dashboard-hooks';
 import { KpiCardWidget } from './widgets/KpiCardWidget';
 import { ChartWidget } from './widgets/ChartWidget';
@@ -22,31 +23,33 @@ import { EpiCurveWidget } from './widgets/EpiCurveWidget';
 import { DualAxisWidget } from './widgets/DualAxisWidget';
 import { CounterWidget } from './widgets/CounterWidget';
 
-const DEFAULT_WIDGET_CONFIGS: Record<string, Record<string, unknown>> = {
-  KPI_CARD: { value: null, label: 'Configure this KPI' },
-  LINE: { data: [] },
-  BAR: { data: [] },
-  PIE: { data: [] },
-  STACKED_BAR: { data: [] },
-  AREA: { data: [] },
-  MAP: {},
-  TABLE: { columns: [], rows: [] },
-  GAUGE: { value: 0, target: 100, unit: '%' },
-  TEXT_BLOCK: { content: 'Click settings to edit', format: 'plain' },
-  ALERT_FEED: { alerts: [] },
-  STAT_CARD: { value: 0, label: 'Statistic' },
-  PROGRESS_BAR: { value: 0, target: 100, label: 'Progress' },
-  DIVIDER: { style: 'line' },
-  IMAGE: { src: '', alt: '' },
-  IFRAME: { url: '' },
-  LIST: { items: [] },
-  HEATMAP: { rows: [], columns: [] },
-  RANKED_LIST: { items: [] },
-  ACTIVITY_FEED: { activities: [] },
-  EPI_CURVE: { data: [] },
-  DUAL_AXIS: { data: [], leftAxis: { key: 'left', label: 'Left', color: '#1F4E79' }, rightAxis: { key: 'right', label: 'Right', color: '#C9A227' } },
-  COUNTER: { value: 0, label: 'Counter' },
-};
+function getDefaultWidgetConfigs(t: (key: string) => string): Record<string, Record<string, unknown>> {
+  return {
+    KPI_CARD: { value: null, label: t('dbConfigureThisKpi') },
+    LINE: { data: [] },
+    BAR: { data: [] },
+    PIE: { data: [] },
+    STACKED_BAR: { data: [] },
+    AREA: { data: [] },
+    MAP: {},
+    TABLE: { columns: [], rows: [] },
+    GAUGE: { value: 0, target: 100, unit: '%' },
+    TEXT_BLOCK: { content: t('dbClickSettingsToEdit'), format: 'plain' },
+    ALERT_FEED: { alerts: [] },
+    STAT_CARD: { value: 0, label: t('dbStatistic') },
+    PROGRESS_BAR: { value: 0, target: 100, label: t('dbProgress') },
+    DIVIDER: { style: 'line' },
+    IMAGE: { src: '', alt: '' },
+    IFRAME: { url: '' },
+    LIST: { items: [] },
+    HEATMAP: { rows: [], columns: [] },
+    RANKED_LIST: { items: [] },
+    ACTIVITY_FEED: { activities: [] },
+    EPI_CURVE: { data: [] },
+    DUAL_AXIS: { data: [], leftAxis: { key: 'left', label: 'Left', color: '#1F4E79' }, rightAxis: { key: 'right', label: 'Right', color: '#C9A227' } },
+    COUNTER: { value: 0, label: 'Counter' },
+  };
+}
 
 interface WidgetRendererProps {
   widget: DashboardWidget;
@@ -75,23 +78,25 @@ function WidgetError({ message }: { message: string }) {
   );
 }
 
-function WidgetEmpty() {
+function WidgetEmpty({ label }: { label: string }) {
   return (
     <div className="flex h-full items-center justify-center p-4">
-      <p className="text-sm text-gray-400">No data available</p>
+      <p className="text-sm text-gray-400">{label}</p>
     </div>
   );
 }
 
 export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererProps) {
+  const t = useTranslations('dashboard');
   if (loading) return <WidgetSkeleton />;
   if (error) return <WidgetError message={error} />;
 
+  const DEFAULT_WIDGET_CONFIGS = getDefaultWidgetConfigs(t);
   const cfg = { ...DEFAULT_WIDGET_CONFIGS[widget.type], ...widget.config, ...data } as Record<string, any>;
 
   switch (widget.type) {
     case 'KPI_CARD':
-      if (cfg.value == null) return <WidgetEmpty />;
+      if (cfg.value == null) return <WidgetEmpty label={t('dbNoData')} />;
       return (
         <KpiCardWidget
           value={cfg.value}
@@ -108,7 +113,7 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
     case 'PIE':
     case 'STACKED_BAR':
     case 'AREA':
-      if (!Array.isArray(cfg.data) || cfg.data.length === 0) return <WidgetEmpty />;
+      if (!Array.isArray(cfg.data) || cfg.data.length === 0) return <WidgetEmpty label={t('dbNoData')} />;
       return (
         <ChartWidget
           type={widget.type}
@@ -130,7 +135,7 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
       );
 
     case 'GAUGE':
-      if (cfg.value == null || cfg.target == null) return <WidgetEmpty />;
+      if (cfg.value == null || cfg.target == null) return <WidgetEmpty label={t('dbNoData')} />;
       return (
         <GaugeWidget
           value={cfg.value}
@@ -271,7 +276,7 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
     default:
       return (
         <div className="flex h-full items-center justify-center p-4 text-sm text-gray-400">
-          Unknown widget type: {widget.type}
+          {t('dbUnknownWidgetType', { type: widget.type })}
         </div>
       );
   }

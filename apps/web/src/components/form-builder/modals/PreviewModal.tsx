@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Monitor, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useFormBuilderStore } from '../hooks/useFormBuilder';
 import { FormRenderer } from '../renderer/FormRenderer';
 
@@ -12,6 +13,7 @@ interface PreviewModalProps {
 
 export function PreviewModal({ onClose }: PreviewModalProps) {
   const { form, getSchema } = useFormBuilderStore();
+  const t = useTranslations('collecte');
   const [mode, setMode] = useState<'desktop' | 'mobile'>('desktop');
 
   if (!form) return null;
@@ -26,7 +28,7 @@ export function PreviewModal({ onClose }: PreviewModalProps) {
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Preview: {form.name}
             </h2>
-            <p className="text-xs text-gray-500">See how the form will look to data collectors</p>
+            <p className="text-xs text-gray-500">{t('fbPreviewDesc')}</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex rounded-lg border border-gray-200 p-0.5 dark:border-gray-700">

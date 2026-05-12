@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface RankedItem {
   rank: number;
@@ -17,10 +18,11 @@ interface RankedListWidgetProps {
 const MEDALS = ['', '\u{1F947}', '\u{1F948}', '\u{1F949}']; // gold, silver, bronze
 
 export function RankedListWidget({ items, maxItems = 10, unit }: RankedListWidgetProps) {
+  const t = useTranslations('dashboard');
   if (!items || items.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-gray-400">
-        Configure data source
+        {t('dbConfigureDataSource')}
       </div>
     );
   }

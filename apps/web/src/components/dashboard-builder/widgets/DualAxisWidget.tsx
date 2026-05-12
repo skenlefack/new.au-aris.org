@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -27,10 +28,11 @@ interface DualAxisWidgetProps {
 }
 
 export function DualAxisWidget({ data, leftAxis, rightAxis, xKey = 'name' }: DualAxisWidgetProps) {
+  const t = useTranslations('dashboard');
   if (!data || data.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-gray-400">
-        Configure data source
+        {t('dbConfigureDataSource')}
       </div>
     );
   }

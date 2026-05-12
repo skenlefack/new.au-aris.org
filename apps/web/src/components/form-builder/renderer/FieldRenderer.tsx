@@ -2,6 +2,7 @@
 
 import React, { lazy, Suspense } from 'react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import type { FormField, MultilingualText, SelectOption, FieldCondition } from '../utils/form-schema';
 import { evaluateFieldCondition } from './ConditionEvaluator';
 import {
@@ -66,6 +67,7 @@ function resolveParentFilter(
 }
 
 export function FieldRenderer({ field, value, onChange, error, formValues }: FieldRendererProps) {
+  const t = useTranslations('collecte');
   const label = ml(field.label);
   const placeholder = ml(field.placeholder);
   const helpText = ml(field.helpText);
@@ -132,7 +134,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
           type="email"
           value={(value as string) || ''}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder || 'email@example.com'}
+          placeholder={placeholder || t('fbEmailPlaceholder')}
           className={inputClass}
         />
       )}
@@ -142,7 +144,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
           type="tel"
           value={(value as string) || ''}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder || '+1 234 567 8900'}
+          placeholder={placeholder || t('fbPhonePlaceholder')}
           className={inputClass}
         />
       )}
@@ -152,7 +154,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
           type="url"
           value={(value as string) || ''}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder || 'https://...'}
+          placeholder={placeholder || t('fbUrlPlaceholder')}
           className={inputClass}
         />
       )}
@@ -203,7 +205,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
       {field.type === 'master-data-select' && (
         <Suspense fallback={
           <select className={inputClass} disabled>
-            <option>Loading...</option>
+            <option>{t('fbLoading')}</option>
           </select>
         }>
           <MasterDataSelectField
@@ -239,7 +241,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
             </label>
           ))}
           {((field.properties.options || []) as SelectOption[]).length === 0 && (
-            <span className="text-xs text-gray-400">No options configured</span>
+            <span className="text-xs text-gray-400">{t('fbNoOptionsConfigured')}</span>
           )}
         </div>
       )}
@@ -343,20 +345,20 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
           <input
             type="date"
             className={cn(inputClass, 'flex-1')}
-            placeholder="Start"
+            placeholder={t('fbStart')}
           />
           <span className="text-gray-400">—</span>
           <input
             type="date"
             className={cn(inputClass, 'flex-1')}
-            placeholder="End"
+            placeholder={t('fbEnd')}
           />
         </div>
       )}
 
       {field.type === 'admin-location' && (
         <Suspense fallback={
-          <div className="h-32 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">Loading...</div>
+          <div className="h-32 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">{t('fbLoading')}</div>
         }>
           <AdminLocationField
             levels={(field.properties.levels as number[]) || [0, 1, 2]}
@@ -369,7 +371,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
 
       {field.type === 'geo-point' && (
         <Suspense fallback={
-          <div className="h-48 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">Loading map...</div>
+          <div className="h-48 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">{t('fbLoadingMap')}</div>
         }>
           <GeoPointMap
             value={value && typeof value === 'object' && 'lat' in (value as Record<string, unknown>)
@@ -385,7 +387,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
 
       {field.type === 'geo-polygon' && (
         <Suspense fallback={
-          <div className="h-52 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">Loading map...</div>
+          <div className="h-52 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">{t('fbLoadingMap')}</div>
         }>
           <GeoPolygonMap
             value={Array.isArray(value) ? value as Array<[number, number]> : null}
@@ -398,7 +400,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
 
       {field.type === 'geo-selector' && (
         <Suspense fallback={
-          <div className="h-52 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">Loading map...</div>
+          <div className="h-52 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">{t('fbLoadingMap')}</div>
         }>
           <GeoSelectorField
             value={value}
@@ -426,7 +428,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
           <div className="text-center">
             {field.type === 'image' ? <ImageIcon className="mx-auto h-8 w-8 text-gray-300" /> : <Upload className="mx-auto h-8 w-8 text-gray-300" />}
             <p className="mt-2 text-sm text-gray-500">
-              Click to upload or drag & drop
+              {t('fbClickToUpload')}
             </p>
             <p className="mt-1 text-xs text-gray-400">
               {field.type === 'image' ? 'PNG, JPG, GIF' : 'Any file type'}
@@ -446,7 +448,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
         >
           <div className="text-center">
             <Pencil className="mx-auto h-6 w-6 text-gray-300" />
-            <p className="mt-1 text-xs text-gray-400">Sign here</p>
+            <p className="mt-1 text-xs text-gray-400">{t('fbSignHere')}</p>
           </div>
         </div>
       )}
@@ -455,7 +457,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
         <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
           <Calculator className="h-4 w-4 text-gray-400" />
           <span className="text-sm text-gray-500 italic">
-            {(field.properties.formula as string) || 'No formula set'}
+            {(field.properties.formula as string) || t('fbNoFormulaSet')}
           </span>
         </div>
       )}
@@ -471,7 +473,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
 
       {field.type === 'repeater' && (
         <Suspense fallback={
-          <div className="h-24 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">Loading...</div>
+          <div className="h-24 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">{t('fbLoading')}</div>
         }>
           <RepeaterField
             field={field}
@@ -484,7 +486,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
 
       {field.type === 'matrix' && (
         <Suspense fallback={
-          <div className="h-24 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">Loading...</div>
+          <div className="h-24 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">{t('fbLoading')}</div>
         }>
           <MatrixField field={field} value={value} onChange={onChange} />
         </Suspense>
@@ -492,7 +494,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
 
       {field.type === 'cascade-select' && (
         <Suspense fallback={
-          <div className="h-20 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">Loading...</div>
+          <div className="h-20 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">{t('fbLoading')}</div>
         }>
           <CascadeSelectField field={field} value={value} onChange={onChange} />
         </Suspense>
@@ -504,7 +506,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
 
       {field.type === 'lookup' && (
         <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
-          <span className="text-sm text-gray-500 italic">Lookup value</span>
+          <span className="text-sm text-gray-500 italic">{t('fbLookupValue')}</span>
         </div>
       )}
 
@@ -603,7 +605,7 @@ function ConditionalGroupRenderer({
   if (children.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-gray-300 p-3 dark:border-gray-600">
-        <p className="text-xs text-gray-400">No child fields configured</p>
+        <p className="text-xs text-gray-400">{t('fbNoChildFields')}</p>
       </div>
     );
   }

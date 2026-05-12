@@ -13,6 +13,7 @@ import {
   closestCenter,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useFormBuilderStore } from './hooks/useFormBuilder';
 import { FormBuilderToolbar } from './FormBuilderToolbar';
 import { FormBuilderStatusBar } from './FormBuilderStatusBar';
@@ -169,10 +170,12 @@ export function FormBuilder({ onSave, onPublish }: FormBuilderProps) {
     [addField, getSchema, moveField, reorderSections],
   );
 
+  const t = useTranslations('collecte');
+
   if (!form) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-gray-400">Loading form...</p>
+        <p className="text-gray-400">{t('fbLoadingForm')}</p>
       </div>
     );
   }

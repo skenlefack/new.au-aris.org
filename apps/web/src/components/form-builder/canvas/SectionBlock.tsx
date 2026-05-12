@@ -19,6 +19,7 @@ import {
   Columns2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useFormBuilderStore } from '../hooks/useFormBuilder';
 import { FieldBlock } from './FieldBlock';
 import type { FormSection } from '../utils/form-schema';
@@ -38,6 +39,7 @@ export function SectionBlock({ section, index }: SectionBlockProps) {
     addField,
   } = useFormBuilderStore();
 
+  const t = useTranslations('collecte');
   const isSelected = selectedSectionId === section.id;
   const [isCollapsed, setIsCollapsed] = useState(section.isCollapsed);
 
@@ -140,7 +142,7 @@ export function SectionBlock({ section, index }: SectionBlockProps) {
               selectSection(section.id);
             }}
             className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
-            title="Settings"
+            title={t('fbSettings')}
           >
             <Settings2 className="h-3.5 w-3.5" />
           </button>
@@ -150,7 +152,7 @@ export function SectionBlock({ section, index }: SectionBlockProps) {
               duplicateSection(section.id);
             }}
             className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
-            title="Duplicate"
+            title={t('fbDuplicate')}
           >
             <Copy className="h-3.5 w-3.5" />
           </button>
@@ -160,7 +162,7 @@ export function SectionBlock({ section, index }: SectionBlockProps) {
               removeSection(section.id);
             }}
             className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
-            title="Delete"
+            title={t('fbDelete')}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -185,7 +187,7 @@ export function SectionBlock({ section, index }: SectionBlockProps) {
                   : 'border-gray-200 dark:border-gray-700',
               )}
             >
-              {isOver ? 'Drop field here' : 'Drag fields here or click + to add'}
+              {isOver ? t('fbDropFieldHere') : t('fbDragFieldsHere')}
             </div>
           ) : (
             <SortableContext items={fieldIds} strategy={verticalListSortingStrategy}>
@@ -226,7 +228,7 @@ export function SectionBlock({ section, index }: SectionBlockProps) {
             className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 py-1.5 text-xs text-gray-400 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-500 dark:border-gray-600 dark:hover:border-blue-500 dark:hover:bg-blue-900/20"
           >
             <Plus className="h-3 w-3" />
-            Add field
+            {t('fbAddField')}
           </button>
         </div>
       )}

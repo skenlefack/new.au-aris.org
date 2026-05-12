@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface ConfigProps {
   config: Record<string, unknown>;
@@ -10,21 +11,22 @@ interface ConfigProps {
 const PRESET_COLORS = ['#1F4E79', '#C9A227', '#2E7D32', '#D32F2F', '#7B1FA2', '#0288D1'];
 
 export function KpiCardConfig({ config, onChange }: ConfigProps) {
+  const t = useTranslations('dashboard');
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Label</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbLabel')}</label>
         <input
           type="text"
           value={(config.label as string) ?? ''}
           onChange={(e) => onChange({ label: e.target.value })}
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
-          placeholder="e.g. Total Outbreaks"
+          placeholder={t('dbPlaceholderTotalOutbreaks')}
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prefix</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbPrefix')}</label>
           <input
             type="text"
             value={(config.prefix as string) ?? ''}
@@ -33,7 +35,7 @@ export function KpiCardConfig({ config, onChange }: ConfigProps) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Suffix</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbSuffix')}</label>
           <input
             type="text"
             value={(config.suffix as string) ?? ''}
@@ -44,7 +46,7 @@ export function KpiCardConfig({ config, onChange }: ConfigProps) {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Green threshold</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbGreenThreshold')}</label>
           <input
             type="number"
             value={(config.greenThreshold as number) ?? ''}
@@ -53,7 +55,7 @@ export function KpiCardConfig({ config, onChange }: ConfigProps) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yellow threshold</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbYellowThreshold')}</label>
           <input
             type="number"
             value={(config.yellowThreshold as number) ?? ''}
@@ -63,7 +65,7 @@ export function KpiCardConfig({ config, onChange }: ConfigProps) {
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbColor')}</label>
         <div className="flex items-center gap-2">
           {PRESET_COLORS.map((c) => (
             <button

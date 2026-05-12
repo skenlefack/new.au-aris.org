@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useMemo } from 'react';
+import { useTranslations } from '@/lib/i18n/translations';
 import type { FormField, MultilingualText } from '../utils/form-schema';
 
 const ml = (text?: MultilingualText) => text?.en || text?.fr || '';
@@ -25,6 +26,7 @@ const cellClass =
   'w-full min-w-[80px] rounded border border-gray-200 px-2 py-1.5 text-sm text-gray-800 text-right placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white';
 
 export function MatrixField({ field, value, onChange }: MatrixFieldProps) {
+  const t = useTranslations('collecte');
   const rows = (field.properties.rows || []) as MatrixRow[];
   const columns = (field.properties.columns || []) as MatrixColumn[];
   const cellType = (field.properties.cellType as string) || 'number';
@@ -84,7 +86,7 @@ export function MatrixField({ field, value, onChange }: MatrixFieldProps) {
   if (rows.length === 0 || columns.length === 0) {
     return (
       <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-        <p className="text-xs text-gray-400">No rows or columns configured for this matrix</p>
+        <p className="text-xs text-gray-400">{t('fbNoRowsColsMatrix')}</p>
       </div>
     );
   }
@@ -105,7 +107,7 @@ export function MatrixField({ field, value, onChange }: MatrixFieldProps) {
             ))}
             {showTotals && cellType === 'number' && (
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-300">
-                Total
+                {t('fbTotal')}
               </th>
             )}
           </tr>
@@ -154,7 +156,7 @@ export function MatrixField({ field, value, onChange }: MatrixFieldProps) {
           {showTotals && cellType === 'number' && (
             <tr className="border-t border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700/50">
               <td className="px-3 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300">
-                Total
+                {t('fbTotal')}
               </td>
               {columns.map((col) => (
                 <td key={col.key} className="px-3 py-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-300">

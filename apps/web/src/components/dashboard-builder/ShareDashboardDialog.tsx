@@ -59,12 +59,12 @@ const ALL_ROLES = [
   'KNOWLEDGE_MANAGER',
 ];
 
-const TABS: { type: ShareType; icon: React.ElementType; label: string }[] = [
-  { type: 'USER', icon: User2, label: 'User' },
-  { type: 'ROLE', icon: Shield, label: 'Role' },
-  { type: 'COUNTRY', icon: Flag, label: 'Country' },
-  { type: 'REC', icon: Globe2, label: 'REC' },
-  { type: 'PUBLIC', icon: Eye, label: 'Public' },
+const TAB_KEYS: { type: ShareType; icon: React.ElementType; labelKey: string }[] = [
+  { type: 'USER', icon: User2, labelKey: 'dbTabUser' },
+  { type: 'ROLE', icon: Shield, labelKey: 'dbTabRole' },
+  { type: 'COUNTRY', icon: Flag, labelKey: 'dbTabCountry' },
+  { type: 'REC', icon: Globe2, labelKey: 'dbTabRec' },
+  { type: 'PUBLIC', icon: Eye, labelKey: 'dbTabPublic' },
 ];
 
 const SHARE_TYPE_ICON: Record<string, React.ElementType> = {
@@ -607,7 +607,7 @@ export function ShareDashboardDialog({
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {/* Tab bar */}
           <div className="mb-4 flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
-            {TABS.map((tab) => {
+            {TAB_KEYS.map((tab) => {
               const isActive = selectedTab === tab.type;
               const TabIcon = tab.icon;
               return (
@@ -621,7 +621,7 @@ export function ShareDashboardDialog({
                   }`}
                 >
                   <TabIcon className="h-3.5 w-3.5" />
-                  {tab.label}
+                  {t(tab.labelKey)}
                 </button>
               );
             })}

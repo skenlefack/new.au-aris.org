@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   MapContainer,
   TileLayer,
@@ -25,6 +26,7 @@ export interface MapContentProps {
   data?: { byCountry?: MapCountryDatum[] };
   config?: Record<string, unknown>;
   title?: string;
+  loadingLabel?: string;
 }
 
 /* ── Color helpers ──────────────────────────────────────────────────────────── */
@@ -74,14 +76,14 @@ const REC_COLORS: Record<string, string> = {
 
 /* ── Legend ──────────────────────────────────────────────────────────────────── */
 
-function Legend({ max, unit }: { max: number; unit?: string }) {
+function Legend({ max, unit, valueLabel }: { max: number; unit?: string; valueLabel: string }) {
   const stops = [0, 0.25, 0.5, 0.75, 1];
   return (
     <div
       className="absolute bottom-3 right-3 z-[1000] rounded-md bg-white/90 px-2.5 py-2 text-[10px] shadow-md backdrop-blur dark:bg-gray-900/90 dark:text-gray-200"
     >
       <div className="mb-1 font-medium">
-        Value{unit ? ` (${unit})` : ''}
+        {valueLabel}{unit ? ` (${unit})` : ''}
       </div>
       <div className="flex items-center gap-0.5">
         {stops.map((s, i) => (
@@ -101,6 +103,7 @@ function Legend({ max, unit }: { max: number; unit?: string }) {
 /* ── Main Component ─────────────────────────────────────────────────────────── */
 
 export default function MapContent({ data, config, title }: MapContentProps) {
+  const t = useTranslations('dashboard');
   const unit = (config?.unit as string) ?? '';
 
   // Build lookup: countryCode -> datum
@@ -176,16 +179,16 @@ export default function MapContent({ data, config, title }: MapContentProps) {
                   <div className="font-semibold">{country.name}</div>
                   {hasData && datum && (
                     <div className="text-gray-600 dark:text-gray-300">
-                      {datum.label ?? 'Value'}: <strong>{value.toLocaleString()}</strong>
+                      {datum.label ?? t('dbValue')}: <strong>{value.toLocaleString()}</strong>
                       {unit ? ` ${unit}` : ''}
                     </div>
                   )}
                   {hasData && !datum && (
-                    <div className="text-gray-400 italic">No data</div>
+                    <div className="text-gray-400 italic">{t('dbNoData')}</div>
                   )}
                   {!hasData && (
                     <div className="text-gray-500">
-                      REC: {country.rec.toUpperCase()}
+                      {t('dbRec')} {country.rec.toUpperCase()}
                     </div>
                   )}
                 </div>
@@ -196,7 +199,7 @@ export default function MapContent({ data, config, title }: MapContentProps) {
       </MapContainer>
 
       {/* Legend — only when there is data */}
-      {hasData && <Legend max={maxValue} unit={unit} />}
+      {hasData && <Legend max={maxValue} unit={unit} valueLabel={t('dbValue')} />}
 
       {/* Title overlay (top-left) */}
       {title && (
@@ -208,7 +211,7 @@ export default function MapContent({ data, config, title }: MapContentProps) {
       {/* Fallback label when no data */}
       {!hasData && (
         <div className="absolute bottom-3 left-3 z-[1000] rounded-md bg-white/80 px-2 py-1 text-[10px] text-gray-500 shadow backdrop-blur dark:bg-gray-900/80 dark:text-gray-400">
-          Showing AU Member States by REC
+          {t('dbShowingMemberStatesByRec')}
         </div>
       )}
     </div>

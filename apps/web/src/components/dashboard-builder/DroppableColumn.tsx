@@ -7,6 +7,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import type { DashboardWidget } from '@/lib/api/dashboard-hooks';
 import { DraggableWidget } from './DraggableWidget';
 
@@ -35,6 +36,7 @@ export function DroppableColumn({
   onWidgetRemove,
   onWidgetDuplicate,
 }: DroppableColumnProps) {
+  const t = useTranslations('dashboard');
   const droppableId = `column-${sectionId}-${columnIndex}`;
   const { setNodeRef, isOver } = useDroppable({
     id: droppableId,
@@ -81,7 +83,7 @@ export function DroppableColumn({
             ? 'border-[#1F4E79]/40 text-[#1F4E79] bg-[#1F4E79]/5'
             : 'border-gray-200 dark:border-gray-700 text-gray-400',
         )}>
-          {isSelected ? 'Click a widget to add here' : 'Click to select, then add widget'}
+          {isSelected ? t('dbClickWidgetToAdd') : t('dbClickToSelectThenAdd')}
         </div>
       )}
     </div>

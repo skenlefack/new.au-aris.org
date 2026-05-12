@@ -3,6 +3,7 @@
 import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface StatCardWidgetProps {
   value: number;
@@ -18,6 +19,7 @@ export function StatCardWidget({
   label,
   color = '#1F4E79',
 }: StatCardWidgetProps) {
+  const t = useTranslations('dashboard');
   const delta =
     previousValue != null && previousValue !== 0
       ? ((value - previousValue) / Math.abs(previousValue)) * 100
@@ -54,7 +56,7 @@ export function StatCardWidget({
       </div>
       {previousValue != null && (
         <p className="mt-1 text-[11px] text-gray-400">
-          Previous: {previousValue.toLocaleString()}
+          {t('dbPrevious')} {previousValue.toLocaleString()}
         </p>
       )}
     </div>

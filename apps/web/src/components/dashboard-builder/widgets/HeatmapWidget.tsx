@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface HeatmapWidgetProps {
   rows: Array<{ label: string; values: number[] }>;
@@ -27,10 +28,11 @@ function cellColor(value: number, min: number, max: number, scale: [string, stri
 }
 
 export function HeatmapWidget({ rows, columns, colorScale = 'blue' }: HeatmapWidgetProps) {
+  const t = useTranslations('dashboard');
   if (!rows || rows.length === 0 || !columns || columns.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-gray-400">
-        Configure data source
+        {t('dbConfigureDataSource')}
       </div>
     );
   }

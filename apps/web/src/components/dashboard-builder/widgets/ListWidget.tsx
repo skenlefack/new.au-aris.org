@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { List } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface ListItem {
   label: string;
@@ -15,11 +16,12 @@ interface ListWidgetProps {
 }
 
 export function ListWidget({ items, ordered = false }: ListWidgetProps) {
+  const t = useTranslations('dashboard');
   if (!items || items.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-gray-400 dark:text-gray-500">
         <List className="h-10 w-10" />
-        <p className="text-xs">No items configured</p>
+        <p className="text-xs">{t('dbNoItemsConfigured')}</p>
       </div>
     );
   }

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface ConfigProps {
   config: Record<string, unknown>;
@@ -9,6 +10,7 @@ interface ConfigProps {
 }
 
 export function ChartConfig({ config, onChange }: ConfigProps) {
+  const t = useTranslations('dashboard');
   const isPie = (config._widgetType as string) === 'PIE';
   const yKeys = (config.yKeys as string[]) ?? [''];
   const colors = (config.colors as string[]) ?? ['#1F4E79'];
@@ -40,29 +42,29 @@ export function ChartConfig({ config, onChange }: ConfigProps) {
     return (
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name key</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbNameKey')}</label>
           <input
             type="text"
             value={(config.nameKey as string) ?? ''}
             onChange={(e) => onChange({ nameKey: e.target.value })}
             className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
-            placeholder="e.g. country"
+            placeholder={t('dbPlaceholderCountryDateCount')}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Value key</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbValueKey')}</label>
           <input
             type="text"
             value={(config.valueKey as string) ?? ''}
             onChange={(e) => onChange({ valueKey: e.target.value })}
             className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
-            placeholder="e.g. count"
+            placeholder={t('dbPlaceholderCountryDateCount')}
           />
         </div>
         <div className="flex items-center gap-4">
           <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <input type="checkbox" checked={!!config.showLegend} onChange={(e) => onChange({ showLegend: e.target.checked })} className="rounded" />
-            Show legend
+            {t('dbShowLegend')}
           </label>
         </div>
       </div>
@@ -72,17 +74,17 @@ export function ChartConfig({ config, onChange }: ConfigProps) {
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">X-axis key</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbXAxisKey')}</label>
         <input
           type="text"
           value={(config.xKey as string) ?? ''}
           onChange={(e) => onChange({ xKey: e.target.value })}
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
-          placeholder="e.g. date"
+          placeholder={t('dbPlaceholderCountryDateCount')}
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Y-axis series</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbYAxisSeries')}</label>
         <div className="space-y-2">
           {yKeys.map((k, i) => (
             <div key={i} className="flex items-center gap-2">
@@ -91,7 +93,7 @@ export function ChartConfig({ config, onChange }: ConfigProps) {
                 value={k}
                 onChange={(e) => updateYKey(i, e.target.value)}
                 className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm"
-                placeholder="field name"
+                placeholder={t('dbFieldName')}
               />
               <input
                 type="color"
@@ -108,17 +110,17 @@ export function ChartConfig({ config, onChange }: ConfigProps) {
           ))}
         </div>
         <button onClick={addSeries} className="mt-2 flex items-center gap-1 text-sm text-[#1F4E79] dark:text-[#C9A227] hover:underline">
-          <Plus className="h-3.5 w-3.5" /> Add series
+          <Plus className="h-3.5 w-3.5" /> {t('dbAddSeries')}
         </button>
       </div>
       <div className="flex items-center gap-4">
         <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
           <input type="checkbox" checked={!!config.showGrid} onChange={(e) => onChange({ showGrid: e.target.checked })} className="rounded" />
-          Show grid
+          {t('dbShowGrid')}
         </label>
         <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
           <input type="checkbox" checked={!!config.showLegend} onChange={(e) => onChange({ showLegend: e.target.checked })} className="rounded" />
-          Show legend
+          {t('dbShowLegend')}
         </label>
       </div>
     </div>

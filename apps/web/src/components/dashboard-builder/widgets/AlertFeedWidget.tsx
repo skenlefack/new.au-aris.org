@@ -3,6 +3,7 @@
 import React from 'react';
 import { AlertTriangle, AlertCircle, Info, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 type Severity = 'critical' | 'warning' | 'info' | 'success';
 
@@ -45,30 +46,31 @@ const SEVERITY_CONFIG: Record<
   },
 };
 
-function formatTimestamp(ts: string): string {
+function formatTimestamp(ts: string, t: (key: string, params?: Record<string, string | number>) => string): string {
   try {
     const d = new Date(ts);
     const now = new Date();
     const diff = now.getTime() - d.getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Just now';
-    if (mins < 60) return `${mins}m ago`;
+    if (mins < 1) return t('dbJustNow');
+    if (mins < 60) return t('dbMinsAgo', { mins });
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
+    if (hours < 24) return t('dbHoursAgo', { hours });
     const days = Math.floor(hours / 24);
-    return `${days}d ago`;
+    return t('dbDaysAgo', { days });
   } catch {
     return ts;
   }
 }
 
 export function AlertFeedWidget({ alerts, maxItems = 20 }: AlertFeedWidgetProps) {
+  const t = useTranslations('dashboard');
   const display = alerts.slice(0, maxItems);
 
   if (display.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-gray-400">
-        No alerts
+        {t('dbNoAlerts')}
       </div>
     );
   }
@@ -94,7 +96,7 @@ export function AlertFeedWidget({ alerts, maxItems = 20 }: AlertFeedWidgetProps)
                     {alert.title}
                   </p>
                   <span className="flex-shrink-0 text-[11px] text-gray-400">
-                    {formatTimestamp(alert.timestamp)}
+                    {formatTimestamp(alert.timestamp, t)}
                   </span>
                 </div>
                 {alert.description && (

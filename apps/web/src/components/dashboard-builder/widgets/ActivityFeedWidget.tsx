@@ -3,6 +3,7 @@
 import React from 'react';
 import { FileText, AlertTriangle, CheckCircle, Database, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 type ActivityType = 'report' | 'alert' | 'validation' | 'data' | 'system';
 
@@ -27,25 +28,26 @@ const TYPE_CONFIG: Record<ActivityType, { icon: typeof FileText; color: string; 
   system:     { icon: Settings,      color: 'text-gray-500',   dot: 'bg-gray-400' },
 };
 
-function relativeTime(ts: string): string {
+function relativeTime(ts: string, t: (key: string, params?: Record<string, string | number>) => string): string {
   try {
     const diff = Date.now() - new Date(ts).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Just now';
-    if (mins < 60) return `${mins}m ago`;
+    if (mins < 1) return t('dbJustNow');
+    if (mins < 60) return t('dbMinsAgo', { mins });
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return `${Math.floor(hours / 24)}d ago`;
+    if (hours < 24) return t('dbHoursAgo', { hours });
+    return t('dbDaysAgo', { days: Math.floor(hours / 24) });
   } catch {
     return ts;
   }
 }
 
 export function ActivityFeedWidget({ activities, maxItems = 20 }: ActivityFeedWidgetProps) {
+  const t = useTranslations('dashboard');
   if (!activities || activities.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-gray-400">
-        No recent activity
+        {t('dbNoRecentActivity')}
       </div>
     );
   }
@@ -78,7 +80,7 @@ export function ActivityFeedWidget({ activities, maxItems = 20 }: ActivityFeedWi
                 )}
                 <div className="flex items-center gap-2 mt-0.5 text-[11px] text-gray-400">
                   {act.actor && <span>{act.actor}</span>}
-                  <span>{relativeTime(act.timestamp)}</span>
+                  <span>{relativeTime(act.timestamp, t)}</span>
                 </div>
               </div>
             </div>

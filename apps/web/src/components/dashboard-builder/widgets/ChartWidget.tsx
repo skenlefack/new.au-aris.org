@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from '@/lib/i18n/translations';
 import {
   ResponsiveContainer,
   LineChart, Line,
@@ -32,6 +33,7 @@ const DEFAULT_COLORS = [
 ];
 
 export function ChartWidget({ type, data, config }: ChartWidgetProps) {
+  const t = useTranslations('dashboard');
   const {
     xKey = 'name',
     yKeys = ['value'],
@@ -45,7 +47,7 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
   if (!data || data.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-gray-400">
-        No data available
+        {t('dbNoData')}
       </div>
     );
   }
@@ -159,7 +161,7 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
       default:
         return (
           <div className="flex h-full items-center justify-center text-sm text-gray-400">
-            Unsupported chart type: {type}
+            {t('dbUnsupportedChartType', { type })}
           </div>
         );
     }

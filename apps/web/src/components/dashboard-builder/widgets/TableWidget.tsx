@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface TableWidgetProps {
   columns: Array<{ key: string; label: string; align?: 'left' | 'center' | 'right' }>;
@@ -9,12 +10,13 @@ interface TableWidgetProps {
 }
 
 export function TableWidget({ columns, rows, maxRows = 50 }: TableWidgetProps) {
+  const t = useTranslations('dashboard');
   const displayRows = rows.slice(0, maxRows);
 
   if (columns.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-gray-400">
-        No columns configured
+        {t('dbNoColumnsConfigured')}
       </div>
     );
   }
@@ -58,7 +60,7 @@ export function TableWidget({ columns, rows, maxRows = 50 }: TableWidgetProps) {
                 colSpan={columns.length}
                 className="px-3 py-4 text-center text-gray-400"
               >
-                No data
+                {t('dbNoData')}
               </td>
             </tr>
           )}

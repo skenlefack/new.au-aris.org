@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ImageIcon } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n/translations';
 
 interface ImageWidgetProps {
   src: string;
@@ -11,11 +12,12 @@ interface ImageWidgetProps {
 }
 
 export function ImageWidget({ src, alt, caption, fit = 'cover' }: ImageWidgetProps) {
+  const t = useTranslations('dashboard');
   if (!src) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-gray-400 dark:text-gray-500">
         <ImageIcon className="h-10 w-10" />
-        <p className="text-xs">No image configured</p>
+        <p className="text-xs">{t('dbNoImageConfigured')}</p>
       </div>
     );
   }

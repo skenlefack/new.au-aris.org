@@ -14,6 +14,7 @@ import { useRealtimeStore } from '@/lib/realtime/realtime-store';
 import { useIndicators, type Indicator } from '@/lib/api/indicator-hooks';
 import { useFormBuilderTemplates, type FormTemplateListItem } from '@/lib/api/form-builder-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTranslations } from '@/lib/i18n/translations';
 import { KpiCardConfig } from './config/KpiCardConfig';
 import { ChartConfig } from './config/ChartConfig';
 import { TableConfig } from './config/TableConfig';
@@ -29,39 +30,39 @@ interface WidgetConfigPanelProps {
   onSaved: () => void;
 }
 
-const DATA_SOURCE_OPTIONS = [
-  { value: 'INDICATOR', label: 'Indicator' },
-  { value: 'FORM_AGGREGATION', label: 'Form Aggregation' },
-  { value: 'KPI_CONTINENTAL', label: 'KPI Continental' },
-  { value: 'MANUAL_VALUE', label: 'Manual Value' },
-  { value: 'COMPOSITE', label: 'Composite Formula' },
-  { value: 'SQL_QUERY', label: 'SQL Query' },
+const DATA_SOURCE_KEYS = [
+  { value: 'INDICATOR', labelKey: 'dbDsIndicator' },
+  { value: 'FORM_AGGREGATION', labelKey: 'dbDsFormAggregation' },
+  { value: 'KPI_CONTINENTAL', labelKey: 'dbDsKpiContinental' },
+  { value: 'MANUAL_VALUE', labelKey: 'dbDsManualValue' },
+  { value: 'COMPOSITE', labelKey: 'dbDsCompositeFormula' },
+  { value: 'SQL_QUERY', labelKey: 'dbDsSqlQuery' },
 ] as const;
 
-const WIDGET_TYPE_LABELS: Record<WidgetType, string> = {
-  KPI_CARD: 'KPI Card',
-  LINE: 'Line Chart',
-  BAR: 'Bar Chart',
-  PIE: 'Pie Chart',
-  STACKED_BAR: 'Stacked Bar',
-  AREA: 'Area Chart',
-  MAP: 'Map',
-  TABLE: 'Table',
-  GAUGE: 'Gauge',
-  TEXT_BLOCK: 'Text Block',
-  ALERT_FEED: 'Alert Feed',
-  STAT_CARD: 'Statistics',
-  PROGRESS_BAR: 'Progress Bar',
-  DIVIDER: 'Divider',
-  IMAGE: 'Image',
-  IFRAME: 'Embed',
-  LIST: 'List',
-  HEATMAP: 'Heatmap',
-  RANKED_LIST: 'Ranked List',
-  ACTIVITY_FEED: 'Activity Feed',
-  EPI_CURVE: 'Epi Curve',
-  DUAL_AXIS: 'Dual Axis',
-  COUNTER: 'Counter',
+const WIDGET_TYPE_LABEL_KEYS: Record<WidgetType, string> = {
+  KPI_CARD: 'dbWtKpiCard',
+  LINE: 'dbWtLineChart',
+  BAR: 'dbWtBarChart',
+  PIE: 'dbWtPieChart',
+  STACKED_BAR: 'dbWtStackedBar',
+  AREA: 'dbWtAreaChart',
+  MAP: 'dbWtMap',
+  TABLE: 'dbWtTable',
+  GAUGE: 'dbWtGauge',
+  TEXT_BLOCK: 'dbWtTextBlock',
+  ALERT_FEED: 'dbWtAlertFeed',
+  STAT_CARD: 'dbWtStatistics',
+  PROGRESS_BAR: 'dbWtProgressBar',
+  DIVIDER: 'dbWtDivider',
+  IMAGE: 'dbWtImage',
+  IFRAME: 'dbWtEmbed',
+  LIST: 'dbWtList',
+  HEATMAP: 'dbWtHeatmap',
+  RANKED_LIST: 'dbWtRankedList',
+  ACTIVITY_FEED: 'dbWtActivityFeed',
+  EPI_CURVE: 'dbWtEpiCurve',
+  DUAL_AXIS: 'dbWtDualAxis',
+  COUNTER: 'dbWtCounter',
 };
 
 const CHART_TYPES: WidgetType[] = ['LINE', 'BAR', 'PIE', 'STACKED_BAR', 'AREA'];
@@ -94,25 +95,25 @@ const SQL_BLOCKED_KEYWORDS = ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'TR
 
 type ValidationResult = { valid: boolean; message?: string };
 
-function validateDataSource(type: string, config: Record<string, unknown>): ValidationResult {
+function validateDataSource(type: string, config: Record<string, unknown>, t: (key: string) => string): ValidationResult {
   switch (type) {
     case 'INDICATOR':
-      if (!config.indicatorCode) return { valid: false, message: 'Select an indicator' };
+      if (!config.indicatorCode) return { valid: false, message: t('dbValSelectIndicator') };
       return { valid: true };
     case 'FORM_AGGREGATION':
-      if (!config.formId) return { valid: false, message: 'Select a form template' };
+      if (!config.formId) return { valid: false, message: t('dbValSelectForm') };
       return { valid: true };
     case 'KPI_CONTINENTAL':
-      if (!config.kpiCode) return { valid: false, message: 'Enter a KPI code' };
+      if (!config.kpiCode) return { valid: false, message: t('dbValEnterKpi') };
       return { valid: true };
     case 'MANUAL_VALUE':
-      if (!config.value) return { valid: false, message: 'Enter a value' };
+      if (!config.value) return { valid: false, message: t('dbValEnterValue') };
       return { valid: true };
     case 'COMPOSITE':
-      if (!config.formula) return { valid: false, message: 'Enter a formula' };
+      if (!config.formula) return { valid: false, message: t('dbValEnterFormula') };
       return { valid: true };
     case 'SQL_QUERY':
-      if (!config.query) return { valid: false, message: 'Enter a SQL query' };
+      if (!config.query) return { valid: false, message: t('dbValEnterSql') };
       return { valid: true };
     default:
       return { valid: true };
@@ -122,6 +123,7 @@ function validateDataSource(type: string, config: Record<string, unknown>): Vali
 /* ─── Main Component ─────────────────────────────────────────────────────── */
 
 export function WidgetConfigPanel({ widget, dashboardId, allWidgets, onClose, onSaved }: WidgetConfigPanelProps) {
+  const t = useTranslations('dashboard');
   const updateWidget = useUpdateWidget();
   const addToast = useRealtimeStore((s) => s.addToast);
 
@@ -155,9 +157,9 @@ export function WidgetConfigPanel({ widget, dashboardId, allWidgets, onClose, on
   const handleSave = async () => {
     if (!widget) return;
 
-    const validation = validateDataSource(dataSourceType, dataSourceConfig);
+    const validation = validateDataSource(dataSourceType, dataSourceConfig, t);
     if (!validation.valid) {
-      setValidationError(validation.message || 'Invalid configuration');
+      setValidationError(validation.message || t('dbInvalidConfig'));
       return;
     }
 
@@ -169,17 +171,17 @@ export function WidgetConfigPanel({ widget, dashboardId, allWidgets, onClose, on
         config: displayConfig,
         dataSource: { ...dataSourceConfig, type: dataSourceType },
       });
-      addToast({ type: 'success', title: 'Widget updated', message: 'Configuration saved' });
+      addToast({ type: 'success', title: t('dbWidgetUpdated'), message: t('dbConfigSaved') });
       onSaved();
     } catch {
-      addToast({ type: 'error', title: 'Error', message: 'Failed to save widget configuration' });
+      addToast({ type: 'error', title: t('dbError'), message: t('dbFailedToSaveConfig') });
     }
   };
 
   if (!widget) return null;
 
   const isOpen = !!widget;
-  const validation = validateDataSource(dataSourceType, dataSourceConfig);
+  const validation = validateDataSource(dataSourceType, dataSourceConfig, t);
 
   return (
     <>
@@ -197,9 +199,9 @@ export function WidgetConfigPanel({ widget, dashboardId, allWidgets, onClose, on
         <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-4 flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center rounded-md bg-[#1F4E79]/10 dark:bg-[#1F4E79]/30 px-2 py-0.5 text-xs font-medium text-[#1F4E79] dark:text-[#C9A227]">
-              {WIDGET_TYPE_LABELS[widget.type] ?? widget.type}
+              {t(WIDGET_TYPE_LABEL_KEYS[widget.type]) ?? widget.type}
             </span>
-            <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Configure</span>
+            <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('dbConfigure')}</span>
           </div>
           <button
             onClick={onClose}
@@ -213,27 +215,27 @@ export function WidgetConfigPanel({ widget, dashboardId, allWidgets, onClose, on
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
           {/* Section 1: Widget Title */}
           <section>
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Widget Title</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">{t('dbWidgetTitle')}</h3>
             <input
               type="text"
               value={localTitle}
               onChange={(e) => setLocalTitle(e.target.value)}
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
-              placeholder="Enter widget title"
+              placeholder={t('dbEnterWidgetTitle')}
             />
           </section>
 
           {/* Section 2: Data Source */}
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Data Source</h3>
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">{t('dbDataSource')}</h3>
               {validation.valid ? (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
-                  <Check className="h-3 w-3" /> Valid
+                  <Check className="h-3 w-3" /> {t('dbValid')}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-red-500 dark:text-red-400">
-                  <AlertCircle className="h-3 w-3" /> Invalid
+                  <AlertCircle className="h-3 w-3" /> {t('dbInvalid')}
                 </span>
               )}
             </div>
@@ -246,15 +248,15 @@ export function WidgetConfigPanel({ widget, dashboardId, allWidgets, onClose, on
               }}
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
             >
-              {DATA_SOURCE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              {DATA_SOURCE_KEYS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
               ))}
             </select>
           </section>
 
           {/* Section 3: Data Source Configuration */}
           <section>
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Data Source Configuration</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">{t('dbDataSourceConfig')}</h3>
             {validationError && (
               <div className="mb-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 px-3 py-2">
                 <p className="text-xs text-red-700 dark:text-red-300">{validationError}</p>
@@ -271,7 +273,7 @@ export function WidgetConfigPanel({ widget, dashboardId, allWidgets, onClose, on
 
           {/* Section 4: Display Configuration */}
           <section>
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Display Configuration</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">{t('dbDisplayConfig')}</h3>
             <DisplayConfigSection
               widgetType={widget.type}
               config={displayConfig}
@@ -286,14 +288,14 @@ export function WidgetConfigPanel({ widget, dashboardId, allWidgets, onClose, on
             onClick={onClose}
             className="rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
-            Cancel
+            {t('dbCancel')}
           </button>
           <button
             onClick={handleSave}
             disabled={updateWidget.isPending}
             className="rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white hover:bg-[#163a5c] disabled:opacity-50 transition-colors"
           >
-            {updateWidget.isPending ? 'Saving...' : 'Save'}
+            {updateWidget.isPending ? t('dbSaving') : t('dbSave')}
           </button>
         </div>
       </div>
@@ -316,6 +318,7 @@ function DataSourceFields({
   allWidgets?: DashboardWidget[];
   currentWidgetId?: string;
 }) {
+  const t = useTranslations('dashboard');
   switch (type) {
     case 'INDICATOR':
       return <IndicatorPicker config={config} onChange={onChange} />;
@@ -330,7 +333,7 @@ function DataSourceFields({
     case 'SQL_QUERY':
       return <SqlQueryEditor config={config} onChange={onChange} />;
     default:
-      return <p className="text-sm text-gray-500">Select a data source type above.</p>;
+      return <p className="text-sm text-gray-500">{t('dbSelectDataSourceAbove')}</p>;
   }
 }
 
@@ -343,6 +346,7 @@ function IndicatorPicker({
   config: Record<string, unknown>;
   onChange: (u: Record<string, unknown>) => void;
 }): JSX.Element {
+  const t = useTranslations('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -398,7 +402,7 @@ function IndicatorPicker({
 
   return (
     <div className="space-y-3" ref={dropdownRef}>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Indicator</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbDsIndicator')}</label>
 
       {/* Search input */}
       <div className="relative">
@@ -412,7 +416,7 @@ function IndicatorPicker({
           }}
           onFocus={() => setIsOpen(true)}
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400"
-          placeholder="Search indicators by name or code..."
+          placeholder={t('dbSearchIndicators')}
         />
         {isOpen ? (
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-180" />
@@ -424,10 +428,10 @@ function IndicatorPicker({
         <div className="relative z-10">
           <div className="absolute top-0 left-0 right-0 max-h-52 overflow-y-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
             {isLoading ? (
-              <div className="px-3 py-4 text-center text-sm text-gray-500">Loading...</div>
+              <div className="px-3 py-4 text-center text-sm text-gray-500">{t('dbLoading')}</div>
             ) : indicators.length === 0 ? (
               <div className="px-3 py-4 text-center text-sm text-gray-500">
-                {debouncedQuery ? 'No indicators found' : 'Type to search indicators'}
+                {debouncedQuery ? t('dbNoIndicatorsFound') : t('dbTypeToSearchIndicators')}
               </div>
             ) : (
               indicators.map((indicator) => (
@@ -479,10 +483,10 @@ function IndicatorPicker({
             </button>
           </div>
           <div className="mt-1 text-xs text-green-700 dark:text-green-300 space-y-0.5">
-            <p><span className="font-medium">Name:</span> {selectedIndicator.nameEn}</p>
-            {selectedIndicator.unit && <p><span className="font-medium">Unit:</span> {selectedIndicator.unit}</p>}
-            {selectedIndicator.periodicity && <p><span className="font-medium">Periodicity:</span> {selectedIndicator.periodicity}</p>}
-            {selectedIndicator.scope && <p><span className="font-medium">Scope:</span> {selectedIndicator.scope}</p>}
+            <p><span className="font-medium">{t('dbName')}:</span> {selectedIndicator.nameEn}</p>
+            {selectedIndicator.unit && <p><span className="font-medium">{t('dbUnit')}:</span> {selectedIndicator.unit}</p>}
+            {selectedIndicator.periodicity && <p><span className="font-medium">{t('dbPeriodicity')}:</span> {selectedIndicator.periodicity}</p>}
+            {selectedIndicator.scope && <p><span className="font-medium">{t('dbScope')}:</span> {selectedIndicator.scope}</p>}
           </div>
         </div>
       )}
@@ -517,6 +521,7 @@ function FormAggregationPicker({
   config: Record<string, unknown>;
   onChange: (u: Record<string, unknown>) => void;
 }) {
+  const t = useTranslations('dashboard');
   const [formSearchOpen, setFormSearchOpen] = useState(false);
   const [formSearch, setFormSearch] = useState('');
   const formDropdownRef = useRef<HTMLDivElement>(null);
@@ -568,7 +573,7 @@ function FormAggregationPicker({
     <div className="space-y-3">
       {/* Form selector */}
       <div ref={formDropdownRef}>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Form Template</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbFormTemplate')}</label>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
@@ -580,7 +585,7 @@ function FormAggregationPicker({
             }}
             onFocus={() => setFormSearchOpen(true)}
             className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400"
-            placeholder="Search published forms..."
+            placeholder={t('dbSearchPublishedForms')}
           />
         </div>
 
@@ -588,9 +593,9 @@ function FormAggregationPicker({
           <div className="relative z-10 mt-1">
             <div className="absolute top-0 left-0 right-0 max-h-48 overflow-y-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
               {isLoading ? (
-                <div className="px-3 py-4 text-center text-sm text-gray-500">Loading...</div>
+                <div className="px-3 py-4 text-center text-sm text-gray-500">{t('dbLoading')}</div>
               ) : filteredTemplates.length === 0 ? (
-                <div className="px-3 py-4 text-center text-sm text-gray-500">No published forms found</div>
+                <div className="px-3 py-4 text-center text-sm text-gray-500">{t('dbNoPublishedFormsFound')}</div>
               ) : (
                 filteredTemplates.map((template) => (
                   <button
@@ -648,30 +653,30 @@ function FormAggregationPicker({
 
       {/* Aggregation select */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aggregation</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbAggregation')}</label>
         <select
           value={(config.aggregation as string) ?? 'count'}
           onChange={(e) => onChange({ aggregation: e.target.value })}
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
         >
-          <option value="count">Count</option>
-          <option value="sum">Sum</option>
-          <option value="avg">Average</option>
+          <option value="count">{t('dbCount')}</option>
+          <option value="sum">{t('dbSum')}</option>
+          <option value="avg">{t('dbAverage')}</option>
         </select>
       </div>
 
       {/* Field input */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Field</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbField')}</label>
         <input
           type="text"
           value={(config.field as string) ?? ''}
           onChange={(e) => onChange({ field: e.target.value })}
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
-          placeholder="e.g. quantity, cases_reported, total_value"
+          placeholder={t('dbPlaceholderFieldName')}
         />
         <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-          Enter the JSON field name from the form schema to aggregate. Common fields: quantity, value, count, total, cases.
+          {t('dbFieldHelpText')}
         </p>
       </div>
     </div>
@@ -687,6 +692,7 @@ function KpiPicker({
   config: Record<string, unknown>;
   onChange: (u: Record<string, unknown>) => void;
 }) {
+  const t = useTranslations('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -713,7 +719,7 @@ function KpiPicker({
 
   return (
     <div className="space-y-3" ref={dropdownRef}>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">KPI Code</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbKpiCode')}</label>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -727,7 +733,7 @@ function KpiPicker({
           }}
           onFocus={() => setIsOpen(true)}
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 pl-9 pr-10 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 font-mono"
-          placeholder="Search or enter KPI code..."
+          placeholder={t('dbSearchKpiCode')}
         />
         {currentCode && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -766,12 +772,12 @@ function KpiPicker({
       {/* Validation feedback */}
       {currentCode && !isKnownCode && (
         <p className="text-xs text-amber-600 dark:text-amber-400">
-          Custom KPI code. Ensure it matches a definition in governance.kpi_definitions.
+          {t('dbCustomKpiHint')}
         </p>
       )}
       {currentCode && isKnownCode && (
         <p className="text-xs text-green-600 dark:text-green-400">
-          Recognized KPI code.
+          {t('dbRecognizedKpi')}
         </p>
       )}
     </div>
@@ -787,10 +793,11 @@ function ManualValueFields({
   config: Record<string, unknown>;
   onChange: (u: Record<string, unknown>) => void;
 }) {
+  const t = useTranslations('dashboard');
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Value</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbValue')}</label>
         <input
           type="text"
           value={(config.value as string) ?? ''}
@@ -799,7 +806,7 @@ function ManualValueFields({
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Label</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbLabel')}</label>
         <input
           type="text"
           value={(config.label as string) ?? ''}
@@ -824,6 +831,7 @@ function CompositeFormulaEditor({
   allWidgets?: DashboardWidget[];
   currentWidgetId?: string;
 }) {
+  const t = useTranslations('dashboard');
   const [formulaValid, setFormulaValid] = useState<boolean | null>(null);
   const [formulaError, setFormulaError] = useState<string | null>(null);
 
@@ -836,7 +844,7 @@ function CompositeFormulaEditor({
     const formula = (config.formula as string) ?? '';
     if (!formula.trim()) {
       setFormulaValid(false);
-      setFormulaError('Formula is empty');
+      setFormulaError(t('dbFormulaEmpty'));
       return;
     }
     // Basic validation: check for balanced parentheses and valid characters
@@ -844,13 +852,13 @@ function CompositeFormulaEditor({
     const closeParens = (formula.match(/\)/g) || []).length;
     if (openParens !== closeParens) {
       setFormulaValid(false);
-      setFormulaError('Unbalanced parentheses');
+      setFormulaError(t('dbUnbalancedParens'));
       return;
     }
     // Check for common issues
     if (/[\/\*]{2,}/.test(formula)) {
       setFormulaValid(false);
-      setFormulaError('Consecutive operators detected');
+      setFormulaError(t('dbConsecutiveOperators'));
       return;
     }
     setFormulaValid(true);
@@ -860,7 +868,7 @@ function CompositeFormulaEditor({
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Formula</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbFormula')}</label>
         <textarea
           value={(config.formula as string) ?? ''}
           onChange={(e) => {
@@ -882,11 +890,11 @@ function CompositeFormulaEditor({
           className="inline-flex items-center gap-1.5 rounded-md border border-[#1F4E79] px-3 py-1.5 text-xs font-medium text-[#1F4E79] dark:text-[#C9A227] dark:border-[#C9A227] hover:bg-[#1F4E79]/5 dark:hover:bg-[#C9A227]/10 transition-colors"
         >
           <Zap className="h-3 w-3" />
-          Validate
+          {t('dbValidate')}
         </button>
         {formulaValid === true && (
           <span className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-            <Check className="h-3 w-3" /> Syntax OK
+            <Check className="h-3 w-3" /> {t('dbSyntaxOk')}
           </span>
         )}
         {formulaValid === false && formulaError && (
@@ -899,7 +907,7 @@ function CompositeFormulaEditor({
       {/* Available widgets */}
       {otherWidgets.length > 0 && (
         <div className="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
-          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Available widget references:</p>
+          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">{t('dbAvailableWidgetRefs')}:</p>
           <div className="space-y-1 max-h-32 overflow-y-auto">
             {otherWidgets.map((w) => (
               <div key={w.id} className="flex items-center gap-2 text-xs">
@@ -907,7 +915,7 @@ function CompositeFormulaEditor({
                   {w.id.slice(0, 8)}
                 </code>
                 <span className="text-gray-500 dark:text-gray-400 truncate">
-                  {w.title || WIDGET_TYPE_LABELS[w.type] || w.type}
+                  {w.title || t(WIDGET_TYPE_LABEL_KEYS[w.type]) || w.type}
                 </span>
               </div>
             ))}
@@ -917,12 +925,12 @@ function CompositeFormulaEditor({
 
       {/* Syntax help */}
       <div className="rounded-md border border-blue-100 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 px-3 py-2">
-        <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">Formula syntax:</p>
+        <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">{t('dbFormulaSyntax')}:</p>
         <ul className="text-xs text-blue-600 dark:text-blue-400 space-y-0.5 list-disc list-inside">
-          <li>Use widget IDs or indicator codes as variables</li>
-          <li>Operators: +, -, *, /, (, )</li>
-          <li>Functions: sum(), avg(), min(), max()</li>
-          <li>Example: <code className="font-mono">indicator_a / indicator_b * 100</code></li>
+          <li>{t('dbFormulaSyntax1')}</li>
+          <li>{t('dbFormulaSyntax2')}</li>
+          <li>{t('dbFormulaSyntax3')}</li>
+          <li>{t('dbFormulaSyntax4')}</li>
         </ul>
       </div>
     </div>
@@ -938,6 +946,7 @@ function SqlQueryEditor({
   config: Record<string, unknown>;
   onChange: (u: Record<string, unknown>) => void;
 }) {
+  const t = useTranslations('dashboard');
   const user = useAuthStore((s) => s.user);
   const [testResult, setTestResult] = useState<{ valid: boolean; message: string } | null>(null);
 
@@ -946,12 +955,12 @@ function SqlQueryEditor({
   const handleTestQuery = () => {
     const query = ((config.query as string) ?? '').trim();
     if (!query) {
-      setTestResult({ valid: false, message: 'Query is empty' });
+      setTestResult({ valid: false, message: t('dbQueryEmpty') });
       return;
     }
     // Must start with SELECT
     if (!query.toUpperCase().startsWith('SELECT')) {
-      setTestResult({ valid: false, message: 'Query must start with SELECT' });
+      setTestResult({ valid: false, message: t('dbQueryMustStartSelect') });
       return;
     }
     // Check for blocked keywords
@@ -960,20 +969,20 @@ function SqlQueryEditor({
       // Check for blocked keywords as standalone words (not inside identifiers)
       const regex = new RegExp(`\\b${keyword}\\b`, 'i');
       if (regex.test(upperQuery)) {
-        setTestResult({ valid: false, message: `Blocked keyword detected: ${keyword}` });
+        setTestResult({ valid: false, message: `${t('dbBlockedKeyword')}: ${keyword}` });
         return;
       }
     }
-    setTestResult({ valid: true, message: 'Query syntax looks valid' });
+    setTestResult({ valid: true, message: t('dbQuerySyntaxValid') });
   };
 
   if (!hasAccess) {
     return (
       <div className="rounded-md border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 px-4 py-6 text-center">
         <Shield className="h-8 w-8 text-red-400 mx-auto mb-2" />
-        <p className="text-sm font-medium text-red-700 dark:text-red-300">Access Denied</p>
+        <p className="text-sm font-medium text-red-700 dark:text-red-300">{t('dbAccessDenied')}</p>
         <p className="text-xs text-red-500 dark:text-red-400 mt-1">
-          SQL queries require SUPER_ADMIN or CONTINENTAL_ADMIN role.
+          {t('dbSqlRequiresAdmin')}
         </p>
       </div>
     );
@@ -984,12 +993,12 @@ function SqlQueryEditor({
       {/* Warning banner */}
       <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 px-3 py-2">
         <p className="text-xs text-yellow-800 dark:text-yellow-300">
-          Admin only. Direct SQL queries are executed against the analytics database (read-only).
+          {t('dbSqlWarning')}
         </p>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">SQL Query</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbDsSqlQuery')}</label>
         <textarea
           value={(config.query as string) ?? ''}
           onChange={(e) => {
@@ -1011,7 +1020,7 @@ function SqlQueryEditor({
           className="inline-flex items-center gap-1.5 rounded-md border border-[#1F4E79] px-3 py-1.5 text-xs font-medium text-[#1F4E79] dark:text-[#C9A227] dark:border-[#C9A227] hover:bg-[#1F4E79]/5 dark:hover:bg-[#C9A227]/10 transition-colors"
         >
           <Zap className="h-3 w-3" />
-          Test Query
+          {t('dbTestQuery')}
         </button>
         {testResult && (
           <span className={`inline-flex items-center gap-1 text-xs ${testResult.valid ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
@@ -1023,7 +1032,7 @@ function SqlQueryEditor({
 
       {/* Allowed schemas hint */}
       <div className="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
-        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Available schemas:</p>
+        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('dbAvailableSchemas')}:</p>
         <div className="flex flex-wrap gap-1">
           {['animal_health', 'livestock', 'fisheries', 'trade_sps', 'governance', 'analytics', 'datalake'].map((schema) => (
             <span key={schema} className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
@@ -1047,6 +1056,7 @@ function DisplayConfigSection({
   config: Record<string, unknown>;
   onChange: (u: Record<string, unknown>) => void;
 }) {
+  const t = useTranslations('dashboard');
   if (widgetType === 'KPI_CARD') {
     return <KpiCardConfig config={config} onChange={onChange} />;
   }
@@ -1065,5 +1075,5 @@ function DisplayConfigSection({
   if (widgetType === 'ALERT_FEED') {
     return <AlertFeedConfig config={config} onChange={onChange} />;
   }
-  return <p className="text-sm text-gray-500 italic">No additional display configuration for this widget type.</p>;
+  return <p className="text-sm text-gray-500 italic">{t('dbNoAdditionalDisplayConfig')}</p>;
 }

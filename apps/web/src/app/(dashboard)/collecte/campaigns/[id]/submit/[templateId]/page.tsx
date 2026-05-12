@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, AlertCircle, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useSubmitCampaignForm } from '@/lib/api/hooks';
 import { useCollectionCampaign } from '@/lib/api/workflow-hooks';
 import {
@@ -43,6 +44,7 @@ export default function CampaignSubmitPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('collecte');
   const campaignId = params.id as string;
   const templateId = params.templateId as string;
   const isPreview = searchParams.get('preview') === '1';
@@ -101,12 +103,12 @@ export default function CampaignSubmitPage() {
     setBanner(null);
     try {
       await submitMutation.mutateAsync({ campaignId, data: formData });
-      setBanner({ type: 'success', message: 'Submission created successfully.' });
+      setBanner({ type: 'success', message: t('submissionCreated') });
       setTimeout(() => {
         router.push(`/collecte/campaigns/${campaignId}`);
       }, 1200);
     } catch (err: any) {
-      const msg = err?.message || 'Submission failed. Please try again.';
+      const msg = err?.message || t('submissionFailedRetry');
       setBanner({ type: 'error', message: msg });
     }
   };
@@ -120,7 +122,7 @@ export default function CampaignSubmitPage() {
             className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Campaign
+            {t('backToCampaign')}
           </Link>
           <div className="mt-2 h-8 w-64 rounded bg-gray-200 dark:bg-gray-800 animate-pulse" />
         </div>
@@ -137,9 +139,9 @@ export default function CampaignSubmitPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Campaigns
+          {t('backToCampaigns')}
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Campaign not found</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('campaignNotFound')}</h1>
       </div>
     );
   }
@@ -154,11 +156,11 @@ export default function CampaignSubmitPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Campaign
+          {t('backToCampaign')}
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Campaign is not active</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('campaignNotActive')}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Forms can only be filled for active campaigns. Current status: {campaign.status}
+          {t('campaignNotActiveDesc').replace('{status}', campaign.status)}
         </p>
       </div>
     );
@@ -176,7 +178,7 @@ export default function CampaignSubmitPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Campaign
+          {t('backToCampaign')}
         </Link>
         <div className="mt-2 flex items-center gap-3">
           <div className="min-w-0 flex-1">
@@ -184,18 +186,18 @@ export default function CampaignSubmitPage() {
               {templateName}
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Campaign: {campaign.name}
+              {t('campaignLabel').replace('{name}', campaign.name)}
             </p>
           </div>
           {previewMode ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
               <Eye className="h-3.5 w-3.5" />
-              Preview
+              {t('preview')}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Active
+              {t('active')}
             </span>
           )}
         </div>
@@ -232,17 +234,17 @@ export default function CampaignSubmitPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
           <AlertCircle className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
           <h3 className="mt-3 text-sm font-medium text-gray-900 dark:text-white">
-            Form schema not available
+            {t('formSchemaNotAvailable')}
           </h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            The template &ldquo;{templateName}&rdquo; does not have a published schema yet.
+            {t('formSchemaNotAvailableDesc').replace('{name}', templateName)}
           </p>
           <Link
             href={`/collecte/campaigns/${campaignId}`}
             className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
           >
             <ArrowLeft className="h-4 w-4" />
-            Return to campaign
+            {t('returnToCampaign')}
           </Link>
         </div>
       )}

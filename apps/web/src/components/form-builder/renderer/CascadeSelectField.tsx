@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useMemo } from 'react';
+import { useTranslations } from '@/lib/i18n/translations';
 import type { FormField, MultilingualText } from '../utils/form-schema';
 
 const ml = (text?: MultilingualText) => text?.en || text?.fr || '';
@@ -26,6 +27,7 @@ const selectClass =
   'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500';
 
 export function CascadeSelectField({ field, value, onChange }: CascadeSelectFieldProps) {
+  const t = useTranslations('collecte');
   const levels = (field.properties.levels || []) as CascadeLevelConfig[];
   const options = (field.properties.options || []) as CascadeOption[];
 
@@ -82,7 +84,7 @@ export function CascadeSelectField({ field, value, onChange }: CascadeSelectFiel
   if (levels.length === 0) {
     return (
       <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-        <p className="text-xs text-gray-400">No levels configured for this cascade</p>
+        <p className="text-xs text-gray-400">{t('fbNoLevelsCascade')}</p>
       </div>
     );
   }
@@ -108,7 +110,7 @@ export function CascadeSelectField({ field, value, onChange }: CascadeSelectFiel
               className={selectClass}
             >
               <option value="">
-                {disabled ? '-- Select above first --' : `Select ${ml(level.label) || levelKey}...`}
+                {disabled ? t('fbSelectAboveFirst') : `Select ${ml(level.label) || levelKey}...`}
               </option>
               {opts.map((opt) => (
                 <option key={opt.value} value={opt.value}>

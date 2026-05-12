@@ -79,7 +79,7 @@ export function SectionHeader({
       {/* Title — two side-by-side inputs for FR/EN */}
       {editable ? (
         <div className="flex flex-1 min-w-0 items-center gap-1">
-          <span className="text-[10px] font-bold text-gray-400 uppercase flex-shrink-0">FR</span>
+          <span className="text-[10px] font-bold text-gray-400 uppercase flex-shrink-0">{t('dbLangFr')}</span>
           <input
             ref={inputFrRef}
             type="text"
@@ -89,7 +89,7 @@ export function SectionHeader({
             className="flex-1 min-w-0 bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 border-none outline-none focus:ring-1 focus:ring-[#1F4E79]/30 rounded px-1"
             placeholder={t('sectionTitlePlaceholderFr')}
           />
-          <span className="text-[10px] font-bold text-gray-400 uppercase flex-shrink-0 ml-1">EN</span>
+          <span className="text-[10px] font-bold text-gray-400 uppercase flex-shrink-0 ml-1">{t('dbLangEn')}</span>
           <input
             ref={inputEnRef}
             type="text"

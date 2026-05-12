@@ -4,6 +4,7 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { GripVertical, Settings, Trash2, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import type { DashboardWidget } from '@/lib/api/dashboard-hooks';
 import { WidgetRenderer } from './WidgetRenderer';
 
@@ -54,6 +55,7 @@ export function DraggableWidget({
   onRemove,
   onDuplicate,
 }: DraggableWidgetProps) {
+  const t = useTranslations('dashboard');
   const {
     listeners,
     setNodeRef,
@@ -112,7 +114,7 @@ export function DraggableWidget({
               type="button"
               onClick={(e) => { e.stopPropagation(); onConfigure?.(); }}
               className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-              title="Configure"
+              title={t('dbConfigure')}
             >
               <Settings className="h-3.5 w-3.5" />
             </button>
@@ -120,7 +122,7 @@ export function DraggableWidget({
               type="button"
               onClick={(e) => { e.stopPropagation(); onDuplicate?.(); }}
               className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/30 dark:hover:text-blue-400"
-              title="Duplicate"
+              title={t('dbDuplicate')}
             >
               <Copy className="h-3.5 w-3.5" />
             </button>
@@ -128,7 +130,7 @@ export function DraggableWidget({
               type="button"
               onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
               className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400"
-              title="Delete"
+              title={t('dbDelete')}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>

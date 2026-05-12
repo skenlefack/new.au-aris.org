@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useFormBuilderStore } from '../hooks/useFormBuilder';
 import { getFieldTypeDefinition, MASTER_DATA_TYPES } from '../utils/field-types';
 import type { FormField, FormSection, MultilingualText, FieldCondition, FieldConditionRule } from '../utils/form-schema';
@@ -10,12 +11,12 @@ import { generateCodeFromLabel } from '../utils/code-generator';
 
 type Tab = 'general' | 'validation' | 'data-source' | 'conditions' | 'appearance';
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'general', label: 'General' },
-  { key: 'validation', label: 'Validation' },
-  { key: 'data-source', label: 'Data' },
-  { key: 'conditions', label: 'Conditions' },
-  { key: 'appearance', label: 'Layout' },
+const TAB_KEYS: { key: Tab; tKey: string }[] = [
+  { key: 'general', tKey: 'fbTabGeneral' },
+  { key: 'validation', tKey: 'fbTabValidation' },
+  { key: 'data-source', tKey: 'fbTabData' },
+  { key: 'conditions', tKey: 'fbTabConditions' },
+  { key: 'appearance', tKey: 'fbTabLayout' },
 ];
 
 // ---- Multilingual inline input ----
@@ -66,6 +67,7 @@ function MLInput({
 // ---- Field Properties ----
 function FieldProperties({ field }: { field: FormField }) {
   const { updateField, getSchema } = useFormBuilderStore();
+  const t = useTranslations('collecte');
   const [tab, setTab] = useState<Tab>('general');
 
   const update = (data: Partial<FormField>) => updateField(field.id, data);
@@ -89,18 +91,18 @@ function FieldProperties({ field }: { field: FormField }) {
 
       {/* Tabs */}
       <div className="flex gap-0 border-b border-gray-200 dark:border-gray-700">
-        {TABS.filter((t) => t.key !== 'data-source' || showDataSource).map((t) => (
+        {TAB_KEYS.filter((tk) => tk.key !== 'data-source' || showDataSource).map((tk) => (
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
+            key={tk.key}
+            onClick={() => setTab(tk.key)}
             className={cn(
               'flex-1 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors',
-              tab === t.key
+              tab === tk.key
                 ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
                 : 'text-gray-400 hover:text-gray-600',
             )}
           >
-            {t.label}
+            {t(tk.tKey)}
           </button>
         ))}
       </div>
@@ -110,7 +112,7 @@ function FieldProperties({ field }: { field: FormField }) {
         {tab === 'general' && (
           <>
             <MLInput
-              label="Label"
+              label={t('fbLabelProp')}
               value={field.label}
               onChange={(label) => {
                 const code = field.code || generateCodeFromLabel(label);
@@ -119,7 +121,7 @@ function FieldProperties({ field }: { field: FormField }) {
               placeholder="Field label..."
             />
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Code</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fbCodeProp')}</label>
               <input
                 type="text"
                 value={field.code}
@@ -129,21 +131,21 @@ function FieldProperties({ field }: { field: FormField }) {
               />
             </div>
             <MLInput
-              label="Help Text"
+              label={t('fbHelpTextProp')}
               value={field.helpText || {}}
               onChange={(helpText) => update({ helpText })}
               placeholder="Help text..."
             />
             <MLInput
-              label="Placeholder"
+              label={t('fbPlaceholderProp')}
               value={field.placeholder || {}}
               onChange={(placeholder) => update({ placeholder })}
               placeholder="Placeholder..."
             />
             <div className="space-y-2 pt-2">
-              <ToggleRow label="Required" checked={field.required} onChange={(required) => update({ required })} />
-              <ToggleRow label="Read Only" checked={field.readOnly} onChange={(readOnly) => update({ readOnly })} />
-              <ToggleRow label="Hidden" checked={field.hidden} onChange={(hidden) => update({ hidden })} />
+              <ToggleRow label={t('fbRequiredProp')} checked={field.required} onChange={(required) => update({ required })} />
+              <ToggleRow label={t('fbReadOnlyProp')} checked={field.readOnly} onChange={(readOnly) => update({ readOnly })} />
+              <ToggleRow label={t('fbHiddenProp')} checked={field.hidden} onChange={(hidden) => update({ hidden })} />
             </div>
           </>
         )}
@@ -153,17 +155,17 @@ function FieldProperties({ field }: { field: FormField }) {
             {['text', 'textarea', 'email', 'url', 'phone'].includes(field.type) && (
               <>
                 <NumberInput
-                  label="Min Length"
+                  label={t('fbMinLength')}
                   value={field.validation.minLength}
                   onChange={(minLength) => update({ validation: { ...field.validation, minLength } })}
                 />
                 <NumberInput
-                  label="Max Length"
+                  label={t('fbMaxLength')}
                   value={field.validation.maxLength}
                   onChange={(maxLength) => update({ validation: { ...field.validation, maxLength } })}
                 />
                 <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Pattern (Regex)</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fbPatternRegex')}</label>
                   <input
                     type="text"
                     value={field.validation.pattern || ''}
@@ -176,26 +178,26 @@ function FieldProperties({ field }: { field: FormField }) {
             )}
             {field.type === 'number' && (
               <>
-                <NumberInput label="Min" value={field.validation.min} onChange={(min) => update({ validation: { ...field.validation, min } })} />
-                <NumberInput label="Max" value={field.validation.max} onChange={(max) => update({ validation: { ...field.validation, max } })} />
-                <NumberInput label="Step" value={field.validation.step} onChange={(step) => update({ validation: { ...field.validation, step } })} />
-                <NumberInput label="Decimals" value={field.validation.decimals} onChange={(decimals) => update({ validation: { ...field.validation, decimals } })} />
+                <NumberInput label={t('fbMin')} value={field.validation.min} onChange={(min) => update({ validation: { ...field.validation, min } })} />
+                <NumberInput label={t('fbMax')} value={field.validation.max} onChange={(max) => update({ validation: { ...field.validation, max } })} />
+                <NumberInput label={t('fbStep')} value={field.validation.step} onChange={(step) => update({ validation: { ...field.validation, step } })} />
+                <NumberInput label={t('fbDecimals')} value={field.validation.decimals} onChange={(decimals) => update({ validation: { ...field.validation, decimals } })} />
               </>
             )}
             {['date', 'datetime', 'date-range'].includes(field.type) && (
               <>
-                <ToggleRow label="Disable Future" checked={!!field.validation.disableFuture} onChange={(disableFuture) => update({ validation: { ...field.validation, disableFuture } })} />
-                <ToggleRow label="Disable Past" checked={!!field.validation.disablePast} onChange={(disablePast) => update({ validation: { ...field.validation, disablePast } })} />
+                <ToggleRow label={t('fbDisableFuture')} checked={!!field.validation.disableFuture} onChange={(disableFuture) => update({ validation: { ...field.validation, disableFuture } })} />
+                <ToggleRow label={t('fbDisablePast')} checked={!!field.validation.disablePast} onChange={(disablePast) => update({ validation: { ...field.validation, disablePast } })} />
               </>
             )}
             {['file-upload', 'image'].includes(field.type) && (
               <>
-                <NumberInput label="Max Files" value={field.validation.maxFiles} onChange={(maxFiles) => update({ validation: { ...field.validation, maxFiles } })} />
-                <NumberInput label="Max Size (bytes)" value={field.validation.maxSize} onChange={(maxSize) => update({ validation: { ...field.validation, maxSize } })} />
+                <NumberInput label={t('fbMaxFiles')} value={field.validation.maxFiles} onChange={(maxFiles) => update({ validation: { ...field.validation, maxFiles } })} />
+                <NumberInput label={t('fbMaxSizeBytes')} value={field.validation.maxSize} onChange={(maxSize) => update({ validation: { ...field.validation, maxSize } })} />
               </>
             )}
             <MLInput
-              label="Custom Error Message"
+              label={t('fbCustomErrorMessage')}
               value={field.validation.customMessage || {}}
               onChange={(customMessage) => update({ validation: { ...field.validation, customMessage } })}
               placeholder="Error message..."
@@ -208,43 +210,43 @@ function FieldProperties({ field }: { field: FormField }) {
             {field.type === 'master-data-select' && (
               <>
                 <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Master Data Type</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fbMasterDataType')}</label>
                   <select
                     value={(field.properties.masterDataType as string) || ''}
                     onChange={(e) => update({ properties: { ...field.properties, masterDataType: e.target.value } })}
                     className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   >
-                    <option value="">Select type...</option>
-                    {MASTER_DATA_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
+                    <option value="">{t('fbSelectType')}</option>
+                    {MASTER_DATA_TYPES.map((mdt) => (
+                      <option key={mdt.value} value={mdt.value}>{mdt.label}</option>
                     ))}
                   </select>
                 </div>
                 <ToggleRow
-                  label="Multiple Selection"
+                  label={t('fbMultipleSelection')}
                   checked={!!field.properties.multiple}
                   onChange={(multiple) => update({ properties: { ...field.properties, multiple } })}
                 />
                 <ToggleRow
-                  label="Searchable"
+                  label={t('fbSearchable')}
                   checked={field.properties.searchable !== false}
                   onChange={(searchable) => update({ properties: { ...field.properties, searchable } })}
                 />
                 <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Cascade Source (parent field)</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fbCascadeSource')}</label>
                   <select
                     value={(field.properties.cascadeSource as string) || ''}
                     onChange={(e) => update({ properties: { ...field.properties, cascadeSource: e.target.value || undefined } })}
                     className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   >
-                    <option value="">None (independent)</option>
+                    <option value="">{t('fbNoneIndependent')}</option>
                     {allFields.map((f) => (
                       <option key={f.id} value={f.id}>{f.label.en || f.code || f.id}</option>
                     ))}
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Cascade Param</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fbCascadeParam')}</label>
                   <input
                     type="text"
                     value={(field.properties.cascadeParam as string) || ''}
@@ -276,17 +278,17 @@ function FieldProperties({ field }: { field: FormField }) {
         {tab === 'appearance' && (
           <>
             <NumberInput
-              label="Column"
+              label={t('fbColumn')}
               value={field.column}
               onChange={(column) => update({ column: column || 1 })}
             />
             <NumberInput
-              label="Column Span"
+              label={t('fbColumnSpan')}
               value={field.columnSpan}
               onChange={(columnSpan) => update({ columnSpan: columnSpan || 1 })}
             />
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">CSS Class</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fbCssClass')}</label>
               <input
                 type="text"
                 value={(field.properties.cssClass as string) || ''}
@@ -297,14 +299,14 @@ function FieldProperties({ field }: { field: FormField }) {
             </div>
             {field.type === 'textarea' && (
               <NumberInput
-                label="Rows"
+                label={t('fbRows')}
                 value={field.properties.rows as number}
                 onChange={(rows) => update({ properties: { ...field.properties, rows: rows || 4 } })}
               />
             )}
             {field.type === 'number' && (
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Unit</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fbUnit')}</label>
                 <input
                   type="text"
                   value={(field.properties.unit as string) || ''}
@@ -316,7 +318,7 @@ function FieldProperties({ field }: { field: FormField }) {
             )}
             {field.type === 'calculated' && (
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Formula</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fbFormula')}</label>
                 <input
                   type="text"
                   value={(field.properties.formula as string) || ''}
@@ -330,7 +332,7 @@ function FieldProperties({ field }: { field: FormField }) {
             {field.type === 'auto-id' && (
               <>
                 <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Prefix</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fbPrefix')}</label>
                   <input
                     type="text"
                     value={(field.properties.prefix as string) || ''}
@@ -340,7 +342,7 @@ function FieldProperties({ field }: { field: FormField }) {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Format</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fbFormat')}</label>
                   <input
                     type="text"
                     value={(field.properties.format as string) || ''}
@@ -361,28 +363,29 @@ function FieldProperties({ field }: { field: FormField }) {
 // ---- Section Properties ----
 function SectionProperties({ section }: { section: FormSection }) {
   const { updateSection } = useFormBuilderStore();
+  const t = useTranslations('collecte');
   const update = (data: Partial<FormSection>) => updateSection(section.id, data);
 
   return (
     <div className="flex flex-col h-full">
       <div className="border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">Section Settings</span>
+        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{t('fbSectionSettings')}</span>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <MLInput
-          label="Section Name"
+          label={t('fbSectionName')}
           value={section.name}
           onChange={(name) => update({ name })}
           placeholder="Section name..."
         />
         <MLInput
-          label="Description"
+          label={t('fbDescription')}
           value={section.description || {}}
           onChange={(description) => update({ description })}
           placeholder="Section description..."
         />
         <div className="space-y-1">
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Columns</label>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fbColumns')}</label>
           <div className="flex gap-1">
             {[1, 2, 3, 4].map((n) => (
               <button
@@ -401,7 +404,7 @@ function SectionProperties({ section }: { section: FormSection }) {
           </div>
         </div>
         <div className="space-y-1">
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Color</label>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fbColor')}</label>
           <input
             type="color"
             value={section.color || '#3B82F6'}
@@ -410,10 +413,10 @@ function SectionProperties({ section }: { section: FormSection }) {
           />
         </div>
         <div className="space-y-2">
-          <ToggleRow label="Collapsible" checked={section.isCollapsible} onChange={(isCollapsible) => update({ isCollapsible })} />
-          <ToggleRow label="Default Collapsed" checked={section.isCollapsed} onChange={(isCollapsed) => update({ isCollapsed })} />
+          <ToggleRow label={t('fbCollapsible')} checked={section.isCollapsible} onChange={(isCollapsible) => update({ isCollapsible })} />
+          <ToggleRow label={t('fbDefaultCollapsed')} checked={section.isCollapsed} onChange={(isCollapsed) => update({ isCollapsed })} />
           <ToggleRow
-            label="Repeatable"
+            label={t('fbRepeatable')}
             checked={section.isRepeatable}
             onChange={(isRepeatable) => update({ isRepeatable })}
           />
@@ -421,12 +424,12 @@ function SectionProperties({ section }: { section: FormSection }) {
         {section.isRepeatable && (
           <>
             <NumberInput
-              label="Min Repeats"
+              label={t('fbMinRepeats')}
               value={section.repeatMin}
               onChange={(repeatMin) => update({ repeatMin })}
             />
             <NumberInput
-              label="Max Repeats"
+              label={t('fbMaxRepeats')}
               value={section.repeatMax}
               onChange={(repeatMax) => update({ repeatMax })}
             />
@@ -445,6 +448,7 @@ function StaticOptionsEditor({
   options: Array<{ label: MultilingualText; value: string }>;
   onChange: (options: Array<{ label: MultilingualText; value: string }>) => void;
 }) {
+  const t = useTranslations('collecte');
   const addOption = () => {
     onChange([...options, { label: { en: '' }, value: `option_${options.length + 1}` }]);
   };
@@ -459,21 +463,21 @@ function StaticOptionsEditor({
 
   return (
     <div className="space-y-2">
-      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Options</label>
+      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fbOptions')}</label>
       {options.map((opt, i) => (
         <div key={i} className="flex items-center gap-2">
           <input
             type="text"
             value={opt.label.en || ''}
             onChange={(e) => updateOption(i, { label: { ...opt.label, en: e.target.value } })}
-            placeholder="Label"
+            placeholder={t('fbLabelPlaceholder')}
             className="flex-1 rounded-md border border-gray-200 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           />
           <input
             type="text"
             value={opt.value}
             onChange={(e) => updateOption(i, { value: e.target.value })}
-            placeholder="Value"
+            placeholder={t('fbValuePlaceholder')}
             className="w-24 rounded-md border border-gray-200 px-2 py-1 text-xs font-mono dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           />
           <button
@@ -488,43 +492,43 @@ function StaticOptionsEditor({
         onClick={addOption}
         className="w-full rounded-md border border-dashed border-gray-300 py-1.5 text-xs text-gray-400 hover:border-blue-400 hover:text-blue-500"
       >
-        + Add option
+        {t('fbAddOption')}
       </button>
     </div>
   );
 }
 
 // ---- Conditions Editor ----
-const CONDITION_TYPES: { value: FieldCondition['type']; label: string }[] = [
-  { value: 'visibility', label: 'Show/Hide' },
-  { value: 'required', label: 'Required' },
-  { value: 'readOnly', label: 'Read Only' },
-  { value: 'value', label: 'Set Value' },
+const CONDITION_TYPES: { value: FieldCondition['type']; tKey: string }[] = [
+  { value: 'visibility', tKey: 'fbCondShowHide' },
+  { value: 'required', tKey: 'fbCondRequired' },
+  { value: 'readOnly', tKey: 'fbCondReadOnly' },
+  { value: 'value', tKey: 'fbCondSetValue' },
 ];
 
-const CONDITION_ACTIONS: Record<FieldCondition['type'], { value: FieldCondition['action']; label: string }[]> = {
-  visibility: [{ value: 'show', label: 'Show' }, { value: 'hide', label: 'Hide' }],
-  required: [{ value: 'setRequired', label: 'Make Required' }],
-  readOnly: [{ value: 'enable', label: 'Enable' }, { value: 'disable', label: 'Disable' }],
-  value: [{ value: 'setValue', label: 'Set Value' }],
+const CONDITION_ACTIONS: Record<FieldCondition['type'], { value: FieldCondition['action']; tKey: string }[]> = {
+  visibility: [{ value: 'show', tKey: 'fbCondShow' }, { value: 'hide', tKey: 'fbCondHide' }],
+  required: [{ value: 'setRequired', tKey: 'fbCondMakeRequired' }],
+  readOnly: [{ value: 'enable', tKey: 'fbCondEnable' }, { value: 'disable', tKey: 'fbCondDisable' }],
+  value: [{ value: 'setValue', tKey: 'fbCondSetValue' }],
 };
 
-const OPERATORS: { value: FieldConditionRule['operator']; label: string }[] = [
+const OPERATORS: { value: FieldConditionRule['operator']; label?: string; tKey?: string }[] = [
   { value: 'equals', label: '=' },
-  { value: 'notEquals', label: '≠' },
-  { value: 'contains', label: 'Contains' },
-  { value: 'notContains', label: 'Not contains' },
+  { value: 'notEquals', label: '\u2260' },
+  { value: 'contains', tKey: 'fbOpContains' },
+  { value: 'notContains', tKey: 'fbOpNotContains' },
   { value: 'greaterThan', label: '>' },
   { value: 'lessThan', label: '<' },
-  { value: 'greaterOrEqual', label: '≥' },
-  { value: 'lessOrEqual', label: '≤' },
-  { value: 'isEmpty', label: 'Is empty' },
-  { value: 'isNotEmpty', label: 'Is not empty' },
-  { value: 'isTrue', label: 'Is true' },
-  { value: 'isFalse', label: 'Is false' },
-  { value: 'in', label: 'In list' },
-  { value: 'startsWith', label: 'Starts with' },
-  { value: 'endsWith', label: 'Ends with' },
+  { value: 'greaterOrEqual', label: '\u2265' },
+  { value: 'lessOrEqual', label: '\u2264' },
+  { value: 'isEmpty', tKey: 'fbOpIsEmpty' },
+  { value: 'isNotEmpty', tKey: 'fbOpIsNotEmpty' },
+  { value: 'isTrue', tKey: 'fbOpIsTrue' },
+  { value: 'isFalse', tKey: 'fbOpIsFalse' },
+  { value: 'in', tKey: 'fbOpInList' },
+  { value: 'startsWith', tKey: 'fbOpStartsWith' },
+  { value: 'endsWith', tKey: 'fbOpEndsWith' },
 ];
 
 function ConditionsEditor({
@@ -536,6 +540,7 @@ function ConditionsEditor({
   allFields: FormField[];
   onChange: (conditions: FieldCondition[]) => void;
 }) {
+  const t = useTranslations('collecte');
   const addCondition = () => {
     const newCondition: FieldCondition = {
       id: crypto.randomUUID(),
@@ -586,7 +591,7 @@ function ConditionsEditor({
     <div className="space-y-3">
       {conditions.length === 0 && (
         <p className="text-xs text-gray-400 text-center py-4">
-          No conditions. This field is always visible.
+          {t('fbNoConditions')}
         </p>
       )}
       {conditions.map((cond, ci) => {
@@ -594,7 +599,7 @@ function ConditionsEditor({
         return (
           <div key={cond.id} className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-semibold text-gray-500 uppercase">Condition {ci + 1}</span>
+              <span className="text-[10px] font-semibold text-gray-500 uppercase">{t('fbConditionN', { n: String(ci + 1) })}</span>
               <button onClick={() => removeCondition(ci)} className="text-gray-400 hover:text-red-500">
                 <Trash2 className="h-3 w-3" />
               </button>
@@ -610,8 +615,8 @@ function ConditionsEditor({
                 }}
                 className="rounded-md border border-gray-200 px-2 py-1 text-[11px] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
-                {CONDITION_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
+                {CONDITION_TYPES.map((ct) => (
+                  <option key={ct.value} value={ct.value}>{t(ct.tKey)}</option>
                 ))}
               </select>
               <select
@@ -620,20 +625,20 @@ function ConditionsEditor({
                 className="rounded-md border border-gray-200 px-2 py-1 text-[11px] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
                 {availableActions.map((a) => (
-                  <option key={a.value} value={a.value}>{a.label}</option>
+                  <option key={a.value} value={a.value}>{t(a.tKey)}</option>
                 ))}
               </select>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-500">When</span>
+              <span className="text-[10px] text-gray-500">{t('fbWhen')}</span>
               <select
                 value={cond.logic}
                 onChange={(e) => updateCondition(ci, { logic: e.target.value as 'all' | 'any' })}
                 className="rounded-md border border-gray-200 px-2 py-0.5 text-[11px] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
-                <option value="all">ALL rules match</option>
-                <option value="any">ANY rule matches</option>
+                <option value="all">{t('fbAllRulesMatch')}</option>
+                <option value="any">{t('fbAnyRuleMatches')}</option>
               </select>
             </div>
 
@@ -644,7 +649,7 @@ function ConditionsEditor({
                   onChange={(e) => updateRule(ci, ri, { field: e.target.value })}
                   className="flex-1 min-w-0 rounded border border-gray-200 px-1.5 py-1 text-[11px] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 >
-                  <option value="">Field...</option>
+                  <option value="">{t('fbFieldPlaceholder')}</option>
                   {allFields.map((f) => (
                     <option key={f.id} value={f.id}>{f.label.en || f.code || f.id.slice(0, 8)}</option>
                   ))}
@@ -655,7 +660,7 @@ function ConditionsEditor({
                   className="w-16 rounded border border-gray-200 px-1 py-1 text-[11px] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 >
                   {OPERATORS.map((op) => (
-                    <option key={op.value} value={op.value}>{op.label}</option>
+                    <option key={op.value} value={op.value}>{op.tKey ? t(op.tKey) : op.label}</option>
                   ))}
                 </select>
                 {!noValueOperators.includes(rule.operator) && (
@@ -663,7 +668,7 @@ function ConditionsEditor({
                     type="text"
                     value={String(rule.value ?? '')}
                     onChange={(e) => updateRule(ci, ri, { value: e.target.value })}
-                    placeholder="Value"
+                    placeholder={t('fbValuePlaceholder')}
                     className="w-16 rounded border border-gray-200 px-1.5 py-1 text-[11px] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   />
                 )}
@@ -679,7 +684,7 @@ function ConditionsEditor({
               onClick={() => addRule(ci)}
               className="text-[11px] text-blue-500 hover:text-blue-600"
             >
-              + Add rule
+              {t('fbAddRule')}
             </button>
           </div>
         );
@@ -689,7 +694,7 @@ function ConditionsEditor({
         className="w-full rounded-md border border-dashed border-gray-300 py-2 text-xs text-gray-400 hover:border-blue-400 hover:text-blue-500 flex items-center justify-center gap-1"
       >
         <Plus className="h-3 w-3" />
-        Add condition
+        {t('fbAddCondition')}
       </button>
     </div>
   );
@@ -736,6 +741,7 @@ function NumberInput({ label, value, onChange }: { label: string; value?: number
 // ---- Main Properties Panel ----
 export function PropertiesPanel() {
   const { selectedFieldId, selectedSectionId, getSchema, clearSelection } = useFormBuilderStore();
+  const t = useTranslations('collecte');
   const schema = getSchema();
 
   let selectedField: FormField | null = null;
@@ -764,7 +770,7 @@ export function PropertiesPanel() {
           </svg>
         </div>
         <p className="mt-3 text-xs text-gray-400">
-          Select a field or section to edit its properties
+          {t('fbSelectFieldOrSection')}
         </p>
       </div>
     );

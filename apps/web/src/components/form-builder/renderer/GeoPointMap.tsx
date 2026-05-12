@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Navigation } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 
 const MapContainer = dynamic(() => import('react-leaflet').then((m) => m.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import('react-leaflet').then((m) => m.TileLayer), { ssr: false });
@@ -33,6 +34,7 @@ export function GeoPointMap({
   className,
   initialCenter,
 }: GeoPointMapProps) {
+  const t = useTranslations('collecte');
   const [lat, setLat] = useState(value?.lat?.toString() || '');
   const [lng, setLng] = useState(value?.lng?.toString() || '');
   const [isClient, setIsClient] = useState(false);
@@ -89,7 +91,7 @@ export function GeoPointMap({
     <div className={cn('flex flex-col space-y-2 rounded-lg border border-gray-200 p-3 dark:border-gray-700', className)}>
       <div className="flex items-center gap-2 text-sm text-gray-500">
         <Navigation className="h-4 w-4" />
-        <span>GPS Location</span>
+        <span>{t('fbGpsLocation')}</span>
         {autoDetect && (
           <button
             type="button"
@@ -97,7 +99,7 @@ export function GeoPointMap({
             disabled={detecting}
             className="ml-auto text-xs text-blue-500 hover:text-blue-600 disabled:text-gray-400"
           >
-            {detecting ? 'Detecting...' : 'Auto-detect'}
+            {detecting ? t('fbDetecting') : t('fbAutoDetect')}
           </button>
         )}
       </div>
@@ -109,7 +111,7 @@ export function GeoPointMap({
             value={lat}
             onChange={(e) => setLat(e.target.value)}
             onBlur={handleManualChange}
-            placeholder="Latitude"
+            placeholder={t('fbLatitude')}
             className="flex-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           />
           <input
@@ -117,14 +119,14 @@ export function GeoPointMap({
             value={lng}
             onChange={(e) => setLng(e.target.value)}
             onBlur={handleManualChange}
-            placeholder="Longitude"
+            placeholder={t('fbLongitude')}
             className="flex-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           />
         </div>
       )}
 
       <p className="text-[10px] text-gray-400">
-        Click on the map to place a marker.
+        {t('fbClickMapMarker')}
       </p>
 
       {isClient && (

@@ -6,6 +6,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import type { DashboardSection, DashboardWidget } from '@/lib/api/dashboard-hooks';
+import { useTranslations } from '@/lib/i18n/translations';
 import { SortableSection } from './SortableSection';
 
 interface SectionListProps {
@@ -35,6 +36,7 @@ export function SectionList({
   onWidgetDuplicate,
   onSectionDuplicate,
 }: SectionListProps) {
+  const t = useTranslations('dashboard');
   const sortedSections = [...sections].sort((a, b) => a.sortOrder - b.sortOrder);
   const sectionIds = sortedSections.map((s) => s.id);
 
@@ -43,12 +45,12 @@ export function SectionList({
       <div className="flex min-h-[300px] items-center justify-center rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
         <div className="text-center">
           <p className="text-lg font-medium text-gray-500 dark:text-gray-400">
-            No sections yet
+            {t('dbNoSectionsYet')}
           </p>
           <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
             {editable
-              ? 'Click "Add Section" to get started'
-              : 'This dashboard has no content'}
+              ? t('dbClickAddSectionToStart')
+              : t('dbDashboardNoContent')}
           </p>
         </div>
       </div>
