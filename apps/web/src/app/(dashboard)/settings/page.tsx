@@ -7,9 +7,6 @@ import {
   Shield,
   ShieldAlert,
   Bell,
-  Globe,
-  Palette,
-  Database,
   ChevronRight,
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -54,30 +51,6 @@ export default function SettingsOverviewPage() {
       icon: <Bell className="h-5 w-5" />,
       color: 'text-amber-600',
       bgColor: 'bg-amber-100',
-    },
-    {
-      href: '/settings/language',
-      label: t('languageRegion'),
-      description: t('languageRegionDesc'),
-      icon: <Globe className="h-5 w-5" />,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
-    },
-    {
-      href: '/settings/appearance',
-      label: t('appearance'),
-      description: t('appearanceDesc'),
-      icon: <Palette className="h-5 w-5" />,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
-    },
-    {
-      href: '/settings/data',
-      label: t('dataPrivacy'),
-      description: t('dataPrivacyDesc'),
-      icon: <Database className="h-5 w-5" />,
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-100',
     },
     ...(canManageRoles ? [{
       href: '/settings/roles',
