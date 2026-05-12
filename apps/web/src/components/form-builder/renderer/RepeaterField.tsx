@@ -120,6 +120,8 @@ interface RepeaterFieldProps {
   field: FormField;
   value: unknown;
   onChange: (value: unknown) => void;
+  /** Parent form values — passed through to sub-fields for dynamic parentFilter resolution */
+  formValues?: Record<string, unknown>;
 }
 
 const ml = (text?: MultilingualText) => text?.en || text?.fr || '';
@@ -149,7 +151,7 @@ function normalizeSubField(raw: Record<string, unknown>, index: number): FormFie
   };
 }
 
-export function RepeaterField({ field, value, onChange }: RepeaterFieldProps) {
+export function RepeaterField({ field, value, onChange, formValues }: RepeaterFieldProps) {
   const mobile = useFormMobile();
   const rawSubFields = (field.properties.fields || []) as Array<Record<string, unknown>>;
   const minRows = (field.properties.minRows as number) || 1;
@@ -260,6 +262,7 @@ export function RepeaterField({ field, value, onChange }: RepeaterFieldProps) {
                     value={row[sf.code]}
                     onChange={(v) => handleRowFieldChange(rowIndex, sf.code, v)}
                     error={rowErrors[rowIndex]?.[sf.code]}
+                    formValues={formValues}
                   />
                 </div>
               ))}

@@ -227,6 +227,10 @@ export class RefDataService {
     if (type === 'diseases' && query.speciesId) {
       where['diseaseSpecies'] = { some: { speciesId: query.speciesId } };
     }
+    // For species filtered by diseaseId (which species can catch this disease)
+    if (type === 'species' && query.diseaseId) {
+      where['diseaseSpecies'] = { some: { diseaseId: query.diseaseId } };
+    }
 
     const orderBy = query.sort
       ? { [query.sort]: query.order ?? 'asc' }
@@ -273,6 +277,10 @@ export class RefDataService {
     // Disease by species
     if (type === 'diseases' && query.speciesId) {
       where['diseaseSpecies'] = { some: { speciesId: query.speciesId } };
+    }
+    // Species by disease (which species can catch this disease)
+    if (type === 'species' && query.diseaseId) {
+      where['diseaseSpecies'] = { some: { diseaseId: query.diseaseId } };
     }
 
     if (query.search) {

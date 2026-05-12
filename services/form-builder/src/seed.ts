@@ -309,8 +309,8 @@ function buildMonthlyHealthReport() {
     { en: 'Animals Affected', fr: 'Animaux Affectés', pt: 'Animais Afetados', ar: 'الحيوانات المتأثرة' }, 2,
     [
       makeRepeater('animals_affected', { en: 'Animals by Species', fr: 'Animaux par Espèce', pt: 'Animais por Espécie', ar: 'الحيوانات حسب النوع' }, [
-        { type: 'master-data-select', code: 'species', label: { en: 'Species', fr: 'Espèce', pt: 'Espécie', ar: 'النوع' }, required: true, properties: { masterDataType: 'species', searchable: true } },
-        { type: 'master-data-select', code: 'age_group', label: { en: 'Age Group', fr: 'Groupe d\'Âge', pt: 'Grupo Etário', ar: 'الفئة العمرية' }, properties: { masterDataType: 'age-groups', searchable: true } },
+        { type: 'master-data-select', code: 'species', label: { en: 'Species', fr: 'Espèce', pt: 'Espécie', ar: 'النوع' }, required: true, properties: { masterDataType: 'species', searchable: true, parentFilter: { diseaseId: '$disease' } } },
+        { type: 'master-data-select', code: 'age_group', label: { en: 'Age Group', fr: "Groupe d'Âge", pt: 'Grupo Etário', ar: 'الفئة العمرية' }, properties: { masterDataType: 'age-groups', searchable: true } },
         { type: 'master-data-select', code: 'sex', label: { en: 'Sex', fr: 'Sexe', pt: 'Sexo', ar: 'الجنس' }, properties: { masterDataType: 'animal-sexes', searchable: true } },
         { type: 'number', code: 'num_susceptible', label: { en: 'Number Susceptible', fr: 'Nombre Susceptible', pt: 'Número Suscetível', ar: 'العدد المعرض' }, required: true, properties: { min: 0 } },
         { type: 'number', code: 'num_at_risk', label: { en: 'Number at Risk', fr: 'Nombre à Risque', pt: 'Número em Risco', ar: 'العدد المعرض للخطر' }, required: true, properties: { min: 0 } },

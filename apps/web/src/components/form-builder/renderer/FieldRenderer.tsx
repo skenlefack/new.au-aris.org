@@ -39,6 +39,32 @@ interface FieldRendererProps {
 
 const ml = (text?: MultilingualText) => text?.en || text?.fr || '';
 
+/**
+ * Resolve dynamic references in parentFilter.
+ * Values starting with "$" reference other form field codes.
+ * e.g., { diseaseId: "$disease_name" } → { diseaseId: "actual-uuid-from-form" }
+ */
+function resolveParentFilter(
+  filter: Record<string, string> | undefined,
+  formValues?: Record<string, unknown>,
+): Record<string, string> | undefined {
+  if (!filter) return undefined;
+  const resolved: Record<string, string> = {};
+  for (const [key, val] of Object.entries(filter)) {
+    if (val.startsWith('$') && formValues) {
+      const fieldCode = val.slice(1);
+      const formVal = formValues[fieldCode];
+      if (formVal && typeof formVal === 'string') {
+        resolved[key] = formVal;
+      }
+    } else {
+      resolved[key] = val;
+    }
+  }
+  // Only return if at least one key has a value
+  return Object.keys(resolved).length > 0 ? resolved : undefined;
+}
+
 export function FieldRenderer({ field, value, onChange, error, formValues }: FieldRendererProps) {
   const label = ml(field.label);
   const placeholder = ml(field.placeholder);
@@ -185,7 +211,10 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
             value={(value as string) || ''}
             onChange={(v) => onChange(v)}
             placeholder={placeholder}
-            parentFilter={field.properties.parentFilter as Record<string, string> | undefined}
+            parentFilter={resolveParentFilter(
+              field.properties.parentFilter as Record<string, string> | undefined,
+              formValues,
+            )}
             className={inputClass}
           />
         </Suspense>
@@ -448,6 +477,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
             field={field}
             value={value}
             onChange={onChange}
+            formValues={formValues}
           />
         </Suspense>
       )}

@@ -24,6 +24,12 @@ const VALID_REF_TYPES: Set<string> = new Set([
   'commodities', 'hive-types', 'bee-diseases', 'floral-sources',
   'legal-framework-types', 'stakeholder-types',
   'infrastructures',
+  // Phase 4 — WOAH/References-data enrichment
+  'diagnosis-bases', 'body-parts', 'causal-agent-types',
+  'outbreak-statuses', 'epidemiological-unit-types', 'notification-reasons',
+  'source-of-infections', 'transport-modes', 'animal-sexes',
+  'animal-husbandries', 'genetic-diversities', 'data-sources',
+  'fish-families',
 ]);
 
 export function MasterDataSelectField({
