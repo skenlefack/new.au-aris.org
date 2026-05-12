@@ -30,26 +30,30 @@ export default async function RecPage({ params }: Props) {
       interopCount = apiRec.interopCount ?? 0;
       activeCount = apiRec.activeCount ?? 0;
 
-      // Merge REC data (keep UI-specific fields from static: colorLight, colorDark, etc.)
+      // All content from database — only UI-only fields (colorLight, colorDark) from static
       rec = {
-        ...(staticRec as RecConfig),
-        name: apiRec.name?.en || staticRec!.name,
-        nameFr: apiRec.name?.fr || staticRec!.nameFr,
-        namePt: apiRec.name?.pt || staticRec!.namePt,
-        fullName: apiRec.fullName?.en || staticRec!.fullName,
-        fullNameFr: apiRec.fullName?.fr || staticRec!.fullNameFr,
-        fullNamePt: apiRec.fullName?.pt || staticRec!.fullNamePt,
-        description: apiRec.description?.en || staticRec!.description,
-        descriptionFr: apiRec.description?.fr || staticRec!.descriptionFr,
-        descriptionPt: apiRec.description?.pt || staticRec!.descriptionPt,
-        region: apiRec.region?.en || staticRec!.region,
-        regionFr: apiRec.region?.fr || staticRec!.regionFr,
-        regionPt: apiRec.region?.pt || staticRec!.regionPt,
-        headquarters: apiRec.headquarters || staticRec!.headquarters,
-        establishedYear: apiRec.established ?? staticRec!.establishedYear,
-        memberCount: apiRec.countries?.length ?? staticRec!.memberCount,
-        color: apiRec.accentColor || staticRec!.color,
-      };
+        code: recCode,
+        colorLight: staticRec!.colorLight,
+        colorDark: staticRec!.colorDark,
+        countryCodes: staticRec!.countryCodes,
+        tenantId: staticRec!.tenantId,
+        name: apiRec.name?.en ?? recCode,
+        nameFr: apiRec.name?.fr ?? '',
+        namePt: apiRec.name?.pt ?? '',
+        fullName: apiRec.fullName?.en ?? '',
+        fullNameFr: apiRec.fullName?.fr ?? '',
+        fullNamePt: apiRec.fullName?.pt ?? '',
+        description: apiRec.description?.en ?? '',
+        descriptionFr: apiRec.description?.fr ?? '',
+        descriptionPt: apiRec.description?.pt ?? '',
+        region: apiRec.region?.en ?? '',
+        regionFr: apiRec.region?.fr ?? '',
+        regionPt: apiRec.region?.pt ?? '',
+        headquarters: apiRec.headquarters ?? '',
+        establishedYear: apiRec.established ?? null,
+        memberCount: apiRec.countries?.length ?? 0,
+        color: apiRec.accentColor ?? staticRec!.color,
+      } as RecConfig;
 
       // Merge country data if API returned countries
       const apiCountries: any[] = apiRec.countries ?? [];
