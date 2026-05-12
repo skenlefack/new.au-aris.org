@@ -98,6 +98,7 @@ export default function DivisionsPage() {
     name: { ...emptyML },
     level: adminLevels[0] ? `ADMIN${adminLevels[0].level}` : 'ADMIN1',
     parentId: undefined as string | undefined,
+    parentName: undefined as Record<string, string> | undefined,
     latitude: '',
     longitude: '',
   });
@@ -121,6 +122,7 @@ export default function DivisionsPage() {
       name: { ...emptyML },
       level: adminLevels[0] ? `ADMIN${adminLevels[0].level}` : 'ADMIN1',
       parentId: undefined,
+      parentName: undefined,
       latitude: '',
       longitude: '',
     });
@@ -135,6 +137,7 @@ export default function DivisionsPage() {
       name: { ...emptyML, ...(entity.name ?? {}) },
       level: entity.level,
       parentId: entity.parentId ?? undefined,
+      parentName: entity.parentName ?? undefined,
       latitude: entity.latitude != null ? String(entity.latitude) : '',
       longitude: entity.longitude != null ? String(entity.longitude) : '',
     });
@@ -183,6 +186,12 @@ export default function DivisionsPage() {
 
   const dialogLevelNum = parseInt(dialogForm.level.replace('ADMIN', ''), 10);
   const dialogParentMaxLevel = dialogLevelNum > 1 ? dialogLevelNum - 1 : 0;
+
+  // Resolve parent label for edit mode display
+  const editParentLabel = useMemo(() => {
+    if (!dialogForm.parentName) return '';
+    return dialogForm.parentName.en || dialogForm.parentName.fr || '';
+  }, [dialogForm.parentName]);
 
   const levelBreadcrumb = adminLevels.map((al) => al.name?.en ?? `Level ${al.level}`);
 
@@ -275,24 +284,39 @@ export default function DivisionsPage() {
           </div>
 
           {/* Parent picker (for level 2+) */}
-          {formMode === 'add' && dialogParentMaxLevel > 0 && countryCode && (
+          {dialogParentMaxLevel > 0 && countryCode && (
             <div className="mt-4">
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t('parentDivision')} <span className="text-red-500">*</span>
               </label>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/50">
-                <GeoLocationPicker
-                  countryCode={countryCode}
-                  countryId={countryId}
-                  maxLevel={dialogParentMaxLevel}
-                  onChange={(entityId) =>
-                    setDialogForm((p) => ({
-                      ...p,
-                      parentId: entityId ?? undefined,
-                    }))
-                  }
-                />
-              </div>
+              {formMode === 'edit' && dialogForm.parentId && editParentLabel ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900/50">
+                    <MapPin className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-700 dark:text-gray-300">{editParentLabel}</span>
+                    <span className="text-xs text-gray-400">({levelLabel(`ADMIN${dialogParentMaxLevel}`)})</span>
+                  </div>
+                  <p className="text-xs text-gray-400">{t('parentCannotBeChanged') || 'Parent division cannot be changed after creation.'}</p>
+                </div>
+              ) : formMode === 'add' ? (
+                <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/50">
+                  <GeoLocationPicker
+                    countryCode={countryCode}
+                    countryId={countryId}
+                    maxLevel={dialogParentMaxLevel}
+                    onChange={(entityId) =>
+                      setDialogForm((p) => ({
+                        ...p,
+                        parentId: entityId ?? undefined,
+                      }))
+                    }
+                  />
+                </div>
+              ) : (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-400 dark:border-gray-700 dark:bg-gray-900/50">
+                  {t('noParent') || 'No parent assigned'}
+                </div>
+              )}
             </div>
           )}
 

@@ -48,6 +48,9 @@ export class GeoService {
         pt: entity.namePt || '',
         ar: entity.nameAr || '',
       },
+      // Map centroid fields to frontend-expected latitude/longitude
+      latitude: entity.centroidLat ?? null,
+      longitude: entity.centroidLng ?? null,
     };
   }
 
