@@ -222,6 +222,8 @@ export const ListDashboardsQuerySchema = Type.Object({
   scope: Type.Optional(DashboardScopeSchema),
   domainCode: Type.Optional(Type.String()),
   subDomainCode: Type.Optional(Type.String()),
+  recCode: Type.Optional(Type.String({ maxLength: 20 })),
+  countryCode: Type.Optional(Type.String({ maxLength: 2 })),
   ownership: Type.Optional(DashboardOwnershipSchema),
   page: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 20 })),

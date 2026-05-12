@@ -15,6 +15,9 @@ import {
   X,
   Home,
   Globe,
+  Flag,
+  LogIn,
+  Lock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -29,6 +32,8 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useRealtimeStore } from '@/lib/realtime/realtime-store';
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { useSubDomains } from '@/hooks/use-sub-domains';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { useSettingsRecs, useSettingsCountries } from '@/lib/api/settings-hooks';
 
 type Tab = 'USER_OWNED' | 'SHARED' | 'SYSTEM_TEMPLATE';
 
@@ -168,19 +173,35 @@ export default function MyDashboardsPage() {
   // New dashboard modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
-  const [newZone, setNewZone] = useState<'principal' | 'domain' | 'subdomain'>(
+  const [newZone, setNewZone] = useState<'principal' | 'domain' | 'subdomain' | 'public_rec' | 'public_country'>(
     searchParams.get('domain') ? 'domain' : 'principal',
   );
   const [newDomainCode, setNewDomainCode] = useState(searchParams.get('domain') ?? '');
   const [newSubDomainCode, setNewSubDomainCode] = useState('');
+  const [newRecCode, setNewRecCode] = useState('');
+  const [newCountryCode, setNewCountryCode] = useState('');
   const [treeSearch, setTreeSearch] = useState('');
   const [shakeModal, setShakeModal] = useState(false);
+
+  // Multi-tenant context
+  const user = useAuthStore((s) => s.user);
+  const tenantLevel = user?.tenantLevel ?? 'CONTINENTAL';
+  const isNational = tenantLevel === 'MEMBER_STATE';
+  const isRec = tenantLevel === 'REC';
+
+  // RECs and countries for public page selectors
+  const { data: recsData } = useSettingsRecs({ limit: 20 });
+  const allRecs: any[] = recsData?.data ?? [];
+  const { data: countriesData } = useSettingsCountries({ limit: 100 });
+  const allCountries: any[] = countriesData?.data ?? [];
 
   const openCreateModal = () => {
     setNewTitle('');
     setNewZone(searchParams.get('domain') ? 'domain' : 'principal');
     setNewDomainCode(searchParams.get('domain') ?? '');
     setNewSubDomainCode('');
+    setNewRecCode('');
+    setNewCountryCode('');
     setTreeSearch('');
     setShowCreateModal(true);
   };
@@ -194,10 +215,23 @@ export default function MyDashboardsPage() {
     setIsCreating(true);
     setShowCreateModal(false);
     try {
+      let scope: DashboardScope = 'PERSONAL';
+      let recCode: string | undefined;
+      let countryCode: string | undefined;
+      if (newZone === 'public_rec') {
+        scope = 'REC';
+        recCode = newRecCode;
+      } else if (newZone === 'public_country') {
+        scope = 'COUNTRY';
+        countryCode = newCountryCode;
+      }
+
       const result = await createMutation.mutateAsync({
         title: newTitle || 'New Dashboard',
-        scope: 'PERSONAL',
+        scope,
         domainCode: (newZone === 'domain' || newZone === 'subdomain') && newDomainCode ? newDomainCode : undefined,
+        recCode,
+        countryCode,
       });
       const id = (result as any)?.data?.id;
       if (id) {
@@ -385,24 +419,37 @@ export default function MyDashboardsPage() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Zone d&apos;affichage</label>
                 <div className="grid grid-cols-3 gap-3">
                   {([
-                    { key: 'principal' as const, icon: Home, label: "Page d'accueil", desc: 'Tableau de bord principal' },
-                    { key: 'domain' as const, icon: Globe, label: 'Page domaine', desc: 'Specifique a un domaine' },
-                    { key: 'subdomain' as const, icon: Layers, label: 'Sous-domaine', desc: 'Specifique a un sous-domaine' },
+                    { key: 'principal' as const, icon: LogIn, label: 'Ouverture de session', desc: 'Tableau de bord principal', disabled: false },
+                    { key: 'domain' as const, icon: Globe, label: 'Page domaine', desc: 'Specifique a un domaine', disabled: false },
+                    { key: 'subdomain' as const, icon: Layers, label: 'Sous-domaine', desc: 'Specifique a un sous-domaine', disabled: false },
+                    { key: 'public_rec' as const, icon: Globe, label: 'Page publique RECs', desc: 'Affiche sur la page REC', disabled: isNational },
+                    { key: 'public_country' as const, icon: Flag, label: 'Page publique Pays', desc: 'Affiche sur la page pays', disabled: false },
                   ]).map((z) => (
                     <button
                       key={z.key}
                       type="button"
-                      onClick={() => { setNewZone(z.key); setNewDomainCode(''); setNewSubDomainCode(''); }}
+                      disabled={z.disabled}
+                      onClick={() => {
+                        if (z.disabled) return;
+                        setNewZone(z.key);
+                        setNewDomainCode('');
+                        setNewSubDomainCode('');
+                        setNewRecCode('');
+                        setNewCountryCode('');
+                      }}
                       className={cn(
-                        'flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-3 text-xs font-medium transition-all',
-                        newZone === z.key
-                          ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79] shadow-sm'
-                          : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700/50',
+                        'relative flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-3 text-xs font-medium transition-all',
+                        z.disabled
+                          ? 'cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-600'
+                          : newZone === z.key
+                            ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79] shadow-sm'
+                            : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700/50',
                       )}
                     >
+                      {z.disabled && <Lock className="absolute top-1.5 right-1.5 h-3 w-3 text-gray-300 dark:text-gray-600" />}
                       <z.icon className="h-5 w-5" />
                       <span>{z.label}</span>
-                      <span className="text-[9px] font-normal text-gray-400">{z.desc}</span>
+                      <span className="text-[9px] font-normal text-gray-400">{z.disabled ? 'Niveau REC/Continental requis' : z.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -493,6 +540,89 @@ export default function MyDashboardsPage() {
               )}
             </div>
 
+              {/* REC selector (zone=public_rec) */}
+              {newZone === 'public_rec' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">REC concernee</label>
+                  {isRec ? (
+                    <div className="rounded-lg border border-[#1F4E79] bg-[#1F4E79]/5 px-3 py-2.5 text-sm text-[#1F4E79] font-medium">
+                      {allRecs.find((r: any) => r.code === user?.tenantId || r.id === user?.tenantId)?.name?.en
+                        ?? allRecs[0]?.name?.en ?? 'Your REC'}
+                      <span className="ml-2 text-xs font-normal text-gray-400">(pre-selectionnee)</span>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto">
+                      {allRecs.map((rec: any) => (
+                        <button
+                          key={rec.id}
+                          type="button"
+                          onClick={() => setNewRecCode(rec.code)}
+                          className={cn(
+                            'flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-all',
+                            newRecCode === rec.code
+                              ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79] font-medium shadow-sm'
+                              : 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700/50',
+                          )}
+                        >
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white" style={{ backgroundColor: rec.accentColor || '#1F4E79' }}>
+                            {(rec.name?.en || rec.code || '?').charAt(0)}
+                          </div>
+                          <span>{rec.name?.en ?? rec.code}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Country selector (zone=public_country) */}
+              {newZone === 'public_country' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Pays concerne</label>
+                  {isNational ? (
+                    <div className="rounded-lg border border-[#1F4E79] bg-[#1F4E79]/5 px-3 py-2.5 text-sm text-[#1F4E79] font-medium">
+                      {allCountries.find((c: any) => c.tenantId === user?.tenantId)?.name?.en ?? 'Your Country'}
+                      <span className="ml-2 text-xs font-normal text-gray-400">(pre-selectionnee)</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <input
+                        type="text"
+                        value={treeSearch}
+                        onChange={(e) => setTreeSearch(e.target.value)}
+                        placeholder="Rechercher un pays..."
+                        className="mb-3 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                      />
+                      <div className="grid grid-cols-1 gap-1.5 max-h-[220px] overflow-y-auto">
+                        {allCountries
+                          .filter((c: any) => {
+                            if (!treeSearch.trim()) return true;
+                            const q = treeSearch.toLowerCase();
+                            return (c.name?.en || '').toLowerCase().includes(q) || (c.code || '').toLowerCase().includes(q);
+                          })
+                          .map((c: any) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => setNewCountryCode(c.code)}
+                              className={cn(
+                                'flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-all',
+                                newCountryCode === c.code
+                                  ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79] font-medium shadow-sm'
+                                  : 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700/50',
+                              )}
+                            >
+                              <span className="text-base">{c.flag}</span>
+                              <span>{c.name?.en ?? c.code}</span>
+                              <span className="ml-auto text-xs text-gray-400 font-mono">{c.code}</span>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
             {/* Footer */}
             <div className="flex items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-700 px-6 py-4 shrink-0">
               <button
@@ -503,7 +633,12 @@ export default function MyDashboardsPage() {
               </button>
               <button
                 onClick={handleCreate}
-                disabled={(newZone === 'domain' && !newDomainCode) || (newZone === 'subdomain' && !newSubDomainCode)}
+                disabled={
+                  (newZone === 'domain' && !newDomainCode) ||
+                  (newZone === 'subdomain' && !newSubDomainCode) ||
+                  (newZone === 'public_rec' && !isRec && !newRecCode) ||
+                  (newZone === 'public_country' && !isNational && !newCountryCode)
+                }
                 className="rounded-lg bg-[#1F4E79] px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#163a5c] disabled:opacity-50"
               >
                 Creer

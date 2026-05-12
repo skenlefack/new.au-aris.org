@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { LandingHeader } from './LandingHeader';
 import { LoginPanel } from './LoginPanel';
+import { PublicDashboardSection } from './PublicDashboardSection';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { getLocalizedField } from '@/lib/i18n/localize';
@@ -281,6 +282,9 @@ export function CountryPageContent({
           </div>
         </div>
       </section>
+
+      {/* Public Dashboard Section */}
+      <PublicDashboardSection scope="COUNTRY" code={country.code} />
     </>
   );
 }

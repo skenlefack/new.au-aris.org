@@ -55,7 +55,7 @@ export class DashboardService {
 
   async list(
     filters: ListDashboardsQuery,
-    userId: string,
+    userId?: string,
     userRole?: string,
     userTenantId?: string,
   ): Promise<{ data: unknown[]; meta: { total: number; page: number; limit: number } }> {
@@ -68,7 +68,13 @@ export class DashboardService {
     let idx = 1;
 
     // Ownership filter or default: own + shared + system templates
-    if (filters.ownership) {
+    if (!userId) {
+      // Public mode — only show USER_OWNED dashboards (no auth context)
+      if (filters.ownership) {
+        conditions.push(`d.ownership = $${idx++}`);
+        params.push(filters.ownership);
+      }
+    } else if (filters.ownership) {
       conditions.push(`d.ownership = $${idx++}`);
       params.push(filters.ownership);
     } else {
@@ -114,6 +120,14 @@ export class DashboardService {
         conditions.push(`d.sub_domain_id IN (SELECT id FROM governance.sub_domains WHERE code = $${idx++})`);
         params.push(filters.subDomainCode);
       }
+    }
+    if (filters.recCode) {
+      conditions.push(`d.rec_code = $${idx++}`);
+      params.push(filters.recCode);
+    }
+    if (filters.countryCode) {
+      conditions.push(`d.country_code = $${idx++}`);
+      params.push(filters.countryCode);
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

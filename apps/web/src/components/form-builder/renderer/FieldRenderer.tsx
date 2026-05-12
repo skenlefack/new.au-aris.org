@@ -605,7 +605,7 @@ function ConditionalGroupRenderer({
   if (children.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-gray-300 p-3 dark:border-gray-600">
-        <p className="text-xs text-gray-400">{t('fbNoChildFields')}</p>
+        <p className="text-xs text-gray-400">No child fields configured</p>
       </div>
     );
   }

@@ -5,6 +5,7 @@ import { LandingHeader } from './LandingHeader';
 import { CountryCard } from './CountryCard';
 import { LoginPanel } from './LoginPanel';
 import { StatsCounter } from './StatsCounter';
+import { PublicDashboardSection } from './PublicDashboardSection';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { getLocalizedField } from '@/lib/i18n/localize';
@@ -156,6 +157,9 @@ export function RecPageContent({ rec, countries, interopCount, activeCount }: Re
           </div>
         </div>
       </section>
+
+      {/* Public Dashboard Section */}
+      <PublicDashboardSection scope="REC" code={rec.code} />
     </>
   );
 }

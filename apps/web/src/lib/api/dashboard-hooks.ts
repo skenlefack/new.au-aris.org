@@ -274,6 +274,8 @@ const KEYS = {
 export function useDashboards(params?: {
   scope?: DashboardScope;
   domainCode?: string;
+  recCode?: string;
+  countryCode?: string;
   ownership?: DashboardOwnership;
   page?: number;
   limit?: number;
@@ -281,6 +283,8 @@ export function useDashboards(params?: {
   const qp: Record<string, string> = {};
   if (params?.scope) qp.scope = params.scope;
   if (params?.domainCode) qp.domainCode = params.domainCode;
+  if (params?.recCode) qp.recCode = params.recCode;
+  if (params?.countryCode) qp.countryCode = params.countryCode;
   if (params?.ownership) qp.ownership = params.ownership;
   if (params?.page) qp.page = String(params.page);
   if (params?.limit) qp.limit = String(params.limit);
@@ -362,6 +366,8 @@ export function useCreateDashboard() {
       description?: string;
       scope: DashboardScope;
       domainCode?: string;
+      recCode?: string;
+      countryCode?: string;
       isTemplate?: boolean;
       tags?: string[];
     }) => {
@@ -375,6 +381,30 @@ export function useCreateDashboard() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEYS.lists() });
     },
+  });
+}
+
+/** Fetch a public dashboard for REC/Country landing pages (no auth required) */
+export function usePublicDashboard(scope: DashboardScope, code?: string) {
+  const qp: Record<string, string> = { scope };
+  if (scope === 'REC' && code) qp.recCode = code;
+  if (scope === 'COUNTRY' && code) qp.countryCode = code;
+
+  return useQuery<{ data: DashboardRenderData | null }>({
+    queryKey: ['dashboards', 'public', scope, code],
+    queryFn: async () => {
+      try {
+        const res = await analyticsClient.get<{ data: DashboardRenderData | null }>(
+          '/analytics/dashboards/public',
+          qp,
+        );
+        return res ?? { data: null };
+      } catch {
+        return { data: null };
+      }
+    },
+    enabled: !!code,
+    staleTime: 5 * 60_000,
   });
 }
 

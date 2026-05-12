@@ -23,11 +23,13 @@
  *   POST   /dashboards/preferences                  — set user preference
  */
 
+import { Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { tenantHook, rolesHook } from '@aris/auth-middleware/fastify';
 import type { AuthenticatedUser } from '@aris/auth-middleware';
 import { UserRole } from '@aris/shared-types';
 import {
+  DashboardScopeSchema,
   CreateDashboardSchema,
   UpdateDashboardSchema,
   CreateWidgetSchema,
@@ -68,6 +70,45 @@ const ADMIN_ROLES: UserRole[] = [
 
 export async function registerDashboardRoutes(app: FastifyInstance): Promise<void> {
   const PREFIX = '/api/v1/analytics/dashboards';
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  Public dashboard (no auth — for public REC/Country pages)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  app.get(`${PREFIX}/public`, {
+    schema: {
+      querystring: Type.Object({
+        scope: DashboardScopeSchema,
+        recCode: Type.Optional(Type.String({ maxLength: 20 })),
+        countryCode: Type.Optional(Type.String({ maxLength: 2 })),
+      }),
+      tags: ['dashboards'],
+    },
+  }, async (
+    request: FastifyRequest<{ Querystring: { scope: string; recCode?: string; countryCode?: string } }>,
+    reply: FastifyReply,
+  ) => {
+    const { scope, recCode, countryCode } = request.query;
+    const result = await app.dashboardService.list(
+      { scope, recCode, countryCode, ownership: 'USER_OWNED', limit: 1 },
+      undefined, undefined, undefined, // no user context — public
+    );
+    const dashboard = result.data?.[0];
+    if (!dashboard) {
+      return reply.code(200).send({ data: null });
+    }
+    // Render with widget data
+    try {
+      const rendered = await app.widgetResolver.renderDashboard(
+        (dashboard as any).id,
+        undefined,
+        { recCode, countryCode },
+      );
+      return reply.code(200).send({ data: rendered });
+    } catch {
+      return reply.code(200).send({ data: { ...(dashboard as any), sections: [], widgetData: {} } });
+    }
+  });
 
   // ═══════════════════════════════════════════════════════════════════════
   //  Dashboards
