@@ -215,7 +215,7 @@ function buildIndicatorPrompt(name: string, description: string, domain?: string
   return prompt;
 }
 
-const WIDGET_TYPES = 'KPI_CARD, BAR_CHART, LINE_CHART, PIE_CHART, TABLE, MAP, GAUGE';
+const WIDGET_TYPES = 'KPI_CARD, STAT_CARD, BAR, LINE, PIE, STACKED_BAR, AREA, TABLE, MAP, GAUGE';
 
 const DASHBOARD_SYSTEM_PROMPT = `You are an expert dashboard designer for ARIS (Animal Resources Information System, AU-IBAR).
 Generate dashboard layouts for African animal resources data.
@@ -226,8 +226,8 @@ function buildDashboardPrompt(purpose: string, domain?: string, indicators?: str
   let prompt = `Design a dashboard: ${purpose}`;
   if (domain) prompt += `\nDomain: ${domain}`;
   if (indicators?.length) prompt += `\nAvailable indicators: ${indicators.join(', ')}`;
-  prompt += `\n\nWidget types allowed: ${WIDGET_TYPES}`;
-  prompt += '\n\nRespond with JSON: { "title": "...", "widgets": [{ "type": "KPI_CARD|BAR_CHART|LINE_CHART|PIE_CHART|TABLE|MAP|GAUGE", "title": "...", "dataSource": "..." }] }';
+  prompt += `\n\nWidget types: ${WIDGET_TYPES}`;
+  prompt += '\n\nRespond with JSON: { "title": "...", "widgets": [{ "type": "KPI_CARD|BAR|LINE|PIE|TABLE|MAP|GAUGE", "title": "...", "dataSource": "..." }] }';
   return prompt;
 }
 

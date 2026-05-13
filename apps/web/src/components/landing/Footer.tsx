@@ -90,9 +90,7 @@ export function Footer() {
               {t('contact')}
             </h4>
             <ul className="mt-3 space-y-2 text-sm text-[#5C3A00]/80">
-              <li>Kenindia Business Park</li>
-              <li>Museum Hill, Nairobi, Kenya</li>
-              <li className="pt-1">
+              <li>
                 <Link href="mailto:ibar.office@au-ibar.org" className="transition-colors hover:text-[#3E2100]">
                   ibar.office@au-ibar.org
                 </Link>
@@ -123,9 +121,6 @@ export function Footer() {
                   <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" />
                 </svg>
               </a>
-              <p className="mt-1.5 text-[10px] text-[#5C3A00]/60">
-                {t('mobileAppBeta')}
-              </p>
             </div>
           </div>
         </div>

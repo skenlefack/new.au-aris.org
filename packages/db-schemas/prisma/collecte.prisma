@@ -100,7 +100,6 @@ model Campaign {
   createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz
   updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz
 
-  submissions Submission[]
   targets     CampaignDomainTarget[]
 
   @@index([tenantId], map: "idx_campaign_tenant_id")
@@ -155,7 +154,6 @@ model Submission {
   createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz
 
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   collecteInstance CollecteInstance?
 
   @@index([tenantId], map: "idx_submission_tenant_id")

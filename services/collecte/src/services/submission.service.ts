@@ -66,10 +66,19 @@ export class SubmissionService {
     },
     user: AuthenticatedUser,
   ): Promise<ApiResponse<SubmissionEntity>> {
-    // 1. Load campaign and verify access
-    const campaign = await (this.prisma as any).campaign.findUnique({
+    // 1. Load campaign — try CollectionCampaign first (new model), fallback to legacy Campaign
+    let campaign: any = await (this.prisma as any).collectionCampaign.findUnique({
       where: { id: dto.campaignId },
     });
+    let isCollectionCampaign = true;
+
+    if (!campaign) {
+      // Fallback: legacy Campaign table
+      campaign = await (this.prisma as any).campaign.findUnique({
+        where: { id: dto.campaignId },
+      });
+      isCollectionCampaign = false;
+    }
 
     if (!campaign) {
       throw new HttpError(404, `Campaign ${dto.campaignId} not found`);
@@ -82,17 +91,22 @@ export class SubmissionService {
       );
     }
 
-    // Tenant isolation
+    // Tenant isolation (legacy Campaign has tenantId, CollectionCampaign uses ownerId)
+    const campaignTenantId = isCollectionCampaign ? campaign.ownerId : campaign.tenantId;
     if (
+      campaignTenantId &&
       user.tenantLevel !== TenantLevel.CONTINENTAL &&
-      campaign.tenantId !== user.tenantId
+      campaignTenantId !== user.tenantId
     ) {
       throw new HttpError(404, `Campaign ${dto.campaignId} not found`);
     }
 
+    // Resolve template ID (CollectionCampaign uses formTemplateId, legacy uses templateId)
+    const templateId = isCollectionCampaign ? campaign.formTemplateId : campaign.templateId;
+
     // 2. Validate against form template JSON Schema
     const schemaErrors = await this.validateAgainstTemplate(
-      campaign.templateId,
+      templateId,
       dto.data,
     );
     if (schemaErrors.length > 0) {
@@ -111,7 +125,7 @@ export class SubmissionService {
       data: {
         tenantId: user.tenantId,
         campaignId: dto.campaignId,
-        templateId: campaign.templateId,
+        templateId,
         data: dto.data as Prisma.InputJsonValue,
         submittedBy: user.userId,
         submittedAt: new Date(),
@@ -479,13 +493,19 @@ export class SubmissionService {
       domain: undefined as string | undefined,
     };
 
-    // Load campaign domain for the event
+    // Load campaign domain for the event (try CollectionCampaign first, then legacy)
     try {
-      const campaign = await (this.prisma as any).campaign.findUnique({
+      let cam = await (this.prisma as any).collectionCampaign.findUnique({
         where: { id: s.campaignId },
         select: { domain: true },
       });
-      payload.domain = campaign?.domain; // Backward compat: reads legacy domain field, prefer targets[]
+      if (!cam) {
+        cam = await (this.prisma as any).campaign.findUnique({
+          where: { id: s.campaignId },
+          select: { domain: true },
+        });
+      }
+      payload.domain = cam?.domain;
     } catch {
       // Best effort
     }
