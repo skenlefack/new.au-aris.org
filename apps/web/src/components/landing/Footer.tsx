@@ -103,6 +103,30 @@ export function Footer() {
                 </Link>
               </li>
             </ul>
+
+            {/* Mobile App Download */}
+            <div className="mt-5">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-[#3E2100]">
+                {t('mobileApp')}
+              </h4>
+              <a
+                href="/aris-mobile.apk"
+                download="ARIS-v1.2.0.apk"
+                className="mt-2 inline-flex items-center gap-2 rounded-lg bg-[#3E2100]/90 px-4 py-2 text-sm font-medium text-[#E8C875] shadow-md transition-all hover:bg-[#3E2100] hover:shadow-lg"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                  <path d="M17.523 2.237a.625.625 0 0 0-.803.368l-1.1 2.903A9.018 9.018 0 0 0 12 4.75c-1.3 0-2.535.275-3.651.77L7.28 2.605a.625.625 0 1 0-1.17.435l1.065 2.81A9.03 9.03 0 0 0 3 13.25h18a9.03 9.03 0 0 0-4.174-7.4l1.065-2.81a.625.625 0 0 0-.368-.803ZM8.25 10.875a.875.875 0 1 1 0-1.75.875.875 0 0 1 0 1.75Zm7.5 0a.875.875 0 1 1 0-1.75.875.875 0 0 1 0 1.75ZM3 14.5h18v1.25A6.25 6.25 0 0 1 14.75 22h-5.5A6.25 6.25 0 0 1 3 15.75V14.5Z"/>
+                </svg>
+                {t('downloadAndroid')}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                  <path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" />
+                  <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" />
+                </svg>
+              </a>
+              <p className="mt-1.5 text-[10px] text-[#5C3A00]/60">
+                {t('mobileAppBeta')}
+              </p>
+            </div>
           </div>
         </div>
 
