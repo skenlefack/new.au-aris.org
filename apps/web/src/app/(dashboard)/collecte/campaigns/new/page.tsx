@@ -28,7 +28,11 @@ import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea
 import { useTranslations } from '@/lib/i18n/translations';
 import { SubDomainTreeSelector } from '@/components/forms/SubDomainTreeSelector';
 import { useDomainStore } from '@/lib/stores/domain-store';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTenantStore, findTenantById } from '@/lib/stores/tenant-store';
+import { useGeoEntities } from '@/lib/api/geo-hooks';
 import { AiSuggestionDialog } from '@/components/ai/AiSuggestionDialog';
+import { MapPin } from 'lucide-react';
 
 const FREQUENCY_OPTIONS = [
   { value: 'one_time', tKey: 'oneTime' },
@@ -55,6 +59,35 @@ export default function NewCampaignPage() {
   const tAi = useTranslations('ai');
   const createCampaign = useCreateCollectionCampaign();
   const allDomains = useDomainStore((s) => s.allDomains);
+  const user = useAuthStore((s) => s.user);
+  const tenantTree = useTenantStore((s) => s.tenantTree);
+  const selectedTenantId = useTenantStore((s) => s.selectedTenantId);
+
+  const userLevel = user?.tenantLevel || 'MEMBER_STATE';
+
+  // Determine which country codes are in the user's scope
+  const { scopeCountryCodes, scopeRecCodes, userCountryCode } = useMemo(() => {
+    if (!user || !selectedTenantId) return { scopeCountryCodes: null, scopeRecCodes: null, userCountryCode: null };
+
+    if (userLevel === 'MEMBER_STATE') {
+      // Find country code from COUNTRIES config or email
+      const byTenant = Object.values(COUNTRIES).find((c) => c.tenantId === selectedTenantId);
+      const code = byTenant?.code || user.email.split('@')[1]?.split('.')[0]?.toUpperCase() || null;
+      return { scopeCountryCodes: code ? [code] : [], scopeRecCodes: [] as string[], userCountryCode: code };
+    }
+
+    if (userLevel === 'REC') {
+      const rec = allRecs.find((r) => r.tenantId === selectedTenantId);
+      return {
+        scopeCountryCodes: rec?.countryCodes || [],
+        scopeRecCodes: rec ? [rec.code] : [],
+        userCountryCode: null,
+      };
+    }
+
+    // CONTINENTAL → all
+    return { scopeCountryCodes: null, scopeRecCodes: null, userCountryCode: null };
+  }, [user, selectedTenantId, userLevel]);
 
   // Build domain options from store (active only, excluding Knowledge)
   const domainOptions = useMemo(() => {
@@ -96,7 +129,40 @@ export default function NewCampaignPage() {
   const [sendReminders, setSendReminders] = useState(false);
   const [reminderDays, setReminderDays] = useState('3');
 
+  // Admin division targeting (country-level users)
+  const [targetAdminZones, setTargetAdminZones] = useState<Array<{ id: string; label: string; level: string }>>([]);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Auto-select country/REC for restricted users
+  React.useEffect(() => {
+    if (userLevel === 'MEMBER_STATE' && scopeCountryCodes && scopeCountryCodes.length === 1) {
+      const code = scopeCountryCodes[0];
+      const country = countryList.find((c) => c.code === code);
+      if (country && selectedCountries.length === 0) {
+        setSelectedCountries([country]);
+      }
+    }
+    if (userLevel === 'REC' && scopeRecCodes && scopeRecCodes.length === 1) {
+      const rec = allRecs.find((r) => r.code === scopeRecCodes[0]);
+      if (rec && selectedRecs.length === 0) {
+        setSelectedRecs([rec]);
+      }
+    }
+  }, [userLevel, scopeCountryCodes, scopeRecCodes]);
+
+  // Fetch admin1 divisions for targeting (country users)
+  const targetCountryCode = selectedCountries.length === 1 ? selectedCountries[0].code : undefined;
+  const { data: admin1Data } = useGeoEntities(
+    userLevel === 'MEMBER_STATE' && targetCountryCode
+      ? { level: 'ADMIN1', countryCode: targetCountryCode, limit: 200 }
+      : undefined,
+  );
+  const { data: admin2Data } = useGeoEntities(
+    userLevel === 'MEMBER_STATE' && targetCountryCode
+      ? { level: 'ADMIN2', countryCode: targetCountryCode, limit: 500 }
+      : undefined,
+  );
 
   // AI suggestion dialog
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
@@ -111,21 +177,35 @@ export default function NewCampaignPage() {
     if (Array.isArray(draft.subDomains)) setSelectedSubDomains(draft.subDomains);
   };
 
-  // Fetch all templates
+  // Fetch published templates only
   const { data: templatesData, isLoading: templatesLoading } = useFormBuilderTemplates({
     page: 1,
-    limit: 100,
+    limit: 500,
+    status: 'PUBLISHED',
   });
 
-  // Filter templates by selected domains
+  // Filter templates: published + domain match + owned by user's tenant or parent tenants
   const publishedTemplates = useMemo(() => {
     const apiData = templatesData?.data ?? [];
     return apiData.filter((tmpl) => {
       if (tmpl.status !== 'PUBLISHED') return false;
       if (selectedDomains.length > 0 && !selectedDomains.includes(tmpl.domain)) return false;
+      // Show templates from user's own tenant + parent tenants (continental always visible)
+      if (selectedTenantId && tmpl.tenantId !== selectedTenantId) {
+        const tmplTenant = findTenantById(tenantTree, tmpl.tenantId);
+        if (!tmplTenant) return true; // unknown tenant — show anyway
+        // Allow if template is from a parent level (CONTINENTAL always, REC if user is MEMBER_STATE)
+        if (tmplTenant.level === 'CONTINENTAL') return true;
+        if (tmplTenant.level === 'REC' && userLevel === 'MEMBER_STATE') {
+          // Check if this REC is the user's parent REC
+          const rec = allRecs.find((r) => r.tenantId === tmpl.tenantId);
+          if (rec && userCountryCode && rec.countryCodes.includes(userCountryCode)) return true;
+        }
+        return false;
+      }
       return true;
     });
-  }, [templatesData, selectedDomains]);
+  }, [templatesData, selectedDomains, selectedTenantId, tenantTree, userLevel, userCountryCode]);
 
   // Form codes use underscores (animal_health), store uses hyphens (animal-health)
   const FORM_TO_STORE: Record<string, string> = {
@@ -171,7 +251,7 @@ export default function NewCampaignPage() {
     if (!(name.en?.trim() || name.fr?.trim())) e.name = t('campaignNameRequired');
     if (selectedDomains.length === 0) e.domains = t('domainRequired');
     if (selectedTemplates.length === 0) e.templates = t('templateRequired');
-    if (selectedCountries.length === 0) e.countries = t('countriesRequired');
+    if (selectedCountries.length === 0 && userLevel !== 'MEMBER_STATE') e.countries = t('countriesRequired');
     if (!startDate) e.startDate = t('startDateRequired');
     if (!endDate) e.endDate = t('endDateRequired');
     if (startDate && endDate && startDate > endDate) e.endDate = t('endDateAfterStart');
@@ -231,6 +311,7 @@ export default function NewCampaignPage() {
       endDate,
       targetCountries: selectedCountries.map((c: CountryConfig) => c.code),
       targetRecIds: selectedRecs.length > 0 ? selectedRecs.map((r) => r.tenantId) : undefined,
+      targetZones: targetAdminZones.length > 0 ? targetAdminZones.map((z) => z.id) : undefined,
       targetSubmissions: targetSubmissions ? parseInt(targetSubmissions, 10) : undefined,
       frequency,
       sendReminders,
@@ -240,6 +321,7 @@ export default function NewCampaignPage() {
         domains: selectedDomains,
         subDomains: selectedSubDomains,
         recCodes: selectedRecs.map((r) => r.code),
+        targetAdminZones: targetAdminZones.length > 0 ? targetAdminZones : undefined,
       },
     };
 
@@ -528,67 +610,112 @@ export default function NewCampaignPage() {
           {errors.templates && <p className="text-xs text-red-600">{errors.templates}</p>}
         </div>
 
-        {/* ROW 3 — RECs */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-gray-400" />
-            {t('targetRecs')}
-          </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{t('selectRecsDesc')}</p>
-          <MultiSearchCombobox<RecConfig>
-            value={selectedRecs}
-            onChange={handleRecsChange}
-            items={allRecs}
-            labelKey={(r) => r.name}
-            idKey={(r) => r.code}
-            filterKey={(r) => `${r.name} ${r.nameFr} ${r.code}`}
-            placeholder={t('searchRecs')}
-            allLabel={t('allRecs')}
-            renderItem={(r) => (
-              <span className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: r.color }} />
-                <span>{r.name}</span>
-                <span className="text-gray-400 text-[10px]">{r.memberCount} {t('countries')}</span>
-              </span>
-            )}
-            renderChip={(r) => (
-              <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: r.color }} />
-                {r.name}
-              </span>
-            )}
-          />
-        </div>
+        {/* ROW 3 — RECs (hidden for country users) */}
+        {userLevel !== 'MEMBER_STATE' && (
+          <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-gray-400" />
+              {t('targetRecs')}
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('selectRecsDesc')}</p>
+            <MultiSearchCombobox<RecConfig>
+              value={selectedRecs}
+              onChange={handleRecsChange}
+              items={userLevel === 'REC'
+                ? allRecs.filter((r) => scopeRecCodes?.includes(r.code))
+                : allRecs
+              }
+              labelKey={(r) => r.name}
+              idKey={(r) => r.code}
+              filterKey={(r) => `${r.name} ${r.nameFr} ${r.code}`}
+              placeholder={t('searchRecs')}
+              allLabel={t('allRecs')}
+              renderItem={(r) => (
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: r.color }} />
+                  <span>{r.name}</span>
+                  <span className="text-gray-400 text-[10px]">{r.memberCount} {t('countries')}</span>
+                </span>
+              )}
+              renderChip={(r) => (
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: r.color }} />
+                  {r.name}
+                </span>
+              )}
+            />
+          </div>
+        )}
 
-        {/* ROW 4 — Target Countries */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Globe className="h-4 w-4 text-gray-400" />
-            {t('targetCountries')} <span className="text-red-500">*</span>
-          </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{t('selectTargetCountries')}</p>
-          <MultiSearchCombobox<CountryConfig>
-            value={selectedCountries}
-            onChange={setSelectedCountries}
-            items={countryList}
-            labelKey={(c) => `${c.flag} ${c.name}`}
-            idKey={(c) => c.code}
-            filterKey={(c) => `${c.name} ${c.code} ${c.nameFr}`}
-            placeholder={t('searchCountries')}
-            allLabel={t('allCountries')}
-            renderItem={(c) => (
-              <span className="flex items-center gap-2">
-                <span>{c.flag}</span>
-                <span>{c.name}</span>
-                <span className="text-gray-400">{c.code}</span>
-              </span>
+        {/* ROW 4 — Target Countries (hidden for country users — auto-set) */}
+        {userLevel === 'MEMBER_STATE' ? (
+          <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Globe className="h-4 w-4 text-gray-400" />
+              {t('targetCountries')}
+            </h2>
+            <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              {selectedCountries.map((c) => (
+                <span key={c.code} className="inline-flex items-center gap-1 rounded-full border border-aris-primary-200 bg-aris-primary-50 px-3 py-1 text-xs font-medium text-aris-primary-700 dark:border-aris-primary-800 dark:bg-aris-primary-900/20 dark:text-aris-primary-400">
+                  {c.flag} {c.name}
+                </span>
+              ))}
+            </div>
+
+            {/* Admin Division Targeting */}
+            {targetCountryCode && (
+              <div className="space-y-3 border-t border-gray-100 pt-4 dark:border-gray-800">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-gray-400" />
+                  {t('targetZones') || 'Target Zones'}
+                  <span className="ml-1 text-xs font-normal text-gray-400">({t('optionalField')})</span>
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('targetZonesDesc') || 'Select specific administrative divisions to target. Leave empty to target the entire country.'}
+                </p>
+                <AdminZoneSelector
+                  admin1Data={admin1Data?.data}
+                  admin2Data={admin2Data?.data}
+                  selected={targetAdminZones}
+                  onChange={setTargetAdminZones}
+                  t={t}
+                />
+              </div>
             )}
-            renderChip={(c) => (
-              <span className="flex items-center gap-1">{c.flag} {c.name}</span>
-            )}
-          />
-          {errors.countries && <p className="text-xs text-red-600">{errors.countries}</p>}
-        </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Globe className="h-4 w-4 text-gray-400" />
+              {t('targetCountries')} <span className="text-red-500">*</span>
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('selectTargetCountries')}</p>
+            <MultiSearchCombobox<CountryConfig>
+              value={selectedCountries}
+              onChange={setSelectedCountries}
+              items={scopeCountryCodes
+                ? countryList.filter((c) => scopeCountryCodes.includes(c.code))
+                : countryList
+              }
+              labelKey={(c) => `${c.flag} ${c.name}`}
+              idKey={(c) => c.code}
+              filterKey={(c) => `${c.name} ${c.code} ${c.nameFr}`}
+              placeholder={t('searchCountries')}
+              allLabel={t('allCountries')}
+              renderItem={(c) => (
+                <span className="flex items-center gap-2">
+                  <span>{c.flag}</span>
+                  <span>{c.name}</span>
+                  <span className="text-gray-400">{c.code}</span>
+                </span>
+              )}
+              renderChip={(c) => (
+                <span className="flex items-center gap-1">{c.flag} {c.name}</span>
+              )}
+            />
+            {errors.countries && <p className="text-xs text-red-600">{errors.countries}</p>}
+          </div>
+        )}
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 pt-2">
@@ -612,6 +739,131 @@ export default function NewCampaignPage() {
           <p className="text-sm text-red-600">{t('failedToCreateCampaign')}</p>
         )}
       </form>
+    </div>
+  );
+}
+
+/* ── Admin Zone Selector (multi-level admin division picker) ─────────────── */
+
+interface GeoItem {
+  id: string;
+  code: string;
+  name: string | { en?: string; fr?: string; [k: string]: string | undefined };
+  level?: string;
+}
+
+function geoLabel(item: GeoItem): string {
+  if (typeof item.name === 'string') return item.name;
+  return item.name?.en || item.name?.fr || item.code;
+}
+
+function AdminZoneSelector({
+  admin1Data,
+  admin2Data,
+  selected,
+  onChange,
+  t,
+}: {
+  admin1Data?: GeoItem[];
+  admin2Data?: GeoItem[];
+  selected: Array<{ id: string; label: string; level: string }>;
+  onChange: (zones: Array<{ id: string; label: string; level: string }>) => void;
+  t: (key: string, params?: Record<string, string>) => string;
+}) {
+  const [search, setSearch] = useState('');
+  const selectedIds = new Set(selected.map((z) => z.id));
+
+  const allZones = useMemo(() => {
+    const zones: Array<{ id: string; label: string; level: string; sortKey: string }> = [];
+    for (const a1 of admin1Data || []) {
+      const label = geoLabel(a1);
+      zones.push({ id: a1.id, label, level: 'ADMIN1', sortKey: `0_${label}` });
+    }
+    for (const a2 of admin2Data || []) {
+      const label = geoLabel(a2);
+      zones.push({ id: a2.id, label, level: 'ADMIN2', sortKey: `1_${label}` });
+    }
+    return zones.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  }, [admin1Data, admin2Data]);
+
+  const filtered = search
+    ? allZones.filter((z) => z.label.toLowerCase().includes(search.toLowerCase()))
+    : allZones;
+
+  const toggle = (zone: { id: string; label: string; level: string }) => {
+    if (selectedIds.has(zone.id)) {
+      onChange(selected.filter((z) => z.id !== zone.id));
+    } else {
+      onChange([...selected, { id: zone.id, label: zone.label, level: zone.level }]);
+    }
+  };
+
+  const LEVEL_COLORS: Record<string, string> = {
+    ADMIN1: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    ADMIN2: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    ADMIN3: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Selected zones */}
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selected.map((z) => (
+            <span
+              key={z.id}
+              className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
+            >
+              <span className={`rounded px-1 py-0.5 text-[9px] font-semibold ${LEVEL_COLORS[z.level] || 'bg-gray-100 text-gray-600'}`}>
+                {z.level.replace('ADMIN', 'A')}
+              </span>
+              {z.label}
+              <button onClick={() => toggle(z)} className="ml-0.5 text-gray-400 hover:text-red-500">&times;</button>
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={() => onChange([])}
+            className="text-xs text-gray-400 hover:text-red-500"
+          >
+            {t('clearAll') || 'Clear all'}
+          </button>
+        </div>
+      )}
+
+      {/* Search */}
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder={t('searchAdminZones') || 'Search regions, districts...'}
+        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+      />
+
+      {/* Zone list */}
+      <div className="max-h-52 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700">
+        {filtered.length === 0 ? (
+          <p className="p-3 text-xs text-gray-400 text-center">{t('noZonesFound') || 'No zones found'}</p>
+        ) : (
+          filtered.map((zone) => (
+            <label
+              key={zone.id}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-50 dark:border-gray-800 last:border-0"
+            >
+              <input
+                type="checkbox"
+                checked={selectedIds.has(zone.id)}
+                onChange={() => toggle(zone)}
+                className="rounded border-gray-300"
+              />
+              <span className={`rounded px-1 py-0.5 text-[9px] font-semibold ${LEVEL_COLORS[zone.level] || 'bg-gray-100 text-gray-600'}`}>
+                {zone.level.replace('ADMIN', 'A')}
+              </span>
+              {zone.label}
+            </label>
+          ))
+        )}
+      </div>
     </div>
   );
 }
