@@ -71,6 +71,9 @@ async function mdDelete<T = any>(path: string): Promise<T> {
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 export type RefDataType =
+  // Non-ref tables (dedicated /for-select routes)
+  | 'countries' | 'geo-entities' | 'units'
+  // Ref tables — Core
   | 'species-groups' | 'species' | 'age-groups' | 'diseases'
   | 'clinical-signs' | 'control-measures' | 'seizure-reasons'
   | 'sample-types' | 'contamination-sources' | 'abattoirs'

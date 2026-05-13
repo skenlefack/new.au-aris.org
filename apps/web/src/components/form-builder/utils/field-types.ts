@@ -147,13 +147,63 @@ export const DOMAIN_OPTIONS = [
 ];
 
 export const MASTER_DATA_TYPES = [
+  // Geography & Administrative
+  { value: 'countries', label: 'Countries' },
+  { value: 'geo-entities', label: 'Geographic Entities (Admin divisions)' },
+  // Units
+  { value: 'units', label: 'Units (SI + sectoral)' },
+  // Animal Health — Core
   { value: 'species-groups', label: 'Species Groups' },
   { value: 'species', label: 'Species' },
+  { value: 'breeds', label: 'Breeds' },
+  { value: 'age-groups', label: 'Age Groups' },
   { value: 'diseases', label: 'Diseases' },
   { value: 'clinical-signs', label: 'Clinical Signs' },
-  { value: 'units', label: 'Units' },
+  { value: 'control-measures', label: 'Control Measures' },
+  { value: 'vaccine-types', label: 'Vaccine Types' },
+  { value: 'test-types', label: 'Test Types' },
   { value: 'labs', label: 'Laboratories' },
-  { value: 'vaccines', label: 'Vaccines' },
-  { value: 'countries', label: 'Countries' },
-  { value: 'geo-entities', label: 'Geographic Entities' },
+  { value: 'sample-types', label: 'Sample Types' },
+  // Animal Health — WOAH enrichment
+  { value: 'diagnosis-bases', label: 'Diagnosis Bases' },
+  { value: 'body-parts', label: 'Body Parts' },
+  { value: 'causal-agent-types', label: 'Causal Agent Types' },
+  { value: 'outbreak-statuses', label: 'Outbreak Statuses' },
+  { value: 'epidemiological-unit-types', label: 'Epidemiological Unit Types' },
+  { value: 'notification-reasons', label: 'Notification Reasons' },
+  { value: 'source-of-infections', label: 'Source of Infections' },
+  { value: 'animal-sexes', label: 'Animal Sexes' },
+  { value: 'animal-husbandries', label: 'Animal Husbandries' },
+  { value: 'genetic-diversities', label: 'Genetic Diversities' },
+  { value: 'data-sources', label: 'Data Sources' },
+  // Livestock & Production
+  { value: 'production-systems', label: 'Production Systems' },
+  { value: 'livestock-products', label: 'Livestock Products' },
+  { value: 'census-methodologies', label: 'Census Methodologies' },
+  { value: 'abattoirs', label: 'Abattoirs' },
+  { value: 'markets', label: 'Markets' },
+  { value: 'checkpoints', label: 'Checkpoints' },
+  // Fisheries
+  { value: 'fish-families', label: 'Fish Families' },
+  { value: 'gear-types', label: 'Gear Types' },
+  { value: 'vessel-types', label: 'Vessel Types' },
+  { value: 'aquaculture-farm-types', label: 'Aquaculture Farm Types' },
+  { value: 'landing-sites', label: 'Landing Sites' },
+  // Trade & SPS
+  { value: 'commodities', label: 'Commodities' },
+  { value: 'contamination-sources', label: 'Contamination Sources' },
+  { value: 'seizure-reasons', label: 'Seizure Reasons' },
+  { value: 'transport-modes', label: 'Transport Modes' },
+  // Wildlife
+  { value: 'conservation-statuses', label: 'Conservation Statuses' },
+  { value: 'habitat-types', label: 'Habitat Types' },
+  { value: 'crime-types', label: 'Crime Types' },
+  // Apiculture
+  { value: 'hive-types', label: 'Hive Types' },
+  { value: 'bee-diseases', label: 'Bee Diseases' },
+  { value: 'floral-sources', label: 'Floral Sources' },
+  // Governance
+  { value: 'legal-framework-types', label: 'Legal Framework Types' },
+  { value: 'stakeholder-types', label: 'Stakeholder Types' },
+  { value: 'infrastructures', label: 'Infrastructures' },
 ];

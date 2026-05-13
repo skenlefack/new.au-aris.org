@@ -145,4 +145,88 @@ export async function registerRefDataRoutes(app: FastifyInstance): Promise<void>
       return app.refDataService.deactivate(type, request.params.id, user);
     });
   }
+
+  // ── Special /for-select routes for non-ref tables (countries, geo-entities, units) ──
+
+  app.get<{ Querystring: Record<string, string | undefined> }>('/api/v1/master-data/ref/countries/for-select', {
+    preHandler: authAndTenant,
+  }, async (request) => {
+    const search = request.query.search;
+    const where: Record<string, unknown> = { is_active: true };
+    if (search) {
+      where['OR'] = [
+        { code: { contains: search, mode: 'insensitive' } },
+        { name: { path: ['en'], string_contains: search } },
+        { name: { path: ['fr'], string_contains: search } },
+      ];
+    }
+    const rows = await (app.prisma as any).country.findMany({
+      where,
+      select: { id: true, code: true, name: true, flag: true },
+      orderBy: { sort_order: 'asc' },
+      take: 200,
+    });
+    return { data: rows.map((r: any) => ({ id: r.id, code: r.code, name: r.name, flag: r.flag })) };
+  });
+
+  app.get<{ Querystring: Record<string, string | undefined> }>('/api/v1/master-data/ref/geo-entities/for-select', {
+    preHandler: authAndTenant,
+  }, async (request) => {
+    const { search, level, countryCode, parentId } = request.query;
+    const where: Record<string, unknown> = { isActive: true };
+    if (level) where['level'] = level;
+    if (countryCode) where['countryCode'] = countryCode;
+    if (parentId) where['parentId'] = parentId;
+    if (search) {
+      where['OR'] = [
+        { code: { contains: search, mode: 'insensitive' } },
+        { nameEn: { contains: search, mode: 'insensitive' } },
+        { nameFr: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    const rows = await (app.prisma as any).geoEntity.findMany({
+      where,
+      select: { id: true, code: true, nameEn: true, nameFr: true, namePt: true, nameAr: true, level: true, countryCode: true },
+      orderBy: { nameEn: 'asc' },
+      take: 500,
+    });
+    return {
+      data: rows.map((r: any) => ({
+        id: r.id,
+        code: r.code,
+        name: { en: r.nameEn, fr: r.nameFr, pt: r.namePt, ar: r.nameAr },
+        level: r.level,
+        countryCode: r.countryCode,
+      })),
+    };
+  });
+
+  app.get<{ Querystring: Record<string, string | undefined> }>('/api/v1/master-data/ref/units/for-select', {
+    preHandler: authAndTenant,
+  }, async (request) => {
+    const { search, category } = request.query;
+    const where: Record<string, unknown> = { isActive: true };
+    if (category) where['category'] = category;
+    if (search) {
+      where['OR'] = [
+        { code: { contains: search, mode: 'insensitive' } },
+        { nameEn: { contains: search, mode: 'insensitive' } },
+        { nameFr: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    const rows = await (app.prisma as any).unit.findMany({
+      where,
+      select: { id: true, code: true, nameEn: true, nameFr: true, symbol: true, category: true },
+      orderBy: { nameEn: 'asc' },
+      take: 200,
+    });
+    return {
+      data: rows.map((r: any) => ({
+        id: r.id,
+        code: r.code,
+        name: { en: `${r.nameEn} (${r.symbol})`, fr: `${r.nameFr} (${r.symbol})` },
+        category: r.category,
+      })),
+    };
+  });
 }
