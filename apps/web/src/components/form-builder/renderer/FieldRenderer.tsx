@@ -210,7 +210,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
         }>
           <MasterDataSelectField
             masterDataType={(field.properties.masterDataType as string) || ''}
-            value={(value as string) || ''}
+            value={field.properties.multiple ? (value as string | string[]) || [] : (value as string) || ''}
             onChange={(v) => onChange(v)}
             placeholder={placeholder}
             parentFilter={resolveParentFilter(
@@ -218,6 +218,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
               formValues,
             )}
             className={inputClass}
+            multiple={!!field.properties.multiple}
           />
         </Suspense>
       )}

@@ -2534,6 +2534,7 @@
     "fbFieldPlaceholder": "Campo...",
     "fbAddRule": "+ Adicionar regra",
     "fbAddCondition": "Adicionar condicao",
+    "fbValidationRules": "Validação",
     "fbOpContains": "Contem",
     "fbOpNotContains": "Nao contem",
     "fbOpIsEmpty": "Esta vazio",

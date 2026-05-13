@@ -26,6 +26,7 @@ const GENERIC_LEVEL_LABELS: Record<number, Record<string, string>> = {
   2: { en: 'District / Department', fr: 'District / Département', pt: 'Distrito / Departamento', ar: 'المقاطعة / الإدارة', es: 'Distrito / Departamento' },
   3: { en: 'Sub-district / Commune', fr: 'Sous-district / Commune', pt: 'Sub-distrito / Comuna', ar: 'البلدية / الناحية', es: 'Subdistrito / Comuna' },
   4: { en: 'Ward / Village', fr: 'Quartier / Village', pt: 'Bairro / Aldeia', ar: 'الحي / القرية', es: 'Barrio / Aldea' },
+  5: { en: 'Locality / Hamlet', fr: 'Localité / Hameau', pt: 'Localidade', ar: 'المحلة', es: 'Localidad' },
 };
 
 /**
@@ -132,6 +133,10 @@ export function AdminLocationField({
   const selectedCountry = selections['level_0'] || '';
   const selectedAdmin1 = selections['level_1'] || '';
   const selectedAdmin2 = selections['level_2'] || '';
+  const selectedAdmin3 = selections['level_3'] || '';
+  const selectedAdmin4 = selections['level_4'] || '';
+
+  const maxLevel = Math.max(...levels);
 
   // Fetch country-specific admin level labels (from Settings or GADM fallback)
   const countryConfig = selectedCountry ? COUNTRIES[selectedCountry] : undefined;
@@ -271,6 +276,56 @@ export function AdminLocationField({
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [admin3ChildData, admin3ByCountryData, locale]);
 
+  // Fetch ADMIN4 divisions for the selected ADMIN3
+  const { data: admin4ChildData } = useGeoChildren(
+    maxLevel >= 4 ? (selectedAdmin3 || undefined) : undefined,
+    { limit: 500 },
+  );
+  const admin4ChildEmpty = selectedAdmin3 && (!admin4ChildData?.data || admin4ChildData.data.length === 0);
+  const { data: admin4ByCountryData } = useGeoEntities(
+    admin4ChildEmpty && selectedCountry && maxLevel >= 4
+      ? { level: 'ADMIN4', countryCode: selectedCountry, limit: 500 }
+      : undefined,
+  );
+  const admin4Options = useMemo(() => {
+    const items = (admin4ChildData?.data && admin4ChildData.data.length > 0)
+      ? admin4ChildData.data
+      : (admin4ByCountryData?.data ?? []);
+    if (items.length === 0) return [];
+    return items
+      .map((e) => {
+        const n = e.name;
+        const label = typeof n === 'string' ? n : (n?.[locale] || n?.en || n?.fr || e.code);
+        return { value: e.id, label };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [admin4ChildData, admin4ByCountryData, locale]);
+
+  // Fetch ADMIN5 divisions for the selected ADMIN4
+  const { data: admin5ChildData } = useGeoChildren(
+    maxLevel >= 5 ? (selectedAdmin4 || undefined) : undefined,
+    { limit: 500 },
+  );
+  const admin5ChildEmpty = selectedAdmin4 && (!admin5ChildData?.data || admin5ChildData.data.length === 0);
+  const { data: admin5ByCountryData } = useGeoEntities(
+    admin5ChildEmpty && selectedCountry && maxLevel >= 5
+      ? { level: 'ADMIN5', countryCode: selectedCountry, limit: 500 }
+      : undefined,
+  );
+  const admin5Options = useMemo(() => {
+    const items = (admin5ChildData?.data && admin5ChildData.data.length > 0)
+      ? admin5ChildData.data
+      : (admin5ByCountryData?.data ?? []);
+    if (items.length === 0) return [];
+    return items
+      .map((e) => {
+        const n = e.name;
+        const label = typeof n === 'string' ? n : (n?.[locale] || n?.en || n?.fr || e.code);
+        return { value: e.id, label };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [admin5ChildData, admin5ByCountryData, locale]);
+
   const handleChange = (level: number, val: string) => {
     const updated = { ...selections };
     if (val) {
@@ -298,6 +353,10 @@ export function AdminLocationField({
         return admin2Options;
       case 3:
         return admin3Options;
+      case 4:
+        return admin4Options;
+      case 5:
+        return admin5Options;
       default:
         return [];
     }
@@ -316,7 +375,7 @@ export function AdminLocationField({
         <MapPin className="h-4 w-4" />
         <span>{locale === 'fr' ? 'Localisation Administrative' : 'Administrative Location'}</span>
       </div>
-      <div className={cn('grid grid-cols-1 gap-3', levels.length <= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4')}>
+      <div className={cn('grid grid-cols-1 gap-3', levels.length <= 3 ? 'md:grid-cols-3' : levels.length <= 4 ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-2 lg:grid-cols-3')}>
         {levels.map((level) => {
           const isRequired = requiredLevels.includes(level);
           const disabled = isLevelDisabled(level);

@@ -2534,6 +2534,7 @@
     "fbFieldPlaceholder": "حقل...",
     "fbAddRule": "+ إضافة قاعدة",
     "fbAddCondition": "إضافة شرط",
+    "fbValidationRules": "التحقق",
     "fbOpContains": "يحتوي",
     "fbOpNotContains": "لا يحتوي",
     "fbOpIsEmpty": "فارغ",

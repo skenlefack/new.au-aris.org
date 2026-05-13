@@ -83,6 +83,23 @@ export interface FormSection {
   fields: FormField[];
 }
 
+export type CrossFieldOperator =
+  | 'lessThan' | 'lessOrEqual' | 'greaterThan' | 'greaterOrEqual' | 'equals' | 'notEquals';
+
+export interface CrossFieldValidationRule {
+  id: string;
+  /** The field being validated */
+  fieldA: string;
+  /** The comparison operator */
+  operator: CrossFieldOperator;
+  /** The field to compare against */
+  fieldB: string;
+  /** Error message shown on fieldA when the rule fails */
+  message: MultilingualText;
+  /** Whether this rule is active */
+  enabled: boolean;
+}
+
 export interface FormSettings {
   allowDraft: boolean;
   allowAttachments: boolean;
@@ -101,6 +118,7 @@ export interface FormSettings {
 export interface FormSchema {
   sections: FormSection[];
   settings: FormSettings;
+  validationRules?: CrossFieldValidationRule[];
 }
 
 export interface FormTemplateData {
@@ -198,7 +216,7 @@ function getDefaultPropertiesForType(type: string): Record<string, unknown> {
     case 'date-range':
       return {};
     case 'admin-location':
-      return { levels: [1, 2, 3], requiredLevels: [1] };
+      return { levels: [0, 1, 2], requiredLevels: [0], maxAdminLevel: 2 };
     case 'geo-point':
       return { autoDetect: true, allowManualEntry: true, showMap: true };
     case 'geo-polygon':
@@ -224,7 +242,7 @@ function getDefaultPropertiesForType(type: string): Record<string, unknown> {
     case 'repeater':
       return { fields: [], minRows: 1, maxRows: 10, addLabel: { en: 'Add row' } };
     case 'matrix':
-      return { rows: [], columns: [], cellType: 'number' };
+      return { rows: [], columns: [], cellType: 'number', showTotals: false };
     case 'number':
       return { min: undefined, max: undefined, step: 1, decimals: 0, unit: '' };
     case 'textarea':

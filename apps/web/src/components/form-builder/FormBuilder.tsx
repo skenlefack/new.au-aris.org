@@ -21,6 +21,7 @@ import { ElementsPanel } from './panels/ElementsPanel';
 import { CanvasPanel } from './panels/CanvasPanel';
 import { PropertiesPanel } from './panels/PropertiesPanel';
 import { PreviewModal } from './modals/PreviewModal';
+import { ValidationRulesModal } from './modals/ValidationRulesModal';
 import { getFieldTypeDefinition } from './utils/field-types';
 
 interface FormBuilderProps {
@@ -40,6 +41,8 @@ export function FormBuilder({ onSave, onPublish }: FormBuilderProps) {
     undo,
     redo,
   } = useFormBuilderStore();
+
+  const [isValidationRulesOpen, setValidationRulesOpen] = React.useState(false);
 
   const [activeDragId, setActiveDragId] = React.useState<string | null>(null);
   const [activeDragType, setActiveDragType] = React.useState<string | null>(null);
@@ -208,6 +211,7 @@ export function FormBuilder({ onSave, onPublish }: FormBuilderProps) {
           onSave={onSave}
           onPublish={onPublish}
           onPreview={() => setPreviewOpen(true)}
+          onValidationRules={() => setValidationRulesOpen(true)}
         />
 
         <div className="flex flex-1 overflow-hidden">
@@ -225,6 +229,10 @@ export function FormBuilder({ onSave, onPublish }: FormBuilderProps) {
 
       {isPreviewOpen && (
         <PreviewModal onClose={() => setPreviewOpen(false)} />
+      )}
+
+      {isValidationRulesOpen && (
+        <ValidationRulesModal onClose={() => setValidationRulesOpen(false)} />
       )}
     </DndContext>
   );

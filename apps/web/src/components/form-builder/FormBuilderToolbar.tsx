@@ -13,6 +13,8 @@ import {
   Copy,
   Download,
   Trash2,
+  ShieldCheck,
+  Edit3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -23,9 +25,10 @@ interface FormBuilderToolbarProps {
   onSave: () => void;
   onPublish: () => void;
   onPreview: () => void;
+  onValidationRules?: () => void;
 }
 
-export function FormBuilderToolbar({ onSave, onPublish, onPreview }: FormBuilderToolbarProps) {
+export function FormBuilderToolbar({ onSave, onPublish, onPreview, onValidationRules }: FormBuilderToolbarProps) {
   const router = useRouter();
   const t = useTranslations('collecte');
   const {
@@ -39,6 +42,9 @@ export function FormBuilderToolbar({ onSave, onPublish, onPreview }: FormBuilder
   } = useFormBuilderStore();
 
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [isEditingName, setIsEditingName] = React.useState(false);
+  const [editName, setEditName] = React.useState('');
+  const nameInputRef = React.useRef<HTMLInputElement>(null);
 
   if (!form) return null;
 
@@ -65,9 +71,39 @@ export function FormBuilderToolbar({ onSave, onPublish, onPreview }: FormBuilder
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="min-w-0">
-          <h1 className="truncate text-sm font-semibold text-gray-900 dark:text-white">
-            {form.name || t('untitledForm')}
-          </h1>
+          {isEditingName ? (
+            <input
+              ref={nameInputRef}
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onBlur={() => {
+                const trimmed = editName.trim();
+                if (trimmed && trimmed !== form.name) {
+                  useFormBuilderStore.setState((state) => ({
+                    form: state.form ? { ...state.form, name: trimmed } : state.form,
+                    isDirty: true,
+                  }));
+                }
+                setIsEditingName(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                if (e.key === 'Escape') { setEditName(form.name); setIsEditingName(false); }
+              }}
+              className="text-sm font-semibold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 outline-none w-full min-w-[120px] py-0"
+              autoFocus
+            />
+          ) : (
+            <h1
+              className="truncate text-sm font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              onClick={() => { setEditName(form.name || ''); setIsEditingName(true); }}
+              title={t('fbClickToRename')}
+            >
+              {form.name || t('untitledForm')}
+              <Edit3 className="inline-block ml-1.5 h-3 w-3 text-gray-400" />
+            </h1>
+          )}
           <div className="flex items-center gap-2 mt-0.5">
             <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
               {domainLabel}
@@ -102,6 +138,16 @@ export function FormBuilderToolbar({ onSave, onPublish, onPreview }: FormBuilder
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
+        {onValidationRules && (
+          <button
+            onClick={onValidationRules}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+            title={t('fbValidationRules')}
+          >
+            <ShieldCheck className="h-3.5 w-3.5" />
+            {t('fbValidationRules')}
+          </button>
+        )}
         <button
           onClick={onPreview}
           className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"

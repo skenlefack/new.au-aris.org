@@ -7,6 +7,7 @@ import { useTranslations } from '@/lib/i18n/translations';
 import { useFormBuilderStore } from '../hooks/useFormBuilder';
 import { getFieldTypeDefinition, MASTER_DATA_TYPES } from '../utils/field-types';
 import type { FormField, FormSection, MultilingualText, FieldCondition, FieldConditionRule } from '../utils/form-schema';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 import { generateCodeFromLabel } from '../utils/code-generator';
 
 type Tab = 'general' | 'validation' | 'data-source' | 'conditions' | 'appearance';
@@ -64,10 +65,139 @@ function MLInput({
   );
 }
 
+// ---- Matrix Config Editor ----
+function MatrixConfigEditor({
+  rows,
+  columns,
+  cellType,
+  showTotals,
+  onChange,
+  locale,
+}: {
+  rows: Array<{ label: MultilingualText; key: string }>;
+  columns: Array<{ label: MultilingualText; key: string }>;
+  cellType: string;
+  showTotals: boolean;
+  onChange: (props: Record<string, unknown>) => void;
+  locale: string;
+}) {
+  const isFr = locale === 'fr';
+
+  const addItem = (type: 'rows' | 'columns') => {
+    const list = type === 'rows' ? rows : columns;
+    const prefix = type === 'rows' ? 'row' : 'col';
+    const idx = list.length + 1;
+    const newItem = { key: `${prefix}_${idx}`, label: { en: '', fr: '' } };
+    onChange({ [type]: [...list, newItem] });
+  };
+
+  const removeItem = (type: 'rows' | 'columns', idx: number) => {
+    const list = type === 'rows' ? [...rows] : [...columns];
+    list.splice(idx, 1);
+    onChange({ [type]: list });
+  };
+
+  const updateItem = (type: 'rows' | 'columns', idx: number, label: string) => {
+    const list = type === 'rows' ? [...rows] : [...columns];
+    const key = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || list[idx].key;
+    list[idx] = { ...list[idx], key, label: { ...list[idx].label, [locale]: label, en: list[idx].label.en || label } };
+    onChange({ [type]: list });
+  };
+
+  const moveItem = (type: 'rows' | 'columns', idx: number, dir: -1 | 1) => {
+    const list = type === 'rows' ? [...rows] : [...columns];
+    const target = idx + dir;
+    if (target < 0 || target >= list.length) return;
+    [list[idx], list[target]] = [list[target], list[idx]];
+    onChange({ [type]: list });
+  };
+
+  const renderList = (type: 'rows' | 'columns', items: Array<{ label: MultilingualText; key: string }>) => (
+    <div className="space-y-1.5">
+      {items.map((item, idx) => (
+        <div key={idx} className="flex items-center gap-1">
+          <div className="flex flex-col">
+            <button type="button" onClick={() => moveItem(type, idx, -1)} disabled={idx === 0}
+              className="text-[10px] text-gray-400 hover:text-gray-600 disabled:opacity-20 leading-none">▲</button>
+            <button type="button" onClick={() => moveItem(type, idx, 1)} disabled={idx === items.length - 1}
+              className="text-[10px] text-gray-400 hover:text-gray-600 disabled:opacity-20 leading-none">▼</button>
+          </div>
+          <input
+            type="text"
+            value={item.label[locale] || item.label.en || ''}
+            onChange={(e) => updateItem(type, idx, e.target.value)}
+            placeholder={`${type === 'rows' ? (isFr ? 'Ligne' : 'Row') : (isFr ? 'Colonne' : 'Column')} ${idx + 1}`}
+            className="flex-1 rounded-md border border-gray-200 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+          />
+          <button type="button" onClick={() => removeItem(type, idx)}
+            className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20">
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => addItem(type)}
+        className="flex items-center gap-1 rounded-md border border-dashed border-gray-300 px-2 py-1 text-xs text-gray-500 hover:border-blue-400 hover:text-blue-500 dark:border-gray-600 dark:hover:border-blue-500 w-full justify-center"
+      >
+        <Plus className="h-3 w-3" />
+        {type === 'rows' ? (isFr ? 'Ajouter une ligne' : 'Add row') : (isFr ? 'Ajouter une colonne' : 'Add column')}
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="space-y-3 pt-3 border-t border-gray-100 dark:border-gray-700 mt-3">
+      <div className="space-y-1.5">
+        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+          {isFr ? 'Lignes' : 'Rows'}
+        </label>
+        {renderList('rows', rows)}
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+          {isFr ? 'Colonnes' : 'Columns'}
+        </label>
+        {renderList('columns', columns)}
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">
+          {isFr ? 'Type de cellule' : 'Cell type'}
+        </label>
+        <select
+          value={cellType}
+          onChange={(e) => onChange({ cellType: e.target.value })}
+          className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        >
+          <option value="number">{isFr ? 'Nombre' : 'Number'}</option>
+          <option value="text">{isFr ? 'Texte' : 'Text'}</option>
+        </select>
+      </div>
+
+      <ToggleRow
+        label={isFr ? 'Afficher les totaux' : 'Show totals'}
+        checked={showTotals}
+        onChange={(v) => onChange({ showTotals: v })}
+      />
+
+      {rows.length > 0 && columns.length > 0 && (
+        <div className="rounded-md bg-blue-50 dark:bg-blue-900/20 p-2 text-[10px] text-blue-600 dark:text-blue-400">
+          {isFr
+            ? `Aperçu : ${rows.length} ligne(s) × ${columns.length} colonne(s) = ${rows.length * columns.length} cellules`
+            : `Preview: ${rows.length} row(s) × ${columns.length} column(s) = ${rows.length * columns.length} cells`}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- Field Properties ----
 function FieldProperties({ field }: { field: FormField }) {
   const { updateField, getSchema } = useFormBuilderStore();
   const t = useTranslations('collecte');
+  const locale = useLocaleStore((s) => s.locale);
   const [tab, setTab] = useState<Tab>('general');
 
   const update = (data: Partial<FormField>) => updateField(field.id, data);
@@ -147,6 +277,69 @@ function FieldProperties({ field }: { field: FormField }) {
               <ToggleRow label={t('fbReadOnlyProp')} checked={field.readOnly} onChange={(readOnly) => update({ readOnly })} />
               <ToggleRow label={t('fbHiddenProp')} checked={field.hidden} onChange={(hidden) => update({ hidden })} />
             </div>
+            {field.type === 'admin-location' && (
+              <div className="space-y-2 pt-3 border-t border-gray-100 dark:border-gray-700 mt-3">
+                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+                  {locale === 'fr' ? 'Niveaux administratifs' : 'Admin Levels'}
+                </label>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {locale === 'fr' ? 'Niveau max (Admin)' : 'Max admin level'}
+                  </label>
+                  <select
+                    value={(field.properties.maxAdminLevel as number) ?? 2}
+                    onChange={(e) => {
+                      const max = Number(e.target.value);
+                      const newLevels = Array.from({ length: max + 1 }, (_, i) => i);
+                      update({ properties: { ...field.properties, maxAdminLevel: max, levels: newLevels, requiredLevels: [0] } });
+                    }}
+                    className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  >
+                    <option value={1}>{locale === 'fr' ? 'Pays + Admin1' : 'Country + Admin1'}</option>
+                    <option value={2}>{locale === 'fr' ? 'Pays + Admin1 + Admin2' : 'Country + Admin1 + Admin2'}</option>
+                    <option value={3}>{locale === 'fr' ? 'Jusqu\'à Admin3' : 'Up to Admin3'}</option>
+                    <option value={4}>{locale === 'fr' ? 'Jusqu\'à Admin4' : 'Up to Admin4'}</option>
+                    <option value={5}>{locale === 'fr' ? 'Jusqu\'à Admin5' : 'Up to Admin5'}</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {locale === 'fr' ? 'Niveaux obligatoires' : 'Required levels'}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {((field.properties.levels as number[]) || [0, 1, 2]).map((lvl) => {
+                      const checked = ((field.properties.requiredLevels as number[]) || [0]).includes(lvl);
+                      const lvlLabel = lvl === 0 ? (locale === 'fr' ? 'Pays' : 'Country') : `Admin${lvl}`;
+                      return (
+                        <label key={lvl} className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              const cur = (field.properties.requiredLevels as number[]) || [0];
+                              const next = checked ? cur.filter((l) => l !== lvl) : [...cur, lvl];
+                              update({ properties: { ...field.properties, requiredLevels: next } });
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          {lvlLabel}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+            {field.type === 'matrix' && (
+              <MatrixConfigEditor
+                rows={(field.properties.rows as Array<{ label: MultilingualText; key: string }>) || []}
+                columns={(field.properties.columns as Array<{ label: MultilingualText; key: string }>) || []}
+                cellType={(field.properties.cellType as string) || 'number'}
+                showTotals={!!field.properties.showTotals}
+                onChange={(props) => update({ properties: { ...field.properties, ...props } })}
+                locale={locale}
+              />
+            )}
           </>
         )}
 
@@ -367,9 +560,12 @@ function FieldProperties({ field }: { field: FormField }) {
 
 // ---- Section Properties ----
 function SectionProperties({ section }: { section: FormSection }) {
-  const { updateSection } = useFormBuilderStore();
+  const { updateSection, getSchema } = useFormBuilderStore();
   const t = useTranslations('collecte');
+  const locale = useLocaleStore((s) => s.locale);
+  const isFr = locale === 'fr';
   const update = (data: Partial<FormSection>) => updateSection(section.id, data);
+  const allFields = getSchema().sections.flatMap((s) => s.fields);
 
   return (
     <div className="flex flex-col h-full">
@@ -440,6 +636,16 @@ function SectionProperties({ section }: { section: FormSection }) {
             />
           </>
         )}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+          <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
+            {isFr ? 'Conditions d\'affichage' : 'Display Conditions'}
+          </label>
+          <ConditionsEditor
+            conditions={section.conditions || []}
+            allFields={allFields}
+            onChange={(conditions) => update({ conditions })}
+          />
+        </div>
       </div>
     </div>
   );
@@ -618,7 +824,7 @@ function ConditionsEditor({
       action: 'show',
       logic: 'all',
       rules: [{
-        field: allFields[0]?.id || '',
+        field: allFields[0]?.code || '',
         operator: 'equals',
         value: '',
       }],
@@ -637,7 +843,7 @@ function ConditionsEditor({
   const addRule = (condIndex: number) => {
     const cond = conditions[condIndex];
     updateCondition(condIndex, {
-      rules: [...cond.rules, { field: allFields[0]?.id || '', operator: 'equals', value: '' }],
+      rules: [...cond.rules, { field: allFields[0]?.code || '', operator: 'equals', value: '' }],
     });
   };
 
@@ -721,7 +927,7 @@ function ConditionsEditor({
                 >
                   <option value="">{t('fbFieldPlaceholder')}</option>
                   {allFields.map((f) => (
-                    <option key={f.id} value={f.id}>{f.label.en || f.code || f.id.slice(0, 8)}</option>
+                    <option key={f.id} value={f.code}>{f.label.en || f.label.fr || f.code}</option>
                   ))}
                 </select>
                 <select
@@ -733,15 +939,48 @@ function ConditionsEditor({
                     <option key={op.value} value={op.value}>{op.tKey ? t(op.tKey) : op.label}</option>
                   ))}
                 </select>
-                {!noValueOperators.includes(rule.operator) && (
-                  <input
-                    type="text"
-                    value={String(rule.value ?? '')}
-                    onChange={(e) => updateRule(ci, ri, { value: e.target.value })}
-                    placeholder={t('fbValuePlaceholder')}
-                    className="w-16 rounded border border-gray-200 px-1.5 py-1 text-[11px] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  />
-                )}
+                {!noValueOperators.includes(rule.operator) && (() => {
+                  const refField = allFields.find((f) => f.code === rule.field);
+                  const selectOptions = (refField && ['select', 'radio', 'multi-select', 'checkbox'].includes(refField.type))
+                    ? (refField.properties.options as Array<{ label: MultilingualText; value: string }>) || []
+                    : [];
+                  const isToggle = refField?.type === 'toggle';
+                  if (selectOptions.length > 0) {
+                    return (
+                      <select
+                        value={String(rule.value ?? '')}
+                        onChange={(e) => updateRule(ci, ri, { value: e.target.value })}
+                        className="w-20 rounded border border-gray-200 px-1 py-1 text-[11px] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                      >
+                        <option value="">{t('fbValuePlaceholder')}</option>
+                        {selectOptions.map((opt, oi) => (
+                          <option key={oi} value={opt.value}>{opt.label.en || opt.label.fr || opt.value}</option>
+                        ))}
+                      </select>
+                    );
+                  }
+                  if (isToggle) {
+                    return (
+                      <select
+                        value={String(rule.value ?? '')}
+                        onChange={(e) => updateRule(ci, ri, { value: e.target.value })}
+                        className="w-16 rounded border border-gray-200 px-1 py-1 text-[11px] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                      >
+                        <option value="true">{refField.properties.labelOn ? ((refField.properties.labelOn as MultilingualText).en || 'Yes') : 'Yes'}</option>
+                        <option value="false">{refField.properties.labelOff ? ((refField.properties.labelOff as MultilingualText).en || 'No') : 'No'}</option>
+                      </select>
+                    );
+                  }
+                  return (
+                    <input
+                      type="text"
+                      value={String(rule.value ?? '')}
+                      onChange={(e) => updateRule(ci, ri, { value: e.target.value })}
+                      placeholder={t('fbValuePlaceholder')}
+                      className="w-16 rounded border border-gray-200 px-1.5 py-1 text-[11px] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    />
+                  );
+                })()}
                 {cond.rules.length > 1 && (
                   <button onClick={() => removeRule(ci, ri)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
                     <X className="h-3 w-3" />

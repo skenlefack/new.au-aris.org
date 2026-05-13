@@ -5,59 +5,12 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FormSchema, FormSection, FormField, FieldCondition } from '../utils/form-schema';
 import { FieldRenderer } from './FieldRenderer';
-import { evaluateFieldCondition } from './ConditionEvaluator';
+import { evaluateFieldCondition, evaluateCrossFieldRules } from './ConditionEvaluator';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 
 /** Context to propagate mobile flag to all nested renderers (repeaters, etc.) */
 export const FormMobileContext = createContext(false);
 export function useFormMobile() { return useContext(FormMobileContext); }
-
-/* ── Cross-field date validation ─────────────────────────────────────────── */
-
-interface DateChainRule {
-  field: string;
-  mustBeAfterOrEqual: string;
-  message: { en: string; fr: string };
-}
-
-const DATE_CHAIN_RULES: DateChainRule[] = [
-  {
-    field: 'date_reported_vet',
-    mustBeAfterOrEqual: 'date_start_outbreak',
-    message: {
-      en: 'Must be on or after Date of Start of Outbreak',
-      fr: 'Doit être égale ou postérieure à la Date de Début du Foyer',
-    },
-  },
-  {
-    field: 'date_investigated',
-    mustBeAfterOrEqual: 'date_reported_vet',
-    message: {
-      en: 'Must be on or after Date Reported to Veterinarian',
-      fr: 'Doit être égale ou postérieure à la Date de Signalement au Vétérinaire',
-    },
-  },
-  {
-    field: 'date_final_diagnosis',
-    mustBeAfterOrEqual: 'date_investigated',
-    message: {
-      en: 'Must be on or after Date Investigated',
-      fr: 'Doit être égale ou postérieure à la Date d\'Investigation',
-    },
-  },
-];
-
-function validateDates(values: Record<string, unknown>): Record<string, string> {
-  const errors: Record<string, string> = {};
-  for (const rule of DATE_CHAIN_RULES) {
-    const val = values[rule.field];
-    const ref = values[rule.mustBeAfterOrEqual];
-    if (typeof val !== 'string' || !val || typeof ref !== 'string' || !ref) continue;
-    if (val < ref) {
-      errors[rule.field] = rule.message.en;
-    }
-  }
-  return errors;
-}
 
 /** Detect comment/observation textarea fields that should span full width and appear last */
 function isCommentField(field: FormField): boolean {
@@ -79,9 +32,13 @@ interface FormRendererProps {
 export function FormRenderer({ schema, formName, mobile = false, preview = false, onSubmit }: FormRendererProps) {
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const locale = useLocaleStore((s) => s.locale);
 
-  // Cross-field date errors (recomputed on every values change)
-  const fieldErrors = useMemo(() => validateDates(values), [values]);
+  // Cross-field validation errors (dynamic rules from schema)
+  const fieldErrors = useMemo(
+    () => evaluateCrossFieldRules(schema.validationRules, values, locale),
+    [values, schema.validationRules, locale],
+  );
 
   const handleFieldChange = (fieldCode: string, value: unknown) => {
     setValues((prev) => ({ ...prev, [fieldCode]: value }));
@@ -111,17 +68,24 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
 
         {schema.sections
           .sort((a, b) => a.order - b.order)
-          .map((section) => (
-            <SectionRenderer
-              key={section.id}
-              section={section}
-              values={values}
-              onChange={handleFieldChange}
-              fieldErrors={fieldErrors}
-              isCollapsed={collapsedSections.has(section.id)}
-              onToggle={() => toggleSection(section.id)}
-            />
-          ))}
+          .map((section) => {
+            // Evaluate section-level conditions
+            if (section.conditions && section.conditions.length > 0) {
+              const sectionCond = applyFieldConditions(section.conditions, values);
+              if (sectionCond.hidden) return null;
+            }
+            return (
+              <SectionRenderer
+                key={section.id}
+                section={section}
+                values={values}
+                onChange={handleFieldChange}
+                fieldErrors={fieldErrors}
+                isCollapsed={collapsedSections.has(section.id)}
+                onToggle={() => toggleSection(section.id)}
+              />
+            );
+          })}
 
         {preview ? (
           <div className="flex items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
