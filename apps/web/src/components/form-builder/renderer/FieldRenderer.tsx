@@ -314,12 +314,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
       )}
 
       {field.type === 'date' && (
-        <input
-          type="date"
-          value={(value as string) || ''}
-          onChange={(e) => onChange(e.target.value)}
-          className={cn(inputClass, error && 'border-red-400 focus:border-red-500 focus:ring-red-400/30')}
-        />
+        <DateFieldWithDefault field={field} value={value} onChange={onChange} error={error} />
       )}
 
       {field.type === 'time' && (
@@ -332,12 +327,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
       )}
 
       {field.type === 'datetime' && (
-        <input
-          type="datetime-local"
-          value={(value as string) || ''}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputClass}
-        />
+        <DateTimeFieldWithDefault field={field} value={value} onChange={onChange} />
       )}
 
       {field.type === 'date-range' && (
@@ -632,6 +622,44 @@ function ConditionalGroupRenderer({
           />
         ))}
     </div>
+  );
+}
+
+/* ── Date field with defaultToToday ─────────────────────────────────────── */
+
+function DateFieldWithDefault({ field, value, onChange, error }: { field: FormField; value: unknown; onChange: (v: unknown) => void; error?: string }) {
+  const hasInit = React.useRef(false);
+  React.useEffect(() => {
+    if (!hasInit.current && !value && field.properties.defaultToToday) {
+      hasInit.current = true;
+      onChange(new Date().toISOString().slice(0, 10));
+    }
+  }, []);
+  return (
+    <input
+      type="date"
+      value={(value as string) || ''}
+      onChange={(e) => onChange(e.target.value)}
+      className={cn(inputClass, error && 'border-red-400 focus:border-red-500 focus:ring-red-400/30')}
+    />
+  );
+}
+
+function DateTimeFieldWithDefault({ field, value, onChange }: { field: FormField; value: unknown; onChange: (v: unknown) => void }) {
+  const hasInit = React.useRef(false);
+  React.useEffect(() => {
+    if (!hasInit.current && !value && field.properties.defaultToToday) {
+      hasInit.current = true;
+      onChange(new Date().toISOString().slice(0, 16));
+    }
+  }, []);
+  return (
+    <input
+      type="datetime-local"
+      value={(value as string) || ''}
+      onChange={(e) => onChange(e.target.value)}
+      className={inputClass}
+    />
   );
 }
 

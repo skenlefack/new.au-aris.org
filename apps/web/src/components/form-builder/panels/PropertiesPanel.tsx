@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useFormBuilderStore } from '../hooks/useFormBuilder';
@@ -186,6 +186,11 @@ function FieldProperties({ field }: { field: FormField }) {
             )}
             {['date', 'datetime', 'date-range'].includes(field.type) && (
               <>
+                <ToggleRow
+                  label={t('fbDefaultToToday')}
+                  checked={!!field.properties.defaultToToday}
+                  onChange={(defaultToToday) => update({ properties: { ...field.properties, defaultToToday } })}
+                />
                 <ToggleRow label={t('fbDisableFuture')} checked={!!field.validation.disableFuture} onChange={(disableFuture) => update({ validation: { ...field.validation, disableFuture } })} />
                 <ToggleRow label={t('fbDisablePast')} checked={!!field.validation.disablePast} onChange={(disablePast) => update({ validation: { ...field.validation, disablePast } })} />
               </>
@@ -449,6 +454,8 @@ function StaticOptionsEditor({
   onChange: (options: Array<{ label: MultilingualText; value: string }>) => void;
 }) {
   const t = useTranslations('collecte');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   const addOption = () => {
     onChange([...options, { label: { en: '' }, value: `option_${options.length + 1}` }]);
   };
@@ -461,9 +468,72 @@ function StaticOptionsEditor({
     onChange(options.map((opt, i) => (i === index ? { ...opt, ...data } : opt)));
   };
 
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      if (!text) return;
+      let imported: Array<{ label: MultilingualText; value: string }> = [];
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.json')) {
+        try {
+          const parsed = JSON.parse(text);
+          const arr = Array.isArray(parsed) ? parsed : parsed.options || parsed.data || [];
+          imported = arr.map((item: unknown, i: number) => {
+            if (typeof item === 'string') return { label: { en: item }, value: item.toLowerCase().replace(/[^a-z0-9]+/g, '_') || `opt_${i}` };
+            if (typeof item === 'object' && item !== null) {
+              const obj = item as Record<string, unknown>;
+              const lbl = (obj.label as string) || (obj.name as string) || (obj.text as string) || '';
+              const val = (obj.value as string) || (obj.code as string) || (obj.id as string) || lbl.toLowerCase().replace(/[^a-z0-9]+/g, '_') || `opt_${i}`;
+              if (typeof obj.label === 'object' && obj.label !== null) return { label: obj.label as MultilingualText, value: val };
+              return { label: { en: lbl }, value: val };
+            }
+            return { label: { en: String(item) }, value: `opt_${i}` };
+          });
+        } catch { /* invalid JSON — ignore */ }
+      } else {
+        // CSV/TXT: each line = "label,value" or just "label"
+        const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+        // Skip header if it looks like one
+        const start = /^(label|name|option)/i.test(lines[0] || '') ? 1 : 0;
+        imported = lines.slice(start).map((line, i) => {
+          const sep = line.includes('\t') ? '\t' : line.includes(';') ? ';' : ',';
+          const parts = line.split(sep).map((p) => p.trim().replace(/^["']|["']$/g, ''));
+          const lbl = parts[0] || '';
+          const val = parts[1] || lbl.toLowerCase().replace(/[^a-z0-9]+/g, '_') || `opt_${i}`;
+          return { label: { en: lbl }, value: val };
+        });
+      }
+      if (imported.length > 0) onChange([...options, ...imported]);
+    };
+    reader.readAsText(file);
+    // Reset so the same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   return (
     <div className="space-y-2">
-      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fbOptions')}</label>
+      <div className="flex items-center justify-between">
+        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{t('fbOptions')}</label>
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 transition-colors"
+          title={t('fbImportOptions')}
+        >
+          <Upload className="h-3 w-3" />
+          {t('fbImportFile')}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,.tsv,.txt,.json"
+          className="hidden"
+          onChange={handleFileImport}
+        />
+      </div>
       {options.map((opt, i) => (
         <div key={i} className="flex items-center gap-2">
           <input
