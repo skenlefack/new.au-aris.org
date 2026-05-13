@@ -52,6 +52,9 @@ model FormTemplate {
   // Multi-tenant overlays (REC/COUNTRY customizations)
   overlays            FormOverlay[]
 
+  // Review requests for this template
+  reviews             FormReview[]
+
   @@unique([tenant_id, name, version])
   @@index([tenant_id])
   @@index([domain])
@@ -143,6 +146,82 @@ model FormTarget {
   @@index([sub_domain_code], map: "idx_form_target_subdomain")
   @@index([form_id, is_primary], map: "idx_form_target_primary")
   @@map("form_targets")
+  @@schema("form_builder")
+}
+
+// Form Review — send form for review/validation to users at lower levels
+model FormReview {
+  id              String             @id @default(uuid()) @db.Uuid
+  template_id     String             @db.Uuid
+  tenant_id       String             @db.Uuid
+  sender_id       String             @db.Uuid
+  sender_name     String             @db.VarChar(255)
+  message         String?            @db.Text
+  status          FormReviewStatus   @default(PENDING)
+  synthesis       String?            @db.Text    // compiled summary of all comments
+  created_at      DateTime           @default(now())
+  updated_at      DateTime           @updatedAt
+  closed_at       DateTime?
+
+  template        FormTemplate       @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  reviewers       FormReviewUser[]
+  comments        FormReviewComment[]
+
+  @@index([template_id])
+  @@index([sender_id])
+  @@index([status])
+  @@map("form_reviews")
+  @@schema("form_builder")
+}
+
+enum FormReviewStatus {
+  PENDING
+  IN_REVIEW
+  COMPLETED
+  CANCELLED
+
+  @@schema("form_builder")
+}
+
+// Reviewers assigned to a form review
+model FormReviewUser {
+  id          String   @id @default(uuid()) @db.Uuid
+  review_id   String   @db.Uuid
+  user_id     String   @db.Uuid
+  user_name   String   @db.VarChar(255)
+  user_email  String   @db.VarChar(255)
+  tenant_id   String   @db.Uuid
+  has_read    Boolean  @default(false)
+  read_at     DateTime?
+  created_at  DateTime @default(now())
+
+  review      FormReview @relation(fields: [review_id], references: [id], onDelete: Cascade)
+
+  @@unique([review_id, user_id])
+  @@index([user_id])
+  @@map("form_review_users")
+  @@schema("form_builder")
+}
+
+// Comments on a form review
+model FormReviewComment {
+  id          String   @id @default(uuid()) @db.Uuid
+  review_id   String   @db.Uuid
+  user_id     String   @db.Uuid
+  user_name   String   @db.VarChar(255)
+  content     String   @db.Text
+  parent_id   String?  @db.Uuid   // for threaded replies
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  review      FormReview        @relation(fields: [review_id], references: [id], onDelete: Cascade)
+  parent      FormReviewComment? @relation("CommentThread", fields: [parent_id], references: [id])
+  replies     FormReviewComment[] @relation("CommentThread")
+
+  @@index([review_id])
+  @@index([parent_id])
+  @@index([user_id])
+  @@map("form_review_comments")
   @@schema("form_builder")
 }
 

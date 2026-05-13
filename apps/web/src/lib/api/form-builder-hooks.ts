@@ -532,3 +532,135 @@ export function useDeleteOverlay() {
     },
   });
 }
+
+// ════════════════════════════════════════════════════════════════
+// REVIEWS & COMMENTS
+// ════════════════════════════════════════════════════════════════
+
+export interface ReviewEntity {
+  id: string;
+  templateId: string;
+  tenantId: string;
+  senderId: string;
+  senderName: string;
+  message: string | null;
+  status: 'PENDING' | 'IN_REVIEW' | 'COMPLETED' | 'CANCELLED';
+  synthesis: string | null;
+  createdAt: string;
+  updatedAt: string;
+  closedAt: string | null;
+  commentCount: number;
+  reviewers: Array<{
+    id: string;
+    userId: string;
+    userName: string;
+    userEmail: string;
+    tenantId: string;
+    hasRead: boolean;
+    readAt: string | null;
+  }>;
+  template?: { id: string; name: string; domain: string; status: string } | null;
+}
+
+export interface ReviewCommentEntity {
+  id: string;
+  reviewId: string;
+  userId: string;
+  userName: string;
+  content: string;
+  parentId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewWithComments extends ReviewEntity {
+  comments: ReviewCommentEntity[];
+}
+
+// ---- Create review ----
+export function useCreateReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      templateId: string;
+      message?: string;
+      reviewers: Array<{ userId: string; userName: string; userEmail: string; tenantId: string }>;
+    }) => fb.post<{ data: ReviewEntity }>('/reviews', body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['form-builder', 'reviews'] });
+    },
+  });
+}
+
+// ---- List my reviews ----
+export function useMyReviews(params?: { page?: number; limit?: number; status?: string }) {
+  const queryParams: Record<string, string> = {};
+  if (params?.page) queryParams.page = String(params.page);
+  if (params?.limit) queryParams.limit = String(params.limit);
+  if (params?.status) queryParams.status = params.status;
+
+  return useQuery({
+    queryKey: ['form-builder', 'reviews', 'mine', params],
+    queryFn: () => fb.get<PaginatedResponse<ReviewEntity>>('/reviews', queryParams),
+    staleTime: 15_000,
+  });
+}
+
+// ---- Reviews for a template ----
+export function useTemplateReviews(templateId: string | undefined) {
+  return useQuery({
+    queryKey: ['form-builder', 'reviews', 'template', templateId],
+    queryFn: () => fb.get<{ data: ReviewEntity[] }>(`/reviews/template/${templateId}`),
+    enabled: !!templateId,
+    staleTime: 15_000,
+  });
+}
+
+// ---- Get single review with comments ----
+export function useReview(id: string | undefined) {
+  return useQuery({
+    queryKey: ['form-builder', 'review', id],
+    queryFn: () => fb.get<{ data: ReviewWithComments }>(`/reviews/${id}`),
+    enabled: !!id,
+    staleTime: 10_000,
+  });
+}
+
+// ---- Add comment ----
+export function useAddReviewComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reviewId, ...body }: { reviewId: string; content: string; parentId?: string }) =>
+      fb.post<{ data: ReviewCommentEntity }>(`/reviews/${reviewId}/comments`, body),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['form-builder', 'review', vars.reviewId] });
+      qc.invalidateQueries({ queryKey: ['form-builder', 'reviews'] });
+    },
+  });
+}
+
+// ---- Update synthesis ----
+export function useUpdateReviewSynthesis() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reviewId, synthesis }: { reviewId: string; synthesis: string }) =>
+      fb.put<{ data: ReviewEntity }>(`/reviews/${reviewId}/synthesis`, { synthesis }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['form-builder', 'review', vars.reviewId] });
+      qc.invalidateQueries({ queryKey: ['form-builder', 'reviews'] });
+    },
+  });
+}
+
+// ---- Close review ----
+export function useCloseReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (reviewId: string) =>
+      fb.post<{ data: ReviewEntity }>(`/reviews/${reviewId}/close`),
+    onSuccess: (_, reviewId) => {
+      qc.invalidateQueries({ queryKey: ['form-builder', 'review', reviewId] });
+      qc.invalidateQueries({ queryKey: ['form-builder', 'reviews'] });
+    },
+  });
+}

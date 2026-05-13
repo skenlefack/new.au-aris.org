@@ -22,6 +22,8 @@ import {
   Download,
   Sliders,
   ArrowLeft,
+  Send,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -41,6 +43,7 @@ import { TargetBadges } from '@/components/forms/TargetsSelector';
 import { toast } from 'sonner';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { SendReviewModal } from '@/components/form-builder/modals/SendReviewModal';
 
 /* ── Excel export ────────────────────────────────────────────────────────── */
 
@@ -703,6 +706,8 @@ function FormCard({
     exportFormToExcel(template);
   }, [template]);
 
+  const [showReviewModal, setShowReviewModal] = useState(false);
+
   const actionBtn =
     'rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 transition-colors';
 
@@ -779,6 +784,15 @@ function FormCard({
               <Archive className="h-4 w-4" />
             </button>
           )}
+          {isOwner && (
+            <button
+              onClick={() => setShowReviewModal(true)}
+              className="rounded-lg p-2 text-blue-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/30 transition-colors"
+              title={t('sendForReview') || 'Send for Review'}
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          )}
           <button
             onClick={handleExportExcel}
             className="rounded-lg p-2 text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950/30 transition-colors"
@@ -797,6 +811,13 @@ function FormCard({
           )}
         </div>
       </div>
+      {showReviewModal && (
+        <SendReviewModal
+          templateId={template.id}
+          templateName={template.name}
+          onClose={() => setShowReviewModal(false)}
+        />
+      )}
     </div>
   );
 }
