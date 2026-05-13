@@ -17,6 +17,8 @@ interface AdminLocationFieldProps {
   requiredLevels?: number[];
   value: Record<string, string> | null;
   onChange: (value: Record<string, string> | null) => void;
+  /** Campaign target countries (ISO codes) — restricts country dropdown */
+  campaignTargetCountries?: string[];
 }
 
 /** Generic fallback labels when no country-specific config exists */
@@ -81,13 +83,22 @@ export function AdminLocationField({
   requiredLevels = [],
   value,
   onChange,
+  campaignTargetCountries,
 }: AdminLocationFieldProps) {
   const locale = useLocaleStore((s) => s.locale);
   const user = useAuthStore((s) => s.user);
   const [selections, setSelections] = useState<Record<string, string>>(value || {});
 
-  // Determine allowed country codes based on user scope
+  // Determine allowed country codes based on user scope + campaign targets
   const { allowedCodes, isCountryLocked } = useMemo(() => {
+    // Campaign target countries take priority — restrict to those
+    if (campaignTargetCountries && campaignTargetCountries.length > 0) {
+      if (campaignTargetCountries.length === 1) {
+        return { allowedCodes: campaignTargetCountries, isCountryLocked: true };
+      }
+      return { allowedCodes: campaignTargetCountries, isCountryLocked: false };
+    }
+
     if (!user) return { allowedCodes: null, isCountryLocked: false };
 
     if (user.tenantLevel === 'MEMBER_STATE') {
@@ -110,7 +121,7 @@ export function AdminLocationField({
 
     // CONTINENTAL or unknown → all countries
     return { allowedCodes: null, isCountryLocked: false };
-  }, [user]);
+  }, [user, campaignTargetCountries]);
 
   // Auto-select country for MEMBER_STATE users
   const autoSelectedRef = React.useRef(false);

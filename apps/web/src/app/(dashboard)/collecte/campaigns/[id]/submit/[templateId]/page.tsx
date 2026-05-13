@@ -74,6 +74,7 @@ export default function CampaignSubmitPage() {
       return String(n);
     })(),
     status: rawCampaign.status as string,
+    targetCountries: (rawCampaign.targetCountries || []) as string[],
   } : undefined;
 
   // Resolve the template: direct ID match → name-based fallback
@@ -229,6 +230,7 @@ export default function CampaignSubmitPage() {
           formName={templateName}
           preview={previewMode}
           onSubmit={previewMode ? undefined : handleSubmit}
+          campaignTargetCountries={campaign?.targetCountries}
         />
       ) : (
         <div className="rounded-xl border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">

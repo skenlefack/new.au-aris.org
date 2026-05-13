@@ -27,9 +27,11 @@ interface FormRendererProps {
   /** Preview/simulation mode — all fields interactive but submission disabled */
   preview?: boolean;
   onSubmit?: (data: Record<string, unknown>) => void;
+  /** Campaign target countries (ISO codes) — filters admin-location fields */
+  campaignTargetCountries?: string[];
 }
 
-export function FormRenderer({ schema, formName, mobile = false, preview = false, onSubmit }: FormRendererProps) {
+export function FormRenderer({ schema, formName, mobile = false, preview = false, onSubmit, campaignTargetCountries }: FormRendererProps) {
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const locale = useLocaleStore((s) => s.locale);
@@ -78,7 +80,10 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
               <SectionRenderer
                 key={section.id}
                 section={section}
-                values={values}
+                values={campaignTargetCountries
+                  ? { ...values, _campaignTargetCountries: campaignTargetCountries }
+                  : values
+                }
                 onChange={handleFieldChange}
                 fieldErrors={fieldErrors}
                 isCollapsed={collapsedSections.has(section.id)}

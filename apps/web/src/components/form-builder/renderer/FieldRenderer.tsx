@@ -356,6 +356,7 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
             requiredLevels={(field.properties.requiredLevels as number[]) || [0]}
             value={value && typeof value === 'object' ? value as Record<string, string> : null}
             onChange={(v) => onChange(v)}
+            campaignTargetCountries={formValues?._campaignTargetCountries as string[] | undefined}
           />
         </Suspense>
       )}
