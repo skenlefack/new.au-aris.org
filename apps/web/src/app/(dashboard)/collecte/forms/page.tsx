@@ -35,6 +35,7 @@ import {
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTenantStore, findTenantById } from '@/lib/stores/tenant-store';
 import { useTranslations } from '@/lib/i18n/translations';
 import { TargetBadges } from '@/components/forms/TargetsSelector';
 import { toast } from 'sonner';
@@ -470,16 +471,29 @@ export default function FormListPage() {
   const [domainFilter, setDomainFilter] = useState('');
   const [formTypeFilter, setFormTypeFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce search input (400ms)
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const { data, isLoading } = useFormBuilderTemplates({
     page,
-    limit: 10,
+    limit: debouncedSearch ? 500 : 10,
+    search: debouncedSearch || undefined,
     status: statusFilter || undefined,
     domain: domainFilter || undefined,
     formType: (formTypeFilter as any) || undefined,
   });
 
   const userRole = useAuthStore((s) => s.user?.role);
+  const selectedTenantId = useTenantStore((s) => s.selectedTenantId);
+  const tenantTree = useTenantStore((s) => s.tenantTree);
   const canCustomize = userRole === 'REC_ADMIN' || userRole === 'NATIONAL_ADMIN';
 
   const duplicateMutation = useDuplicateFormTemplate();
@@ -490,13 +504,8 @@ export default function FormListPage() {
   const templates = data?.data ?? [];
   const meta = data?.meta;
 
-  // Client-side search filter
-  const filtered = search
-    ? templates.filter((t) =>
-        t.name.toLowerCase().includes(search.toLowerCase()) ||
-        t.domain.toLowerCase().includes(search.toLowerCase()),
-      )
-    : templates;
+  // Server-side search — no client-side filtering needed
+  const filtered = templates;
 
   return (
     <div className="space-y-6">
@@ -537,6 +546,14 @@ export default function FormListPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           />
+          {debouncedSearch && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <span className="text-xs">✕</span>
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-gray-400" />
@@ -579,37 +596,42 @@ export default function FormListPage() {
         <EmptyState />
       ) : (
         <div className="space-y-3">
-          {filtered.map((template) => (
-            <FormCard
-              key={template.id}
-              template={template}
-              onDuplicate={() => {
-                duplicateMutation.mutate(template.id, {
-                  onSuccess: () => toast.success(t('formDuplicated')),
-                  onError: (err) => toast.error(err instanceof Error ? err.message : t('duplicateFormError')),
-                });
-              }}
-              onDelete={() => {
-                deleteMutation.mutate(template.id, {
-                  onSuccess: () => toast.success(t('formDeleted')),
-                  onError: (err) => toast.error(err instanceof Error ? err.message : t('deleteFormError')),
-                });
-              }}
-              onPublish={() => {
-                publishMutation.mutate(template.id, {
-                  onSuccess: () => toast.success(t('formPublished')),
-                  onError: (err) => toast.error(err instanceof Error ? err.message : t('publishFormError')),
-                });
-              }}
-              onArchive={() => {
-                archiveMutation.mutate(template.id, {
-                  onSuccess: () => toast.success(t('formArchived')),
-                  onError: (err) => toast.error(err instanceof Error ? err.message : t('archiveFormError')),
-                });
-              }}
-              canCustomize={canCustomize}
-            />
-          ))}
+          {filtered.map((template) => {
+            const isOwner = template.tenantId === selectedTenantId;
+            return (
+              <FormCard
+                key={template.id}
+                template={template}
+                isOwner={isOwner}
+                tenantTree={tenantTree}
+                onDuplicate={() => {
+                  duplicateMutation.mutate(template.id, {
+                    onSuccess: () => toast.success(t('formDuplicated')),
+                    onError: (err) => toast.error(err instanceof Error ? err.message : t('duplicateFormError')),
+                  });
+                }}
+                onDelete={() => {
+                  deleteMutation.mutate(template.id, {
+                    onSuccess: () => toast.success(t('formDeleted')),
+                    onError: (err) => toast.error(err instanceof Error ? err.message : t('deleteFormError')),
+                  });
+                }}
+                onPublish={() => {
+                  publishMutation.mutate(template.id, {
+                    onSuccess: () => toast.success(t('formPublished')),
+                    onError: (err) => toast.error(err instanceof Error ? err.message : t('publishFormError')),
+                  });
+                }}
+                onArchive={() => {
+                  archiveMutation.mutate(template.id, {
+                    onSuccess: () => toast.success(t('formArchived')),
+                    onError: (err) => toast.error(err instanceof Error ? err.message : t('archiveFormError')),
+                  });
+                }}
+                canCustomize={canCustomize}
+              />
+            );
+          })}
 
           {/* Pagination */}
           {meta && meta.total > meta.limit && (
@@ -626,8 +648,25 @@ export default function FormListPage() {
   );
 }
 
+function resolveTenantLabel(
+  tenantId: string,
+  tenantTree: import('@/lib/stores/tenant-store').TenantNode[],
+): { name: string; level: string } {
+  const node = findTenantById(tenantTree, tenantId);
+  if (node) return { name: node.name, level: node.level };
+  return { name: '', level: '' };
+}
+
+const LEVEL_BADGE: Record<string, string> = {
+  CONTINENTAL: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  REC: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+  MEMBER_STATE: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400',
+};
+
 function FormCard({
   template,
+  isOwner,
+  tenantTree,
   onDuplicate,
   onDelete,
   onPublish,
@@ -635,6 +674,8 @@ function FormCard({
   canCustomize,
 }: {
   template: FormTemplateListItem;
+  isOwner: boolean;
+  tenantTree: import('@/lib/stores/tenant-store').TenantNode[];
   onDuplicate: () => void;
   onDelete: () => void;
   onPublish: () => void;
@@ -645,6 +686,9 @@ function FormCard({
   const statusCfg = STATUS_CONFIG[template.status] || STATUS_CONFIG.DRAFT;
   // Backward compat: reads legacy domain field, prefer targets[]
   const domainLabel = DOMAIN_OPTIONS.find((d) => d.value === template.domain)?.label || template.domain;
+
+  // Resolve tenant info
+  const tenantInfo = resolveTenantLabel(template.tenantId, tenantTree);
 
   // Count fields from schema
   let fieldCount = 0;
@@ -685,6 +729,11 @@ function FormCard({
             </span>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-500">
+            {tenantInfo.name && (
+              <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold', LEVEL_BADGE[tenantInfo.level] || 'bg-gray-100 text-gray-600')}>
+                {tenantInfo.name}
+              </span>
+            )}
             {(template as any).targets && (template as any).targets.length > 0 ? (
               <TargetBadges targets={(template as any).targets} />
             ) : (
@@ -703,7 +752,7 @@ function FormCard({
           <Link href={`/collecte/forms/${template.id}/preview`} className={actionBtn} title={t('preview')}>
             <Eye className="h-4 w-4" />
           </Link>
-          {template.status === 'DRAFT' && (
+          {template.status === 'DRAFT' && isOwner && (
             <Link href={`/collecte/forms/${template.id}/edit`} className={actionBtn} title={t('edit')}>
               <Edit3 className="h-4 w-4" />
             </Link>
@@ -711,7 +760,7 @@ function FormCard({
           <button onClick={onDuplicate} className={actionBtn} title={t('duplicate')}>
             <Copy className="h-4 w-4" />
           </button>
-          {template.status === 'DRAFT' && (
+          {template.status === 'DRAFT' && isOwner && (
             <button onClick={onPublish} className={actionBtn} title={t('publish')}>
               <SendHorizonal className="h-4 w-4" />
             </button>
@@ -725,7 +774,7 @@ function FormCard({
               <Sliders className="h-4 w-4" />
             </Link>
           )}
-          {template.status === 'PUBLISHED' && (
+          {template.status === 'PUBLISHED' && isOwner && (
             <button onClick={onArchive} className={actionBtn} title={t('archive')}>
               <Archive className="h-4 w-4" />
             </button>
@@ -737,7 +786,7 @@ function FormCard({
           >
             <Download className="h-4 w-4" />
           </button>
-          {template.status === 'DRAFT' && (
+          {template.status === 'DRAFT' && isOwner && (
             <button
               onClick={() => { if (confirm(t('deleteFormConfirm'))) onDelete(); }}
               className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 transition-colors"

@@ -99,6 +99,7 @@ interface ApiResponse<T> {
 export function useFormBuilderTemplates(params?: {
   page?: number;
   limit?: number;
+  search?: string;
   domain?: string;
   formType?: FormType;
   status?: string;
@@ -106,6 +107,7 @@ export function useFormBuilderTemplates(params?: {
   const queryParams: Record<string, string> = {};
   if (params?.page) queryParams.page = String(params.page);
   if (params?.limit) queryParams.limit = String(params.limit);
+  if (params?.search) queryParams.search = params.search;
   if (params?.domain) queryParams.domain = params.domain;
   if (params?.formType) queryParams.formType = params.formType;
   if (params?.status) queryParams.status = params.status;

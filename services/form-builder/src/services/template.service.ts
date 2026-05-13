@@ -121,6 +121,7 @@ export class TemplateService {
   async findAll(
     user: AuthenticatedUser,
     query: PaginationQuery & {
+      search?: string;
       domain?: string;
       domainCode?: string;
       subDomainCode?: string;
@@ -129,7 +130,7 @@ export class TemplateService {
     },
   ): Promise<PaginatedResponse<FormTemplateEntity & { overlayCount?: number; hasOverlay?: boolean }>> {
     const page = query.page ?? DEFAULT_PAGE;
-    const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
+    const limit = Math.min(query.limit ?? DEFAULT_LIMIT, 500);
     const skip = (page - 1) * limit;
 
     const orderBy = query.sort
@@ -159,10 +160,16 @@ export class TemplateService {
       targetFilter = { targets: { some: targetWhere } };
     }
 
+    // Full-text search on template name (case-insensitive)
+    const searchFilter: Record<string, unknown> = query.search
+      ? { name: { contains: query.search, mode: 'insensitive' } }
+      : {};
+
     const where: Prisma.FormTemplateWhereInput = {
       ...this.buildTenantFilter(user),
       ...domainFilter,
       ...targetFilter,
+      ...searchFilter,
       ...(query.formType && { form_type: query.formType }),
       ...(query.status && { status: query.status as Prisma.EnumFormTemplateStatusFilter }),
     };

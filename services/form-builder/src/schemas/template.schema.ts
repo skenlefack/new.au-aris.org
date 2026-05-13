@@ -46,9 +46,10 @@ export type UpdateTemplateBody = Static<typeof UpdateTemplateSchema>;
 
 export const ListTemplatesQuerySchema = Type.Object({
   page: Type.Optional(Type.Integer({ minimum: 1 })),
-  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 500 })),
   sort: Type.Optional(Type.String()),
   order: Type.Optional(Type.Union([Type.Literal('asc'), Type.Literal('desc')])),
+  search: Type.Optional(Type.String()),
   domain: Type.Optional(Type.String()),
   domainCode: Type.Optional(Type.String()),
   subDomainCode: Type.Optional(Type.String()),
