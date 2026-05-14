@@ -380,7 +380,7 @@ function EditChainRow({
 }) {
   const isFr = locale === 'fr';
   const updateMut = useUpdateValidationChain();
-  const { data: usersRes, isLoading: usersLoading } = useSettingsUsers({ limit: 500 });
+  const { data: usersRes, isLoading: usersLoading } = useSettingsUsers({ limit: 100 });
   const users = Array.isArray(usersRes?.data) ? usersRes.data : [];
 
   const [editValidatorId, setEditValidatorId] = useState(chain.validatorId);
@@ -478,7 +478,7 @@ function CreateChainForm({ onClose, locale }: { onClose: () => void; locale: str
   const t = useTranslations('settings');
   const isFr = locale === 'fr';
   const createMut = useCreateValidationChain();
-  const { data: usersRes, isLoading: usersLoading, error: usersError } = useSettingsUsers({ limit: 500 });
+  const { data: usersRes, isLoading: usersLoading, error: usersError } = useSettingsUsers({ limit: 100 });
   const users = Array.isArray(usersRes?.data) ? usersRes.data : [];
   const [error, setError] = useState('');
 
