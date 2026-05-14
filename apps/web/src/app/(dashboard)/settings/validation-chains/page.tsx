@@ -146,6 +146,7 @@ export default function ValidationChainsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState('');
 
   const { data: chainsData, isLoading } = useValidationChains({ page, limit });
   const deleteMut = useDeleteValidationChain();
@@ -169,8 +170,14 @@ export default function ValidationChainsPage() {
   });
 
   const handleDelete = async (id: string) => {
-    await deleteMut.mutateAsync(id);
-    setDeleteConfirmId(null);
+    setDeleteError('');
+    try {
+      await deleteMut.mutateAsync(id);
+      setDeleteConfirmId(null);
+    } catch (err: any) {
+      setDeleteError(err?.message || (isFr ? 'Erreur lors de la suppression' : 'Delete failed'));
+      setDeleteConfirmId(null);
+    }
   };
 
   return (
@@ -193,6 +200,14 @@ export default function ValidationChainsPage() {
       {/* Create form */}
       {showCreate && (
         <CreateChainForm onClose={() => setShowCreate(false)} locale={locale} />
+      )}
+
+      {deleteError && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          {deleteError}
+          <button onClick={() => setDeleteError('')} className="ml-auto text-red-400 hover:text-red-600"><X className="h-3.5 w-3.5" /></button>
+        </div>
       )}
 
       {/* Search + Level filter */}

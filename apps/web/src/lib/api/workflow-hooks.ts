@@ -33,7 +33,9 @@ async function wfFetch<T>(path: string, opts?: RequestInit): Promise<T> {
     throw new Error(body.message ?? `Request failed: ${res.status}`);
   }
   if (res.status === 204) return {} as T;
-  return res.json();
+  const text = await res.text();
+  if (!text) return {} as T;
+  return JSON.parse(text);
 }
 
 // ═══════════════════════════════════════════════════════
