@@ -8,7 +8,6 @@ import type { SubDomainType } from '@/lib/stores/domain-store';
 import { ICON_MAP } from '@/components/ui/IconPicker';
 import { useSubDomains } from '@/hooks/use-sub-domains';
 import { useQuery } from '@tanstack/react-query';
-import { collecteClient } from '@/lib/api/client';
 
 interface SubDomainsGridProps {
   domainCode: string;
@@ -25,11 +24,29 @@ function useSubDomainStats(domainCode: string) {
   return useQuery<Record<string, { campaigns: number; forms: number; submissions: number }>>({
     queryKey: ['sub-domain-stats', domainCode],
     queryFn: async () => {
-      // Fetch campaigns and forms for this domain — lightweight calls
+      // Fetch campaigns and forms for this domain — direct fetch to avoid double /api/v1 prefix
       const dbDomain = normalizeDomain(domainCode);
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      try {
+        const raw = localStorage.getItem('aris-auth');
+        if (raw) {
+          const token = JSON.parse(raw)?.state?.accessToken;
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+        }
+        const t = localStorage.getItem('aris-tenant');
+        if (t) {
+          const tid = JSON.parse(t)?.state?.selectedTenantId;
+          if (tid) headers['X-Tenant-Id'] = tid;
+        }
+      } catch { /* ignore */ }
+      const fetchJson = async (url: string) => {
+        const res = await fetch(url, { headers });
+        if (!res.ok) return { data: [] };
+        return res.json();
+      };
       const [campaignsRes, formsRes] = await Promise.allSettled([
-        collecteClient.get<any>('/collecte/campaigns', { domain: dbDomain, limit: '200' }),
-        collecteClient.get<any>('/form-builder/templates', { domain: dbDomain, limit: '200', status: 'PUBLISHED' }),
+        fetchJson(`/api/v1/collecte/campaigns?domain=${dbDomain}&limit=100`),
+        fetchJson(`/api/v1/form-builder/templates?domain=${dbDomain}&limit=100&status=PUBLISHED`),
       ]);
 
       const campaigns = campaignsRes.status === 'fulfilled' ? (campaignsRes.value?.data ?? []) : [];
