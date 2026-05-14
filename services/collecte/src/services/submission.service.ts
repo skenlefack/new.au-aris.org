@@ -91,14 +91,20 @@ export class SubmissionService {
       );
     }
 
-    // Tenant isolation (legacy Campaign has tenantId, CollectionCampaign uses ownerId)
-    const campaignTenantId = isCollectionCampaign ? campaign.ownerId : campaign.tenantId;
-    if (
-      campaignTenantId &&
-      user.tenantLevel !== TenantLevel.CONTINENTAL &&
-      campaignTenantId !== user.tenantId
-    ) {
-      throw new HttpError(404, `Campaign ${dto.campaignId} not found`);
+    // Tenant isolation
+    if (user.tenantLevel !== TenantLevel.CONTINENTAL) {
+      if (isCollectionCampaign) {
+        // CollectionCampaign: owner OR targeted country/REC can submit
+        const canAccess = await this.canAccessCollectionCampaign(user, campaign);
+        if (!canAccess) {
+          throw new HttpError(404, `Campaign ${dto.campaignId} not found`);
+        }
+      } else {
+        // Legacy Campaign: strict tenantId match
+        if (campaign.tenantId && campaign.tenantId !== user.tenantId) {
+          throw new HttpError(404, `Campaign ${dto.campaignId} not found`);
+        }
+      }
     }
 
     // Resolve template ID (CollectionCampaign uses formTemplateId, legacy uses templateId)
@@ -450,6 +456,48 @@ export class SubmissionService {
         `[CollecteEventConsumer] Kafka consumers not available — async callbacks disabled: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+  }
+
+  /**
+   * Check if user can access a CollectionCampaign (owner, targeted country, or targeted REC).
+   * Mirrors WorkflowEngineService.canAccessCampaign logic.
+   */
+  private async canAccessCollectionCampaign(
+    user: AuthenticatedUser,
+    campaign: { ownerId: string | null; targetCountries: unknown; targetRecIds: unknown },
+  ): Promise<boolean> {
+    if (campaign.ownerId === user.tenantId) return true;
+
+    const tenant = await (this.prisma as any).tenant.findUnique({
+      where: { id: user.tenantId },
+      select: { level: true, countryCode: true },
+    });
+    if (!tenant) return false;
+
+    const targetCountries = Array.isArray(campaign.targetCountries)
+      ? (campaign.targetCountries as string[]).map((c: string) => c.toUpperCase())
+      : [];
+    const targetRecIds = Array.isArray(campaign.targetRecIds)
+      ? (campaign.targetRecIds as string[])
+      : [];
+
+    if (tenant.level === 'MEMBER_STATE' && tenant.countryCode) {
+      return targetCountries.includes(tenant.countryCode.toUpperCase());
+    }
+
+    if (tenant.level === 'REC') {
+      if (targetRecIds.includes(user.tenantId)) return true;
+      const memberTenants = await (this.prisma as any).tenant.findMany({
+        where: { parentId: user.tenantId, level: 'MEMBER_STATE' },
+        select: { countryCode: true },
+      });
+      const memberCodes: string[] = memberTenants
+        .map((t: { countryCode: string | null }) => t.countryCode?.toUpperCase())
+        .filter(Boolean);
+      return targetCountries.some((c: string) => memberCodes.includes(c));
+    }
+
+    return false;
   }
 
   private buildFilter(
