@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Link2,
   Plus,
@@ -13,6 +13,7 @@ import {
   X,
   Check,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -25,7 +26,6 @@ import {
   useUpdateValidationChain,
   useDeleteValidationChain,
 } from '@/lib/api/workflow-hooks';
-import { SearchCombobox } from '@/components/ui/SearchCombobox';
 import { useSettingsUsers, type ManagedUser } from '@/lib/api/settings-hooks';
 
 const LEVEL_TYPES = ['national', 'regional', 'continental', 'admin1', 'admin2', 'admin3', 'admin4', 'admin5'];
@@ -58,11 +58,80 @@ function levelLabel(lt: string, locale: string): string {
 
 const userLabel = (u: ManagedUser) =>
   u.firstName && u.lastName ? `${u.firstName} ${u.lastName} (${u.email})` : u.email;
-const userFilter = (u: ManagedUser) =>
-  `${u.firstName} ${u.lastName} ${u.email} ${u.role}`;
 function userDisplayName(u?: { displayName?: string; email?: string }) {
   if (!u) return '—';
   return u.displayName?.trim() || u.email || '—';
+}
+
+/* ── Filterable User Select (native <select> for reliability) ── */
+
+function UserSelect({
+  value,
+  onChange,
+  users,
+  loading,
+  placeholder,
+  className,
+}: {
+  value: string;
+  onChange: (userId: string) => void;
+  users: ManagedUser[];
+  loading?: boolean;
+  placeholder?: string;
+  className?: string;
+}) {
+  const [filter, setFilter] = useState('');
+
+  const filtered = useMemo(() => {
+    if (!filter) return users;
+    const q = filter.toLowerCase();
+    return users.filter(
+      (u) =>
+        u.email.toLowerCase().includes(q) ||
+        (u.firstName ?? '').toLowerCase().includes(q) ||
+        (u.lastName ?? '').toLowerCase().includes(q),
+    );
+  }, [users, filter]);
+
+  if (loading) {
+    return (
+      <div className={cn('flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-400', className)}>
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Loading...
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn('space-y-1', className)}>
+      {users.length > 10 && (
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Filter..."
+            className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-1.5 pl-8 pr-2 text-xs text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-blue-500 focus:outline-none"
+          />
+        </div>
+      )}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-2 text-sm text-gray-900 dark:text-white"
+      >
+        <option value="">{placeholder ?? '-- Select --'}</option>
+        {filtered.map((u) => (
+          <option key={u.id} value={u.id}>
+            {u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : u.email}
+            {u.firstName && u.lastName ? ` (${u.email})` : ''}
+            {' '}[{u.role}]
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 }
 
 export default function ValidationChainsPage() {
@@ -311,33 +380,19 @@ function EditChainRow({
 }) {
   const isFr = locale === 'fr';
   const updateMut = useUpdateValidationChain();
-  const { data: usersRes, isLoading: usersLoading } = useSettingsUsers({ limit: 200 });
-  const users = usersRes?.data ?? [];
+  const { data: usersRes, isLoading: usersLoading } = useSettingsUsers({ limit: 500 });
+  const users = Array.isArray(usersRes?.data) ? usersRes.data : [];
 
-  const [validatorUser, setValidatorUser] = useState<ManagedUser | null>(
-    users.find((u) => u.id === chain.validatorId) ?? null,
-  );
-  const [backupUser, setBackupUser] = useState<ManagedUser | null>(
-    users.find((u) => u.id === chain.backupValidatorId) ?? null,
-  );
+  const [editValidatorId, setEditValidatorId] = useState(chain.validatorId);
+  const [editBackupId, setEditBackupId] = useState(chain.backupValidatorId ?? '');
   const [editLevel, setEditLevel] = useState(chain.levelType);
   const [editPriority, setEditPriority] = useState(chain.priority);
-
-  // Update validator selection when users load
-  React.useEffect(() => {
-    if (users.length > 0 && !validatorUser) {
-      setValidatorUser(users.find((u) => u.id === chain.validatorId) ?? null);
-    }
-    if (users.length > 0 && !backupUser && chain.backupValidatorId) {
-      setBackupUser(users.find((u) => u.id === chain.backupValidatorId) ?? null);
-    }
-  }, [users, chain.validatorId, chain.backupValidatorId]);
 
   const handleSave = async () => {
     await updateMut.mutateAsync({
       id: chain.id,
-      validatorId: validatorUser?.id ?? chain.validatorId,
-      backupValidatorId: backupUser?.id ?? null,
+      validatorId: editValidatorId,
+      backupValidatorId: editBackupId || null,
       levelType: editLevel,
       priority: editPriority,
     });
@@ -357,27 +412,23 @@ function EditChainRow({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div>
           <label className="text-[10px] font-medium text-gray-500 uppercase">{isFr ? 'Validateur' : 'Validator'}</label>
-          <SearchCombobox<ManagedUser>
-            value={validatorUser}
-            onChange={setValidatorUser}
-            items={users}
-            labelKey={userLabel}
-            filterKey={userFilter}
-            placeholder={isFr ? 'Rechercher...' : 'Search...'}
+          <UserSelect
+            value={editValidatorId}
+            onChange={setEditValidatorId}
+            users={users}
             loading={usersLoading}
+            placeholder={isFr ? 'Sélectionner...' : 'Select...'}
             className="mt-1"
           />
         </div>
         <div>
           <label className="text-[10px] font-medium text-gray-500 uppercase">{isFr ? 'Validateur backup' : 'Backup validator'}</label>
-          <SearchCombobox<ManagedUser>
-            value={backupUser}
-            onChange={setBackupUser}
-            items={users}
-            labelKey={userLabel}
-            filterKey={userFilter}
-            placeholder={isFr ? 'Optionnel...' : 'Optional...'}
+          <UserSelect
+            value={editBackupId}
+            onChange={setEditBackupId}
+            users={users}
             loading={usersLoading}
+            placeholder={isFr ? 'Optionnel...' : 'Optional...'}
             className="mt-1"
           />
         </div>
@@ -427,41 +478,33 @@ function CreateChainForm({ onClose, locale }: { onClose: () => void; locale: str
   const t = useTranslations('settings');
   const isFr = locale === 'fr';
   const createMut = useCreateValidationChain();
-  const { data: usersRes, isLoading: usersLoading } = useSettingsUsers({ limit: 200 });
-  const users = usersRes?.data ?? [];
+  const { data: usersRes, isLoading: usersLoading, error: usersError } = useSettingsUsers({ limit: 500 });
+  const users = Array.isArray(usersRes?.data) ? usersRes.data : [];
   const [error, setError] = useState('');
 
-  const [form, setForm] = useState<{
-    user: ManagedUser | null;
-    validator: ManagedUser | null;
-    backupValidator: ManagedUser | null;
-    priority: number;
-    levelType: string;
-  }>({
-    user: null,
-    validator: null,
-    backupValidator: null,
-    priority: 1,
-    levelType: 'national',
-  });
+  const [userId, setUserId] = useState('');
+  const [validatorId, setValidatorId] = useState('');
+  const [backupValidatorId, setBackupValidatorId] = useState('');
+  const [priority, setPriority] = useState(1);
+  const [levelType, setLevelType] = useState('national');
 
   const handleCreate = async () => {
     setError('');
-    if (!form.user || !form.validator) {
+    if (!userId || !validatorId) {
       setError(isFr ? 'Sélectionnez un utilisateur et un validateur' : 'Select a user and a validator');
       return;
     }
-    if (form.user.id === form.validator.id) {
+    if (userId === validatorId) {
       setError(isFr ? 'L\'utilisateur et le validateur doivent être différents' : 'User and validator must be different');
       return;
     }
     try {
       await createMut.mutateAsync({
-        userId: form.user.id,
-        validatorId: form.validator.id,
-        backupValidatorId: form.backupValidator?.id ?? undefined,
-        priority: form.priority,
-        levelType: form.levelType,
+        userId,
+        validatorId,
+        backupValidatorId: backupValidatorId || undefined,
+        priority,
+        levelType,
       });
       onClose();
     } catch (err: any) {
@@ -490,19 +533,24 @@ function CreateChainForm({ onClose, locale }: { onClose: () => void; locale: str
         </div>
       )}
 
+      {usersError && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          {isFr ? 'Erreur de chargement des utilisateurs' : 'Failed to load users'}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
           <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
             {t('userSubmitter')} <span className="text-red-500">*</span>
           </label>
-          <SearchCombobox<ManagedUser>
-            value={form.user}
-            onChange={(u) => setForm((s) => ({ ...s, user: u }))}
-            items={users}
-            labelKey={userLabel}
-            filterKey={userFilter}
-            placeholder={t('searchUser')}
+          <UserSelect
+            value={userId}
+            onChange={setUserId}
+            users={users}
             loading={usersLoading}
+            placeholder={t('searchUser')}
             className="mt-1"
           />
         </div>
@@ -510,35 +558,31 @@ function CreateChainForm({ onClose, locale }: { onClose: () => void; locale: str
           <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
             {t('validator')} <span className="text-red-500">*</span>
           </label>
-          <SearchCombobox<ManagedUser>
-            value={form.validator}
-            onChange={(u) => setForm((s) => ({ ...s, validator: u }))}
-            items={users}
-            labelKey={userLabel}
-            filterKey={userFilter}
-            placeholder={t('searchValidator')}
+          <UserSelect
+            value={validatorId}
+            onChange={setValidatorId}
+            users={users}
             loading={usersLoading}
+            placeholder={t('searchValidator')}
             className="mt-1"
           />
         </div>
         <div>
           <label className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('backupValidator')}</label>
-          <SearchCombobox<ManagedUser>
-            value={form.backupValidator}
-            onChange={(u) => setForm((s) => ({ ...s, backupValidator: u }))}
-            items={users}
-            labelKey={userLabel}
-            filterKey={userFilter}
-            placeholder={t('searchBackup')}
+          <UserSelect
+            value={backupValidatorId}
+            onChange={setBackupValidatorId}
+            users={users}
             loading={usersLoading}
+            placeholder={t('searchBackup')}
             className="mt-1"
           />
         </div>
         <div>
           <label className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('levelType')}</label>
           <select
-            value={form.levelType}
-            onChange={(e) => setForm((s) => ({ ...s, levelType: e.target.value }))}
+            value={levelType}
+            onChange={(e) => setLevelType(e.target.value)}
             className="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-2 text-sm"
           >
             {LEVEL_TYPES.map((lt) => (
@@ -552,8 +596,8 @@ function CreateChainForm({ onClose, locale }: { onClose: () => void; locale: str
             type="number"
             min={1}
             max={10}
-            value={form.priority}
-            onChange={(e) => setForm((s) => ({ ...s, priority: Number(e.target.value) }))}
+            value={priority}
+            onChange={(e) => setPriority(Number(e.target.value))}
             className="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-2 text-sm"
           />
         </div>
@@ -565,7 +609,7 @@ function CreateChainForm({ onClose, locale }: { onClose: () => void; locale: str
         </button>
         <button
           onClick={handleCreate}
-          disabled={!form.user || !form.validator || createMut.isPending}
+          disabled={!userId || !validatorId || createMut.isPending}
           className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
           {createMut.isPending ? '...' : (isFr ? 'Créer la chaîne' : 'Create chain')}
