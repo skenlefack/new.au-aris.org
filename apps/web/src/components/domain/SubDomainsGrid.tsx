@@ -28,8 +28,8 @@ function useSubDomainStats(domainCode: string) {
       // Fetch campaigns and forms for this domain — lightweight calls
       const dbDomain = normalizeDomain(domainCode);
       const [campaignsRes, formsRes] = await Promise.allSettled([
-        collecteClient.get<any>('/api/v1/collecte/campaigns', { domain: dbDomain, limit: '200' }),
-        collecteClient.get<any>('/api/v1/form-builder/templates', { domain: dbDomain, limit: '200', status: 'PUBLISHED' }),
+        collecteClient.get<any>('/collecte/campaigns', { domain: dbDomain, limit: '200' }),
+        collecteClient.get<any>('/form-builder/templates', { domain: dbDomain, limit: '200', status: 'PUBLISHED' }),
       ]);
 
       const campaigns = campaignsRes.status === 'fulfilled' ? (campaignsRes.value?.data ?? []) : [];
