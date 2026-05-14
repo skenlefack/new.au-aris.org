@@ -76,10 +76,11 @@ export function useSettingsAccess() {
         case 'i18n':
         case 'data-quality':
           return isRecAdmin || isNationalAdmin;
+        case 'validation-chains':
+          return isRecAdmin || isNationalAdmin;
         case 'domains':
         case 'translations':
         case 'workflow':
-        case 'validation-chains':
           return false; // super/continental admins only
         case 'audit':
           return isRecAdmin || isNationalAdmin;
