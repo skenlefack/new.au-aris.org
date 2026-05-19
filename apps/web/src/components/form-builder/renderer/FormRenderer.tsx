@@ -26,24 +26,51 @@ interface FormRendererProps {
   mobile?: boolean;
   /** Preview/simulation mode — all fields interactive but submission disabled */
   preview?: boolean;
+  /** Whether the form is currently being submitted (disables button, shows spinner) */
+  isSubmitting?: boolean;
   onSubmit?: (data: Record<string, unknown>) => void;
   /** Campaign target countries (ISO codes) — filters admin-location fields */
   campaignTargetCountries?: string[];
 }
 
-export function FormRenderer({ schema, formName, mobile = false, preview = false, onSubmit, campaignTargetCountries }: FormRendererProps) {
+/** Check if a value is considered "empty" for required-field validation */
+function isEmptyValue(value: unknown): boolean {
+  if (value === undefined || value === null || value === '') return true;
+  if (Array.isArray(value) && value.length === 0) return true;
+  return false;
+}
+
+/** Layout/display-only field types that should never be required */
+const LAYOUT_TYPES = new Set(['heading', 'divider', 'spacer', 'info-box']);
+
+export function FormRenderer({ schema, formName, mobile = false, preview = false, isSubmitting = false, onSubmit, campaignTargetCountries }: FormRendererProps) {
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [requiredErrors, setRequiredErrors] = useState<Record<string, string>>({});
   const locale = useLocaleStore((s) => s.locale);
 
   // Cross-field validation errors (dynamic rules from schema)
-  const fieldErrors = useMemo(
+  const crossFieldErrors = useMemo(
     () => evaluateCrossFieldRules(schema.validationRules, values, locale),
     [values, schema.validationRules, locale],
   );
 
+  // Merge required-field errors with cross-field errors
+  const fieldErrors = useMemo(
+    () => ({ ...crossFieldErrors, ...requiredErrors }),
+    [crossFieldErrors, requiredErrors],
+  );
+
   const handleFieldChange = (fieldCode: string, value: unknown) => {
     setValues((prev) => ({ ...prev, [fieldCode]: value }));
+    // Clear required error when user fills the field
+    if (requiredErrors[fieldCode] && !isEmptyValue(value)) {
+      setRequiredErrors((prev) => {
+        const next = { ...prev };
+        delete next[fieldCode];
+        return next;
+      });
+    }
   };
 
   const toggleSection = (sectionId: string) => {
@@ -57,7 +84,45 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (preview) return; // prevent submission in preview mode
+    if (preview || isSubmitting) return;
+
+    // Validate required fields before submitting
+    const errors: Record<string, string> = {};
+    for (const section of schema.sections) {
+      // Skip hidden sections
+      if (section.conditions?.length) {
+        const cond = applyFieldConditions(section.conditions, values);
+        if (cond.hidden) continue;
+      }
+      for (const field of section.fields) {
+        if (field.hidden || LAYOUT_TYPES.has(field.type)) continue;
+        // Check field-level conditions (might make it hidden or change required)
+        const condResult = applyFieldConditions(field.conditions, values);
+        if (condResult.hidden) continue;
+        const isRequired = condResult.required ?? field.required;
+        if (isRequired && isEmptyValue(values[field.code])) {
+          const label = field.label?.en || field.label?.fr || field.code;
+          errors[field.code] = `${label} is required`;
+        }
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setRequiredErrors(errors);
+      // Expand collapsed sections that contain errors
+      setCollapsedSections((prev) => {
+        const next = new Set(prev);
+        for (const section of schema.sections) {
+          if (section.fields.some((f) => errors[f.code])) {
+            next.delete(section.id);
+          }
+        }
+        return next;
+      });
+      return;
+    }
+
+    setRequiredErrors({});
     onSubmit?.(values);
   };
 
@@ -92,6 +157,13 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
             );
           })}
 
+        {/* Validation summary */}
+        {Object.keys(requiredErrors).length > 0 && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+            <p className="font-medium">{Object.keys(requiredErrors).length} required field(s) must be filled before submitting.</p>
+          </div>
+        )}
+
         {preview ? (
           <div className="flex items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
             <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -103,16 +175,17 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
         ) : onSubmit && (
           <div className="flex justify-end gap-3">
             <button
-              type="button"
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Save Draft
-            </button>
-            <button
               type="submit"
-              className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              disabled={isSubmitting}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Submit
+              {isSubmitting && (
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
+              {isSubmitting ? 'Submitting...' : 'Submit'}
             </button>
           </div>
         )}

@@ -110,20 +110,18 @@ export class SubmissionService {
     // Resolve template ID (CollectionCampaign uses formTemplateId, legacy uses templateId)
     const templateId = isCollectionCampaign ? campaign.formTemplateId : campaign.templateId;
 
-    // 2. Validate against form template JSON Schema
+    // 2. Validate required fields against form template
     const schemaErrors = await this.validateAgainstTemplate(
       templateId,
       dto.data,
     );
     if (schemaErrors.length > 0) {
-      throw new HttpError(400, JSON.stringify({
-        statusCode: 400,
-        message: 'Submission data does not match template schema',
-        errors: schemaErrors.map((e) => ({
-          field: e.instancePath || '/',
-          message: e.message ?? 'Validation error',
-        })),
+      const err = new HttpError(400, 'Submission data does not match template schema');
+      (err as any).errors = schemaErrors.map((e) => ({
+        field: e.instancePath || '/',
+        message: e.message ?? 'Validation error',
       }));
+      throw err;
     }
 
     // 3. Persist submission
@@ -219,8 +217,9 @@ export class SubmissionService {
   }
 
   /**
-   * Validate submission data against the form template's JSON Schema.
-   * Returns an empty array if validation passes, or a list of errors.
+   * Validate submission data against the form template's required fields.
+   * The template schema uses FormBuilder format (sections/fields), not JSON Schema.
+   * We extract required fields and check that they have non-empty values.
    */
   async validateAgainstTemplate(
     templateId: string,
@@ -232,26 +231,52 @@ export class SubmissionService {
         select: { schema: true },
       });
 
-      if (!template) {
+      if (!template?.schema) {
         console.warn(
-          `[SubmissionService] Template ${templateId} not found — skipping schema validation`,
+          `[SubmissionService] Template ${templateId} not found — skipping validation`,
         );
         return [];
       }
 
       const schema = template.schema as Record<string, unknown>;
-      const validate = this.ajv.compile(schema);
-      const valid = validate(data);
 
-      if (!valid && validate.errors) {
-        return validate.errors.map((e) => ({
-          instancePath: e.instancePath ?? '',
-          message: e.message,
-        }));
+      // FormBuilder schemas have { sections: [...], settings: {...} }
+      // Validate required fields from section definitions
+      if (Array.isArray(schema.sections)) {
+        const errors: { instancePath: string; message?: string }[] = [];
+        for (const section of schema.sections as any[]) {
+          if (!Array.isArray(section?.fields)) continue;
+          for (const field of section.fields) {
+            if (!field?.required || field.hidden) continue;
+            // Skip layout-only fields
+            if (['heading', 'divider', 'spacer', 'info-box'].includes(field.type)) continue;
+            const val = data[field.code];
+            if (val === undefined || val === null || val === '' || (Array.isArray(val) && val.length === 0)) {
+              const label = field.label?.en || field.label?.fr || field.code;
+              errors.push({
+                instancePath: `/${field.code}`,
+                message: `${label} is required`,
+              });
+            }
+          }
+        }
+        return errors;
+      }
+
+      // Fallback: if schema looks like JSON Schema (has "type" or "properties"), use AJV
+      if (schema.type || schema.properties) {
+        const validate = this.ajv.compile(schema);
+        const valid = validate(data);
+        if (!valid && validate.errors) {
+          return validate.errors.map((e) => ({
+            instancePath: e.instancePath ?? '',
+            message: e.message,
+          }));
+        }
       }
     } catch (error) {
       console.warn(
-        `[SubmissionService] Template schema validation skipped: ${error instanceof Error ? error.message : String(error)}`,
+        `[SubmissionService] Template validation skipped: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
 

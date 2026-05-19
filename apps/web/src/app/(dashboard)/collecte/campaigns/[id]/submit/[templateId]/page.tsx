@@ -109,7 +109,17 @@ export default function CampaignSubmitPage() {
         router.push(`/collecte/campaigns/${campaignId}`);
       }, 1200);
     } catch (err: any) {
-      const msg = err?.message || t('submissionFailedRetry');
+      // Parse nested JSON error messages from backend
+      let msg = err?.message || t('submissionFailedRetry');
+      try {
+        const parsed = JSON.parse(msg);
+        if (parsed?.message) msg = parsed.message;
+        if (parsed?.errors?.length) {
+          msg += ': ' + parsed.errors.map((e: any) => `${e.field}: ${e.message}`).join(', ');
+        }
+      } catch {
+        // msg is already a plain string — use as-is
+      }
       setBanner({ type: 'error', message: msg });
     }
   };
@@ -229,6 +239,7 @@ export default function CampaignSubmitPage() {
           schema={schema}
           formName={templateName}
           preview={previewMode}
+          isSubmitting={submitMutation.isPending}
           onSubmit={previewMode ? undefined : handleSubmit}
           campaignTargetCountries={campaign?.targetCountries}
         />
