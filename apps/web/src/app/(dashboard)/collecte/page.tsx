@@ -579,7 +579,7 @@ export default function CollectePage() {
   const t = useTranslations('collecte');
   const user = useAuthStore((s) => s.user);
   const locale = useLocaleStore((s) => s.locale);
-  const [activeTab, setActiveTab] = useState('planned');
+  const [activeTab, setActiveTab] = useState('active');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [domainFilter, setDomainFilter] = useState('');

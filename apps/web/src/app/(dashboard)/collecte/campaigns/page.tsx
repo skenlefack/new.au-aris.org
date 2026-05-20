@@ -58,7 +58,7 @@ const DOMAIN_LABELS: Record<string, string> = {
 export default function CampaignsPage() {
   const t = useTranslations('collecte');
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ACTIVE');
   const [domainFilter, setDomainFilter] = useState('');
 
   const { data: res, isLoading } = useCollectionCampaigns({
