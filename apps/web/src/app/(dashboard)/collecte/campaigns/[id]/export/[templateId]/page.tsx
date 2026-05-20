@@ -12,6 +12,7 @@ import { useTranslations } from '@/lib/i18n/translations';
 import { useFormBuilderTemplate } from '@/lib/api/form-builder-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { COUNTRIES } from '@/data/countries-config';
+import { ADMIN_DIVISIONS } from '@/data/admin-divisions';
 
 // ── Helpers ──
 
@@ -60,6 +61,17 @@ const COUNTRY_MAP: Record<string, string> = {};
 for (const [code, c] of Object.entries(COUNTRIES)) {
   COUNTRY_MAP[code.toUpperCase()] = c.name;
   COUNTRY_MAP[code.toLowerCase()] = c.name;
+}
+
+// GADM gid → name map for admin divisions (admin1 + admin2)
+const GADM_MAP: Record<string, string> = {};
+for (const [, countryData] of Object.entries(ADMIN_DIVISIONS)) {
+  for (const a1 of countryData.admin1 || []) {
+    GADM_MAP[a1.gid] = a1.name;
+  }
+  for (const a2 of countryData.admin2 || []) {
+    GADM_MAP[a2.gid] = a2.name;
+  }
 }
 
 async function fetchSubmissions(campaignId: string, limit = 100): Promise<{ submissions: any[]; total: number }> {
@@ -111,11 +123,14 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 function formatCell(val: unknown, field: Field, refMap: Record<string, string>): string {
   if (val === null || val === undefined || val === '') return '-';
 
-  // Admin location object
+  // Admin location object — resolve GADM gids to names
   if (field.type === 'admin-location' && typeof val === 'object' && !Array.isArray(val)) {
     const loc = val as Record<string, string>;
     const country = COUNTRY_MAP[loc.level_0] || loc.level_0 || '';
-    const parts = [country, loc.level_1, loc.level_2, loc.level_3].filter(Boolean);
+    const admin1 = GADM_MAP[loc.level_1] || loc.level_1 || '';
+    const admin2 = GADM_MAP[loc.level_2] || loc.level_2 || '';
+    const admin3 = GADM_MAP[loc.level_3] || loc.level_3 || '';
+    const parts = [country, admin1, admin2, admin3].filter(Boolean);
     return parts.join(' / ') || '-';
   }
 
@@ -157,15 +172,15 @@ function formatCell(val: unknown, field: Field, refMap: Record<string, string>):
 function formatDetail(val: unknown, field: Field, refMap: Record<string, string>): React.ReactNode {
   if (val === null || val === undefined || val === '') return '-';
 
-  // Admin location
+  // Admin location — resolve GADM gids to names
   if (field.type === 'admin-location' && typeof val === 'object' && !Array.isArray(val)) {
     const loc = val as Record<string, string>;
     const country = COUNTRY_MAP[loc.level_0] || loc.level_0;
     const parts: string[] = [];
     if (country) parts.push(country);
-    if (loc.level_1) parts.push(loc.level_1);
-    if (loc.level_2) parts.push(loc.level_2);
-    if (loc.level_3) parts.push(loc.level_3);
+    if (loc.level_1) parts.push(GADM_MAP[loc.level_1] || loc.level_1);
+    if (loc.level_2) parts.push(GADM_MAP[loc.level_2] || loc.level_2);
+    if (loc.level_3) parts.push(GADM_MAP[loc.level_3] || loc.level_3);
     return (
       <span className="inline-flex items-center gap-1.5">
         <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
@@ -316,7 +331,7 @@ export default function ExportPage() {
           mdTypes.add(f.masterDataType);
         }
       }
-      // Always fetch diseases and species (commonly used)
+      // Always fetch common reference types
       mdTypes.add('diseases');
       mdTypes.add('species');
       mdTypes.add('outbreak-statuses');
@@ -325,6 +340,9 @@ export default function ExportPage() {
       mdTypes.add('control-measures');
       mdTypes.add('animal-sexes');
       mdTypes.add('epidemiological-unit-types');
+      mdTypes.add('vaccine-types');
+      mdTypes.add('breeds');
+      mdTypes.add('age-groups');
 
       Promise.all(
         [...mdTypes].map((type) => fetchRefData(type)),
