@@ -221,6 +221,102 @@ export function RepeaterField({ field, value, onChange, formValues }: RepeaterFi
     );
   }
 
+  // Table layout: when all sub-fields are simple types (select/text/number/checkbox)
+  // and there are ≤ 8 fields and NOT mobile → render as horizontal table
+  const SIMPLE_TYPES = new Set(['text', 'number', 'select', 'checkbox', 'date']);
+  const useTableLayout = !mobile && subFields.length <= 8 && subFields.every((sf) => SIMPLE_TYPES.has(sf.type));
+
+  if (useTableLayout) {
+    const sorted = [...subFields].sort((a, b) => a.order - b.order);
+    return (
+      <div className="space-y-2">
+        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <th className="px-2 py-2 text-center text-[10px] font-semibold text-gray-500 uppercase w-10">#</th>
+                {sorted.map((sf) => (
+                  <th key={sf.code} className="px-2 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase">
+                    {ml(sf.label)}
+                    {sf.required && <span className="text-red-500 ml-0.5">*</span>}
+                  </th>
+                ))}
+                <th className="px-2 py-2 w-8" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {rows.map((row, ri) => (
+                <tr key={ri} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
+                  <td className="px-2 py-1.5 text-center text-xs font-mono text-gray-400">{ri + 1}</td>
+                  {sorted.map((sf) => (
+                    <td key={`${ri}-${sf.code}`} className="px-1 py-1">
+                      {sf.type === 'select' ? (
+                        <select
+                          value={(row[sf.code] as string) || ''}
+                          onChange={(e) => handleRowFieldChange(ri, sf.code, e.target.value || null)}
+                          className="w-full min-w-[80px] rounded border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+                        >
+                          <option value="">—</option>
+                          {((sf.properties?.options || []) as Array<{ label?: MultilingualText; value: string }>).map((opt) => (
+                            <option key={opt.value} value={opt.value}>{ml(opt.label)}</option>
+                          ))}
+                        </select>
+                      ) : sf.type === 'checkbox' ? (
+                        <div className="flex justify-center">
+                          <input
+                            type="checkbox"
+                            checked={!!row[sf.code]}
+                            onChange={(e) => handleRowFieldChange(ri, sf.code, e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                          />
+                        </div>
+                      ) : sf.type === 'number' ? (
+                        <input
+                          type="number"
+                          value={row[sf.code] !== undefined && row[sf.code] !== null ? String(row[sf.code]) : ''}
+                          onChange={(e) => handleRowFieldChange(ri, sf.code, e.target.value ? Number(e.target.value) : null)}
+                          placeholder={ml(sf.placeholder)}
+                          className="w-full min-w-[60px] rounded border border-gray-200 px-2 py-1.5 text-xs text-right dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          value={(row[sf.code] as string) || ''}
+                          onChange={(e) => handleRowFieldChange(ri, sf.code, e.target.value)}
+                          placeholder={ml(sf.placeholder)}
+                          className="w-full min-w-[80px] rounded border border-gray-200 px-2 py-1.5 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+                        />
+                      )}
+                      {rowErrors[ri]?.[sf.code] && (
+                        <p className="text-[9px] text-red-500 mt-0.5">{rowErrors[ri][sf.code]}</p>
+                      )}
+                    </td>
+                  ))}
+                  <td className="px-1 py-1.5">
+                    {rows.length > minRows && (
+                      <button type="button" onClick={() => removeRow(ri)}
+                        className="rounded p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {rows.length < maxRows && (
+          <button type="button" onClick={addRow}
+            className="flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-600 font-medium">
+            <Plus className="h-3.5 w-3.5" />
+            {addLabel}
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // Card layout (default): each row as a card with sub-fields in 2-column grid
   return (
     <div className="space-y-3">
       {rows.map((row, rowIndex) => (
