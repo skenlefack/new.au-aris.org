@@ -1,0 +1,3675 @@
+{
+  "sections": [
+    {
+      "id": "4bd8c2f0-cb2f-49ee-8300-03d6fc7ccba9",
+      "name": {
+        "en": "Administrative Location",
+        "fr": "Localisation Administrative",
+        "pt": "Localização Administrativa",
+        "ar": "الموقع الإداري"
+      },
+      "description": {
+        "en": "Select the administrative location (levels 1-3 required)",
+        "fr": "Sélectionnez la localisation administrative (niveaux 1-3 obligatoires)",
+        "pt": "Selecione a localização administrativa (níveis 1-3 obrigatórios)",
+        "ar": "اختر الموقع الإداري (المستويات 1-3 مطلوبة)"
+      },
+      "columns": 1,
+      "order": 0,
+      "isCollapsible": false,
+      "isCollapsed": false,
+      "isRepeatable": false,
+      "icon": null,
+      "color": "#1E40AF",
+      "conditions": [],
+      "fields": [
+        {
+          "id": "1649ac7e-4710-4864-b6b4-fc555f29faf1",
+          "type": "admin-location",
+          "code": "admin_location",
+          "label": {
+            "en": "Administrative Location",
+            "fr": "Localisation Administrative",
+            "pt": "Localização Administrativa",
+            "ar": "الموقع الإداري"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 0,
+          "required": true,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "levels": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "requiredLevels": [
+              0,
+              1,
+              2
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "9960e07d-69ab-4cd3-b349-0cb479074a08",
+      "name": {
+        "en": "General Identification",
+        "fr": "Identification Générale",
+        "pt": "Identificação Geral",
+        "ar": "التعريف العام"
+      },
+      "description": null,
+      "columns": 2,
+      "order": 1,
+      "isCollapsible": true,
+      "isCollapsed": false,
+      "isRepeatable": false,
+      "icon": null,
+      "color": "#059669",
+      "conditions": [],
+      "fields": [
+        {
+          "id": "91d0367c-62a4-430a-a2ee-46bbcc06540b",
+          "type": "date",
+          "code": "survey_date",
+          "label": {
+            "en": "Survey Date",
+            "fr": "Date de l'enquête",
+            "pt": "Data do inquérito",
+            "ar": "تاريخ المسح"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 0,
+          "required": true,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {}
+        },
+        {
+          "id": "908d540c-ee3d-40ad-836b-6baff4e6eac0",
+          "type": "text",
+          "code": "surveyor_name",
+          "label": {
+            "en": "Surveyor Name",
+            "fr": "Nom de l'agent enquêteur",
+            "pt": "Nome do inquiridor",
+            "ar": "اسم المحقق"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 1,
+          "required": true,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {}
+        }
+      ]
+    },
+    {
+      "id": "620e216c-15aa-492b-be71-400715f58f06",
+      "name": {
+        "en": "Herd Identification",
+        "fr": "Identification du Troupeau",
+        "pt": "Identificação do Rebanho",
+        "ar": "تحديد القطيع"
+      },
+      "description": null,
+      "columns": 2,
+      "order": 2,
+      "isCollapsible": true,
+      "isCollapsed": false,
+      "isRepeatable": false,
+      "icon": null,
+      "color": "#7C3AED",
+      "conditions": [],
+      "fields": [
+        {
+          "id": "f0cf0767-8f74-4b50-850d-9e879f65fa87",
+          "type": "text",
+          "code": "owner_name",
+          "label": {
+            "en": "Owner Name",
+            "fr": "Nom du propriétaire",
+            "pt": "Nome do proprietário",
+            "ar": "اسم المالك"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 0,
+          "required": true,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {}
+        },
+        {
+          "id": "9e66dd03-205a-4aee-8984-75f48374c64e",
+          "type": "text",
+          "code": "owner_phone",
+          "label": {
+            "en": "Phone (required)",
+            "fr": "Téléphone (obligatoire)",
+            "pt": "Telefone (obrigatório)",
+            "ar": "الهاتف (مطلوب)"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 1,
+          "required": true,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {
+            "pattern": "^[0-9+\\-\\s]{8,15}$"
+          },
+          "conditions": [],
+          "properties": {}
+        },
+        {
+          "id": "29c60e43-37fb-4c7b-8add-e05159947b7e",
+          "type": "select",
+          "code": "animal_ownership",
+          "label": {
+            "en": "Who owns the animals?",
+            "fr": "A qui appartient ces animaux?",
+            "pt": "A quem pertencem os animais?",
+            "ar": "لمن تعود ملكية الحيوانات؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 2,
+          "required": true,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Husband",
+                  "fr": "Mari",
+                  "pt": "Marido",
+                  "ar": "الزوج"
+                },
+                "value": "husband"
+              },
+              {
+                "label": {
+                  "en": "Wife",
+                  "fr": "Femme",
+                  "pt": "Esposa",
+                  "ar": "الزوجة"
+                },
+                "value": "wife"
+              },
+              {
+                "label": {
+                  "en": "Boys",
+                  "fr": "Garçons",
+                  "pt": "Rapazes",
+                  "ar": "الأبناء"
+                },
+                "value": "boys"
+              },
+              {
+                "label": {
+                  "en": "Girls",
+                  "fr": "Filles",
+                  "pt": "Raparigas",
+                  "ar": "البنات"
+                },
+                "value": "girls"
+              },
+              {
+                "label": {
+                  "en": "Other",
+                  "fr": "Autres",
+                  "pt": "Outros",
+                  "ar": "أخرى"
+                },
+                "value": "other"
+              }
+            ]
+          }
+        },
+        {
+          "id": "de80ed3e-4b90-4143-b1a3-ac0aef359f9e",
+          "type": "select",
+          "code": "main_activity",
+          "label": {
+            "en": "Main activity",
+            "fr": "Activité principale",
+            "pt": "Atividade principal",
+            "ar": "النشاط الرئيسي"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 3,
+          "required": true,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Agriculture",
+                  "fr": "Agriculture",
+                  "pt": "Agricultura",
+                  "ar": "الزراعة"
+                },
+                "value": "agriculture"
+              },
+              {
+                "label": {
+                  "en": "Livestock",
+                  "fr": "Elevage",
+                  "pt": "Pecuária",
+                  "ar": "تربية الماشية"
+                },
+                "value": "livestock"
+              },
+              {
+                "label": {
+                  "en": "Fishing",
+                  "fr": "Pêche",
+                  "pt": "Pesca",
+                  "ar": "الصيد"
+                },
+                "value": "fishing"
+              },
+              {
+                "label": {
+                  "en": "Commerce",
+                  "fr": "Commerce",
+                  "pt": "Comércio",
+                  "ar": "التجارة"
+                },
+                "value": "commerce"
+              },
+              {
+                "label": {
+                  "en": "Crafts",
+                  "fr": "Artisanat",
+                  "pt": "Artesanato",
+                  "ar": "الحرف"
+                },
+                "value": "crafts"
+              },
+              {
+                "label": {
+                  "en": "Civil Servant",
+                  "fr": "Fonctionnaire",
+                  "pt": "Funcionário",
+                  "ar": "موظف"
+                },
+                "value": "civil_servant"
+              },
+              {
+                "label": {
+                  "en": "Private Sector",
+                  "fr": "Secteur privé",
+                  "pt": "Setor privado",
+                  "ar": "القطاع الخاص"
+                },
+                "value": "private"
+              },
+              {
+                "label": {
+                  "en": "Student",
+                  "fr": "Elève/étudiant",
+                  "pt": "Estudante",
+                  "ar": "طالب"
+                },
+                "value": "student"
+              },
+              {
+                "label": {
+                  "en": "Retired",
+                  "fr": "Retraité(e)",
+                  "pt": "Reformado",
+                  "ar": "متقاعد"
+                },
+                "value": "retired"
+              },
+              {
+                "label": {
+                  "en": "Other",
+                  "fr": "Autres",
+                  "pt": "Outros",
+                  "ar": "أخرى"
+                },
+                "value": "other"
+              }
+            ]
+          }
+        },
+        {
+          "id": "6ceed1ba-1b0f-4e22-8a3a-520b7ade0015",
+          "type": "select",
+          "code": "producer_assoc",
+          "label": {
+            "en": "Producer association?",
+            "fr": "Association de producteurs?",
+            "pt": "Associação de produtores?",
+            "ar": "جمعية منتجين؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 4,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        },
+        {
+          "id": "8add8468-16d5-4a99-8b9d-e830b069d230",
+          "type": "text",
+          "code": "assoc_name",
+          "label": {
+            "en": "Association Name",
+            "fr": "Nom de l'association",
+            "pt": "Nome da associação",
+            "ar": "اسم الجمعية"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 5,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {}
+        }
+      ]
+    },
+    {
+      "id": "7cb4ea72-29d2-472b-822a-d8614ede3e9a",
+      "name": {
+        "en": "Small Ruminant Population & Management",
+        "fr": "Effectif et Conduite de l'Exploitation",
+        "pt": "Efetivo e Gestão da Exploração",
+        "ar": "تعداد وإدارة المجترات الصغيرة"
+      },
+      "description": null,
+      "columns": 2,
+      "order": 3,
+      "isCollapsible": true,
+      "isCollapsed": false,
+      "isRepeatable": false,
+      "icon": null,
+      "color": "#D97706",
+      "conditions": [],
+      "fields": [
+        {
+          "id": "87e85c0b-3aeb-4600-bc6f-7e0c707f0d4c",
+          "type": "number",
+          "code": "sheep_count",
+          "label": {
+            "en": "Sheep",
+            "fr": "Moutons",
+            "pt": "Ovinos",
+            "ar": "أغنام"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 0,
+          "required": true,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {
+            "min": 0
+          },
+          "conditions": [],
+          "properties": {}
+        },
+        {
+          "id": "c4a020aa-ebbe-4dd0-9156-5906a73a67e9",
+          "type": "number",
+          "code": "goat_count",
+          "label": {
+            "en": "Goats",
+            "fr": "Chèvres",
+            "pt": "Caprinos",
+            "ar": "ماعز"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 1,
+          "required": true,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {
+            "min": 0
+          },
+          "conditions": [],
+          "properties": {}
+        },
+        {
+          "id": "edffdaf1-5391-448c-89c3-d71b6343e17e",
+          "type": "multi-select",
+          "code": "breeds",
+          "label": {
+            "en": "Breeds",
+            "fr": "Races élevées",
+            "pt": "Raças",
+            "ar": "السلالات"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 2,
+          "order": 2,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Djallonke Sheep",
+                  "fr": "Moutons Djallonké",
+                  "pt": "Ovinos Djallonké",
+                  "ar": "أغنام جالونكي"
+                },
+                "value": "djallonke"
+              },
+              {
+                "label": {
+                  "en": "Arab Choa Sheep",
+                  "fr": "Moutons Arabe Choa",
+                  "pt": "Ovinos Arabe Choa",
+                  "ar": "أغنام شوا"
+                },
+                "value": "arab_choa"
+              },
+              {
+                "label": {
+                  "en": "Sahel Goat",
+                  "fr": "Chèvres du Sahel",
+                  "pt": "Caprinos do Sahel",
+                  "ar": "ماعز الساحل"
+                },
+                "value": "sahel_goat"
+              },
+              {
+                "label": {
+                  "en": "Dwarf Goat",
+                  "fr": "Chèvres naines",
+                  "pt": "Caprinos anões",
+                  "ar": "ماعز قزم"
+                },
+                "value": "dwarf_goat"
+              },
+              {
+                "label": {
+                  "en": "Hybrid",
+                  "fr": "Hybrides",
+                  "pt": "Híbridos",
+                  "ar": "هجين"
+                },
+                "value": "hybrid"
+              },
+              {
+                "label": {
+                  "en": "Other",
+                  "fr": "Autres",
+                  "pt": "Outros",
+                  "ar": "أخرى"
+                },
+                "value": "other"
+              }
+            ]
+          }
+        },
+        {
+          "id": "7c47d719-9a2b-4482-95b6-9cf5303563eb",
+          "type": "multi-select",
+          "code": "other_animals",
+          "label": {
+            "en": "Other animals",
+            "fr": "Autres animaux",
+            "pt": "Outros animais",
+            "ar": "حيوانات أخرى"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 2,
+          "order": 3,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Cattle",
+                  "fr": "Bovins",
+                  "pt": "Bovinos",
+                  "ar": "أبقار"
+                },
+                "value": "cattle"
+              },
+              {
+                "label": {
+                  "en": "Pigs",
+                  "fr": "Porcs",
+                  "pt": "Suínos",
+                  "ar": "خنازير"
+                },
+                "value": "pigs"
+              },
+              {
+                "label": {
+                  "en": "Poultry",
+                  "fr": "Volailles",
+                  "pt": "Aves",
+                  "ar": "دواجن"
+                },
+                "value": "poultry"
+              },
+              {
+                "label": {
+                  "en": "Other",
+                  "fr": "Autres",
+                  "pt": "Outros",
+                  "ar": "أخرى"
+                },
+                "value": "other"
+              }
+            ]
+          }
+        },
+        {
+          "id": "03f2f334-3bb9-4e7b-828f-3725b6fce48b",
+          "type": "select",
+          "code": "farming_system",
+          "label": {
+            "en": "Farming system",
+            "fr": "Système d'élevage",
+            "pt": "Sistema de criação",
+            "ar": "نظام التربية"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 4,
+          "required": true,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Traditional",
+                  "fr": "Traditionnel",
+                  "pt": "Tradicional",
+                  "ar": "تقليدي"
+                },
+                "value": "traditional"
+              },
+              {
+                "label": {
+                  "en": "Semi-intensive",
+                  "fr": "Semi-intensif",
+                  "pt": "Semi-intensivo",
+                  "ar": "شبه مكثف"
+                },
+                "value": "semi_intensive"
+              },
+              {
+                "label": {
+                  "en": "Intensive",
+                  "fr": "Intensif",
+                  "pt": "Intensivo",
+                  "ar": "مكثف"
+                },
+                "value": "intensive"
+              }
+            ]
+          }
+        },
+        {
+          "id": "643b5df2-1e1f-4f5f-a614-008adce45bf4",
+          "type": "multi-select",
+          "code": "farming_reasons",
+          "label": {
+            "en": "Reasons",
+            "fr": "Raisons",
+            "pt": "Razões",
+            "ar": "الأسباب"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 2,
+          "order": 5,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "School fees",
+                  "fr": "Scolarité",
+                  "pt": "Propinas",
+                  "ar": "رسوم مدرسية"
+                },
+                "value": "school"
+              },
+              {
+                "label": {
+                  "en": "Self-consumption",
+                  "fr": "Autoconsommation",
+                  "pt": "Autoconsumo",
+                  "ar": "استهلاك ذاتي"
+                },
+                "value": "consumption"
+              },
+              {
+                "label": {
+                  "en": "Family",
+                  "fr": "Famille",
+                  "pt": "Família",
+                  "ar": "الأسرة"
+                },
+                "value": "family"
+              },
+              {
+                "label": {
+                  "en": "Cultural rites",
+                  "fr": "Rites culturels",
+                  "pt": "Rituais",
+                  "ar": "طقوس"
+                },
+                "value": "rites"
+              },
+              {
+                "label": {
+                  "en": "Income",
+                  "fr": "Revenus",
+                  "pt": "Rendimento",
+                  "ar": "دخل"
+                },
+                "value": "income"
+              },
+              {
+                "label": {
+                  "en": "Other",
+                  "fr": "Autres",
+                  "pt": "Outros",
+                  "ar": "أخرى"
+                },
+                "value": "other"
+              }
+            ]
+          }
+        },
+        {
+          "id": "0d740183-ae0d-4f4e-bddd-4116bde240b4",
+          "type": "multi-select",
+          "code": "animal_source",
+          "label": {
+            "en": "Source",
+            "fr": "Provenance",
+            "pt": "Origem",
+            "ar": "المصدر"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 2,
+          "order": 6,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Local market",
+                  "fr": "Marché local",
+                  "pt": "Mercado local",
+                  "ar": "سوق محلي"
+                },
+                "value": "market"
+              },
+              {
+                "label": {
+                  "en": "Neighbors",
+                  "fr": "Voisins",
+                  "pt": "Vizinhos",
+                  "ar": "جيران"
+                },
+                "value": "neighbors"
+              },
+              {
+                "label": {
+                  "en": "Own breeding",
+                  "fr": "Naisseur",
+                  "pt": "Criação própria",
+                  "ar": "تربية ذاتية"
+                },
+                "value": "own"
+              },
+              {
+                "label": {
+                  "en": "Gift",
+                  "fr": "Don",
+                  "pt": "Oferta",
+                  "ar": "هبة"
+                },
+                "value": "gift"
+              },
+              {
+                "label": {
+                  "en": "Other",
+                  "fr": "Autres",
+                  "pt": "Outros",
+                  "ar": "أخرى"
+                },
+                "value": "other"
+              }
+            ]
+          }
+        },
+        {
+          "id": "0ba983a6-6682-4539-9710-1505f45b143a",
+          "type": "select",
+          "code": "communal_pasture",
+          "label": {
+            "en": "Communal pastures?",
+            "fr": "Pâturages communs?",
+            "pt": "Pastagens comuns?",
+            "ar": "مراعي مشتركة؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 7,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        },
+        {
+          "id": "7374a01e-246f-4adf-9084-536c0adc1e33",
+          "type": "select",
+          "code": "seasonal_movement",
+          "label": {
+            "en": "Seasonal movements?",
+            "fr": "Mouvements saisonniers?",
+            "pt": "Movimentos sazonais?",
+            "ar": "تنقلات موسمية؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 8,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        },
+        {
+          "id": "a4d58b38-a220-473c-babf-d35167df219a",
+          "type": "multi-select",
+          "code": "destinations",
+          "label": {
+            "en": "Destinations",
+            "fr": "Destinations",
+            "pt": "Destinos",
+            "ar": "الوجهات"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 2,
+          "order": 9,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Village",
+                  "fr": "Village",
+                  "pt": "Aldeia",
+                  "ar": "قرية"
+                },
+                "value": "village"
+              },
+              {
+                "label": {
+                  "en": "Commune",
+                  "fr": "Commune",
+                  "pt": "Município",
+                  "ar": "بلدية"
+                },
+                "value": "commune"
+              },
+              {
+                "label": {
+                  "en": "Other regions",
+                  "fr": "Autres régions",
+                  "pt": "Outras regiões",
+                  "ar": "مناطق أخرى"
+                },
+                "value": "regions"
+              },
+              {
+                "label": {
+                  "en": "Neighboring countries",
+                  "fr": "Pays voisins",
+                  "pt": "Países vizinhos",
+                  "ar": "دول مجاورة"
+                },
+                "value": "countries"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "1be502e9-baa7-434d-ad39-609eacc88856",
+      "name": {
+        "en": "Recent Health History",
+        "fr": "Historique Récente de Santé",
+        "pt": "Histórico Recente de Saúde",
+        "ar": "تاريخ المشاكل الصحية"
+      },
+      "description": null,
+      "columns": 2,
+      "order": 4,
+      "isCollapsible": true,
+      "isCollapsed": false,
+      "isRepeatable": false,
+      "icon": null,
+      "color": "#DC2626",
+      "conditions": [],
+      "fields": [
+        {
+          "id": "6790a5ee-e3d6-4660-8a1a-a505efb9e4ae",
+          "type": "select",
+          "code": "animals_sick",
+          "label": {
+            "en": "Disease signs?",
+            "fr": "Signes de maladies?",
+            "pt": "Sinais de doença?",
+            "ar": "علامات مرض؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 0,
+          "required": true,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        },
+        {
+          "id": "76c69de0-00a0-4657-bbd8-c16eca3737ee",
+          "type": "multi-select",
+          "code": "disease_signs",
+          "label": {
+            "en": "Signs",
+            "fr": "Signes",
+            "pt": "Sinais",
+            "ar": "العلامات"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 2,
+          "order": 1,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Diarrhea",
+                  "fr": "Diarrhée",
+                  "pt": "Diarreia",
+                  "ar": "إسهال"
+                },
+                "value": "diarrhea"
+              },
+              {
+                "label": {
+                  "en": "Nasal discharge",
+                  "fr": "Jetage nasal",
+                  "pt": "Corrimento nasal",
+                  "ar": "إفرازات أنفية"
+                },
+                "value": "nasal"
+              },
+              {
+                "label": {
+                  "en": "Oral discharge",
+                  "fr": "Jetage buccal",
+                  "pt": "Corrimento bucal",
+                  "ar": "إفرازات فموية"
+                },
+                "value": "oral"
+              },
+              {
+                "label": {
+                  "en": "Abortions",
+                  "fr": "Avortements",
+                  "pt": "Abortos",
+                  "ar": "إجهاض"
+                },
+                "value": "abortions"
+              },
+              {
+                "label": {
+                  "en": "Sudden death",
+                  "fr": "Mortalité subite",
+                  "pt": "Morte súbita",
+                  "ar": "موت مفاجئ"
+                },
+                "value": "sudden_death"
+              },
+              {
+                "label": {
+                  "en": "Tearing",
+                  "fr": "Larmoiement",
+                  "pt": "Lacrimejamento",
+                  "ar": "دموع"
+                },
+                "value": "tearing"
+              },
+              {
+                "label": {
+                  "en": "Oral lesions",
+                  "fr": "Lésions buccales",
+                  "pt": "Lesões bucais",
+                  "ar": "تقرحات"
+                },
+                "value": "oral_lesions"
+              },
+              {
+                "label": {
+                  "en": "Skin nodules",
+                  "fr": "Nodules cutanés",
+                  "pt": "Nódulos",
+                  "ar": "عقد جلدية"
+                },
+                "value": "nodules"
+              },
+              {
+                "label": {
+                  "en": "Other",
+                  "fr": "Autres",
+                  "pt": "Outros",
+                  "ar": "أخرى"
+                },
+                "value": "other"
+              }
+            ]
+          }
+        },
+        {
+          "id": "780a18a0-c56b-409e-8f76-f9a258ea80dc",
+          "type": "select",
+          "code": "last_signs",
+          "label": {
+            "en": "When last?",
+            "fr": "Quand?",
+            "pt": "Quando?",
+            "ar": "متى؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 2,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "<1 month",
+                  "fr": "<1 mois",
+                  "pt": "<1 mês",
+                  "ar": "أقل من شهر"
+                },
+                "value": "1m"
+              },
+              {
+                "label": {
+                  "en": "1-3 months",
+                  "fr": "1-3 mois",
+                  "pt": "1-3 meses",
+                  "ar": "1-3 أشهر"
+                },
+                "value": "1_3m"
+              },
+              {
+                "label": {
+                  "en": "6 months",
+                  "fr": "6 mois",
+                  "pt": "6 meses",
+                  "ar": "6 أشهر"
+                },
+                "value": "6m"
+              },
+              {
+                "label": {
+                  "en": ">1 year",
+                  "fr": ">1 an",
+                  "pt": ">1 ano",
+                  "ar": "أكثر من سنة"
+                },
+                "value": "1y"
+              }
+            ]
+          }
+        },
+        {
+          "id": "98ecaa33-a5a6-4718-bc08-b5283c5bd4ae",
+          "type": "select",
+          "code": "mortality",
+          "label": {
+            "en": "Frequent mortalities?",
+            "fr": "Mortalités?",
+            "pt": "Mortalidades?",
+            "ar": "وفيات؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 3,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        },
+        {
+          "id": "3410f336-00ad-4a71-9027-36416ca9e71d",
+          "type": "multi-select",
+          "code": "mortality_season",
+          "label": {
+            "en": "Season",
+            "fr": "Saison",
+            "pt": "Estação",
+            "ar": "الموسم"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 4,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Dry",
+                  "fr": "Sèche",
+                  "pt": "Seca",
+                  "ar": "جفاف"
+                },
+                "value": "dry"
+              },
+              {
+                "label": {
+                  "en": "Cold",
+                  "fr": "Froide",
+                  "pt": "Fria",
+                  "ar": "برد"
+                },
+                "value": "cold"
+              },
+              {
+                "label": {
+                  "en": "Rainy",
+                  "fr": "Pluvieuse",
+                  "pt": "Chuvosa",
+                  "ar": "أمطار"
+                },
+                "value": "rainy"
+              }
+            ]
+          }
+        },
+        {
+          "id": "d6fd3567-5e27-4b56-bd34-92e5ab4f726d",
+          "type": "text",
+          "code": "mortality_month",
+          "label": {
+            "en": "Month",
+            "fr": "Mois",
+            "pt": "Mês",
+            "ar": "الشهر"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 5,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {}
+        },
+        {
+          "id": "0f2c3f89-bdb5-4269-8a33-e200c6d7889e",
+          "type": "select",
+          "code": "survivors",
+          "label": {
+            "en": "Survivors?",
+            "fr": "Survivants?",
+            "pt": "Sobreviventes?",
+            "ar": "ناجون؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 6,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        },
+        {
+          "id": "ac053f9c-7e6e-41bc-91a6-c5e514e83ade",
+          "type": "multi-select",
+          "code": "sick_mgmt",
+          "label": {
+            "en": "Sick management",
+            "fr": "Gestion malades",
+            "pt": "Gestão doentes",
+            "ar": "إدارة المرضى"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 2,
+          "order": 7,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Isolated",
+                  "fr": "Isolés",
+                  "pt": "Isolados",
+                  "ar": "معزولة"
+                },
+                "value": "isolated"
+              },
+              {
+                "label": {
+                  "en": "With others",
+                  "fr": "Avec les autres",
+                  "pt": "Com outros",
+                  "ar": "مع الآخرين"
+                },
+                "value": "with_others"
+              },
+              {
+                "label": {
+                  "en": "Sold",
+                  "fr": "Vendus",
+                  "pt": "Vendidos",
+                  "ar": "مباعة"
+                },
+                "value": "sell"
+              },
+              {
+                "label": {
+                  "en": "Slaughtered",
+                  "fr": "Abattus",
+                  "pt": "Abatidos",
+                  "ar": "مذبوحة"
+                },
+                "value": "slaughter"
+              },
+              {
+                "label": {
+                  "en": "Nothing",
+                  "fr": "Rien",
+                  "pt": "Nada",
+                  "ar": "لا شيء"
+                },
+                "value": "nothing"
+              }
+            ]
+          }
+        },
+        {
+          "id": "245a177a-5639-4fdd-bc15-cd1cdf6e487f",
+          "type": "select",
+          "code": "vet_follow",
+          "label": {
+            "en": "Vet follow-up?",
+            "fr": "Suivi vétérinaire?",
+            "pt": "Acompanhamento vet?",
+            "ar": "متابعة بيطرية؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 8,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "65eb5685-72cb-4972-b392-2097204a1525",
+      "name": {
+        "en": "Knowledge, Attitudes & Practices - PPR",
+        "fr": "Connaissances, Attitudes, Pratiques - PPR",
+        "pt": "Conhecimentos, Atitudes e Práticas - PPR",
+        "ar": "المعارف والمواقف والممارسات"
+      },
+      "description": null,
+      "columns": 2,
+      "order": 5,
+      "isCollapsible": true,
+      "isCollapsed": false,
+      "isRepeatable": false,
+      "icon": null,
+      "color": "#7C3AED",
+      "conditions": [],
+      "fields": [
+        {
+          "id": "2668624b-b1c1-4ea4-910c-b5ec2987e5c0",
+          "type": "select",
+          "code": "heard_ppr",
+          "label": {
+            "en": "Heard of PPR?",
+            "fr": "Entendu parler de PPR?",
+            "pt": "Ouviu falar de PPR?",
+            "ar": "سمعت عن الطاعون؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 0,
+          "required": true,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        },
+        {
+          "id": "db714450-c0b4-4d6c-830d-6053bd5e100c",
+          "type": "textarea",
+          "code": "ppr_desc",
+          "label": {
+            "en": "Describe PPR",
+            "fr": "Décrivez la PPR",
+            "pt": "Descreva a PPR",
+            "ar": "صف المرض"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 2,
+          "order": 1,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {}
+        },
+        {
+          "id": "1563fc6b-7702-40b8-bbbb-8bffaf1f17a8",
+          "type": "text",
+          "code": "local_name",
+          "label": {
+            "en": "Local name",
+            "fr": "Nom local",
+            "pt": "Nome local",
+            "ar": "الاسم المحلي"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 2,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {}
+        },
+        {
+          "id": "46f4d322-a281-4a72-b80e-28807f8bb614",
+          "type": "select",
+          "code": "had_ppr",
+          "label": {
+            "en": "Animals had PPR?",
+            "fr": "Animaux ont eu PPR?",
+            "pt": "Animais tiveram PPR?",
+            "ar": "حيوانات أصيبت؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 3,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        },
+        {
+          "id": "05d1b2ce-01d3-4039-87ab-af0ac082a978",
+          "type": "select",
+          "code": "species_affected",
+          "label": {
+            "en": "Species",
+            "fr": "Espèces",
+            "pt": "Espécies",
+            "ar": "الأنواع"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 4,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Sheep",
+                  "fr": "Moutons",
+                  "pt": "Ovinos",
+                  "ar": "أغنام"
+                },
+                "value": "sheep"
+              },
+              {
+                "label": {
+                  "en": "Goats",
+                  "fr": "Chèvres",
+                  "pt": "Caprinos",
+                  "ar": "ماعز"
+                },
+                "value": "goats"
+              },
+              {
+                "label": {
+                  "en": "Both",
+                  "fr": "Les deux",
+                  "pt": "Ambos",
+                  "ar": "كلاهما"
+                },
+                "value": "both"
+              }
+            ]
+          }
+        },
+        {
+          "id": "f34c8cf7-1a28-4558-9e6e-5972729baaa3",
+          "type": "multi-select",
+          "code": "transmission",
+          "label": {
+            "en": "Transmission",
+            "fr": "Transmission",
+            "pt": "Transmissão",
+            "ar": "الانتقال"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 2,
+          "order": 5,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Contact",
+                  "fr": "Contact",
+                  "pt": "Contacto",
+                  "ar": "اتصال"
+                },
+                "value": "contact"
+              },
+              {
+                "label": {
+                  "en": "Water",
+                  "fr": "Eau",
+                  "pt": "Água",
+                  "ar": "ماء"
+                },
+                "value": "water"
+              },
+              {
+                "label": {
+                  "en": "Feed",
+                  "fr": "Aliment",
+                  "pt": "Alimento",
+                  "ar": "علف"
+                },
+                "value": "feed"
+              },
+              {
+                "label": {
+                  "en": "Fomites",
+                  "fr": "Outils",
+                  "pt": "Fomites",
+                  "ar": "أدوات"
+                },
+                "value": "fomites"
+              },
+              {
+                "label": {
+                  "en": "Other",
+                  "fr": "Autres",
+                  "pt": "Outros",
+                  "ar": "أخرى"
+                },
+                "value": "other"
+              }
+            ]
+          }
+        },
+        {
+          "id": "8a976f22-0942-4b21-8568-d58367e38e5f",
+          "type": "select",
+          "code": "wildlife",
+          "label": {
+            "en": "Wildlife transmission?",
+            "fr": "Faune sauvage?",
+            "pt": "Fauna?",
+            "ar": "حيوانات برية؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 6,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        },
+        {
+          "id": "bf16c1b9-0e08-4fde-8410-e9dbf8b24cdb",
+          "type": "select",
+          "code": "human",
+          "label": {
+            "en": "Human transmission?",
+            "fr": "Transmissible à l'homme?",
+            "pt": "Ao humano?",
+            "ar": "للإنسان؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 7,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        },
+        {
+          "id": "3b7c8dec-9de9-4717-953c-f50a080176fc",
+          "type": "multi-select",
+          "code": "treatment",
+          "label": {
+            "en": "Treatment",
+            "fr": "Traitement",
+            "pt": "Tratamento",
+            "ar": "العلاج"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 2,
+          "order": 8,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Call vet",
+                  "fr": "Vétérinaire",
+                  "pt": "Veterinário",
+                  "ar": "بيطري"
+                },
+                "value": "vet"
+              },
+              {
+                "label": {
+                  "en": "Indigenous",
+                  "fr": "Indigène",
+                  "pt": "Indígena",
+                  "ar": "تقليدي"
+                },
+                "value": "indigenous"
+              },
+              {
+                "label": {
+                  "en": "Market drugs",
+                  "fr": "Marché",
+                  "pt": "Mercado",
+                  "ar": "سوق"
+                },
+                "value": "market"
+              },
+              {
+                "label": {
+                  "en": "Nothing",
+                  "fr": "Rien",
+                  "pt": "Nada",
+                  "ar": "لا شيء"
+                },
+                "value": "nothing"
+              },
+              {
+                "label": {
+                  "en": "Other",
+                  "fr": "Autres",
+                  "pt": "Outros",
+                  "ar": "أخرى"
+                },
+                "value": "other"
+              }
+            ]
+          }
+        },
+        {
+          "id": "ed9ae438-df75-448a-b860-16b7005551de",
+          "type": "select",
+          "code": "avg_mortality",
+          "label": {
+            "en": "Annual mortality",
+            "fr": "Mortalité annuelle",
+            "pt": "Mortalidade anual",
+            "ar": "الوفيات السنوية"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 9,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "1-2",
+                  "fr": "1-2",
+                  "pt": "1-2",
+                  "ar": "1-2"
+                },
+                "value": "1_2"
+              },
+              {
+                "label": {
+                  "en": "Young only",
+                  "fr": "Jeunes",
+                  "pt": "Jovens",
+                  "ar": "صغار"
+                },
+                "value": "young"
+              },
+              {
+                "label": {
+                  "en": "Young+adults",
+                  "fr": "Jeunes+adultes",
+                  "pt": "Jovens+adultos",
+                  "ar": "صغار+بالغون"
+                },
+                "value": "young_adults"
+              },
+              {
+                "label": {
+                  "en": "Most",
+                  "fr": "Majorité",
+                  "pt": "Maioria",
+                  "ar": "معظم"
+                },
+                "value": "most"
+              }
+            ]
+          }
+        },
+        {
+          "id": "09d796b8-881a-42c8-a38f-f51e379c8883",
+          "type": "select",
+          "code": "neighbors",
+          "label": {
+            "en": "Neighbors same?",
+            "fr": "Même chez voisins?",
+            "pt": "Mesma nos vizinhos?",
+            "ar": "نفسه عند الجيران؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 10,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        },
+        {
+          "id": "7a3a21a9-f307-4541-b1e2-552106da643a",
+          "type": "number",
+          "code": "sheep_price",
+          "label": {
+            "en": "Sheep price (FCFA)",
+            "fr": "Prix mouton (FCFA)",
+            "pt": "Preço ovino (FCFA)",
+            "ar": "سعر الغنم"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 11,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {
+            "min": 0
+          },
+          "conditions": [],
+          "properties": {}
+        },
+        {
+          "id": "a8ab12d0-de89-455b-bf45-0d7ebda205df",
+          "type": "number",
+          "code": "goat_price",
+          "label": {
+            "en": "Goat price (FCFA)",
+            "fr": "Prix chèvre (FCFA)",
+            "pt": "Preço caprino (FCFA)",
+            "ar": "سعر الماعز"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 12,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {
+            "min": 0
+          },
+          "conditions": [],
+          "properties": {}
+        },
+        {
+          "id": "91efc56b-cf62-49d4-8b5b-87787f464bd8",
+          "type": "multi-select",
+          "code": "prevention",
+          "label": {
+            "en": "Prevention",
+            "fr": "Prévention",
+            "pt": "Prevenção",
+            "ar": "الوقاية"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 2,
+          "order": 13,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Vaccinate",
+                  "fr": "Vaccination",
+                  "pt": "Vacinação",
+                  "ar": "تطعيم"
+                },
+                "value": "vaccinate"
+              },
+              {
+                "label": {
+                  "en": "Sell",
+                  "fr": "Vendre",
+                  "pt": "Vender",
+                  "ar": "بيع"
+                },
+                "value": "sell"
+              },
+              {
+                "label": {
+                  "en": "Isolate",
+                  "fr": "Isoler",
+                  "pt": "Isolar",
+                  "ar": "عزل"
+                },
+                "value": "isolate"
+              },
+              {
+                "label": {
+                  "en": "Nothing",
+                  "fr": "Rien",
+                  "pt": "Nada",
+                  "ar": "لا شيء"
+                },
+                "value": "nothing"
+              },
+              {
+                "label": {
+                  "en": "Other",
+                  "fr": "Autres",
+                  "pt": "Outros",
+                  "ar": "أخرى"
+                },
+                "value": "other"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "16ef1759-ff04-4fba-8bc3-1c273ed2791e",
+      "name": {
+        "en": "PPR Control & Eradication",
+        "fr": "Contrôle et Eradication de la PPR",
+        "pt": "Controlo e Erradicação da PPR",
+        "ar": "مكافحة واستئصال الطاعون"
+      },
+      "description": null,
+      "columns": 2,
+      "order": 6,
+      "isCollapsible": true,
+      "isCollapsed": false,
+      "isRepeatable": false,
+      "icon": null,
+      "color": "#0891B2",
+      "conditions": [],
+      "fields": [
+        {
+          "id": "432b4170-bf17-41e7-b117-ff0e00209a97",
+          "type": "select",
+          "code": "vaccinated",
+          "label": {
+            "en": "Vaccinated?",
+            "fr": "Vacciné?",
+            "pt": "Vacinado?",
+            "ar": "تم التطعيم؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 0,
+          "required": true,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              },
+              {
+                "label": {
+                  "en": "Don't know",
+                  "fr": "Ne sait pas",
+                  "pt": "Não sabe",
+                  "ar": "لا أعرف"
+                },
+                "value": "dont_know"
+              }
+            ]
+          }
+        },
+        {
+          "id": "9198738b-b99b-4f89-91b3-b2862a58f02b",
+          "type": "select",
+          "code": "vacc_year",
+          "label": {
+            "en": "Last year",
+            "fr": "Dernière année",
+            "pt": "Último ano",
+            "ar": "آخر سنة"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 1,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "2020",
+                  "fr": "2020",
+                  "pt": "2020",
+                  "ar": "2020"
+                },
+                "value": "2020"
+              },
+              {
+                "label": {
+                  "en": "2021",
+                  "fr": "2021",
+                  "pt": "2021",
+                  "ar": "2021"
+                },
+                "value": "2021"
+              },
+              {
+                "label": {
+                  "en": "2022",
+                  "fr": "2022",
+                  "pt": "2022",
+                  "ar": "2022"
+                },
+                "value": "2022"
+              },
+              {
+                "label": {
+                  "en": "2023",
+                  "fr": "2023",
+                  "pt": "2023",
+                  "ar": "2023"
+                },
+                "value": "2023"
+              },
+              {
+                "label": {
+                  "en": "2024",
+                  "fr": "2024",
+                  "pt": "2024",
+                  "ar": "2024"
+                },
+                "value": "2024"
+              },
+              {
+                "label": {
+                  "en": "2025",
+                  "fr": "2025",
+                  "pt": "2025",
+                  "ar": "2025"
+                },
+                "value": "2025"
+              },
+              {
+                "label": {
+                  "en": "2026",
+                  "fr": "2026",
+                  "pt": "2026",
+                  "ar": "2026"
+                },
+                "value": "2026"
+              }
+            ]
+          }
+        },
+        {
+          "id": "9bab4000-2c30-490a-8695-5e4ca7cdcdaa",
+          "type": "select",
+          "code": "vacc_provider",
+          "label": {
+            "en": "Provider",
+            "fr": "Effectuée par",
+            "pt": "Realizada por",
+            "ar": "المقدم"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 2,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Campaign",
+                  "fr": "Campagne",
+                  "pt": "Campanha",
+                  "ar": "حملة"
+                },
+                "value": "campaign"
+              },
+              {
+                "label": {
+                  "en": "Private vet",
+                  "fr": "Vétérinaire privé",
+                  "pt": "Vet. privado",
+                  "ar": "بيطري خاص"
+                },
+                "value": "private"
+              },
+              {
+                "label": {
+                  "en": "NGO",
+                  "fr": "ONG",
+                  "pt": "ONG",
+                  "ar": "منظمة"
+                },
+                "value": "ngo"
+              },
+              {
+                "label": {
+                  "en": "Other",
+                  "fr": "Autres",
+                  "pt": "Outros",
+                  "ar": "أخرى"
+                },
+                "value": "other"
+              }
+            ]
+          }
+        },
+        {
+          "id": "c0e8f749-6a34-458f-916f-ac55faa659d3",
+          "type": "select",
+          "code": "vacc_effect",
+          "label": {
+            "en": "Effect",
+            "fr": "Effet",
+            "pt": "Efeito",
+            "ar": "التأثير"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 3,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Decreased",
+                  "fr": "Baissé",
+                  "pt": "Diminuiu",
+                  "ar": "انخفض"
+                },
+                "value": "decreased"
+              },
+              {
+                "label": {
+                  "en": "Increased",
+                  "fr": "Augmenté",
+                  "pt": "Aumentou",
+                  "ar": "ارتفع"
+                },
+                "value": "increased"
+              },
+              {
+                "label": {
+                  "en": "No change",
+                  "fr": "Rien",
+                  "pt": "Sem mudança",
+                  "ar": "لا تغيير"
+                },
+                "value": "none"
+              },
+              {
+                "label": {
+                  "en": "Don't know",
+                  "fr": "Ne sait pas",
+                  "pt": "Não sabe",
+                  "ar": "لا أعرف"
+                },
+                "value": "unknown"
+              }
+            ]
+          }
+        },
+        {
+          "id": "4902e7ae-21e0-4703-a065-d7aaa104acff",
+          "type": "select",
+          "code": "register",
+          "label": {
+            "en": "Health register?",
+            "fr": "Registre?",
+            "pt": "Registo?",
+            "ar": "سجل صحي؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 4,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        },
+        {
+          "id": "680601a4-09b8-4351-9373-057e676b3aeb",
+          "type": "textarea",
+          "code": "problems",
+          "label": {
+            "en": "3 main problems",
+            "fr": "3 problèmes",
+            "pt": "3 problemas",
+            "ar": "3 مشاكل"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 2,
+          "order": 5,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {}
+        },
+        {
+          "id": "e2f81c7b-a537-4c81-b332-f573d1bf961f",
+          "type": "select",
+          "code": "vacc_importance",
+          "label": {
+            "en": "Importance",
+            "fr": "Importance",
+            "pt": "Importância",
+            "ar": "الأهمية"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 2,
+          "order": 6,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Important",
+                  "fr": "Importante",
+                  "pt": "Importante",
+                  "ar": "مهم"
+                },
+                "value": "important"
+              },
+              {
+                "label": {
+                  "en": "No interest",
+                  "fr": "Sans intérêt",
+                  "pt": "Sem interesse",
+                  "ar": "بلا فائدة"
+                },
+                "value": "none"
+              },
+              {
+                "label": {
+                  "en": "Other",
+                  "fr": "Autres",
+                  "pt": "Outros",
+                  "ar": "أخرى"
+                },
+                "value": "other"
+              }
+            ]
+          }
+        },
+        {
+          "id": "41098011-0599-43b2-a206-6fb723e0ed34",
+          "type": "select",
+          "code": "willing_revaccinate",
+          "label": {
+            "en": "Revaccinate?",
+            "fr": "Recommencer?",
+            "pt": "Revacinar?",
+            "ar": "إعادة التطعيم؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 7,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        },
+        {
+          "id": "d2237113-37a3-404e-ac5c-c7bcb85c5cfa",
+          "type": "select",
+          "code": "willing_pay",
+          "label": {
+            "en": "Pay?",
+            "fr": "Payer?",
+            "pt": "Pagar?",
+            "ar": "الدفع؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 8,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        },
+        {
+          "id": "4a219a47-1ee9-45cb-9612-411f305010ea",
+          "type": "multi-select",
+          "code": "refusal",
+          "label": {
+            "en": "Refusal reasons",
+            "fr": "Raisons du refus",
+            "pt": "Razões da recusa",
+            "ar": "أسباب الرفض"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 2,
+          "order": 9,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "No trust",
+                  "fr": "Non-confiance",
+                  "pt": "Sem confiança",
+                  "ar": "عدم الثقة"
+                },
+                "value": "trust"
+              },
+              {
+                "label": {
+                  "en": "Rumors",
+                  "fr": "Rumeurs",
+                  "pt": "Rumores",
+                  "ar": "شائعات"
+                },
+                "value": "rumors"
+              },
+              {
+                "label": {
+                  "en": "Religious",
+                  "fr": "Religieuses",
+                  "pt": "Religiosas",
+                  "ar": "دينية"
+                },
+                "value": "religion"
+              },
+              {
+                "label": {
+                  "en": "Expensive",
+                  "fr": "Cher",
+                  "pt": "Caro",
+                  "ar": "باهظ"
+                },
+                "value": "expensive"
+              },
+              {
+                "label": {
+                  "en": "Unavailable",
+                  "fr": "Indisponible",
+                  "pt": "Indisponível",
+                  "ar": "غير متوفر"
+                },
+                "value": "unavailable"
+              },
+              {
+                "label": {
+                  "en": "Other",
+                  "fr": "Autres",
+                  "pt": "Outros",
+                  "ar": "أخرى"
+                },
+                "value": "other"
+              }
+            ]
+          }
+        },
+        {
+          "id": "e1713399-99e7-4047-a35b-d036ce92304c",
+          "type": "select",
+          "code": "ear_notch",
+          "label": {
+            "en": "Accept ear notch?",
+            "fr": "Encoche oreille?",
+            "pt": "Marca orelha?",
+            "ar": "علامة الأذن؟"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 10,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Yes",
+                  "fr": "Oui",
+                  "pt": "Sim",
+                  "ar": "نعم"
+                },
+                "value": "yes"
+              },
+              {
+                "label": {
+                  "en": "No",
+                  "fr": "Non",
+                  "pt": "Não",
+                  "ar": "لا"
+                },
+                "value": "no"
+              }
+            ]
+          }
+        },
+        {
+          "id": "bbe87f37-4ccd-40c1-baef-2576f65d7718",
+          "type": "multi-select",
+          "code": "ear_refusal",
+          "label": {
+            "en": "Ear refusal reasons",
+            "fr": "Raisons refus",
+            "pt": "Razões recusa",
+            "ar": "أسباب الرفض"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 2,
+          "order": 11,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "options": [
+              {
+                "label": {
+                  "en": "Loses value",
+                  "fr": "Perd valeur",
+                  "pt": "Perde valor",
+                  "ar": "يفقد قيمته"
+                },
+                "value": "value"
+              },
+              {
+                "label": {
+                  "en": "Religious",
+                  "fr": "Religieuses",
+                  "pt": "Religiosas",
+                  "ar": "دينية"
+                },
+                "value": "religion"
+              },
+              {
+                "label": {
+                  "en": "Traditional",
+                  "fr": "Traditionnelles",
+                  "pt": "Tradicionais",
+                  "ar": "تقليدية"
+                },
+                "value": "tradition"
+              },
+              {
+                "label": {
+                  "en": "Other",
+                  "fr": "Autres",
+                  "pt": "Outros",
+                  "ar": "أخرى"
+                },
+                "value": "other"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "5143ddb8-4b01-464b-b068-821e4a7dc39b",
+      "name": {
+        "en": "Sampling Table",
+        "fr": "Tableau des Prélèvements",
+        "pt": "Tabela de Amostras",
+        "ar": "جدول العينات"
+      },
+      "description": {
+        "en": "Non-vaccinated animals only (max 15). SE=Serum, ECN=Conjunctival-Nasal Swab (VTM blue), EON=Oro-nasal Swab (VTM blue)",
+        "fr": "Uniquement animaux non vaccinés (max 15). SE=Sérum (tube sec), ECN=Écouvillon Conjonctivo-Nasal (VTM bleu), EON=Écouvillon Oro-nasal (VTM bleu)",
+        "pt": "Apenas animais não vacinados (máx 15). SE=Soro, ECN=Zaragatoa CN, EON=Zaragatoa ON",
+        "ar": "الحيوانات غير المطعّمة فقط (بحد أقصى 15). SE=مصل، ECN=مسحة أنفية ملتحمية، EON=مسحة فموية أنفية"
+      },
+      "columns": 1,
+      "order": 7,
+      "isCollapsible": true,
+      "isCollapsed": false,
+      "isRepeatable": false,
+      "icon": null,
+      "color": "#EA580C",
+      "conditions": [],
+      "fields": [
+        {
+          "id": "863efc05-781e-43d5-bf0e-f63af742be23",
+          "type": "matrix",
+          "code": "samples",
+          "label": {
+            "en": "Samples",
+            "fr": "Prélèvements",
+            "pt": "Amostras",
+            "ar": "العينات"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 0,
+          "required": false,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {
+            "repeatMin": 1,
+            "repeatMax": 15,
+            "columns": [
+              {
+                "code": "species",
+                "label": {
+                  "en": "Species",
+                  "fr": "Espèce",
+                  "pt": "Espécie",
+                  "ar": "النوع"
+                },
+                "type": "select",
+                "width": "110px",
+                "options": [
+                  {
+                    "label": {
+                      "en": "Goat",
+                      "fr": "Chèvre",
+                      "pt": "Caprino",
+                      "ar": "ماعز"
+                    },
+                    "value": "goat"
+                  },
+                  {
+                    "label": {
+                      "en": "Sheep",
+                      "fr": "Mouton",
+                      "pt": "Ovino",
+                      "ar": "غنم"
+                    },
+                    "value": "sheep"
+                  }
+                ]
+              },
+              {
+                "code": "sex",
+                "label": {
+                  "en": "Sex",
+                  "fr": "Sexe",
+                  "pt": "Sexo",
+                  "ar": "الجنس"
+                },
+                "type": "select",
+                "width": "90px",
+                "options": [
+                  {
+                    "label": {
+                      "en": "Male",
+                      "fr": "Mâle",
+                      "pt": "Macho",
+                      "ar": "ذكر"
+                    },
+                    "value": "M"
+                  },
+                  {
+                    "label": {
+                      "en": "Female",
+                      "fr": "Femelle",
+                      "pt": "Fêmea",
+                      "ar": "أنثى"
+                    },
+                    "value": "F"
+                  }
+                ]
+              },
+              {
+                "code": "age",
+                "label": {
+                  "en": "Age",
+                  "fr": "Âge",
+                  "pt": "Idade",
+                  "ar": "العمر"
+                },
+                "type": "select",
+                "width": "130px",
+                "options": [
+                  {
+                    "label": {
+                      "en": "4-12 months",
+                      "fr": "4-12 mois",
+                      "pt": "4-12 meses",
+                      "ar": "4-12 شهر"
+                    },
+                    "value": "4_12m"
+                  },
+                  {
+                    "label": {
+                      "en": ">12 months",
+                      "fr": ">12 mois",
+                      "pt": ">12 meses",
+                      "ar": ">12 شهر"
+                    },
+                    "value": "over_12m"
+                  }
+                ]
+              },
+              {
+                "code": "sample_code",
+                "label": {
+                  "en": "Sample Code",
+                  "fr": "Code Prélèvement",
+                  "pt": "Código Amostra",
+                  "ar": "رمز العينة"
+                },
+                "type": "auto-id",
+                "width": "200px",
+                "pattern": "{admin_location.level_1}.{admin_location.level_2}.{admin_location.level_4}.{#}"
+              },
+              {
+                "code": "sample_type",
+                "label": {
+                  "en": "Sample Type",
+                  "fr": "Type Échantillon",
+                  "pt": "Tipo Amostra",
+                  "ar": "نوع العينة"
+                },
+                "type": "select",
+                "width": "180px",
+                "options": [
+                  {
+                    "label": {
+                      "en": "SE - Serum",
+                      "fr": "SE - Sérum (tube sec)",
+                      "pt": "SE - Soro",
+                      "ar": "SE - مصل"
+                    },
+                    "value": "SE"
+                  },
+                  {
+                    "label": {
+                      "en": "ECN - Conjunctival Swab",
+                      "fr": "ECN - Écouvillon CN (VTM bleu)",
+                      "pt": "ECN - Zaragatoa CN",
+                      "ar": "ECN - مسحة ملتحمية"
+                    },
+                    "value": "ECN"
+                  },
+                  {
+                    "label": {
+                      "en": "EON - Oro-nasal Swab",
+                      "fr": "EON - Écouvillon ON (VTM bleu)",
+                      "pt": "EON - Zaragatoa ON",
+                      "ar": "EON - مسحة فموية"
+                    },
+                    "value": "EON"
+                  }
+                ]
+              },
+              {
+                "code": "lab_result",
+                "label": {
+                  "en": "Lab Result",
+                  "fr": "Résultat Labo",
+                  "pt": "Resultado Lab",
+                  "ar": "نتيجة المختبر"
+                },
+                "type": "select",
+                "width": "130px",
+                "options": [
+                  {
+                    "label": {
+                      "en": "Positive",
+                      "fr": "Positif",
+                      "pt": "Positivo",
+                      "ar": "إيجابي"
+                    },
+                    "value": "positive"
+                  },
+                  {
+                    "label": {
+                      "en": "Negative",
+                      "fr": "Négatif",
+                      "pt": "Negativo",
+                      "ar": "سلبي"
+                    },
+                    "value": "negative"
+                  },
+                  {
+                    "label": {
+                      "en": "Doubtful",
+                      "fr": "Douteux",
+                      "pt": "Duvidoso",
+                      "ar": "مشكوك"
+                    },
+                    "value": "doubtful"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "d8f88dc7-cb86-47c0-8274-c455743d6e71",
+      "name": {
+        "en": "GPS Coordinates (Required)",
+        "fr": "Coordonnées GPS (Obligatoire)",
+        "pt": "Coordenadas GPS (Obrigatório)",
+        "ar": "إحداثيات GPS (مطلوب)"
+      },
+      "description": null,
+      "columns": 1,
+      "order": 8,
+      "isCollapsible": false,
+      "isCollapsed": false,
+      "isRepeatable": false,
+      "icon": null,
+      "color": "#1E3A5F",
+      "conditions": [],
+      "fields": [
+        {
+          "id": "ce210d73-27b7-4ce3-9cfa-69baf75ca553",
+          "type": "geo-selector",
+          "code": "geo_coordinates",
+          "label": {
+            "en": "GPS Location",
+            "fr": "Localisation GPS",
+            "pt": "Localização GPS",
+            "ar": "موقع GPS"
+          },
+          "placeholder": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "helpText": {
+            "en": "",
+            "fr": "",
+            "pt": "",
+            "ar": ""
+          },
+          "column": 0,
+          "columnSpan": 1,
+          "order": 0,
+          "required": true,
+          "readOnly": false,
+          "hidden": false,
+          "validation": {},
+          "conditions": [],
+          "properties": {}
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "allowDraft": true,
+    "allowAttachments": true,
+    "maxAttachments": 5,
+    "allowOffline": true,
+    "requireGeoLocation": true,
+    "autoSaveInterval": 60,
+    "submissionWorkflow": "standard",
+    "notifyOnSubmit": [],
+    "duplicateDetection": {
+      "enabled": false,
+      "fields": []
+    }
+  },
+  "validationRules": []
+}
