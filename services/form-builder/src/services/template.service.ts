@@ -135,7 +135,7 @@ export class TemplateService {
 
     const orderBy = query.sort
       ? { [query.sort]: query.order ?? 'asc' }
-      : { created_at: 'asc' as const };
+      : { created_at: 'desc' as const };
 
     // Domain-based filtering: non-SUPER_ADMIN users only see templates
     // whose domain matches one of their assigned domains (from JWT).
