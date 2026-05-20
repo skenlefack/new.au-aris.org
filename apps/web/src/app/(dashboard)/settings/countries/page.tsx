@@ -23,18 +23,46 @@ export default function CountriesListPage() {
   const t = useTranslations('settings');
 
   const { data: recsData } = useSettingsRecs({ limit: 100 });
-  const { data, isLoading } = useSettingsCountries({
-    search,
-    recCode: recFilter,
-    status: statusFilter,
-    operational: operationalFilter,
-    page,
-    limit,
-  });
+  // Fetch ALL countries at once (55 AU member states — small dataset)
+  const { data, isLoading } = useSettingsCountries({ page: 1, limit: 100 });
 
-  const countries: any[] = data?.data ?? [];
+  const allCountries: any[] = data?.data ?? [];
   const recs: any[] = recsData?.data ?? [];
-  const meta = data?.meta ?? { total: countries.length, page: 1, limit };
+
+  // Client-side filtering across ALL countries
+  const filtered = React.useMemo(() => {
+    let list = allCountries;
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((c: any) =>
+        (c.name?.en ?? c.code ?? '').toLowerCase().includes(q) ||
+        (c.name?.fr ?? '').toLowerCase().includes(q) ||
+        (c.code ?? '').toLowerCase().includes(q) ||
+        (c.capital?.en ?? '').toLowerCase().includes(q)
+      );
+    }
+    if (recFilter) {
+      list = list.filter((c: any) =>
+        (c.recs ?? []).some((cr: any) => (cr.rec?.code ?? cr.recCode ?? '') === recFilter)
+      );
+    }
+    if (statusFilter) {
+      list = list.filter((c: any) =>
+        statusFilter === 'active' ? c.isActive : !c.isActive
+      );
+    }
+    if (operationalFilter) {
+      list = list.filter((c: any) =>
+        operationalFilter === 'true' ? c.isOperational : !c.isOperational
+      );
+    }
+    return list;
+  }, [allCountries, search, recFilter, statusFilter, operationalFilter]);
+
+  // Client-side pagination
+  const total = filtered.length;
+  const countries = filtered.slice((page - 1) * limit, page * limit);
+  const meta = { total, page, limit };
 
   return (
     <div className="space-y-6">

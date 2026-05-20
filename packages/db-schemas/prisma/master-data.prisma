@@ -9,6 +9,8 @@ enum GeoLevel {
   ADMIN1
   ADMIN2
   ADMIN3
+  ADMIN4
+  ADMIN5
   SPECIAL_ZONE
 
   @@map("geo_level")
