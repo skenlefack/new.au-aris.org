@@ -382,6 +382,20 @@ export default function ExportPage() {
       mdTypes.add('vaccine-types');
       mdTypes.add('breeds');
       mdTypes.add('age-groups');
+      mdTypes.add('production-systems');
+      mdTypes.add('sample-types');
+      mdTypes.add('test-types');
+      mdTypes.add('labs');
+      mdTypes.add('gear-types');
+      mdTypes.add('commodities');
+      mdTypes.add('species-groups');
+      mdTypes.add('clinical-signs');
+      mdTypes.add('body-parts');
+      mdTypes.add('causal-agent-types');
+      mdTypes.add('notification-reasons');
+      mdTypes.add('transport-modes');
+      mdTypes.add('animal-husbandries');
+      mdTypes.add('genetic-diversities');
 
       Promise.all(
         [...mdTypes].map((type) => fetchRefData(type)),
