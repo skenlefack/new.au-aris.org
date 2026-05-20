@@ -380,7 +380,8 @@ export default function ExportPage() {
   const [viewLoading, setViewLoading] = useState(false);
   const [viewTotal, setViewTotal] = useState(0);
   const [viewPage, setViewPage] = useState(1);
-  const VIEW_PAGE_SIZE = 20;
+  const [viewPageSize, setViewPageSize] = useState(20);
+  const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
   const [selectedSub, setSelectedSub] = useState<any | null>(null);
   const [refMap, setRefMap] = useState<Record<string, string>>({});
 
@@ -433,13 +434,13 @@ export default function ExportPage() {
   }, [fields, refFetched]);
 
   // Fetch submissions for current page (server-side pagination)
-  const fetchPage = useCallback(async (page: number) => {
+  const fetchPage = useCallback(async (page: number, limit: number) => {
     setViewLoading(true);
     setError('');
     try {
       const token = useAuthStore.getState().accessToken || '';
       const res = await fetch(
-        `/api/v1/collecte/submissions?campaign=${campaignId}&limit=${VIEW_PAGE_SIZE}&page=${page}`,
+        `/api/v1/collecte/submissions?campaign=${campaignId}&limit=${limit}&page=${page}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (!res.ok) throw new Error(`Request failed: ${res.status}`);
@@ -453,14 +454,12 @@ export default function ExportPage() {
     }
   }, [campaignId]);
 
-  // Auto-load on view mode or page change
-  const [viewInitialized, setViewInitialized] = useState(false);
+  // Auto-load on view mode, page change, or page size change
   useEffect(() => {
     if (isViewMode) {
-      if (!viewInitialized) setViewInitialized(true);
-      fetchPage(viewPage);
+      fetchPage(viewPage, viewPageSize);
     }
-  }, [isViewMode, viewPage, fetchPage, viewInitialized]);
+  }, [isViewMode, viewPage, viewPageSize, fetchPage]);
 
   const handleExport = useCallback(async () => {
     setExporting(true); setError('');
@@ -561,7 +560,7 @@ export default function ExportPage() {
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {viewData.map((sub, idx) => {
                       const rowData = sub.data || {};
-                      const globalIdx = (viewPage - 1) * VIEW_PAGE_SIZE + idx;
+                      const globalIdx = (viewPage - 1) * viewPageSize + idx;
                       return (
                         <tr key={sub.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer" onClick={() => setSelectedSub(sub)}>
                           <td className="px-4 py-3 text-gray-400 text-xs font-mono">{globalIdx + 1}</td>
@@ -595,9 +594,9 @@ export default function ExportPage() {
                 </table>
                 {/* Pagination */}
                 {viewTotal > 0 && (() => {
-                  const totalPages = Math.ceil(viewTotal / VIEW_PAGE_SIZE);
-                  const from = (viewPage - 1) * VIEW_PAGE_SIZE + 1;
-                  const to = Math.min(viewPage * VIEW_PAGE_SIZE, viewTotal);
+                  const totalPages = Math.ceil(viewTotal / viewPageSize);
+                  const from = (viewPage - 1) * viewPageSize + 1;
+                  const to = Math.min(viewPage * viewPageSize, viewTotal);
 
                   // Build page numbers to show
                   const pages: (number | 'dots')[] = [];
@@ -613,9 +612,23 @@ export default function ExportPage() {
 
                   return (
                     <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
-                      <p className="text-xs text-gray-500">
-                        <span className="font-medium">{from}</span>–<span className="font-medium">{to}</span> of <span className="font-medium">{viewTotal}</span>
-                      </p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5">
+                          <label className="text-xs text-gray-500">Rows</label>
+                          <select
+                            value={viewPageSize}
+                            onChange={(e) => { setViewPageSize(Number(e.target.value)); setViewPage(1); }}
+                            className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                          >
+                            {PAGE_SIZE_OPTIONS.map((n) => (
+                              <option key={n} value={n}>{n}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          <span className="font-medium">{from}</span>–<span className="font-medium">{to}</span> of <span className="font-medium">{viewTotal}</span>
+                        </p>
+                      </div>
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => setViewPage((p) => Math.max(1, p - 1))}
