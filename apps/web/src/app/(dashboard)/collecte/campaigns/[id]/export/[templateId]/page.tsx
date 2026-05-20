@@ -379,6 +379,8 @@ export default function ExportPage() {
   const [viewData, setViewData] = useState<any[] | null>(null);
   const [viewLoading, setViewLoading] = useState(false);
   const [viewTotal, setViewTotal] = useState(0);
+  const [viewPage, setViewPage] = useState(1);
+  const VIEW_PAGE_SIZE = 20;
   const [selectedSub, setSelectedSub] = useState<any | null>(null);
   const [refMap, setRefMap] = useState<Record<string, string>>({});
 
@@ -430,18 +432,35 @@ export default function ExportPage() {
     }
   }, [fields, refFetched]);
 
-  // Auto-load submissions in view mode (once)
-  const [viewFetched, setViewFetched] = useState(false);
-  useEffect(() => {
-    if (isViewMode && !viewFetched) {
-      setViewFetched(true);
-      setViewLoading(true);
-      fetchSubmissions(campaignId, 100)
-        .then(({ submissions, total }) => { setViewData(submissions); setViewTotal(total); })
-        .catch((e) => setError(e?.message || 'Failed to load submissions'))
-        .finally(() => setViewLoading(false));
+  // Fetch submissions for current page (server-side pagination)
+  const fetchPage = useCallback(async (page: number) => {
+    setViewLoading(true);
+    setError('');
+    try {
+      const token = useAuthStore.getState().accessToken || '';
+      const res = await fetch(
+        `/api/v1/collecte/submissions?campaign=${campaignId}&limit=${VIEW_PAGE_SIZE}&page=${page}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+      const json = await res.json();
+      setViewData(json?.data || []);
+      setViewTotal(json?.meta?.total ?? 0);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load submissions');
+    } finally {
+      setViewLoading(false);
     }
-  }, [isViewMode, campaignId, viewFetched]);
+  }, [campaignId]);
+
+  // Auto-load on view mode or page change
+  const [viewInitialized, setViewInitialized] = useState(false);
+  useEffect(() => {
+    if (isViewMode) {
+      if (!viewInitialized) setViewInitialized(true);
+      fetchPage(viewPage);
+    }
+  }, [isViewMode, viewPage, fetchPage, viewInitialized]);
 
   const handleExport = useCallback(async () => {
     setExporting(true); setError('');
@@ -542,9 +561,10 @@ export default function ExportPage() {
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {viewData.map((sub, idx) => {
                       const rowData = sub.data || {};
+                      const globalIdx = (viewPage - 1) * VIEW_PAGE_SIZE + idx;
                       return (
                         <tr key={sub.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer" onClick={() => setSelectedSub(sub)}>
-                          <td className="px-4 py-3 text-gray-400 text-xs font-mono">{idx + 1}</td>
+                          <td className="px-4 py-3 text-gray-400 text-xs font-mono">{globalIdx + 1}</td>
                           {summaryFields.map((f) => (
                             <td key={f.code} className="px-4 py-3 text-gray-700 dark:text-gray-300 text-sm truncate max-w-[200px]">
                               {formatCell(rowData[f.code], f, refMap)}
@@ -573,11 +593,66 @@ export default function ExportPage() {
                     })}
                   </tbody>
                 </table>
-                {viewTotal > viewData.length && (
-                  <div className="border-t border-gray-100 dark:border-gray-800 px-4 py-3 text-center">
-                    <p className="text-xs text-gray-400">Showing {viewData.length} of {viewTotal} submissions</p>
-                  </div>
-                )}
+                {/* Pagination */}
+                {viewTotal > 0 && (() => {
+                  const totalPages = Math.ceil(viewTotal / VIEW_PAGE_SIZE);
+                  const from = (viewPage - 1) * VIEW_PAGE_SIZE + 1;
+                  const to = Math.min(viewPage * VIEW_PAGE_SIZE, viewTotal);
+
+                  // Build page numbers to show
+                  const pages: (number | 'dots')[] = [];
+                  if (totalPages <= 7) {
+                    for (let i = 1; i <= totalPages; i++) pages.push(i);
+                  } else {
+                    pages.push(1);
+                    if (viewPage > 3) pages.push('dots');
+                    for (let i = Math.max(2, viewPage - 1); i <= Math.min(totalPages - 1, viewPage + 1); i++) pages.push(i);
+                    if (viewPage < totalPages - 2) pages.push('dots');
+                    pages.push(totalPages);
+                  }
+
+                  return (
+                    <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
+                      <p className="text-xs text-gray-500">
+                        <span className="font-medium">{from}</span>–<span className="font-medium">{to}</span> of <span className="font-medium">{viewTotal}</span>
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setViewPage((p) => Math.max(1, p - 1))}
+                          disabled={viewPage === 1}
+                          className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:bg-gray-800"
+                        >
+                          Previous
+                        </button>
+                        {pages.map((p, i) =>
+                          p === 'dots' ? (
+                            <span key={`dots-${i}`} className="px-1 text-gray-400 text-xs">...</span>
+                          ) : (
+                            <button
+                              key={p}
+                              onClick={() => setViewPage(p)}
+                              className={cn(
+                                'min-w-[32px] rounded-lg px-2 py-1.5 text-xs font-medium transition-colors',
+                                p === viewPage
+                                  ? 'bg-blue-600 text-white shadow-sm'
+                                  : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800',
+                              )}
+                            >
+                              {p}
+                            </button>
+                          ),
+                        )}
+                        <button
+                          onClick={() => setViewPage((p) => Math.min(totalPages, p + 1))}
+                          disabled={viewPage === totalPages}
+                          className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:bg-gray-800"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
