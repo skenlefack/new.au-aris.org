@@ -290,12 +290,30 @@ function DetailPanel({
   const t = useTranslations('collecte');
   const rowData = submission?.data || {};
 
-  // Use portal to render above everything (sidebar, header, etc.)
+  // Lock body scroll when panel is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  // Use portal to render above everything (sidebar z-50, header z-50)
   if (typeof document === 'undefined') return null;
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex justify-end" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-      <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200" onClick={(e) => e.stopPropagation()}>
+    <>
+      {/* Full-screen backdrop — covers sidebar + header */}
+      <div
+        className="fixed inset-0"
+        style={{ zIndex: 99998 }}
+        onClick={onClose}
+      >
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      </div>
+      {/* Panel */}
+      <div
+        className="fixed inset-y-0 right-0 w-full max-w-lg bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200"
+        style={{ zIndex: 99999 }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-4">
           <div>
             <h2 className="text-base font-semibold text-gray-900 dark:text-white">{t('submissionDetail') || 'Submission Detail'}</h2>
@@ -335,7 +353,7 @@ function DetailPanel({
           })}
         </div>
       </div>
-    </div>,
+    </>,
     document.body,
   );
 }
