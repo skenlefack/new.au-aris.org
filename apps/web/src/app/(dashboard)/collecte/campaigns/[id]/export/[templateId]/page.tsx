@@ -32,17 +32,30 @@ function extractFields(schema: unknown): Field[] {
   return rows;
 }
 
-async function fetchSubmissions(campaignId: string, limit = 50000): Promise<{ submissions: any[]; total: number }> {
+async function fetchSubmissions(campaignId: string, limit = 100): Promise<{ submissions: any[]; total: number }> {
   const token = useAuthStore.getState().accessToken || '';
-  const res = await fetch(`/api/v1/collecte/submissions?campaign=${campaignId}&limit=${limit}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-  const json = await res.json();
-  return {
-    submissions: json?.data || [],
-    total: json?.meta?.total ?? (json?.data || []).length,
-  };
+  const pageLimit = Math.min(limit, 100); // Backend max is 100
+  const allSubmissions: any[] = [];
+  let page = 1;
+  let total = 0;
+
+  // Fetch pages until we have enough or no more data
+  while (true) {
+    const res = await fetch(
+      `/api/v1/collecte/submissions?campaign=${campaignId}&limit=${pageLimit}&page=${page}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+    const json = await res.json();
+    const data = json?.data || [];
+    total = json?.meta?.total ?? total;
+    allSubmissions.push(...data);
+    if (data.length < pageLimit || allSubmissions.length >= limit) break;
+    page++;
+    if (page > 100) break; // Safety cap
+  }
+
+  return { submissions: allSubmissions, total };
 }
 
 export default function ExportPage() {
@@ -67,11 +80,13 @@ export default function ExportPage() {
   const [viewLoading, setViewLoading] = useState(false);
   const [viewTotal, setViewTotal] = useState(0);
 
-  // Auto-load data in view mode
+  // Auto-load data in view mode (once)
+  const [viewFetched, setViewFetched] = useState(false);
   useEffect(() => {
-    if (isViewMode && !viewData && !viewLoading) {
+    if (isViewMode && !viewFetched) {
+      setViewFetched(true);
       setViewLoading(true);
-      fetchSubmissions(campaignId, 500)
+      fetchSubmissions(campaignId, 100)
         .then(({ submissions, total }) => {
           setViewData(submissions);
           setViewTotal(total);
@@ -79,12 +94,12 @@ export default function ExportPage() {
         .catch((e) => setError(e?.message || 'Failed to load submissions'))
         .finally(() => setViewLoading(false));
     }
-  }, [isViewMode, campaignId, viewData, viewLoading]);
+  }, [isViewMode, campaignId, viewFetched]);
 
   const handleExport = useCallback(async () => {
     setExporting(true); setError('');
     try {
-      const { submissions } = await fetchSubmissions(campaignId);
+      const { submissions } = await fetchSubmissions(campaignId, 10000);
       let data: any[] = submissions.map((s: any) => s.data);
       if (data.length === 0) { setError(t('noDataToExport')); setExporting(false); return; }
       for (const [k, v] of Object.entries(filters)) { if (v) data = data.filter((d) => String(d?.[k] ?? '').toLowerCase().includes(v.toLowerCase())); }
