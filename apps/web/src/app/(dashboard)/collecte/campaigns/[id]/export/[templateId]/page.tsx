@@ -108,7 +108,16 @@ async function fetchRefData(type: string): Promise<Record<string, string>> {
     const json = await res.json();
     const map: Record<string, string> = {};
     for (const item of json?.data || []) {
-      if (item.id && item.label) map[item.id] = item.label;
+      if (!item.id) continue;
+      // API returns { id, code, name: { en, fr, pt, ar } } or { id, label }
+      const name = item.name;
+      let label = item.label || '';
+      if (!label && name) {
+        if (typeof name === 'string') label = name;
+        else if (typeof name === 'object') label = name.en || name.fr || name.pt || Object.values(name).find((v: any) => v) || '';
+      }
+      if (!label) label = item.code || '';
+      if (label) map[item.id] = label;
     }
     return map;
   } catch {
@@ -118,6 +127,18 @@ async function fetchRefData(type: string): Promise<Record<string, string>> {
 
 // UUID regex
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Friendly labels for common repeater sub-fields
+const FIELD_LABELS: Record<string, string> = {
+  species: 'Species', sex: 'Sex', age_group: 'Age Group', breed: 'Breed',
+  num_cases: 'Cases', num_deaths: 'Deaths', num_at_risk: 'At Risk',
+  num_destroyed: 'Destroyed', num_vaccinated: 'Vaccinated', num_slaughtered: 'Slaughtered',
+  num_susceptible: 'Susceptible', measure: 'Measure', flag: 'Applied',
+  epi_unit_type: 'Epi. Unit Type', locality_name: 'Locality', production_system: 'Production System',
+  vaccine_type: 'Vaccine Type', num_doses: 'Doses', date_start: 'Start Date', date_end: 'End Date',
+  body_part: 'Body Part', sample_type: 'Sample Type', test_type: 'Test Type', result: 'Result',
+  lab: 'Laboratory', diagnosis_basis: 'Diagnosis Basis', causal_agent: 'Causal Agent',
+};
 
 /** Format a cell value, resolving UUIDs via refMap */
 function formatCell(val: unknown, field: Field, refMap: Record<string, string>): string {
@@ -208,20 +229,38 @@ function formatDetail(val: unknown, field: Field, refMap: Record<string, string>
     return resolved || val;
   }
 
-  // Array
+  // Array of objects (repeater rows: animals, control measures, locations)
   if (Array.isArray(val)) {
     if (val.length === 0) return '-';
     return (
-      <div className="space-y-1">
+      <div className="space-y-2">
         {val.map((item, i) => (
-          <div key={i} className="text-xs bg-gray-50 dark:bg-gray-800 rounded px-2 py-1">
-            {typeof item === 'object'
-              ? Object.entries(item as Record<string, unknown>).map(([k, v]) => {
-                  const display = typeof v === 'string' && UUID_RE.test(v) ? (refMap[v] || v.slice(0, 8) + '...') : String(v ?? '');
-                  return <span key={k} className="mr-3"><span className="text-gray-400">{k}:</span> {display}</span>;
-                })
-              : UUID_RE.test(String(item)) ? (refMap[String(item)] || String(item).slice(0, 8) + '...') : String(item)
-            }
+          <div key={i} className="rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3">
+            {typeof item === 'object' ? (
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {Object.entries(item as Record<string, unknown>).map(([k, v]) => {
+                  const label = FIELD_LABELS[k] || k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+                  let display: string;
+                  if (typeof v === 'string' && UUID_RE.test(v)) {
+                    display = refMap[v] || v.slice(0, 12) + '...';
+                  } else if (typeof v === 'boolean') {
+                    display = v ? 'Yes' : 'No';
+                  } else {
+                    display = String(v ?? '-');
+                  }
+                  return (
+                    <div key={k} className="flex flex-col">
+                      <span className="text-[10px] font-medium text-gray-400 uppercase">{label}</span>
+                      <span className="text-xs text-gray-800 dark:text-gray-200">{display}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <span className="text-xs text-gray-700">
+                {UUID_RE.test(String(item)) ? (refMap[String(item)] || String(item)) : String(item)}
+              </span>
+            )}
           </div>
         ))}
       </div>
