@@ -401,6 +401,13 @@ export default function CampaignDetailPage() {
                         </Link>
                       )}
                       <Link
+                        href={`/collecte/campaigns/${campaignId}/export/${linkId}?view=1`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 shrink-0"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        {t('view') || 'View'}
+                      </Link>
+                      <Link
                         href={`/collecte/campaigns/${campaignId}/export/${linkId}`}
                         className="inline-flex items-center gap-1 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400 shrink-0"
                       >

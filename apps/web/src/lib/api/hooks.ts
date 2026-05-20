@@ -608,8 +608,8 @@ export function useWorkflowItems(params?: {
     queryKey: ['workflow', 'items', params],
     queryFn: withFallback(
       () =>
-        apiClient.get<PaginatedResponse<WorkflowItem>>(
-          '/workflow/validations',
+        collecteClient.get<PaginatedResponse<WorkflowItem>>(
+          '/collecte/submissions',
           searchParams,
         ),
       fallback,
