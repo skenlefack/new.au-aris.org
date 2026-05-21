@@ -125,7 +125,16 @@ interface RepeaterFieldProps {
   formValues?: Record<string, unknown>;
 }
 
-const ml = (text?: MultilingualText) => text?.en || text?.fr || '';
+import { useLocaleStore } from '@/lib/stores/locale-store';
+
+function useML() {
+  const locale = useLocaleStore((s) => s.locale);
+  const lang = locale?.slice(0, 2) ?? 'en';
+  return (text?: MultilingualText) => {
+    if (!text) return '';
+    return text[lang] || text.en || text.fr || text.pt || Object.values(text).find((v) => v) || '';
+  };
+}
 
 /**
  * Normalize sub-field data from the seed (which may be simplified)
@@ -159,6 +168,7 @@ function normalizeSubField(raw: Record<string, unknown>, index: number): FormFie
 
 export function RepeaterField({ field, value, onChange, formValues }: RepeaterFieldProps) {
   const t = useTranslations('collecte');
+  const ml = useML();
   const mobile = useFormMobile();
   const rawSubFields = (field.properties.fields || []) as Array<Record<string, unknown>>;
   const minRows = (field.properties.minRows as number) || 1;

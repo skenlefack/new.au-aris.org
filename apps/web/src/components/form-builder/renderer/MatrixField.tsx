@@ -4,7 +4,16 @@ import React, { useCallback, useMemo } from 'react';
 import { useTranslations } from '@/lib/i18n/translations';
 import type { FormField, MultilingualText } from '../utils/form-schema';
 
-const ml = (text?: MultilingualText) => text?.en || text?.fr || '';
+import { useLocaleStore } from '@/lib/stores/locale-store';
+
+const useML = () => {
+  const locale = useLocaleStore((s) => s.locale);
+  const lang = locale?.slice(0, 2) ?? 'en';
+  return (text?: MultilingualText) => {
+    if (!text) return '';
+    return text[lang] || text.en || text.fr || text.pt || Object.values(text).find((v) => v) || '';
+  };
+};
 
 interface MatrixRow {
   label: MultilingualText;
@@ -27,6 +36,7 @@ const cellClass =
 
 export function MatrixField({ field, value, onChange }: MatrixFieldProps) {
   const t = useTranslations('collecte');
+  const ml = useML();
   const rows = (field.properties.rows || []) as MatrixRow[];
   const columns = (field.properties.columns || []) as MatrixColumn[];
   const cellType = (field.properties.cellType as string) || 'number';

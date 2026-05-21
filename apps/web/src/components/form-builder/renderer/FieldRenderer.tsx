@@ -4,6 +4,7 @@ import React, { lazy, Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import type { FormField, MultilingualText, SelectOption, FieldCondition } from '../utils/form-schema';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 import { evaluateFieldCondition } from './ConditionEvaluator';
 import {
   MapPin,
@@ -38,7 +39,15 @@ interface FieldRendererProps {
   formValues?: Record<string, unknown>;
 }
 
-const ml = (text?: MultilingualText) => text?.en || text?.fr || '';
+/** Resolve multilingual text using current locale */
+function useML() {
+  const locale = useLocaleStore((s) => s.locale);
+  const lang = locale?.slice(0, 2) ?? 'en';
+  return (text?: MultilingualText) => {
+    if (!text) return '';
+    return text[lang] || text.en || text.fr || text.pt || Object.values(text).find((v) => v) || '';
+  };
+}
 
 /**
  * Resolve dynamic references in parentFilter.
@@ -68,6 +77,7 @@ function resolveParentFilter(
 
 export function FieldRenderer({ field, value, onChange, error, formValues }: FieldRendererProps) {
   const t = useTranslations('collecte');
+  const ml = useML();
   const label = ml(field.label);
   const placeholder = ml(field.placeholder);
   const helpText = ml(field.helpText);

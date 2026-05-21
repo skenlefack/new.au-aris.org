@@ -4,7 +4,16 @@ import React, { useCallback, useMemo } from 'react';
 import { useTranslations } from '@/lib/i18n/translations';
 import type { FormField, MultilingualText } from '../utils/form-schema';
 
-const ml = (text?: MultilingualText) => text?.en || text?.fr || '';
+import { useLocaleStore } from '@/lib/stores/locale-store';
+
+const useML = () => {
+  const locale = useLocaleStore((s) => s.locale);
+  const lang = locale?.slice(0, 2) ?? 'en';
+  return (text?: MultilingualText) => {
+    if (!text) return '';
+    return text[lang] || text.en || text.fr || text.pt || Object.values(text).find((v) => v) || '';
+  };
+};
 
 interface CascadeLevelConfig {
   label: MultilingualText;
@@ -28,6 +37,7 @@ const selectClass =
 
 export function CascadeSelectField({ field, value, onChange }: CascadeSelectFieldProps) {
   const t = useTranslations('collecte');
+  const ml = useML();
   const levels = (field.properties.levels || []) as CascadeLevelConfig[];
   const options = (field.properties.options || []) as CascadeOption[];
 

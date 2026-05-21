@@ -101,7 +101,8 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
         if (condResult.hidden) continue;
         const isRequired = condResult.required ?? field.required;
         if (isRequired && isEmptyValue(values[field.code])) {
-          const label = field.label?.en || field.label?.fr || field.code;
+          const lang = locale?.slice(0, 2) ?? 'en';
+          const label = field.label?.[lang] || field.label?.en || field.label?.fr || field.code;
           errors[field.code] = `${label} is required`;
         }
       }
@@ -255,7 +256,10 @@ function SectionRenderer({
   onToggle: () => void;
 }) {
   const mobile = useFormMobile();
-  const sectionName = section.name.en || section.name.fr || 'Section';
+  const locale = useLocaleStore((s) => s.locale);
+  const lang = locale?.slice(0, 2) ?? 'en';
+  const sectionName = section.name[lang] || section.name.en || section.name.fr || 'Section';
+  const sectionDesc = section.description?.[lang] || section.description?.en || '';
 
   // Build grid classes: always start with grid-cols-1, add responsive only when NOT mobile
   const gridClass = mobile
@@ -284,8 +288,8 @@ function SectionRenderer({
         )}
         <div>
           <h2 className="text-base font-semibold text-gray-900 dark:text-white">{sectionName}</h2>
-          {section.description?.en && (
-            <p className="text-xs text-gray-500 mt-0.5">{section.description.en}</p>
+          {sectionDesc && (
+            <p className="text-xs text-gray-500 mt-0.5">{sectionDesc}</p>
           )}
         </div>
       </div>
