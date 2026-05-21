@@ -297,6 +297,7 @@ export const UserUpdateBodySchema = Type.Object({
     Type.Literal('DATA_STEWARD'), Type.Literal('WAHIS_FOCAL_POINT'),
     Type.Literal('ANALYST'), Type.Literal('FIELD_AGENT'),
   ])),
+  tenantId: Type.Optional(Type.String({ format: 'uuid' })),
   locale: Type.Optional(Type.String({ maxLength: 5 })),
   isActive: Type.Optional(Type.Boolean()),
   functionIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),

@@ -1878,6 +1878,18 @@ export class SettingsService {
     if (dto.role !== undefined) updateData.role = dto.role;
     if (dto.locale !== undefined) updateData.locale = dto.locale;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
+    // Allow changing user's tenant/organization (SUPER_ADMIN or CONTINENTAL_ADMIN only)
+    if (dto.tenantId !== undefined && dto.tenantId !== existing.tenantId) {
+      if (caller.role !== 'SUPER_ADMIN' && caller.role !== 'CONTINENTAL_ADMIN') {
+        throw new HttpError(403, 'Only SUPER_ADMIN or CONTINENTAL_ADMIN can change user organization');
+      }
+      // Verify target tenant exists
+      const targetTenant = await (this.prisma as any).tenant.findUnique({ where: { id: dto.tenantId as string } });
+      if (!targetTenant) throw new HttpError(400, `Tenant ${dto.tenantId} not found`);
+      updateData.tenantId = dto.tenantId;
+      // Update tenantLevel based on target tenant
+      updateData.tenantLevel = targetTenant.level;
+    }
 
     // Hash password if provided
     if (dto.password !== undefined && typeof dto.password === 'string') {

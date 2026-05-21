@@ -318,6 +318,10 @@ function UserForm({
         };
         if (form.email !== editingUser.email) body.email = form.email;
         if (form.password) body.password = form.password;
+        // Send tenantId if organization changed
+        if (form.tenantId && form.tenantId !== editingUser.tenantId) {
+          body.tenantId = form.tenantId;
+        }
         await updateMut.mutateAsync(body as any);
         toast.success('User updated', {
           description: `${fullName} has been updated successfully.`,
