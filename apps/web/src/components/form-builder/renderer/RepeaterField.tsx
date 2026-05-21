@@ -132,6 +132,11 @@ const ml = (text?: MultilingualText) => text?.en || text?.fr || '';
  * into a full FormField shape that FieldRenderer can consume.
  */
 function normalizeSubField(raw: Record<string, unknown>, index: number): FormField {
+  // Options can be at root level (from seed) or inside properties
+  const props = (raw.properties as Record<string, unknown>) || {};
+  if (raw.options && !props.options) {
+    props.options = raw.options;
+  }
   return {
     id: (raw.id as string) || `sub-${index}`,
     type: (raw.type as string) || 'text',
@@ -148,7 +153,7 @@ function normalizeSubField(raw: Record<string, unknown>, index: number): FormFie
     defaultValue: raw.defaultValue ?? null,
     validation: (raw.validation as FormField['validation']) || {},
     conditions: (raw.conditions as FormField['conditions']) || [],
-    properties: (raw.properties as Record<string, unknown>) || {},
+    properties: props,
   };
 }
 
@@ -201,7 +206,12 @@ export function RepeaterField({ field, value, onChange, formValues }: RepeaterFi
 
   const addRow = useCallback(() => {
     if (rows.length >= maxRows) return;
-    onChange([...rows, {}]);
+    const newRow: Record<string, unknown> = {};
+    // Auto-fill sample_code for the new row
+    if (hasSampleCode) {
+      newRow.sample_code = computeSampleCode(rows.length);
+    }
+    onChange([...rows, newRow]);
   }, [rows, maxRows, onChange]);
 
   const removeRow = useCallback(
@@ -220,6 +230,24 @@ export function RepeaterField({ field, value, onChange, formValues }: RepeaterFi
       </div>
     );
   }
+
+  // Auto-compute sample_code from admin_location if present
+  const hasSampleCode = subFields.some((sf) => sf.code === 'sample_code');
+  const adminLoc = formValues?.admin_location as Record<string, string> | undefined;
+  const computeSampleCode = useCallback((rowIndex: number): string => {
+    if (!adminLoc) return `${rowIndex + 1}`;
+    const parts = [
+      adminLoc.level_1 || '',
+      adminLoc.level_2 || '',
+      adminLoc.level_4 || adminLoc.level_3 || '',
+    ].filter(Boolean);
+    // Use short codes (last segment after / or -)
+    const short = parts.map((p) => {
+      const s = p.split(/[/.\-_]/).pop() || p;
+      return s.length > 6 ? s.slice(0, 6) : s;
+    });
+    return [...short, String(rowIndex + 1)].join('/');
+  }, [adminLoc]);
 
   // Table layout: when all sub-fields are simple types (select/text/number/checkbox)
   // and there are ≤ 8 fields and NOT mobile → render as horizontal table
@@ -248,9 +276,18 @@ export function RepeaterField({ field, value, onChange, formValues }: RepeaterFi
               {rows.map((row, ri) => (
                 <tr key={ri} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
                   <td className="px-2 py-1.5 text-center text-xs font-mono text-gray-400">{ri + 1}</td>
-                  {sorted.map((sf) => (
+                  {sorted.map((sf) => {
+                    // Auto-compute sample_code
+                    const isAutoCode = hasSampleCode && sf.code === 'sample_code';
+                    const autoValue = isAutoCode ? computeSampleCode(ri) : undefined;
+
+                    return (
                     <td key={`${ri}-${sf.code}`} className="px-1 py-1">
-                      {sf.type === 'select' ? (
+                      {isAutoCode ? (
+                        <span className="inline-block w-full min-w-[80px] rounded border border-gray-100 bg-gray-50 px-2 py-1.5 text-xs font-mono text-gray-600 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400">
+                          {autoValue}
+                        </span>
+                      ) : sf.type === 'select' ? (
                         <select
                           value={(row[sf.code] as string) || ''}
                           onChange={(e) => handleRowFieldChange(ri, sf.code, e.target.value || null)}
@@ -291,7 +328,8 @@ export function RepeaterField({ field, value, onChange, formValues }: RepeaterFi
                         <p className="text-[9px] text-red-500 mt-0.5">{rowErrors[ri][sf.code]}</p>
                       )}
                     </td>
-                  ))}
+                    );
+                  })}
                   <td className="px-1 py-1.5">
                     {rows.length > minRows && (
                       <button type="button" onClick={() => removeRow(ri)}
