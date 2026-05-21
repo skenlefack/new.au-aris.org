@@ -1493,6 +1493,33 @@ export class CollectionCampaignService {
   ): Promise<Record<string, unknown>> {
     const where: Record<string, unknown> = {};
 
+    // Function-based filtering: campaigns with metadata.targetFunctionId
+    // are only visible to users assigned to that function (or SUPER_ADMIN)
+    if (user.role !== 'SUPER_ADMIN' && user.tenantLevel === TenantLevel.CONTINENTAL) {
+      // Get user's function IDs
+      const userFunctions = await (this.prisma as any).userFunction.findMany({
+        where: { userId: user.userId },
+        select: { functionId: true },
+      }).catch(() => []);
+      const userFunctionIds = new Set(userFunctions.map((uf: any) => uf.functionId));
+
+      // Find campaigns with targetFunctionId that the user does NOT have
+      const restrictedCampaigns = await (this.prisma as any).$queryRawUnsafe(
+        `SELECT id FROM public.collection_campaigns
+         WHERE metadata->>'targetFunctionId' IS NOT NULL
+           AND metadata->>'targetFunctionId' NOT IN (${
+             userFunctionIds.size > 0
+               ? [...userFunctionIds].map((id) => `'${id}'`).join(',')
+               : "'none'"
+           })`,
+      ).catch(() => []);
+      const excludeIds = (restrictedCampaigns as any[]).map((r: any) => r.id);
+
+      if (excludeIds.length > 0) {
+        where['id'] = { notIn: excludeIds };
+      }
+    }
+
     if (user.tenantLevel !== TenantLevel.CONTINENTAL) {
       const tenant = await (this.prisma as any).tenant.findUnique({
         where: { id: user.tenantId },
@@ -1541,8 +1568,16 @@ export class CollectionCampaignService {
    */
   private async canAccessCampaign(
     user: AuthenticatedUser,
-    campaign: { ownerId: string | null; targetCountries: unknown; targetRecIds: unknown },
+    campaign: { ownerId: string | null; targetCountries: unknown; targetRecIds: unknown; metadata?: any },
   ): Promise<boolean> {
+    // Function-restricted campaigns: check user has the required function
+    const targetFunctionId = campaign.metadata?.targetFunctionId;
+    if (targetFunctionId && user.role !== 'SUPER_ADMIN') {
+      const hasFunction = await (this.prisma as any).userFunction.findFirst({
+        where: { userId: user.userId, functionId: targetFunctionId },
+      }).catch(() => null);
+      if (!hasFunction) return false;
+    }
     if (user.tenantLevel === TenantLevel.CONTINENTAL) return true;
     if (campaign.ownerId === user.tenantId) return true;
 
