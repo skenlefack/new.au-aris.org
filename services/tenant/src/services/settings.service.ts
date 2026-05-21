@@ -1887,8 +1887,6 @@ export class SettingsService {
       const targetTenant = await (this.prisma as any).tenant.findUnique({ where: { id: dto.tenantId as string } });
       if (!targetTenant) throw new HttpError(400, `Tenant ${dto.tenantId} not found`);
       updateData.tenantId = dto.tenantId;
-      // Update tenantLevel based on target tenant
-      updateData.tenantLevel = targetTenant.level;
     }
 
     // Hash password if provided
