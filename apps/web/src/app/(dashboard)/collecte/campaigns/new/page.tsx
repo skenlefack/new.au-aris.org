@@ -264,7 +264,8 @@ export default function NewCampaignPage() {
     if (!validate()) return;
 
     const primaryDomain = selectedDomains[0];
-    const code = `${primaryDomain.replace(/[^a-zA-Z]/g, '_').toUpperCase().slice(0, 10)}_${startDate.replace(/-/g, '')}`;
+    const uniqueSuffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+    const code = `${primaryDomain.replace(/[^a-zA-Z]/g, '_').toUpperCase().slice(0, 10)}_${startDate.replace(/-/g, '')}_${uniqueSuffix}`;
 
     // Build targets from domains + sub-domains
     // Each selected domain gets a target; sub-domains attach to their parent domain
