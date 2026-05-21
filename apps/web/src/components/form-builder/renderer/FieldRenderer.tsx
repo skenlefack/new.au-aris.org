@@ -28,6 +28,7 @@ const RepeaterField = lazy(() => import('./RepeaterField').then((m) => ({ defaul
 const GeoSelectorField = lazy(() => import('./GeoSelectorField').then((m) => ({ default: m.GeoSelectorField })));
 const MatrixField = lazy(() => import('./MatrixField').then((m) => ({ default: m.MatrixField })));
 const CascadeSelectField = lazy(() => import('./CascadeSelectField').then((m) => ({ default: m.CascadeSelectField })));
+const UserSelectField = lazy(() => import('./UserSelectField').then((m) => ({ default: m.UserSelectField })));
 
 interface FieldRendererProps {
   field: FormField;
@@ -499,6 +500,14 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
           <div className="h-20 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">{t('fbLoading')}</div>
         }>
           <CascadeSelectField field={field} value={value} onChange={onChange} />
+        </Suspense>
+      )}
+
+      {field.type === 'user-select' && (
+        <Suspense fallback={
+          <div className="h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400 animate-pulse">{t('fbLoading')}</div>
+        }>
+          <UserSelectField field={field} value={value} onChange={onChange} formValues={formValues} />
         </Suspense>
       )}
 

@@ -28,6 +28,15 @@ export const ListSubmissionsQuerySchema = Type.Object({
 });
 export type ListSubmissionsQuery = Static<typeof ListSubmissionsQuerySchema>;
 
+export const UpdateStatusSchema = Type.Object({
+  status: Type.Union([
+    Type.Literal('VALIDATED'),
+    Type.Literal('REJECTED'),
+  ]),
+  reason: Type.Optional(Type.String({ maxLength: 500 })),
+});
+export type UpdateStatusBody = Static<typeof UpdateStatusSchema>;
+
 export const IdParamSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
 });

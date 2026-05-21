@@ -156,11 +156,53 @@ export class SubmissionService {
     // 5. Publish submission event
     await this.publishSubmittedEvent(submission, user);
 
+    // 6. Send notification to kit_recipient (if present in form data)
+    await this.sendRecipientNotification(submission, dto.data, user);
+
     console.log(
-      `[SubmissionService] Submission created: ${submission.id} for campaign ${dto.campaignId} (quality validation requested via Kafka)`,
+      `[SubmissionService] Submission created: ${submission.id} for campaign ${dto.campaignId}`,
     );
 
     return { data: submission as unknown as SubmissionEntity };
+  }
+
+  /**
+   * Update submission status (VALIDATED or REJECTED).
+   * Used for confirmation workflows (e.g., kit reception confirmation).
+   */
+  async updateStatus(
+    id: string,
+    dto: { status: string; reason?: string },
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<SubmissionEntity>> {
+    const submission = await (this.prisma as any).submission.findUnique({
+      where: { id },
+    });
+
+    if (!submission) {
+      throw new HttpError(404, `Submission ${id} not found`);
+    }
+
+    // Allow: the kit_recipient, or any admin
+    const isAdmin = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN'].includes(user.role);
+    const isRecipient = submission.data?.kit_recipient === user.userId;
+    if (!isAdmin && !isRecipient) {
+      throw new HttpError(403, 'Not authorized to update this submission status');
+    }
+
+    const updated = await (this.prisma as any).submission.update({
+      where: { id },
+      data: {
+        status: dto.status,
+        ...(dto.reason ? { qualityReportId: null } : {}),
+      },
+    });
+
+    console.log(
+      `[SubmissionService] Submission ${id} status updated to ${dto.status} by ${user.email}${dto.reason ? ` (reason: ${dto.reason})` : ''}`,
+    );
+
+    return { data: updated as unknown as SubmissionEntity };
   }
 
   async findAll(
@@ -594,6 +636,53 @@ export class SubmissionService {
       console.error(
         `[SubmissionService] Failed to publish submission event for ${s.id}`,
         error instanceof Error ? error.stack : String(error),
+      );
+    }
+  }
+
+  /**
+   * Send in-app notification to kit_recipient when form data includes a user-select field.
+   * Non-blocking: errors are logged but don't fail the submission.
+   */
+  private async sendRecipientNotification(
+    submission: { id: string; campaignId: string; data: unknown },
+    formData: Record<string, unknown>,
+    submitter: AuthenticatedUser,
+  ): Promise<void> {
+    const recipientUserId = formData.kit_recipient as string | undefined;
+    if (!recipientUserId || typeof recipientUserId !== 'string') return;
+
+    try {
+      const country = formData.destination_country;
+      const countryName = typeof country === 'object' && country
+        ? (country as Record<string, string>).level_0 || 'your country'
+        : String(country || 'your country');
+      const kitFormat = formData.kit_format || '';
+      const quantity = formData.quantity || '';
+      const shipmentNum = formData.shipment_number || '';
+
+      // Create in-app notification via direct DB insert (message service may not be reachable)
+      await (this.prisma as any).$executeRawUnsafe(
+        `INSERT INTO message.notifications (id, tenant_id, user_id, channel, subject, body, status, metadata, created_at, updated_at)
+         VALUES (gen_random_uuid(), $1, $2, 'inApp', $3, $4, 'SENT', $5::jsonb, NOW(), NOW())
+         ON CONFLICT DO NOTHING`,
+        submitter.tenantId,
+        recipientUserId,
+        'PPR Kit Shipment — Please confirm reception',
+        `PPR diagnostic kits (${kitFormat}, qty: ${quantity}) have been shipped to ${countryName}. Shipment #${shipmentNum}. Please confirm reception in the Collecte module.`,
+        JSON.stringify({
+          submissionId: submission.id,
+          campaignId: submission.campaignId,
+          action: 'confirm_kit_reception',
+        }),
+      );
+
+      console.log(
+        `[SubmissionService] Kit notification sent to user ${recipientUserId} for submission ${submission.id}`,
+      );
+    } catch (error) {
+      console.warn(
+        `[SubmissionService] Failed to send kit notification: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
