@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import type { FormSchema, FormSection, FormField, FieldCondition } from '../utils/form-schema';
 import { FieldRenderer } from './FieldRenderer';
 import { evaluateFieldCondition, evaluateCrossFieldRules } from './ConditionEvaluator';
+import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 
 /** Context to propagate mobile flag to all nested renderers (repeaters, etc.) */
@@ -44,6 +45,7 @@ function isEmptyValue(value: unknown): boolean {
 const LAYOUT_TYPES = new Set(['heading', 'divider', 'spacer', 'info-box']);
 
 export function FormRenderer({ schema, formName, mobile = false, preview = false, isSubmitting = false, onSubmit, campaignTargetCountries }: FormRendererProps) {
+  const t = useTranslations('collecte');
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [requiredErrors, setRequiredErrors] = useState<Record<string, string>>({});
@@ -161,7 +163,7 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
         {/* Validation summary */}
         {Object.keys(requiredErrors).length > 0 && (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
-            <p className="font-medium">{Object.keys(requiredErrors).length} required field(s) must be filled before submitting.</p>
+            <p className="font-medium">{Object.keys(requiredErrors).length} {t('requiredFieldsError')}</p>
           </div>
         )}
 
@@ -171,7 +173,7 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
-            Preview mode — you can fill in fields to test the form, but data will not be submitted.
+            {t('previewModeMessage')}
           </div>
         ) : onSubmit && (
           <div className="flex justify-end gap-3">
@@ -186,7 +188,7 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
               )}
-              {isSubmitting ? 'Submitting...' : 'Submit'}
+              {isSubmitting ? t('submitting') : t('submitForm')}
             </button>
           </div>
         )}
