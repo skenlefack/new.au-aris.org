@@ -457,8 +457,12 @@ export class DashboardService {
     return rows[0];
   }
 
-  async delete(id: string, userId: string): Promise<void> {
-    await this.verifyOwnership(id, userId);
+  async delete(id: string, userId: string, userRole?: string): Promise<void> {
+    // Admins can delete any user-owned dashboard
+    const isAdmin = userRole && ['SUPER_ADMIN', 'CONTINENTAL_ADMIN'].includes(userRole);
+    if (!isAdmin) {
+      await this.verifyOwnership(id, userId);
+    }
 
     const { rowCount } = await this.pool.query(
       `DELETE FROM dashboard_builder.dashboards WHERE id = $1`,

@@ -254,8 +254,16 @@ export default function MyDashboardsPage() {
       onSuccess: () => {
         addToast({
           type: 'success',
-          title: 'Dashboard supprime',
-          message: 'Le tableau de bord a ete supprime avec succes.',
+          title: 'Dashboard supprimé',
+          message: 'Le tableau de bord a été supprimé avec succès.',
+        });
+        setDeleteTarget(null);
+      },
+      onError: (err: any) => {
+        addToast({
+          type: 'error',
+          title: 'Erreur',
+          message: err?.message || 'Impossible de supprimer le tableau de bord.',
         });
         setDeleteTarget(null);
       },

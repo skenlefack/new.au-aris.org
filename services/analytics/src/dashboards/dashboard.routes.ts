@@ -201,7 +201,7 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
     reply: FastifyReply,
   ) => {
     const user = request.user as AuthenticatedUser;
-    await app.dashboardService.delete(request.params.id, user.userId);
+    await app.dashboardService.delete(request.params.id, user.userId, user.role);
     return reply.code(204).send();
   });
 
