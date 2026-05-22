@@ -33,6 +33,12 @@ const DEFAULT_COLORS = [
   '#9333ea', '#0891b2', '#ea580c',
 ];
 
+/** For vertical bar charts, compute a min height so every bar is visible. */
+function verticalBarMinHeight(dataLen: number): number {
+  // ~32px per bar + 60px padding (axes, legend)
+  return Math.max(300, dataLen * 32 + 60);
+}
+
 export function ChartWidget({ type, data, config }: ChartWidgetProps) {
   const t = useTranslations('dashboard');
   const cfg = config ?? {};
@@ -52,6 +58,11 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
       </div>
     );
   }
+
+  // Compute max label length for vertical bars to size YAxis width
+  const yAxisWidth = isVertical
+    ? Math.min(160, Math.max(80, ...data.map((d) => String((d as any)[xKey] ?? '').length * 7)))
+    : undefined;
 
   const renderChart = () => {
     switch (type) {
@@ -82,17 +93,17 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />}
             {isVertical ? (
               <>
-                <YAxis dataKey={xKey} type="category" tick={{ fontSize: 11 }} width={70} />
+                <YAxis dataKey={xKey} type="category" tick={{ fontSize: 10 }} width={yAxisWidth} interval={0} />
                 <XAxis type="number" tick={{ fontSize: 11 }} />
               </>
             ) : (
               <>
-                <XAxis dataKey={xKey} tick={{ fontSize: 11 }} />
+                <XAxis dataKey={xKey} tick={{ fontSize: 11 }} interval={0} angle={data.length > 6 ? -35 : 0} textAnchor={data.length > 6 ? 'end' : 'middle'} height={data.length > 6 ? 60 : 30} />
                 <YAxis tick={{ fontSize: 11 }} />
               </>
             )}
             <Tooltip />
-            {showLegend && <Legend />}
+            {showLegend && yKeys.length > 1 && <Legend />}
             {yKeys.map((key, i) => (
               <Bar
                 key={key}
@@ -106,10 +117,19 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
 
       case 'STACKED_BAR':
         return (
-          <BarChart data={data}>
+          <BarChart data={data} layout={isVertical ? 'vertical' : 'horizontal'}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />}
-            <XAxis dataKey={xKey} tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} />
+            {isVertical ? (
+              <>
+                <YAxis dataKey={xKey} type="category" tick={{ fontSize: 10 }} width={yAxisWidth} interval={0} />
+                <XAxis type="number" tick={{ fontSize: 11 }} />
+              </>
+            ) : (
+              <>
+                <XAxis dataKey={xKey} tick={{ fontSize: 11 }} interval={0} angle={data.length > 6 ? -35 : 0} textAnchor={data.length > 6 ? 'end' : 'middle'} height={data.length > 6 ? 60 : 30} />
+                <YAxis tick={{ fontSize: 11 }} />
+              </>
+            )}
             <Tooltip />
             {showLegend && <Legend />}
             {yKeys.map((key, i) => (
@@ -118,6 +138,7 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
                 dataKey={key}
                 stackId="stack"
                 fill={colors[i % colors.length]}
+                radius={i === yKeys.length - 1 ? (isVertical ? [0, 4, 4, 0] : [4, 4, 0, 0]) : undefined}
               />
             ))}
           </BarChart>
@@ -177,8 +198,12 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
     }
   };
 
+  // For vertical bar/stacked_bar, use dynamic height based on data count
+  const needsDynamicHeight = isVertical && (type === 'BAR' || type === 'STACKED_BAR');
+  const dynamicHeight = needsDynamicHeight ? verticalBarMinHeight(data.length) : undefined;
+
   return (
-    <div className="h-full w-full p-2">
+    <div className="w-full p-2" style={dynamicHeight ? { height: dynamicHeight, minHeight: dynamicHeight } : { height: '100%' }}>
       <ResponsiveContainer width="100%" height="100%">
         {renderChart()}
       </ResponsiveContainer>
