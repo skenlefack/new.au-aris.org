@@ -13,8 +13,12 @@ import {
   Settings,
   Building2,
   Sparkles,
+  Eye,
+  Shield,
+  Users,
 } from 'lucide-react';
 import { useCreateCollectionCampaign } from '@/lib/api/workflow-hooks';
+import { useSettingsFunctions, type FunctionItem } from '@/lib/api/settings-hooks';
 import {
   useFormBuilderTemplates,
   type FormTemplateListItem,
@@ -129,6 +133,10 @@ export default function NewCampaignPage() {
   const [sendReminders, setSendReminders] = useState(false);
   const [reminderDays, setReminderDays] = useState('3');
 
+  // Visibility scope & target function
+  const [visibilityScope, setVisibilityScope] = useState<'continental' | 'rec' | 'country'>('continental');
+  const [selectedFunctions, setSelectedFunctions] = useState<FunctionItem[]>([]);
+
   // Admin division targeting (country-level users)
   const [targetAdminZones, setTargetAdminZones] = useState<Array<{ id: string; label: string; level: string }>>([]);
 
@@ -176,6 +184,10 @@ export default function NewCampaignPage() {
     if (Array.isArray(draft.domains)) handleDomainsChange(draft.domains);
     if (Array.isArray(draft.subDomains)) setSelectedSubDomains(draft.subDomains);
   };
+
+  // Fetch functions for visibility filter
+  const { data: functionsData } = useSettingsFunctions({ limit: 100, status: 'active' });
+  const allFunctions: FunctionItem[] = functionsData?.data ?? [];
 
   // Fetch published templates only
   const { data: templatesData, isLoading: templatesLoading } = useFormBuilderTemplates({
@@ -318,11 +330,19 @@ export default function NewCampaignPage() {
       sendReminders,
       reminderDaysBefore: sendReminders ? parseInt(reminderDays, 10) || 3 : undefined,
       targets: builtTargets.length > 0 ? builtTargets : undefined,
+      scope: visibilityScope,
       metadata: {
         domains: selectedDomains,
         subDomains: selectedSubDomains,
         recCodes: selectedRecs.map((r) => r.code),
         targetAdminZones: targetAdminZones.length > 0 ? targetAdminZones : undefined,
+        ...(selectedFunctions.length > 0
+          ? {
+              targetFunctionId: selectedFunctions[0].id,
+              targetFunctionCode: selectedFunctions[0].code,
+              targetFunctions: selectedFunctions.map((f) => ({ id: f.id, code: f.code })),
+            }
+          : {}),
       },
     };
 
@@ -471,6 +491,92 @@ export default function NewCampaignPage() {
                     ))}
                   </select>
                 </div>
+              </div>
+            </div>
+
+            {/* Visibility & Access */}
+            <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-700 dark:bg-gray-900">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Eye className="h-4 w-4 text-gray-400" />
+                {t('visibilityAccess') || 'Visibility & Access'}
+              </h2>
+
+              {/* Scope selector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('campaignScope') || 'Campaign Scope'}
+                </label>
+                <div className="flex gap-2">
+                  {([
+                    { key: 'continental' as const, icon: Globe, label: t('continental') || 'Continental' },
+                    { key: 'rec' as const, icon: Building2, label: t('rec') || 'REC' },
+                    { key: 'country' as const, icon: Shield, label: t('country') || 'Country' },
+                  ] as const).map((s) => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      disabled={userLevel === 'MEMBER_STATE' && s.key !== 'country'}
+                      onClick={() => setVisibilityScope(s.key)}
+                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                        visibilityScope === s.key
+                          ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79]'
+                          : 'border-gray-200 text-gray-500 hover:border-gray-300 dark:border-gray-600 dark:text-gray-400'
+                      } disabled:opacity-40 disabled:cursor-not-allowed`}
+                    >
+                      <s.icon className="h-3.5 w-3.5" />
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1.5 text-[10px] text-gray-400">
+                  {visibilityScope === 'continental' && (t('scopeContinentalDesc') || 'Visible by continental-level users (AU-IBAR)')}
+                  {visibilityScope === 'rec' && (t('scopeRecDesc') || 'Visible by REC-level users and their member states')}
+                  {visibilityScope === 'country' && (t('scopeCountryDesc') || 'Visible by country-level users only')}
+                </p>
+              </div>
+
+              {/* Target function (optional) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5 text-gray-400" />
+                    {t('targetFunction') || 'Target Function'}
+                    <span className="text-xs font-normal text-gray-400">({t('optionalField')})</span>
+                  </span>
+                </label>
+                <p className="text-[10px] text-gray-400 mb-2">
+                  {t('targetFunctionDesc') || 'Restrict to specific functions. If none selected, all users in scope can see the campaign.'}
+                </p>
+                <MultiSearchCombobox<FunctionItem>
+                  value={selectedFunctions}
+                  onChange={setSelectedFunctions}
+                  items={allFunctions}
+                  labelKey={(f) => {
+                    const n = f.name as any;
+                    return typeof n === 'object' ? (n.en || n.fr || f.code) : (n || f.code);
+                  }}
+                  idKey={(f) => f.id}
+                  filterKey={(f) => {
+                    const n = f.name as any;
+                    const label = typeof n === 'object' ? `${n.en || ''} ${n.fr || ''}` : (n || '');
+                    return `${label} ${f.code}`;
+                  }}
+                  placeholder={t('searchFunctions') || 'Search functions...'}
+                  allLabel={t('allFunctions') || 'All functions'}
+                  renderItem={(f) => {
+                    const n = f.name as any;
+                    return (
+                      <span className="flex items-center gap-2">
+                        <span>{typeof n === 'object' ? (n.en || n.fr || f.code) : (n || f.code)}</span>
+                        <span className="text-[10px] text-gray-400 font-mono">{f.code}</span>
+                      </span>
+                    );
+                  }}
+                  renderChip={(f) => {
+                    const n = f.name as any;
+                    return <span>{typeof n === 'object' ? (n.en || n.fr || f.code) : (n || f.code)}</span>;
+                  }}
+                />
               </div>
             </div>
 
