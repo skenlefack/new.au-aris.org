@@ -102,7 +102,7 @@ export function SectionHeader({
         </div>
       ) : (
         <span className="flex-1 min-w-0 text-sm font-semibold text-gray-700 dark:text-gray-200 truncate">
-          {section.titleFr || section.titleEn || ''}
+          {section.title || section.titleFr || section.titleEn || ''}
         </span>
       )}
 

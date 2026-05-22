@@ -72,16 +72,43 @@ function toBackendType(frontendType: string): string {
   return FRONTEND_TO_BACKEND_TYPE[frontendType] ?? frontendType;
 }
 
+/** Pick the best title for the current locale, with FR→EN fallback chain. */
+function pickTitle(obj: any, locale: string): string {
+  switch (locale) {
+    case 'ar': return obj.title_ar || obj.titleAr || obj.title_fr || obj.titleFr || obj.title_en || obj.titleEn || '';
+    case 'pt': return obj.title_pt || obj.titlePt || obj.title_fr || obj.titleFr || obj.title_en || obj.titleEn || '';
+    case 'en': return obj.title_en || obj.titleEn || obj.title_fr || obj.titleFr || '';
+    default:   return obj.title_fr || obj.titleFr || obj.title_en || obj.titleEn || '';
+  }
+}
+
+/** Resolve the current locale from the persisted zustand store (non-hook). */
+function getCurrentLocale(): string {
+  try {
+    const raw = typeof window !== 'undefined' && localStorage.getItem('aris-locale');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return parsed?.state?.locale ?? 'fr';
+    }
+  } catch { /* ignore */ }
+  return 'fr';
+}
+
 /** Map flat grid_x/grid_y/grid_w/grid_h from backend to layout object expected by frontend */
 function mapWidgetLayout(w: any): any {
+  const locale = getCurrentLocale();
   if (w.layout) {
     // Still map the type even if layout is already mapped
-    return w.type ? { ...w, type: toFrontendType(w.type) } : w;
+    return w.type ? { ...w, type: toFrontendType(w.type), title: pickTitle(w, locale) } : w;
   }
   return {
     ...w,
     type: toFrontendType(w.type ?? 'KPI_CARD'),
-    title: w.title || w.title_fr || w.titleFr || '',
+    title: pickTitle(w, locale),
+    titleFr: w.title_fr ?? w.titleFr ?? '',
+    titleEn: w.title_en ?? w.titleEn ?? '',
+    titleAr: w.title_ar ?? w.titleAr ?? null,
+    titlePt: w.title_pt ?? w.titlePt ?? null,
     sectionId: w.section_id ?? w.sectionId ?? null,
     columnIndex: w.column_index ?? w.columnIndex ?? 0,
     sortOrder: w.sort_order ?? w.sortOrder ?? 0,
@@ -98,10 +125,13 @@ function mapWidgetLayout(w: any): any {
 
 /** Map backend section data with nested widgets */
 function mapSectionWidgets(sec: any): DashboardSection {
+  const locale = getCurrentLocale();
   const widgets = (sec.widgets || []).map(mapWidgetLayout);
+  const title = pickTitle(sec, locale);
   return {
     id: sec.id,
     dashboardId: sec.dashboard_id || sec.dashboardId,
+    title,
     titleFr: sec.title_fr ?? sec.titleFr ?? '',
     titleEn: sec.title_en ?? sec.titleEn ?? '',
     titleAr: sec.title_ar ?? sec.titleAr ?? null,
@@ -128,10 +158,9 @@ function mapDashboardWidgets(data: any): any {
     d.widgets = d.widgets.map(mapWidgetLayout);
   }
 
-  // Map dashboard title from backend fields
-  if (!d.title) {
-    d.title = d.title_fr || d.titleFr || d.title_en || d.titleEn || '';
-  }
+  // Map dashboard title — locale-aware
+  const locale = getCurrentLocale();
+  d.title = pickTitle(d, locale);
   d.titleFr = d.title_fr || d.titleFr || d.title || '';
   d.titleEn = d.title_en || d.titleEn || d.title || '';
 
@@ -202,6 +231,7 @@ export interface DashboardWidget {
 export interface DashboardSection {
   id: string;
   dashboardId: string;
+  title?: string;
   titleFr: string;
   titleEn: string;
   titleAr?: string | null;
@@ -296,11 +326,12 @@ export function useDashboards(params?: {
         '/analytics/dashboards',
         qp,
       );
-      // Map title_fr/title_en → title for each dashboard in the list
+      // Map title to locale-aware title for each dashboard in the list
       if (res?.data && Array.isArray(res.data)) {
+        const loc = getCurrentLocale();
         res.data = res.data.map((d: any) => ({
           ...d,
-          title: d.title || d.title_fr || d.titleFr || d.title_en || d.titleEn || '',
+          title: pickTitle(d, loc),
         }));
       }
       return res;
