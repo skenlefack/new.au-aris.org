@@ -105,6 +105,8 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
           thresholds={cfg.thresholds}
           prefix={cfg.prefix}
           suffix={cfg.suffix}
+          icon={cfg.icon}
+          color={cfg.color}
         />
       );
 
