@@ -12,7 +12,7 @@ const MIN_HEIGHTS: Record<string, string> = {
   KPI_CARD: '72px',
   LINE: '300px',
   BAR: '420px',
-  PIE: '300px',
+  PIE: '220px',
   STACKED_BAR: '420px',
   AREA: '300px',
   MAP: '520px',
