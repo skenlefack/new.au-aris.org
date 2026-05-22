@@ -87,7 +87,7 @@ export function DraggableWidget({
         minHeight: MIN_HEIGHTS[widget.type] || '120px',
       }}
       className={cn(
-        'group relative flex flex-col overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-800',
+        'group relative flex flex-1 flex-col overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-800',
         isDragging && 'opacity-40 shadow-lg ring-2 ring-[#1F4E79]/30 z-50',
         editable && !isDragging && 'hover:ring-1 hover:ring-[#1F4E79]/20',
       )}
@@ -140,8 +140,8 @@ export function DraggableWidget({
         </div>
       )}
 
-      {/* Body */}
-      <div className="flex-1 min-h-0">
+      {/* Body — flex-1 fills remaining height so charts match sibling widgets */}
+      <div className="flex-1" style={{ minHeight: 0 }}>
         <WidgetRenderer widget={widget} data={data} />
       </div>
     </div>
