@@ -114,13 +114,20 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
     case 'STACKED_BAR':
     case 'AREA':
       if (!Array.isArray(cfg.data) || cfg.data.length === 0) return <WidgetEmpty label={t('dbNoData')} />;
-      return (
-        <ChartWidget
-          type={widget.type}
-          data={cfg.data}
-          config={cfg.chartConfig}
-        />
-      );
+      {
+        // Merge root-level colors into chartConfig (PIE charts store colors at cfg.colors)
+        const chartConfig = { ...cfg.chartConfig };
+        if (Array.isArray(cfg.colors) && !chartConfig.colors) {
+          chartConfig.colors = cfg.colors;
+        }
+        return (
+          <ChartWidget
+            type={widget.type}
+            data={cfg.data}
+            config={chartConfig}
+          />
+        );
+      }
 
     case 'MAP':
       return <MapWidget title={widget.title} config={cfg} data={cfg.data} />;

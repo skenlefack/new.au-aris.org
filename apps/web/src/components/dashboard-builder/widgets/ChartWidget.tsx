@@ -24,6 +24,7 @@ interface ChartWidgetProps {
     showLegend?: boolean;
     nameKey?: string;
     valueKey?: string;
+    layout?: 'horizontal' | 'vertical';
   };
 }
 
@@ -34,15 +35,15 @@ const DEFAULT_COLORS = [
 
 export function ChartWidget({ type, data, config }: ChartWidgetProps) {
   const t = useTranslations('dashboard');
-  const {
-    xKey = 'name',
-    yKeys = ['value'],
-    colors = DEFAULT_COLORS,
-    showGrid = true,
-    showLegend = true,
-    nameKey = 'name',
-    valueKey = 'value',
-  } = config ?? {};
+  const cfg = config ?? {};
+  const xKey = (cfg.xKey as string) ?? 'name';
+  const yKeys = (cfg.yKeys as string[]) ?? ['value'];
+  const colors = (cfg.colors as string[]) ?? DEFAULT_COLORS;
+  const showGrid = (cfg.showGrid as boolean) ?? true;
+  const showLegend = (cfg.showLegend as boolean) ?? true;
+  const nameKey = (cfg.nameKey as string) ?? 'name';
+  const valueKey = (cfg.valueKey as string) ?? 'value';
+  const isVertical = cfg.layout === 'vertical';
 
   if (!data || data.length === 0) {
     return (
@@ -77,10 +78,19 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
 
       case 'BAR':
         return (
-          <BarChart data={data}>
+          <BarChart data={data} layout={isVertical ? 'vertical' : 'horizontal'}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />}
-            <XAxis dataKey={xKey} tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} />
+            {isVertical ? (
+              <>
+                <YAxis dataKey={xKey} type="category" tick={{ fontSize: 11 }} width={70} />
+                <XAxis type="number" tick={{ fontSize: 11 }} />
+              </>
+            ) : (
+              <>
+                <XAxis dataKey={xKey} tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+              </>
+            )}
             <Tooltip />
             {showLegend && <Legend />}
             {yKeys.map((key, i) => (
@@ -88,7 +98,7 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
                 key={key}
                 dataKey={key}
                 fill={colors[i % colors.length]}
-                radius={[4, 4, 0, 0]}
+                radius={isVertical ? [0, 4, 4, 0] : [4, 4, 0, 0]}
               />
             ))}
           </BarChart>
