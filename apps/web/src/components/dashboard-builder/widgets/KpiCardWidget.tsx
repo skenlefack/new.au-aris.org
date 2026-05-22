@@ -1,19 +1,54 @@
 'use client';
 
 import React from 'react';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Globe,
+  Package,
+  Truck,
+  Layers,
+  Send,
+  FlaskConical,
+  Microscope,
+  FileCheck,
+  Activity,
+  BarChart3,
+  Users,
+  MapPin,
+  Beaker,
+  TestTubes,
+  type LucideIcon,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  globe: Globe,
+  package: Package,
+  truck: Truck,
+  layers: Layers,
+  send: Send,
+  'flask-conical': FlaskConical,
+  microscope: Microscope,
+  'file-check': FileCheck,
+  activity: Activity,
+  'bar-chart': BarChart3,
+  users: Users,
+  'map-pin': MapPin,
+  beaker: Beaker,
+  'test-tubes': TestTubes,
+};
 
 interface KpiCardWidgetProps {
   value: string | number;
   label: string;
-  trend?: number;       // percentage change, e.g. 12.5 or -3.2
-  thresholds?: {
-    green?: number;
-    yellow?: number;
-  };
+  trend?: number;
+  thresholds?: { green?: number; yellow?: number };
   prefix?: string;
   suffix?: string;
+  icon?: string;
+  color?: string;
 }
 
 export function KpiCardWidget({
@@ -23,16 +58,18 @@ export function KpiCardWidget({
   thresholds,
   prefix,
   suffix,
+  icon,
+  color,
 }: KpiCardWidgetProps) {
-  // Determine color from thresholds (compared against numeric value)
-  let accentColor = '#1F4E79'; // default blue
+  // Determine accent color
+  let accentColor = color || '#1F4E79';
   if (thresholds && typeof value === 'number') {
     if (thresholds.green != null && value >= thresholds.green) {
-      accentColor = '#16a34a'; // green
+      accentColor = '#16a34a';
     } else if (thresholds.yellow != null && value >= thresholds.yellow) {
-      accentColor = '#ca8a04'; // yellow
+      accentColor = '#ca8a04';
     } else {
-      accentColor = '#dc2626'; // red
+      accentColor = '#dc2626';
     }
   }
 
@@ -50,23 +87,36 @@ export function KpiCardWidget({
         ? 'text-red-600'
         : 'text-gray-400';
 
+  const Icon = icon ? ICON_MAP[icon] : null;
+
   return (
-    <div className="flex h-full flex-col justify-between p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-        {label}
-      </p>
-      <div className="mt-2 flex items-end gap-2">
+    <div className="flex h-full items-center gap-4 p-4">
+      {/* Icon circle */}
+      {Icon && (
+        <div
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+          style={{ backgroundColor: `${accentColor}15` }}
+        >
+          <Icon className="h-6 w-6" style={{ color: accentColor }} />
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="flex flex-col justify-center min-w-0">
         <span
-          className="text-3xl font-bold leading-none"
+          className="text-3xl font-bold leading-tight tracking-tight"
           style={{ color: accentColor }}
         >
           {prefix}
           {typeof value === 'number' ? value.toLocaleString() : value}
           {suffix}
         </span>
+        <p className="mt-0.5 truncate text-xs font-medium text-gray-500 dark:text-gray-400">
+          {label}
+        </p>
         {trend != null && (
-          <span className={cn('flex items-center gap-0.5 text-sm font-medium', trendColor)}>
-            <TrendIcon className="h-4 w-4" />
+          <span className={cn('mt-1 flex items-center gap-0.5 text-xs font-medium', trendColor)}>
+            <TrendIcon className="h-3.5 w-3.5" />
             {Math.abs(trend).toFixed(1)}%
           </span>
         )}

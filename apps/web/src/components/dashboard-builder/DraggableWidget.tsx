@@ -92,51 +92,53 @@ export function DraggableWidget({
         editable && !isDragging && 'hover:ring-1 hover:ring-[#1F4E79]/20',
       )}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-3 py-1.5 flex-shrink-0">
-        <div className="flex items-center gap-1.5 min-w-0">
-          {editable && (
-            <button
-              type="button"
-              className="cursor-grab text-gray-300 dark:text-gray-600 hover:text-gray-500 active:cursor-grabbing touch-none"
-              {...listeners}
-            >
-              <GripVertical className="h-4 w-4" />
-            </button>
-          )}
-          <h3 className="truncate text-xs font-semibold text-gray-700 dark:text-gray-300">
-            {widget.title}
-          </h3>
-        </div>
-        {editable && (
-          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onConfigure?.(); }}
-              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-              title={t('dbConfigure')}
-            >
-              <Settings className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onDuplicate?.(); }}
-              className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/30 dark:hover:text-blue-400"
-              title={t('dbDuplicate')}
-            >
-              <Copy className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
-              className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400"
-              title={t('dbDelete')}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+      {/* Header — hidden for KPI_CARD in view mode (KPI renders its own label) */}
+      {(editable || widget.type !== 'KPI_CARD') && (
+        <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-3 py-1.5 flex-shrink-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            {editable && (
+              <button
+                type="button"
+                className="cursor-grab text-gray-300 dark:text-gray-600 hover:text-gray-500 active:cursor-grabbing touch-none"
+                {...listeners}
+              >
+                <GripVertical className="h-4 w-4" />
+              </button>
+            )}
+            <h3 className="truncate text-xs font-semibold text-gray-700 dark:text-gray-300">
+              {widget.title}
+            </h3>
           </div>
-        )}
-      </div>
+          {editable && (
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onConfigure?.(); }}
+                className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                title={t('dbConfigure')}
+              >
+                <Settings className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onDuplicate?.(); }}
+                className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/30 dark:hover:text-blue-400"
+                title={t('dbDuplicate')}
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
+                className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400"
+                title={t('dbDelete')}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Body */}
       <div className="flex-1 min-h-0">
