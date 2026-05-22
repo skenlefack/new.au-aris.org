@@ -101,6 +101,7 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
         <KpiCardWidget
           value={cfg.value}
           label={cfg.label ?? widget.title}
+          labels={cfg.labels}
           trend={cfg.trend}
           thresholds={cfg.thresholds}
           prefix={cfg.prefix}

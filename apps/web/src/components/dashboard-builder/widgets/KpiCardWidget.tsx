@@ -43,6 +43,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
 interface KpiCardWidgetProps {
   value: string | number;
   label: string;
+  /** Multilingual labels: { fr, en, ar, pt } — takes priority over label */
+  labels?: Record<string, string>;
   trend?: number;
   thresholds?: { green?: number; yellow?: number };
   prefix?: string;
@@ -51,9 +53,22 @@ interface KpiCardWidgetProps {
   color?: string;
 }
 
+function resolveLabel(label: string, labels?: Record<string, string>): string {
+  if (!labels) return label;
+  try {
+    const raw = typeof window !== 'undefined' && localStorage.getItem('aris-locale');
+    if (raw) {
+      const locale = JSON.parse(raw)?.state?.locale ?? 'fr';
+      return labels[locale] || labels.fr || labels.en || label;
+    }
+  } catch { /* ignore */ }
+  return labels.fr || labels.en || label;
+}
+
 export function KpiCardWidget({
   value,
   label,
+  labels,
   trend,
   thresholds,
   prefix,
@@ -88,6 +103,7 @@ export function KpiCardWidget({
         : 'text-gray-400';
 
   const Icon = icon ? ICON_MAP[icon] : null;
+  const displayLabel = resolveLabel(label, labels);
 
   return (
     <div className="flex h-full items-center gap-2.5 px-3 py-2">
@@ -112,7 +128,7 @@ export function KpiCardWidget({
           {suffix}
         </span>
         <p className="truncate text-[10px] font-medium leading-tight text-gray-500 dark:text-gray-400">
-          {label}
+          {displayLabel}
         </p>
         {trend != null && (
           <span className={cn('flex items-center gap-0.5 text-[10px] font-medium', trendColor)}>
