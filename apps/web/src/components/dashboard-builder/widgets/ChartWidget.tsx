@@ -198,12 +198,19 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
     }
   };
 
-  // For vertical bar/stacked_bar, use dynamic height based on data count
+  // For vertical bar/stacked_bar, compute a min-height so all bars are visible,
+  // but let the parent stretch taller if its sibling (e.g. a MAP) is bigger.
   const needsDynamicHeight = isVertical && (type === 'BAR' || type === 'STACKED_BAR');
-  const dynamicHeight = needsDynamicHeight ? verticalBarMinHeight(data.length) : undefined;
+  const dynamicMinHeight = needsDynamicHeight ? verticalBarMinHeight(data.length) : undefined;
 
   return (
-    <div className="w-full p-2" style={dynamicHeight ? { height: dynamicHeight, minHeight: dynamicHeight } : { height: '100%' }}>
+    <div
+      className="w-full p-2"
+      style={{
+        height: '100%',
+        minHeight: dynamicMinHeight ? `${dynamicMinHeight}px` : undefined,
+      }}
+    >
       <ResponsiveContainer width="100%" height="100%">
         {renderChart()}
       </ResponsiveContainer>
