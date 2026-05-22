@@ -9,7 +9,7 @@ import type { DashboardWidget } from '@/lib/api/dashboard-hooks';
 import { WidgetRenderer } from './WidgetRenderer';
 
 const MIN_HEIGHTS: Record<string, string> = {
-  KPI_CARD: '120px',
+  KPI_CARD: '72px',
   LINE: '300px',
   BAR: '300px',
   PIE: '300px',

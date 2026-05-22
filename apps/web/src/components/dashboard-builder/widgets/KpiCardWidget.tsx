@@ -90,33 +90,33 @@ export function KpiCardWidget({
   const Icon = icon ? ICON_MAP[icon] : null;
 
   return (
-    <div className="flex h-full items-center gap-4 p-4">
+    <div className="flex h-full items-center gap-2.5 px-3 py-2">
       {/* Icon circle */}
       {Icon && (
         <div
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
           style={{ backgroundColor: `${accentColor}15` }}
         >
-          <Icon className="h-6 w-6" style={{ color: accentColor }} />
+          <Icon className="h-4.5 w-4.5" style={{ color: accentColor }} />
         </div>
       )}
 
       {/* Content */}
       <div className="flex flex-col justify-center min-w-0">
         <span
-          className="text-3xl font-bold leading-tight tracking-tight"
+          className="text-xl font-bold leading-tight tracking-tight"
           style={{ color: accentColor }}
         >
           {prefix}
           {typeof value === 'number' ? value.toLocaleString() : value}
           {suffix}
         </span>
-        <p className="mt-0.5 truncate text-xs font-medium text-gray-500 dark:text-gray-400">
+        <p className="truncate text-[10px] font-medium leading-tight text-gray-500 dark:text-gray-400">
           {label}
         </p>
         {trend != null && (
-          <span className={cn('mt-1 flex items-center gap-0.5 text-xs font-medium', trendColor)}>
-            <TrendIcon className="h-3.5 w-3.5" />
+          <span className={cn('flex items-center gap-0.5 text-[10px] font-medium', trendColor)}>
+            <TrendIcon className="h-3 w-3" />
             {Math.abs(trend).toFixed(1)}%
           </span>
         )}
