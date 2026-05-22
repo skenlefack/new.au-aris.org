@@ -20,6 +20,8 @@ export interface MapCountryDatum {
   countryCode: string;
   value: number;
   label?: string;
+  /** Additional key-value pairs shown in the tooltip (e.g. samples, year) */
+  extras?: Record<string, string | number>;
 }
 
 export interface MapContentProps {
@@ -178,10 +180,17 @@ export default function MapContent({ data, config, title }: MapContentProps) {
                 <div className="text-xs">
                   <div className="font-semibold">{country.name}</div>
                   {hasData && datum && (
-                    <div className="text-gray-600 dark:text-gray-300">
-                      {datum.label ?? t('dbValue')}: <strong>{value.toLocaleString()}</strong>
-                      {unit ? ` ${unit}` : ''}
-                    </div>
+                    <>
+                      <div className="text-gray-600 dark:text-gray-300">
+                        {datum.label ?? t('dbValue')}: <strong>{value.toLocaleString()}</strong>
+                        {unit ? ` ${unit}` : ''}
+                      </div>
+                      {datum.extras && Object.entries(datum.extras).map(([k, v]) => (
+                        <div key={k} className="text-gray-600 dark:text-gray-300">
+                          {k}: <strong>{typeof v === 'number' ? v.toLocaleString() : v}</strong>
+                        </div>
+                      ))}
+                    </>
                   )}
                   {hasData && !datum && (
                     <div className="text-gray-400 italic">{t('dbNoData')}</div>

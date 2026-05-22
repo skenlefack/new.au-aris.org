@@ -10,7 +10,7 @@ import { WidgetRenderer } from './WidgetRenderer';
 
 const MIN_HEIGHTS: Record<string, string> = {
   KPI_CARD: '72px',
-  LINE: '300px',
+  LINE: '420px',
   BAR: '420px',
   PIE: '220px',
   STACKED_BAR: '420px',
