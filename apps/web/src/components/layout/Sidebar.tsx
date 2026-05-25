@@ -110,7 +110,6 @@ const STATIC_GROUPS: NavGroup[] = [
     tKey: 'sectionCollaboration',
     items: [
       { tKey: 'dataSharing', href: '/data-sharing', icon: Share2, matchPrefix: '/data-sharing' },
-      { tKey: 'support', href: '/support', icon: LifeBuoy, matchPrefix: '/support' },
     ],
   },
   {
@@ -126,6 +125,7 @@ const STATIC_GROUPS: NavGroup[] = [
     items: [
       { tKey: 'flashConsole', href: '/reports/flash-console', icon: ClipboardCheck, matchPrefix: '/reports/flash-console' },
       { tKey: 'settings', href: '/settings', icon: Settings, matchPrefix: '/settings' },
+      { tKey: 'support', href: '/support', icon: LifeBuoy, matchPrefix: '/support' },
     ],
   },
 ];
