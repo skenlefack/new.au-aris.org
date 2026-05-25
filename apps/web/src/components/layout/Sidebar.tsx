@@ -469,7 +469,7 @@ export function Sidebar({
           )}
           {/* Dynamic badge (e.g. open ticket count) */}
           {!collapsed && item.badge && !item.isDomain && (
-            <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
               {item.badge}
             </span>
           )}
