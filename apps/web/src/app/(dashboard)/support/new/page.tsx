@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, AlertCircle, Paperclip, X } from 'lucide-react';
 import {
   useCreateTicket,
   TICKET_CATEGORIES,
@@ -11,6 +11,7 @@ import {
   type TicketCategory,
   type TicketPriority,
 } from '@/lib/api/support-hooks';
+import { uploadFile, type UploadedFile } from '@/lib/api/drive-client';
 import { useTranslations } from '@/lib/i18n/translations';
 
 interface FormState {
@@ -23,7 +24,6 @@ interface FormState {
 interface FieldErrors {
   title?: string;
   description?: string;
-  category?: string;
 }
 
 export default function NewTicketPage() {
@@ -40,6 +40,8 @@ export default function NewTicketPage() {
   });
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<UploadedFile[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) => {
     setForm((s) => ({ ...s, [k]: v }));
@@ -55,6 +57,33 @@ export default function NewTicketPage() {
     return errors;
   }
 
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    setGlobalError(null);
+    try {
+      for (const file of Array.from(files)) {
+        if (file.size > 10 * 1024 * 1024) {
+          setGlobalError(t('errors.fileTooLarge'));
+          continue;
+        }
+        const uploaded = await uploadFile(file, { classification: 'RESTRICTED' });
+        setAttachments((prev) => [...prev, uploaded]);
+      }
+    } catch (err: any) {
+      setGlobalError(err?.message ?? t('errors.uploadFailed'));
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  }
+
+  function removeAttachment(id: string) {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+  }
+
   async function handleSubmit() {
     setGlobalError(null);
     const errors = validate();
@@ -66,7 +95,10 @@ export default function NewTicketPage() {
     }
 
     try {
-      await create.mutateAsync(form);
+      await create.mutateAsync({
+        ...form,
+        attachmentKeys: attachments.map((a) => a.id),
+      });
       router.push('/support');
     } catch (err: any) {
       setGlobalError(err?.message ?? t('errors.createFailed'));
@@ -109,7 +141,7 @@ export default function NewTicketPage() {
 
         {/* Category + Priority (side by side) */}
         <div className="grid gap-5 md:grid-cols-2">
-          <Field label={t('form.categoryLabel')} required error={fieldErrors.category}>
+          <Field label={t('form.categoryLabel')} required>
             <select
               value={form.category}
               onChange={(e) => update('category', e.target.value as TicketCategory)}
@@ -145,6 +177,52 @@ export default function NewTicketPage() {
             }`}
           />
         </Field>
+
+        {/* Attachments */}
+        <Field label={t('form.attachmentsLabel')}>
+          <div className="space-y-3">
+            {/* File list */}
+            {attachments.length > 0 && (
+              <div className="space-y-2">
+                {attachments.map((file) => (
+                  <div key={file.id} className="flex items-center justify-between rounded-md border border-input px-3 py-2 text-sm">
+                    <span className="flex items-center gap-2 truncate">
+                      <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="truncate">{file.filename}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({(file.size / 1024).toFixed(0)} KB)
+                      </span>
+                    </span>
+                    <button
+                      onClick={() => removeAttachment(file.id)}
+                      className="ml-2 rounded p-0.5 text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Upload button */}
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-input px-4 py-2 text-sm text-muted-foreground hover:border-primary hover:text-primary">
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Paperclip className="h-4 w-4" />
+              )}
+              {t('form.addAttachment')}
+              <input
+                type="file"
+                multiple
+                onChange={handleFileSelect}
+                disabled={uploading}
+                className="hidden"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.gif,.zip"
+              />
+            </label>
+            <p className="text-xs text-muted-foreground">{t('form.attachmentHint')}</p>
+          </div>
+        </Field>
       </div>
 
       {/* Actions */}
@@ -157,7 +235,7 @@ export default function NewTicketPage() {
         </Link>
         <button
           onClick={handleSubmit}
-          disabled={create.isPending}
+          disabled={create.isPending || uploading}
           className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {create.isPending ? (

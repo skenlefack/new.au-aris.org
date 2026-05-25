@@ -37,6 +37,13 @@ const SLA_MATRIX: Record<string, Record<string, { response: number; resolution: 
   GENERAL:      { CRITICAL: { response: 2, resolution: 8 },   HIGH: { response: 4, resolution: 24 },  MEDIUM: { response: 8, resolution: 48 },  LOW: { response: 24, resolution: 120 } },
 };
 
+export interface TicketUser {
+  userId: string;
+  tenantId: string;
+  role: string;
+  email?: string;
+}
+
 export class SupportService {
   constructor(
     private readonly prisma: PrismaClient,
@@ -68,7 +75,31 @@ export class SupportService {
     };
   }
 
-  async createTicket(dto: CreateTicketDto, tenantId: string, userId: string) {
+  // ── Tenant hierarchy: get all tenant IDs visible to an admin ──
+  private async getVisibleTenantIds(tenantId: string, role: string): Promise<string[]> {
+    const ADMIN_ROLES = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN'];
+    if (!ADMIN_ROLES.includes(role)) return [tenantId];
+
+    if (role === 'SUPER_ADMIN' || role === 'CONTINENTAL_ADMIN') {
+      // Continental: see ALL tenants
+      const all = await (this.prisma as any).tenant.findMany({ select: { id: true } });
+      return all.map((t: any) => t.id);
+    }
+
+    if (role === 'REC_ADMIN') {
+      // REC: see own tenant + children (member states)
+      const children = await (this.prisma as any).tenant.findMany({
+        where: { parentId: tenantId },
+        select: { id: true },
+      });
+      return [tenantId, ...children.map((t: any) => t.id)];
+    }
+
+    // NATIONAL_ADMIN: see only own tenant
+    return [tenantId];
+  }
+
+  async createTicket(dto: CreateTicketDto, tenantId: string, userId: string, userEmail?: string) {
     const id = randomUUID();
     const reference = await this.generateReference();
     const { deadline, responseTarget } = this.calculateSLA(dto.category, dto.priority);
@@ -100,23 +131,41 @@ export class SupportService {
     });
 
     await this.invalidateListCache(tenantId);
-    await this.publishEvent(TOPIC_SYS_SUPPORT_TICKET_CREATED, id, ticket, tenantId, userId);
+    await this.invalidateCountCache(tenantId);
+    await this.publishEvent(TOPIC_SYS_SUPPORT_TICKET_CREATED, id, {
+      ...ticket,
+      creatorEmail: userEmail,
+    }, tenantId, userId);
     return { data: ticket };
   }
 
-  async listTickets(tenantId: string, query: ListQuery) {
+  async listTickets(tenantId: string, role: string, userId: string, query: ListQuery) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
     const sortField = query.sort ?? 'created_at';
     const orderBy = { [sortField]: query.order ?? 'desc' };
 
-    const where: any = { tenant_id: tenantId, deleted_at: null };
+    const ADMIN_ROLES = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN'];
+    const isAdmin = ADMIN_ROLES.includes(role);
+
+    const where: any = { deleted_at: null };
+
+    if (isAdmin) {
+      // Admin: see tickets from all visible tenants (hierarchy)
+      const visibleTenantIds = await this.getVisibleTenantIds(tenantId, role);
+      where.tenant_id = { in: visibleTenantIds };
+    } else {
+      // Regular user: only see own tickets
+      where.tenant_id = tenantId;
+      where.created_by = userId;
+    }
+
     if (query.status) where.status = query.status;
     if (query.category) where.category = query.category;
     if (query.priority) where.priority = query.priority;
 
-    const cacheKey = `aris:support:tickets:${tenantId}:${JSON.stringify({ ...query, page, limit })}`;
+    const cacheKey = `aris:support:tickets:${tenantId}:${role}:${userId}:${JSON.stringify({ ...query, page, limit })}`;
     const cached = await this.redis.get(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -130,26 +179,71 @@ export class SupportService {
     return result;
   }
 
-  async getTicket(id: string, tenantId: string) {
+  // ── Open ticket count for sidebar badge (admins only) ──
+  async getOpenTicketCount(tenantId: string, role: string): Promise<number> {
+    const cacheKey = `aris:support:count:${tenantId}:${role}`;
+    const cached = await this.redis.get(cacheKey);
+    if (cached) return parseInt(cached, 10);
+
+    const visibleTenantIds = await this.getVisibleTenantIds(tenantId, role);
+    const count = await (this.prisma as any).ticket.count({
+      where: {
+        tenant_id: { in: visibleTenantIds },
+        status: { in: ['OPEN', 'IN_PROGRESS', 'ESCALATED'] },
+        deleted_at: null,
+      },
+    });
+
+    await this.redis.set(cacheKey, String(count), 'EX', 120); // 2 min cache
+    return count;
+  }
+
+  async getTicket(id: string, tenantId: string, role: string, userId: string) {
     const cacheKey = `aris:support:ticket:${id}`;
     const cached = await this.redis.get(cacheKey);
-    if (cached) return { data: JSON.parse(cached) };
+    if (cached) {
+      const ticket = JSON.parse(cached);
+      // Access check
+      this.checkTicketAccess(ticket, tenantId, role, userId);
+      return { data: ticket };
+    }
 
     const ticket = await (this.prisma as any).ticket.findFirst({
-      where: { id, tenant_id: tenantId, deleted_at: null },
+      where: { id, deleted_at: null },
       include: { comments: true, sla: true },
     });
     if (!ticket) throw new HttpError(404, 'Support ticket not found');
+
+    // Access check
+    this.checkTicketAccess(ticket, tenantId, role, userId);
 
     await this.redis.set(cacheKey, JSON.stringify(ticket), 'EX', CACHE_TTL);
     return { data: ticket };
   }
 
-  async updateTicket(id: string, dto: UpdateTicketDto, tenantId: string, userId: string) {
+  private async checkTicketAccess(ticket: any, tenantId: string, role: string, userId: string): Promise<void> {
+    const ADMIN_ROLES = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN'];
+    if (ADMIN_ROLES.includes(role)) {
+      const visibleIds = await this.getVisibleTenantIds(tenantId, role);
+      if (!visibleIds.includes(ticket.tenant_id)) {
+        throw new HttpError(403, 'You do not have access to this ticket');
+      }
+    } else {
+      // Regular user: must be the creator
+      if (ticket.created_by !== userId) {
+        throw new HttpError(403, 'You can only view your own tickets');
+      }
+    }
+  }
+
+  async updateTicket(id: string, dto: UpdateTicketDto, tenantId: string, role: string, userId: string) {
     const existing = await (this.prisma as any).ticket.findFirst({
-      where: { id, tenant_id: tenantId, deleted_at: null },
+      where: { id, deleted_at: null },
     });
     if (!existing) throw new HttpError(404, 'Support ticket not found');
+
+    // Admin hierarchy access check
+    await this.checkTicketAccess(existing, tenantId, role, userId);
 
     const updateData: any = {};
     if (dto.status !== undefined) {
@@ -167,15 +261,23 @@ export class SupportService {
 
     await this.redis.del(`aris:support:ticket:${id}`);
     await this.invalidateListCache(tenantId);
+    await this.invalidateCountCache(tenantId);
 
     // Publish appropriate events
     if (dto.assignedTo && dto.assignedTo !== existing.assigned_to) {
       await this.publishEvent(TOPIC_SYS_SUPPORT_TICKET_ASSIGNED, id, ticket, tenantId, userId);
     }
-    await this.publishEvent(TOPIC_SYS_SUPPORT_TICKET_UPDATED, id, ticket, tenantId, userId);
+    await this.publishEvent(TOPIC_SYS_SUPPORT_TICKET_UPDATED, id, {
+      ...ticket,
+      previousStatus: existing.status,
+      createdByUserId: existing.created_by,
+    }, tenantId, userId);
 
     if (dto.status === 'CLOSED') {
-      await this.publishEvent(TOPIC_SYS_SUPPORT_TICKET_CLOSED, id, ticket, tenantId, userId);
+      await this.publishEvent(TOPIC_SYS_SUPPORT_TICKET_CLOSED, id, {
+        ...ticket,
+        createdByUserId: existing.created_by,
+      }, tenantId, userId);
     }
 
     return { data: ticket };
@@ -211,16 +313,20 @@ export class SupportService {
 
     await this.redis.del(`aris:support:ticket:${id}`);
     await this.invalidateListCache(tenantId);
+    await this.invalidateCountCache(tenantId);
     await this.publishEvent(TOPIC_SYS_SUPPORT_TICKET_ESCALATED, id, { ...ticket, reason: dto.reason }, tenantId, userId);
 
     return { data: ticket };
   }
 
-  async addComment(ticketId: string, dto: AddCommentDto, tenantId: string, userId: string) {
+  async addComment(ticketId: string, dto: AddCommentDto, tenantId: string, role: string, userId: string) {
     const ticket = await (this.prisma as any).ticket.findFirst({
-      where: { id: ticketId, tenant_id: tenantId, deleted_at: null },
+      where: { id: ticketId, deleted_at: null },
     });
     if (!ticket) throw new HttpError(404, 'Support ticket not found');
+
+    // Admin hierarchy access check
+    await this.checkTicketAccess(ticket, tenantId, role, userId);
 
     const id = randomUUID();
     const comment = await (this.prisma as any).ticketComment.create({
@@ -246,17 +352,39 @@ export class SupportService {
     }
 
     await this.redis.del(`aris:support:ticket:${ticketId}`);
+
+    // Publish update event so message service can send email to ticket creator
+    await this.publishEvent(TOPIC_SYS_SUPPORT_TICKET_UPDATED, ticketId, {
+      ...ticket,
+      commentAdded: true,
+      commentContent: dto.content,
+      commentBy: userId,
+      createdByUserId: ticket.created_by,
+    }, tenantId, userId);
+
     return { data: comment };
   }
 
-  async listComments(ticketId: string, tenantId: string) {
+  async listComments(ticketId: string, tenantId: string, role: string, userId: string) {
     const ticket = await (this.prisma as any).ticket.findFirst({
-      where: { id: ticketId, tenant_id: tenantId, deleted_at: null },
+      where: { id: ticketId, deleted_at: null },
     });
     if (!ticket) throw new HttpError(404, 'Support ticket not found');
 
+    // Access check
+    await this.checkTicketAccess(ticket, tenantId, role, userId);
+
+    const ADMIN_ROLES = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN'];
+    const isAdmin = ADMIN_ROLES.includes(role);
+
+    // Non-admins should not see internal comments
+    const where: any = { ticket_id: ticketId };
+    if (!isAdmin) {
+      where.is_internal = false;
+    }
+
     const comments = await (this.prisma as any).ticketComment.findMany({
-      where: { ticket_id: ticketId },
+      where,
       orderBy: { created_at: 'asc' },
     });
     return { data: comments };
@@ -288,21 +416,18 @@ export class SupportService {
     return breached.length;
   }
 
-  async getSlaStats(tenantId: string, query: SlaStatsQuery) {
+  async getSlaStats(tenantId: string, role: string, query: SlaStatsQuery) {
     const periodDays = query.period === '7d' ? 7 : query.period === '90d' ? 90 : 30;
     const since = new Date(Date.now() - periodDays * 86400_000);
 
+    const visibleTenantIds = await this.getVisibleTenantIds(tenantId, role);
+    const baseWhere = { tenant_id: { in: visibleTenantIds }, created_at: { gte: since }, deleted_at: null };
+
     const [total, breached, resolved, avgResolutionTime] = await Promise.all([
-      (this.prisma as any).ticket.count({
-        where: { tenant_id: tenantId, created_at: { gte: since }, deleted_at: null },
-      }),
-      (this.prisma as any).ticket.count({
-        where: { tenant_id: tenantId, sla_breached: true, created_at: { gte: since }, deleted_at: null },
-      }),
-      (this.prisma as any).ticket.count({
-        where: { tenant_id: tenantId, status: { in: ['RESOLVED', 'CLOSED'] }, created_at: { gte: since }, deleted_at: null },
-      }),
-      this.calculateAvgResolutionTime(tenantId, since),
+      (this.prisma as any).ticket.count({ where: baseWhere }),
+      (this.prisma as any).ticket.count({ where: { ...baseWhere, sla_breached: true } }),
+      (this.prisma as any).ticket.count({ where: { ...baseWhere, status: { in: ['RESOLVED', 'CLOSED'] } } }),
+      this.calculateAvgResolutionTime(visibleTenantIds, since),
     ]);
 
     return {
@@ -317,10 +442,10 @@ export class SupportService {
     };
   }
 
-  private async calculateAvgResolutionTime(tenantId: string, since: Date): Promise<number> {
+  private async calculateAvgResolutionTime(tenantIds: string[], since: Date): Promise<number> {
     const resolved = await (this.prisma as any).ticket.findMany({
       where: {
-        tenant_id: tenantId,
+        tenant_id: { in: tenantIds },
         resolved_at: { not: null },
         created_at: { gte: since },
         deleted_at: null,
@@ -339,7 +464,13 @@ export class SupportService {
   }
 
   private async invalidateListCache(tenantId: string): Promise<void> {
-    const pattern = `aris:support:tickets:${tenantId}:*`;
+    const pattern = `aris:support:tickets:*`;
+    const keys = await this.redis.keys(pattern);
+    if (keys.length > 0) await this.redis.del(...keys);
+  }
+
+  private async invalidateCountCache(tenantId: string): Promise<void> {
+    const pattern = `aris:support:count:*`;
     const keys = await this.redis.keys(pattern);
     if (keys.length > 0) await this.redis.del(...keys);
   }
@@ -353,6 +484,11 @@ export class SupportService {
       schemaVersion: '1',
       timestamp: new Date().toISOString(),
     };
-    try { await this.kafka.send(topic, entityId, payload, headers); } catch {}
+    try {
+      await Promise.race([
+        this.kafka.send(topic, entityId, payload, headers),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Kafka timeout')), 5000)),
+      ]);
+    } catch {}
   }
 }

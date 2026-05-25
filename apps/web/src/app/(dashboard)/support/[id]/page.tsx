@@ -12,6 +12,8 @@ import {
   User,
   MessageSquare,
   Shield,
+  Paperclip,
+  Download,
 } from 'lucide-react';
 import {
   useSupportTicket,
@@ -21,11 +23,11 @@ import {
   statusBadgeClasses,
   priorityBadgeClasses,
   categoryBadgeClasses,
-  TICKET_STATUSES,
   TICKET_PRIORITIES,
   type TicketStatus,
   type TicketPriority,
 } from '@/lib/api/support-hooks';
+import { getDownloadUrl } from '@/lib/api/drive-client';
 import { useTranslations, useFormattedDate } from '@/lib/i18n/translations';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
@@ -89,6 +91,15 @@ export default function TicketDetailPage() {
       isInternal,
     });
     setCommentText('');
+  }
+
+  async function handleDownloadAttachment(fileId: string) {
+    try {
+      const url = await getDownloadUrl(fileId);
+      window.open(url, '_blank');
+    } catch {
+      // silently fail
+    }
   }
 
   const isClosed = ticket.status === 'CLOSED' || ticket.status === 'RESOLVED';
@@ -187,6 +198,28 @@ export default function TicketDetailPage() {
               <h3 className="mb-3 text-sm font-semibold uppercase text-muted-foreground">{t('detailDescription')}</h3>
               <p className="whitespace-pre-wrap text-sm leading-relaxed">{ticket.description}</p>
             </div>
+
+            {/* Attachments */}
+            {ticket.attachment_keys && ticket.attachment_keys.length > 0 && (
+              <div className="rounded-lg border bg-card p-5">
+                <h3 className="mb-3 text-sm font-semibold uppercase text-muted-foreground">
+                  {t('detailAttachments')} ({ticket.attachment_keys.length})
+                </h3>
+                <div className="space-y-2">
+                  {ticket.attachment_keys.map((fileId, idx) => (
+                    <button
+                      key={fileId}
+                      onClick={() => handleDownloadAttachment(fileId)}
+                      className="flex w-full items-center gap-2 rounded-md border border-input px-3 py-2 text-sm hover:bg-accent"
+                    >
+                      <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="truncate">{t('detailAttachmentFile')} {idx + 1}</span>
+                      <Download className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sidebar info */}
@@ -291,8 +324,8 @@ export default function TicketDetailPage() {
             </div>
           )}
 
-          {/* Add comment */}
-          {!isClosed && (
+          {/* Add comment — admins only */}
+          {isAdmin && !isClosed && (
             <div className="rounded-lg border bg-card p-4 space-y-3">
               <textarea
                 value={commentText}
@@ -302,18 +335,16 @@ export default function TicketDetailPage() {
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               />
               <div className="flex items-center justify-between">
-                {isAdmin && (
-                  <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={isInternal}
-                      onChange={(e) => setIsInternal(e.target.checked)}
-                      className="h-3.5 w-3.5"
-                    />
-                    <Shield className="h-3 w-3" />
-                    {t('markInternal')}
-                  </label>
-                )}
+                <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={isInternal}
+                    onChange={(e) => setIsInternal(e.target.checked)}
+                    className="h-3.5 w-3.5"
+                  />
+                  <Shield className="h-3 w-3" />
+                  {t('markInternal')}
+                </label>
                 <button
                   onClick={handleAddComment}
                   disabled={!commentText.trim() || addCommentMutation.isPending}

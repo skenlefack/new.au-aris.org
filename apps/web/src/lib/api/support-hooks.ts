@@ -1,7 +1,7 @@
 // React Query hooks for the Support module.
 //
 // Wraps the support backend (services/support) and covers
-// ticket CRUD, comments, escalation, and SLA stats.
+// ticket CRUD, comments, escalation, SLA stats, and open ticket count.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from './client';
@@ -157,6 +157,17 @@ export function useSlaStats(period: '7d' | '30d' | '90d' = '30d') {
   });
 }
 
+/** Open ticket count for sidebar badge (admins only). */
+export function useOpenTicketCount() {
+  return useQuery({
+    queryKey: ['support', 'open-count'],
+    queryFn: () =>
+      apiClient.get<{ data: { count: number } }>('/support/tickets/count'),
+    staleTime: 120_000, // 2 min
+    refetchInterval: 120_000,
+  });
+}
+
 // ─── Mutations ──────────────────────────────────────────────────────────────
 
 export function useCreateTicket() {
@@ -166,6 +177,7 @@ export function useCreateTicket() {
       apiClient.post<{ data: SupportTicket }>('/support/tickets', input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['support', 'tickets'] });
+      qc.invalidateQueries({ queryKey: ['support', 'open-count'] });
     },
   });
 }
@@ -178,6 +190,7 @@ export function useUpdateTicket() {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['support', 'tickets'] });
       qc.invalidateQueries({ queryKey: ['support', 'ticket', vars.id] });
+      qc.invalidateQueries({ queryKey: ['support', 'open-count'] });
     },
   });
 }
@@ -190,6 +203,7 @@ export function useEscalateTicket() {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['support', 'tickets'] });
       qc.invalidateQueries({ queryKey: ['support', 'ticket', vars.id] });
+      qc.invalidateQueries({ queryKey: ['support', 'open-count'] });
     },
   });
 }

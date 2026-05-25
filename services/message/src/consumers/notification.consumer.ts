@@ -16,6 +16,8 @@ import {
   TOPIC_AU_KNOWLEDGE_CATEGORY_SUBMITTED,
   TOPIC_AU_KNOWLEDGE_CATEGORY_APPROVED,
   TOPIC_AU_KNOWLEDGE_CATEGORY_REJECTED,
+  TOPIC_SYS_SUPPORT_TICKET_CREATED,
+  TOPIC_SYS_SUPPORT_TICKET_UPDATED,
 } from '@aris/shared-types';
 import type { PrismaClient } from '@prisma/client';
 import type { NotificationService } from '../services/notification.service';
@@ -53,6 +55,8 @@ export class NotificationConsumer {
       this.subscribeKnowledgeCategorySubmitted(),
       this.subscribeKnowledgeCategoryApproved(),
       this.subscribeKnowledgeCategoryRejected(),
+      this.subscribeSupportTicketCreated(),
+      this.subscribeSupportTicketUpdated(),
     ]);
     console.log('All notification consumers subscribed');
   }
@@ -496,6 +500,125 @@ export class NotificationConsumer {
         } else {
           console.error(`${tag} Failed to send security email to ${data.email}: ${result.error}`);
         }
+      },
+    );
+  }
+
+  // ── Support ticket created — email to admins ──
+  private async subscribeSupportTicketCreated(): Promise<void> {
+    await this.kafkaConsumer.subscribe(
+      { topic: TOPIC_SYS_SUPPORT_TICKET_CREATED, groupId: 'message-service-support' },
+      async (payload) => {
+        const data = payload as any;
+        if (!data || !data.reference) return;
+
+        const dashboardUrl = process.env['DASHBOARD_URL'] ?? 'https://au-aris.org';
+        const ticketUrl = `${dashboardUrl}/support/${data.id}`;
+
+        // Send confirmation email to ticket creator
+        if (data.creatorEmail) {
+          const subject = `[ARIS Support] Ticket ${data.reference} created — ${data.title}`;
+          const body = `
+            <h2>Your support ticket has been created</h2>
+            <p><strong>Reference:</strong> ${data.reference}</p>
+            <p><strong>Title:</strong> ${data.title}</p>
+            <p><strong>Category:</strong> ${data.category}</p>
+            <p><strong>Priority:</strong> ${data.priority}</p>
+            <p><strong>Description:</strong></p>
+            <p>${(data.description ?? '').replace(/\n/g, '<br>')}</p>
+            <br>
+            <p>Our team will review your ticket shortly. You can track its progress here:</p>
+            <p><a href="${ticketUrl}">${ticketUrl}</a></p>
+          `;
+          try {
+            await this.notificationService.send(
+              { userId: data.created_by, channel: NotificationChannel.EMAIL, subject, body },
+              data.tenant_id,
+            );
+            console.log(`[SUPPORT] Confirmation email sent for ticket ${data.reference}`);
+          } catch (err) {
+            console.error(`[SUPPORT] Failed to send confirmation email for ${data.reference}:`, err);
+          }
+        }
+
+        // In-app notification
+        try {
+          await this.notificationService.send(
+            {
+              userId: data.created_by,
+              channel: NotificationChannel.IN_APP,
+              subject: `Support ticket ${data.reference} created`,
+              body: `Your ticket "${data.title}" has been registered. Reference: ${data.reference}`,
+            },
+            data.tenant_id,
+          );
+        } catch {}
+      },
+    );
+  }
+
+  // ── Support ticket updated / comment added — email to ticket creator ──
+  private async subscribeSupportTicketUpdated(): Promise<void> {
+    await this.kafkaConsumer.subscribe(
+      { topic: TOPIC_SYS_SUPPORT_TICKET_UPDATED, groupId: 'message-service-support' },
+      async (payload) => {
+        const data = payload as any;
+        if (!data || !data.reference) return;
+
+        const creatorUserId = data.createdByUserId ?? data.created_by;
+        if (!creatorUserId) return;
+
+        const dashboardUrl = process.env['DASHBOARD_URL'] ?? 'https://au-aris.org';
+        const ticketUrl = `${dashboardUrl}/support/${data.id}`;
+
+        let subject: string;
+        let body: string;
+
+        if (data.commentAdded) {
+          // Comment added by admin
+          subject = `[ARIS Support] New response on ticket ${data.reference}`;
+          body = `
+            <h2>New response on your support ticket</h2>
+            <p><strong>Reference:</strong> ${data.reference}</p>
+            <p><strong>Title:</strong> ${data.title}</p>
+            <p><strong>Response:</strong></p>
+            <blockquote style="border-left:3px solid #ccc;padding-left:12px;margin:12px 0;">${(data.commentContent ?? '').replace(/\n/g, '<br>')}</blockquote>
+            <p><a href="${ticketUrl}">View ticket</a></p>
+          `;
+        } else {
+          // Status change
+          subject = `[ARIS Support] Ticket ${data.reference} — Status: ${data.status}`;
+          body = `
+            <h2>Your support ticket has been updated</h2>
+            <p><strong>Reference:</strong> ${data.reference}</p>
+            <p><strong>Title:</strong> ${data.title}</p>
+            <p><strong>Previous status:</strong> ${data.previousStatus ?? 'N/A'}</p>
+            <p><strong>New status:</strong> ${data.status}</p>
+            <p><a href="${ticketUrl}">View ticket</a></p>
+          `;
+        }
+
+        // Send email to ticket creator
+        try {
+          await this.notificationService.send(
+            { userId: creatorUserId, channel: NotificationChannel.EMAIL, subject, body },
+            data.tenant_id,
+          );
+          console.log(`[SUPPORT] Update email sent for ticket ${data.reference}`);
+        } catch (err) {
+          console.error(`[SUPPORT] Failed to send update email for ${data.reference}:`, err);
+        }
+
+        // In-app notification
+        try {
+          const inAppSubject = data.commentAdded
+            ? `New response on ticket ${data.reference}`
+            : `Ticket ${data.reference} updated to ${data.status}`;
+          await this.notificationService.send(
+            { userId: creatorUserId, channel: NotificationChannel.IN_APP, subject: inAppSubject, body: inAppSubject },
+            data.tenant_id,
+          );
+        } catch {}
       },
     );
   }

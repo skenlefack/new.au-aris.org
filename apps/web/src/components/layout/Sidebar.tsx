@@ -9,6 +9,7 @@ import { useDomainStore, ROUTE_TO_DOMAIN } from '@/lib/stores/domain-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useTranslations } from '@/lib/i18n/translations';
 import { usePublicDomains } from '@/lib/api/settings-hooks';
+import { useOpenTicketCount } from '@/lib/api/support-hooks';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import { resolveIcon } from '@/lib/lucide-icon-map';
 import type { LucideIcon } from 'lucide-react';
@@ -210,27 +211,27 @@ function buildDomainGroup(
 
 /** Non-domain routes that each role can access */
 const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
-  FIELD_AGENT: new Set(['/home', '/collecte', '/workflow', '/data-sharing']),
+  FIELD_AGENT: new Set(['/home', '/collecte', '/workflow', '/data-sharing', '/support']),
   ANALYST: new Set([
-    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/analytics', '/historical', '/reports', '/data-sharing',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/analytics', '/historical', '/reports', '/data-sharing', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   WAHIS_FOCAL_POINT: new Set([
-    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/interop', '/data-sharing',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/interop', '/data-sharing', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   DATA_STEWARD: new Set([
-    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow', '/data-sharing',
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/quality', '/workflow', '/data-sharing', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   NATIONAL_ADMIN: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/analytics', '/historical', '/reports', '/reports/flash-console', '/quality', '/workflow',
-    '/master-data', '/settings', '/data-sharing',
+    '/master-data', '/settings', '/data-sharing', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   REC_ADMIN: new Set([
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/workflow', '/master-data', '/quality',
-    '/interop', '/analytics', '/historical', '/reports', '/reports/flash-console', '/settings', '/data-sharing',
+    '/interop', '/analytics', '/historical', '/reports', '/reports/flash-console', '/settings', '/data-sharing', '/support',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
   CONTINENTAL_ADMIN: new Set(), // full access handled below
@@ -322,7 +323,26 @@ export function Sidebar({
     return [STATIC_GROUPS[0], domainGroup, ...STATIC_GROUPS.slice(1)];
   }, [apiDomains, locale]);
 
-  const visibleGroups = filterGroupsByRole(user?.role, allGroups, hasAccess);
+  const filteredGroups = filterGroupsByRole(user?.role, allGroups, hasAccess);
+
+  // Open ticket count badge for admins
+  const ADMIN_ROLES_SET = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN']);
+  const isAdminUser = user?.role && ADMIN_ROLES_SET.has(user.role);
+  const { data: ticketCountData } = useOpenTicketCount();
+  const openTicketCount = isAdminUser ? (ticketCountData?.data?.count ?? 0) : 0;
+
+  // Inject dynamic badge into support nav item
+  const visibleGroups = useMemo(() => {
+    if (!openTicketCount) return filteredGroups;
+    return filteredGroups.map((group) => ({
+      ...group,
+      items: group.items.map((item) =>
+        item.tKey === 'support'
+          ? { ...item, badge: String(openTicketCount) }
+          : item,
+      ),
+    }));
+  }, [filteredGroups, openTicketCount]);
 
   const sidebarRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -446,6 +466,12 @@ export function Sidebar({
               className="ml-auto h-2 w-2 flex-shrink-0 rounded-full"
               style={{ backgroundColor: item.domainColor }}
             />
+          )}
+          {/* Dynamic badge (e.g. open ticket count) */}
+          {!collapsed && item.badge && !item.isDomain && (
+            <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+              {item.badge}
+            </span>
           )}
         </Link>
 
