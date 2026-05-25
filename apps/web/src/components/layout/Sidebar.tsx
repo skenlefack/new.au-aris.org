@@ -39,6 +39,7 @@ import {
   Share2,
   ClipboardCheck,
   NotebookPen,
+  LifeBuoy,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -109,6 +110,7 @@ const STATIC_GROUPS: NavGroup[] = [
     tKey: 'sectionCollaboration',
     items: [
       { tKey: 'dataSharing', href: '/data-sharing', icon: Share2, matchPrefix: '/data-sharing' },
+      { tKey: 'support', href: '/support', icon: LifeBuoy, matchPrefix: '/support' },
     ],
   },
   {
