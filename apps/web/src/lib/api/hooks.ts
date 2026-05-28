@@ -734,6 +734,35 @@ export function useWorkflowAction() {
   });
 }
 
+/** Create a workflow instance for a submission (starts 4-level validation pipeline) */
+export function useStartValidation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { entityType: string; entityId: string; domain: string }) =>
+      collecteClient.post<{ data: WorkflowItem }>('/workflow/instances', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workflow'] });
+    },
+  });
+}
+
+/** Update submission status (VALIDATED / REJECTED) */
+export function useUpdateSubmissionStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { id: string; status: string; reason?: string }) =>
+      collecteClient.patch<{ data: SubmissionRecord }>(
+        `/collecte/submissions/${data.id}/status`,
+        { status: data.status, reason: data.reason },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workflow'] });
+    },
+  });
+}
+
 // ─── Collecte Types ──────────────────────────────────────────────────────────
 
 export interface CollecteCampaign {
