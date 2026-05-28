@@ -323,12 +323,12 @@ export default function WorkflowPage() {
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 dark:text-gray-300">
                           <span className={cn('h-2 w-2 rounded-full', PRIORITY_DOT[item.priority] ?? 'bg-gray-400')} />
-                          {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
+                          {item.priority ? item.priority.charAt(0).toUpperCase() + item.priority.slice(1) : '—'}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', STATUS_STYLES[item.status] ?? 'bg-gray-100 text-gray-700')}>
-                          {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                          {item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : '—'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
