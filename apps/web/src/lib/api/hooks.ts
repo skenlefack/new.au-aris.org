@@ -606,6 +606,32 @@ export function useVaccinationCoverage(params?: {
 
 // ─── Workflow Hooks ───────────────────────────────────────────────────────────
 
+export interface SubmissionRecord {
+  id: string;
+  tenantId: string;
+  campaignId: string;
+  templateId: string;
+  data: Record<string, unknown>;
+  submittedBy: string;
+  submittedAt: string;
+  status: string;
+  dataClassification: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  // Optional enrichment from collecteInstance
+  collecteInstance?: {
+    id: string;
+    currentStepOrder: number;
+    status: string;
+    priority: string;
+    currentAssigneeId: string | null;
+    currentDeadline: string | null;
+    isOverdue: boolean;
+    workflow?: { name: Record<string, string>; country?: { name: string; code: string } };
+  } | null;
+}
+
 export function useWorkflowItems(params?: {
   page?: number;
   limit?: number;
@@ -616,23 +642,46 @@ export function useWorkflowItems(params?: {
   const searchParams: Record<string, string> = {};
   if (params?.page) searchParams.page = String(params.page);
   if (params?.limit) searchParams.limit = String(params.limit);
-  if (params?.level) searchParams.level = params.level;
   if (params?.status) searchParams.status = params.status;
-  if (params?.domain) searchParams.domain = params.domain;
 
-  const fallback: PaginatedResponse<WorkflowItem> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
-  return useQuery({
-    queryKey: ['workflow', 'items', params],
+  // Try workflow instances first — if empty, fall back to submissions
+  const workflowFallback: PaginatedResponse<WorkflowItem> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  const workflowQuery = useQuery({
+    queryKey: ['workflow', 'instances', params],
     queryFn: withFallback(
-      () =>
-        collecteClient.get<PaginatedResponse<WorkflowItem>>(
-          '/workflow/instances',
-          searchParams,
-        ),
-      fallback,
+      () => collecteClient.get<PaginatedResponse<WorkflowItem>>('/workflow/instances', searchParams),
+      workflowFallback,
     ),
-    placeholderData: fallback,
+    placeholderData: workflowFallback,
   });
+
+  // Also fetch submissions (the 758K+ records that always exist)
+  const subParams: Record<string, string> = {};
+  if (params?.page) subParams.page = String(params.page);
+  if (params?.limit) subParams.limit = String(params.limit);
+  if (params?.status) subParams.status = params.status;
+  const subFallback: PaginatedResponse<SubmissionRecord> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
+  const submissionQuery = useQuery({
+    queryKey: ['workflow', 'submissions', params],
+    queryFn: withFallback(
+      () => collecteClient.get<PaginatedResponse<SubmissionRecord>>('/collecte/submissions', subParams),
+      subFallback,
+    ),
+    placeholderData: subFallback,
+  });
+
+  // Use workflow instances if they exist, otherwise use submissions
+  const hasWorkflowData = (workflowQuery.data?.meta?.total ?? 0) > 0;
+
+  return {
+    ...submissionQuery,
+    workflowData: workflowQuery.data,
+    submissionData: submissionQuery.data,
+    hasWorkflowData,
+    isLoading: workflowQuery.isLoading || submissionQuery.isLoading,
+    isError: workflowQuery.isError && submissionQuery.isError,
+    refetch: () => { workflowQuery.refetch(); submissionQuery.refetch(); },
+  };
 }
 
 export function useWorkflowDetail(id: string) {
@@ -645,7 +694,7 @@ export function useWorkflowDetail(id: string) {
 }
 
 export function useWorkflowDashboard() {
-  const fallback: { data: WorkflowDashboardMetrics } = {
+  const wfFallback: { data: WorkflowDashboardMetrics } = {
     data: {
       pendingByLevel: {}, totalPending: 0, totalInReview: 0, totalApproved: 0,
       totalRejected: 0, totalEscalated: 0, slaBreaches: 0, wahisReadyCount: 0, analyticsReadyCount: 0,
@@ -655,9 +704,9 @@ export function useWorkflowDashboard() {
     queryKey: ['workflow', 'dashboard'],
     queryFn: withFallback(
       () => collecteClient.get<{ data: WorkflowDashboardMetrics }>('/workflow/dashboard'),
-      fallback,
+      wfFallback,
     ),
-    placeholderData: fallback,
+    placeholderData: wfFallback,
   });
 }
 
