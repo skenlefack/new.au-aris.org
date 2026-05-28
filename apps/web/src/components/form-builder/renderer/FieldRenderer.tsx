@@ -20,6 +20,8 @@ import {
   Star,
 } from 'lucide-react';
 
+import { TranslatableTextField } from './TranslatableTextField';
+
 const GeoPointMap = lazy(() => import('./GeoPointMap').then((m) => ({ default: m.GeoPointMap })));
 const GeoPolygonMap = lazy(() => import('./GeoPolygonMap').then((m) => ({ default: m.GeoPolygonMap })));
 const AdminLocationField = lazy(() => import('./AdminLocationField').then((m) => ({ default: m.AdminLocationField })));
@@ -130,13 +132,11 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
       )}
 
       {field.type === 'text' && (
-        <input
-          type="text"
-          value={(value as string) || ''}
-          onChange={(e) => onChange(e.target.value)}
+        <TranslatableTextField
+          value={value}
+          onChange={onChange}
           placeholder={placeholder}
           readOnly={field.readOnly}
-          className={inputClass}
         />
       )}
 
@@ -171,12 +171,13 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
       )}
 
       {field.type === 'textarea' && (
-        <textarea
-          value={(value as string) || ''}
-          onChange={(e) => onChange(e.target.value)}
+        <TranslatableTextField
+          value={value}
+          onChange={onChange}
           placeholder={placeholder}
+          readOnly={field.readOnly}
+          multiline
           rows={(field.properties.rows as number) || 4}
-          className={cn(inputClass, 'resize-y')}
         />
       )}
 

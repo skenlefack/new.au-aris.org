@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Plus, Trash2, Upload } from 'lucide-react';
+import { X, Plus, Trash2, Upload, Wand2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useFormBuilderStore } from '../hooks/useFormBuilder';
@@ -9,6 +9,7 @@ import { getFieldTypeDefinition, MASTER_DATA_TYPES } from '../utils/field-types'
 import type { FormField, FormSection, MultilingualText, FieldCondition, FieldConditionRule } from '../utils/form-schema';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { generateCodeFromLabel } from '../utils/code-generator';
+import { useTranslateToAll } from '@/lib/api/translation-hooks';
 
 type Tab = 'general' | 'validation' | 'data-source' | 'conditions' | 'appearance';
 
@@ -20,7 +21,9 @@ const TAB_KEYS: { key: Tab; tKey: string }[] = [
   { key: 'appearance', tKey: 'fbTabLayout' },
 ];
 
-// ---- Multilingual inline input ----
+// ---- Multilingual inline input with Auto-Translate ----
+const LANGS = ['en', 'fr', 'pt', 'ar'] as const;
+
 function MLInput({
   label,
   value,
@@ -33,23 +36,66 @@ function MLInput({
   placeholder?: string;
 }) {
   const [lang, setLang] = useState<'en' | 'fr' | 'pt' | 'ar'>('en');
+  const translateMut = useTranslateToAll();
+
+  const sourceText = value[lang]?.trim();
+  const emptyLangs = LANGS.filter((l) => l !== lang && !value[l]?.trim());
+  const canTranslate = !!sourceText && emptyLangs.length > 0;
+
+  const handleAutoTranslate = async () => {
+    if (!sourceText || emptyLangs.length === 0) return;
+    try {
+      const results = await translateMut.mutateAsync({
+        source: lang,
+        text: sourceText,
+        targets: emptyLangs,
+      });
+      onChange({ ...value, ...results });
+    } catch {
+      // Silently fail — user can still manually translate
+    }
+  };
+
   return (
     <div className="space-y-1">
-      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{label}</label>
+      <div className="flex items-center justify-between">
+        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{label}</label>
+        {canTranslate && (
+          <button
+            type="button"
+            onClick={handleAutoTranslate}
+            disabled={translateMut.isPending}
+            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 transition-colors disabled:opacity-50"
+            title="Auto-translate to all languages via SYSTRAN"
+          >
+            {translateMut.isPending ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Wand2 className="h-3 w-3" />
+            )}
+            Traduire
+          </button>
+        )}
+      </div>
       <div className="flex gap-0.5 mb-1">
-        {(['en', 'fr', 'pt', 'ar'] as const).map((l) => (
+        {LANGS.map((l) => (
           <button
             key={l}
             type="button"
             onClick={() => setLang(l)}
             className={cn(
-              'rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase',
+              'rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase relative',
               lang === l
                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                 : 'text-gray-400 hover:text-gray-600',
             )}
           >
             {l}
+            {/* Dot indicator: green=filled, red=empty */}
+            <span className={cn(
+              'absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full',
+              value[l]?.trim() ? 'bg-green-400' : 'bg-red-300',
+            )} />
           </button>
         ))}
       </div>
@@ -62,6 +108,33 @@ function MLInput({
         className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-xs text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
       />
     </div>
+  );
+}
+
+// ---- Buffered text input (local state, commits on blur/Enter) ----
+function BufferedInput({ value, onCommit, placeholder, className }: {
+  value: string;
+  onCommit: (val: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  const [local, setLocal] = useState(value);
+  const ref = React.useRef<HTMLInputElement>(null);
+
+  // Sync from parent only when the parent value truly changes (e.g. reorder/delete)
+  React.useEffect(() => { setLocal(value); }, [value]);
+
+  return (
+    <input
+      ref={ref}
+      type="text"
+      value={local}
+      onChange={(e) => setLocal(e.target.value)}
+      onBlur={() => { if (local !== value) onCommit(local); }}
+      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onCommit(local); ref.current?.blur(); } }}
+      placeholder={placeholder}
+      className={className}
+    />
   );
 }
 
@@ -115,17 +188,16 @@ function MatrixConfigEditor({
   const renderList = (type: 'rows' | 'columns', items: Array<{ label: MultilingualText; key: string }>) => (
     <div className="space-y-1.5">
       {items.map((item, idx) => (
-        <div key={idx} className="flex items-center gap-1">
+        <div key={item.key} className="flex items-center gap-1">
           <div className="flex flex-col">
             <button type="button" onClick={() => moveItem(type, idx, -1)} disabled={idx === 0}
               className="text-[10px] text-gray-400 hover:text-gray-600 disabled:opacity-20 leading-none">▲</button>
             <button type="button" onClick={() => moveItem(type, idx, 1)} disabled={idx === items.length - 1}
               className="text-[10px] text-gray-400 hover:text-gray-600 disabled:opacity-20 leading-none">▼</button>
           </div>
-          <input
-            type="text"
+          <BufferedInput
             value={item.label[locale] || item.label.en || ''}
-            onChange={(e) => updateItem(type, idx, e.target.value)}
+            onCommit={(val) => updateItem(type, idx, val)}
             placeholder={`${type === 'rows' ? (isFr ? 'Ligne' : 'Row') : (isFr ? 'Colonne' : 'Column')} ${idx + 1}`}
             className="flex-1 rounded-md border border-gray-200 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           />
