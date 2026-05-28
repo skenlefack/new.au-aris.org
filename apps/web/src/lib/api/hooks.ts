@@ -230,35 +230,52 @@ export interface VaccinationCoveragePoint {
   target: number;
 }
 
+export type WorkflowLevel = 'NATIONAL_TECHNICAL' | 'NATIONAL_OFFICIAL' | 'REC_HARMONIZATION' | 'CONTINENTAL_PUBLICATION';
+export type WorkflowStatus = 'PENDING' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED' | 'RETURNED' | 'ESCALATED';
+
+export interface WorkflowTransition {
+  id: string;
+  instanceId: string;
+  fromLevel: WorkflowLevel;
+  toLevel: WorkflowLevel;
+  fromStatus: string;
+  toStatus: string;
+  action: 'SUBMIT' | 'APPROVE' | 'REJECT' | 'RETURN' | 'ESCALATE';
+  actorUserId: string;
+  actorRole: string;
+  comment: string | null;
+  createdAt: string;
+}
+
 export interface WorkflowItem {
   id: string;
-  entityType: 'health_event' | 'vaccination' | 'lab_result' | 'census';
+  tenantId: string;
+  entityType: string;
   entityId: string;
-  title: string;
-  country: string;
-  submittedBy: string;
-  submittedAt: string;
-  currentLevel: 1 | 2 | 3 | 4;
-  status: 'pending' | 'approved' | 'rejected' | 'returned';
-  assignedTo?: string;
-  priority: 'low' | 'medium' | 'high';
+  domain: string;
+  currentLevel: WorkflowLevel;
+  status: WorkflowStatus;
+  dataContractId: string | null;
+  qualityReportId: string | null;
+  wahisReady: boolean;
+  analyticsReady: boolean;
+  slaDeadline: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  transitions?: WorkflowTransition[];
 }
 
-export interface WorkflowDetail extends WorkflowItem {
-  description: string;
-  entityData: Record<string, unknown>;
-  history: WorkflowHistoryEntry[];
-  qualityGates: QualityGateStatus[];
-}
-
-export interface WorkflowHistoryEntry {
-  id: string;
-  level: number;
-  action: 'submitted' | 'approved' | 'rejected' | 'returned' | 'escalated';
-  actor: string;
-  actorRole: string;
-  comment: string;
-  timestamp: string;
+export interface WorkflowDashboardMetrics {
+  pendingByLevel: Record<string, number>;
+  totalPending: number;
+  totalInReview: number;
+  totalApproved: number;
+  totalRejected: number;
+  totalEscalated: number;
+  slaBreaches: number;
+  wahisReadyCount: number;
+  analyticsReadyCount: number;
 }
 
 export interface QualityGateStatus {
@@ -592,16 +609,16 @@ export function useVaccinationCoverage(params?: {
 export function useWorkflowItems(params?: {
   page?: number;
   limit?: number;
-  level?: number;
+  level?: string;
   status?: string;
-  entityType?: string;
+  domain?: string;
 }) {
   const searchParams: Record<string, string> = {};
   if (params?.page) searchParams.page = String(params.page);
   if (params?.limit) searchParams.limit = String(params.limit);
-  if (params?.level) searchParams.level = String(params.level);
+  if (params?.level) searchParams.level = params.level;
   if (params?.status) searchParams.status = params.status;
-  if (params?.entityType) searchParams.entityType = params.entityType;
+  if (params?.domain) searchParams.domain = params.domain;
 
   const fallback: PaginatedResponse<WorkflowItem> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   return useQuery({
@@ -609,7 +626,7 @@ export function useWorkflowItems(params?: {
     queryFn: withFallback(
       () =>
         collecteClient.get<PaginatedResponse<WorkflowItem>>(
-          '/collecte/submissions',
+          '/workflow/instances',
           searchParams,
         ),
       fallback,
@@ -620,10 +637,27 @@ export function useWorkflowItems(params?: {
 
 export function useWorkflowDetail(id: string) {
   return useQuery({
-    queryKey: ['workflow', 'items', id],
+    queryKey: ['workflow', 'detail', id],
     queryFn: () =>
-      apiClient.get<{ data: WorkflowDetail }>(`/workflow/validations/${id}`),
+      collecteClient.get<{ data: WorkflowItem }>(`/workflow/instances/${id}`),
     enabled: !!id,
+  });
+}
+
+export function useWorkflowDashboard() {
+  const fallback: { data: WorkflowDashboardMetrics } = {
+    data: {
+      pendingByLevel: {}, totalPending: 0, totalInReview: 0, totalApproved: 0,
+      totalRejected: 0, totalEscalated: 0, slaBreaches: 0, wahisReadyCount: 0, analyticsReadyCount: 0,
+    },
+  };
+  return useQuery({
+    queryKey: ['workflow', 'dashboard'],
+    queryFn: withFallback(
+      () => collecteClient.get<{ data: WorkflowDashboardMetrics }>('/workflow/dashboard'),
+      fallback,
+    ),
+    placeholderData: fallback,
   });
 }
 
@@ -634,12 +668,17 @@ export function useWorkflowAction() {
     mutationFn: (data: {
       id: string;
       action: 'approve' | 'reject' | 'return';
-      comment: string;
-    }) =>
-      apiClient.post<{ data: WorkflowItem }>(
-        `/workflow/validations/${data.id}/${data.action}`,
-        { comment: data.comment },
-      ),
+      comment?: string;
+      reason?: string;
+    }) => {
+      const body = data.action === 'approve'
+        ? { comment: data.comment }
+        : { reason: data.reason ?? data.comment };
+      return collecteClient.post<{ data: WorkflowItem }>(
+        `/workflow/instances/${data.id}/${data.action}`,
+        body,
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workflow'] });
     },
