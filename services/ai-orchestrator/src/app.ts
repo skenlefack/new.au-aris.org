@@ -4,8 +4,11 @@ import { fastifyKafka } from '@aris/kafka-client';
 import { authHook } from '@aris/auth-middleware';
 import type { AuthHookOptions, AuthenticatedUser } from '@aris/auth-middleware';
 import redisPlugin from './plugins/redis';
+import prismaPlugin from './plugins/prisma';
 import { OllamaClient } from './clients/ollama.client';
 import { MlClient } from './clients/ml.client';
+import { CollecteClient } from './clients/collecte.client';
+import { DriveClient } from './clients/drive.client';
 import { RateLimiter } from './services/rate-limiter';
 import { UsageLogger } from './services/usage-logger';
 import { PromptCache } from './services/prompt-cache';
@@ -17,6 +20,9 @@ import { registerAnomalyRoutes } from './routes/anomalies.routes';
 import { registerSpatialRoutes } from './routes/spatial.routes';
 import { registerInteropRoutes } from './routes/interop.routes';
 import { registerCodeRoutes } from './routes/code.routes';
+import { registerChatRoutes } from './routes/chat.routes';
+import { registerModelVersionRoutes } from './routes/model-versions.routes';
+import { registerFileGenerationRoutes } from './routes/file-generation.routes';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -51,6 +57,7 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // --- Infrastructure plugins ---
   await app.register(redisPlugin);
+  await app.register(prismaPlugin);
   await app.register(fastifyKafka, {
     clientId: process.env['KAFKA_CLIENT_ID'] ?? 'aris-ai-orchestrator',
     brokers: (process.env['KAFKA_BROKERS'] ?? 'localhost:9092').split(','),
@@ -74,8 +81,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   // --- AI Clients ---
   const ollamaClient = new OllamaClient(process.env['OLLAMA_URL']);
   const mlClient = new MlClient(process.env['ML_SERVICE_URL']);
+  const collecteClient = new CollecteClient(process.env['COLLECTE_SERVICE_URL']);
+  const driveClient = new DriveClient(process.env['DRIVE_SERVICE_URL']);
   app.decorate('ollamaClient', ollamaClient);
   app.decorate('mlClient', mlClient);
+  app.decorate('collecteClient', collecteClient);
+  app.decorate('driveClient', driveClient);
 
   // --- Services ---
   const rateLimiter = new RateLimiter(app.redis);
@@ -111,6 +122,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerSpatialRoutes);
   await app.register(registerInteropRoutes);
   await app.register(registerCodeRoutes);
+  await app.register(registerChatRoutes);
+  await app.register(registerModelVersionRoutes);
+  await app.register(registerFileGenerationRoutes);
 
   return app;
 }

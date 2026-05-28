@@ -139,3 +139,106 @@ model MlTrainingJob {
   @@map("ml_training_jobs")
   @@schema("ai")
 }
+
+// ─── Model Versioning & A/B Testing (WS4) ─────────────────────
+
+enum MlAbTestStatus {
+  DRAFT
+  RUNNING
+  COMPLETED
+  CANCELLED
+
+  @@schema("ai")
+}
+
+model MlModelVersion {
+  id            String    @id @default(uuid()) @db.Uuid
+  modelId       String    @db.Uuid
+  version       String    @db.VarChar(32)
+  artifactPath  String?   @db.VarChar(512)
+  metrics       Json      @default("{}")
+  isActive      Boolean   @default(false)
+  trafficWeight Float     @default(0)
+  trainedAt     DateTime? @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+
+  abTestsAsA MlAbTest[] @relation("VersionA")
+  abTestsAsB MlAbTest[] @relation("VersionB")
+
+  @@unique([modelId, version])
+  @@index([modelId, isActive])
+  @@map("ml_model_versions")
+  @@schema("ai")
+}
+
+model MlAbTest {
+  id             String         @id @default(uuid()) @db.Uuid
+  name           String         @db.VarChar(255)
+  modelId        String         @db.Uuid
+  versionAId     String         @db.Uuid
+  versionBId     String         @db.Uuid
+  trafficSplit   Float          @default(0.5)
+  status         MlAbTestStatus @default(DRAFT)
+  startDate      DateTime?      @db.Timestamptz(3)
+  endDate        DateTime?      @db.Timestamptz(3)
+  totalRequestsA Int            @default(0)
+  totalRequestsB Int            @default(0)
+  metricsA       Json           @default("{}")
+  metricsB       Json           @default("{}")
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(3)
+
+  versionA MlModelVersion @relation("VersionA", fields: [versionAId], references: [id])
+  versionB MlModelVersion @relation("VersionB", fields: [versionBId], references: [id])
+
+  @@index([modelId, status])
+  @@index([status])
+  @@map("ml_ab_tests")
+  @@schema("ai")
+}
+
+// ─── AI Chat History (WS7) ────────────────────────────────────
+
+enum AiChatRole {
+  USER
+  ASSISTANT
+  SYSTEM
+
+  @@schema("ai")
+}
+
+model AiConversation {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @db.Uuid
+  title        String    @db.VarChar(255) @default("New Conversation")
+  model        String    @db.VarChar(128) @default("qwen2.5:32b")
+  messageCount Int       @default(0)
+  totalTokens  Int       @default(0)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
+
+  messages AiChatMessage[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@index([createdAt])
+  @@map("ai_conversations")
+  @@schema("ai")
+}
+
+model AiChatMessage {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @db.Uuid
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           AiChatRole
+  content        String       @db.Text
+  fileIds        Json         @default("[]")
+  model          String?      @db.VarChar(128)
+  tokensUsed     Int          @default(0)
+  durationMs     Int          @default(0)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@index([conversationId, createdAt])
+  @@map("ai_chat_messages")
+  @@schema("ai")
+}

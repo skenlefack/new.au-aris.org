@@ -31,6 +31,25 @@ export interface MlAnomalyResult {
   durationMs: number;
 }
 
+export interface MlSubmissionParams {
+  submissions: Array<{ id: string; data: Record<string, unknown> }>;
+  sensitivity?: number;
+}
+
+export interface MlSubmissionAnomalyItem {
+  submission_id: string;
+  is_anomaly: boolean;
+  anomaly_score: number;
+  anomalous_fields: Array<{ field: string; value: number; z_score: number }>;
+}
+
+export interface MlSubmissionResult {
+  results: MlSubmissionAnomalyItem[];
+  total_submissions: number;
+  anomaly_count: number;
+  durationMs: number;
+}
+
 export interface MlClusterParams {
   points: Array<{ lat: number; lng: number; weight?: number; metadata?: Record<string, unknown> }>;
   algorithm?: 'kmeans' | 'dbscan' | 'hdbscan';
@@ -104,6 +123,10 @@ export class MlClient {
 
   async detectAnomalies(params: MlAnomalyParams): Promise<MlAnomalyResult> {
     return this.post<MlAnomalyResult>('/api/v1/anomalies/detect', params);
+  }
+
+  async analyzeSubmissions(params: MlSubmissionParams): Promise<MlSubmissionResult> {
+    return this.post<MlSubmissionResult>('/api/v1/anomalies/submissions', params);
   }
 
   // ── Spatial ──
