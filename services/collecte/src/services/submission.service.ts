@@ -229,8 +229,34 @@ export class SubmissionService {
       (this.prisma as any).submission.count({ where }),
     ]);
 
+    // Enrich with campaign info (name + domain)
+    const campaignIds = [...new Set(data.map((s: any) => s.campaignId).filter(Boolean))];
+    let campaignMap: Record<string, { name: unknown; domain: string }> = {};
+    if (campaignIds.length > 0) {
+      try {
+        const campaigns = await (this.prisma as any).collectionCampaign.findMany({
+          where: { id: { in: campaignIds } },
+          select: { id: true, name: true, domain: true },
+        });
+        for (const c of campaigns) {
+          campaignMap[c.id] = { name: c.name, domain: c.domain };
+        }
+      } catch {
+        // Campaign table may not exist or FK missing — skip enrichment
+      }
+    }
+
+    const enriched = data.map((s: any) => {
+      const campaign = campaignMap[s.campaignId];
+      return {
+        ...s,
+        campaignName: campaign?.name ?? null,
+        domain: campaign?.domain ?? null,
+      };
+    });
+
     return {
-      data: data as unknown as SubmissionEntity[],
+      data: enriched as unknown as SubmissionEntity[],
       meta: { total, page, limit },
     };
   }
