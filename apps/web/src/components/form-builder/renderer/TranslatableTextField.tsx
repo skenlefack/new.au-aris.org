@@ -74,16 +74,32 @@ export function TranslatableTextField({
   }, [isMultilingual, mlValue, currentLang, onChange]);
 
   const handleTranslate = useCallback(async () => {
-    const sourceText = isMultilingual ? (mlValue[currentLang] || '').trim() : (displayValue || '').trim();
+    // Auto-detect source: use current lang if it has text, else find first filled lang
+    let sourceLang = currentLang;
+    let sourceText = isMultilingual ? (mlValue[currentLang] || '').trim() : (displayValue || '').trim();
+
+    if (!sourceText && isMultilingual) {
+      // Find the first language that has text
+      for (const l of ALL_LANGS) {
+        if (mlValue[l.code]?.trim()) {
+          sourceLang = l.code;
+          sourceText = mlValue[l.code]!.trim();
+          break;
+        }
+      }
+    }
+
     if (!sourceText) return;
 
     const targets = ALL_LANGS
       .map(l => l.code)
-      .filter(code => code !== currentLang);
+      .filter(code => code !== sourceLang && !(isMultilingual && mlValue[code]?.trim()));
+
+    if (targets.length === 0) return;
 
     try {
       const results = await translateMut.mutateAsync({
-        source: currentLang,
+        source: sourceLang,
         text: sourceText,
         targets,
       });
@@ -91,7 +107,7 @@ export function TranslatableTextField({
       // Convert to multilingual object with all translations
       const newValue: Record<string, string> = {
         ...mlValue,
-        [currentLang]: sourceText,
+        [sourceLang]: sourceText,
         ...results,
       };
       onChange(newValue);

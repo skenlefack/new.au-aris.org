@@ -38,15 +38,17 @@ function MLInput({
   const [lang, setLang] = useState<'en' | 'fr' | 'pt' | 'ar'>('en');
   const translateMut = useTranslateToAll();
 
-  const sourceText = value[lang]?.trim();
-  const emptyLangs = LANGS.filter((l) => l !== lang && !value[l]?.trim());
+  // Find the first language that has text (auto-detect source)
+  const sourceLang = LANGS.find((l) => value[l]?.trim()) || lang;
+  const sourceText = value[sourceLang]?.trim();
+  const emptyLangs = LANGS.filter((l) => l !== sourceLang && !value[l]?.trim());
   const canTranslate = !!sourceText && emptyLangs.length > 0;
 
   const handleAutoTranslate = async () => {
     if (!sourceText || emptyLangs.length === 0) return;
     try {
       const results = await translateMut.mutateAsync({
-        source: lang,
+        source: sourceLang,
         text: sourceText,
         targets: emptyLangs,
       });

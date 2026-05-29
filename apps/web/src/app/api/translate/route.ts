@@ -142,6 +142,45 @@ export async function POST(request: NextRequest) {
 
 /* ---------- translate ---------- */
 
+/**
+ * SYSTRAN supported direct pairs (discovered from /supportedLanguages):
+ *   en↔fr, en↔ar, en↔pt, fr↔en, ar↔en, pt↔en
+ * For unsupported pairs (e.g. fr→pt), we pivot through English:
+ *   fr → en → pt
+ */
+const DIRECT_PAIRS = new Set([
+  'en-fr', 'en-ar', 'en-pt',
+  'fr-en', 'ar-en', 'pt-en',
+]);
+
+function hasDirectPair(source: string, target: string): boolean {
+  return DIRECT_PAIRS.has(`${source}-${target}`);
+}
+
+async function systranTranslateOnce(
+  config: SystranConfig,
+  source: string,
+  target: string,
+  inputs: string[],
+): Promise<string[]> {
+  const res = await systranFetch(`${config.apiUrl}/translation/text/translate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Key ${config.apiKey}`,
+    },
+    body: JSON.stringify({ source, target, input: inputs }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`Systran ${res.status}: ${errText.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  return (data.outputs || []).map((o: { output: string }) => o.output);
+}
+
 async function handleTranslate(request: NextRequest, config: SystranConfig) {
   const body = await request.json();
   const { source, target, input } = body as {
@@ -159,25 +198,34 @@ async function handleTranslate(request: NextRequest, config: SystranConfig) {
 
   const inputs = Array.isArray(input) ? input : [input];
 
-  const systranRes = await systranFetch(`${config.apiUrl}/translation/text/translate`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Key ${config.apiKey}`,
-    },
-    body: JSON.stringify({ source, target, input: inputs }),
-  });
-
-  if (!systranRes.ok) {
-    const errText = await systranRes.text().catch(() => '');
-    return NextResponse.json(
-      { error: `Systran API error (${systranRes.status})`, details: errText },
-      { status: systranRes.status },
-    );
+  // Skip empty inputs
+  if (inputs.every((t) => !t.trim())) {
+    return NextResponse.json({
+      data: { outputs: inputs.map((t) => ({ output: t })) },
+    });
   }
 
-  const data = await systranRes.json();
-  return NextResponse.json({ data });
+  try {
+    let outputs: string[];
+
+    if (hasDirectPair(source, target)) {
+      // Direct translation available
+      outputs = await systranTranslateOnce(config, source, target, inputs);
+    } else {
+      // Pivot through English: source → en → target
+      const toEnglish = await systranTranslateOnce(config, source, 'en', inputs);
+      outputs = await systranTranslateOnce(config, 'en', target, toEnglish);
+    }
+
+    return NextResponse.json({
+      data: { outputs: outputs.map((o) => ({ output: o })) },
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: `Systran API error`, details: String(err).slice(0, 300) },
+      { status: 502 },
+    );
+  }
 }
 
 /* ---------- languages ---------- */
