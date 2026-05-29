@@ -34,15 +34,43 @@ async function translateFetch<T = any>(action: string, body?: unknown): Promise<
 
 /* ── Hooks ── */
 
-/** Translate text from one language to another via Systran proxy. */
+/**
+ * Translate text from one language to another.
+ * Tries SYSTRAN first, falls back to Ollama AI if SYSTRAN is unavailable.
+ */
 export function useTranslateText() {
   return useMutation({
-    mutationFn: (params: { source: string; target: string; input: string | string[] }) =>
-      translateFetch<{ data: { outputs: { output: string }[] } }>('translate', params),
+    mutationFn: async (params: { source: string; target: string; input: string | string[] }) => {
+      try {
+        return await translateFetch<{ data: { outputs: { output: string }[] } }>('translate', params);
+      } catch (err) {
+        // Fallback to Ollama if SYSTRAN not configured
+        const isSystranDown = String(err).includes('503') || String(err).includes('not configured');
+        if (!isSystranDown) throw err;
+
+        const langNames: Record<string, string> = { en: 'English', fr: 'French', pt: 'Portuguese', ar: 'Arabic', es: 'Spanish' };
+        const text = Array.isArray(params.input) ? params.input[0] : params.input;
+        const res = await fetch('/api/v1/ai/nlp/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({
+            text,
+            sourceLang: langNames[params.source] || params.source,
+            targetLang: langNames[params.target] || params.target,
+          }),
+        });
+        if (!res.ok) throw new Error(`AI translation failed (${res.status})`);
+        const data = await res.json();
+        return { data: { outputs: [{ output: data?.data?.translation ?? '' }] } };
+      }
+    },
   });
 }
 
-/** Translate text to all target languages at once. */
+/**
+ * Translate text to all target languages at once.
+ * Tries SYSTRAN first, falls back to Ollama AI (/api/v1/ai/nlp/translate) if SYSTRAN is not configured.
+ */
 export function useTranslateToAll() {
   return useMutation({
     mutationFn: async (params: {
@@ -51,17 +79,48 @@ export function useTranslateToAll() {
       targets: string[];
     }): Promise<Record<string, string>> => {
       const results: Record<string, string> = {};
-      // Run translations in parallel
-      const promises = params.targets.map(async (target) => {
-        const res = await translateFetch<{ data: { outputs: { output: string }[] } }>('translate', {
-          source: params.source,
-          target,
-          input: params.text,
+
+      // Try SYSTRAN first
+      try {
+        const promises = params.targets.map(async (target) => {
+          const res = await translateFetch<{ data: { outputs: { output: string }[] } }>('translate', {
+            source: params.source,
+            target,
+            input: params.text,
+          });
+          const output = res?.data?.outputs?.[0]?.output ?? '';
+          results[target] = output;
         });
-        const output = res?.data?.outputs?.[0]?.output ?? '';
-        results[target] = output;
+        await Promise.all(promises);
+        return results;
+      } catch (systranErr) {
+        // If SYSTRAN fails (503 = not configured), fall back to Ollama AI
+        const isSystranDown = String(systranErr).includes('503') || String(systranErr).includes('not configured');
+        if (!isSystranDown) throw systranErr;
+      }
+
+      // Fallback: use Ollama AI translation via AI orchestrator
+      const ollamaPromises = params.targets.map(async (target) => {
+        try {
+          const langNames: Record<string, string> = { en: 'English', fr: 'French', pt: 'Portuguese', ar: 'Arabic', es: 'Spanish' };
+          const res = await fetch('/api/v1/ai/nlp/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify({
+              text: params.text,
+              sourceLang: langNames[params.source] || params.source,
+              targetLang: langNames[target] || target,
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            results[target] = data?.data?.translation ?? '';
+          }
+        } catch {
+          // Skip this language on failure
+        }
       });
-      await Promise.all(promises);
+      await Promise.all(ollamaPromises);
       return results;
     },
   });
