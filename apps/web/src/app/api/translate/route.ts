@@ -14,7 +14,9 @@ import { NextRequest, NextResponse } from 'next/server';
  *   POST /api/translate?action=status     — test connection / status
  */
 
-const TENANT_API = process.env.NEXT_PUBLIC_TENANT_API_URL ?? '';
+const TENANT_API = process.env.INTERNAL_TENANT_URL
+  ?? process.env.NEXT_PUBLIC_TENANT_API_URL
+  ?? '';
 
 /* ---------- helpers ---------- */
 
