@@ -14,6 +14,26 @@ import { NextRequest, NextResponse } from 'next/server';
  *   POST /api/translate?action=status     — test connection / status
  */
 
+/** Fetch wrapper that disables TLS verification for internal SYSTRAN servers */
+async function systranFetch(url: string, init?: RequestInit): Promise<Response> {
+  // For internal IPs with self-signed certs, disable TLS verification
+  const isInternal = url.includes('10.') || url.includes('192.168.') || url.includes('172.');
+  if (isInternal) {
+    const origValue = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    try {
+      return await fetch(url, init);
+    } finally {
+      if (origValue !== undefined) {
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = origValue;
+      } else {
+        delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+      }
+    }
+  }
+  return fetch(url, init);
+}
+
 const TENANT_API = process.env.INTERNAL_TENANT_URL
   ?? process.env.NEXT_PUBLIC_TENANT_API_URL
   ?? '';
@@ -139,7 +159,7 @@ async function handleTranslate(request: NextRequest, config: SystranConfig) {
 
   const inputs = Array.isArray(input) ? input : [input];
 
-  const systranRes = await fetch(`${config.apiUrl}/translation/text/translate`, {
+  const systranRes = await systranFetch(`${config.apiUrl}/translation/text/translate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -163,7 +183,7 @@ async function handleTranslate(request: NextRequest, config: SystranConfig) {
 /* ---------- languages ---------- */
 
 async function handleLanguages(config: SystranConfig) {
-  const res = await fetch(
+  const res = await systranFetch(
     `${config.apiUrl}/translation/supportedLanguages?key=${encodeURIComponent(config.apiKey)}`,
   );
 
@@ -183,7 +203,7 @@ async function handleLanguages(config: SystranConfig) {
 
 async function handleStatus(config: SystranConfig) {
   // Quick health check — try fetching supported languages
-  const res = await fetch(
+  const res = await systranFetch(
     `${config.apiUrl}/translation/supportedLanguages?key=${encodeURIComponent(config.apiKey)}`,
   );
 
