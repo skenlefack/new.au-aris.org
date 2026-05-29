@@ -68,8 +68,9 @@ export function useTranslateText() {
 }
 
 /**
- * Translate text to all target languages at once.
- * Tries SYSTRAN first, falls back to Ollama AI (/api/v1/ai/nlp/translate) if SYSTRAN is not configured.
+ * Translate text to all target languages at once via the /api/translate proxy.
+ * The proxy handles: SYSTRAN (direct + pivot), auto-detect language, Ollama fallback.
+ * Each target language is translated independently — one failure doesn't block others.
  */
 export function useTranslateToAll() {
   return useMutation({
@@ -80,47 +81,19 @@ export function useTranslateToAll() {
     }): Promise<Record<string, string>> => {
       const results: Record<string, string> = {};
 
-      // Try SYSTRAN first
-      try {
-        const promises = params.targets.map(async (target) => {
+      const promises = params.targets.map(async (target) => {
+        try {
           const res = await translateFetch<{ data: { outputs: { output: string }[] } }>('translate', {
             source: params.source,
             target,
             input: params.text,
           });
-          const output = res?.data?.outputs?.[0]?.output ?? '';
-          results[target] = output;
-        });
-        await Promise.all(promises);
-        return results;
-      } catch (systranErr) {
-        // If SYSTRAN fails (503 = not configured), fall back to Ollama AI
-        const isSystranDown = String(systranErr).includes('503') || String(systranErr).includes('not configured');
-        if (!isSystranDown) throw systranErr;
-      }
-
-      // Fallback: use Ollama AI translation via AI orchestrator
-      const ollamaPromises = params.targets.map(async (target) => {
-        try {
-          const langNames: Record<string, string> = { en: 'English', fr: 'French', pt: 'Portuguese', ar: 'Arabic', es: 'Spanish' };
-          const res = await fetch('/api/v1/ai/nlp/translate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-            body: JSON.stringify({
-              text: params.text,
-              sourceLang: langNames[params.source] || params.source,
-              targetLang: langNames[target] || target,
-            }),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            results[target] = data?.data?.translation ?? '';
-          }
+          results[target] = res?.data?.outputs?.[0]?.output ?? '';
         } catch {
-          // Skip this language on failure
+          // Skip failed language — don't block others
         }
       });
-      await Promise.all(ollamaPromises);
+      await Promise.all(promises);
       return results;
     },
   });

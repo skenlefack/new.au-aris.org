@@ -153,6 +153,9 @@ const DIRECT_PAIRS = new Set([
   'fr-en', 'ar-en', 'pt-en',
 ]);
 
+/** Languages that SYSTRAN can handle (source or target via pivot) */
+const SUPPORTED_LANGS = new Set(['en', 'fr', 'ar', 'pt']);
+
 /**
  * Simple language detection heuristic based on Unicode character ranges and common words.
  * Returns detected language code or the provided source as fallback.
@@ -240,14 +243,16 @@ async function handleTranslate(request: NextRequest, config: SystranConfig) {
 
   try {
     // Auto-detect actual language of the text (user may have declared wrong source)
-    const actualSource = detectLanguage(inputs[0], source);
-    const effectiveSource = actualSource;
+    const effectiveSource = detectLanguage(inputs[0], source);
 
     let outputs: string[];
 
     if (effectiveSource === target) {
       // Same language — return as-is
       outputs = inputs;
+    } else if (!SUPPORTED_LANGS.has(effectiveSource) || !SUPPORTED_LANGS.has(target)) {
+      // Unsupported language (e.g. Spanish) — fall back to Ollama
+      return await handleOllamaTranslate(effectiveSource, target, inputs[0], authHeader);
     } else if (hasDirectPair(effectiveSource, target)) {
       // Direct translation available
       outputs = await systranTranslateOnce(config, effectiveSource, target, inputs);
@@ -265,10 +270,15 @@ async function handleTranslate(request: NextRequest, config: SystranConfig) {
       data: { outputs: outputs.map((o) => ({ output: o })) },
     });
   } catch (err) {
-    return NextResponse.json(
-      { error: `Systran API error`, details: String(err).slice(0, 300) },
-      { status: 502 },
-    );
+    // If SYSTRAN fails, try Ollama as last resort
+    try {
+      return await handleOllamaTranslate(source, target, inputs[0], authHeader);
+    } catch {
+      return NextResponse.json(
+        { error: `Systran API error`, details: String(err).slice(0, 300) },
+        { status: 502 },
+      );
+    }
   }
 }
 
@@ -318,25 +328,17 @@ const LANG_NAMES: Record<string, string> = {
   en: 'English', fr: 'French', pt: 'Portuguese', ar: 'Arabic', es: 'Spanish',
 };
 
-async function handleOllamaFallback(
-  request: NextRequest,
+/** Translate a single text using Ollama AI — called with pre-parsed params */
+async function handleOllamaTranslate(
+  source: string,
+  target: string,
+  text: string,
   authHeader: string | null,
-) {
-  const body = await request.json();
-  const { source, target, input } = body as {
-    source: string;
-    target: string;
-    input: string | string[];
-  };
-
-  if (!source || !target || !input) {
-    return NextResponse.json(
-      { error: 'Missing required fields: source, target, input' },
-      { status: 400 },
-    );
+): Promise<NextResponse> {
+  if (!text?.trim()) {
+    return NextResponse.json({ data: { outputs: [{ output: '' }] } });
   }
 
-  const text = Array.isArray(input) ? input[0] : input;
   const sourceLang = LANG_NAMES[source] || source;
   const targetLang = LANG_NAMES[target] || target;
 
@@ -362,12 +364,8 @@ async function handleOllamaFallback(
     const data = await res.json();
     const translation = data?.data?.translation ?? text;
 
-    // Return in SYSTRAN-compatible format so the frontend doesn't need to change
     return NextResponse.json({
-      data: {
-        outputs: [{ output: translation }],
-        engine: 'ollama',
-      },
+      data: { outputs: [{ output: translation }], engine: 'ollama' },
     });
   } catch (err) {
     return NextResponse.json(
@@ -375,4 +373,20 @@ async function handleOllamaFallback(
       { status: 502 },
     );
   }
+}
+
+/** Ollama fallback — called from the POST handler when request body is not yet consumed */
+async function handleOllamaFallback(
+  request: NextRequest,
+  authHeader: string | null,
+) {
+  const body = await request.json();
+  const { source, target, input } = body as {
+    source: string;
+    target: string;
+    input: string | string[];
+  };
+
+  const text = Array.isArray(input) ? input[0] : (input || '');
+  return handleOllamaTranslate(source || 'en', target || 'fr', text, authHeader);
 }
