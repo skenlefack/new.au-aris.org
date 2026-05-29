@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     try {
       switch (action) {
         case 'translate':
-          return await handleTranslate(request, config);
+          return await handleTranslate(request, config, authHeader);
         case 'languages':
           return await handleLanguages(config);
         case 'status':
@@ -212,7 +212,7 @@ async function systranTranslateOnce(
   return (data.outputs || []).map((o: { output: string }) => o.output);
 }
 
-async function handleTranslate(request: NextRequest, config: SystranConfig) {
+async function handleTranslate(request: NextRequest, config: SystranConfig, authHeader: string | null = null) {
   const body = await request.json();
   const { source, target, input } = body as {
     source: string;
