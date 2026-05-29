@@ -189,16 +189,21 @@ async function handleTranslate(request: NextRequest, config: SystranConfig) {
     input: string | string[];
   };
 
-  if (!source || !target || !input) {
+  if (!source || !target) {
     return NextResponse.json(
-      { error: 'Missing required fields: source, target, input' },
+      { error: 'Missing required fields: source, target' },
       { status: 400 },
     );
   }
 
+  // Handle missing or empty input gracefully
+  if (!input) {
+    return NextResponse.json({ data: { outputs: [{ output: '' }] } });
+  }
+
   const inputs = Array.isArray(input) ? input : [input];
 
-  // Skip empty inputs
+  // Skip empty inputs — return them as-is
   if (inputs.every((t) => !t.trim())) {
     return NextResponse.json({
       data: { outputs: inputs.map((t) => ({ output: t })) },
