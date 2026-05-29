@@ -29,6 +29,7 @@ import {
   useUpdateWorkflowStep,
   useDeleteWorkflowStep,
 } from '@/lib/api/workflow-hooks';
+import { useAutoTranslateOnBlur } from '@/components/settings/AutoTranslateGroup';
 
 /* ── Helpers ── */
 
@@ -413,7 +414,16 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
 
   const [showAdd, setShowAdd] = useState(false);
   const [editingStep, setEditingStep] = useState<string | null>(null);
-  const [newStep, setNewStep] = useState({
+  const [newStep, setNewStep] = useState<{
+    stepOrder: number;
+    levelType: string;
+    adminLevel: number;
+    nameEn: string;
+    nameFr: string;
+    canEdit: boolean;
+    canValidate: boolean;
+    transmitDelayHours: string;
+  }>({
     stepOrder: steps.length,
     levelType: 'admin1',
     adminLevel: 1,
@@ -423,6 +433,14 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
     canValidate: true,
     transmitDelayHours: '',
   });
+
+  const { handleBlur: handleStepNameBlur } = useAutoTranslateOnBlur(
+    { en: newStep.nameEn, fr: newStep.nameFr },
+    {
+      en: (v) => setNewStep((s) => ({ ...s, nameEn: v })),
+      fr: (v) => setNewStep((s) => ({ ...s, nameFr: v })),
+    },
+  );
 
   const sorted = [...steps].sort((a: any, b: any) => a.stepOrder - b.stepOrder);
 
@@ -498,6 +516,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
               <input
                 value={newStep.nameEn}
                 onChange={(e) => setNewStep((s) => ({ ...s, nameEn: e.target.value }))}
+                onBlur={handleStepNameBlur}
                 className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
                 placeholder={t('stepNameEnPlaceholder')}
               />
@@ -507,6 +526,7 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
               <input
                 value={newStep.nameFr}
                 onChange={(e) => setNewStep((s) => ({ ...s, nameFr: e.target.value }))}
+                onBlur={handleStepNameBlur}
                 className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
                 placeholder={t('stepNameFrPlaceholder')}
               />
@@ -606,7 +626,19 @@ function StepsList({ workflowId, steps }: { workflowId: string; steps: any[] }) 
 function CreateWorkflowForm({ onClose }: { onClose: () => void }) {
   const t = useTranslations('settings');
   const createDef = useCreateWorkflowDef();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    countryCode: string;
+    nameEn: string;
+    nameFr: string;
+    descEn: string;
+    descFr: string;
+    startLevel: number;
+    endLevel: number;
+    defaultTransmitDelay: number;
+    defaultValidationDelay: number;
+    autoTransmitEnabled: boolean;
+    autoValidateEnabled: boolean;
+  }>({
     countryCode: '',
     nameEn: '',
     nameFr: '',
@@ -619,6 +651,22 @@ function CreateWorkflowForm({ onClose }: { onClose: () => void }) {
     autoTransmitEnabled: true,
     autoValidateEnabled: false,
   });
+
+  const { handleBlur: handleWfNameBlur } = useAutoTranslateOnBlur(
+    { en: form.nameEn, fr: form.nameFr },
+    {
+      en: (v) => setForm((s) => ({ ...s, nameEn: v })),
+      fr: (v) => setForm((s) => ({ ...s, nameFr: v })),
+    },
+  );
+
+  const { handleBlur: handleWfDescBlur } = useAutoTranslateOnBlur(
+    { en: form.descEn, fr: form.descFr },
+    {
+      en: (v) => setForm((s) => ({ ...s, descEn: v })),
+      fr: (v) => setForm((s) => ({ ...s, descFr: v })),
+    },
+  );
 
   const handleCreate = async () => {
     await createDef.mutateAsync({
@@ -654,6 +702,7 @@ function CreateWorkflowForm({ onClose }: { onClose: () => void }) {
           <input
             value={form.nameEn}
             onChange={(e) => setForm((s) => ({ ...s, nameEn: e.target.value }))}
+            onBlur={handleWfNameBlur}
             className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
             placeholder={t('workflowNameEnPlaceholder')}
           />
@@ -663,6 +712,7 @@ function CreateWorkflowForm({ onClose }: { onClose: () => void }) {
           <input
             value={form.nameFr}
             onChange={(e) => setForm((s) => ({ ...s, nameFr: e.target.value }))}
+            onBlur={handleWfNameBlur}
             className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
             placeholder={t('workflowNameFrPlaceholder')}
           />

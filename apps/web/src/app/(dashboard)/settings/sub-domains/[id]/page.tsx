@@ -27,6 +27,7 @@ import {
   Info,
   Circle,
 } from 'lucide-react';
+import { useAutoTranslateOnBlur } from '@/components/settings/AutoTranslateGroup';
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN']);
 
@@ -83,6 +84,11 @@ function SubDomainDetail() {
   const [color, setColor] = useState('#1F4E79');
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { handleBlur } = useAutoTranslateOnBlur(
+    { en: labelEn, fr: labelFr, pt: labelPt, ar: labelAr },
+    { en: (v) => setLabelEn(v), fr: (v) => setLabelFr(v), pt: (v) => setLabelPt(v), ar: (v) => setLabelAr(v) },
+  );
 
   useEffect(() => {
     if (sd) {
@@ -245,24 +251,24 @@ function SubDomainDetail() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Label FR *</label>
-                <input type="text" value={labelFr} onChange={(e) => setLabelFr(e.target.value)}
+                <input type="text" value={labelFr} onChange={(e) => setLabelFr(e.target.value)} onBlur={handleBlur}
                   className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 dark:bg-gray-900 dark:text-white ${errors.labelFr ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#1F4E79] focus:ring-[#1F4E79] dark:border-gray-700'}`} />
                 {errors.labelFr && <p className="text-xs text-red-600">{errors.labelFr}</p>}
               </div>
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Label EN *</label>
-                <input type="text" value={labelEn} onChange={(e) => setLabelEn(e.target.value)}
+                <input type="text" value={labelEn} onChange={(e) => setLabelEn(e.target.value)} onBlur={handleBlur}
                   className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 dark:bg-gray-900 dark:text-white ${errors.labelEn ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#1F4E79] focus:ring-[#1F4E79] dark:border-gray-700'}`} />
                 {errors.labelEn && <p className="text-xs text-red-600">{errors.labelEn}</p>}
               </div>
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Label AR</label>
-                <input type="text" value={labelAr} onChange={(e) => setLabelAr(e.target.value)} dir="rtl"
+                <input type="text" value={labelAr} onChange={(e) => setLabelAr(e.target.value)} onBlur={handleBlur} dir="rtl"
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
               </div>
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Label PT</label>
-                <input type="text" value={labelPt} onChange={(e) => setLabelPt(e.target.value)}
+                <input type="text" value={labelPt} onChange={(e) => setLabelPt(e.target.value)} onBlur={handleBlur}
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
               </div>
             </div>

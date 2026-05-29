@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Loader2, Wand2 } from 'lucide-react';
 import { useTranslateToAll } from '@/lib/api/translation-hooks';
@@ -50,32 +50,47 @@ export function MultilingualInput({
 }: MultilingualInputProps) {
   const [activeLang, setActiveLang] = useState<LangCode>(languages[0]);
   const translateMut = useTranslateToAll();
+  const translatingRef = useRef(false);
+  const lastTranslatedRef = useRef('');
 
   const handleChange = (lang: LangCode, text: string) => {
     onChange({ ...value, [lang]: text });
   };
 
+  // Auto-detect source: find first language with text
+  const sourceLang = languages.find((l) => value[l]?.trim()) || activeLang;
+  const sourceText = value[sourceLang]?.trim() || '';
+  const emptyLangs = languages.filter((l) => l !== sourceLang && !value[l]?.trim());
+
   const handleAutoTranslate = async () => {
-    const sourceText = value[activeLang]?.trim();
-    if (!sourceText) return;
+    if (!sourceText || emptyLangs.length === 0 || translatingRef.current) return;
+    if (sourceText === lastTranslatedRef.current) return;
 
-    const targets = languages.filter((l) => l !== activeLang && !value[l]?.trim());
-    if (targets.length === 0) return;
-
+    translatingRef.current = true;
     try {
       const results = await translateMut.mutateAsync({
-        source: activeLang,
+        source: sourceLang,
         text: sourceText,
-        targets,
+        targets: emptyLangs,
       });
       onChange({ ...value, ...results });
+      lastTranslatedRef.current = sourceText;
     } catch {
-      // Silently fail — user can still manually translate
+      // Silently fail
+    } finally {
+      translatingRef.current = false;
     }
   };
 
-  const hasTextToTranslate = !!value[activeLang]?.trim();
-  const hasEmptyLangs = languages.some((l) => l !== activeLang && !value[l]?.trim());
+  // Auto-translate on blur
+  const handleBlur = () => {
+    if (sourceText && emptyLangs.length > 0 && sourceText !== lastTranslatedRef.current) {
+      handleAutoTranslate();
+    }
+  };
+
+  const hasTextToTranslate = !!sourceText;
+  const hasEmptyLangs = emptyLangs.length > 0;
   const showAutoTranslate = hasTextToTranslate && hasEmptyLangs && !disabled;
 
   return (
@@ -138,6 +153,7 @@ export function MultilingualInput({
         type="text"
         value={value[activeLang] ?? ''}
         onChange={(e) => handleChange(activeLang, e.target.value)}
+        onBlur={handleBlur}
         placeholder={placeholder ?? `Enter ${LANG_NAMES[activeLang]} translation...`}
         disabled={disabled}
         dir={activeLang === 'ar' ? 'rtl' : 'ltr'}

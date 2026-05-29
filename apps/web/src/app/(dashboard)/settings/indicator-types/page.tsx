@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   BarChart3,
 } from 'lucide-react';
+import { useAutoTranslateOnBlur } from '@/components/settings/AutoTranslateGroup';
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN']);
 
@@ -73,6 +74,16 @@ function TypeFormModal({
 }) {
   const [form, setForm] = useState<TypeFormData>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { handleBlur } = useAutoTranslateOnBlur(
+    { en: form.labelEn, fr: form.labelFr, pt: form.labelPt, ar: form.labelAr },
+    {
+      en: (v) => setForm((f) => ({ ...f, labelEn: v })),
+      fr: (v) => setForm((f) => ({ ...f, labelFr: v })),
+      pt: (v) => setForm((f) => ({ ...f, labelPt: v })),
+      ar: (v) => setForm((f) => ({ ...f, labelAr: v })),
+    },
+  );
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
@@ -133,7 +144,7 @@ function TypeFormModal({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Label FR <span className="text-red-500">*</span>
             </label>
-            <input type="text" value={form.labelFr} onChange={(e) => setForm({ ...form, labelFr: e.target.value })}
+            <input type="text" value={form.labelFr} onChange={(e) => setForm({ ...form, labelFr: e.target.value })} onBlur={handleBlur}
               placeholder="Performance" className={inputCls('labelFr')} />
             {errors.labelFr && <p className="text-xs text-red-600">{errors.labelFr}</p>}
           </div>
@@ -141,7 +152,7 @@ function TypeFormModal({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Label EN <span className="text-red-500">*</span>
             </label>
-            <input type="text" value={form.labelEn} onChange={(e) => setForm({ ...form, labelEn: e.target.value })}
+            <input type="text" value={form.labelEn} onChange={(e) => setForm({ ...form, labelEn: e.target.value })} onBlur={handleBlur}
               placeholder="Performance" className={inputCls('labelEn')} />
             {errors.labelEn && <p className="text-xs text-red-600">{errors.labelEn}</p>}
           </div>
@@ -153,14 +164,14 @@ function TypeFormModal({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Label AR <span className="text-xs text-gray-400">(optional)</span>
             </label>
-            <input type="text" value={form.labelAr} onChange={(e) => setForm({ ...form, labelAr: e.target.value })}
+            <input type="text" value={form.labelAr} onChange={(e) => setForm({ ...form, labelAr: e.target.value })} onBlur={handleBlur}
               dir="rtl" className={inputCls('labelAr')} />
           </div>
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Label PT <span className="text-xs text-gray-400">(optional)</span>
             </label>
-            <input type="text" value={form.labelPt} onChange={(e) => setForm({ ...form, labelPt: e.target.value })}
+            <input type="text" value={form.labelPt} onChange={(e) => setForm({ ...form, labelPt: e.target.value })} onBlur={handleBlur}
               className={inputCls('labelPt')} />
           </div>
         </div>

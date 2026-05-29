@@ -18,6 +18,7 @@ import { useAdminSubDomains } from '@/lib/api/sub-domain-hooks';
 import { ForbiddenPage } from '@/components/ui/ForbiddenPage';
 import { Loader2, ArrowLeft, Check, Sparkles } from 'lucide-react';
 import { AiSuggestionDialog } from '@/components/ai/AiSuggestionDialog';
+import { useAutoTranslateOnBlur } from '@/components/settings/AutoTranslateGroup';
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN']);
 
@@ -88,6 +89,16 @@ function IndicatorForm() {
   const [descriptionFr, setDescriptionFr] = useState('');
   const [descriptionEn, setDescriptionEn] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { handleBlur: handleNameBlur } = useAutoTranslateOnBlur(
+    { en: nameEn, fr: nameFr, pt: namePt, ar: nameAr },
+    { en: (v) => setNameEn(v), fr: (v) => setNameFr(v), pt: (v) => setNamePt(v), ar: (v) => setNameAr(v) },
+  );
+
+  const { handleBlur: handleDescBlur } = useAutoTranslateOnBlur(
+    { en: descriptionEn, fr: descriptionFr },
+    { en: (v) => setDescriptionEn(v), fr: (v) => setDescriptionFr(v) },
+  );
 
   // AI suggestion dialog
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
@@ -246,7 +257,7 @@ function IndicatorForm() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Name FR <span className="text-red-500">*</span>
             </label>
-            <input type="text" value={nameFr} onChange={(e) => setNameFr(e.target.value)}
+            <input type="text" value={nameFr} onChange={(e) => setNameFr(e.target.value)} onBlur={handleNameBlur}
               placeholder="Taux de vaccination bovine" className={inputCls('nameFr')} />
             {errors.nameFr && <p className="text-xs text-red-600">{errors.nameFr}</p>}
           </div>
@@ -254,7 +265,7 @@ function IndicatorForm() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Name EN <span className="text-red-500">*</span>
             </label>
-            <input type="text" value={nameEn} onChange={(e) => handleNameEnChange(e.target.value)}
+            <input type="text" value={nameEn} onChange={(e) => handleNameEnChange(e.target.value)} onBlur={handleNameBlur}
               placeholder="Cattle vaccination rate" className={inputCls('nameEn')} />
             {errors.nameEn && <p className="text-xs text-red-600">{errors.nameEn}</p>}
           </div>
@@ -266,14 +277,14 @@ function IndicatorForm() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Name AR <span className="text-xs text-gray-400">(optional)</span>
             </label>
-            <input type="text" value={nameAr} onChange={(e) => setNameAr(e.target.value)}
+            <input type="text" value={nameAr} onChange={(e) => setNameAr(e.target.value)} onBlur={handleNameBlur}
               dir="rtl" className={inputCls('nameAr')} />
           </div>
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Name PT <span className="text-xs text-gray-400">(optional)</span>
             </label>
-            <input type="text" value={namePt} onChange={(e) => setNamePt(e.target.value)}
+            <input type="text" value={namePt} onChange={(e) => setNamePt(e.target.value)} onBlur={handleNameBlur}
               className={inputCls('namePt')} />
           </div>
         </div>
@@ -379,7 +390,7 @@ function IndicatorForm() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Description FR <span className="text-xs text-gray-400">(optional)</span>
             </label>
-            <textarea value={descriptionFr} onChange={(e) => setDescriptionFr(e.target.value)} rows={3}
+            <textarea value={descriptionFr} onChange={(e) => setDescriptionFr(e.target.value)} onBlur={handleDescBlur} rows={3}
               placeholder="Description en francais..."
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
           </div>
@@ -387,7 +398,7 @@ function IndicatorForm() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Description EN <span className="text-xs text-gray-400">(optional)</span>
             </label>
-            <textarea value={descriptionEn} onChange={(e) => setDescriptionEn(e.target.value)} rows={3}
+            <textarea value={descriptionEn} onChange={(e) => setDescriptionEn(e.target.value)} onBlur={handleDescBlur} rows={3}
               placeholder="English description..."
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
           </div>

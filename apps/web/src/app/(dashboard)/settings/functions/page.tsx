@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { toast } from 'sonner';
+import { useAutoTranslateOnBlur } from '@/components/settings/AutoTranslateGroup';
 
 const LEVEL_DEFS = [
   { key: 'continental', labelKey: 'continental', icon: Globe, color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30' },
@@ -162,6 +163,26 @@ export default function FunctionsPage() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FunctionFormData>(EMPTY_FORM);
+
+  const { handleBlur: handleNameBlur } = useAutoTranslateOnBlur(
+    { en: form.name.en, fr: form.name.fr, pt: form.name.pt, ar: form.name.ar },
+    {
+      en: (v) => setForm((f) => ({ ...f, name: { ...f.name, en: v } })),
+      fr: (v) => setForm((f) => ({ ...f, name: { ...f.name, fr: v } })),
+      pt: (v) => setForm((f) => ({ ...f, name: { ...f.name, pt: v } })),
+      ar: (v) => setForm((f) => ({ ...f, name: { ...f.name, ar: v } })),
+    },
+  );
+
+  const { handleBlur: handleDescBlur } = useAutoTranslateOnBlur(
+    { en: form.description.en, fr: form.description.fr, pt: form.description.pt, ar: form.description.ar },
+    {
+      en: (v) => setForm((f) => ({ ...f, description: { ...f.description, en: v } })),
+      fr: (v) => setForm((f) => ({ ...f, description: { ...f.description, fr: v } })),
+      pt: (v) => setForm((f) => ({ ...f, description: { ...f.description, pt: v } })),
+      ar: (v) => setForm((f) => ({ ...f, description: { ...f.description, ar: v } })),
+    },
+  );
 
   const openCreate = useCallback(() => {
     const defaultLevel = (activeTab && allowedLevels.some((l) => l.key === activeTab))
@@ -404,6 +425,7 @@ export default function FunctionsPage() {
                   <input
                     value={form.name[lang]}
                     onChange={(e) => setForm((f) => ({ ...f, name: { ...f.name, [lang]: e.target.value } }))}
+                    onBlur={handleNameBlur}
                     placeholder={lang === 'en' ? 'Name (required)' : `Name (${lang})`}
                     dir={lang === 'ar' ? 'rtl' : 'ltr'}
                     className="w-full rounded-lg border border-gray-200 pl-10 pr-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
@@ -421,6 +443,7 @@ export default function FunctionsPage() {
             <input
               value={form.description.en}
               onChange={(e) => setForm((f) => ({ ...f, description: { ...f.description, en: e.target.value } }))}
+              onBlur={handleDescBlur}
               placeholder="Brief description..."
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             />

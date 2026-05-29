@@ -28,6 +28,7 @@ import {
   Pencil,
   Activity,
 } from 'lucide-react';
+import { useAutoTranslateOnBlur } from '@/components/settings/AutoTranslateGroup';
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CONTINENTAL_ADMIN']);
 
@@ -90,6 +91,16 @@ function IndicatorDetail() {
   const [descriptionFr, setDescriptionFr] = useState('');
   const [descriptionEn, setDescriptionEn] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { handleBlur: handleNameBlur } = useAutoTranslateOnBlur(
+    { en: nameEn, fr: nameFr, pt: namePt, ar: nameAr },
+    { en: (v) => setNameEn(v), fr: (v) => setNameFr(v), pt: (v) => setNamePt(v), ar: (v) => setNameAr(v) },
+  );
+
+  const { handleBlur: handleDescBlur } = useAutoTranslateOnBlur(
+    { en: descriptionEn, fr: descriptionFr },
+    { en: (v) => setDescriptionEn(v), fr: (v) => setDescriptionFr(v) },
+  );
 
   const { data: subDomainsData } = useAdminSubDomains({
     domainCode: selectedDomainCode || undefined,
@@ -275,7 +286,7 @@ function IndicatorDetail() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Name FR <span className="text-red-500">*</span>
               </label>
-              <input type="text" value={nameFr} onChange={(e) => setNameFr(e.target.value)} disabled={!editing}
+              <input type="text" value={nameFr} onChange={(e) => setNameFr(e.target.value)} onBlur={handleNameBlur} disabled={!editing}
                 className={inputCls('nameFr')} />
               {errors.nameFr && <p className="text-xs text-red-600">{errors.nameFr}</p>}
             </div>
@@ -283,7 +294,7 @@ function IndicatorDetail() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Name EN <span className="text-red-500">*</span>
               </label>
-              <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} disabled={!editing}
+              <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} onBlur={handleNameBlur} disabled={!editing}
                 className={inputCls('nameEn')} />
               {errors.nameEn && <p className="text-xs text-red-600">{errors.nameEn}</p>}
             </div>
@@ -293,12 +304,12 @@ function IndicatorDetail() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name AR</label>
-              <input type="text" value={nameAr} onChange={(e) => setNameAr(e.target.value)} disabled={!editing}
+              <input type="text" value={nameAr} onChange={(e) => setNameAr(e.target.value)} onBlur={handleNameBlur} disabled={!editing}
                 dir="rtl" className={inputCls('nameAr')} />
             </div>
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name PT</label>
-              <input type="text" value={namePt} onChange={(e) => setNamePt(e.target.value)} disabled={!editing}
+              <input type="text" value={namePt} onChange={(e) => setNamePt(e.target.value)} onBlur={handleNameBlur} disabled={!editing}
                 className={inputCls('namePt')} />
             </div>
           </div>
@@ -398,12 +409,12 @@ function IndicatorDetail() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description FR</label>
-              <textarea value={descriptionFr} onChange={(e) => setDescriptionFr(e.target.value)} disabled={!editing} rows={3}
+              <textarea value={descriptionFr} onChange={(e) => setDescriptionFr(e.target.value)} onBlur={handleDescBlur} disabled={!editing} rows={3}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
             </div>
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description EN</label>
-              <textarea value={descriptionEn} onChange={(e) => setDescriptionEn(e.target.value)} disabled={!editing} rows={3}
+              <textarea value={descriptionEn} onChange={(e) => setDescriptionEn(e.target.value)} onBlur={handleDescBlur} disabled={!editing} rows={3}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
             </div>
           </div>
