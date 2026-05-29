@@ -14,22 +14,16 @@ import { NextRequest, NextResponse } from 'next/server';
  *   POST /api/translate?action=status     — test connection / status
  */
 
-/** Fetch wrapper that disables TLS verification for internal SYSTRAN servers */
-async function systranFetch(url: string, init?: RequestInit): Promise<Response> {
-  // For internal IPs with self-signed certs, disable TLS verification
+/**
+ * Fetch wrapper for SYSTRAN — disables TLS verification for internal servers.
+ * Sets NODE_TLS_REJECT_UNAUTHORIZED=0 globally on first call (safe for server-only code).
+ */
+let _tlsConfigured = false;
+function systranFetch(url: string, init?: RequestInit): Promise<Response> {
   const isInternal = url.includes('10.') || url.includes('192.168.') || url.includes('172.');
-  if (isInternal) {
-    const origValue = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+  if (isInternal && !_tlsConfigured) {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-    try {
-      return await fetch(url, init);
-    } finally {
-      if (origValue !== undefined) {
-        process.env.NODE_TLS_REJECT_UNAUTHORIZED = origValue;
-      } else {
-        delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
-      }
-    }
+    _tlsConfigured = true;
   }
   return fetch(url, init);
 }
