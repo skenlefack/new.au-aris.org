@@ -153,6 +153,34 @@ const DIRECT_PAIRS = new Set([
   'fr-en', 'ar-en', 'pt-en',
 ]);
 
+/**
+ * Simple language detection heuristic based on Unicode character ranges and common words.
+ * Returns detected language code or the provided source as fallback.
+ */
+function detectLanguage(text: string, declaredSource: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return declaredSource;
+
+  // Arabic: contains Arabic Unicode block characters
+  if (/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(trimmed)) return 'ar';
+
+  // Portuguese indicators: common Portuguese words/patterns not in French/English
+  const ptWords = /\b(relatório|saúde|são|não|também|através|número|informação|produção|vacinação|período)\b/i;
+  if (ptWords.test(trimmed)) return 'pt';
+
+  // French indicators: common French words/accents
+  const frWords = /\b(rapport|santé|animale|maladie|foyer|période|déclaration|nombre|données|élevage|résultat|enquête|signalement|également|contrôle|mesure|vétérinaire|abattoir|vaccination|département|région)\b/i;
+  const frAccents = /[àâçéèêëîïôùûüÿœæ]/i;
+  if (frWords.test(trimmed) || (frAccents.test(trimmed) && !/\b(the|and|or|is|are|was|for|with)\b/i.test(trimmed))) return 'fr';
+
+  // Spanish indicators
+  const esWords = /\b(informe|enfermedad|vacunación|número|período|también|producción|salud|animal|datos|resultado)\b/i;
+  if (esWords.test(trimmed)) return 'es';
+
+  // Default: trust the declared source
+  return declaredSource;
+}
+
 function hasDirectPair(source: string, target: string): boolean {
   return DIRECT_PAIRS.has(`${source}-${target}`);
 }
@@ -211,15 +239,26 @@ async function handleTranslate(request: NextRequest, config: SystranConfig) {
   }
 
   try {
+    // Auto-detect actual language of the text (user may have declared wrong source)
+    const actualSource = detectLanguage(inputs[0], source);
+    const effectiveSource = actualSource;
+
     let outputs: string[];
 
-    if (hasDirectPair(source, target)) {
+    if (effectiveSource === target) {
+      // Same language — return as-is
+      outputs = inputs;
+    } else if (hasDirectPair(effectiveSource, target)) {
       // Direct translation available
-      outputs = await systranTranslateOnce(config, source, target, inputs);
+      outputs = await systranTranslateOnce(config, effectiveSource, target, inputs);
     } else {
       // Pivot through English: source → en → target
-      const toEnglish = await systranTranslateOnce(config, source, 'en', inputs);
-      outputs = await systranTranslateOnce(config, 'en', target, toEnglish);
+      const toEnglish = effectiveSource === 'en'
+        ? inputs
+        : await systranTranslateOnce(config, effectiveSource, 'en', inputs);
+      outputs = target === 'en'
+        ? toEnglish
+        : await systranTranslateOnce(config, 'en', target, toEnglish);
     }
 
     return NextResponse.json({
