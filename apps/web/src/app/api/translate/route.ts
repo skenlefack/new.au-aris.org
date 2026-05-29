@@ -59,30 +59,63 @@ export async function POST(request: NextRequest) {
   const action = request.nextUrl.searchParams.get('action') ?? 'translate';
   const config = await getSystranConfig(authHeader);
 
-  if (!config.apiUrl || !config.apiKey) {
-    return NextResponse.json(
-      { error: 'Systran API is not configured. Please set URL and API key in Settings > Translations.' },
-      { status: 503 },
-    );
+  // If SYSTRAN is configured, use it
+  if (config.apiUrl && config.apiKey) {
+    try {
+      switch (action) {
+        case 'translate':
+          return await handleTranslate(request, config);
+        case 'languages':
+          return await handleLanguages(config);
+        case 'status':
+          return await handleStatus(config);
+        default:
+          return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
+      }
+    } catch (err) {
+      // If SYSTRAN fails, fall through to Ollama fallback for translate action
+      if (action === 'translate') {
+        console.warn('SYSTRAN failed, falling back to Ollama:', String(err));
+        return await handleOllamaFallback(request, authHeader);
+      }
+      return NextResponse.json(
+        { error: 'Translation proxy error', details: String(err) },
+        { status: 502 },
+      );
+    }
   }
 
-  try {
-    switch (action) {
-      case 'translate':
-        return await handleTranslate(request, config);
-      case 'languages':
-        return await handleLanguages(config);
-      case 'status':
-        return await handleStatus(config);
-      default:
-        return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
-    }
-  } catch (err) {
-    return NextResponse.json(
-      { error: 'Translation proxy error', details: String(err) },
-      { status: 502 },
-    );
+  // SYSTRAN not configured — use Ollama AI fallback for translate
+  if (action === 'translate') {
+    return await handleOllamaFallback(request, authHeader);
   }
+
+  // For non-translate actions without SYSTRAN, return appropriate response
+  if (action === 'status') {
+    return NextResponse.json({
+      data: { connected: false, status: 0, apiUrl: '', fallback: 'ollama' },
+    });
+  }
+
+  if (action === 'languages') {
+    // Return common language pairs supported by Ollama
+    return NextResponse.json({
+      data: {
+        languagePairs: [
+          { source: 'en', target: 'fr' }, { source: 'en', target: 'pt' },
+          { source: 'en', target: 'ar' }, { source: 'en', target: 'es' },
+          { source: 'fr', target: 'en' }, { source: 'fr', target: 'pt' },
+          { source: 'fr', target: 'ar' }, { source: 'fr', target: 'es' },
+          { source: 'pt', target: 'en' }, { source: 'pt', target: 'fr' },
+          { source: 'ar', target: 'en' }, { source: 'ar', target: 'fr' },
+          { source: 'es', target: 'en' }, { source: 'es', target: 'fr' },
+        ],
+        engine: 'ollama',
+      },
+    });
+  }
+
+  return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
 }
 
 /* ---------- translate ---------- */
@@ -159,4 +192,73 @@ async function handleStatus(config: SystranConfig) {
       apiUrl: config.apiUrl,
     },
   });
+}
+
+/* ---------- Ollama AI fallback ---------- */
+
+const AI_ORCHESTRATOR_URL = process.env.AI_ORCHESTRATOR_URL
+  ?? process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '')
+  ?? 'http://localhost:4000';
+
+const LANG_NAMES: Record<string, string> = {
+  en: 'English', fr: 'French', pt: 'Portuguese', ar: 'Arabic', es: 'Spanish',
+};
+
+async function handleOllamaFallback(
+  request: NextRequest,
+  authHeader: string | null,
+) {
+  const body = await request.json();
+  const { source, target, input } = body as {
+    source: string;
+    target: string;
+    input: string | string[];
+  };
+
+  if (!source || !target || !input) {
+    return NextResponse.json(
+      { error: 'Missing required fields: source, target, input' },
+      { status: 400 },
+    );
+  }
+
+  const text = Array.isArray(input) ? input[0] : input;
+  const sourceLang = LANG_NAMES[source] || source;
+  const targetLang = LANG_NAMES[target] || target;
+
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (authHeader) headers['Authorization'] = authHeader;
+
+    const res = await fetch(`${AI_ORCHESTRATOR_URL}/api/v1/ai/nlp/translate`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ text, sourceLang, targetLang }),
+      signal: AbortSignal.timeout(120_000),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      return NextResponse.json(
+        { error: `AI translation failed (${res.status})`, details: errText },
+        { status: res.status },
+      );
+    }
+
+    const data = await res.json();
+    const translation = data?.data?.translation ?? text;
+
+    // Return in SYSTRAN-compatible format so the frontend doesn't need to change
+    return NextResponse.json({
+      data: {
+        outputs: [{ output: translation }],
+        engine: 'ollama',
+      },
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: 'AI translation fallback failed', details: String(err) },
+      { status: 502 },
+    );
+  }
 }
