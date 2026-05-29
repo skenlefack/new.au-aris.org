@@ -1528,9 +1528,11 @@ export class CollectionCampaignService {
 
       if (tenant?.level === 'MEMBER_STATE' && tenant.countryCode) {
         // MS sees: own campaigns + campaigns targeting this country
+        // targetCountries is Json? (not String[]), so use Prisma JSON filter
+        const cc = tenant.countryCode.toUpperCase();
         where['OR'] = [
           { ownerId: user.tenantId },
-          { targetCountries: { array_contains: [tenant.countryCode.toUpperCase()] } },
+          { targetCountries: { path: [], array_contains: [cc] } },
         ];
       } else if (tenant?.level === 'REC') {
         // REC sees: own + targeting this REC + targeting any member country
@@ -1544,10 +1546,10 @@ export class CollectionCampaignService {
 
         const conditions: Record<string, unknown>[] = [
           { ownerId: user.tenantId },
-          { targetRecIds: { array_contains: [user.tenantId] } },
+          { targetRecIds: { path: [], array_contains: [user.tenantId] } },
         ];
         for (const code of countryCodes) {
-          conditions.push({ targetCountries: { array_contains: [code] } });
+          conditions.push({ targetCountries: { path: [], array_contains: [code] } });
         }
 
         where['OR'] = conditions;
