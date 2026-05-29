@@ -2644,7 +2644,8 @@
     "deleteSubDomain": "Delete sub-domain",
     "deleteDashboard": "Delete dashboard",
     "addSample": "+ Add Sample",
-    "of": "of"
+    "of": "of",
+    "translatingBeforeSubmit": "Translating..."
   },
   "masterData": {
     "title": "Master Data",

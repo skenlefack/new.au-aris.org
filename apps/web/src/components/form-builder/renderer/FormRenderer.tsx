@@ -1,13 +1,14 @@
 'use client';
 
-import React, { createContext, useContext, useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import React, { createContext, useContext, useMemo, useState, useRef } from 'react';
+import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FormSchema, FormSection, FormField, FieldCondition } from '../utils/form-schema';
 import { FieldRenderer } from './FieldRenderer';
 import { evaluateFieldCondition, evaluateCrossFieldRules } from './ConditionEvaluator';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
+import { useTranslateToAll } from '@/lib/api/translation-hooks';
 
 /** Context to propagate mobile flag to all nested renderers (repeaters, etc.) */
 export const FormMobileContext = createContext(false);
@@ -49,7 +50,9 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [requiredErrors, setRequiredErrors] = useState<Record<string, string>>({});
+  const [isTranslating, setIsTranslating] = useState(false);
   const locale = useLocaleStore((s) => s.locale);
+  const translateMut = useTranslateToAll();
 
   // Cross-field validation errors (dynamic rules from schema)
   const crossFieldErrors = useMemo(
@@ -84,21 +87,69 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  /** Translate any untranslated text/textarea fields before submission */
+  const translateUntranslatedFields = async (formValues: Record<string, unknown>): Promise<Record<string, unknown>> => {
+    const ALL_LANG_CODES = ['en', 'fr', 'pt', 'ar', 'es'];
+    const textFields = new Set<string>();
+
+    // Identify text/textarea fields from the schema
+    for (const section of schema.sections) {
+      for (const field of section.fields) {
+        if (field.type === 'text' || field.type === 'textarea') {
+          textFields.add(field.code);
+        }
+      }
+    }
+
+    const result = { ...formValues };
+    const promises: Promise<void>[] = [];
+
+    for (const code of textFields) {
+      const val = result[code];
+      if (!val) continue;
+
+      if (typeof val === 'string' && val.trim()) {
+        // Simple string — translate to all languages
+        promises.push(
+          translateMut.mutateAsync({ source: 'en', text: val.trim(), targets: ALL_LANG_CODES })
+            .then((translations) => { result[code] = { ...translations }; })
+            .catch(() => { /* keep original */ }),
+        );
+      } else if (typeof val === 'object' && !Array.isArray(val)) {
+        // Multilingual object — fill empty languages
+        const mlObj = val as Record<string, string>;
+        const sourceLang = ALL_LANG_CODES.find(l => mlObj[l]?.trim());
+        if (!sourceLang) continue;
+        const emptyLangs = ALL_LANG_CODES.filter(l => l !== sourceLang && !mlObj[l]?.trim());
+        if (emptyLangs.length === 0) continue;
+
+        promises.push(
+          translateMut.mutateAsync({ source: sourceLang, text: mlObj[sourceLang]!.trim(), targets: emptyLangs })
+            .then((translations) => { result[code] = { ...mlObj, ...translations }; })
+            .catch(() => { /* keep existing */ }),
+        );
+      }
+    }
+
+    if (promises.length > 0) {
+      await Promise.all(promises);
+    }
+    return result;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (preview || isSubmitting) return;
+    if (preview || isSubmitting || isTranslating) return;
 
     // Validate required fields before submitting
     const errors: Record<string, string> = {};
     for (const section of schema.sections) {
-      // Skip hidden sections
       if (section.conditions?.length) {
         const cond = applyFieldConditions(section.conditions, values);
         if (cond.hidden) continue;
       }
       for (const field of section.fields) {
         if (field.hidden || LAYOUT_TYPES.has(field.type)) continue;
-        // Check field-level conditions (might make it hidden or change required)
         const condResult = applyFieldConditions(field.conditions, values);
         if (condResult.hidden) continue;
         const isRequired = condResult.required ?? field.required;
@@ -112,7 +163,6 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
 
     if (Object.keys(errors).length > 0) {
       setRequiredErrors(errors);
-      // Expand collapsed sections that contain errors
       setCollapsedSections((prev) => {
         const next = new Set(prev);
         for (const section of schema.sections) {
@@ -126,7 +176,16 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
     }
 
     setRequiredErrors({});
-    onSubmit?.(values);
+
+    // Auto-translate untranslated text fields before submitting
+    setIsTranslating(true);
+    try {
+      const translatedValues = await translateUntranslatedFields(values);
+      setValues(translatedValues);
+      onSubmit?.(translatedValues);
+    } finally {
+      setIsTranslating(false);
+    }
   };
 
   return (
@@ -179,16 +238,13 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
           <div className="flex justify-end gap-3">
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isTranslating}
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting && (
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+              {(isSubmitting || isTranslating) && (
+                <Loader2 className="h-4 w-4 animate-spin" />
               )}
-              {isSubmitting ? t('submitting') : t('submitForm')}
+              {isTranslating ? t('translatingBeforeSubmit') : isSubmitting ? t('submitting') : t('submitForm')}
             </button>
           </div>
         )}

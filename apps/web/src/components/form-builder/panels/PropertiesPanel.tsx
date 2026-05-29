@@ -37,6 +37,7 @@ function MLInput({
 }) {
   const [lang, setLang] = useState<'en' | 'fr' | 'pt' | 'ar'>('en');
   const translateMut = useTranslateToAll();
+  const translatingRef = React.useRef(false);
 
   // Find the first language that has text (auto-detect source)
   const sourceLang = LANGS.find((l) => value[l]?.trim()) || lang;
@@ -45,7 +46,8 @@ function MLInput({
   const canTranslate = !!sourceText && emptyLangs.length > 0;
 
   const handleAutoTranslate = async () => {
-    if (!sourceText || emptyLangs.length === 0) return;
+    if (!sourceText || emptyLangs.length === 0 || translatingRef.current) return;
+    translatingRef.current = true;
     try {
       const results = await translateMut.mutateAsync({
         source: sourceLang,
@@ -54,27 +56,35 @@ function MLInput({
       });
       onChange({ ...value, ...results });
     } catch {
-      // Silently fail — user can still manually translate
+      // Silently fail
+    } finally {
+      translatingRef.current = false;
     }
+  };
+
+  // Auto-translate on blur: when user leaves the input and other langs are empty
+  const handleBlur = () => {
+    if (canTranslate) handleAutoTranslate();
   };
 
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
         <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">{label}</label>
-        {canTranslate && (
+        {translateMut.isPending && (
+          <span className="flex items-center gap-1 text-[10px] text-blue-500">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Traduction...
+          </span>
+        )}
+        {canTranslate && !translateMut.isPending && (
           <button
             type="button"
             onClick={handleAutoTranslate}
-            disabled={translateMut.isPending}
-            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 transition-colors"
             title="Auto-translate to all languages via SYSTRAN"
           >
-            {translateMut.isPending ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Wand2 className="h-3 w-3" />
-            )}
+            <Wand2 className="h-3 w-3" />
             Traduire
           </button>
         )}
@@ -93,7 +103,6 @@ function MLInput({
             )}
           >
             {l}
-            {/* Dot indicator: green=filled, red=empty */}
             <span className={cn(
               'absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full',
               value[l]?.trim() ? 'bg-green-400' : 'bg-red-300',
@@ -105,6 +114,7 @@ function MLInput({
         type="text"
         value={value[lang] ?? ''}
         onChange={(e) => onChange({ ...value, [lang]: e.target.value })}
+        onBlur={handleBlur}
         placeholder={placeholder}
         dir={lang === 'ar' ? 'rtl' : 'ltr'}
         className="w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-xs text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white"

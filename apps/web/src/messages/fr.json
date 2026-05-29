@@ -2644,7 +2644,8 @@
     "deleteSubDomain": "Supprimer le sous-domaine",
     "deleteDashboard": "Supprimer le tableau de bord",
     "addSample": "+ Ajouter Prélèvement",
-    "of": "sur"
+    "of": "sur",
+    "translatingBeforeSubmit": "Traduction en cours..."
   },
   "masterData": {
     "title": "Données de référence",

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Languages, Loader2, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslateToAll } from '@/lib/api/translation-hooks';
@@ -25,17 +25,17 @@ interface TranslatableTextFieldProps {
 }
 
 /**
- * TranslatableTextField — wraps a text/textarea input with a "Translate" button.
+ * TranslatableTextField — wraps a text/textarea input with auto-translation.
  *
- * When the user types in their language and clicks Translate, SYSTRAN translates
- * the text to all other languages and stores the result as a multilingual object:
- * { en: "...", fr: "...", pt: "...", ar: "..." }
+ * Auto-translates on:
+ * 1. onBlur — when the user leaves the field, SYSTRAN translates to all other languages
+ * 2. Explicit "Translate" button click
  *
  * The value can be:
- * - A simple string (legacy/single-language) → displayed as-is
- * - A multilingual object { en, fr, pt, ar } → displayed in current locale
+ * - A simple string (legacy/single-language) → auto-translated on blur → becomes multilingual
+ * - A multilingual object { en, fr, pt, ar, es } → displayed in current locale
  *
- * Backward compatible: if the user never clicks Translate, the value stays a string.
+ * Use `translateBeforeSubmit()` to translate any remaining untranslated fields before form save.
  */
 export function TranslatableTextField({
   value,
@@ -50,6 +50,8 @@ export function TranslatableTextField({
   const currentLang = locale?.slice(0, 2) || 'en';
   const translateMut = useTranslateToAll();
   const [showTranslations, setShowTranslations] = useState(false);
+  const translatingRef = useRef(false);
+  const lastTranslatedRef = useRef('');
 
   // Resolve current display value
   const isMultilingual = value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -65,21 +67,18 @@ export function TranslatableTextField({
 
   const handleChange = useCallback((newText: string) => {
     if (isMultilingual) {
-      // Update current language in the multilingual object
       onChange({ ...mlValue, [currentLang]: newText });
     } else {
-      // Keep as simple string until user clicks Translate
       onChange(newText);
     }
   }, [isMultilingual, mlValue, currentLang, onChange]);
 
-  const handleTranslate = useCallback(async () => {
-    // Auto-detect source: use current lang if it has text, else find first filled lang
+  const doTranslate = useCallback(async () => {
+    // Auto-detect source: find the first language that has text
     let sourceLang = currentLang;
     let sourceText = isMultilingual ? (mlValue[currentLang] || '').trim() : (displayValue || '').trim();
 
     if (!sourceText && isMultilingual) {
-      // Find the first language that has text
       for (const l of ALL_LANGS) {
         if (mlValue[l.code]?.trim()) {
           sourceLang = l.code;
@@ -89,7 +88,9 @@ export function TranslatableTextField({
       }
     }
 
-    if (!sourceText) return;
+    if (!sourceText || translatingRef.current) return;
+    // Don't re-translate if the text hasn't changed since last translation
+    if (sourceText === lastTranslatedRef.current) return;
 
     const targets = ALL_LANGS
       .map(l => l.code)
@@ -97,6 +98,7 @@ export function TranslatableTextField({
 
     if (targets.length === 0) return;
 
+    translatingRef.current = true;
     try {
       const results = await translateMut.mutateAsync({
         source: sourceLang,
@@ -104,18 +106,28 @@ export function TranslatableTextField({
         targets,
       });
 
-      // Convert to multilingual object with all translations
       const newValue: Record<string, string> = {
         ...mlValue,
         [sourceLang]: sourceText,
         ...results,
       };
       onChange(newValue);
+      lastTranslatedRef.current = sourceText;
       setShowTranslations(true);
     } catch {
       // Silently fail
+    } finally {
+      translatingRef.current = false;
     }
   }, [isMultilingual, mlValue, currentLang, displayValue, translateMut, onChange]);
+
+  // Auto-translate on blur
+  const handleBlur = useCallback(() => {
+    const text = isMultilingual ? (mlValue[currentLang] || '').trim() : (displayValue || '').trim();
+    if (text && text !== lastTranslatedRef.current) {
+      doTranslate();
+    }
+  }, [isMultilingual, mlValue, currentLang, displayValue, doTranslate]);
 
   const handleLangChange = useCallback((lang: string, text: string) => {
     onChange({ ...mlValue, [lang]: text });
@@ -136,6 +148,7 @@ export function TranslatableTextField({
           <textarea
             value={displayValue}
             onChange={(e) => handleChange(e.target.value)}
+            onBlur={handleBlur}
             placeholder={placeholder}
             readOnly={readOnly}
             rows={rows}
@@ -147,36 +160,42 @@ export function TranslatableTextField({
             type="text"
             value={displayValue}
             onChange={(e) => handleChange(e.target.value)}
+            onBlur={handleBlur}
             placeholder={placeholder}
             readOnly={readOnly}
             dir={currentLang === 'ar' ? 'rtl' : 'ltr'}
             className={inputClass}
           />
         )}
+        {/* Inline translating indicator */}
+        {translateMut.isPending && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-blue-500">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <span className="text-[10px] font-medium">Translating...</span>
+          </div>
+        )}
       </div>
 
-      {/* Translate button bar */}
+      {/* Status bar: show filled count + manual translate button */}
       {!readOnly && displayValue.trim() && (
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleTranslate}
-            disabled={translateMut.isPending || !displayValue.trim()}
-            className={cn(
-              'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-              'bg-gradient-to-r from-blue-500 to-indigo-500 text-white',
-              'hover:from-blue-600 hover:to-indigo-600',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
-              'shadow-sm',
-            )}
-          >
-            {translateMut.isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
+          {!translateMut.isPending && (
+            <button
+              type="button"
+              onClick={doTranslate}
+              disabled={translateMut.isPending || !displayValue.trim()}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                'bg-gradient-to-r from-blue-500 to-indigo-500 text-white',
+                'hover:from-blue-600 hover:to-indigo-600',
+                'disabled:opacity-50 disabled:cursor-not-allowed',
+                'shadow-sm',
+              )}
+            >
               <Languages className="h-3.5 w-3.5" />
-            )}
-            {translateMut.isPending ? 'Translating...' : 'Translate'}
-          </button>
+              Translate
+            </button>
+          )}
 
           {isMultilingual && filledCount > 0 && (
             <button
@@ -233,4 +252,61 @@ export function TranslatableTextField({
       )}
     </div>
   );
+}
+
+/**
+ * Utility: translate all untranslated text fields in a form data object before submission.
+ * Call this in the form's onSubmit handler before sending data to the API.
+ *
+ * Usage:
+ *   const translatedData = await translateFormBeforeSubmit(formData);
+ *   submitMutation.mutate(translatedData);
+ */
+export async function translateFormBeforeSubmit(
+  formData: Record<string, unknown>,
+  translateFn: (params: { source: string; text: string; targets: string[] }) => Promise<Record<string, string>>,
+): Promise<Record<string, unknown>> {
+  const result = { ...formData };
+  const langCodes = ALL_LANGS.map(l => l.code);
+
+  for (const [key, value] of Object.entries(result)) {
+    // Skip non-string/non-object values
+    if (!value) continue;
+
+    if (typeof value === 'string' && value.trim()) {
+      // Simple string — translate to all languages
+      try {
+        const translations = await translateFn({
+          source: 'en', // auto-detected by the proxy
+          text: value.trim(),
+          targets: langCodes,
+        });
+        result[key] = { ...translations };
+      } catch {
+        // Keep as simple string if translation fails
+      }
+    } else if (typeof value === 'object' && !Array.isArray(value)) {
+      // Multilingual object — translate any empty languages
+      const mlObj = value as Record<string, string>;
+      const sourceLang = langCodes.find(l => mlObj[l]?.trim());
+      if (!sourceLang) continue;
+
+      const sourceText = mlObj[sourceLang]!.trim();
+      const emptyLangs = langCodes.filter(l => l !== sourceLang && !mlObj[l]?.trim());
+      if (emptyLangs.length === 0) continue;
+
+      try {
+        const translations = await translateFn({
+          source: sourceLang,
+          text: sourceText,
+          targets: emptyLangs,
+        });
+        result[key] = { ...mlObj, ...translations };
+      } catch {
+        // Keep existing values
+      }
+    }
+  }
+
+  return result;
 }

@@ -2645,7 +2645,8 @@
     "deleteSubDomain": "Eliminar subdominio",
     "deleteDashboard": "Eliminar panel",
     "addSample": "+ Añadir Muestra",
-    "of": "de"
+    "of": "de",
+    "translatingBeforeSubmit": "Traduciendo..."
   },
   "masterData": {
     "title": "Datos Maestros",
