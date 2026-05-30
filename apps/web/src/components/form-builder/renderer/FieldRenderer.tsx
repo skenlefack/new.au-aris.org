@@ -22,6 +22,7 @@ import {
 
 import { TranslatableTextField } from './TranslatableTextField';
 import { MultiSearchCombobox } from '@/components/ui/MultiSearchCombobox';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 
 const GeoPointMap = lazy(() => import('./GeoPointMap').then((m) => ({ default: m.GeoPointMap })));
 const GeoPolygonMap = lazy(() => import('./GeoPolygonMap').then((m) => ({ default: m.GeoPolygonMap })));
@@ -201,18 +202,16 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
       )}
 
       {field.type === 'select' && (
-        <select
+        <SearchableSelect
           value={(value as string) || ''}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputClass}
-        >
-          <option value="">{placeholder || 'Select...'}</option>
-          {((field.properties.options || []) as SelectOption[]).map((opt, i) => (
-            <option key={i} value={opt.value}>
-              {ml(opt.label) || opt.value}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => onChange(v)}
+          options={((field.properties.options || []) as SelectOption[]).map((opt) => ({
+            label: ml(opt.label) || opt.value,
+            value: opt.value,
+          }))}
+          placeholder={placeholder || 'Select...'}
+          disabled={field.readOnly}
+        />
       )}
 
       {field.type === 'master-data-select' && (
