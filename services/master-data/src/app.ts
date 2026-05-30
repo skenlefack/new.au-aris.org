@@ -31,6 +31,7 @@ import { RefDataService } from './services/ref-data.service';
 import { registerRefDataRoutes } from './routes/ref-data.routes';
 import { FisheryRefService } from './services/fishery-ref.service';
 import { registerFisheryRefRoutes } from './routes/fishery-ref.routes';
+import { registerPaidRefRoutes } from './routes/paid-ref.routes';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -139,6 +140,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerImportExportRoutes);
   await app.register(registerRefDataRoutes);
   await app.register(registerFisheryRefRoutes);
+  await app.register(registerPaidRefRoutes);
 
   app.addHook('onClose', async () => {
     await prisma.$disconnect();
