@@ -92,10 +92,10 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
     const ALL_LANG_CODES = ['en', 'fr', 'pt', 'ar'];
     const textFields = new Set<string>();
 
-    // Identify text/textarea fields from the schema
+    // Only translate fields explicitly marked as translatable
     for (const section of schema.sections) {
       for (const field of section.fields) {
-        if (field.type === 'text' || field.type === 'textarea') {
+        if ((field.type === 'text' || field.type === 'textarea') && field.properties.translatable) {
           textFields.add(field.code);
         }
       }

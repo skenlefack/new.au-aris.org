@@ -134,12 +134,23 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
       )}
 
       {field.type === 'text' && (
-        <TranslatableTextField
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          readOnly={field.readOnly}
-        />
+        field.properties.translatable ? (
+          <TranslatableTextField
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            readOnly={field.readOnly}
+          />
+        ) : (
+          <input
+            type="text"
+            value={(value as string) || ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            readOnly={field.readOnly}
+            className={inputClass}
+          />
+        )
       )}
 
       {field.type === 'email' && (
@@ -173,14 +184,25 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
       )}
 
       {field.type === 'textarea' && (
-        <TranslatableTextField
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          readOnly={field.readOnly}
-          multiline
-          rows={(field.properties.rows as number) || 4}
-        />
+        field.properties.translatable ? (
+          <TranslatableTextField
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            readOnly={field.readOnly}
+            multiline
+            rows={(field.properties.rows as number) || 4}
+          />
+        ) : (
+          <textarea
+            value={(value as string) || ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            rows={(field.properties.rows as number) || 4}
+            readOnly={field.readOnly}
+            className={cn(inputClass, 'resize-y')}
+          />
+        )
       )}
 
       {field.type === 'number' && (
