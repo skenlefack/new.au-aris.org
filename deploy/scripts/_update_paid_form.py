@@ -39,6 +39,13 @@ def ml(en, fr='', pt='', ar=''):
     return {"en": en, "fr": fr or en, "pt": pt or '', "ar": ar or ''}
 
 
+def set_section_name(sec, en, fr=''):
+    """Set section name (not title — FormSection uses 'name')."""
+    sec["name"] = ml(en, fr)
+    # Remove 'title' if present (wrong key)
+    sec.pop("title", None)
+
+
 def make_field(code, label_en, label_fr, ftype, required=False, **props):
     """Create a form field dict."""
     import uuid
@@ -58,11 +65,11 @@ def update_schema(schema):
 
     # ── S0: Project Information (reporting) ──
     if len(sections) > 0:
-        sections[0]["title"] = ml("Project Information", "Informations du projet")
+        set_section_name(sections[0], "Project Information", "Informations du projet")
 
     # ── S1: Project & Location ──
     if len(sections) > 1:
-        sections[1]["title"] = ml("Project & Location", "Projet et localisation")
+        set_section_name(sections[1], "Project & Location", "Projet et localisation")
         for f in sections[1]["fields"]:
             # D1: prj_symbol → master-data-select
             if f["code"] == "prj_symbol":
@@ -83,7 +90,7 @@ def update_schema(schema):
 
     # ── S2: Partners ──
     if len(sections) > 2:
-        sections[2]["title"] = ml("Implementing Partners", "Partenaires de mise en oeuvre")
+        set_section_name(sections[2], "Implementing Partners", "Partenaires de mise en oeuvre")
         for f in sections[2]["fields"]:
             # D3: implem_partner_intl → master-data-select
             if f["code"] == "implem_partner_intl":
@@ -108,7 +115,7 @@ def update_schema(schema):
 
     # ── S3: Activity/Output Information ──
     if len(sections) > 3:
-        sections[3]["title"] = ml("Activity / Output Information", "Information sur les activites")
+        set_section_name(sections[3], "Activity / Output Information", "Information sur les activites")
         new_fields = []
         for f in sections[3]["fields"]:
             # D5: prod_sector → master-data-select (paid-sectors)
@@ -209,7 +216,7 @@ def update_schema(schema):
 
     # ── S4: Beneficiary Information ──
     if len(sections) > 4:
-        sections[4]["title"] = ml("Beneficiary Information", "Informations sur les beneficiaires")
+        set_section_name(sections[4], "Beneficiary Information", "Informations sur les beneficiaires")
 
         existing_codes = {f["code"] for f in sections[4]["fields"]}
 
@@ -283,8 +290,13 @@ def update_schema(schema):
 
         recs_section = {
             "id": str(uuid.uuid4()),
-            "title": ml("RECs & Beneficiary Countries", "CER et pays beneficiaires"),
-            "repeater": False,
+            "name": ml("RECs & Beneficiary Countries", "CER et pays beneficiaires"),
+            "order": 5,
+            "columns": 1,
+            "isCollapsible": True,
+            "isCollapsed": False,
+            "isRepeatable": False,
+            "conditions": [],
             "fields": [
                 {
                     "id": str(uuid.uuid4()),
@@ -312,7 +324,7 @@ def update_schema(schema):
     # ── Comments section (now S6) ──
     comments_idx = next((i for i, s in enumerate(sections) if any(f.get("code") == "comments" for f in s.get("fields", []))), -1)
     if comments_idx >= 0:
-        sections[comments_idx]["title"] = ml("Comments & Location", "Commentaires et localisation")
+        set_section_name(sections[comments_idx], "Comments & Location", "Commentaires et localisation")
 
     # ── E1: Enable repeater on activity sections ──
     # Sections that should repeat: Partners (S2), Activity (S3), Beneficiary (S4)
@@ -323,8 +335,8 @@ def update_schema(schema):
         field_codes = {f.get("code") for f in fields}
         # Partners section
         if "implem_partner_intl" in field_codes or "executive_partner" in field_codes:
-            sec["repeater"] = True
-            sec["title"] = ml("PAID Activity Line", "Ligne d'activite PAID")
+            sec["isRepeatable"] = True
+            set_section_name(sec, "PAID Activity Line", "Ligne d'activite PAID")
             # Merge Partners + Activity + Beneficiary into one repeater section
             # Actually, in Kobo they're all in one repeat group
             # Let's merge S2+S3+S4 fields into one section with repeater
@@ -343,8 +355,13 @@ def update_schema(schema):
             import uuid
             merged_section = {
                 "id": str(uuid.uuid4()),
-                "title": ml("PAID Activity Line", "Ligne d'activite PAID"),
-                "repeater": True,
+                "name": ml("PAID Activity Line", "Ligne d'activite PAID"),
+                "order": 2,
+                "columns": 1,
+                "isCollapsible": True,
+                "isCollapsed": False,
+                "isRepeatable": True,
+                "conditions": [],
                 "fields": s2_fields + s3_fields + s4_fields,
             }
             # Remove S2, S3, S4 and insert merged
