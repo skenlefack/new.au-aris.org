@@ -89,7 +89,7 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
 
   /** Translate any untranslated text/textarea fields before submission */
   const translateUntranslatedFields = async (formValues: Record<string, unknown>): Promise<Record<string, unknown>> => {
-    const ALL_LANG_CODES = ['en', 'fr', 'pt', 'ar', 'es'];
+    const ALL_LANG_CODES = ['en', 'fr', 'pt', 'ar'];
     const textFields = new Set<string>();
 
     // Identify text/textarea fields from the schema

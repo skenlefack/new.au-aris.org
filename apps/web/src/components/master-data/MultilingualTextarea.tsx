@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { Loader2, Wand2 } from 'lucide-react';
 import { useTranslateToAll } from '@/lib/api/translation-hooks';
 
-type LangCode = 'en' | 'fr' | 'pt' | 'ar' | 'es';
+type LangCode = 'en' | 'fr' | 'pt' | 'ar';
 
 interface MultilingualValue {
   [key: string]: string;
@@ -31,7 +31,7 @@ export function MultilingualTextarea({
   value,
   onChange,
   required = false,
-  languages = ['en', 'fr', 'pt', 'ar', 'es'],
+  languages = ['en', 'fr', 'pt', 'ar'],
   placeholder,
   disabled = false,
   error,
