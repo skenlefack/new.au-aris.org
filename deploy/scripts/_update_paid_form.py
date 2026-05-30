@@ -47,7 +47,7 @@ def set_section_name(sec, en, fr=''):
 
 
 def make_field(code, label_en, label_fr, ftype, required=False, **props):
-    """Create a form field dict."""
+    """Create a form field dict with all required FormField keys."""
     import uuid
     return {
         "id": str(uuid.uuid4()),
@@ -55,6 +55,13 @@ def make_field(code, label_en, label_fr, ftype, required=False, **props):
         "label": ml(label_en, label_fr),
         "type": ftype,
         "required": required,
+        "order": 0,
+        "column": 0,
+        "columnSpan": 1,
+        "hidden": False,
+        "readOnly": False,
+        "conditions": [],
+        "validation": {},
         "properties": props,
     }
 
@@ -194,19 +201,12 @@ def update_schema(schema):
 
         # D11: Add project_status after cva_delivery
         import uuid
-        project_status = {
-            "id": str(uuid.uuid4()),
-            "code": "project_status",
-            "label": ml("Project Status", "Statut du projet"),
-            "type": "select",
-            "required": False,
-            "options": [
-                {"value": "ongoing", "label": ml("Ongoing", "En cours")},
-                {"value": "completed", "label": ml("Completed", "Termine")},
-                {"value": "on_hold", "label": ml("On Hold", "En attente")},
-            ],
-            "properties": {},
-        }
+        project_status = make_field("project_status", "Project Status", "Statut du projet", "select")
+        project_status["options"] = [
+            {"value": "ongoing", "label": ml("Ongoing", "En cours")},
+            {"value": "completed", "label": ml("Completed", "Termine")},
+            {"value": "on_hold", "label": ml("On Hold", "En attente")},
+        ]
 
         # Insert project_status after cash_plus
         idx = next((i for i, f in enumerate(new_fields) if f["code"] == "cash_plus"), len(new_fields))
@@ -298,24 +298,8 @@ def update_schema(schema):
             "isRepeatable": False,
             "conditions": [],
             "fields": [
-                {
-                    "id": str(uuid.uuid4()),
-                    "code": "recs_benefiting",
-                    "label": ml("RECs Benefiting", "CER beneficiaires"),
-                    "type": "select",
-                    "required": False,
-                    "options": rec_options,
-                    "properties": {"multiple": True},
-                },
-                {
-                    "id": str(uuid.uuid4()),
-                    "code": "beneficiary_countries",
-                    "label": ml("Beneficiary Countries", "Pays beneficiaires"),
-                    "type": "select",
-                    "required": False,
-                    "options": country_options,
-                    "properties": {"multiple": True},
-                },
+                {**make_field("recs_benefiting", "RECs Benefiting", "CER beneficiaires", "select", multiple=True), "options": rec_options},
+                {**make_field("beneficiary_countries", "Beneficiary Countries", "Pays beneficiaires", "select", multiple=True), "options": country_options},
             ],
         }
         # Insert before Comments section (S5)
