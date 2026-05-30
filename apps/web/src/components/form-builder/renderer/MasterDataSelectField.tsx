@@ -2,6 +2,8 @@
 
 import React, { useMemo } from 'react';
 import { useRefDataForSelect, usePaidReferentials, type RefDataType, type PaidRefCategory } from '@/lib/api/ref-data-hooks';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { MultiSearchCombobox } from '@/components/ui/MultiSearchCombobox';
 
 interface MasterDataSelectFieldProps {
   masterDataType: string;
@@ -130,53 +132,38 @@ export function MasterDataSelectField({
   }, [value]);
 
   if (multiple) {
-    const toggleValue = (id: string) => {
-      const next = selectedArray.includes(id)
-        ? selectedArray.filter((v) => v !== id)
-        : [...selectedArray, id];
-      onChange(next);
-    };
+    const selectedItems = options.filter((o) => selectedArray.includes(o.value));
 
     return (
-      <div className="space-y-1 rounded-lg border border-gray-200 p-2 max-h-60 overflow-y-auto dark:border-gray-700">
-        {isLoading && <span className="text-xs text-gray-400">Loading...</span>}
-        {isError && <span className="text-xs text-red-400">Error loading {masterDataType}</span>}
-        {options.map((opt) => (
-          <label key={opt.value} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded px-1">
-            <input
-              type="checkbox"
-              checked={selectedArray.includes(opt.value)}
-              onChange={() => toggleValue(opt.value)}
-              className="rounded border-gray-300"
-            />
-            {opt.label}
-          </label>
-        ))}
-        {!isLoading && options.length === 0 && (
-          <span className="text-xs text-gray-400">No options available</span>
-        )}
-      </div>
+      <MultiSearchCombobox<{ value: string; label: string }>
+        value={selectedItems}
+        onChange={(items) => onChange(items.map((i) => i.value))}
+        items={options}
+        labelKey={(o) => o.label}
+        idKey={(o) => o.value}
+        filterKey={(o) => o.label}
+        placeholder={placeholder || `Select ${masterDataType.replace('paid-', '')}...`}
+        allLabel="All"
+        loading={isLoading}
+        renderItem={(o) => <span>{o.label}</span>}
+        renderChip={(o) => <span className="truncate max-w-[120px]">{o.label}</span>}
+      />
     );
   }
 
   return (
-    <select
+    <SearchableSelect
       value={(typeof value === 'string' ? value : '') || ''}
-      onChange={(e) => onChange(e.target.value)}
-      className={className}
-    >
-      <option value="">
-        {isLoading
+      onChange={(v) => onChange(v)}
+      options={options}
+      placeholder={
+        isLoading
           ? 'Loading...'
           : isError
             ? `Error loading ${masterDataType}`
-            : placeholder || `Select ${masterDataType.replace('paid-', '')}...`}
-      </option>
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value}>
-          {opt.label}
-        </option>
-      ))}
-    </select>
+            : placeholder || `Select ${masterDataType.replace('paid-', '')}...`
+      }
+      disabled={isLoading}
+    />
   );
 }
