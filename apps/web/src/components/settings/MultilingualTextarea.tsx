@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Loader2, Wand2 } from 'lucide-react';
 import { useTranslateToAll } from '@/lib/api/translation-hooks';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 
 type LangCode = 'en' | 'fr' | 'pt' | 'ar';
 
@@ -23,21 +24,8 @@ interface MultilingualTextareaProps {
   error?: string;
 }
 
-const LANG_LABELS: Record<LangCode, string> = {
-  en: 'EN',
-  fr: 'FR',
-  pt: 'PT',
-  ar: 'AR',
-  es: 'ES',
-};
-
-const LANG_NAMES: Record<LangCode, string> = {
-  en: 'English',
-  fr: 'Fran\u00e7ais',
-  pt: 'Portugu\u00eas',
-  ar: '\u0627\u0644\u0639\u0631\u0628\u064a\u0629',
-  es: 'Espa\u00f1ol',
-};
+const LANG_LABELS: Record<string, string> = { en: 'EN', fr: 'FR', pt: 'PT', ar: 'AR' };
+const LANG_NAMES: Record<string, string> = { en: 'English', fr: 'Français', pt: 'Português', ar: 'العربية' };
 
 export function MultilingualTextarea({
   label,
@@ -50,30 +38,30 @@ export function MultilingualTextarea({
   rows = 3,
   error,
 }: MultilingualTextareaProps) {
-  const [activeLang, setActiveLang] = useState<LangCode>(languages[0]);
+  const locale = useLocaleStore((s) => s.locale);
+  const userLang = (locale?.slice(0, 2) || 'en') as LangCode;
+  const defaultLang = languages.includes(userLang) ? userLang : languages[0];
+  const [activeLang, setActiveLang] = useState<LangCode>(defaultLang);
   const translateMut = useTranslateToAll();
   const translatingRef = useRef(false);
   const lastTranslatedRef = useRef('');
 
-  const handleChange = (lang: LangCode, text: string) => {
-    onChange({ ...value, [lang]: text });
-  };
-
-  // Auto-detect source: find first language with text
   const sourceLang = languages.find((l) => value[l]?.trim()) || activeLang;
   const sourceText = value[sourceLang]?.trim() || '';
-  const emptyLangs = languages.filter((l) => l !== sourceLang && !value[l]?.trim());
+  const otherLangs = languages.filter((l) => l !== sourceLang);
+  const emptyLangs = otherLangs.filter((l) => !value[l]?.trim());
 
-  const handleAutoTranslate = async () => {
-    if (!sourceText || emptyLangs.length === 0 || translatingRef.current) return;
-    if (sourceText === lastTranslatedRef.current) return;
+  const handleAutoTranslate = async (forceAll = false) => {
+    if (!sourceText || translatingRef.current) return;
+    const targets = forceAll ? otherLangs : emptyLangs;
+    if (targets.length === 0) return;
 
     translatingRef.current = true;
     try {
       const results = await translateMut.mutateAsync({
         source: sourceLang,
         text: sourceText,
-        targets: emptyLangs,
+        targets,
       });
       onChange({ ...value, ...results });
       lastTranslatedRef.current = sourceText;
@@ -84,16 +72,13 @@ export function MultilingualTextarea({
     }
   };
 
-  // Auto-translate on blur
   const handleBlur = () => {
     if (sourceText && emptyLangs.length > 0 && sourceText !== lastTranslatedRef.current) {
-      handleAutoTranslate();
+      handleAutoTranslate(false);
     }
   };
 
-  const hasTextToTranslate = !!sourceText;
-  const hasEmptyLangs = emptyLangs.length > 0;
-  const showAutoTranslate = hasTextToTranslate && hasEmptyLangs && !disabled;
+  const showAutoTranslate = !!sourceText && otherLangs.length > 0 && !disabled;
 
   return (
     <div className="space-y-1.5">
@@ -102,7 +87,6 @@ export function MultilingualTextarea({
         {required && <span className="ml-0.5 text-red-500">*</span>}
       </label>
 
-      {/* Language tabs */}
       <div className="flex items-center gap-1 rounded-t-lg border border-b-0 border-gray-200 bg-gray-50 px-2 pt-2 dark:border-gray-700 dark:bg-gray-800/50">
         {languages.map((lang) => {
           const filled = !!value[lang]?.trim();
@@ -119,41 +103,35 @@ export function MultilingualTextarea({
                   : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
               )}
             >
-              {LANG_LABELS[lang]}
-              <span
-                className={cn(
-                  'h-1.5 w-1.5 rounded-full',
-                  filled ? 'bg-emerald-500' : 'bg-red-400',
-                )}
-              />
+              {LANG_LABELS[lang] || lang.toUpperCase()}
+              <span className={cn('h-1.5 w-1.5 rounded-full', filled ? 'bg-emerald-500' : 'bg-red-400')} />
             </button>
           );
         })}
 
-        {/* Auto-translate button */}
         {showAutoTranslate && (
           <button
             type="button"
-            onClick={handleAutoTranslate}
+            onClick={() => handleAutoTranslate(emptyLangs.length === 0)}
             disabled={translateMut.isPending}
             className="ml-auto mb-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-aris-primary-600 hover:bg-aris-primary-50 disabled:opacity-50 dark:text-aris-primary-400 dark:hover:bg-aris-primary-900/20"
-            title="Auto-translate to other languages"
+            title={emptyLangs.length > 0 ? 'Translate to empty languages' : 'Re-translate all languages'}
           >
             {translateMut.isPending ? (
               <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
               <Wand2 className="h-3 w-3" />
             )}
-            Auto
+            {emptyLangs.length > 0 ? 'Auto' : 'Re-translate'}
           </button>
         )}
       </div>
 
       <textarea
         value={value[activeLang] ?? ''}
-        onChange={(e) => handleChange(activeLang, e.target.value)}
+        onChange={(e) => onChange({ ...value, [activeLang]: e.target.value })}
         onBlur={handleBlur}
-        placeholder={placeholder ?? `Enter ${LANG_NAMES[activeLang]} translation...`}
+        placeholder={placeholder ?? `Enter ${LANG_NAMES[activeLang] || activeLang} translation...`}
         disabled={disabled}
         rows={rows}
         dir={activeLang === 'ar' ? 'rtl' : 'ltr'}

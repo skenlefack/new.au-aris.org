@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Loader2, Wand2 } from 'lucide-react';
 import { useTranslateToAll } from '@/lib/api/translation-hooks';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 
 type LangCode = 'en' | 'fr' | 'pt' | 'ar';
 
@@ -37,19 +38,22 @@ export function MultilingualTextarea({
   error,
   rows = 3,
 }: MultilingualTextareaProps) {
-  const [activeLang, setActiveLang] = useState<LangCode>(languages[0]);
+  const locale = useLocaleStore((s) => s.locale);
+  const userLang = (locale?.slice(0, 2) || 'en') as LangCode;
+  const defaultLang = languages.includes(userLang) ? userLang : languages[0];
+  const [activeLang, setActiveLang] = useState<LangCode>(defaultLang);
   const translateMut = useTranslateToAll();
   const translatingRef = useRef(false);
   const lastTranslatedRef = useRef('');
 
-  // Auto-detect source: find first language with text
   const sourceLang = languages.find((l) => value[l]?.trim()) || activeLang;
   const sourceText = value[sourceLang]?.trim() || '';
-  const emptyLangs = languages.filter((l) => l !== sourceLang && !value[l]?.trim());
+  const otherLangs = languages.filter((l) => l !== sourceLang);
+  const emptyLangs = otherLangs.filter((l) => !value[l]?.trim());
 
-  const handleAutoTranslate = async () => {
-    if (!sourceText || emptyLangs.length === 0 || translatingRef.current) return;
-    if (sourceText === lastTranslatedRef.current) return;
+  const handleAutoTranslate = async (forceAll = false) => {
+    const targets = forceAll ? otherLangs : emptyLangs;
+    if (!sourceText || targets.length === 0 || translatingRef.current) return;
 
     translatingRef.current = true;
     try {
@@ -73,7 +77,7 @@ export function MultilingualTextarea({
     }
   };
 
-  const showAutoTranslate = !!sourceText && emptyLangs.length > 0 && !disabled;
+  const showAutoTranslate = !!sourceText && otherLangs.length > 0 && !disabled;
 
   return (
     <div className="space-y-1.5">
@@ -106,7 +110,7 @@ export function MultilingualTextarea({
         {showAutoTranslate && (
           <button
             type="button"
-            onClick={handleAutoTranslate}
+            onClick={() => handleAutoTranslate(emptyLangs.length === 0)}
             disabled={translateMut.isPending}
             className="ml-auto mb-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-aris-primary-600 hover:bg-aris-primary-50 disabled:opacity-50 dark:text-aris-primary-400 dark:hover:bg-aris-primary-900/20"
             title="Auto-translate to other languages"
@@ -116,7 +120,7 @@ export function MultilingualTextarea({
             ) : (
               <Wand2 className="h-3 w-3" />
             )}
-            Auto
+            {emptyLangs.length > 0 ? 'Auto' : 'Re-translate'}
           </button>
         )}
       </div>

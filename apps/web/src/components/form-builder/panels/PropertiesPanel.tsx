@@ -35,24 +35,28 @@ function MLInput({
   onChange: (v: MultilingualText) => void;
   placeholder?: string;
 }) {
-  const [lang, setLang] = useState<'en' | 'fr' | 'pt' | 'ar'>('en');
+  const locale = useLocaleStore((s) => s.locale);
+  const userLang = (locale?.slice(0, 2) || 'en') as typeof LANGS[number];
+  const defaultLang = LANGS.includes(userLang as any) ? userLang : 'en';
+  const [lang, setLang] = useState<'en' | 'fr' | 'pt' | 'ar'>(defaultLang as any);
   const translateMut = useTranslateToAll();
   const translatingRef = React.useRef(false);
 
-  // Find the first language that has text (auto-detect source)
   const sourceLang = LANGS.find((l) => value[l]?.trim()) || lang;
   const sourceText = value[sourceLang]?.trim();
-  const emptyLangs = LANGS.filter((l) => l !== sourceLang && !value[l]?.trim());
-  const canTranslate = !!sourceText && emptyLangs.length > 0;
+  const otherLangs = LANGS.filter((l) => l !== sourceLang);
+  const emptyLangs = otherLangs.filter((l) => !value[l]?.trim());
+  const canTranslate = !!sourceText && otherLangs.length > 0;
 
-  const handleAutoTranslate = async () => {
-    if (!sourceText || emptyLangs.length === 0 || translatingRef.current) return;
+  const handleAutoTranslate = async (forceAll = false) => {
+    const targets = forceAll ? [...otherLangs] : [...emptyLangs];
+    if (!sourceText || targets.length === 0 || translatingRef.current) return;
     translatingRef.current = true;
     try {
       const results = await translateMut.mutateAsync({
         source: sourceLang,
         text: sourceText,
-        targets: emptyLangs,
+        targets,
       });
       onChange({ ...value, ...results });
     } catch {
@@ -62,9 +66,9 @@ function MLInput({
     }
   };
 
-  // Auto-translate on blur: when user leaves the input and other langs are empty
+  // Auto-translate on blur (empty langs only)
   const handleBlur = () => {
-    if (canTranslate) handleAutoTranslate();
+    if (sourceText && emptyLangs.length > 0) handleAutoTranslate(false);
   };
 
   return (
@@ -80,12 +84,12 @@ function MLInput({
         {canTranslate && !translateMut.isPending && (
           <button
             type="button"
-            onClick={handleAutoTranslate}
+            onClick={() => handleAutoTranslate(emptyLangs.length === 0)}
             className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 transition-colors"
-            title="Auto-translate to all languages via SYSTRAN"
+            title={emptyLangs.length > 0 ? 'Translate empty languages' : 'Re-translate all languages'}
           >
             <Wand2 className="h-3 w-3" />
-            Traduire
+            {emptyLangs.length > 0 ? 'Traduire' : 'Re-traduire'}
           </button>
         )}
       </div>
