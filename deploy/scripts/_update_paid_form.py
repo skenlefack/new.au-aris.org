@@ -230,9 +230,125 @@ def update_schema(schema):
 
         sections[4]["fields"].extend(new_benef)
 
-    # ── S5: Comments ──
-    if len(sections) > 5:
-        sections[5]["title"] = ml("Comments & Location", "Commentaires et localisation")
+    # ── S5: RECs & Beneficiary Countries (NEW) ──
+    # Check if this section already exists
+    rec_section_exists = any(
+        any(f.get("code") == "recs_benefiting" for f in sec.get("fields", []))
+        for sec in sections
+    )
+    if not rec_section_exists:
+        import uuid
+        rec_options = [
+            {"value": "continental", "label": ml("Continental", "Continental")},
+            {"value": "eac", "label": ml("EAC", "EAC")},
+            {"value": "igad", "label": ml("IGAD", "IGAD")},
+            {"value": "censad", "label": ml("CEN-SAD", "CEN-SAD")},
+            {"value": "eccas", "label": ml("ECCAS", "CEEAC")},
+            {"value": "ecowas", "label": ml("ECOWAS", "CEDEAO")},
+            {"value": "comesa", "label": ml("COMESA", "COMESA")},
+            {"value": "sadc", "label": ml("SADC", "SADC")},
+            {"value": "uma", "label": ml("UMA", "UMA")},
+        ]
+
+        au_countries = [
+            ("DZ", "Algeria", "Algerie"), ("AO", "Angola", "Angola"), ("BJ", "Benin", "Benin"),
+            ("BW", "Botswana", "Botswana"), ("BF", "Burkina Faso", "Burkina Faso"),
+            ("BI", "Burundi", "Burundi"), ("CV", "Cabo Verde", "Cabo Verde"),
+            ("CM", "Cameroon", "Cameroun"), ("CF", "Central African Republic", "Centrafrique"),
+            ("TD", "Chad", "Tchad"), ("KM", "Comoros", "Comores"),
+            ("CG", "Republic of the Congo", "Congo"), ("CD", "DR Congo", "RD Congo"),
+            ("CI", "Cote d'Ivoire", "Cote d'Ivoire"), ("DJ", "Djibouti", "Djibouti"),
+            ("EG", "Egypt", "Egypte"), ("GQ", "Equatorial Guinea", "Guinee equatoriale"),
+            ("ER", "Eritrea", "Erythree"), ("SZ", "Eswatini", "Eswatini"),
+            ("ET", "Ethiopia", "Ethiopie"), ("GA", "Gabon", "Gabon"),
+            ("GM", "The Gambia", "Gambie"), ("GH", "Ghana", "Ghana"),
+            ("GN", "Guinea", "Guinee"), ("GW", "Guinea-Bissau", "Guinee-Bissau"),
+            ("KE", "Kenya", "Kenya"), ("LS", "Lesotho", "Lesotho"),
+            ("LR", "Liberia", "Liberia"), ("LY", "Libya", "Libye"),
+            ("MG", "Madagascar", "Madagascar"), ("MW", "Malawi", "Malawi"),
+            ("ML", "Mali", "Mali"), ("MR", "Mauritania", "Mauritanie"),
+            ("MU", "Mauritius", "Maurice"), ("MA", "Morocco", "Maroc"),
+            ("MZ", "Mozambique", "Mozambique"), ("NA", "Namibia", "Namibie"),
+            ("NE", "Niger", "Niger"), ("NG", "Nigeria", "Nigeria"),
+            ("RW", "Rwanda", "Rwanda"), ("ST", "Sao Tome and Principe", "Sao Tome-et-Principe"),
+            ("SN", "Senegal", "Senegal"), ("SC", "Seychelles", "Seychelles"),
+            ("SL", "Sierra Leone", "Sierra Leone"), ("SO", "Somalia", "Somalie"),
+            ("ZA", "South Africa", "Afrique du Sud"), ("SS", "South Sudan", "Soudan du Sud"),
+            ("SD", "Sudan", "Soudan"), ("TZ", "Tanzania", "Tanzanie"),
+            ("TG", "Togo", "Togo"), ("TN", "Tunisia", "Tunisie"),
+            ("UG", "Uganda", "Ouganda"), ("ZM", "Zambia", "Zambie"),
+            ("ZW", "Zimbabwe", "Zimbabwe"),
+        ]
+        country_options = [{"value": code, "label": ml(en, fr)} for code, en, fr in au_countries]
+
+        recs_section = {
+            "id": str(uuid.uuid4()),
+            "title": ml("RECs & Beneficiary Countries", "CER et pays beneficiaires"),
+            "repeater": False,
+            "fields": [
+                {
+                    "id": str(uuid.uuid4()),
+                    "code": "recs_benefiting",
+                    "label": ml("RECs Benefiting", "CER beneficiaires"),
+                    "type": "select",
+                    "required": False,
+                    "options": rec_options,
+                    "properties": {"multiple": True},
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "code": "beneficiary_countries",
+                    "label": ml("Beneficiary Countries", "Pays beneficiaires"),
+                    "type": "select",
+                    "required": False,
+                    "options": country_options,
+                    "properties": {"multiple": True},
+                },
+            ],
+        }
+        # Insert before Comments section (S5)
+        sections.insert(5, recs_section)
+
+    # ── Comments section (now S6) ──
+    comments_idx = next((i for i, s in enumerate(sections) if any(f.get("code") == "comments" for f in s.get("fields", []))), -1)
+    if comments_idx >= 0:
+        sections[comments_idx]["title"] = ml("Comments & Location", "Commentaires et localisation")
+
+    # ── E1: Enable repeater on activity sections ──
+    # Sections that should repeat: Partners (S2), Activity (S3), Beneficiary (S4)
+    # RECs/Countries (S5) and Comments (S6) stay outside repeat
+    # Project Info (S0, S1) stays outside repeat
+    for i, sec in enumerate(sections):
+        fields = sec.get("fields", [])
+        field_codes = {f.get("code") for f in fields}
+        # Partners section
+        if "implem_partner_intl" in field_codes or "executive_partner" in field_codes:
+            sec["repeater"] = True
+            sec["title"] = ml("PAID Activity Line", "Ligne d'activite PAID")
+            # Merge Partners + Activity + Beneficiary into one repeater section
+            # Actually, in Kobo they're all in one repeat group
+            # Let's merge S2+S3+S4 fields into one section with repeater
+            break
+
+    # Better approach: merge S2 (Partners) + S3 (Activity) + S4 (Beneficiary) into one repeater section
+    if len(sections) >= 5:
+        s2_fields = sections[2].get("fields", []) if len(sections) > 2 else []
+        s3_fields = sections[3].get("fields", []) if len(sections) > 3 else []
+        s4_fields = sections[4].get("fields", []) if len(sections) > 4 else []
+
+        # Check if already merged
+        merged_codes = {f.get("code") for f in s2_fields}
+        if "prod_sector" not in merged_codes:
+            # Not yet merged — do it
+            import uuid
+            merged_section = {
+                "id": str(uuid.uuid4()),
+                "title": ml("PAID Activity Line", "Ligne d'activite PAID"),
+                "repeater": True,
+                "fields": s2_fields + s3_fields + s4_fields,
+            }
+            # Remove S2, S3, S4 and insert merged
+            sections = sections[:2] + [merged_section] + sections[5:]
 
     schema["sections"] = sections
     return schema
