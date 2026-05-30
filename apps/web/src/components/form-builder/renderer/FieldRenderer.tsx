@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 
 import { TranslatableTextField } from './TranslatableTextField';
+import { MultiSearchCombobox } from '@/components/ui/MultiSearchCombobox';
 
 const GeoPointMap = lazy(() => import('./GeoPointMap').then((m) => ({ default: m.GeoPointMap })));
 const GeoPolygonMap = lazy(() => import('./GeoPolygonMap').then((m) => ({ default: m.GeoPolygonMap })));
@@ -245,19 +246,38 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
         </select>
       )}
 
-      {field.type === 'multi-select' && (
-        <div className="space-y-1 rounded-lg border border-gray-200 p-2 dark:border-gray-700">
-          {((field.properties.options || []) as SelectOption[]).map((opt, i) => (
-            <label key={i} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-              <input type="checkbox" className="rounded border-gray-300" />
-              {ml(opt.label) || opt.value}
-            </label>
-          ))}
-          {((field.properties.options || []) as SelectOption[]).length === 0 && (
-            <span className="text-xs text-gray-400">{t('fbNoOptionsConfigured')}</span>
-          )}
-        </div>
-      )}
+      {field.type === 'multi-select' && (() => {
+        const options = ((field.properties.options || []) as SelectOption[]);
+        const selectedValues = Array.isArray(value) ? (value as string[]) : [];
+        const selectedItems = options.filter((o) => selectedValues.includes(o.value));
+
+        if (options.length === 0) {
+          return (
+            <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+              <span className="text-xs text-gray-400">{t('fbNoOptionsConfigured')}</span>
+            </div>
+          );
+        }
+
+        return (
+          <MultiSearchCombobox<SelectOption>
+            value={selectedItems}
+            onChange={(items) => onChange(items.map((i) => i.value))}
+            items={options}
+            labelKey={(o) => ml(o.label) || o.value}
+            idKey={(o) => o.value}
+            filterKey={(o) => `${ml(o.label)} ${o.value}`}
+            placeholder={placeholder || t('fbSelectOptions')}
+            allLabel={t('all')}
+            renderItem={(o) => (
+              <span>{ml(o.label) || o.value}</span>
+            )}
+            renderChip={(o) => (
+              <span>{ml(o.label) || o.value}</span>
+            )}
+          />
+        );
+      })()}
 
       {field.type === 'radio' && (
         <div className={cn('space-y-1', field.properties.layout === 'horizontal' && 'flex gap-4 space-y-0')}>
