@@ -121,6 +121,27 @@ export default function RootLayout({
             `,
           }}
         />
+        {/* Matomo Analytics — ARIS prod (site 6), excludes /knowledge (tracked separately as site 5) */}
+        <Script
+          id="matomo-aris"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (location.hostname === 'au-aris.org' && !location.pathname.startsWith('/knowledge')) {
+                var _paq = window._paq = window._paq || [];
+                _paq.push(['trackPageView']);
+                _paq.push(['enableLinkTracking']);
+                (function() {
+                  var u="https://wap.au-ibar.org/";
+                  _paq.push(['setTrackerUrl', u+'matomo.php']);
+                  _paq.push(['setSiteId', '6']);
+                  var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+                  g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+                })();
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
