@@ -121,23 +121,29 @@ export default function RootLayout({
             `,
           }}
         />
-        {/* Matomo Analytics — ARIS prod (site 6), excludes /knowledge (tracked separately as site 5) */}
+        {/* Matomo Analytics — excludes /knowledge (tracked separately as site 5) */}
+        {/* Site 6 = prod (au-aris.org), Site 7 = staging (test.au-aris.org) */}
         <Script
           id="matomo-aris"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
-              if (location.hostname === 'au-aris.org' && !location.pathname.startsWith('/knowledge')) {
-                var _paq = window._paq = window._paq || [];
-                _paq.push(['trackPageView']);
-                _paq.push(['enableLinkTracking']);
-                (function() {
-                  var u="https://wap.au-ibar.org/";
-                  _paq.push(['setTrackerUrl', u+'matomo.php']);
-                  _paq.push(['setSiteId', '6']);
-                  var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-                  g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
-                })();
+              if (!location.pathname.startsWith('/knowledge')) {
+                var siteId = location.hostname === 'au-aris.org' ? '6'
+                           : location.hostname === 'test.au-aris.org' ? '7'
+                           : null;
+                if (siteId) {
+                  var _paq = window._paq = window._paq || [];
+                  _paq.push(['trackPageView']);
+                  _paq.push(['enableLinkTracking']);
+                  (function() {
+                    var u="https://wap.au-ibar.org/";
+                    _paq.push(['setTrackerUrl', u+'matomo.php']);
+                    _paq.push(['setSiteId', siteId]);
+                    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+                    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+                  })();
+                }
               }
             `,
           }}
