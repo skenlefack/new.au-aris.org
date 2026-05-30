@@ -206,4 +206,13 @@ export const MASTER_DATA_TYPES = [
   { value: 'legal-framework-types', label: 'Legal Framework Types' },
   { value: 'stakeholder-types', label: 'Stakeholder Types' },
   { value: 'infrastructures', label: 'Infrastructures' },
+  // PAID — Programme Activity Information Database (FAO)
+  { value: 'paid-sectors', label: 'PAID — Sectors' },
+  { value: 'paid-activities', label: 'PAID — Activities/Outputs' },
+  { value: 'paid-species', label: 'PAID — Species/Variety' },
+  { value: 'paid-production-systems', label: 'PAID — Production Systems' },
+  { value: 'paid-diseases', label: 'PAID — Diseases/Pests' },
+  { value: 'paid-projects', label: 'PAID — Projects (FAO symbols)' },
+  { value: 'paid-partners-intl', label: 'PAID — Partners International' },
+  { value: 'paid-partners-national', label: 'PAID — Partners National' },
 ];

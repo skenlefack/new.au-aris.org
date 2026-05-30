@@ -344,45 +344,60 @@ export function useDeleteRefData(type: RefDataType) {
   });
 }
 
-// ─── PAID Referentials (uses generic FisheryReferential with PAID_* categories) ──
+// ─── PAID Referentials (dedicated paid_* tables in animal_health schema) ──
 
 export type PaidRefCategory =
   | 'PAID_SECTOR' | 'PAID_ACTIVITY' | 'PAID_SPECIES'
   | 'PAID_DISEASE' | 'PAID_PROD_SYSTEM' | 'PAID_CVA_TYPE'
-  | 'PAID_CASH_MECHANISM' | 'PAID_COUNTRY_META' | 'PAID_PROJECT';
+  | 'PAID_CASH_MECHANISM' | 'PAID_COUNTRY_META' | 'PAID_PROJECT'
+  | 'PAID_PARTNER_INTL' | 'PAID_PARTNER_NATIONAL';
 
 export interface PaidReferentialItem {
-  id: string;
-  category: string;
+  id: number;
   code: string;
-  name: Record<string, string>;
-  parentCode?: string | null;
-  sortOrder: number;
-  isActive: boolean;
-  metadata?: Record<string, unknown>;
+  name_en: string;
+  name_fr?: string;
+  name_es?: string;
+  sector_code?: string;
+  species_code?: string;
+  country?: string;
+  unit?: string;
+  title?: string;
+  project_symbol?: string;
 }
 
+/** Map PAID category to API endpoint path */
+const PAID_ENDPOINT: Record<string, string> = {
+  PAID_SECTOR: '/api/v1/master-data/paid/sectors',
+  PAID_ACTIVITY: '/api/v1/master-data/paid/activities',
+  PAID_SPECIES: '/api/v1/master-data/paid/species',
+  PAID_PROD_SYSTEM: '/api/v1/master-data/paid/production-systems',
+  PAID_DISEASE: '/api/v1/master-data/paid/diseases',
+  PAID_PROJECT: '/api/v1/master-data/paid/projects',
+  PAID_PARTNER_INTL: '/api/v1/master-data/paid/partners-intl',
+  PAID_PARTNER_NATIONAL: '/api/v1/master-data/paid/partners-national',
+};
+
 /**
- * Fetch PAID referentials by category.
- * Optionally filter by parentCode for cascading dropdowns.
+ * Fetch PAID referentials by category with cascade filters.
+ * @param category — PAID_SECTOR, PAID_ACTIVITY, etc.
+ * @param filters — { sector, species, country, search }
  */
 export function usePaidReferentials(
   category: PaidRefCategory,
-  parentCode?: string,
+  filters?: { sector?: string; species?: string; country?: string; search?: string },
 ) {
+  const endpoint = PAID_ENDPOINT[category];
+  const params: Record<string, string> = { limit: '500' };
+  if (filters?.sector) params.sector = filters.sector;
+  if (filters?.species) params.species = filters.species;
+  if (filters?.country) params.country = filters.country;
+  if (filters?.search) params.search = filters.search;
+
   return useQuery({
-    queryKey: ['paid-ref', category, parentCode ?? ''],
-    queryFn: () =>
-      mdGet<{ data: PaidReferentialItem[] }>(
-        '/api/v1/master-data/fishery-referentials',
-        {
-          category,
-          limit: '500',
-          isActive: 'true',
-          ...(parentCode ? { search: parentCode } : {}),
-        },
-      ),
-    staleTime: 10 * 60_000, // 10 min cache
-    enabled: !!category,
+    queryKey: ['paid-ref', category, params],
+    queryFn: () => mdGet<{ data: PaidReferentialItem[]; meta: { total: number } }>(endpoint, params),
+    staleTime: 10 * 60_000,
+    enabled: !!endpoint,
   });
 }
