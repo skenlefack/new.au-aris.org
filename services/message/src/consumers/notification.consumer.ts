@@ -515,30 +515,94 @@ export class NotificationConsumer {
         const dashboardUrl = process.env['DASHBOARD_URL'] ?? 'https://au-aris.org';
         const ticketUrl = `${dashboardUrl}/support/${data.id}`;
 
-        // Send confirmation email to ticket creator
-        if (data.creatorEmail) {
-          const subject = `[ARIS Support] Ticket ${data.reference} created — ${data.title}`;
-          const body = `
-            <h2>Your support ticket has been created</h2>
-            <p><strong>Reference:</strong> ${data.reference}</p>
-            <p><strong>Title:</strong> ${data.title}</p>
-            <p><strong>Category:</strong> ${data.category}</p>
-            <p><strong>Priority:</strong> ${data.priority}</p>
-            <p><strong>Description:</strong></p>
-            <p>${(data.description ?? '').replace(/\n/g, '<br>')}</p>
-            <br>
-            <p>Our team will review your ticket shortly. You can track its progress here:</p>
-            <p><a href="${ticketUrl}">${ticketUrl}</a></p>
-          `;
+        // Calculate SLA info for the confirmation email
+        const slaInfo = data.sla;
+        const responseHours = slaInfo?.response_target
+          ? Math.round((new Date(slaInfo.response_target).getTime() - Date.now()) / 3600000)
+          : null;
+        const resolutionHours = slaInfo?.deadline
+          ? Math.round((new Date(slaInfo.deadline).getTime() - Date.now()) / 3600000)
+          : null;
+        const slaText = responseHours
+          ? `<p>Based on the ticket priority (<strong>${data.priority}</strong>) and category (<strong>${data.category}</strong>), our expected response times are:</p>
+             <ul>
+               <li><strong>First response:</strong> within ${responseHours} hour${responseHours > 1 ? 's' : ''}</li>
+               ${resolutionHours ? `<li><strong>Resolution target:</strong> within ${resolutionHours} hours</li>` : ''}
+             </ul>`
+          : '<p>Our team will review your ticket as soon as possible.</p>';
+
+        const confirmationBody = `
+          <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+            <div style="background:#1e40af;padding:24px;border-radius:8px 8px 0 0">
+              <h2 style="color:#fff;margin:0">ARIS Support — Ticket Received</h2>
+            </div>
+            <div style="padding:24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px">
+              <p>Dear user,</p>
+              <p>Your support ticket has been successfully registered. Here are the details:</p>
+              <table style="width:100%;border-collapse:collapse;margin:16px 0">
+                <tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;color:#6b7280;width:140px">Reference</td><td style="padding:8px;border-bottom:1px solid #f3f4f6;font-weight:600">${data.reference}</td></tr>
+                <tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;color:#6b7280">Title</td><td style="padding:8px;border-bottom:1px solid #f3f4f6">${data.title}</td></tr>
+                <tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;color:#6b7280">Category</td><td style="padding:8px;border-bottom:1px solid #f3f4f6">${data.category}</td></tr>
+                <tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;color:#6b7280">Priority</td><td style="padding:8px;border-bottom:1px solid #f3f4f6">${data.priority}</td></tr>
+              </table>
+              ${slaText}
+              <p>You can track the progress of your ticket here:</p>
+              <p><a href="${ticketUrl}" style="display:inline-block;background:#1e40af;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none">View Ticket</a></p>
+              <p style="color:#9ca3af;font-size:12px;margin-top:24px">This is an automated message from ARIS — Animal Resources Information System (AU-IBAR).</p>
+            </div>
+          </div>
+        `;
+
+        // 1. Send confirmation email to ticket creator
+        if (data.creatorEmail || data.created_by) {
           try {
             await this.notificationService.send(
-              { userId: data.created_by, channel: NotificationChannel.EMAIL, subject, body },
+              {
+                userId: data.created_by,
+                channel: NotificationChannel.EMAIL,
+                subject: `[ARIS Support] Ticket ${data.reference} received — ${data.title}`,
+                body: confirmationBody,
+              },
               data.tenant_id,
             );
-            console.log(`[SUPPORT] Confirmation email sent for ticket ${data.reference}`);
+            console.log(`[SUPPORT] Confirmation email sent to creator for ticket ${data.reference}`);
           } catch (err) {
             console.error(`[SUPPORT] Failed to send confirmation email for ${data.reference}:`, err);
           }
+        }
+
+        // 2. Send notification to support team (support@au-aris.org)
+        try {
+          const supportEmail = process.env['SUPPORT_EMAIL'] ?? 'support@au-aris.org';
+          const adminBody = `
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+              <div style="background:#dc2626;padding:24px;border-radius:8px 8px 0 0">
+                <h2 style="color:#fff;margin:0">New Support Ticket — ${data.priority}</h2>
+              </div>
+              <div style="padding:24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px">
+                <table style="width:100%;border-collapse:collapse;margin:16px 0">
+                  <tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;color:#6b7280;width:140px">Reference</td><td style="padding:8px;border-bottom:1px solid #f3f4f6;font-weight:600">${data.reference}</td></tr>
+                  <tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;color:#6b7280">Title</td><td style="padding:8px;border-bottom:1px solid #f3f4f6">${data.title}</td></tr>
+                  <tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;color:#6b7280">Category</td><td style="padding:8px;border-bottom:1px solid #f3f4f6">${data.category}</td></tr>
+                  <tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;color:#6b7280">Priority</td><td style="padding:8px;border-bottom:1px solid #f3f4f6">${data.priority}</td></tr>
+                  <tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;color:#6b7280">Created by</td><td style="padding:8px;border-bottom:1px solid #f3f4f6">${data.creatorEmail ?? data.created_by}</td></tr>
+                </table>
+                <p><strong>Description:</strong></p>
+                <p style="background:#f9fafb;padding:12px;border-radius:6px">${(data.description ?? '').replace(/\n/g, '<br>')}</p>
+                <p><a href="${ticketUrl}" style="display:inline-block;background:#dc2626;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none">Review Ticket</a></p>
+              </div>
+            </div>
+          `;
+          // Send directly via email channel (bypass userId resolution — this is a direct email address)
+          const emailChannel = this.notificationService.resolveChannel(NotificationChannel.EMAIL);
+          await emailChannel.send({
+            to: supportEmail,
+            subject: `[ARIS] New ticket ${data.reference} — ${data.priority} — ${data.title}`,
+            body: adminBody,
+          });
+          console.log(`[SUPPORT] Admin notification sent to ${supportEmail} for ticket ${data.reference}`);
+        } catch (err) {
+          console.error(`[SUPPORT] Failed to notify support team for ${data.reference}:`, err);
         }
 
         // In-app notification
@@ -575,26 +639,41 @@ export class NotificationConsumer {
         let body: string;
 
         if (data.commentAdded) {
-          // Comment added by admin
           subject = `[ARIS Support] New response on ticket ${data.reference}`;
           body = `
-            <h2>New response on your support ticket</h2>
-            <p><strong>Reference:</strong> ${data.reference}</p>
-            <p><strong>Title:</strong> ${data.title}</p>
-            <p><strong>Response:</strong></p>
-            <blockquote style="border-left:3px solid #ccc;padding-left:12px;margin:12px 0;">${(data.commentContent ?? '').replace(/\n/g, '<br>')}</blockquote>
-            <p><a href="${ticketUrl}">View ticket</a></p>
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+              <div style="background:#059669;padding:24px;border-radius:8px 8px 0 0">
+                <h2 style="color:#fff;margin:0">New Response — ${data.reference}</h2>
+              </div>
+              <div style="padding:24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px">
+                <p>A member of our support team has responded to your ticket <strong>${data.title}</strong>:</p>
+                <blockquote style="border-left:4px solid #059669;padding:12px 16px;margin:16px 0;background:#f0fdf4;border-radius:0 6px 6px 0">
+                  ${(data.commentContent ?? '').replace(/\n/g, '<br>')}
+                </blockquote>
+                <p><a href="${ticketUrl}" style="display:inline-block;background:#059669;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none">View Ticket</a></p>
+                <p style="color:#9ca3af;font-size:12px;margin-top:24px">This is an automated message from ARIS — Animal Resources Information System (AU-IBAR).</p>
+              </div>
+            </div>
           `;
         } else {
-          // Status change
+          const statusColors: Record<string, string> = { OPEN: '#f59e0b', IN_PROGRESS: '#3b82f6', RESOLVED: '#059669', CLOSED: '#6b7280', ESCALATED: '#7c3aed' };
+          const color = statusColors[data.status] ?? '#1e40af';
           subject = `[ARIS Support] Ticket ${data.reference} — Status: ${data.status}`;
           body = `
-            <h2>Your support ticket has been updated</h2>
-            <p><strong>Reference:</strong> ${data.reference}</p>
-            <p><strong>Title:</strong> ${data.title}</p>
-            <p><strong>Previous status:</strong> ${data.previousStatus ?? 'N/A'}</p>
-            <p><strong>New status:</strong> ${data.status}</p>
-            <p><a href="${ticketUrl}">View ticket</a></p>
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+              <div style="background:${color};padding:24px;border-radius:8px 8px 0 0">
+                <h2 style="color:#fff;margin:0">Ticket Updated — ${data.reference}</h2>
+              </div>
+              <div style="padding:24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px">
+                <p>Your support ticket <strong>${data.title}</strong> has been updated:</p>
+                <table style="width:100%;border-collapse:collapse;margin:16px 0">
+                  <tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;color:#6b7280;width:140px">Previous status</td><td style="padding:8px;border-bottom:1px solid #f3f4f6">${data.previousStatus ?? 'N/A'}</td></tr>
+                  <tr><td style="padding:8px;border-bottom:1px solid #f3f4f6;color:#6b7280">New status</td><td style="padding:8px;border-bottom:1px solid #f3f4f6;font-weight:600">${data.status}</td></tr>
+                </table>
+                <p><a href="${ticketUrl}" style="display:inline-block;background:${color};color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none">View Ticket</a></p>
+                <p style="color:#9ca3af;font-size:12px;margin-top:24px">This is an automated message from ARIS — Animal Resources Information System (AU-IBAR).</p>
+              </div>
+            </div>
           `;
         }
 

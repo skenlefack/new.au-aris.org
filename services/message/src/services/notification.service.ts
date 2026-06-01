@@ -52,8 +52,29 @@ export class NotificationService {
     });
 
     const channel = this.resolveChannel(dto.channel as NotificationChannel);
+
+    // Resolve userId → email for EMAIL channel (userId is a UUID, not an email)
+    let recipientAddress = dto.userId;
+    if (dto.channel === NotificationChannel.EMAIL && !dto.userId.includes('@')) {
+      try {
+        const user = await (this.prisma as any).$queryRawUnsafe(
+          `SELECT email FROM credential.users WHERE id = $1::uuid LIMIT 1`,
+          dto.userId,
+        );
+        if (user?.[0]?.email) {
+          recipientAddress = user[0].email;
+        } else {
+          console.warn(`[NotificationService] User ${dto.userId} not found — skipping email`);
+          return { data: notification as NotificationEntity };
+        }
+      } catch (err) {
+        console.warn(`[NotificationService] Failed to resolve email for user ${dto.userId}:`, err);
+        return { data: notification as NotificationEntity };
+      }
+    }
+
     const result = await channel.send({
-      to: dto.userId,
+      to: recipientAddress,
       subject: dto.subject,
       body: dto.body,
       metadata: dto.metadata,
