@@ -239,12 +239,25 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
   CONTINENTAL_ADMIN: new Set(), // full access handled below
   SUPER_ADMIN: new Set(), // full access handled below
   KNOWLEDGE_MANAGER: new Set(['/home', '/knowledge/admin', '/data-sharing']),
+  NATIONAL_LABORATORY: new Set([
+    '/home', '/my-dashboards', '/collecte', '/collecte/ppr-lab-results', '/analytics', '/historical', '/reports',
+    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+  ]),
+  REGIONAL_LABORATORY: new Set([
+    '/home', '/my-dashboards', '/collecte', '/collecte/ppr-lab-results', '/analytics', '/historical', '/reports',
+    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+  ]),
+  CONTINENTAL_LABORATORY: new Set([
+    '/home', '/my-dashboards', '/collecte', '/collecte/ppr-lab-results', '/analytics', '/historical', '/reports',
+    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+  ]),
 };
 
 /** Roles that have access to ALL business domains */
 const ALL_DOMAIN_ROLES: Set<UserRole> = new Set([
   'ANALYST', 'WAHIS_FOCAL_POINT', 'DATA_STEWARD',
   'NATIONAL_ADMIN', 'REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN',
+  'NATIONAL_LABORATORY', 'REGIONAL_LABORATORY', 'CONTINENTAL_LABORATORY',
 ] as UserRole[]);
 
 /** FIELD_AGENT only sees specific domain routes */

@@ -12,7 +12,10 @@ export type UserRole =
   | 'WAHIS_FOCAL_POINT'
   | 'ANALYST'
   | 'FIELD_AGENT'
-  | 'KNOWLEDGE_MANAGER';
+  | 'KNOWLEDGE_MANAGER'
+  | 'NATIONAL_LABORATORY'
+  | 'REGIONAL_LABORATORY'
+  | 'CONTINENTAL_LABORATORY';
 
 export interface AuthUser {
   id: string;

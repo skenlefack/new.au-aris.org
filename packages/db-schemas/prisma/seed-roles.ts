@@ -31,6 +31,9 @@ const ROLE_IDS = {
   DATA_STEWARD_REGIONAL:       '20000000-0000-4000-a000-000000000016',
   DATA_STEWARD_CONTINENTAL:    '20000000-0000-4000-a000-000000000017',
   DATA_VISUALIZER:             '20000000-0000-4000-a000-000000000018',
+  NATIONAL_LABORATORY:         '20000000-0000-4000-a000-000000000020',
+  REGIONAL_LABORATORY:         '20000000-0000-4000-a000-000000000021',
+  CONTINENTAL_LABORATORY:      '20000000-0000-4000-a000-000000000022',
 } as const;
 
 // ── System Roles Definition ────────────────────────────────────────────────
@@ -450,6 +453,73 @@ const SYSTEM_ROLES: RoleSeed[] = [
     icon: 'BarChart3',
     sortOrder: 18,
   },
+  // ── Laboratory roles ──────────────────────────────────────────────────────
+  {
+    id: ROLE_IDS.NATIONAL_LABORATORY,
+    code: 'NATIONAL_LABORATORY',
+    name: {
+      en: 'National Laboratory',
+      fr: 'Laboratoire National',
+      pt: 'Laboratório Nacional',
+      es: 'Laboratorio Nacional',
+      ar: 'المختبر الوطني',
+    },
+    description: {
+      en: 'National veterinary laboratory — sample analysis, lab results entry, domain dashboards',
+      fr: 'Laboratoire vétérinaire national — analyse des prélèvements, saisie des résultats, tableaux de bord',
+      pt: 'Laboratório veterinário nacional — análise de amostras, entrada de resultados, painéis de domínio',
+      es: 'Laboratorio veterinario nacional — análisis de muestras, ingreso de resultados, paneles de dominio',
+      ar: 'المختبر البيطري الوطني — تحليل العينات وإدخال النتائج ولوحات المعلومات',
+    },
+    level: 'national',
+    color: '#ea580c',
+    icon: 'FlaskConical',
+    sortOrder: 20,
+  },
+  {
+    id: ROLE_IDS.REGIONAL_LABORATORY,
+    code: 'REGIONAL_LABORATORY',
+    name: {
+      en: 'Regional Laboratory',
+      fr: 'Laboratoire Régional',
+      pt: 'Laboratório Regional',
+      es: 'Laboratorio Regional',
+      ar: 'المختبر الإقليمي',
+    },
+    description: {
+      en: 'REC-level reference laboratory — cross-country sample analysis and dashboards',
+      fr: 'Laboratoire de référence CER — analyse inter-pays des prélèvements et tableaux de bord',
+      pt: 'Laboratório de referência CER — análise de amostras entre países e painéis',
+      es: 'Laboratorio de referencia CER — análisis de muestras entre países y paneles',
+      ar: 'المختبر المرجعي للمجموعة الاقتصادية الإقليمية — تحليل العينات عبر البلدان ولوحات المعلومات',
+    },
+    level: 'regional',
+    color: '#d97706',
+    icon: 'FlaskConical',
+    sortOrder: 21,
+  },
+  {
+    id: ROLE_IDS.CONTINENTAL_LABORATORY,
+    code: 'CONTINENTAL_LABORATORY',
+    name: {
+      en: 'Continental Laboratory',
+      fr: 'Laboratoire Continental',
+      pt: 'Laboratório Continental',
+      es: 'Laboratorio Continental',
+      ar: 'المختبر القاري',
+    },
+    description: {
+      en: 'Continental reference laboratory (PANVAC) — all countries, sample analysis, lab results, dashboards',
+      fr: 'Laboratoire continental de référence (PANVAC) — tous pays, analyse des prélèvements, résultats, tableaux de bord',
+      pt: 'Laboratório continental de referência (PANVAC) — todos os países, análise de amostras, resultados, painéis',
+      es: 'Laboratorio continental de referencia (PANVAC) — todos los países, análisis de muestras, resultados, paneles',
+      ar: 'المختبر القاري المرجعي (PANVAC) — جميع البلدان وتحليل العينات والنتائج ولوحات المعلومات',
+    },
+    level: 'continental',
+    color: '#dc2626',
+    icon: 'FlaskConical',
+    sortOrder: 22,
+  },
 ];
 
 // ── Permission Definitions ─────────────────────────────────────────────────
@@ -782,6 +852,23 @@ const DATA_VISUALIZER_PERMS = [
   'settings:profile:view', 'settings:profile:edit',
 ];
 
+// LABORATORY roles: domain view + collecte + dashboards + analytics + lab results
+const LABORATORY_PERMS = [
+  'dashboard:home:view',
+  ...allPermsForModules(DOMAIN_MODULES).filter(p => p.endsWith(':view') || p.endsWith(':export')),
+  'collecte:forms:view', 'collecte:campaigns:view',
+  'collecte:submissions:view', 'collecte:submissions:create', 'collecte:submissions:edit', 'collecte:submissions:export',
+  'analytics:trends:view', 'analytics:trends:export', 'analytics:comparison:view', 'analytics:comparison:export',
+  'analytics:geo:view', 'analytics:geo:export', 'analytics:export:view', 'analytics:export:export',
+  'historical:data:view', 'historical:data:export',
+  'reports:generate:view', 'reports:generate:create', 'reports:generate:export', 'reports:history:view',
+  'bi-tools:superset:view', 'bi-tools:metabase:view', 'bi-tools:grafana:view',
+  'settings:profile:view', 'settings:profile:edit',
+];
+const NATIONAL_LABORATORY_PERMS = LABORATORY_PERMS;
+const REGIONAL_LABORATORY_PERMS = LABORATORY_PERMS;
+const CONTINENTAL_LABORATORY_PERMS = LABORATORY_PERMS;
+
 const ROLE_PERMISSION_MAP: Record<string, string[]> = {
   SUPER_ADMIN: SUPER_ADMIN_PERMS,
   CONTINENTAL_ADMIN: CONTINENTAL_ADMIN_PERMS,
@@ -801,6 +888,9 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
   DATA_STEWARD_REGIONAL: DATA_STEWARD_REGIONAL_PERMS,
   DATA_STEWARD_CONTINENTAL: DATA_STEWARD_CONTINENTAL_PERMS,
   DATA_VISUALIZER: DATA_VISUALIZER_PERMS,
+  NATIONAL_LABORATORY: NATIONAL_LABORATORY_PERMS,
+  REGIONAL_LABORATORY: REGIONAL_LABORATORY_PERMS,
+  CONTINENTAL_LABORATORY: CONTINENTAL_LABORATORY_PERMS,
 };
 
 // ── Function Category → Role Mapping ───────────────────────────────────────
