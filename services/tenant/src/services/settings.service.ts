@@ -1663,7 +1663,23 @@ export class SettingsService {
         { lastName: { contains: query.search, mode: 'insensitive' } },
       ];
     }
-    if (query.role) where.role = query.role;
+    if (query.role) {
+      // Check if role is a primary UserRole enum value or a governance role code
+      const PRIMARY_ROLES = [
+        'SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN',
+        'DATA_STEWARD', 'WAHIS_FOCAL_POINT', 'ANALYST', 'FIELD_AGENT',
+        'KNOWLEDGE_MANAGER', 'NATIONAL_LABORATORY', 'REGIONAL_LABORATORY',
+        'CONTINENTAL_LABORATORY',
+      ];
+      if (PRIMARY_ROLES.includes(query.role)) {
+        where.role = query.role;
+      } else {
+        // Governance role code → filter via user_role_assignments
+        where.roleAssignments = {
+          some: { role: { code: query.role } },
+        };
+      }
+    }
     if (query.status === 'active') where.isActive = true;
     if (query.status === 'inactive') where.isActive = false;
     if (query.tenantId) where.tenantId = query.tenantId;
