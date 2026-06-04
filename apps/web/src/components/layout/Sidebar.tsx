@@ -41,6 +41,7 @@ import {
   ClipboardCheck,
   NotebookPen,
   LifeBuoy,
+  FlaskConical,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -93,6 +94,7 @@ const STATIC_GROUPS: NavGroup[] = [
     tKey: 'sectionOperations',
     items: [
       { tKey: 'collecte', href: '/collecte', icon: ClipboardList, matchPrefix: '/collecte' },
+      { tKey: 'pprLabResults', href: '/collecte/ppr-lab-results', icon: FlaskConical, matchPrefix: '/collecte/ppr-lab-results' },
       { tKey: 'workflow', href: '/workflow', icon: GitPullRequestArrow, matchPrefix: '/workflow' },
       { tKey: 'masterData', href: '/master-data', icon: Database, matchPrefix: '/master-data' },
     ],

@@ -1,0 +1,4796 @@
+{
+  "name": "Enquête épidémiologique PPR — Draft 5 (28/05/2026)",
+  "domain": "animal-health",
+  "formType": "CAMPAIGN",
+  "status": "PUBLISHED",
+  "dataClassification": "RESTRICTED",
+  "description": "Cette enquête est conduite par le Ministère en charge de l'élevage. Le questionnaire a pour but de collecter des informations relatives à la peste des petits ruminants dans les élevages des différentes régions. Toutes les informations recueillies seront anonymes et confidentielles. Les résultats seront utilisés en vue de fournir des données épidémiologiques de référence nécessaires à la planification et à l'évaluation du Programme National de Contrôle et d'Eradication de la Peste des Petits Ruminants.\n\nAttention ! Remplir les questions validées dans vos pays respectifs tout en gardant strictement les codes harmonisés.",
+  "schema": {
+    "sections": [
+      {
+        "id": "ff4dcf94-a9a8-44fa-a5ec-116dd018c0e7",
+        "name": {
+          "en": "Administrative Location",
+          "fr": "Localisation Administrative",
+          "pt": "Administrative Location",
+          "ar": "Administrative Location"
+        },
+        "description": {
+          "en": "Select the administrative location (levels 1-3 required)",
+          "fr": "Sélectionnez la localisation administrative (niveaux 1-3 obligatoires)",
+          "pt": "Select the administrative location (levels 1-3 required)",
+          "ar": "Select the administrative location (levels 1-3 required)"
+        },
+        "columns": 1,
+        "order": 0,
+        "isCollapsible": false,
+        "isCollapsed": false,
+        "isRepeatable": false,
+        "icon": null,
+        "color": "#1E40AF",
+        "conditions": [],
+        "fields": [
+          {
+            "id": "51ff9048-324d-4e6b-8de0-95f333d12605",
+            "type": "admin-location",
+            "code": "admin_location",
+            "label": {
+              "en": "Administrative Location",
+              "fr": "Localisation Administrative",
+              "pt": "Administrative Location",
+              "ar": "Administrative Location"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 0,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "levels": [
+                0,
+                1,
+                2,
+                3,
+                4
+              ],
+              "requiredLevels": [
+                0,
+                1,
+                2
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "b3d441d0-8644-4959-a793-551a722e8c43",
+        "name": {
+          "en": "General Identification",
+          "fr": "Identification Générale",
+          "pt": "General Identification",
+          "ar": "General Identification"
+        },
+        "description": {
+          "en": "Adapt header to country letterhead. Fill in validated questions for your country while keeping harmonized codes.",
+          "fr": "Adapter le timbre à l'entête du pays. Remplir les questions validées dans vos pays respectifs tout en gardant strictement les codes harmonisés.",
+          "pt": "Adapt header to country letterhead. Fill in validated questions for your country while keeping harmonized codes.",
+          "ar": "Adapt header to country letterhead. Fill in validated questions for your country while keeping harmonized codes."
+        },
+        "columns": 2,
+        "order": 1,
+        "isCollapsible": true,
+        "isCollapsed": false,
+        "isRepeatable": false,
+        "icon": null,
+        "color": "#059669",
+        "conditions": [],
+        "fields": [
+          {
+            "id": "36a36c54-f302-4580-a2cb-891a9e5e124a",
+            "type": "text",
+            "code": "form_code",
+            "label": {
+              "en": "Form Code",
+              "fr": "Code Fiche",
+              "pt": "Form Code",
+              "ar": "Form Code"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 0,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "30786642-4d4d-4059-9999-e47559cefbb7",
+            "type": "text",
+            "code": "form_serial",
+            "label": {
+              "en": "Form Serial Number",
+              "fr": "N° d'ordre de fiche",
+              "pt": "Form Serial Number",
+              "ar": "Form Serial Number"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 1,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "c4f8738f-d9ba-48b5-bdc6-ef519bd7fde7",
+            "type": "select",
+            "code": "consent",
+            "label": {
+              "en": "Informed consent",
+              "fr": "Consentement éleveur",
+              "pt": "Informed consent",
+              "ar": "Informed consent"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "Verbally informed consent",
+              "fr": "Oui informé verbalement",
+              "pt": "Verbally informed consent",
+              "ar": "Verbally informed consent"
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 2,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes — verbally informed",
+                    "fr": "Oui — informé verbalement",
+                    "pt": "Yes — verbally informed",
+                    "ar": "Yes — verbally informed"
+                  },
+                  "value": "yes"
+                }
+              ]
+            }
+          },
+          {
+            "id": "abb7db3d-c9da-4d7f-a2d0-d4c8a83ff36b",
+            "type": "date",
+            "code": "survey_date",
+            "label": {
+              "en": "Survey Date (DD/MM/YYYY)",
+              "fr": "Date de l'enquête (JJ/MM/AAAA)",
+              "pt": "Survey Date (DD/MM/YYYY)",
+              "ar": "Survey Date (DD/MM/YYYY)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 3,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "4d75c1c4-ea36-4e1c-8c90-3abf43d502f7",
+            "type": "text",
+            "code": "surveyor_name",
+            "label": {
+              "en": "Surveyor Name",
+              "fr": "Nom de l'agent enquêteur",
+              "pt": "Surveyor Name",
+              "ar": "Surveyor Name"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 4,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "53c459ec-8652-4262-842f-69550e8a6344",
+            "type": "text",
+            "code": "czv_post",
+            "label": {
+              "en": "CZV / Veterinary Post / Agricultural Sector",
+              "fr": "CZV / Poste Vétérinaire / Secteur agricole/élevage",
+              "pt": "CZV / Veterinary Post / Agricultural Sector",
+              "ar": "CZV / Veterinary Post / Agricultural Sector"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 5,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "a95d9581-695d-425c-b7ce-b7d2a9471ce9",
+            "type": "text",
+            "code": "village_name",
+            "label": {
+              "en": "Village",
+              "fr": "Village",
+              "pt": "Village",
+              "ar": "Village"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 6,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {}
+          }
+        ]
+      },
+      {
+        "id": "17f4ec98-5848-4f88-9c41-92ce414a0f7b",
+        "name": {
+          "en": "Herd Identification",
+          "fr": "Identification du Troupeau",
+          "pt": "Herd Identification",
+          "ar": "Herd Identification"
+        },
+        "description": null,
+        "columns": 2,
+        "order": 2,
+        "isCollapsible": true,
+        "isCollapsed": false,
+        "isRepeatable": false,
+        "icon": null,
+        "color": "#7C3AED",
+        "conditions": [],
+        "fields": [
+          {
+            "id": "3dc6dde1-93b4-4725-9337-1b591e1c0061",
+            "type": "text",
+            "code": "owner_name",
+            "label": {
+              "en": "Owner Name (majority animal owner)",
+              "fr": "Nom de l'éleveur (ou propriétaire majoritaire des animaux)",
+              "pt": "Owner Name (majority animal owner)",
+              "ar": "Owner Name (majority animal owner)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 0,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "47321151-ceb7-4d35-b86d-80ff0205f7f2",
+            "type": "text",
+            "code": "owner_phone",
+            "label": {
+              "en": "Phone Number (owner or relative in village)",
+              "fr": "Numéro de téléphone (éleveur ou parenté dans le village)",
+              "pt": "Phone Number (owner or relative in village)",
+              "ar": "Phone Number (owner or relative in village)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 1,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {
+              "pattern": "^[0-9+\\-\\s]{8,15}$"
+            },
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "16cc3ae9-0615-4875-a83a-ef383b58bb1c",
+            "type": "select",
+            "code": "owner_sex",
+            "label": {
+              "en": "Sex of the farmer",
+              "fr": "Sexe de l'éleveur",
+              "pt": "Sex of the farmer",
+              "ar": "Sex of the farmer"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 2,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Male",
+                    "fr": "Homme",
+                    "pt": "Male",
+                    "ar": "Male"
+                  },
+                  "value": "male"
+                },
+                {
+                  "label": {
+                    "en": "Female",
+                    "fr": "Femme",
+                    "pt": "Female",
+                    "ar": "Female"
+                  },
+                  "value": "female"
+                }
+              ]
+            }
+          },
+          {
+            "id": "be1a363a-0925-408b-8e59-e7dfbf0b8b58",
+            "type": "select",
+            "code": "owner_age_range",
+            "label": {
+              "en": "Age range of the farmer",
+              "fr": "Tranche d'âge de l'éleveur",
+              "pt": "Age range of the farmer",
+              "ar": "Age range of the farmer"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 3,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "15-30 years",
+                    "fr": "15-30 ans",
+                    "pt": "15-30 years",
+                    "ar": "15-30 years"
+                  },
+                  "value": "15_30"
+                },
+                {
+                  "label": {
+                    "en": "31-45 years",
+                    "fr": "31-45 ans",
+                    "pt": "31-45 years",
+                    "ar": "31-45 years"
+                  },
+                  "value": "31_45"
+                },
+                {
+                  "label": {
+                    "en": "46-55 years",
+                    "fr": "46-55 ans",
+                    "pt": "46-55 years",
+                    "ar": "46-55 years"
+                  },
+                  "value": "46_55"
+                },
+                {
+                  "label": {
+                    "en": "56+ years",
+                    "fr": "+56 ans",
+                    "pt": "56+ years",
+                    "ar": "56+ years"
+                  },
+                  "value": "56_plus"
+                }
+              ]
+            }
+          },
+          {
+            "id": "a58e6e24-e789-4e9e-9586-1fe2c07cfc4e",
+            "type": "select",
+            "code": "animal_ownership",
+            "label": {
+              "en": "Who owns these sheep and goats in the household?",
+              "fr": "A qui appartiennent ces moutons et chèvres du ménage?",
+              "pt": "Who owns these sheep and goats in the household?",
+              "ar": "Who owns these sheep and goats in the household?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 4,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Husband",
+                    "fr": "Mari",
+                    "pt": "Husband",
+                    "ar": "Husband"
+                  },
+                  "value": "husband"
+                },
+                {
+                  "label": {
+                    "en": "Wife",
+                    "fr": "Femme",
+                    "pt": "Wife",
+                    "ar": "Wife"
+                  },
+                  "value": "wife"
+                },
+                {
+                  "label": {
+                    "en": "Boys",
+                    "fr": "Enfants (garçons)",
+                    "pt": "Boys",
+                    "ar": "Boys"
+                  },
+                  "value": "boys"
+                },
+                {
+                  "label": {
+                    "en": "Girls",
+                    "fr": "Enfants (filles)",
+                    "pt": "Girls",
+                    "ar": "Girls"
+                  },
+                  "value": "girls"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "6df1695b-edd5-4dfb-b45a-e223b650ede5",
+            "type": "select",
+            "code": "main_activity",
+            "label": {
+              "en": "Main activity of the owner",
+              "fr": "Activité principale du propriétaire",
+              "pt": "Main activity of the owner",
+              "ar": "Main activity of the owner"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 5,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Agriculture",
+                    "fr": "Agriculture",
+                    "pt": "Agriculture",
+                    "ar": "Agriculture"
+                  },
+                  "value": "agriculture"
+                },
+                {
+                  "label": {
+                    "en": "Livestock",
+                    "fr": "Elevage",
+                    "pt": "Livestock",
+                    "ar": "Livestock"
+                  },
+                  "value": "livestock"
+                },
+                {
+                  "label": {
+                    "en": "Fishing",
+                    "fr": "Pêche",
+                    "pt": "Fishing",
+                    "ar": "Fishing"
+                  },
+                  "value": "fishing"
+                },
+                {
+                  "label": {
+                    "en": "Hunting",
+                    "fr": "Chasse",
+                    "pt": "Hunting",
+                    "ar": "Hunting"
+                  },
+                  "value": "hunting"
+                },
+                {
+                  "label": {
+                    "en": "Commerce",
+                    "fr": "Commerce",
+                    "pt": "Commerce",
+                    "ar": "Commerce"
+                  },
+                  "value": "commerce"
+                },
+                {
+                  "label": {
+                    "en": "Crafts",
+                    "fr": "Artisanat",
+                    "pt": "Crafts",
+                    "ar": "Crafts"
+                  },
+                  "value": "crafts"
+                },
+                {
+                  "label": {
+                    "en": "Civil Servant",
+                    "fr": "Fonctionnaire",
+                    "pt": "Civil Servant",
+                    "ar": "Civil Servant"
+                  },
+                  "value": "civil_servant"
+                },
+                {
+                  "label": {
+                    "en": "Private Sector",
+                    "fr": "Secteur privé",
+                    "pt": "Private Sector",
+                    "ar": "Private Sector"
+                  },
+                  "value": "private_sector"
+                },
+                {
+                  "label": {
+                    "en": "Student",
+                    "fr": "Elève/étudiant",
+                    "pt": "Student",
+                    "ar": "Student"
+                  },
+                  "value": "student"
+                },
+                {
+                  "label": {
+                    "en": "Housewife/Retired",
+                    "fr": "Ménagère/retraité",
+                    "pt": "Housewife/Retired",
+                    "ar": "Housewife/Retired"
+                  },
+                  "value": "housewife_retired"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "0d4156f1-0442-4ec2-a05f-0fb0d7eac974",
+            "type": "select",
+            "code": "producer_association",
+            "label": {
+              "en": "Member of a small ruminant producer association/group?",
+              "fr": "Faites-vous partie d'une association ou groupes de producteurs des petits ruminants?",
+              "pt": "Member of a small ruminant producer association/group?",
+              "ar": "Member of a small ruminant producer association/group?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 6,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "1a98f768-32fc-42dd-b9bb-1f66f9961815",
+            "type": "text",
+            "code": "association_name",
+            "label": {
+              "en": "If yes, name the association(s)",
+              "fr": "Si oui, nommez-la (les)",
+              "pt": "If yes, name the association(s)",
+              "ar": "If yes, name the association(s)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 7,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {}
+          }
+        ]
+      },
+      {
+        "id": "518e09bc-1dbf-472f-8d32-f9e9f2a96c85",
+        "name": {
+          "en": "Small Ruminant Population & Management",
+          "fr": "Effectif et Conduite de l'Exploitation des Petits Ruminants",
+          "pt": "Small Ruminant Population & Management",
+          "ar": "Small Ruminant Population & Management"
+        },
+        "description": null,
+        "columns": 2,
+        "order": 3,
+        "isCollapsible": true,
+        "isCollapsed": false,
+        "isRepeatable": false,
+        "icon": null,
+        "color": "#D97706",
+        "conditions": [],
+        "fields": [
+          {
+            "id": "2ae199fc-51c8-4d58-b835-f0d5d9fa045d",
+            "type": "number",
+            "code": "sheep_count",
+            "label": {
+              "en": "Number of Sheep",
+              "fr": "Nombre de moutons",
+              "pt": "Number of Sheep",
+              "ar": "Number of Sheep"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 0,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {
+              "min": 0
+            },
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "fb6f3d1b-6f28-4f8b-8edf-5efe0d7f82cf",
+            "type": "number",
+            "code": "goat_count",
+            "label": {
+              "en": "Number of Goats",
+              "fr": "Nombre de chèvres",
+              "pt": "Number of Goats",
+              "ar": "Number of Goats"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 1,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {
+              "min": 0
+            },
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "c27904f8-911d-4b66-b3a1-ceb1a97d9e36",
+            "type": "multi-select",
+            "code": "breeds",
+            "label": {
+              "en": "Breeds raised",
+              "fr": "Races élevées",
+              "pt": "Breeds raised",
+              "ar": "Breeds raised"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 2,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Djallonke Sheep",
+                    "fr": "Moutons Djallonké",
+                    "pt": "Djallonke Sheep",
+                    "ar": "Djallonke Sheep"
+                  },
+                  "value": "djallonke_sheep"
+                },
+                {
+                  "label": {
+                    "en": "Arab Choa Sheep",
+                    "fr": "Moutons Arabe Choa",
+                    "pt": "Arab Choa Sheep",
+                    "ar": "Arab Choa Sheep"
+                  },
+                  "value": "arab_choa_sheep"
+                },
+                {
+                  "label": {
+                    "en": "Sahel Goat",
+                    "fr": "Chèvres du Sahel",
+                    "pt": "Sahel Goat",
+                    "ar": "Sahel Goat"
+                  },
+                  "value": "sahel_goat"
+                },
+                {
+                  "label": {
+                    "en": "Dwarf Goat",
+                    "fr": "Chèvres naines",
+                    "pt": "Dwarf Goat",
+                    "ar": "Dwarf Goat"
+                  },
+                  "value": "dwarf_goat"
+                },
+                {
+                  "label": {
+                    "en": "Hybrid Breeds",
+                    "fr": "Races hybrides",
+                    "pt": "Hybrid Breeds",
+                    "ar": "Hybrid Breeds"
+                  },
+                  "value": "hybrid"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "5fdfaf6c-7c94-4d0f-81cc-a80bd24c60eb",
+            "type": "multi-select",
+            "code": "other_animals",
+            "label": {
+              "en": "Other animals owned",
+              "fr": "Autres animaux possédés",
+              "pt": "Other animals owned",
+              "ar": "Other animals owned"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 3,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Cattle",
+                    "fr": "Bovins",
+                    "pt": "Cattle",
+                    "ar": "Cattle"
+                  },
+                  "value": "cattle"
+                },
+                {
+                  "label": {
+                    "en": "Pigs",
+                    "fr": "Porcs",
+                    "pt": "Pigs",
+                    "ar": "Pigs"
+                  },
+                  "value": "pigs"
+                },
+                {
+                  "label": {
+                    "en": "Poultry",
+                    "fr": "Volailles",
+                    "pt": "Poultry",
+                    "ar": "Poultry"
+                  },
+                  "value": "poultry"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "52ffbd44-9d08-49a7-b7ee-2c66505338c2",
+            "type": "select",
+            "code": "farming_system",
+            "label": {
+              "en": "Farming system",
+              "fr": "Système d'élevage pratiqué",
+              "pt": "Farming system",
+              "ar": "Farming system"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 4,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Traditional (free-range / communal pasture)",
+                    "fr": "Traditionnel (divagation / pâturage commun)",
+                    "pt": "Traditional (free-range / communal pasture)",
+                    "ar": "Traditional (free-range / communal pasture)"
+                  },
+                  "value": "traditional"
+                },
+                {
+                  "label": {
+                    "en": "Semi-intensive (pen + supplement + care)",
+                    "fr": "Semi-intensif (étable + supplément + soins)",
+                    "pt": "Semi-intensive (pen + supplement + care)",
+                    "ar": "Semi-intensive (pen + supplement + care)"
+                  },
+                  "value": "semi_intensive"
+                },
+                {
+                  "label": {
+                    "en": "Intensive (modern)",
+                    "fr": "Intensif (système moderne)",
+                    "pt": "Intensive (modern)",
+                    "ar": "Intensive (modern)"
+                  },
+                  "value": "intensive"
+                }
+              ]
+            }
+          },
+          {
+            "id": "8efde846-0c7d-4adc-97d0-5a0abc4d0c85",
+            "type": "multi-select",
+            "code": "farming_reasons",
+            "label": {
+              "en": "Reasons for raising small ruminants (multiple choice)",
+              "fr": "Raisons de l'élevage des petits ruminants (choix multiple)",
+              "pt": "Reasons for raising small ruminants (multiple choice)",
+              "ar": "Reasons for raising small ruminants (multiple choice)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 5,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "School fees",
+                    "fr": "Scolarité enfants",
+                    "pt": "School fees",
+                    "ar": "School fees"
+                  },
+                  "value": "school_fees"
+                },
+                {
+                  "label": {
+                    "en": "Self-consumption",
+                    "fr": "Autoconsommation",
+                    "pt": "Self-consumption",
+                    "ar": "Self-consumption"
+                  },
+                  "value": "self_consumption"
+                },
+                {
+                  "label": {
+                    "en": "Family care",
+                    "fr": "Prise en charge famille",
+                    "pt": "Family care",
+                    "ar": "Family care"
+                  },
+                  "value": "family_care"
+                },
+                {
+                  "label": {
+                    "en": "Cultural rites",
+                    "fr": "Rites culturels",
+                    "pt": "Cultural rites",
+                    "ar": "Cultural rites"
+                  },
+                  "value": "cultural_rites"
+                },
+                {
+                  "label": {
+                    "en": "Income generation",
+                    "fr": "Augmenter revenus",
+                    "pt": "Income generation",
+                    "ar": "Income generation"
+                  },
+                  "value": "income"
+                },
+                {
+                  "label": {
+                    "en": "Pleasure",
+                    "fr": "Plaisir",
+                    "pt": "Pleasure",
+                    "ar": "Pleasure"
+                  },
+                  "value": "pleasure"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "5cfa138d-4355-45d0-9eed-60d1e7d89d32",
+            "type": "multi-select",
+            "code": "animal_source",
+            "label": {
+              "en": "Source of sheep and goats (multiple choice)",
+              "fr": "Provenance des moutons et chèvres (choix multiple)",
+              "pt": "Source of sheep and goats (multiple choice)",
+              "ar": "Source of sheep and goats (multiple choice)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 6,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Local livestock market",
+                    "fr": "Marché de bétail local",
+                    "pt": "Local livestock market",
+                    "ar": "Local livestock market"
+                  },
+                  "value": "local_market"
+                },
+                {
+                  "label": {
+                    "en": "Neighboring farms",
+                    "fr": "Exploitations voisines",
+                    "pt": "Neighboring farms",
+                    "ar": "Neighboring farms"
+                  },
+                  "value": "neighboring_farms"
+                },
+                {
+                  "label": {
+                    "en": "Own breeding",
+                    "fr": "Naisseur (élevage propre)",
+                    "pt": "Own breeding",
+                    "ar": "Own breeding"
+                  },
+                  "value": "own_breeding"
+                },
+                {
+                  "label": {
+                    "en": "Border market",
+                    "fr": "Acquis d'un marché frontalier",
+                    "pt": "Border market",
+                    "ar": "Border market"
+                  },
+                  "value": "border_market"
+                },
+                {
+                  "label": {
+                    "en": "Market in neighboring country",
+                    "fr": "Acquis d'un marché dans le pays voisin",
+                    "pt": "Market in neighboring country",
+                    "ar": "Market in neighboring country"
+                  },
+                  "value": "neighbor_country_market"
+                }
+              ]
+            }
+          },
+          {
+            "id": "241303a7-60ba-47e4-a8e4-1186ce77abea",
+            "type": "select",
+            "code": "communal_pasture",
+            "label": {
+              "en": "Use communal village pastures?",
+              "fr": "Conduisez-vous vos animaux dans les pâturages communs du village?",
+              "pt": "Use communal village pastures?",
+              "ar": "Use communal village pastures?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 7,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "91c9149e-3f70-440d-b4f6-10392b42bfac",
+            "type": "select",
+            "code": "seasonal_movement",
+            "label": {
+              "en": "Seasonal movements with animals?",
+              "fr": "Effectuez-vous des mouvements saisonniers avec vos animaux?",
+              "pt": "Seasonal movements with animals?",
+              "ar": "Seasonal movements with animals?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 8,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "82698c0d-884d-4df2-a814-6ece9f1a4006",
+            "type": "multi-select",
+            "code": "movement_destinations",
+            "label": {
+              "en": "If yes, destination areas",
+              "fr": "Si oui, quelles zones de destination?",
+              "pt": "If yes, destination areas",
+              "ar": "If yes, destination areas"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 9,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Village communal pastures",
+                    "fr": "Pâturages communs du village",
+                    "pt": "Village communal pastures",
+                    "ar": "Village communal pastures"
+                  },
+                  "value": "village_pastures"
+                },
+                {
+                  "label": {
+                    "en": "Commune communal pastures",
+                    "fr": "Pâturages communs de la commune",
+                    "pt": "Commune communal pastures",
+                    "ar": "Commune communal pastures"
+                  },
+                  "value": "commune_pastures"
+                },
+                {
+                  "label": {
+                    "en": "Other regions of the country",
+                    "fr": "Autres régions du pays",
+                    "pt": "Other regions of the country",
+                    "ar": "Other regions of the country"
+                  },
+                  "value": "other_regions"
+                },
+                {
+                  "label": {
+                    "en": "Neighboring countries (specify)",
+                    "fr": "Pays voisins (précisez le pays)",
+                    "pt": "Neighboring countries (specify)",
+                    "ar": "Neighboring countries (specify)"
+                  },
+                  "value": "neighboring_countries"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "2068b642-e6bb-441f-b29c-df0bcab8ab45",
+        "name": {
+          "en": "Recent Health Problems History",
+          "fr": "Historique Récente des Problèmes de Santé",
+          "pt": "Recent Health Problems History",
+          "ar": "Recent Health Problems History"
+        },
+        "description": null,
+        "columns": 2,
+        "order": 4,
+        "isCollapsible": true,
+        "isCollapsed": false,
+        "isRepeatable": false,
+        "icon": null,
+        "color": "#DC2626",
+        "conditions": [],
+        "fields": [
+          {
+            "id": "906b9579-5eee-42b4-b4a3-7c8c5d0a9526",
+            "type": "select",
+            "code": "animals_sick",
+            "label": {
+              "en": "Do your animals often show disease signs?",
+              "fr": "Vos animaux manifestent-ils souvent des signes de maladies?",
+              "pt": "Do your animals often show disease signs?",
+              "ar": "Do your animals often show disease signs?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 0,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "07c31fb0-a394-4762-9e58-1a81824fd1f0",
+            "type": "multi-select",
+            "code": "disease_signs",
+            "label": {
+              "en": "If yes, most common disease signs (multiple choice)",
+              "fr": "Si oui, signes de maladies les plus couramment rencontrés (choix multiple)",
+              "pt": "If yes, most common disease signs (multiple choice)",
+              "ar": "If yes, most common disease signs (multiple choice)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 1,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Loss of appetite",
+                    "fr": "Animal ne mange pas",
+                    "pt": "Loss of appetite",
+                    "ar": "Loss of appetite"
+                  },
+                  "value": "loss_appetite"
+                },
+                {
+                  "label": {
+                    "en": "Nasal discharge",
+                    "fr": "Jetage nasal",
+                    "pt": "Nasal discharge",
+                    "ar": "Nasal discharge"
+                  },
+                  "value": "nasal_discharge"
+                },
+                {
+                  "label": {
+                    "en": "Ocular discharge",
+                    "fr": "Décharge oculaire",
+                    "pt": "Ocular discharge",
+                    "ar": "Ocular discharge"
+                  },
+                  "value": "ocular_discharge"
+                },
+                {
+                  "label": {
+                    "en": "Diarrhea",
+                    "fr": "Diarrhée",
+                    "pt": "Diarrhea",
+                    "ar": "Diarrhea"
+                  },
+                  "value": "diarrhea"
+                },
+                {
+                  "label": {
+                    "en": "Abortions",
+                    "fr": "Avortements",
+                    "pt": "Abortions",
+                    "ar": "Abortions"
+                  },
+                  "value": "abortions"
+                },
+                {
+                  "label": {
+                    "en": "Sudden death",
+                    "fr": "Mortalité subite",
+                    "pt": "Sudden death",
+                    "ar": "Sudden death"
+                  },
+                  "value": "sudden_death"
+                },
+                {
+                  "label": {
+                    "en": "Mucopurulent tearing",
+                    "fr": "Larmoiement muco-purulent",
+                    "pt": "Mucopurulent tearing",
+                    "ar": "Mucopurulent tearing"
+                  },
+                  "value": "mucopurulent_tearing"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "c5a6aa57-9c26-4e6a-9d77-176054721885",
+            "type": "select",
+            "code": "last_disease_signs",
+            "label": {
+              "en": "When were disease signs last recorded?",
+              "fr": "Quand avez-vous enregistré les signes de maladies pour la dernière fois?",
+              "pt": "When were disease signs last recorded?",
+              "ar": "When were disease signs last recorded?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 2,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Less than 1 month",
+                    "fr": "Il y a moins d'un mois",
+                    "pt": "Less than 1 month",
+                    "ar": "Less than 1 month"
+                  },
+                  "value": "less_1_month"
+                },
+                {
+                  "label": {
+                    "en": "1 to 3 months",
+                    "fr": "Entre 1 à 3 mois",
+                    "pt": "1 to 3 months",
+                    "ar": "1 to 3 months"
+                  },
+                  "value": "1_to_3_months"
+                },
+                {
+                  "label": {
+                    "en": "6 months ago",
+                    "fr": "Il y a 6 mois",
+                    "pt": "6 months ago",
+                    "ar": "6 months ago"
+                  },
+                  "value": "6_months"
+                },
+                {
+                  "label": {
+                    "en": "More than 1 year",
+                    "fr": "Plus d'un an",
+                    "pt": "More than 1 year",
+                    "ar": "More than 1 year"
+                  },
+                  "value": "more_1_year"
+                }
+              ]
+            }
+          },
+          {
+            "id": "2f74df75-a9ee-4146-8a11-b4b3b03e7f5b",
+            "type": "multi-select",
+            "code": "sick_animal_management",
+            "label": {
+              "en": "How do you generally manage sick animals? (multiple choice)",
+              "fr": "Comment gérez-vous de façon générale les animaux une fois malades? (choix multiple)",
+              "pt": "How do you generally manage sick animals? (multiple choice)",
+              "ar": "How do you generally manage sick animals? (multiple choice)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 3,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Isolated from the herd",
+                    "fr": "Isolés du reste du troupeau",
+                    "pt": "Isolated from the herd",
+                    "ar": "Isolated from the herd"
+                  },
+                  "value": "isolated"
+                },
+                {
+                  "label": {
+                    "en": "Taken to pasture with others",
+                    "fr": "Conduits au pâturage avec les autres animaux",
+                    "pt": "Taken to pasture with others",
+                    "ar": "Taken to pasture with others"
+                  },
+                  "value": "with_others"
+                },
+                {
+                  "label": {
+                    "en": "Sold progressively",
+                    "fr": "Vendus progressivement",
+                    "pt": "Sold progressively",
+                    "ar": "Sold progressively"
+                  },
+                  "value": "sell_progressively"
+                },
+                {
+                  "label": {
+                    "en": "Slaughtered to sell",
+                    "fr": "Tué certains pour vendre",
+                    "pt": "Slaughtered to sell",
+                    "ar": "Slaughtered to sell"
+                  },
+                  "value": "slaughter_sell"
+                },
+                {
+                  "label": {
+                    "en": "Slaughtered for family consumption",
+                    "fr": "Tué d'autres pour manger en famille",
+                    "pt": "Slaughtered for family consumption",
+                    "ar": "Slaughtered for family consumption"
+                  },
+                  "value": "slaughter_eat"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "47610f87-07d4-426b-9f7a-5e248a6781f1",
+            "type": "select",
+            "code": "frequent_mortality",
+            "label": {
+              "en": "Do you often record mortalities?",
+              "fr": "Enregistrez-vous souvent des cas de mortalités dans les troupeaux?",
+              "pt": "Do you often record mortalities?",
+              "ar": "Do you often record mortalities?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 4,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "4ea1e6f5-7602-4b1a-a715-b26555d3eb44",
+            "type": "select",
+            "code": "recent_mortality_period",
+            "label": {
+              "en": "When were the most recent mortalities?",
+              "fr": "A quand remontent les mortalités les plus récentes?",
+              "pt": "When were the most recent mortalities?",
+              "ar": "When were the most recent mortalities?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 5,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Dry season (specify month)",
+                    "fr": "Saison sèche (précisez le mois)",
+                    "pt": "Dry season (specify month)",
+                    "ar": "Dry season (specify month)"
+                  },
+                  "value": "dry_season"
+                },
+                {
+                  "label": {
+                    "en": "Rainy season (specify month)",
+                    "fr": "Saison pluvieuse (précisez le mois)",
+                    "pt": "Rainy season (specify month)",
+                    "ar": "Rainy season (specify month)"
+                  },
+                  "value": "rainy_season"
+                }
+              ]
+            }
+          },
+          {
+            "id": "46e6ae90-85eb-4714-9946-a90f2063316f",
+            "type": "text",
+            "code": "recent_mortality_month",
+            "label": {
+              "en": "Specify month",
+              "fr": "Précisez le mois",
+              "pt": "Specify month",
+              "ar": "Specify month"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 6,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "d63398aa-68ed-46d9-a015-811262d6254a",
+            "type": "multi-select",
+            "code": "cadaver_management",
+            "label": {
+              "en": "What do you do with carcasses? (multiple choice)",
+              "fr": "Que faites-vous des cadavres? (choix multiple)",
+              "pt": "What do you do with carcasses? (multiple choice)",
+              "ar": "What do you do with carcasses? (multiple choice)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 7,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "We eat them",
+                    "fr": "Nous les mangeons",
+                    "pt": "We eat them",
+                    "ar": "We eat them"
+                  },
+                  "value": "eat"
+                },
+                {
+                  "label": {
+                    "en": "We sell to butchers/restaurants",
+                    "fr": "Nous les vendons aux bouchers ou restaurateurs",
+                    "pt": "We sell to butchers/restaurants",
+                    "ar": "We sell to butchers/restaurants"
+                  },
+                  "value": "sell_butchers"
+                },
+                {
+                  "label": {
+                    "en": "We destroy them",
+                    "fr": "Nous les détruisons",
+                    "pt": "We destroy them",
+                    "ar": "We destroy them"
+                  },
+                  "value": "destroy"
+                },
+                {
+                  "label": {
+                    "en": "Discarded in the bush",
+                    "fr": "On jette dans les poubelles en brousse",
+                    "pt": "Discarded in the bush",
+                    "ar": "Discarded in the bush"
+                  },
+                  "value": "discard_bush"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "d202c435-8259-4eb1-ba3a-fe0f0058f6aa",
+            "type": "select",
+            "code": "survivors_in_herd",
+            "label": {
+              "en": "Are there currently survivors from the last disease in the herd?",
+              "fr": "Y a-t-il actuellement dans le troupeau des animaux survivants de la dernière maladie?",
+              "pt": "Are there currently survivors from the last disease in the herd?",
+              "ar": "Are there currently survivors from the last disease in the herd?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 8,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "f4fdc68c-f202-4184-9b2d-7962fdb97783",
+            "type": "select",
+            "code": "vet_follow_up",
+            "label": {
+              "en": "Is your herd followed by a veterinarian?",
+              "fr": "Faites-vous suivre votre élevage par un vétérinaire?",
+              "pt": "Is your herd followed by a veterinarian?",
+              "ar": "Is your herd followed by a veterinarian?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 9,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "86a38423-b522-4fdf-96ba-59322437d762",
+            "type": "select",
+            "code": "health_register",
+            "label": {
+              "en": "If yes, do you have a health register for animal health monitoring?",
+              "fr": "Si oui, avez-vous un cahier ou registre de santé dédié au suivi sanitaire de vos animaux?",
+              "pt": "If yes, do you have a health register for animal health monitoring?",
+              "ar": "If yes, do you have a health register for animal health monitoring?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 10,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "58584bff-5cc0-49d3-8b99-8e7919990dbf",
+        "name": {
+          "en": "Knowledge, Attitudes, Practices & Impact of PPR",
+          "fr": "Connaissances, Attitudes, Pratiques et Impact de la PPR",
+          "pt": "Knowledge, Attitudes, Practices & Impact of PPR",
+          "ar": "Knowledge, Attitudes, Practices & Impact of PPR"
+        },
+        "description": null,
+        "columns": 2,
+        "order": 5,
+        "isCollapsible": true,
+        "isCollapsed": false,
+        "isRepeatable": false,
+        "icon": null,
+        "color": "#7C3AED",
+        "conditions": [],
+        "fields": [
+          {
+            "id": "ddeb6a07-3c76-47ae-9cb5-8e64c9103bef",
+            "type": "select",
+            "code": "heard_of_ppr",
+            "label": {
+              "en": "Have you heard of PPR?",
+              "fr": "Avez-vous déjà entendu parler de la Peste des Petits Ruminants (PPR)?",
+              "pt": "Have you heard of PPR?",
+              "ar": "Have you heard of PPR?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 0,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "329773fb-5cb2-4592-811f-471bb8fd2f33",
+            "type": "select",
+            "code": "ppr_is_sheep_goat_disease",
+            "label": {
+              "en": "Is it a disease of sheep and goats?",
+              "fr": "Est-ce une maladie des moutons et des chèvres?",
+              "pt": "Is it a disease of sheep and goats?",
+              "ar": "Is it a disease of sheep and goats?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 1,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "ebd7f95b-2d34-418d-9adf-e46f39cb3606",
+            "type": "textarea",
+            "code": "ppr_description",
+            "label": {
+              "en": "If you know it, how do you describe it?",
+              "fr": "Si vous la connaissez, comment la décrivez-vous?",
+              "pt": "If you know it, how do you describe it?",
+              "ar": "If you know it, how do you describe it?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 2,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "6a27cfea-5343-445f-995e-14ae8e1a5365",
+            "type": "select",
+            "code": "animals_had_ppr",
+            "label": {
+              "en": "Have your animals ever had this disease?",
+              "fr": "Vos animaux ont-ils déjà eu cette maladie?",
+              "pt": "Have your animals ever had this disease?",
+              "ar": "Have your animals ever had this disease?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 3,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "4fcd7aa5-635e-4546-b725-d4e4cee3cd8b",
+            "type": "text",
+            "code": "ppr_local_name",
+            "label": {
+              "en": "Local name of the disease (if known)",
+              "fr": "Avez-vous un nom local de cette maladie (si connu)?",
+              "pt": "Local name of the disease (if known)",
+              "ar": "Local name of the disease (if known)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 4,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "a9f7322f-66f3-4e02-b510-71f3651eee56",
+            "type": "multi-select",
+            "code": "ppr_clinical_signs",
+            "label": {
+              "en": "Have you observed the following clinical signs in your flock? (multiple choice)",
+              "fr": "Avez-vous déjà observé les signes cliniques suivants dans votre troupeau? (choix multiple)",
+              "pt": "Have you observed the following clinical signs in your flock? (multiple choice)",
+              "ar": "Have you observed the following clinical signs in your flock? (multiple choice)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 5,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Blocked nose",
+                    "fr": "Le nez qui est bouché",
+                    "pt": "Blocked nose",
+                    "ar": "Blocked nose"
+                  },
+                  "value": "blocked_nose"
+                },
+                {
+                  "label": {
+                    "en": "Mucopurulent tearing (ocular discharge)",
+                    "fr": "Larmoiement muco-purulent (décharge oculaire)",
+                    "pt": "Mucopurulent tearing (ocular discharge)",
+                    "ar": "Mucopurulent tearing (ocular discharge)"
+                  },
+                  "value": "mucopurulent_tearing"
+                },
+                {
+                  "label": {
+                    "en": "Diarrhea",
+                    "fr": "Diarrhée",
+                    "pt": "Diarrhea",
+                    "ar": "Diarrhea"
+                  },
+                  "value": "diarrhea"
+                },
+                {
+                  "label": {
+                    "en": "Mortality at all ages (young and old)",
+                    "fr": "Mortalité des animaux à tout âge (petits ou grands)",
+                    "pt": "Mortality at all ages (young and old)",
+                    "ar": "Mortality at all ages (young and old)"
+                  },
+                  "value": "mortality_all_ages"
+                }
+              ]
+            }
+          },
+          {
+            "id": "8afbf895-ef0d-49c0-bb7a-7856387ea374",
+            "type": "select",
+            "code": "species_affected",
+            "label": {
+              "en": "Which species were affected?",
+              "fr": "Quelles sont les espèces animales qui ont été touchées?",
+              "pt": "Which species were affected?",
+              "ar": "Which species were affected?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 6,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Sheep",
+                    "fr": "Moutons",
+                    "pt": "Sheep",
+                    "ar": "Sheep"
+                  },
+                  "value": "sheep"
+                },
+                {
+                  "label": {
+                    "en": "Goats",
+                    "fr": "Chèvres",
+                    "pt": "Goats",
+                    "ar": "Goats"
+                  },
+                  "value": "goats"
+                },
+                {
+                  "label": {
+                    "en": "Both",
+                    "fr": "Les deux",
+                    "pt": "Both",
+                    "ar": "Both"
+                  },
+                  "value": "both"
+                }
+              ]
+            }
+          },
+          {
+            "id": "b5aa8b51-a90d-4233-ac14-66e7707fe3c6",
+            "type": "select",
+            "code": "proportion_sick",
+            "label": {
+              "en": "How many animals get sick relative to total herd size?",
+              "fr": "Combien d'animaux tombent-ils malades par rapport à l'effectif total du troupeau?",
+              "pt": "How many animals get sick relative to total herd size?",
+              "ar": "How many animals get sick relative to total herd size?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 7,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "25% of herd",
+                    "fr": "25% du troupeau",
+                    "pt": "25% of herd",
+                    "ar": "25% of herd"
+                  },
+                  "value": "25_pct"
+                },
+                {
+                  "label": {
+                    "en": "50%",
+                    "fr": "50%",
+                    "pt": "50%",
+                    "ar": "50%"
+                  },
+                  "value": "50_pct"
+                },
+                {
+                  "label": {
+                    "en": "75%",
+                    "fr": "75%",
+                    "pt": "75%",
+                    "ar": "75%"
+                  },
+                  "value": "75_pct"
+                },
+                {
+                  "label": {
+                    "en": "85%",
+                    "fr": "85%",
+                    "pt": "85%",
+                    "ar": "85%"
+                  },
+                  "value": "85_pct"
+                },
+                {
+                  "label": {
+                    "en": "Entire herd",
+                    "fr": "Tout le troupeau",
+                    "pt": "Entire herd",
+                    "ar": "Entire herd"
+                  },
+                  "value": "100_pct"
+                }
+              ]
+            }
+          },
+          {
+            "id": "fd7b958c-4817-4a33-ad20-4fad3338f84d",
+            "type": "select",
+            "code": "last_ppr_signs",
+            "label": {
+              "en": "When did you last record signs of this disease?",
+              "fr": "Quand avez-vous enregistré les signes de maladies pour la dernière fois?",
+              "pt": "When did you last record signs of this disease?",
+              "ar": "When did you last record signs of this disease?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 8,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Less than 1 month",
+                    "fr": "Moins de 1 mois",
+                    "pt": "Less than 1 month",
+                    "ar": "Less than 1 month"
+                  },
+                  "value": "less_1_month"
+                },
+                {
+                  "label": {
+                    "en": "1 to 3 months",
+                    "fr": "1 à 3 mois",
+                    "pt": "1 to 3 months",
+                    "ar": "1 to 3 months"
+                  },
+                  "value": "1_to_3_months"
+                },
+                {
+                  "label": {
+                    "en": "4 to 6 months",
+                    "fr": "4 à 6 mois",
+                    "pt": "4 to 6 months",
+                    "ar": "4 to 6 months"
+                  },
+                  "value": "4_to_6_months"
+                },
+                {
+                  "label": {
+                    "en": "More than 6 months",
+                    "fr": "Plus de 6 mois",
+                    "pt": "More than 6 months",
+                    "ar": "More than 6 months"
+                  },
+                  "value": "more_6_months"
+                }
+              ]
+            }
+          },
+          {
+            "id": "34e789ac-9828-4f53-9553-6ddfe03f7294",
+            "type": "multi-select",
+            "code": "transmission_mode",
+            "label": {
+              "en": "Possible transmission routes (multiple choice)",
+              "fr": "Voies de transmission possibles de cette maladie (choix multiple)",
+              "pt": "Possible transmission routes (multiple choice)",
+              "ar": "Possible transmission routes (multiple choice)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 9,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Contact between animals",
+                    "fr": "Par contact entre animaux",
+                    "pt": "Contact between animals",
+                    "ar": "Contact between animals"
+                  },
+                  "value": "animal_contact"
+                },
+                {
+                  "label": {
+                    "en": "Drinking water",
+                    "fr": "Dans l'eau de boisson",
+                    "pt": "Drinking water",
+                    "ar": "Drinking water"
+                  },
+                  "value": "drinking_water"
+                },
+                {
+                  "label": {
+                    "en": "Feed",
+                    "fr": "Dans l'aliment",
+                    "pt": "Feed",
+                    "ar": "Feed"
+                  },
+                  "value": "feed"
+                },
+                {
+                  "label": {
+                    "en": "Insects",
+                    "fr": "Par des insectes",
+                    "pt": "Insects",
+                    "ar": "Insects"
+                  },
+                  "value": "insects"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "8be1279d-8820-451b-b525-ffc801564ac1",
+            "type": "select",
+            "code": "wildlife_transmission",
+            "label": {
+              "en": "Can this disease be transmitted by wildlife?",
+              "fr": "Cette maladie peut-elle être transmise par les animaux sauvages?",
+              "pt": "Can this disease be transmitted by wildlife?",
+              "ar": "Can this disease be transmitted by wildlife?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 10,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "3c11be2e-932a-483d-a1bd-46688515f195",
+            "type": "select",
+            "code": "human_transmission",
+            "label": {
+              "en": "Can this disease be transmitted to humans?",
+              "fr": "Cette maladie peut-elle être transmise à l'homme?",
+              "pt": "Can this disease be transmitted to humans?",
+              "ar": "Can this disease be transmitted to humans?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 11,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "647a5e20-47cf-4326-8788-b84b78bc637b",
+            "type": "multi-select",
+            "code": "treatment_approach",
+            "label": {
+              "en": "How do you treat this disease? (multiple choice)",
+              "fr": "En cas de signes cliniques, comment soignez cette maladie? (choix multiple)",
+              "pt": "How do you treat this disease? (multiple choice)",
+              "ar": "How do you treat this disease? (multiple choice)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 12,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Call veterinarian",
+                    "fr": "J'appelle mon vétérinaire",
+                    "pt": "Call veterinarian",
+                    "ar": "Call veterinarian"
+                  },
+                  "value": "call_vet"
+                },
+                {
+                  "label": {
+                    "en": "Indigenous medicine",
+                    "fr": "J'utilise des médicaments indigènes",
+                    "pt": "Indigenous medicine",
+                    "ar": "Indigenous medicine"
+                  },
+                  "value": "indigenous_medicine"
+                },
+                {
+                  "label": {
+                    "en": "Buy drugs at village market",
+                    "fr": "J'achète des médicaments au marché de mon village",
+                    "pt": "Buy drugs at village market",
+                    "ar": "Buy drugs at village market"
+                  },
+                  "value": "market_drugs"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "65893604-aaa0-4275-87e8-8502d9b55942",
+            "type": "select",
+            "code": "frequent_mortality_ppr",
+            "label": {
+              "en": "Do you often record mortalities?",
+              "fr": "Enregistrez-vous souvent des mortalités?",
+              "pt": "Do you often record mortalities?",
+              "ar": "Do you often record mortalities?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 13,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "f39fa0f8-edf6-4f3f-900d-a3574a4e2770",
+            "type": "select",
+            "code": "high_mortality_seasons",
+            "label": {
+              "en": "If yes, which seasons have the highest mortalities?",
+              "fr": "Si oui, quelles sont les saisons des fortes mortalités?",
+              "pt": "If yes, which seasons have the highest mortalities?",
+              "ar": "If yes, which seasons have the highest mortalities?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 14,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Dry season (specify month)",
+                    "fr": "Saison sèche (préciser le mois)",
+                    "pt": "Dry season (specify month)",
+                    "ar": "Dry season (specify month)"
+                  },
+                  "value": "dry_season"
+                },
+                {
+                  "label": {
+                    "en": "Rainy season (specify month)",
+                    "fr": "Saison pluvieuse (préciser le mois)",
+                    "pt": "Rainy season (specify month)",
+                    "ar": "Rainy season (specify month)"
+                  },
+                  "value": "rainy_season"
+                }
+              ]
+            }
+          },
+          {
+            "id": "d65e5ba3-e7c5-42cd-a0c5-b898c02d86ad",
+            "type": "text",
+            "code": "high_mortality_month",
+            "label": {
+              "en": "Specify month",
+              "fr": "Précisez le mois",
+              "pt": "Specify month",
+              "ar": "Specify month"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 15,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "f1e6ce62-03fa-4891-a6a4-35e2299ec702",
+            "type": "select",
+            "code": "avg_annual_mortality",
+            "label": {
+              "en": "Average annual mortality in your farm?",
+              "fr": "Combien de mortalités enregistrez-vous en moyenne par an dans votre exploitation?",
+              "pt": "Average annual mortality in your farm?",
+              "ar": "Average annual mortality in your farm?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 16,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "A few animals per year",
+                    "fr": "Quelques sujets par an",
+                    "pt": "A few animals per year",
+                    "ar": "A few animals per year"
+                  },
+                  "value": "few_per_year"
+                },
+                {
+                  "label": {
+                    "en": "Half the herd can die",
+                    "fr": "Souvent la moitié du troupeau peut mourir",
+                    "pt": "Half the herd can die",
+                    "ar": "Half the herd can die"
+                  },
+                  "value": "half_herd"
+                },
+                {
+                  "label": {
+                    "en": "Most of the herd",
+                    "fr": "Une majeure partie du troupeau",
+                    "pt": "Most of the herd",
+                    "ar": "Most of the herd"
+                  },
+                  "value": "most_herd"
+                },
+                {
+                  "label": {
+                    "en": "Almost the entire herd",
+                    "fr": "Presque tout le troupeau",
+                    "pt": "Almost the entire herd",
+                    "ar": "Almost the entire herd"
+                  },
+                  "value": "almost_all"
+                }
+              ]
+            }
+          },
+          {
+            "id": "6104196b-819b-46e2-b298-274194bfdb06",
+            "type": "multi-select",
+            "code": "most_affected_subjects",
+            "label": {
+              "en": "Which animals pay the heaviest toll (die most)? (multiple choice)",
+              "fr": "Quels sujets paient le plus lourd tribut (qui meurent le plus)? (choix multiple)",
+              "pt": "Which animals pay the heaviest toll (die most)? (multiple choice)",
+              "ar": "Which animals pay the heaviest toll (die most)? (multiple choice)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 17,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Young animals",
+                    "fr": "Les jeunes animaux",
+                    "pt": "Young animals",
+                    "ar": "Young animals"
+                  },
+                  "value": "young"
+                },
+                {
+                  "label": {
+                    "en": "Adults",
+                    "fr": "Les adultes",
+                    "pt": "Adults",
+                    "ar": "Adults"
+                  },
+                  "value": "adults"
+                },
+                {
+                  "label": {
+                    "en": "Young and adults",
+                    "fr": "Les jeunes et les adultes",
+                    "pt": "Young and adults",
+                    "ar": "Young and adults"
+                  },
+                  "value": "young_and_adults"
+                },
+                {
+                  "label": {
+                    "en": "Sheep only",
+                    "fr": "Les moutons uniquement",
+                    "pt": "Sheep only",
+                    "ar": "Sheep only"
+                  },
+                  "value": "sheep_only"
+                },
+                {
+                  "label": {
+                    "en": "Goats only",
+                    "fr": "Les chèvres seulement",
+                    "pt": "Goats only",
+                    "ar": "Goats only"
+                  },
+                  "value": "goats_only"
+                },
+                {
+                  "label": {
+                    "en": "Both species",
+                    "fr": "Les deux espèces",
+                    "pt": "Both species",
+                    "ar": "Both species"
+                  },
+                  "value": "both_species"
+                }
+              ]
+            }
+          },
+          {
+            "id": "0ce4ecbd-a1bb-41ae-bdc0-8feb26334a98",
+            "type": "select",
+            "code": "neighbors_same_disease",
+            "label": {
+              "en": "Do you also observe this disease in neighboring farms during high mortality periods?",
+              "fr": "Observez-vous cette maladie dans les élevages voisins lors des périodes de fortes mortalités?",
+              "pt": "Do you also observe this disease in neighboring farms during high mortality periods?",
+              "ar": "Do you also observe this disease in neighboring farms during high mortality periods?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 18,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "4809eff0-2fb9-43eb-b422-ee6aa6194678",
+            "type": "select",
+            "code": "survivors_last_disease",
+            "label": {
+              "en": "Are there currently survivors from the last disease in your herd?",
+              "fr": "Y a-t-il actuellement dans votre troupeau des animaux survivants de la dernière maladie?",
+              "pt": "Are there currently survivors from the last disease in your herd?",
+              "ar": "Are there currently survivors from the last disease in your herd?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 19,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "aeb887c3-c653-4b56-b0b5-9e8e1b5ad2d4",
+            "type": "multi-select",
+            "code": "sick_mgmt_ppr",
+            "label": {
+              "en": "If yes, how do you manage these sick animals? (multiple choice)",
+              "fr": "Si oui, comment gérez-vous ces animaux malades? (choix multiple)",
+              "pt": "If yes, how do you manage these sick animals? (multiple choice)",
+              "ar": "If yes, how do you manage these sick animals? (multiple choice)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 20,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Call a veterinarian",
+                    "fr": "Je fais appel à un vétérinaire",
+                    "pt": "Call a veterinarian",
+                    "ar": "Call a veterinarian"
+                  },
+                  "value": "call_vet"
+                },
+                {
+                  "label": {
+                    "en": "Buy vet products at local market and treat myself",
+                    "fr": "J'achète des produits vétérinaires sur le marché local et je traite moi-même",
+                    "pt": "Buy vet products at local market and treat myself",
+                    "ar": "Buy vet products at local market and treat myself"
+                  },
+                  "value": "buy_market_drugs"
+                },
+                {
+                  "label": {
+                    "en": "Traditional treatment (specify if possible)",
+                    "fr": "Je traite avec des produits traditionnels (préciser si possible)",
+                    "pt": "Traditional treatment (specify if possible)",
+                    "ar": "Traditional treatment (specify if possible)"
+                  },
+                  "value": "traditional_treatment"
+                },
+                {
+                  "label": {
+                    "en": "Isolate sick animals",
+                    "fr": "J'isole les animaux malades",
+                    "pt": "Isolate sick animals",
+                    "ar": "Isolate sick animals"
+                  },
+                  "value": "isolate"
+                },
+                {
+                  "label": {
+                    "en": "Sell animals showing signs",
+                    "fr": "Je vends les animaux présentant les signes de la maladie",
+                    "pt": "Sell animals showing signs",
+                    "ar": "Sell animals showing signs"
+                  },
+                  "value": "sell_sick"
+                },
+                {
+                  "label": {
+                    "en": "Kill and consume with family",
+                    "fr": "Je tue pour consommer avec ma famille",
+                    "pt": "Kill and consume with family",
+                    "ar": "Kill and consume with family"
+                  },
+                  "value": "kill_consume"
+                },
+                {
+                  "label": {
+                    "en": "Kill and sell the meat",
+                    "fr": "Je tue et je vends la viande",
+                    "pt": "Kill and sell the meat",
+                    "ar": "Kill and sell the meat"
+                  },
+                  "value": "kill_sell_meat"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "286a880a-ba0b-4e3d-8d8e-d384c2e6d112",
+            "type": "multi-select",
+            "code": "carcass_management_ppr",
+            "label": {
+              "en": "What do you do with carcasses? (multiple choice)",
+              "fr": "Que faites-vous des cadavres? (choix multiple)",
+              "pt": "What do you do with carcasses? (multiple choice)",
+              "ar": "What do you do with carcasses? (multiple choice)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 21,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "I consume the meat",
+                    "fr": "Je consomme la viande",
+                    "pt": "I consume the meat",
+                    "ar": "I consume the meat"
+                  },
+                  "value": "consume"
+                },
+                {
+                  "label": {
+                    "en": "I discard in nature",
+                    "fr": "Je jette dans la nature",
+                    "pt": "I discard in nature",
+                    "ar": "I discard in nature"
+                  },
+                  "value": "discard_nature"
+                },
+                {
+                  "label": {
+                    "en": "I bury them",
+                    "fr": "Je fais enfouir",
+                    "pt": "I bury them",
+                    "ar": "I bury them"
+                  },
+                  "value": "bury"
+                },
+                {
+                  "label": {
+                    "en": "I burn them",
+                    "fr": "Je fais brûler",
+                    "pt": "I burn them",
+                    "ar": "I burn them"
+                  },
+                  "value": "burn"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "17333647-dab4-473c-882f-9847e6e4a4ec",
+            "type": "number",
+            "code": "sheep_price",
+            "label": {
+              "en": "Average sheep price on local market (FCFA)",
+              "fr": "Prix moyen d'un mouton sur le marché local (FCFA)",
+              "pt": "Average sheep price on local market (FCFA)",
+              "ar": "Average sheep price on local market (FCFA)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 22,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {
+              "min": 0
+            },
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "5bd7af4e-5442-40aa-8fea-af73d4bb4758",
+            "type": "number",
+            "code": "goat_price",
+            "label": {
+              "en": "Average goat price on local market (FCFA)",
+              "fr": "Prix moyen d'une chèvre sur le marché local (FCFA)",
+              "pt": "Average goat price on local market (FCFA)",
+              "ar": "Average goat price on local market (FCFA)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 23,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {
+              "min": 0
+            },
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "05a60840-be45-457a-9b26-8ec9c5a6ef70",
+            "type": "multi-select",
+            "code": "prevention_measures",
+            "label": {
+              "en": "What do you do to protect your animals from PPR? (multiple choice)",
+              "fr": "Que faites-vous pour protéger vos animaux de la PPR? (choix multiple)",
+              "pt": "What do you do to protect your animals from PPR? (multiple choice)",
+              "ar": "What do you do to protect your animals from PPR? (multiple choice)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 24,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Vaccinate via local vet",
+                    "fr": "Je vaccine mes animaux par le vétérinaire de ma localité",
+                    "pt": "Vaccinate via local vet",
+                    "ar": "Vaccinate via local vet"
+                  },
+                  "value": "vaccinate_vet"
+                },
+                {
+                  "label": {
+                    "en": "Sell during mortality seasons",
+                    "fr": "Je vends mes animaux pendant les saisons de mortalités",
+                    "pt": "Sell during mortality seasons",
+                    "ar": "Sell during mortality seasons"
+                  },
+                  "value": "sell_mortality_season"
+                },
+                {
+                  "label": {
+                    "en": "No communal pasture",
+                    "fr": "Je ne pratique pas de pâturage commun dans le village",
+                    "pt": "No communal pasture",
+                    "ar": "No communal pasture"
+                  },
+                  "value": "no_communal_pasture"
+                },
+                {
+                  "label": {
+                    "en": "Animals tethered on rope",
+                    "fr": "Mes animaux sont attachés à la corde",
+                    "pt": "Animals tethered on rope",
+                    "ar": "Animals tethered on rope"
+                  },
+                  "value": "tethered"
+                },
+                {
+                  "label": {
+                    "en": "Nothing",
+                    "fr": "Je ne fais rien",
+                    "pt": "Nothing",
+                    "ar": "Nothing"
+                  },
+                  "value": "nothing"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "33dcdb74-cafb-4807-80a3-b67c8431ceee",
+        "name": {
+          "en": "PPR Control & Eradication",
+          "fr": "Contrôle et Eradication de la PPR",
+          "pt": "PPR Control & Eradication",
+          "ar": "PPR Control & Eradication"
+        },
+        "description": null,
+        "columns": 2,
+        "order": 6,
+        "isCollapsible": true,
+        "isCollapsed": false,
+        "isRepeatable": false,
+        "icon": null,
+        "color": "#0891B2",
+        "conditions": [],
+        "fields": [
+          {
+            "id": "95863019-7270-4c58-80fa-1f96533617c4",
+            "type": "select",
+            "code": "vaccinated_ppr",
+            "label": {
+              "en": "Is your herd vaccinated against PPR?",
+              "fr": "Votre troupeau est-il vacciné contre la peste des petits ruminants?",
+              "pt": "Is your herd vaccinated against PPR?",
+              "ar": "Is your herd vaccinated against PPR?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 0,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                },
+                {
+                  "label": {
+                    "en": "Don't know",
+                    "fr": "Ne sait pas",
+                    "pt": "Don't know",
+                    "ar": "Don't know"
+                  },
+                  "value": "dont_know"
+                }
+              ]
+            }
+          },
+          {
+            "id": "ee10be79-9474-464e-8555-3f93778fd99b",
+            "type": "select",
+            "code": "last_vaccination_year",
+            "label": {
+              "en": "If yes, last year of PPR vaccination?",
+              "fr": "Si oui, dernière année de vaccination contre la PPR?",
+              "pt": "If yes, last year of PPR vaccination?",
+              "ar": "If yes, last year of PPR vaccination?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 1,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "2020",
+                    "fr": "2020",
+                    "pt": "2020",
+                    "ar": "2020"
+                  },
+                  "value": "2020"
+                },
+                {
+                  "label": {
+                    "en": "2021",
+                    "fr": "2021",
+                    "pt": "2021",
+                    "ar": "2021"
+                  },
+                  "value": "2021"
+                },
+                {
+                  "label": {
+                    "en": "2022",
+                    "fr": "2022",
+                    "pt": "2022",
+                    "ar": "2022"
+                  },
+                  "value": "2022"
+                },
+                {
+                  "label": {
+                    "en": "2023",
+                    "fr": "2023",
+                    "pt": "2023",
+                    "ar": "2023"
+                  },
+                  "value": "2023"
+                },
+                {
+                  "label": {
+                    "en": "2024",
+                    "fr": "2024",
+                    "pt": "2024",
+                    "ar": "2024"
+                  },
+                  "value": "2024"
+                },
+                {
+                  "label": {
+                    "en": "2025",
+                    "fr": "2025",
+                    "pt": "2025",
+                    "ar": "2025"
+                  },
+                  "value": "2025"
+                },
+                {
+                  "label": {
+                    "en": "2026 (this year)",
+                    "fr": "Cette année (2026)",
+                    "pt": "2026 (this year)",
+                    "ar": "2026 (this year)"
+                  },
+                  "value": "2026"
+                }
+              ]
+            }
+          },
+          {
+            "id": "4e3913b5-64ff-4d1b-af20-d50aeae86c46",
+            "type": "select",
+            "code": "vaccination_provider",
+            "label": {
+              "en": "Who performed the vaccination?",
+              "fr": "Cette vaccination a été effectuée par qui?",
+              "pt": "Who performed the vaccination?",
+              "ar": "Who performed the vaccination?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 2,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Ministry vaccination campaign",
+                    "fr": "Campagne de vaccination du Ministère en charge de l'élevage",
+                    "pt": "Ministry vaccination campaign",
+                    "ar": "Ministry vaccination campaign"
+                  },
+                  "value": "ministry_campaign"
+                },
+                {
+                  "label": {
+                    "en": "Private veterinarian",
+                    "fr": "Vétérinaire privé",
+                    "pt": "Private veterinarian",
+                    "ar": "Private veterinarian"
+                  },
+                  "value": "private_vet"
+                },
+                {
+                  "label": {
+                    "en": "NGO",
+                    "fr": "ONG",
+                    "pt": "NGO",
+                    "ar": "NGO"
+                  },
+                  "value": "ngo"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "fe84d3cf-1d32-49e9-a799-307d1d3a4600",
+            "type": "select",
+            "code": "vaccination_effect",
+            "label": {
+              "en": "What was the effect of vaccination on mortalities?",
+              "fr": "Quel en était l'effet de cette vaccination sur les mortalités dans votre troupeau?",
+              "pt": "What was the effect of vaccination on mortalities?",
+              "ar": "What was the effect of vaccination on mortalities?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 3,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Decreased significantly",
+                    "fr": "Elles ont baissé considérablement",
+                    "pt": "Decreased significantly",
+                    "ar": "Decreased significantly"
+                  },
+                  "value": "decreased"
+                },
+                {
+                  "label": {
+                    "en": "Increased after vaccination",
+                    "fr": "Les mortalités ont augmenté après la vaccination",
+                    "pt": "Increased after vaccination",
+                    "ar": "Increased after vaccination"
+                  },
+                  "value": "increased"
+                },
+                {
+                  "label": {
+                    "en": "No change",
+                    "fr": "Rien n'a changé",
+                    "pt": "No change",
+                    "ar": "No change"
+                  },
+                  "value": "no_change"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "2e0d8cf6-707c-4181-bf44-0cb06098b496",
+            "type": "textarea",
+            "code": "main_problems",
+            "label": {
+              "en": "3 main problems in small ruminant farming",
+              "fr": "Citez trois principaux problèmes que vous rencontrez le plus souvent dans l'élevage des petits ruminants",
+              "pt": "3 main problems in small ruminant farming",
+              "ar": "3 main problems in small ruminant farming"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 4,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {}
+          },
+          {
+            "id": "45a16359-1e5a-4410-b7b6-3bbdfbf82ebb",
+            "type": "select",
+            "code": "vaccination_importance",
+            "label": {
+              "en": "What do you think of PPR vaccination importance?",
+              "fr": "Que pensez-vous de l'importance de la vaccination contre la PPR?",
+              "pt": "What do you think of PPR vaccination importance?",
+              "ar": "What do you think of PPR vaccination importance?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 5,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Protects animals against high mortality",
+                    "fr": "Elle protège mes animaux contre les fortes mortalités",
+                    "pt": "Protects animals against high mortality",
+                    "ar": "Protects animals against high mortality"
+                  },
+                  "value": "protects"
+                },
+                {
+                  "label": {
+                    "en": "Aggravates mortality",
+                    "fr": "Aggrave les mortalités",
+                    "pt": "Aggravates mortality",
+                    "ar": "Aggravates mortality"
+                  },
+                  "value": "aggravates"
+                },
+                {
+                  "label": {
+                    "en": "No interest in my opinion",
+                    "fr": "Sans intérêt selon moi",
+                    "pt": "No interest in my opinion",
+                    "ar": "No interest in my opinion"
+                  },
+                  "value": "no_interest"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "18c4b2d2-18b0-43e6-b022-7209d3b0a355",
+            "type": "select",
+            "code": "willing_to_revaccinate",
+            "label": {
+              "en": "Willing to do it again?",
+              "fr": "Êtes-vous prêts à recommencer?",
+              "pt": "Willing to do it again?",
+              "ar": "Willing to do it again?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 6,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "151b9794-36e6-4290-b7e5-58784d3bf656",
+            "type": "select",
+            "code": "willing_to_pay",
+            "label": {
+              "en": "If yes, willing to pay the cost?",
+              "fr": "Si oui, êtes-vous prêt à payer le coût?",
+              "pt": "If yes, willing to pay the cost?",
+              "ar": "If yes, willing to pay the cost?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 7,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "eb3c26d4-43a2-49d3-b51e-13cfb70c87be",
+            "type": "multi-select",
+            "code": "refusal_reasons",
+            "label": {
+              "en": "If not, reasons for vaccination refusal (multiple choice)",
+              "fr": "Sinon, quelles sont vos raisons de refus de vaccination? (choix multiple)",
+              "pt": "If not, reasons for vaccination refusal (multiple choice)",
+              "ar": "If not, reasons for vaccination refusal (multiple choice)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 8,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "No trust in veterinary services",
+                    "fr": "Non-confiance aux services vétérinaires",
+                    "pt": "No trust in veterinary services",
+                    "ar": "No trust in veterinary services"
+                  },
+                  "value": "no_trust_vet"
+                },
+                {
+                  "label": {
+                    "en": "Rumors / disinformation (specify)",
+                    "fr": "Rumeurs / désinformation (préciser)",
+                    "pt": "Rumors / disinformation (specify)",
+                    "ar": "Rumors / disinformation (specify)"
+                  },
+                  "value": "rumors"
+                },
+                {
+                  "label": {
+                    "en": "Cultural / social reasons (specify)",
+                    "fr": "Raisons culturelles / sociales (préciser)",
+                    "pt": "Cultural / social reasons (specify)",
+                    "ar": "Cultural / social reasons (specify)"
+                  },
+                  "value": "cultural_social"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          },
+          {
+            "id": "a92d6dbf-8eab-45c8-a27d-3aa9dc04b550",
+            "type": "select",
+            "code": "accept_ear_notch",
+            "label": {
+              "en": "Would you accept ear notch marking during vaccination?",
+              "fr": "Accepteriez-vous que l'on marque votre animal (encoche à l'oreille) pendant la vaccination?",
+              "pt": "Would you accept ear notch marking during vaccination?",
+              "ar": "Would you accept ear notch marking during vaccination?"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 9,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Yes",
+                    "fr": "Oui",
+                    "pt": "Yes",
+                    "ar": "Yes"
+                  },
+                  "value": "yes"
+                },
+                {
+                  "label": {
+                    "en": "No",
+                    "fr": "Non",
+                    "pt": "No",
+                    "ar": "No"
+                  },
+                  "value": "no"
+                }
+              ]
+            }
+          },
+          {
+            "id": "310c0ef4-5925-4b20-92e5-0a40ced3b2e9",
+            "type": "multi-select",
+            "code": "ear_notch_refusal_reasons",
+            "label": {
+              "en": "If not, reasons for refusal (multiple choice)",
+              "fr": "Si non, quelles sont vos raisons? (choix multiple)",
+              "pt": "If not, reasons for refusal (multiple choice)",
+              "ar": "If not, reasons for refusal (multiple choice)"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 2,
+            "order": 10,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Animal loses value",
+                    "fr": "Mon animal perd sa valeur",
+                    "pt": "Animal loses value",
+                    "ar": "Animal loses value"
+                  },
+                  "value": "loses_value"
+                },
+                {
+                  "label": {
+                    "en": "Religious beliefs forbid it",
+                    "fr": "C'est interdit par mes croyances religieuses",
+                    "pt": "Religious beliefs forbid it",
+                    "ar": "Religious beliefs forbid it"
+                  },
+                  "value": "religious"
+                },
+                {
+                  "label": {
+                    "en": "Traditional beliefs forbid it",
+                    "fr": "C'est interdit par mes croyances traditionnelles",
+                    "pt": "Traditional beliefs forbid it",
+                    "ar": "Traditional beliefs forbid it"
+                  },
+                  "value": "traditional"
+                },
+                {
+                  "label": {
+                    "en": "Other",
+                    "fr": "Autres",
+                    "pt": "Other",
+                    "ar": "Other"
+                  },
+                  "value": "other"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "ad6341af-e2fe-4c9f-94c9-93c5504b0e9c",
+        "name": {
+          "en": "Sampling Table (15 subjects per herd/village)",
+          "fr": "Tableau des Prélèvements (15 sujets par troupeau/village)",
+          "pt": "Sampling Table (15 subjects per herd/village)",
+          "ar": "Sampling Table (15 subjects per herd/village)"
+        },
+        "description": {
+          "en": "Non-vaccinated animals only (max 15). Sample types: SE=Serum (dry tube), ECN=Conjunctival-Nasal Swab (VTM blue), EV=Vaginal Swab (detection of other pathologies)",
+          "fr": "Uniquement animaux non vaccinés (max 15). Types: SE=Sérum (tube sec), ECN=Écouvillon Conjonctivo-Nasal (VTM bleu), EV=Écouvillon Vaginal (recherche d'autres pathologies)",
+          "pt": "Non-vaccinated animals only (max 15). Sample types: SE=Serum (dry tube), ECN=Conjunctival-Nasal Swab (VTM blue), EV=Vaginal Swab (detection of other pathologies)",
+          "ar": "Non-vaccinated animals only (max 15). Sample types: SE=Serum (dry tube), ECN=Conjunctival-Nasal Swab (VTM blue), EV=Vaginal Swab (detection of other pathologies)"
+        },
+        "columns": 1,
+        "order": 7,
+        "isCollapsible": true,
+        "isCollapsed": false,
+        "isRepeatable": false,
+        "icon": null,
+        "color": "#EA580C",
+        "conditions": [],
+        "fields": [
+          {
+            "id": "7e019400-c05b-4ccd-991b-5f2fd80ed7f4",
+            "type": "repeater",
+            "code": "samples",
+            "label": {
+              "en": "Samples",
+              "fr": "Prélèvements",
+              "pt": "Samples",
+              "ar": "Samples"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 0,
+            "required": false,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {
+              "repeatMin": 1,
+              "repeatMax": 15,
+              "fields": [
+                {
+                  "code": "sample_species",
+                  "label": {
+                    "en": "Species",
+                    "fr": "Espèce",
+                    "pt": "Species",
+                    "ar": "Species"
+                  },
+                  "type": "select",
+                  "options": [
+                    {
+                      "label": {
+                        "en": "Goat",
+                        "fr": "Chèvre",
+                        "pt": "Goat",
+                        "ar": "Goat"
+                      },
+                      "value": "goat"
+                    },
+                    {
+                      "label": {
+                        "en": "Sheep",
+                        "fr": "Mouton",
+                        "pt": "Sheep",
+                        "ar": "Sheep"
+                      },
+                      "value": "sheep"
+                    }
+                  ]
+                },
+                {
+                  "code": "sample_sex",
+                  "label": {
+                    "en": "Sex",
+                    "fr": "Sexe",
+                    "pt": "Sex",
+                    "ar": "Sex"
+                  },
+                  "type": "select",
+                  "options": [
+                    {
+                      "label": {
+                        "en": "Male (M)",
+                        "fr": "Mâle (M)",
+                        "pt": "Male (M)",
+                        "ar": "Male (M)"
+                      },
+                      "value": "male"
+                    },
+                    {
+                      "label": {
+                        "en": "Female (F)",
+                        "fr": "Femelle (F)",
+                        "pt": "Female (F)",
+                        "ar": "Female (F)"
+                      },
+                      "value": "female"
+                    }
+                  ]
+                },
+                {
+                  "code": "sample_age",
+                  "label": {
+                    "en": "Age",
+                    "fr": "Âge",
+                    "pt": "Age",
+                    "ar": "Age"
+                  },
+                  "type": "select",
+                  "options": [
+                    {
+                      "label": {
+                        "en": "4-12 months",
+                        "fr": "4 à 12 mois",
+                        "pt": "4-12 months",
+                        "ar": "4-12 months"
+                      },
+                      "value": "4_12m"
+                    },
+                    {
+                      "label": {
+                        "en": ">12 months",
+                        "fr": ">12 mois",
+                        "pt": ">12 months",
+                        "ar": ">12 months"
+                      },
+                      "value": "over_12m"
+                    }
+                  ]
+                },
+                {
+                  "code": "sample_code",
+                  "label": {
+                    "en": "Sample Code (Animal# / District / SampleType)",
+                    "fr": "Code Prélèvement (N° animal / Arrondissement / Type)",
+                    "pt": "Sample Code (Animal# / District / SampleType)",
+                    "ar": "Sample Code (Animal# / District / SampleType)"
+                  },
+                  "type": "text"
+                },
+                {
+                  "code": "se",
+                  "label": {
+                    "en": "Serum (SE)",
+                    "fr": "Sérum (SE)",
+                    "pt": "Serum (SE)",
+                    "ar": "Serum (SE)"
+                  },
+                  "type": "checkbox"
+                },
+                {
+                  "code": "ecn",
+                  "label": {
+                    "en": "Conjunctival-Nasal Swab (ECN)",
+                    "fr": "Écouvillon Conjonctivo-Nasal (ECN)",
+                    "pt": "Conjunctival-Nasal Swab (ECN)",
+                    "ar": "Conjunctival-Nasal Swab (ECN)"
+                  },
+                  "type": "checkbox"
+                },
+                {
+                  "code": "ev",
+                  "label": {
+                    "en": "Vaginal Swab (EV)",
+                    "fr": "Écouvillon Vaginal (EV)",
+                    "pt": "Vaginal Swab (EV)",
+                    "ar": "Vaginal Swab (EV)"
+                  },
+                  "type": "checkbox"
+                },
+                {
+                  "code": "lab_status",
+                  "label": {
+                    "en": "Lab Status (LANAVET)",
+                    "fr": "Statut LANAVET",
+                    "pt": "Lab Status (LANAVET)",
+                    "ar": "Lab Status (LANAVET)"
+                  },
+                  "type": "select",
+                  "options": [
+                    {
+                      "label": {
+                        "en": "Positive",
+                        "fr": "Positif",
+                        "pt": "Positive",
+                        "ar": "Positive"
+                      },
+                      "value": "positive"
+                    },
+                    {
+                      "label": {
+                        "en": "Negative",
+                        "fr": "Négatif",
+                        "pt": "Negative",
+                        "ar": "Negative"
+                      },
+                      "value": "negative"
+                    },
+                    {
+                      "label": {
+                        "en": "Doubtful",
+                        "fr": "Douteux",
+                        "pt": "Doubtful",
+                        "ar": "Doubtful"
+                      },
+                      "value": "doubtful"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "9ce59a7a-5757-44d2-8240-983435edb3b1",
+        "name": {
+          "en": "GPS Coordinates (Required)",
+          "fr": "Coordonnées GPS (Obligatoire)",
+          "pt": "GPS Coordinates (Required)",
+          "ar": "GPS Coordinates (Required)"
+        },
+        "description": {
+          "en": "GPS coordinates in decimal degrees (e.g. 6.8234 N / 13.4521 E)",
+          "fr": "Coordonnées GPS en degrés décimaux (ex : 6.8234 N / 13.4521 E)",
+          "pt": "GPS coordinates in decimal degrees (e.g. 6.8234 N / 13.4521 E)",
+          "ar": "GPS coordinates in decimal degrees (e.g. 6.8234 N / 13.4521 E)"
+        },
+        "columns": 1,
+        "order": 8,
+        "isCollapsible": false,
+        "isCollapsed": false,
+        "isRepeatable": false,
+        "icon": null,
+        "color": "#1E3A5F",
+        "conditions": [],
+        "fields": [
+          {
+            "id": "43d6e7e5-0070-4741-b6e4-c1d159764dbc",
+            "type": "geo-selector",
+            "code": "geo_coordinates",
+            "label": {
+              "en": "GPS Location",
+              "fr": "Localisation GPS",
+              "pt": "GPS Location",
+              "ar": "GPS Location"
+            },
+            "placeholder": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "helpText": {
+              "en": "",
+              "fr": "",
+              "pt": "",
+              "ar": ""
+            },
+            "column": 0,
+            "columnSpan": 1,
+            "order": 0,
+            "required": true,
+            "readOnly": false,
+            "hidden": false,
+            "validation": {},
+            "conditions": [],
+            "properties": {}
+          }
+        ]
+      }
+    ],
+    "settings": {
+      "allowDraft": true,
+      "allowAttachments": true,
+      "maxAttachments": 5,
+      "allowOffline": true,
+      "requireGeoLocation": true,
+      "autoSaveInterval": 60,
+      "submissionWorkflow": "standard",
+      "notifyOnSubmit": [],
+      "duplicateDetection": {
+        "enabled": false,
+        "fields": []
+      }
+    },
+    "validationRules": []
+  },
+  "uiSchema": {}
+}
