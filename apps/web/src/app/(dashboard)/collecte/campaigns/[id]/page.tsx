@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -18,6 +18,8 @@ import {
   Target,
   ClipboardEdit,
   Eye,
+  Puzzle,
+  FlaskConical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -33,6 +35,7 @@ import {
 import { COUNTRIES } from '@/data/countries-config';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import LabResultsTab, { detectLabRepeaters } from '@/components/collecte/LabResultsTab';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useAuthStore, type AuthUser } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
@@ -211,6 +214,20 @@ export default function CampaignDetailPage() {
     );
   }
 
+  const [activeTab, setActiveTab] = useState<'details' | 'lab-results'>('details');
+
+  // Detect if any template has lab-processable repeaters
+  const labTemplates = useMemo(() => {
+    return resolvedTemplates.filter((rt) => {
+      if (!rt.tpl?.schema) return false;
+      const schema = rt.tpl.schema as Record<string, unknown>;
+      if (!schema.sections || !Array.isArray(schema.sections)) return false;
+      return detectLabRepeaters(schema as never).length > 0;
+    });
+  }, [resolvedTemplates]);
+
+  const hasLabTab = labTemplates.length > 0;
+
   const statusCfg = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG.PLANNED;
   const progress = campaign.progress;
   const totalSubmissions = progress?.totalSubmissions ?? 0;
@@ -298,8 +315,48 @@ export default function CampaignDetailPage() {
         </div>
       </div>
 
-      {/* Content grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* Tabs — only show if lab tab available */}
+      {hasLabTab && (
+        <div className="flex items-center gap-1 border-b border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => setActiveTab('details')}
+            className={cn(
+              'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors',
+              activeTab === 'details'
+                ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+            )}
+          >
+            {t('campaignInfo')}
+          </button>
+          <button
+            onClick={() => setActiveTab('lab-results')}
+            className={cn(
+              'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5',
+              activeTab === 'lab-results'
+                ? 'border-orange-600 text-orange-600 dark:border-orange-400 dark:text-orange-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+            )}
+          >
+            <FlaskConical className="h-4 w-4" />
+            Résultats Laboratoire
+          </button>
+        </div>
+      )}
+
+      {/* Lab Results Tab */}
+      {activeTab === 'lab-results' && hasLabTab && labTemplates.map((lt) => (
+        <LabResultsTab
+          key={lt.tplId}
+          campaignId={campaignId}
+          templateId={lt.tpl!.id}
+          templateSchema={lt.tpl!.schema as never}
+          locale={locale}
+        />
+      ))}
+
+      {/* Content grid — Details tab */}
+      {activeTab === 'details' && <div className="grid gap-6 lg:grid-cols-3">
         {/* Left — Main content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Progress card */}
@@ -419,6 +476,17 @@ export default function CampaignDetailPage() {
                       >
                         {t('import')}
                       </Link>
+                      {/* Extend button: REC/Country admins can add custom fields */}
+                      {linkId && (user?.tenantLevel === 'REC' || user?.tenantLevel === 'MEMBER_STATE') && (
+                        <Link
+                          href={`/collecte/forms/${linkId}/extend?campaignId=${campaignId}`}
+                          className="inline-flex items-center gap-1 rounded-lg border border-purple-300 bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100 dark:border-purple-700 dark:bg-purple-900/20 dark:text-purple-400 shrink-0"
+                          title={t('extendTooltip')}
+                        >
+                          <Puzzle className="h-3.5 w-3.5" />
+                          {t('extend')}
+                        </Link>
+                      )}
                     </div>
                   );
                 })}
@@ -586,7 +654,7 @@ export default function CampaignDetailPage() {
             </div>
           )}
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
