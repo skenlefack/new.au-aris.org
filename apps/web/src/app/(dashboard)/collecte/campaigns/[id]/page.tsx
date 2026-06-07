@@ -38,6 +38,12 @@ import { COUNTRIES } from '@/data/countries-config';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import LabResultsTab, { detectLabRepeaters } from '@/components/collecte/LabResultsTab';
+import dynamic from 'next/dynamic';
+
+const DigitalToolsDashboard = dynamic(
+  () => import('@/components/collecte/DigitalToolsDashboard'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
+);
 import { useTranslations } from '@/lib/i18n/translations';
 import { useAuthStore, type AuthUser } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
@@ -709,74 +715,68 @@ function CampaignDashboardsTab({ campaignId, campaignName }: { campaignId: strin
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-40 animate-pulse rounded-xl border border-gray-200 bg-gray-100 dark:border-gray-800 dark:bg-gray-800/50" />
-        ))}
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          {dashboards.length} tableau{dashboards.length !== 1 ? 'x' : ''} de bord lié{dashboards.length !== 1 ? 's' : ''} à cette campagne
-        </p>
-        <button
-          onClick={handleCreate}
-          disabled={creating}
-          className="flex items-center gap-2 rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#163a5c] disabled:opacity-50 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Nouveau tableau de bord
-        </button>
-      </div>
+    <div className="space-y-6">
+      {/* Custom visual dashboard — rendered from live submission data */}
+      <DigitalToolsDashboard campaignId={campaignId} />
 
-      {dashboards.length === 0 ? (
-        <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700">
-          <LayoutDashboard className="h-10 w-10 text-gray-300 dark:text-gray-600" />
-          <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">
-            Aucun tableau de bord pour cette campagne
-          </p>
+      {/* Dashboard builder dashboards linked to this campaign */}
+      {!isLoading && dashboards.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Tableaux de bord personnalisés ({dashboards.length})
+            </h3>
+            <button
+              onClick={handleCreate}
+              disabled={creating}
+              className="flex items-center gap-2 rounded-lg bg-[#1F4E79] px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-[#163a5c] disabled:opacity-50 transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Nouveau
+            </button>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {dashboards.map((d) => (
+              <Link
+                key={d.id}
+                href={`/dashboards/${d.id}`}
+                className="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow dark:border-gray-800 dark:bg-gray-900"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/20">
+                    <BarChart3 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 group-hover:text-[#1F4E79] transition-colors truncate">
+                      {d.title}
+                    </h3>
+                    {d.description && (
+                      <p className="mt-0.5 text-xs text-gray-400 line-clamp-1">{d.description}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-3 text-xs text-gray-400">
+                  <span>{d.widgetCount} widget{d.widgetCount !== 1 ? 's' : ''}</span>
+                  <span>{new Date(d.updatedAt).toLocaleDateString()}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Create button when no builder dashboards yet */}
+      {!isLoading && dashboards.length === 0 && (
+        <div className="flex justify-end">
           <button
             onClick={handleCreate}
             disabled={creating}
-            className="mt-3 flex items-center gap-1.5 text-sm font-medium text-[#1F4E79] hover:underline"
+            className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm hover:bg-gray-50 disabled:opacity-50 transition-colors dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
           >
-            <Plus className="h-4 w-4" />
-            Créer un tableau de bord
+            <Plus className="h-3.5 w-3.5" />
+            Créer un tableau de bord personnalisé
           </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {dashboards.map((d) => (
-            <Link
-              key={d.id}
-              href={`/dashboards/${d.id}`}
-              className="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow dark:border-gray-800 dark:bg-gray-900"
-            >
-              <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/20">
-                  <BarChart3 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 group-hover:text-[#1F4E79] transition-colors truncate">
-                    {d.title}
-                  </h3>
-                  {d.description && (
-                    <p className="mt-0.5 text-xs text-gray-400 line-clamp-1">{d.description}</p>
-                  )}
-                </div>
-              </div>
-              <div className="mt-3 flex items-center gap-3 text-xs text-gray-400">
-                <span>{d.widgetCount} widget{d.widgetCount !== 1 ? 's' : ''}</span>
-                <span>{new Date(d.updatedAt).toLocaleDateString()}</span>
-              </div>
-            </Link>
-          ))}
         </div>
       )}
     </div>
