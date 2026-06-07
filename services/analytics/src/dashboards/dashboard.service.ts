@@ -129,6 +129,10 @@ export class DashboardService {
       conditions.push(`d.country_code = $${idx++}`);
       params.push(filters.countryCode);
     }
+    if (filters.campaignId) {
+      conditions.push(`d.campaign_id = $${idx++}`);
+      params.push(filters.campaignId);
+    }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -297,10 +301,10 @@ export class DashboardService {
       const { rows } = await client.query(
         `INSERT INTO dashboard_builder.dashboards
           (id, ownership, scope, domain_id, sub_domain_id, value_chain_code,
-           rec_code, country_code, title_fr, title_en, title_ar, title_pt,
+           rec_code, country_code, campaign_id, title_fr, title_en, title_ar, title_pt,
            description, grid_columns, row_height, owner_user_id, is_default,
            created_at, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NOW(),NOW())
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,NOW(),NOW())
          RETURNING *`,
         [
           id,
@@ -311,6 +315,7 @@ export class DashboardService {
           input.valueChainCode ?? null,
           input.recCode ?? null,
           input.countryCode ?? null,
+          (input as any).campaignId ?? null,
           input.titleFr,
           input.titleEn,
           input.titleAr ?? null,

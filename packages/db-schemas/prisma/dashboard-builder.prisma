@@ -82,6 +82,7 @@ model Dashboard {
   valueChainCode  String?              @map("value_chain_code") @db.VarChar(30)
   recCode         String?              @map("rec_code") @db.VarChar(20)
   countryCode     String?              @map("country_code") @db.VarChar(2)
+  campaignId      String?              @map("campaign_id") @db.Uuid
 
   // ── Multilingual titles ──
   titleFr         String               @map("title_fr")
@@ -113,6 +114,7 @@ model Dashboard {
   @@index([domainId], map: "idx_dashboard_domain_id")
   @@index([ownerUserId], map: "idx_dashboard_owner_user_id")
   @@index([isDefault], map: "idx_dashboard_is_default")
+  @@index([campaignId], map: "idx_dashboard_campaign_id")
   @@map("dashboards")
   @@schema("dashboard_builder")
 }

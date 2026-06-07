@@ -18,6 +18,7 @@ import {
   Flag,
   LogIn,
   Lock,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -34,6 +35,7 @@ import { useDomainStore } from '@/lib/stores/domain-store';
 import { useSubDomains } from '@/hooks/use-sub-domains';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useSettingsRecs, useSettingsCountries } from '@/lib/api/settings-hooks';
+import { useCollectionCampaigns } from '@/lib/api/workflow-hooks';
 
 type Tab = 'USER_OWNED' | 'SHARED' | 'SYSTEM_TEMPLATE';
 
@@ -173,11 +175,12 @@ export default function MyDashboardsPage() {
   // New dashboard modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
-  const [newZone, setNewZone] = useState<'principal' | 'domain' | 'subdomain' | 'public_rec' | 'public_country'>(
+  const [newZone, setNewZone] = useState<'principal' | 'domain' | 'subdomain' | 'campaign' | 'public_rec' | 'public_country'>(
     searchParams.get('domain') ? 'domain' : 'principal',
   );
   const [newDomainCode, setNewDomainCode] = useState(searchParams.get('domain') ?? '');
   const [newSubDomainCode, setNewSubDomainCode] = useState('');
+  const [newCampaignId, setNewCampaignId] = useState('');
   const [newRecCode, setNewRecCode] = useState('');
   const [newCountryCode, setNewCountryCode] = useState('');
   const [treeSearch, setTreeSearch] = useState('');
@@ -194,12 +197,15 @@ export default function MyDashboardsPage() {
   const allRecs: any[] = recsData?.data ?? [];
   const { data: countriesData } = useSettingsCountries({ limit: 100 });
   const allCountries: any[] = countriesData?.data ?? [];
+  const { data: campaignsData } = useCollectionCampaigns({ limit: 200 });
+  const allCampaigns: any[] = Array.isArray(campaignsData?.data) ? campaignsData.data : [];
 
   const openCreateModal = () => {
     setNewTitle('');
     setNewZone(searchParams.get('domain') ? 'domain' : 'principal');
     setNewDomainCode(searchParams.get('domain') ?? '');
     setNewSubDomainCode('');
+    setNewCampaignId('');
     setNewRecCode('');
     setNewCountryCode('');
     setTreeSearch('');
@@ -218,12 +224,16 @@ export default function MyDashboardsPage() {
       let scope: DashboardScope = 'PERSONAL';
       let recCode: string | undefined;
       let countryCode: string | undefined;
+      let campaignId: string | undefined;
       if (newZone === 'public_rec') {
         scope = 'REC';
         recCode = newRecCode;
       } else if (newZone === 'public_country') {
         scope = 'COUNTRY';
         countryCode = newCountryCode;
+      } else if (newZone === 'campaign') {
+        scope = 'CONTINENTAL';
+        campaignId = newCampaignId;
       }
 
       const result = await createMutation.mutateAsync({
@@ -232,6 +242,7 @@ export default function MyDashboardsPage() {
         domainCode: (newZone === 'domain' || newZone === 'subdomain') && newDomainCode ? newDomainCode : undefined,
         recCode,
         countryCode,
+        campaignId,
       });
       const id = (result as any)?.data?.id;
       if (id) {
@@ -430,6 +441,7 @@ export default function MyDashboardsPage() {
                     { key: 'principal' as const, icon: LogIn, label: 'Ouverture de session', desc: 'Tableau de bord principal', disabled: false },
                     { key: 'domain' as const, icon: Globe, label: 'Page domaine', desc: 'Specifique a un domaine', disabled: false },
                     { key: 'subdomain' as const, icon: Layers, label: 'Sous-domaine', desc: 'Specifique a un sous-domaine', disabled: false },
+                    { key: 'campaign' as const, icon: ClipboardList, label: 'Campagne', desc: 'Lie a une campagne de collecte', disabled: false },
                     { key: 'public_rec' as const, icon: Globe, label: 'Page publique RECs', desc: 'Affiche sur la page REC', disabled: isNational },
                     { key: 'public_country' as const, icon: Flag, label: 'Page publique Pays', desc: 'Affiche sur la page pays', disabled: false },
                   ]).map((z) => (
@@ -442,6 +454,7 @@ export default function MyDashboardsPage() {
                         setNewZone(z.key);
                         setNewDomainCode('');
                         setNewSubDomainCode('');
+                        setNewCampaignId('');
                         setNewRecCode('');
                         setNewCountryCode('');
                       }}
@@ -548,6 +561,54 @@ export default function MyDashboardsPage() {
               )}
             </div>
 
+              {/* Campaign selector (zone=campaign) */}
+              {newZone === 'campaign' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Campagne de collecte</label>
+                  <input
+                    type="text"
+                    value={treeSearch}
+                    onChange={(e) => setTreeSearch(e.target.value)}
+                    placeholder="Rechercher une campagne..."
+                    className="mb-3 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                  <div className="grid grid-cols-1 gap-1.5 max-h-[280px] overflow-y-auto">
+                    {allCampaigns
+                      .filter((c: any) => {
+                        if (!treeSearch.trim()) return true;
+                        const q = treeSearch.toLowerCase();
+                        const name = typeof c.name === 'object' ? (c.name?.fr || c.name?.en || '') : String(c.name || '');
+                        return name.toLowerCase().includes(q);
+                      })
+                      .map((c: any) => {
+                        const name = typeof c.name === 'object' ? (c.name?.fr || c.name?.en || c.id) : String(c.name || c.id);
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => setNewCampaignId(c.id)}
+                            className={cn(
+                              'flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-all',
+                              newCampaignId === c.id
+                                ? 'border-[#1F4E79] bg-[#1F4E79]/5 text-[#1F4E79] font-medium shadow-sm'
+                                : 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700/50',
+                            )}
+                          >
+                            <ClipboardList className="h-4 w-4 shrink-0 text-gray-400" />
+                            <div className="min-w-0">
+                              <span className="block truncate">{name}</span>
+                              <span className="text-[10px] text-gray-400">{c.status}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    {allCampaigns.length === 0 && (
+                      <p className="text-xs text-gray-400 italic px-2 py-4 text-center">Aucune campagne disponible</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* REC selector (zone=public_rec) */}
               {newZone === 'public_rec' && (
                 <div>
@@ -644,6 +705,7 @@ export default function MyDashboardsPage() {
                 disabled={
                   (newZone === 'domain' && !newDomainCode) ||
                   (newZone === 'subdomain' && !newSubDomainCode) ||
+                  (newZone === 'campaign' && !newCampaignId) ||
                   (newZone === 'public_rec' && !isRec && !newRecCode) ||
                   (newZone === 'public_country' && !isNational && !newCountryCode)
                 }

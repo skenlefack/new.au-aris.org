@@ -266,6 +266,7 @@ export interface DashboardListItem {
   description?: string;
   scope: DashboardScope;
   domainCode?: string;
+  campaignId?: string;
   ownerId: string;
   isDefault: boolean;
   isTemplate: boolean;
@@ -306,6 +307,7 @@ export function useDashboards(params?: {
   domainCode?: string;
   recCode?: string;
   countryCode?: string;
+  campaignId?: string;
   ownership?: DashboardOwnership;
   page?: number;
   limit?: number;
@@ -315,6 +317,7 @@ export function useDashboards(params?: {
   if (params?.domainCode) qp.domainCode = params.domainCode;
   if (params?.recCode) qp.recCode = params.recCode;
   if (params?.countryCode) qp.countryCode = params.countryCode;
+  if (params?.campaignId) qp.campaignId = params.campaignId;
   if (params?.ownership) qp.ownership = params.ownership;
   if (params?.page) qp.page = String(params.page);
   if (params?.limit) qp.limit = String(params.limit);
@@ -399,6 +402,7 @@ export function useCreateDashboard() {
       domainCode?: string;
       recCode?: string;
       countryCode?: string;
+      campaignId?: string;
       isTemplate?: boolean;
       tags?: string[];
     }) => {

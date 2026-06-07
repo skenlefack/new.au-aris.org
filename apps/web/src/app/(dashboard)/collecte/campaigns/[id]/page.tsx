@@ -20,6 +20,8 @@ import {
   Eye,
   Puzzle,
   FlaskConical,
+  LayoutDashboard,
+  Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -39,6 +41,11 @@ import LabResultsTab, { detectLabRepeaters } from '@/components/collecte/LabResu
 import { useTranslations } from '@/lib/i18n/translations';
 import { useAuthStore, type AuthUser } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
+import {
+  useDashboards,
+  useCreateDashboard,
+  type DashboardListItem,
+} from '@/lib/api/dashboard-hooks';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyCampaign = any;
@@ -214,7 +221,7 @@ export default function CampaignDetailPage() {
     );
   }
 
-  const [activeTab, setActiveTab] = useState<'details' | 'lab-results'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'lab-results' | 'dashboards'>('details');
 
   // Detect if any template has lab-processable repeaters
   const labTemplates = useMemo(() => {
@@ -315,20 +322,20 @@ export default function CampaignDetailPage() {
         </div>
       </div>
 
-      {/* Tabs — only show if lab tab available */}
-      {hasLabTab && (
-        <div className="flex items-center gap-1 border-b border-gray-200 dark:border-gray-700">
-          <button
-            onClick={() => setActiveTab('details')}
-            className={cn(
-              'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors',
-              activeTab === 'details'
-                ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
-            )}
-          >
-            {t('campaignInfo')}
-          </button>
+      {/* Tabs */}
+      <div className="flex items-center gap-1 border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => setActiveTab('details')}
+          className={cn(
+            'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors',
+            activeTab === 'details'
+              ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+          )}
+        >
+          {t('campaignInfo')}
+        </button>
+        {hasLabTab && (
           <button
             onClick={() => setActiveTab('lab-results')}
             className={cn(
@@ -341,8 +348,20 @@ export default function CampaignDetailPage() {
             <FlaskConical className="h-4 w-4" />
             Résultats Laboratoire
           </button>
-        </div>
-      )}
+        )}
+        <button
+          onClick={() => setActiveTab('dashboards')}
+          className={cn(
+            'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5',
+            activeTab === 'dashboards'
+              ? 'border-purple-600 text-purple-600 dark:border-purple-400 dark:text-purple-400'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+          )}
+        >
+          <LayoutDashboard className="h-4 w-4" />
+          Tableaux de bord
+        </button>
+      </div>
 
       {/* Lab Results Tab */}
       {activeTab === 'lab-results' && hasLabTab && labTemplates.map((lt) => (
@@ -354,6 +373,11 @@ export default function CampaignDetailPage() {
           locale={locale}
         />
       ))}
+
+      {/* Dashboards Tab */}
+      {activeTab === 'dashboards' && (
+        <CampaignDashboardsTab campaignId={campaignId} campaignName={i18nStr(campaign.name, locale)} />
+      )}
 
       {/* Content grid — Details tab */}
       {activeTab === 'details' && <div className="grid gap-6 lg:grid-cols-3">
@@ -655,6 +679,106 @@ export default function CampaignDetailPage() {
           )}
         </div>
       </div>}
+    </div>
+  );
+}
+
+/* ── Campaign Dashboards Tab ─────────────────────────────────────────────── */
+
+function CampaignDashboardsTab({ campaignId, campaignName }: { campaignId: string; campaignName: string }) {
+  const router = useRouter();
+  const { data, isLoading } = useDashboards({ campaignId, limit: 50 });
+  const dashboards: DashboardListItem[] = data?.data ?? [];
+  const createMutation = useCreateDashboard();
+  const [creating, setCreating] = useState(false);
+
+  const handleCreate = async () => {
+    setCreating(true);
+    try {
+      const result = await createMutation.mutateAsync({
+        title: `Dashboard — ${campaignName}`,
+        scope: 'CONTINENTAL',
+        campaignId,
+      });
+      const id = (result as any)?.data?.id;
+      if (id) router.push(`/dashboards/${id}/edit`);
+    } catch {
+      // ignore
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-40 animate-pulse rounded-xl border border-gray-200 bg-gray-100 dark:border-gray-800 dark:bg-gray-800/50" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {dashboards.length} tableau{dashboards.length !== 1 ? 'x' : ''} de bord lié{dashboards.length !== 1 ? 's' : ''} à cette campagne
+        </p>
+        <button
+          onClick={handleCreate}
+          disabled={creating}
+          className="flex items-center gap-2 rounded-lg bg-[#1F4E79] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#163a5c] disabled:opacity-50 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Nouveau tableau de bord
+        </button>
+      </div>
+
+      {dashboards.length === 0 ? (
+        <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700">
+          <LayoutDashboard className="h-10 w-10 text-gray-300 dark:text-gray-600" />
+          <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+            Aucun tableau de bord pour cette campagne
+          </p>
+          <button
+            onClick={handleCreate}
+            disabled={creating}
+            className="mt-3 flex items-center gap-1.5 text-sm font-medium text-[#1F4E79] hover:underline"
+          >
+            <Plus className="h-4 w-4" />
+            Créer un tableau de bord
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {dashboards.map((d) => (
+            <Link
+              key={d.id}
+              href={`/dashboards/${d.id}`}
+              className="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow dark:border-gray-800 dark:bg-gray-900"
+            >
+              <div className="flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/20">
+                  <BarChart3 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 group-hover:text-[#1F4E79] transition-colors truncate">
+                    {d.title}
+                  </h3>
+                  {d.description && (
+                    <p className="mt-0.5 text-xs text-gray-400 line-clamp-1">{d.description}</p>
+                  )}
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-3 text-xs text-gray-400">
+                <span>{d.widgetCount} widget{d.widgetCount !== 1 ? 's' : ''}</span>
+                <span>{new Date(d.updatedAt).toLocaleDateString()}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
