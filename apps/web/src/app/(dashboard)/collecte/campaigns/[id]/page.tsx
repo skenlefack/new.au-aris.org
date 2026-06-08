@@ -44,6 +44,16 @@ const DigitalToolsDashboard = dynamic(
   () => import('@/components/collecte/DigitalToolsDashboard'),
   { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
 );
+
+const DiagnosticsDashboard = dynamic(
+  () => import('@/components/collecte/DiagnosticsDashboard'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
+);
+
+const GenericCampaignDashboard = dynamic(
+  () => import('@/components/collecte/GenericCampaignDashboard'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
+);
 import { useTranslations } from '@/lib/i18n/translations';
 import { useAuthStore, type AuthUser } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
@@ -715,10 +725,24 @@ function CampaignDashboardsTab({ campaignId, campaignName }: { campaignId: strin
     }
   };
 
+  const renderCampaignDashboard = (cId: string, cName: string) => {
+    const nameLower = cName.toLowerCase();
+    // Surveillance & Outils Numériques → custom digital tools dashboard
+    if (nameLower.includes('surveillance') && (nameLower.includes('outil') || nameLower.includes('numérique') || nameLower.includes('numerique'))) {
+      return <DigitalToolsDashboard campaignId={cId} />;
+    }
+    // Tests Diagnostiques & HPPR-bELISA → custom diagnostics dashboard
+    if (nameLower.includes('diagnostic') || nameLower.includes('hppr') || nameLower.includes('belisa')) {
+      return <DiagnosticsDashboard campaignId={cId} />;
+    }
+    // All other campaigns → generic auto-generated dashboard
+    return <GenericCampaignDashboard campaignId={cId} campaignName={cName} />;
+  };
+
   return (
     <div className="space-y-6">
       {/* Custom visual dashboard — rendered from live submission data */}
-      <DigitalToolsDashboard campaignId={campaignId} />
+      {renderCampaignDashboard(campaignId, campaignName)}
 
       {/* Dashboard builder dashboards linked to this campaign */}
       {!isLoading && dashboards.length > 0 && (
