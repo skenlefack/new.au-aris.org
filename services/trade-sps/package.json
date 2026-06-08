@@ -21,7 +21,7 @@
     "@aris/shared-types": "workspace:*",
     "@fastify/cors": "^10.0.0",
     "@fastify/multipart": "^9.4.0",
-    "@prisma/client": "6.2.0",
+    "@prisma/client": "6.19.3",
     "@sinclair/typebox": "^0.32.0",
     "csv-parse": "^6.1.0",
     "dotenv": "^17.3.1",
