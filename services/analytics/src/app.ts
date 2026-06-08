@@ -25,6 +25,8 @@ import { registerDashboardRoutes } from './dashboards/dashboard.routes';
 import { ReportService } from './reports/report.service';
 import { registerReportRoutes } from './reports/report.routes';
 import { registerFlashDetectorConsumer } from './reports/flash-detector';
+import { DomainSummaryService } from './domain-summary/domain-summary.service';
+import { registerDomainSummaryRoutes } from './domain-summary/domain-summary.routes';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -87,12 +89,14 @@ export async function buildApp(): Promise<FastifyInstance> {
   const crossDomainService = new CrossDomainService(redisClient);
 
   const dbStatsService = new DbStatsService(redisClient);
+  const domainSummaryService = new DomainSummaryService(redisClient);
 
   app.decorate('aggregationService', aggregationService);
   app.decorate('domainAggregationService', domainAggregationService);
   app.decorate('healthKpiService', healthKpiService);
   app.decorate('crossDomainService', crossDomainService);
   app.decorate('dbStatsService', dbStatsService);
+  app.decorate('domainSummaryService', domainSummaryService);
 
   // --- Indicator service ---
   const indicatorService = new IndicatorService(redisClient, app.kafka);
@@ -123,6 +127,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerIndicatorRoutes);
   await app.register(registerDashboardRoutes);
   await app.register(registerReportRoutes);
+  await app.register(registerDomainSummaryRoutes);
 
   return app;
 }

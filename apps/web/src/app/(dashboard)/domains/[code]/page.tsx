@@ -3,14 +3,16 @@
 import React from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { LayoutDashboard } from 'lucide-react';
 import { useDomainStore, type Domain } from '@/lib/stores/domain-store';
-import { useAuthStore } from '@/lib/stores/auth-store';
-import { DashboardSection } from '@/components/domain/DashboardSection';
+import { useDomainSummary } from '@/lib/api/domain-summary-hooks';
+import { DomainKpiBar } from '@/components/domain/DomainKpiBar';
+import { DomainSynthesis } from '@/components/domain/DomainSynthesis';
+import { DomainActivityFeed } from '@/components/domain/DomainActivityFeed';
 import { PlanningsSection } from '@/components/domain/PlanningsSection';
 import { SubDomainsGrid } from '@/components/domain/SubDomainsGrid';
-import type { DashboardScope } from '@/lib/api/dashboard-hooks';
 
-/* ── Domain metadata for colors / descriptions ─────────── */
+/* -- Domain metadata for colors / descriptions -- */
 
 const DOMAIN_META: Record<string, { color: string; description: string }> = {
   'animal-health': {
@@ -51,23 +53,13 @@ const DOMAIN_META: Record<string, { color: string; description: string }> = {
   },
 };
 
-function resolveScope(role?: string, tenantLevel?: string): DashboardScope {
-  if (role === 'SUPER_ADMIN' || role === 'CONTINENTAL_ADMIN') return 'CONTINENTAL';
-  if (role === 'REC_ADMIN') return 'REC';
-  if (tenantLevel === 'CONTINENTAL') return 'CONTINENTAL';
-  if (tenantLevel === 'REC') return 'REC';
-  return 'COUNTRY';
-}
-
 export default function DomainPage() {
   const params = useParams<{ code: string }>();
   const code = params.code;
 
   const allDomains = useDomainStore((s) => s.allDomains);
   const userDomains = useDomainStore((s) => s.userDomains);
-  const user = useAuthStore((s) => s.user);
 
-  // Find domain in store
   const domain: Domain | undefined =
     allDomains.find((d) => d.code === code) ??
     userDomains.find((d) => d.code === code);
@@ -75,7 +67,9 @@ export default function DomainPage() {
   const meta = DOMAIN_META[code] ?? { color: '#1F4E79', description: '' };
   const domainName =
     domain?.name?.en ?? domain?.name?.fr ?? code.replace(/-/g, ' ');
-  const scope = resolveScope(user?.role, user?.tenantLevel);
+
+  const { data: summaryRes, isLoading } = useDomainSummary(code);
+  const summary = summaryRes?.data ?? null;
 
   return (
     <div className="space-y-6">
@@ -87,39 +81,53 @@ export default function DomainPage() {
           background: `linear-gradient(135deg, ${meta.color}08 0%, transparent 60%)`,
         }}
       >
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-12 w-12 items-center justify-center rounded-xl text-white text-lg font-bold"
-            style={{ backgroundColor: meta.color }}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-xl text-white text-lg font-bold"
+              style={{ backgroundColor: meta.color }}
+            >
+              {domainName.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white capitalize">
+                {domainName}
+              </h1>
+              {meta.description && (
+                <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                  {meta.description}
+                </p>
+              )}
+            </div>
+          </div>
+          <Link
+            href={`/my-dashboards?domain=${code}`}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
           >
-            {domainName.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white capitalize">
-              {domainName}
-            </h1>
-            {meta.description && (
-              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-                {meta.description}
-              </p>
-            )}
-          </div>
+            <LayoutDashboard className="h-3.5 w-3.5" />
+            Dashboards avances
+          </Link>
         </div>
       </div>
 
-      {/* SECTION 1: Dashboard */}
-      <DashboardSection
-        scope={scope}
-        target={{ domainId: domain?.id }}
-        domainCode={code}
-        zone="domain"
-      />
+      {/* KPI Bar */}
+      <DomainKpiBar kpis={summary?.kpis ?? null} loading={isLoading} />
 
-      {/* SECTION 2: Sous-domaines */}
+      {/* Visual Synthesis -- Map, Trend, Breakdown */}
+      <DomainSynthesis synthesis={summary?.synthesis ?? null} loading={isLoading} domainColor={meta.color} />
+
+      {/* Sub-domains Grid */}
       <SubDomainsGrid domainCode={code} />
 
-      {/* SECTION 3: Planifications */}
-      <PlanningsSection target={{ domainCode: code }} />
+      {/* Recent Activity + Plannings side by side on large screens */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-1">
+          <DomainActivityFeed activities={summary?.recentActivity ?? null} loading={isLoading} />
+        </div>
+        <div className="lg:col-span-2">
+          <PlanningsSection target={{ domainCode: code }} />
+        </div>
+      </div>
     </div>
   );
 }
