@@ -725,8 +725,14 @@ function CampaignDashboardsTab({ campaignId, campaignName }: { campaignId: strin
     }
   };
 
+  const hasLinkedDashboards = !isLoading && dashboards.length > 0;
+
   const renderCampaignDashboard = (cId: string, cName: string) => {
     const nameLower = cName.toLowerCase();
+    // Allocation Kits → uses linked dashboard builder dashboard only (no custom component)
+    if (nameLower.includes('allocation') && nameLower.includes('kit')) {
+      return null;
+    }
     // Surveillance & Outils Numériques → custom digital tools dashboard
     if (nameLower.includes('surveillance') && (nameLower.includes('outil') || nameLower.includes('numérique') || nameLower.includes('numerique'))) {
       return <DigitalToolsDashboard campaignId={cId} />;
@@ -745,11 +751,11 @@ function CampaignDashboardsTab({ campaignId, campaignName }: { campaignId: strin
       {renderCampaignDashboard(campaignId, campaignName)}
 
       {/* Dashboard builder dashboards linked to this campaign */}
-      {!isLoading && dashboards.length > 0 && (
+      {hasLinkedDashboards && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              Tableaux de bord personnalisés ({dashboards.length})
+              {dashboards.length === 1 ? 'Tableau de bord' : `Tableaux de bord (${dashboards.length})`}
             </h3>
             <button
               onClick={handleCreate}
