@@ -157,6 +157,8 @@ export default function CampaignDetailPage() {
   const user = useAuthStore((s) => s.user);
   const editable = canEditCampaign(user, campaign);
 
+  const [activeTab, setActiveTab] = useState<'details' | 'lab-results' | 'dashboards'>('details');
+
   // Resolve each campaign templateId to a { name, tpl, tplId } object.
   // Matching strategy: try ID match first (real DB IDs), then fall back to
   // name match via SEED_TEMPLATES (campaigns created when form-builder was offline
@@ -236,8 +238,6 @@ export default function CampaignDetailPage() {
       </div>
     );
   }
-
-  const [activeTab, setActiveTab] = useState<'details' | 'lab-results' | 'dashboards'>('details');
 
   // Detect if any template has lab-processable repeaters
   const labTemplates = useMemo(() => {
