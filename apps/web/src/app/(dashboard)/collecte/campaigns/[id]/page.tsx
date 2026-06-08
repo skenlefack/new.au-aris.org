@@ -203,6 +203,42 @@ export default function CampaignDetailPage() {
     });
   }, [campaign]);
 
+  // Detect if any template has lab-processable repeaters
+  const labTemplates = useMemo(() => {
+    return resolvedTemplates.filter((rt) => {
+      if (!rt.tpl?.schema) return false;
+      const schema = rt.tpl.schema as Record<string, unknown>;
+      if (!schema.sections || !Array.isArray(schema.sections)) return false;
+      return detectLabRepeaters(schema as never).length > 0;
+    });
+  }, [resolvedTemplates]);
+
+  const hasLabTab = labTemplates.length > 0;
+
+  const statusCfg = STATUS_CONFIG[campaign?.status ?? 'PLANNED'] ?? STATUS_CONFIG.PLANNED;
+  const progress = campaign?.progress;
+  const totalSubmissions = progress?.totalSubmissions ?? 0;
+  const validated = 0;
+  const rejected = 0;
+  const pending = totalSubmissions - validated - rejected;
+  const target = campaign?.targetSubmissions ?? 0;
+  const pct = progress?.completionRate ?? (target > 0 ? Math.round((totalSubmissions / target) * 100) : 0);
+  const agentCount = progress?.totalAgents ?? (Array.isArray(campaign?.assignments) ? campaign.assignments.length : 0);
+
+  const handleStatusChange = async (newStatus: 'ACTIVE' | 'COMPLETED' | 'CANCELLED') => {
+    try {
+      if (newStatus === 'ACTIVE') {
+        await activateMut.mutateAsync(campaignId);
+      } else if (newStatus === 'COMPLETED') {
+        await completeMut.mutateAsync(campaignId);
+      } else {
+        await updateCampaign.mutateAsync({ id: campaignId, status: newStatus } as AnyCampaign);
+      }
+    } catch (err) {
+      console.error('[CampaignDetail] Status change failed:', err);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6 pb-12">
@@ -238,42 +274,6 @@ export default function CampaignDetailPage() {
       </div>
     );
   }
-
-  // Detect if any template has lab-processable repeaters
-  const labTemplates = useMemo(() => {
-    return resolvedTemplates.filter((rt) => {
-      if (!rt.tpl?.schema) return false;
-      const schema = rt.tpl.schema as Record<string, unknown>;
-      if (!schema.sections || !Array.isArray(schema.sections)) return false;
-      return detectLabRepeaters(schema as never).length > 0;
-    });
-  }, [resolvedTemplates]);
-
-  const hasLabTab = labTemplates.length > 0;
-
-  const statusCfg = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG.PLANNED;
-  const progress = campaign.progress;
-  const totalSubmissions = progress?.totalSubmissions ?? 0;
-  const validated = 0; // CollectionCampaign tracks via assignments, not submission-level validation
-  const rejected = 0;
-  const pending = totalSubmissions - validated - rejected;
-  const target = campaign.targetSubmissions ?? 0;
-  const pct = progress?.completionRate ?? (target > 0 ? Math.round((totalSubmissions / target) * 100) : 0);
-  const agentCount = progress?.totalAgents ?? (Array.isArray(campaign.assignments) ? campaign.assignments.length : 0);
-
-  const handleStatusChange = async (newStatus: 'ACTIVE' | 'COMPLETED' | 'CANCELLED') => {
-    try {
-      if (newStatus === 'ACTIVE') {
-        await activateMut.mutateAsync(campaignId);
-      } else if (newStatus === 'COMPLETED') {
-        await completeMut.mutateAsync(campaignId);
-      } else {
-        await updateCampaign.mutateAsync({ id: campaignId, status: newStatus } as AnyCampaign);
-      }
-    } catch (err) {
-      console.error('[CampaignDetail] Status change failed:', err);
-    }
-  };
 
   return (
     <div className="space-y-6 pb-12">
