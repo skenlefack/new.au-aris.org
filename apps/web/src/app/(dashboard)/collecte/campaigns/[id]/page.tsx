@@ -54,6 +54,11 @@ const GenericCampaignDashboard = dynamic(
   () => import('@/components/collecte/GenericCampaignDashboard'),
   { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
 );
+
+const FisheriesDashboard = dynamic(
+  () => import('@/components/collecte/FisheriesDashboard'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
+);
 import { useTranslations } from '@/lib/i18n/translations';
 import { useAuthStore, type AuthUser } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
@@ -740,6 +745,10 @@ function CampaignDashboardsTab({ campaignId, campaignName }: { campaignId: strin
     // Tests Diagnostiques & HPPR-bELISA → custom diagnostics dashboard
     if (nameLower.includes('diagnostic') || nameLower.includes('hppr') || nameLower.includes('belisa')) {
       return <DiagnosticsDashboard campaignId={cId} />;
+    }
+    // AFADATA fisheries campaigns → dedicated fisheries dashboard
+    if (nameLower.includes('afadata')) {
+      return <FisheriesDashboard campaignId={cId} campaignName={cName} />;
     }
     // All other campaigns → generic auto-generated dashboard
     return <GenericCampaignDashboard campaignId={cId} campaignName={cName} />;
