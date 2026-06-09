@@ -63,7 +63,7 @@ function AnimatedKpiCard({ item, index }: { item: KpiItem; index: number }) {
   return (
     <div
       className={cn(
-        'group relative overflow-hidden rounded-2xl border p-4 transition-all duration-300',
+        'group relative overflow-hidden rounded-2xl border p-3 transition-all duration-300',
         'hover:shadow-lg hover:-translate-y-0.5 hover:border-transparent',
         'border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900',
       )}
@@ -81,39 +81,37 @@ function AnimatedKpiCard({ item, index }: { item: KpiItem; index: number }) {
         style={{ backgroundColor: item.color }}
       />
 
-      <div className="relative flex items-start justify-between">
+      <div className="relative flex items-center gap-3">
         <div
-          className="flex h-9 w-9 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110"
           style={{ backgroundColor: `${item.color}15`, color: item.color }}
         >
           {item.icon}
         </div>
 
-        {item.delta !== undefined && item.delta !== 0 && (
-          <div className={cn(
-            'flex items-center gap-0.5 rounded-lg px-2 py-0.5 text-[10px] font-bold tracking-wide',
-            item.delta > 0
-              ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
-              : 'bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400',
-          )}>
-            {item.delta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-            {item.delta > 0 ? '+' : ''}{item.delta}%
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-1.5">
+            <p className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+              {displayVal}
+              {item.suffix && (
+                <span className="text-xs font-medium text-gray-400 dark:text-gray-500">{item.suffix}</span>
+              )}
+            </p>
+            {item.delta !== undefined && item.delta !== 0 && (
+              <span className={cn(
+                'inline-flex items-center gap-0.5 rounded-md px-1.5 py-px text-[9px] font-bold',
+                item.delta > 0
+                  ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+                  : 'bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400',
+              )}>
+                {item.delta > 0 ? '+' : ''}{item.delta}%
+              </span>
+            )}
           </div>
-        )}
-      </div>
-
-      <div className="relative mt-3">
-        <p className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-          {displayVal}
-          {item.suffix && (
-            <span className="ml-0.5 text-sm font-medium text-gray-400 dark:text-gray-500">
-              {item.suffix}
-            </span>
-          )}
-        </p>
-        <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">
-          {item.label}
-        </p>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 truncate">
+            {item.label}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -124,12 +122,14 @@ export function DomainKpiBar({ kpis, loading }: DomainKpiBarProps) {
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+          <div key={i} className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
             <div className="absolute inset-x-0 top-0 h-[3px] animate-pulse bg-gray-200 dark:bg-gray-700" />
-            <div className="h-9 w-9 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
-            <div className="mt-3 space-y-1.5">
-              <div className="h-7 w-16 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
-              <div className="h-3 w-20 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 shrink-0 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
+              <div className="space-y-1.5 flex-1">
+                <div className="h-5 w-14 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+                <div className="h-2.5 w-20 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+              </div>
             </div>
           </div>
         ))}
