@@ -119,15 +119,11 @@ export default function DomainPage() {
       {/* Sub-domains Grid */}
       <SubDomainsGrid domainCode={code} />
 
-      {/* Recent Activity + Plannings side by side on large screens */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <DomainActivityFeed activities={summary?.recentActivity ?? null} loading={isLoading} />
-        </div>
-        <div className="lg:col-span-2">
-          <PlanningsSection target={{ domainCode: code }} />
-        </div>
-      </div>
+      {/* Recent Activity */}
+      <DomainActivityFeed activities={summary?.recentActivity ?? null} loading={isLoading} />
+
+      {/* Plannings */}
+      <PlanningsSection target={{ domainCode: code }} />
     </div>
   );
 }

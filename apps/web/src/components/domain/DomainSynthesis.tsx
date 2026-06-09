@@ -231,7 +231,7 @@ export function DomainSynthesis({ synthesis, loading, domainColor = '#1F4E79' }:
     return (
       <div className="grid gap-4 lg:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-[360px] animate-pulse rounded-2xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-900" />
+          <div key={i} className="h-[460px] animate-pulse rounded-2xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-900" />
         ))}
       </div>
     );
@@ -272,7 +272,7 @@ export function DomainSynthesis({ synthesis, loading, domainColor = '#1F4E79' }:
           </div>
         }
       >
-        <div className="h-[300px]">
+        <div className="h-[400px]">
           <ChoroplethMap title="Couverture geographique" data={mapData} indicator="submissions" bare />
         </div>
       </WidgetCard>
@@ -294,7 +294,7 @@ export function DomainSynthesis({ synthesis, loading, domainColor = '#1F4E79' }:
         }
       >
         <div ref={trendRef}>
-          <TrendChart data={synthesis.monthlyTrend} domainColor={domainColor} height={280} />
+          <TrendChart data={synthesis.monthlyTrend} domainColor={domainColor} height={380} />
         </div>
       </WidgetCard>
 
@@ -315,7 +315,7 @@ export function DomainSynthesis({ synthesis, loading, domainColor = '#1F4E79' }:
         }
       >
         <div ref={pieRef}>
-          <BreakdownChart data={pieData} height={280} />
+          <BreakdownChart data={pieData} height={380} />
         </div>
       </WidgetCard>
     </div>
