@@ -184,8 +184,8 @@ export class DomainSummaryService {
     databaseUrl?: string,
   ) {
     const url = databaseUrl
-      || process.env['DATABASE_URL']
       || process.env['DIRECT_DATABASE_URL']
+      || process.env['DATABASE_URL']
       || 'postgresql://aris:aris@localhost:5432/aris';
     this.pool = new Pool({ connectionString: url, max: 3, idleTimeoutMillis: 30_000 });
   }
