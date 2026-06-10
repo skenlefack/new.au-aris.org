@@ -246,16 +246,44 @@ export class DomainSummaryService {
         qualityScore: 0, // placeholder — requires quality_reports per domain
         trend: { current, previous, delta },
       };
-    } catch (err) {
-      console.error('[DomainSummaryService] KPIs query failed:', err);
-      return {
-        totalSubmissions: 0,
-        activeCountries: 0,
-        activeCampaigns: 0,
-        completionRate: 0,
-        qualityScore: 0,
-        trend: { current: 0, previous: 0, delta: 0 },
-      };
+    } catch (err: any) {
+      console.error('[DomainSummaryService] KPIs query failed:', err?.message ?? err);
+      // Fallback: try simpler queries separately
+      try {
+        const sub1 = await client.query(
+          `SELECT COUNT(*)::int AS cnt FROM public.submissions s
+           JOIN public.collection_campaigns c ON s.campaign_id = c.id WHERE c.domain = $1`,
+          [domain],
+        );
+        const sub2 = await client.query(
+          `SELECT COUNT(*)::int AS cnt FROM public.collection_campaigns WHERE domain = $1 AND status = 'ACTIVE'`,
+          [domain],
+        );
+        const sub3 = await client.query(
+          `SELECT COUNT(DISTINCT s.data->>'adm0')::int AS cnt FROM public.submissions s
+           JOIN public.collection_campaigns c ON s.campaign_id = c.id
+           WHERE c.domain = $1 AND s.data->>'adm0' IS NOT NULL`,
+          [domain],
+        );
+        const totalSubmissions = sub1.rows[0]?.cnt ?? 0;
+        const activeCampaigns = sub2.rows[0]?.cnt ?? 0;
+        const activeCountries = sub3.rows[0]?.cnt ?? 0;
+        const totalTarget = 50000 * activeCampaigns;
+        return {
+          totalSubmissions,
+          activeCountries,
+          activeCampaigns,
+          completionRate: totalTarget > 0 ? Math.round((totalSubmissions / totalTarget) * 1000) / 10 : 0,
+          qualityScore: 0,
+          trend: { current: 0, previous: 0, delta: 0 },
+        };
+      } catch (err2: any) {
+        console.error('[DomainSummaryService] KPIs fallback also failed:', err2?.message ?? err2);
+        return {
+          totalSubmissions: 0, activeCountries: 0, activeCampaigns: 0,
+          completionRate: 0, qualityScore: 0, trend: { current: 0, previous: 0, delta: 0 },
+        };
+      }
     }
   }
 
