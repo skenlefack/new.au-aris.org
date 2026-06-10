@@ -37,14 +37,15 @@ const VALID_REF_TYPES: Set<string> = new Set([
 
 /** Map form-builder masterDataType → PAID API category */
 const PAID_TYPE_MAP: Record<string, PaidRefCategory> = {
-  'paid-sectors': 'PAID_SECTOR',
-  'paid-activities': 'PAID_ACTIVITY',
-  'paid-species': 'PAID_SPECIES',
-  'paid-production-systems': 'PAID_PROD_SYSTEM',
-  'paid-diseases': 'PAID_DISEASE',
   'paid-projects': 'PAID_PROJECT',
-  'paid-partners-intl': 'PAID_PARTNER_INTL',
-  'paid-partners-national': 'PAID_PARTNER_NATIONAL',
+  'paid-logframes': 'PAID_LOGFRAME',
+  'paid-lf-activities': 'PAID_LF_ACTIVITY',
+  'paid-subactivities': 'PAID_SUBACTIVITY',
+  'paid-paid-activities': 'PAID_PAID_ACTIVITY',
+  'paid-breakdown-fields': 'PAID_BREAKDOWN_FIELD',
+  'paid-executive-partners': 'PAID_EXEC_PARTNER',
+  'paid-impl-partners-intl': 'PAID_IMPL_PARTNER_INTL',
+  'paid-impl-partners-national': 'PAID_IMPL_PARTNER_NATIONAL',
 };
 
 function isPaidType(type: string): boolean {
@@ -74,12 +75,17 @@ export function MasterDataSelectField({
   const paidCategory = PAID_TYPE_MAP[masterDataType];
   const paidFilters = useMemo(() => {
     if (!parentFilter) return undefined;
-    return {
-      sector: parentFilter.sector || parentFilter.sectorCode,
-      species: parentFilter.species || parentFilter.speciesCode,
-      country: parentFilter.country || parentFilter.countryCode,
-      search: parentFilter.search,
-    };
+    const f: Record<string, string | undefined> = {};
+    // Cascade filters for PAID v2 hierarchy
+    if (parentFilter.project) f.project = parentFilter.project;
+    if (parentFilter.type) f.type = parentFilter.type;
+    if (parentFilter.logframe) f.logframe = parentFilter.logframe;
+    if (parentFilter.activity) f.activity = parentFilter.activity;
+    if (parentFilter.subactivity) f.subactivity = parentFilter.subactivity;
+    if (parentFilter.paid_activity) f.paid_activity = parentFilter.paid_activity;
+    if (parentFilter.country) f.country = parentFilter.country;
+    if (parentFilter.search) f.search = parentFilter.search;
+    return Object.keys(f).length > 0 ? f : undefined;
   }, [parentFilter]);
 
   const paidQuery = usePaidReferentials(
@@ -100,11 +106,11 @@ export function MasterDataSelectField({
       let label = '';
 
       if (usePaid) {
-        // PAID items have name_en, name_fr, title
-        label = item.name_en || item.title || item.name_fr || '';
-        // For projects, show symbol + title
+        // PAID v2: items have label, title, or name
+        label = item.label || item.title || item.name || item.field_label || '';
+        // For projects, show code + title
         if (masterDataType === 'paid-projects' && item.title) {
-          label = item.title;
+          label = `${item.code} — ${item.title}`;
         }
       } else {
         // Standard ref items have { name: { en, fr } }

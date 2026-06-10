@@ -33,6 +33,7 @@ const GeoSelectorField = lazy(() => import('./GeoSelectorField').then((m) => ({ 
 const MatrixField = lazy(() => import('./MatrixField').then((m) => ({ default: m.MatrixField })));
 const CascadeSelectField = lazy(() => import('./CascadeSelectField').then((m) => ({ default: m.CascadeSelectField })));
 const UserSelectField = lazy(() => import('./UserSelectField').then((m) => ({ default: m.UserSelectField })));
+const DynamicBreakdownField = lazy(() => import('./DynamicBreakdownField').then((m) => ({ default: m.DynamicBreakdownField })));
 
 interface FieldRendererProps {
   field: FormField;
@@ -253,6 +254,22 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
             )}
             className={inputClass}
             multiple={!!field.properties.multiple}
+          />
+        </Suspense>
+      )}
+
+      {field.type === 'dynamic-breakdown' && (
+        <Suspense fallback={<div className="h-16 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />}>
+          <DynamicBreakdownField
+            value={(value as Record<string, unknown>) || null}
+            onChange={(v) => onChange(v)}
+            paidActivityCode={
+              resolveParentFilter(
+                field.properties.parentFilter as Record<string, string> | undefined,
+                formValues,
+              )?.paid_activity
+            }
+            readOnly={field.readOnly}
           />
         </Suspense>
       )}

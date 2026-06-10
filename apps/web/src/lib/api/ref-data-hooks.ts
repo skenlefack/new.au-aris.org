@@ -344,60 +344,99 @@ export function useDeleteRefData(type: RefDataType) {
   });
 }
 
-// ─── PAID Referentials (dedicated paid_* tables in animal_health schema) ──
+// ─── PAID v2 Referentials (hierarchical tables in animal_health schema) ──
 
 export type PaidRefCategory =
-  | 'PAID_SECTOR' | 'PAID_ACTIVITY' | 'PAID_SPECIES'
-  | 'PAID_DISEASE' | 'PAID_PROD_SYSTEM' | 'PAID_CVA_TYPE'
-  | 'PAID_CASH_MECHANISM' | 'PAID_COUNTRY_META' | 'PAID_PROJECT'
-  | 'PAID_PARTNER_INTL' | 'PAID_PARTNER_NATIONAL';
+  | 'PAID_PROJECT' | 'PAID_LOGFRAME' | 'PAID_LF_ACTIVITY'
+  | 'PAID_SUBACTIVITY' | 'PAID_PAID_ACTIVITY' | 'PAID_BREAKDOWN_FIELD'
+  | 'PAID_EXEC_PARTNER' | 'PAID_IMPL_PARTNER_INTL' | 'PAID_IMPL_PARTNER_NATIONAL';
 
 export interface PaidReferentialItem {
   id: number;
   code: string;
-  name_en: string;
-  name_fr?: string;
-  name_es?: string;
-  sector_code?: string;
-  species_code?: string;
-  country?: string;
-  unit?: string;
+  label?: string;
   title?: string;
-  project_symbol?: string;
+  name?: string;
+  type?: string;
+  countries?: string[];
+  project_code?: string;
+  logframe_code?: string;
+  activity_code?: string;
+  subactivity_code?: string;
+  paid_activity_code?: string;
+  country_code?: string;
+  unit_of_measure?: string;
+  field_code?: string;
+  field_label?: string;
+  field_type?: string;
+  field_options?: unknown;
+  sort_order?: number;
+  is_required?: boolean;
 }
 
 /** Map PAID category to API endpoint path */
 const PAID_ENDPOINT: Record<string, string> = {
-  PAID_SECTOR: '/api/v1/master-data/paid/sectors',
-  PAID_ACTIVITY: '/api/v1/master-data/paid/activities',
-  PAID_SPECIES: '/api/v1/master-data/paid/species',
-  PAID_PROD_SYSTEM: '/api/v1/master-data/paid/production-systems',
-  PAID_DISEASE: '/api/v1/master-data/paid/diseases',
   PAID_PROJECT: '/api/v1/master-data/paid/projects',
-  PAID_PARTNER_INTL: '/api/v1/master-data/paid/partners-intl',
-  PAID_PARTNER_NATIONAL: '/api/v1/master-data/paid/partners-national',
+  PAID_LOGFRAME: '/api/v1/master-data/paid/logframes',
+  PAID_LF_ACTIVITY: '/api/v1/master-data/paid/lf-activities',
+  PAID_SUBACTIVITY: '/api/v1/master-data/paid/subactivities',
+  PAID_PAID_ACTIVITY: '/api/v1/master-data/paid/paid-activities',
+  PAID_BREAKDOWN_FIELD: '/api/v1/master-data/paid/breakdown-fields',
+  PAID_EXEC_PARTNER: '/api/v1/master-data/paid/executive-partners',
+  PAID_IMPL_PARTNER_INTL: '/api/v1/master-data/paid/impl-partners-intl',
+  PAID_IMPL_PARTNER_NATIONAL: '/api/v1/master-data/paid/impl-partners-national',
 };
 
 /**
  * Fetch PAID referentials by category with cascade filters.
- * @param category — PAID_SECTOR, PAID_ACTIVITY, etc.
- * @param filters — { sector, species, country, search }
+ * Cascade: project → logframe → activity → subactivity → paid_activity
  */
 export function usePaidReferentials(
   category: PaidRefCategory,
-  filters?: { sector?: string; species?: string; country?: string; search?: string },
+  filters?: Record<string, string | undefined>,
 ) {
   const endpoint = PAID_ENDPOINT[category];
   const params: Record<string, string> = { limit: '500' };
-  if (filters?.sector) params.sector = filters.sector;
-  if (filters?.species) params.species = filters.species;
-  if (filters?.country) params.country = filters.country;
-  if (filters?.search) params.search = filters.search;
+  if (filters) {
+    for (const [k, v] of Object.entries(filters)) {
+      if (v) params[k] = v;
+    }
+  }
 
   return useQuery({
     queryKey: ['paid-ref', category, params],
     queryFn: () => mdGet<{ data: PaidReferentialItem[]; meta: { total: number } }>(endpoint, params),
     staleTime: 10 * 60_000,
     enabled: !!endpoint,
+  });
+}
+
+// ─── PAID CRUD mutations ──
+
+export function useCreatePaidRef(category: PaidRefCategory) {
+  const qc = useQueryClient();
+  const endpoint = PAID_ENDPOINT[category];
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => mdPost(endpoint, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['paid-ref', category] }),
+  });
+}
+
+export function useUpdatePaidRef(category: PaidRefCategory) {
+  const qc = useQueryClient();
+  const endpoint = PAID_ENDPOINT[category];
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: number } & Record<string, unknown>) =>
+      mdPut(`${endpoint}/${id}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['paid-ref', category] }),
+  });
+}
+
+export function useDeletePaidRef(category: PaidRefCategory) {
+  const qc = useQueryClient();
+  const endpoint = PAID_ENDPOINT[category];
+  return useMutation({
+    mutationFn: (id: number) => mdDelete(`${endpoint}/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['paid-ref', category] }),
   });
 }
