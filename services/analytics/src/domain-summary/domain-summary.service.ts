@@ -66,9 +66,10 @@ SELECT
 
   (
     SELECT COUNT(DISTINCT code) FROM (
-      SELECT fs.country_code AS code FROM form_builder.form_submissions fs
+      SELECT t.code AS code FROM form_builder.form_submissions fs
         JOIN form_builder.form_templates ft ON ft.id = fs.template_id
-        WHERE ft.domain = $1 AND fs.country_code IS NOT NULL
+        JOIN tenants t ON fs.tenant_id = t.id
+        WHERE ft.domain = $1 AND t.level = 'MEMBER_STATE'
       UNION
       SELECT s.data->>'adm0' AS code FROM public.submissions s
         JOIN public.collection_campaigns c ON s.campaign_id = c.id
@@ -109,11 +110,12 @@ SELECT
 
 const COUNTRY_DISTRIBUTION_SQL = `
 SELECT code, SUM(count)::int AS count FROM (
-  SELECT fs.country_code AS code, COUNT(*) AS count
+  SELECT t.code AS code, COUNT(*) AS count
   FROM form_builder.form_submissions fs
   JOIN form_builder.form_templates ft ON ft.id = fs.template_id
-  WHERE ft.domain = $1 AND fs.country_code IS NOT NULL
-  GROUP BY fs.country_code
+  JOIN tenants t ON fs.tenant_id = t.id
+  WHERE ft.domain = $1 AND t.level = 'MEMBER_STATE'
+  GROUP BY t.code
   UNION ALL
   SELECT s.data->>'adm0' AS code, COUNT(*) AS count
   FROM public.submissions s
@@ -121,6 +123,7 @@ SELECT code, SUM(count)::int AS count FROM (
   WHERE c.domain = $1 AND s.data->>'adm0' IS NOT NULL
   GROUP BY s.data->>'adm0'
 ) AS combined
+WHERE code IS NOT NULL
 GROUP BY code ORDER BY count DESC LIMIT 20
 `;
 
@@ -161,9 +164,10 @@ ORDER BY count DESC
 
 const RECENT_ACTIVITY_SQL = `
 SELECT type, country, form_name, timestamp FROM (
-  SELECT 'submission' AS type, fs.country_code AS country, ft.name AS form_name, fs.created_at AS timestamp
+  SELECT 'submission' AS type, t.code AS country, ft.name::text AS form_name, fs.created_at AS timestamp
   FROM form_builder.form_submissions fs
   JOIN form_builder.form_templates ft ON ft.id = fs.template_id
+  LEFT JOIN tenants t ON fs.tenant_id = t.id
   WHERE ft.domain = $1
   UNION ALL
   SELECT 'submission' AS type, s.data->>'adm0' AS country, c.name::text AS form_name, s.submitted_at AS timestamp
