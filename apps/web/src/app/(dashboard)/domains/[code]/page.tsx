@@ -119,11 +119,11 @@ export default function DomainPage() {
       {/* Sub-domains Grid */}
       <SubDomainsGrid domainCode={code} />
 
-      {/* Recent Activity */}
-      <DomainActivityFeed activities={summary?.recentActivity ?? null} loading={isLoading} />
-
       {/* Plannings */}
       <PlanningsSection target={{ domainCode: code }} />
+
+      {/* Recent Activity */}
+      <DomainActivityFeed activities={summary?.recentActivity ?? null} loading={isLoading} domainColor={meta.color} />
     </div>
   );
 }
