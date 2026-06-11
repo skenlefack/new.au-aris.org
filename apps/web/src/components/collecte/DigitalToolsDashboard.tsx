@@ -12,12 +12,11 @@ import {
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useCampaignSubmissions } from '@/lib/api/workflow-hooks';
-import type { CountryOutbreakData } from '@/components/dashboard/demo-data';
 import { AFRICA_COUNTRIES } from '@/components/dashboard/maps/africa-geo-data';
 
-/* Leaflet map — dynamic import (no SSR) */
-const ChoroplethMap = dynamic(
-  () => import('@/components/dashboard/maps/ChoroplethMap').then((m) => m.ChoroplethMap),
+/* Custom map — dynamic import (no SSR, Leaflet needs window) */
+const DigitalToolsMap = dynamic(
+  () => import('./DigitalToolsMap'),
   { ssr: false, loading: () => <Skeleton className="h-full w-full" /> },
 );
 
@@ -179,14 +178,6 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
     const withoutDigital = all.filter((c) => c.status === 'no_digital').length;
     const withSurveillance = all.filter((c) => c.hasSurveillance).length;
 
-    // Map data: uses_digital → high value (green), no_digital → medium (red zone), not surveyed stays gray
-    const md: CountryOutbreakData[] = all.map((c) => ({
-      code: c.code, name: c.name,
-      outbreaks: c.status === 'uses_digital' ? 3 : 40,
-      cases: c.status === 'uses_digital' ? 5 : 80,
-      deaths: 0, vaccinations: 0, submissions: 1, rec: '',
-    }));
-
     const devMap = new Map<string, number>();
     for (const c of all) {
       if (c.toolDeveloper) devMap.set(c.toolDeveloper, (devMap.get(c.toolDeveloper) || 0) + 1);
@@ -196,7 +187,6 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
     return {
       countriesInfo: all,
       kpis: { surveyed, withDigital, withOwnSystem, withoutDigital, withSurveillance },
-      mapData: md,
       toolsByDeveloper: devArr,
     };
   }, [rawSubs]);
@@ -283,20 +273,8 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
                 <Globe2 className="h-4 w-4 text-[#1E40AF]" />
                 <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Carte des Outils Numériques en Afrique</h3>
               </div>
-              <div className="relative" style={{ height: 'calc(100% - 48px)' }}>
-                <ChoroplethMap title="" data={mapData} indicator="cases" bare />
-                <div className="absolute bottom-3 left-3 z-[1000] rounded-lg bg-white/95 px-3 py-2.5 shadow-md backdrop-blur dark:bg-gray-900/95">
-                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">Statut</p>
-                  {(['uses_digital', 'no_digital', 'not_surveyed'] as DigitalStatus[]).map((s) => {
-                    const count = allCountriesStatus.filter((c) => c.status === s).length;
-                    return (
-                      <div key={s} className="flex items-center gap-2 py-0.5">
-                        <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: statusColors[s] }} />
-                        <span className="text-[11px] text-gray-600 dark:text-gray-300">{statusLabels[s]} ({count})</span>
-                      </div>
-                    );
-                  })}
-                </div>
+              <div className="relative flex-1 min-h-[500px]">
+                <DigitalToolsMap countries={allCountriesStatus} statusColors={statusColors} statusLabels={statusLabels} />
               </div>
             </div>
 
