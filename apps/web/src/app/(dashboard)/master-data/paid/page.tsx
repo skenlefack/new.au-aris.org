@@ -132,7 +132,7 @@ const ENTITIES: EntityDef[] = [
     parentFilterKey: 'project', parentFilterLabel: 'Project',
     fields: [
       { key: 'project_code', label: 'Project', type: 'paid-select', required: true },
-      { key: 'name', label: 'Name', type: 'text', required: true, placeholder: 'e.g. AU-IBAR' },
+      { key: 'name', label: 'Name', type: 'text', required: true, placeholder: 'e.g. AU-IBAR', colSpan: 2 },
     ],
     displayLabel: (i) => i.name || '',
     displaySub: (i) => `Project: ${i.project_code || '-'}`,
@@ -143,7 +143,7 @@ const ENTITIES: EntityDef[] = [
     parentFilterKey: 'project', parentFilterLabel: 'Project',
     fields: [
       { key: 'project_code', label: 'Project', type: 'paid-select', required: true },
-      { key: 'name', label: 'Name', type: 'text', required: true, placeholder: 'Partner organization name' },
+      { key: 'name', label: 'Name', type: 'text', required: true, placeholder: 'Partner organization name', colSpan: 2 },
     ],
     displayLabel: (i) => i.name || '',
     displaySub: (i) => `Project: ${i.project_code || '-'}`,
@@ -154,7 +154,7 @@ const ENTITIES: EntityDef[] = [
     parentFilterKey: 'project', parentFilterLabel: 'Project',
     fields: [
       { key: 'project_code', label: 'Project', type: 'paid-select', required: true },
-      { key: 'country_code', label: 'Country Code', type: 'text', placeholder: 'e.g. KE' },
+      { key: 'country_code', label: 'Country', type: 'text', placeholder: 'e.g. KE' },
       { key: 'name', label: 'Name', type: 'text', required: true, placeholder: 'National partner name' },
     ],
     displayLabel: (i) => i.name || '',
