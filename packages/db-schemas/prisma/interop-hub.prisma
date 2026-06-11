@@ -113,6 +113,137 @@ model SyncRecord {
   @@schema("interop_hub")
 }
 
+// ── Country Ingestion Enums ──
+
+enum IntegrationModel {
+  API_PUSH
+  API_PULL
+  FILE_UPLOAD
+
+  @@schema("interop_hub")
+}
+
+enum ConnectionStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+
+  @@schema("interop_hub")
+}
+
+enum IngestionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  PARTIAL
+  FAILED
+  RETRY
+
+  @@schema("interop_hub")
+}
+
+/// Country connections — one per country+domain pair, configures how a country sends data to ARIS.
+model CountryConnection {
+  id                  String            @id @default(uuid()) @db.Uuid
+  tenant_id           String            @db.Uuid
+  country_code        String            @db.VarChar(3)
+  country_name        String            @db.VarChar(100)
+  integration_model   IntegrationModel
+  system_name         String            @db.VarChar(255)  // e.g. "KLHIS", "DHIS2 Ethiopia", "NADIS"
+  system_type         String?           @db.VarChar(50)   // DHIS2, FHIR, KOBO, ODK, REST, EXCEL
+  base_url            String?           @db.VarChar(500)  // For API_PUSH/PULL — external system URL
+  auth_type           String?           @db.VarChar(20)   // BASIC, OAUTH2, API_KEY, CERTIFICATE
+  credentials         Json              @default("{}")     // Encrypted auth config
+  domains             String[]                             // e.g. ["animal-health","livestock-prod"]
+  sync_frequency      String?           @db.VarChar(20)   // REALTIME, HOURLY, DAILY, WEEKLY, MONTHLY
+  sync_time           String?           @db.VarChar(10)   // e.g. "02:00" — preferred sync time (UTC)
+  pull_config         Json?                                // API_PULL specific: programs, dataElements, orgUnitLevel
+  status              ConnectionStatus  @default(DRAFT)
+  data_contract_id    String?           @db.Uuid           // Link to formal data contract
+  focal_technical     Json?                                // { name, email, phone }
+  focal_data_owner    Json?                                // { name, email, phone }
+  last_sync_at        DateTime?
+  last_sync_status    String?           @db.VarChar(20)
+  records_total       Int               @default(0)
+  records_accepted    Int               @default(0)
+  records_rejected    Int               @default(0)
+  notes               String?
+  created_by          String            @db.Uuid
+  created_at          DateTime          @default(now())
+  updated_at          DateTime          @updatedAt
+
+  transactions        IngestionTransaction[]
+  mappings            ReferentialMapping[]
+
+  @@unique([tenant_id, country_code, system_name])
+  @@index([tenant_id])
+  @@index([country_code])
+  @@index([integration_model])
+  @@index([status])
+  @@map("country_connections")
+  @@schema("interop_hub")
+}
+
+/// Referential mappings — maps national codes to ARIS codes for a country connection.
+model ReferentialMapping {
+  id                  String            @id @default(uuid()) @db.Uuid
+  connection_id       String            @db.Uuid
+  referential_type    String            @db.VarChar(50)   // DISEASE, SPECIES, GEO, UNIT, LAB, COMMODITY
+  source_code         String            @db.VarChar(100)  // National code
+  source_label        String?           @db.VarChar(255)  // National label
+  target_code         String            @db.VarChar(100)  // ARIS/international code
+  target_label        String?           @db.VarChar(255)  // ARIS label
+  target_id           String?           @db.Uuid           // ARIS entity UUID (if applicable)
+  is_verified         Boolean           @default(false)
+  notes               String?
+  created_at          DateTime          @default(now())
+  updated_at          DateTime          @updatedAt
+
+  connection          CountryConnection @relation(fields: [connection_id], references: [id], onDelete: Cascade)
+
+  @@unique([connection_id, referential_type, source_code])
+  @@index([connection_id, referential_type])
+  @@map("referential_mappings")
+  @@schema("interop_hub")
+}
+
+/// Ingestion transactions — logs every data exchange (push, pull, or file upload).
+model IngestionTransaction {
+  id                  String            @id @default(uuid()) @db.Uuid
+  connection_id       String            @db.Uuid
+  tenant_id           String            @db.Uuid
+  domain              String            @db.VarChar(50)
+  entity_type         String            @db.VarChar(50)
+  integration_model   IntegrationModel
+  status              IngestionStatus   @default(PENDING)
+  records_received    Int               @default(0)
+  records_accepted    Int               @default(0)
+  records_rejected    Int               @default(0)
+  records_warning     Int               @default(0)
+  source_payload      Json?                                 // Original data (or file metadata)
+  validation_report   Json?                                 // Quality gate results summary
+  rejection_details   Json?                                 // Per-record rejection reasons
+  file_url            String?           @db.VarChar(500)    // For FILE_UPLOAD — MinIO URL
+  file_name           String?           @db.VarChar(255)    // Original file name
+  file_size           Int?                                  // File size in bytes
+  error_message       String?
+  retry_count         Int               @default(0)
+  max_retries         Int               @default(3)
+  initiated_by        String            @db.Uuid            // User or system ID
+  started_at          DateTime?
+  completed_at        DateTime?
+  created_at          DateTime          @default(now())
+
+  connection          CountryConnection @relation(fields: [connection_id], references: [id])
+
+  @@index([connection_id, status])
+  @@index([tenant_id, created_at])
+  @@index([domain])
+  @@map("ingestion_transactions")
+  @@schema("interop_hub")
+}
+
 /// Connector configurations — stores endpoint URLs, credentials, and health status.
 model ConnectorConfig {
   id              String        @id @default(uuid()) @db.Uuid

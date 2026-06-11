@@ -75,6 +75,11 @@ export const EVENTS = {
   FORM_BUILDER: {
     TEMPLATE_CREATED: 'ms.formbuilder.template.created.v1',
     TEMPLATE_PUBLISHED: 'ms.formbuilder.template.published.v1',
+    EXTENSION_CREATED: 'ms.formbuilder.extension.created.v1',
+    EXTENSION_FIELD_ADDED: 'ms.formbuilder.extension.field-added.v1',
+    EXTENSION_SUBMITTED: 'ms.formbuilder.extension.submitted.v1',
+    EXTENSION_VALIDATED: 'ms.formbuilder.extension.validated.v1',
+    EXTENSION_PUBLISHED: 'ms.formbuilder.extension.published.v1',
   },
 
   // ── Workflow ──
@@ -158,6 +163,16 @@ export const EVENTS = {
     WAHIS_EXPORTED: 'au.interop.wahis.exported.v1',
     EMPRES_FED: 'au.interop.empres.fed.v1',
     FAOSTAT_SYNCED: 'au.interop.faostat.synced.v1',
+    INGESTION_RECEIVED: 'au.interop.ingestion.received.v1',
+    INGESTION_VALIDATED: 'au.interop.ingestion.validated.v1',
+    INGESTION_REJECTED: 'au.interop.ingestion.rejected.v1',
+    INGESTION_COMPLETED: 'au.interop.ingestion.completed.v1',
+    INGESTION_FAILED: 'au.interop.ingestion.failed.v1',
+    CONNECTION_CREATED: 'au.interop.connection.created.v1',
+    CONNECTION_ACTIVATED: 'au.interop.connection.activated.v1',
+    CONNECTION_SUSPENDED: 'au.interop.connection.suspended.v1',
+    PULL_SCHEDULED: 'au.interop.pull.scheduled.v1',
+    PULL_COMPLETED: 'au.interop.pull.completed.v1',
   },
 
   // ── Analytics ──

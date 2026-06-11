@@ -6,6 +6,7 @@ import type { WahisService } from '../services/wahis.service';
 import type { EmpresService } from '../services/empres.service';
 import type { FaostatService } from '../services/faostat.service';
 import type { ConnectorService } from '../services/connector.service';
+import type { CountryIngestionService } from '../services/country-ingestion.service';
 import type { ExportSchedulerService } from '../services/export-scheduler.service';
 
 declare module 'fastify' {
@@ -18,6 +19,7 @@ declare module 'fastify' {
     empresService: EmpresService;
     faostatService: FaostatService;
     connectorService: ConnectorService;
+    countryIngestionService: CountryIngestionService;
     exportScheduler: ExportSchedulerService;
   }
 }

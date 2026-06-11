@@ -13,8 +13,10 @@ import { WahisService } from './services/wahis.service';
 import { EmpresService } from './services/empres.service';
 import { FaostatService } from './services/faostat.service';
 import { ConnectorService } from './services/connector.service';
+import { CountryIngestionService } from './services/country-ingestion.service';
 import { ExportSchedulerService } from './services/export-scheduler.service';
 import { registerInteropRoutes } from './routes/interop.routes';
+import { registerCountryIngestionRoutes } from './routes/country-ingestion.routes';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -74,10 +76,13 @@ export async function buildApp(): Promise<FastifyInstance> {
   const faostatService = new FaostatService(app.prisma, kafkaProducer, app.minio);
   const connectorService = new ConnectorService(app.prisma);
 
+  const countryIngestionService = new CountryIngestionService(app.prisma, kafkaProducer, app.minio);
+
   app.decorate('wahisService', wahisService);
   app.decorate('empresService', empresService);
   app.decorate('faostatService', faostatService);
   app.decorate('connectorService', connectorService);
+  app.decorate('countryIngestionService', countryIngestionService);
 
   // Export scheduler
   const exportScheduler = new ExportSchedulerService(
@@ -117,6 +122,7 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // Routes
   await app.register(registerInteropRoutes);
+  await app.register(registerCountryIngestionRoutes);
 
   // Set up Kafka consumers and scheduler after server is ready
   app.addHook('onReady', async () => {

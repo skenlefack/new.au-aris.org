@@ -33,6 +33,11 @@ export const TOPIC_MS_COLLECTE_SUBMISSION_WORKFLOW_CREATED = 'ms.collecte.submis
 // ── FormBuilder Topics ──
 export const TOPIC_MS_FORMBUILDER_TEMPLATE_CREATED = 'ms.formbuilder.template.created.v1' as const;
 export const TOPIC_MS_FORMBUILDER_TEMPLATE_PUBLISHED = 'ms.formbuilder.template.published.v1' as const;
+export const TOPIC_MS_FORMBUILDER_EXTENSION_CREATED = 'ms.formbuilder.extension.created.v1' as const;
+export const TOPIC_MS_FORMBUILDER_EXTENSION_FIELD_ADDED = 'ms.formbuilder.extension.field-added.v1' as const;
+export const TOPIC_MS_FORMBUILDER_EXTENSION_SUBMITTED = 'ms.formbuilder.extension.submitted.v1' as const;
+export const TOPIC_MS_FORMBUILDER_EXTENSION_VALIDATED = 'ms.formbuilder.extension.validated.v1' as const;
+export const TOPIC_MS_FORMBUILDER_EXTENSION_PUBLISHED = 'ms.formbuilder.extension.published.v1' as const;
 
 // ── Workflow Topics ──
 export const TOPIC_AU_WORKFLOW_VALIDATION_SUBMITTED = 'au.workflow.validation.submitted.v1' as const;
@@ -143,6 +148,18 @@ export const TOPIC_SYS_ANALYTICS_DASHBOARD_DELETED = 'sys.analytics.dashboard.de
 export const TOPIC_SYS_ANALYTICS_WIDGET_UPDATED = 'sys.analytics.widget.updated.v1' as const;
 export const TOPIC_SYS_ANALYTICS_DASHBOARD_SHARED = 'sys.analytics.dashboard.shared.v1' as const;
 
+// ── Country Ingestion Topics ──
+export const TOPIC_AU_INTEROP_INGESTION_RECEIVED = 'au.interop.ingestion.received.v1' as const;
+export const TOPIC_AU_INTEROP_INGESTION_VALIDATED = 'au.interop.ingestion.validated.v1' as const;
+export const TOPIC_AU_INTEROP_INGESTION_REJECTED = 'au.interop.ingestion.rejected.v1' as const;
+export const TOPIC_AU_INTEROP_INGESTION_COMPLETED = 'au.interop.ingestion.completed.v1' as const;
+export const TOPIC_AU_INTEROP_INGESTION_FAILED = 'au.interop.ingestion.failed.v1' as const;
+export const TOPIC_AU_INTEROP_CONNECTION_CREATED = 'au.interop.connection.created.v1' as const;
+export const TOPIC_AU_INTEROP_CONNECTION_ACTIVATED = 'au.interop.connection.activated.v1' as const;
+export const TOPIC_AU_INTEROP_CONNECTION_SUSPENDED = 'au.interop.connection.suspended.v1' as const;
+export const TOPIC_AU_INTEROP_PULL_SCHEDULED = 'au.interop.pull.scheduled.v1' as const;
+export const TOPIC_AU_INTEROP_PULL_COMPLETED = 'au.interop.pull.completed.v1' as const;
+
 // ── Interop V2 Topics ──
 export const TOPIC_AU_INTEROP_DHIS2_SYNCED = 'au.interop.dhis2.synced.v1' as const;
 export const TOPIC_AU_INTEROP_FHIR_SYNCED = 'au.interop.fhir.synced.v1' as const;
@@ -225,6 +242,11 @@ export const ALL_TOPICS = [
   TOPIC_MS_COLLECTE_SUBMISSION_WORKFLOW_CREATED,
   TOPIC_MS_FORMBUILDER_TEMPLATE_CREATED,
   TOPIC_MS_FORMBUILDER_TEMPLATE_PUBLISHED,
+  TOPIC_MS_FORMBUILDER_EXTENSION_CREATED,
+  TOPIC_MS_FORMBUILDER_EXTENSION_FIELD_ADDED,
+  TOPIC_MS_FORMBUILDER_EXTENSION_SUBMITTED,
+  TOPIC_MS_FORMBUILDER_EXTENSION_VALIDATED,
+  TOPIC_MS_FORMBUILDER_EXTENSION_PUBLISHED,
   TOPIC_AU_WORKFLOW_VALIDATION_SUBMITTED,
   TOPIC_AU_WORKFLOW_VALIDATION_APPROVED,
   TOPIC_AU_WORKFLOW_VALIDATION_REJECTED,
@@ -313,6 +335,16 @@ export const ALL_TOPICS = [
   TOPIC_SYS_ANALYTICS_DASHBOARD_DELETED,
   TOPIC_SYS_ANALYTICS_WIDGET_UPDATED,
   TOPIC_SYS_ANALYTICS_DASHBOARD_SHARED,
+  TOPIC_AU_INTEROP_INGESTION_RECEIVED,
+  TOPIC_AU_INTEROP_INGESTION_VALIDATED,
+  TOPIC_AU_INTEROP_INGESTION_REJECTED,
+  TOPIC_AU_INTEROP_INGESTION_COMPLETED,
+  TOPIC_AU_INTEROP_INGESTION_FAILED,
+  TOPIC_AU_INTEROP_CONNECTION_CREATED,
+  TOPIC_AU_INTEROP_CONNECTION_ACTIVATED,
+  TOPIC_AU_INTEROP_CONNECTION_SUSPENDED,
+  TOPIC_AU_INTEROP_PULL_SCHEDULED,
+  TOPIC_AU_INTEROP_PULL_COMPLETED,
   TOPIC_AU_INTEROP_DHIS2_SYNCED,
   TOPIC_AU_INTEROP_FHIR_SYNCED,
   TOPIC_AU_INTEROP_OMS_SYNCED,

@@ -85,6 +85,102 @@ export interface ConnectorHealth {
   baseUrl: string;
 }
 
+// ── Country Ingestion types ──
+
+export type IntegrationModel = 'API_PUSH' | 'API_PULL' | 'FILE_UPLOAD';
+export type ConnectionStatus = 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED';
+export type IngestionStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'PARTIAL' | 'FAILED' | 'RETRY';
+
+export interface CountryConnectionEntity {
+  id: string;
+  tenantId: string;
+  countryCode: string;
+  countryName: string;
+  integrationModel: IntegrationModel;
+  systemName: string;
+  systemType: string | null;
+  baseUrl: string | null;
+  authType: string | null;
+  domains: string[];
+  syncFrequency: string | null;
+  syncTime: string | null;
+  pullConfig: unknown;
+  status: ConnectionStatus;
+  dataContractId: string | null;
+  focalTechnical: { name: string; email: string; phone?: string } | null;
+  focalDataOwner: { name: string; email: string; phone?: string } | null;
+  lastSyncAt: Date | null;
+  lastSyncStatus: string | null;
+  recordsTotal: number;
+  recordsAccepted: number;
+  recordsRejected: number;
+  notes: string | null;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ReferentialMappingEntity {
+  id: string;
+  connectionId: string;
+  referentialType: string;
+  sourceCode: string;
+  sourceLabel: string | null;
+  targetCode: string;
+  targetLabel: string | null;
+  targetId: string | null;
+  isVerified: boolean;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IngestionTransactionEntity {
+  id: string;
+  connectionId: string;
+  tenantId: string;
+  domain: string;
+  entityType: string;
+  integrationModel: IntegrationModel;
+  status: IngestionStatus;
+  recordsReceived: number;
+  recordsAccepted: number;
+  recordsRejected: number;
+  recordsWarning: number;
+  validationReport: unknown;
+  rejectionDetails: unknown;
+  fileUrl: string | null;
+  fileName: string | null;
+  fileSize: number | null;
+  errorMessage: string | null;
+  retryCount: number;
+  maxRetries: number;
+  initiatedBy: string;
+  startedAt: Date | null;
+  completedAt: Date | null;
+  createdAt: Date;
+}
+
+export interface IngestionRecordResult {
+  sourceId: string;
+  arisId: string | null;
+  status: 'ACCEPTED' | 'REJECTED' | 'WARNING';
+  qualityScore: number | null;
+  violations: Array<{ gate: string; field: string; message: string }>;
+}
+
+export interface IngestionSummary {
+  transactionId: string;
+  status: IngestionStatus;
+  summary: {
+    total: number;
+    accepted: number;
+    rejected: number;
+    warnings: number;
+  };
+  results: IngestionRecordResult[];
+}
+
 // ── WAHIS package types ──
 
 export interface WahisEvent {
