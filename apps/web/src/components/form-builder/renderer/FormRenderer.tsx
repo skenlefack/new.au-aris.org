@@ -67,7 +67,28 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
   );
 
   const handleFieldChange = (fieldCode: string, value: unknown) => {
-    setValues((prev) => ({ ...prev, [fieldCode]: value }));
+    setValues((prev) => {
+      const next = { ...prev, [fieldCode]: value };
+
+      // Auto-fill: when item metadata is stored, fill dependent readonly fields
+      if (fieldCode.startsWith('__meta_')) {
+        const sourceField = fieldCode.replace('__meta_', '');
+        const meta = value as Record<string, unknown> | null;
+        if (meta) {
+          // Find all fields with autoFillFrom pointing to this source field
+          for (const section of schema.sections) {
+            for (const field of section.fields) {
+              if (field.properties?.autoFillFrom === sourceField && field.properties?.autoFillField) {
+                const fillKey = field.properties.autoFillField as string;
+                next[field.code] = meta[fillKey] ?? '';
+              }
+            }
+          }
+        }
+      }
+
+      return next;
+    });
     // Clear required error when user fills the field
     if (requiredErrors[fieldCode] && !isEmptyValue(value)) {
       setRequiredErrors((prev) => {
@@ -389,6 +410,7 @@ function SectionRenderer({
                       field={effectiveField}
                       value={values[field.code]}
                       onChange={(v) => onChange(field.code, v)}
+                      onAutoFill={(code, v) => onChange(code, v)}
                       error={fieldErrors[field.code]}
                       formValues={values}
                     />

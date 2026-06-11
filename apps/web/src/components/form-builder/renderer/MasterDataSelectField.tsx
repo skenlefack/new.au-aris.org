@@ -9,6 +9,8 @@ interface MasterDataSelectFieldProps {
   masterDataType: string;
   value: string | string[];
   onChange: (value: string | string[]) => void;
+  /** Called with the full raw item when a single selection is made */
+  onItemSelected?: (item: Record<string, unknown> | null) => void;
   placeholder?: string;
   parentFilter?: Record<string, string>;
   className?: string;
@@ -56,6 +58,7 @@ export function MasterDataSelectField({
   masterDataType,
   value,
   onChange,
+  onItemSelected,
   placeholder,
   parentFilter,
   className,
@@ -98,11 +101,43 @@ export function MasterDataSelectField({
   const isLoading = activeQuery.isLoading;
   const isError = activeQuery.isError;
 
+  // Client-side filtering for countries by project (project stores countries[] array)
+  const projectCountries = useMemo(() => {
+    if (masterDataType !== 'countries' || !parentFilter?.project) return null;
+    // parentFilter.project is a project code — we need to look it up
+    // Fetch project data to get its countries array
+    return null; // Will be handled by projectQuery below
+  }, [masterDataType, parentFilter]);
+
+  // When type is 'countries' and filtered by project, fetch the project to get its countries[]
+  const projectQuery = usePaidReferentials(
+    'PAID_PROJECT' as PaidRefCategory,
+    masterDataType === 'countries' && parentFilter?.project
+      ? { search: parentFilter.project }
+      : undefined,
+  );
+
+  const projectCountryCodes = useMemo(() => {
+    if (masterDataType !== 'countries' || !parentFilter?.project) return null;
+    const projects = projectQuery.data?.data ?? [];
+    const proj = projects.find((p: any) => p.code === parentFilter.project);
+    return proj?.countries as string[] | undefined ?? null;
+  }, [masterDataType, parentFilter, projectQuery.data]);
+
   const options = useMemo(() => {
     const rawData = activeQuery.data?.data;
     if (!rawData || !Array.isArray(rawData)) return [];
 
-    return rawData.map((item: any) => {
+    // Filter countries by project's countries[] if applicable
+    let filtered = rawData;
+    if (projectCountryCodes && masterDataType === 'countries') {
+      filtered = rawData.filter((item: any) => {
+        const code = item.code || item.id;
+        return projectCountryCodes.includes(code);
+      });
+    }
+
+    return filtered.map((item: any) => {
       let label = '';
 
       if (usePaid) {
@@ -128,7 +163,7 @@ export function MasterDataSelectField({
       const val = usePaid ? (item.code || String(item.id)) : item.id;
       return { value: val, label };
     });
-  }, [activeQuery.data, usePaid, masterDataType]);
+  }, [activeQuery.data, usePaid, masterDataType, projectCountryCodes]);
 
   const selectedArray = useMemo(() => {
     if (!value) return [] as string[];
@@ -157,10 +192,27 @@ export function MasterDataSelectField({
     );
   }
 
+  // Build a rawData lookup for onItemSelected callback
+  const rawDataMap = useMemo(() => {
+    const rawData = activeQuery.data?.data;
+    if (!rawData || !Array.isArray(rawData)) return new Map();
+    const m = new Map<string, Record<string, unknown>>();
+    for (const item of rawData) {
+      const key = usePaid ? (item.code || String(item.id)) : item.id;
+      m.set(key, item);
+    }
+    return m;
+  }, [activeQuery.data, usePaid]);
+
   return (
     <SearchableSelect
       value={(typeof value === 'string' ? value : '') || ''}
-      onChange={(v) => onChange(v)}
+      onChange={(v) => {
+        onChange(v);
+        if (onItemSelected) {
+          onItemSelected(v ? (rawDataMap.get(v) ?? null) : null);
+        }
+      }}
       options={options}
       placeholder={
         isLoading

@@ -40,6 +40,8 @@ interface FieldRendererProps {
   field: FormField;
   value: unknown;
   onChange: (value: unknown) => void;
+  /** Set another field's value (for auto-fill) */
+  onAutoFill?: (fieldCode: string, value: unknown) => void;
   /** Cross-field validation error message */
   error?: string;
   /** All form values — used by geo-selector to center on selected country */
@@ -82,7 +84,7 @@ function resolveParentFilter(
   return Object.keys(resolved).length > 0 ? resolved : undefined;
 }
 
-export function FieldRenderer({ field, value, onChange, error, formValues }: FieldRendererProps) {
+export function FieldRenderer({ field, value, onChange, onAutoFill, error, formValues }: FieldRendererProps) {
   const t = useTranslations('collecte');
   const ml = useML();
   const label = ml(field.label);
@@ -248,6 +250,12 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
             masterDataType={(field.properties.masterDataType as string) || ''}
             value={field.properties.multiple ? (value as string | string[]) || [] : (value as string) || ''}
             onChange={(v) => onChange(v)}
+            onItemSelected={onAutoFill && field.properties.autoFillFrom === undefined ? (item) => {
+              // Auto-fill dependent fields based on autoFillField mappings in sibling fields
+              if (!item || !onAutoFill) return;
+              // Store full item metadata under a special key so other fields can read it
+              onAutoFill(`__meta_${field.code}`, item);
+            } : undefined}
             placeholder={placeholder}
             parentFilter={resolveParentFilter(
               field.properties.parentFilter as Record<string, string> | undefined,

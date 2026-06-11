@@ -64,7 +64,8 @@ export type RefDataDomain =
   | 'trade'
   | 'apiculture'
   | 'governance'
-  | 'infrastructure';
+  | 'infrastructure'
+  | 'paid';
 
 export interface DomainConfig {
   slug: RefDataDomain;
@@ -167,6 +168,16 @@ export const DOMAIN_CONFIG: DomainConfig[] = [
     icon: Building2,
     color: 'text-emerald-600',
     bgColor: 'bg-emerald-50',
+  },
+  {
+    slug: 'paid',
+    label: 'PAID Programme',
+    labelFr: 'Programme PAID',
+    description: 'Projects, log frames (AMERT), activities, sub-activities, PAID activities, breakdown fields, partners',
+    descriptionFr: 'Projets, cadres logiques (AMERT), activites, sous-activites, activites PAID, ventilations, partenaires',
+    icon: BarChart3,
+    color: 'text-fuchsia-600',
+    bgColor: 'bg-fuchsia-50',
   },
 ];
 
