@@ -150,21 +150,10 @@ function DonutChart({ entries, colors, size = 160, centerLabel }: {
 /* ================================================================== */
 
 export default function DigitalToolsDashboard({ campaignId }: { campaignId: string }) {
-  const sQ = useCampaignSubmissions(campaignId, { limit: 5000 });
+  const sQ = useCampaignSubmissions(campaignId, { limit: 100 });
   const rawSubs: any[] = Array.isArray(sQ.data?.data) ? sQ.data.data : [];
   const loading = sQ.isLoading;
-  const error = sQ.error;
-
-  // Debug: log query state
-  if (typeof window !== 'undefined' && !loading) {
-    console.log('[DigitalToolsDashboard]', {
-      campaignId,
-      status: sQ.status,
-      dataKeys: sQ.data ? Object.keys(sQ.data) : 'null',
-      rawSubsLength: rawSubs.length,
-      error: error?.message,
-    });
-  }
+  const error = sQ.error as Error | null;
 
   const { countriesInfo, kpis, mapData, toolsByDeveloper } = useMemo(() => {
     const byCountry = new Map<string, CountryDigitalInfo>();

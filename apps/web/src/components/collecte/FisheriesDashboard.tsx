@@ -585,7 +585,7 @@ function TradeDashboard({ subs }: { subs: any[] }) {
 /* ================================================================== */
 
 export default function FisheriesDashboard({ campaignId, campaignName }: { campaignId: string; campaignName: string }) {
-  const sQ = useCampaignSubmissions(campaignId, { limit: 5000 });
+  const sQ = useCampaignSubmissions(campaignId, { limit: 100 });
   const rawSubs: any[] = Array.isArray(sQ.data?.data) ? sQ.data.data : [];
   const loading = sQ.isLoading;
 
