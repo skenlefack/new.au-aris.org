@@ -179,10 +179,11 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
     const withoutDigital = all.filter((c) => c.status === 'no_digital').length;
     const withSurveillance = all.filter((c) => c.hasSurveillance).length;
 
+    // Map data: uses_digital → high value (green), no_digital → medium (red zone), not surveyed stays gray
     const md: CountryOutbreakData[] = all.map((c) => ({
       code: c.code, name: c.name,
-      outbreaks: c.status === 'uses_digital' ? 1 : 0,
-      cases: c.status === 'uses_digital' ? 10 : 0,
+      outbreaks: c.status === 'uses_digital' ? 3 : 40,
+      cases: c.status === 'uses_digital' ? 5 : 80,
       deaths: 0, vaccinations: 0, submissions: 1, rec: '',
     }));
 
@@ -276,14 +277,14 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
         <div className="flex-1 overflow-auto p-4 space-y-4">
           {/* ROW 1: Map + Charts */}
           <div className="grid gap-4 lg:grid-cols-5">
-            {/* Africa Map — spans 3 */}
-            <div className="lg:col-span-3 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+            {/* Africa Map — spans 3, stretches to match right column height */}
+            <div className="lg:col-span-3 flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900 min-h-[580px]">
               <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
                 <Globe2 className="h-4 w-4 text-[#1E40AF]" />
                 <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Carte des Outils Numériques en Afrique</h3>
               </div>
-              <div className="relative h-[480px]">
-                <ChoroplethMap title="" data={mapData} indicator="submissions" bare />
+              <div className="relative" style={{ height: 'calc(100% - 48px)' }}>
+                <ChoroplethMap title="" data={mapData} indicator="cases" bare />
                 <div className="absolute bottom-3 left-3 z-[1000] rounded-lg bg-white/95 px-3 py-2.5 shadow-md backdrop-blur dark:bg-gray-900/95">
                   <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">Statut</p>
                   {(['uses_digital', 'no_digital', 'not_surveyed'] as DigitalStatus[]).map((s) => {
