@@ -60,6 +60,13 @@ async function mdPut<T = any>(path: string, body: unknown): Promise<T> {
   return handleRes<T>(res);
 }
 
+async function mdPatch<T = any>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${MASTER_DATA_API}${path}`, {
+    method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify(body),
+  });
+  return handleRes<T>(res);
+}
+
 async function mdDelete<T = any>(path: string): Promise<T> {
   const { 'Content-Type': _, ...headers } = getAuthHeaders();
   const res = await fetch(`${MASTER_DATA_API}${path}`, {
@@ -427,7 +434,7 @@ export function useUpdatePaidRef(category: PaidRefCategory) {
   const endpoint = PAID_ENDPOINT[category];
   return useMutation({
     mutationFn: ({ id, ...body }: { id: number } & Record<string, unknown>) =>
-      mdPut(`${endpoint}/${id}`, body),
+      mdPatch(`${endpoint}/${id}`, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['paid-ref', category] }),
   });
 }
