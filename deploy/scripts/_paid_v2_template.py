@@ -211,10 +211,11 @@ FORM_SCHEMA = {
             "conditions": [],
             "fields": [
                 {
-                    "id": "recs_countries", "code": "recs_countries", "type": "master-data-select", "order": 0, "column": 1, "columnSpan": 1,
-                    "label": {"en": "RECs and Beneficiary Countries", "fr": "CER et pays beneficiaires"},
+                    "id": "recs_countries", "code": "recs_countries", "type": "paid-recs", "order": 0, "column": 1, "columnSpan": 1,
+                    "label": {"en": "Beneficiary Countries & RECs", "fr": "Pays beneficiaires et CER"},
+                    "tooltip": {"en": "Select beneficiary countries first. RECs will be auto-preselected based on country membership. You can add additional RECs manually.", "fr": "Selectionner d'abord les pays beneficiaires. Les CER seront pre-selectionnees automatiquement. Vous pouvez ajouter d'autres CER manuellement."},
                     "required": False, "hidden": False, "readOnly": False, "conditions": [], "validation": {},
-                    "properties": {"masterDataType": "geo-entities", "parentFilter": {"level": "REC"}, "multiple": True},
+                    "properties": {},
                 },
             ],
         },
@@ -257,8 +258,8 @@ FORM_SCHEMA = {
 
 def main():
     target = "stg"
-    if len(sys.argv) > 1:
-        arg = sys.argv[1].replace("--target=", "").replace("--target", "").strip()
+    for a in sys.argv[1:]:
+        arg = a.replace("--target=", "").replace("--target", "").strip()
         if arg in TARGETS:
             target = arg
 

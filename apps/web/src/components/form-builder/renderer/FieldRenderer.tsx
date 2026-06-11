@@ -34,6 +34,7 @@ const MatrixField = lazy(() => import('./MatrixField').then((m) => ({ default: m
 const CascadeSelectField = lazy(() => import('./CascadeSelectField').then((m) => ({ default: m.CascadeSelectField })));
 const UserSelectField = lazy(() => import('./UserSelectField').then((m) => ({ default: m.UserSelectField })));
 const DynamicBreakdownField = lazy(() => import('./DynamicBreakdownField').then((m) => ({ default: m.DynamicBreakdownField })));
+const PaidRecsField = lazy(() => import('./PaidRecsField').then((m) => ({ default: m.PaidRecsField })));
 
 interface FieldRendererProps {
   field: FormField;
@@ -269,6 +270,16 @@ export function FieldRenderer({ field, value, onChange, error, formValues }: Fie
                 formValues,
               )?.paid_activity
             }
+            readOnly={field.readOnly}
+          />
+        </Suspense>
+      )}
+
+      {field.type === 'paid-recs' && (
+        <Suspense fallback={<div className="h-16 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />}>
+          <PaidRecsField
+            value={(value as { countries: string[]; recs: string[] }) || null}
+            onChange={(v) => onChange(v)}
             readOnly={field.readOnly}
           />
         </Suspense>
