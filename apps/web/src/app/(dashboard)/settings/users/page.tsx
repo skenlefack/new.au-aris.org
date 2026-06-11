@@ -1300,7 +1300,7 @@ export default function UsersPage() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
             <Users className="h-5 w-5" />
@@ -1308,6 +1308,17 @@ export default function UsersPage() {
           <div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{meta.total}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Total Users</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+            <Clock className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              {users.filter((u) => !!u.accountExpiresAt).length}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Temporary Accounts</p>
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -1320,7 +1331,7 @@ export default function UsersPage() {
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
             <Mail className="h-5 w-5" />
           </div>
           <div>
