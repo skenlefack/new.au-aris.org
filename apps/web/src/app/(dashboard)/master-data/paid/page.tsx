@@ -1,11 +1,91 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, Plus, Pencil, Trash2, Search, Save, X, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, Search, Save, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { COUNTRIES } from '@/data/countries-config';
+
+// ─── Reusable Searchable Dropdown ────────────────────────────────────────────
+
+function SearchableDropdown({ value, onChange, options, placeholder, required, className }: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  required?: boolean;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (!search) return options;
+    const q = search.toLowerCase();
+    return options.filter((o) => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q));
+  }, [options, search]);
+
+  const selectedLabel = options.find((o) => o.value === value)?.label;
+
+  return (
+    <div ref={ref} className={cn('relative', className)}>
+      <button
+        type="button"
+        onClick={() => { setOpen(!open); setSearch(''); }}
+        className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+      >
+        <span className={selectedLabel ? 'text-gray-900 dark:text-white truncate' : 'text-gray-400'}>
+          {selectedLabel || placeholder || '-- Select --'}
+        </span>
+        <ChevronDown className={cn('h-4 w-4 shrink-0 text-gray-400 transition-transform', open && 'rotate-180')} />
+      </button>
+      {required && !value && <input type="text" required value="" className="sr-only" tabIndex={-1} onChange={() => {}} />}
+
+      {open && (
+        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+          <div className="sticky top-0 border-b border-gray-100 bg-white p-2 dark:border-gray-800 dark:bg-gray-900">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search..."
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-3 text-sm focus:border-fuchsia-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                autoFocus
+              />
+            </div>
+          </div>
+          {filtered.length === 0 ? (
+            <div className="px-3 py-4 text-center text-xs text-gray-400">No results</div>
+          ) : filtered.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => { onChange(o.value); setOpen(false); }}
+              className={cn(
+                'flex w-full items-center px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800',
+                o.value === value && 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-900/20 dark:text-fuchsia-400',
+              )}
+            >
+              <span className="truncate">{o.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 import {
   usePaidReferentials,
   useCreatePaidRef,
@@ -304,29 +384,25 @@ function PaidEntitySelect({ fieldKey, value, onChange, required, formValues }: {
   const { data, isLoading } = usePaidReferentials(category ?? 'PAID_PROJECT', filters);
   const items = data?.data ?? [];
 
+  const options = useMemo(() => items.map((item: PaidReferentialItem) => ({
+    value: item.code || String(item.id),
+    label: item.title
+      ? `${item.code} — ${item.title}`
+      : item.label
+        ? `${item.code} — ${(item.label as string).slice(0, 80)}`
+        : item.name
+          ? `${item.code || ''} ${item.name}`
+          : item.code || String(item.id),
+  })), [items]);
+
   return (
-    <select
+    <SearchableDropdown
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={onChange}
+      options={options}
+      placeholder={isLoading ? 'Loading...' : '-- Select --'}
       required={required}
-      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-    >
-      <option value="">{isLoading ? 'Loading...' : '-- Select --'}</option>
-      {items.map((item: PaidReferentialItem) => {
-        const label = item.title
-          ? `${item.code} — ${item.title}`
-          : item.label
-            ? `${item.code} — ${(item.label as string).slice(0, 60)}`
-            : item.name
-              ? `${item.code || ''} ${item.name}`
-              : item.code || String(item.id);
-        return (
-          <option key={item.code || item.id} value={item.code || ''}>
-            {label}
-          </option>
-        );
-      })}
-    </select>
+    />
   );
 }
 
@@ -431,17 +507,13 @@ function InlineForm({ entity, item, onBack }: {
                   formValues={form}
                 />
               ) : f.type === 'single-country' ? (
-                <select
+                <SearchableDropdown
                   value={(form[f.key] as string) ?? ''}
-                  onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
+                  onChange={(v) => setForm((p) => ({ ...p, [f.key]: v }))}
+                  options={ALL_COUNTRIES_SORTED.map((c) => ({ value: c.code, label: `${c.flag} ${c.name}` }))}
+                  placeholder="-- Select country --"
                   required={f.required}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                >
-                  <option value="">-- Select country --</option>
-                  {ALL_COUNTRIES_SORTED.map((c) => (
-                    <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
-                  ))}
-                </select>
+                />
               ) : f.type === 'textarea' ? (
                 <textarea
                   value={(form[f.key] as string) ?? ''}
@@ -501,6 +573,8 @@ function InlineForm({ entity, item, onBack }: {
 
 // ─── Entity List View ─────────────────────────────────────────────────────────
 
+const PAGE_SIZES = [10, 25, 50, 100];
+
 function EntityListView({ entity, onEdit, onCreate }: {
   entity: EntityDef;
   onEdit: (item: PaidReferentialItem) => void;
@@ -508,18 +582,34 @@ function EntityListView({ entity, onEdit, onCreate }: {
 }) {
   const [search, setSearch] = useState('');
   const [parentFilter, setParentFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const deleteMut = useDeletePaidRef(entity.category);
+
+  // Reset page when filters change
+  const prevSearch = useRef(search);
+  const prevParent = useRef(parentFilter);
+  useEffect(() => {
+    if (prevSearch.current !== search || prevParent.current !== parentFilter) {
+      setPage(1);
+      prevSearch.current = search;
+      prevParent.current = parentFilter;
+    }
+  }, [search, parentFilter]);
 
   const filters = useMemo(() => {
     const f: Record<string, string | undefined> = {};
     if (search) f.search = search;
     if (parentFilter && entity.parentFilterKey) f[entity.parentFilterKey] = parentFilter;
+    f.page = String(page);
+    f.limit = String(pageSize);
     return f;
-  }, [search, parentFilter, entity.parentFilterKey]);
+  }, [search, parentFilter, entity.parentFilterKey, page, pageSize]);
 
   const { data, isLoading } = usePaidReferentials(entity.category, filters);
   const items = data?.data ?? [];
   const total = data?.meta?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <div className="space-y-4">
@@ -617,6 +707,86 @@ function EntityListView({ entity, onEdit, onCreate }: {
           </table>
         )}
       </div>
+
+      {/* Pagination */}
+      {total > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <span>Show</span>
+            <select
+              value={pageSize}
+              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+              className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            >
+              {PAGE_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <span>of {total} records</span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(1)}
+              disabled={page <= 1}
+              className="rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-800"
+            >
+              First
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-800"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let p: number;
+              if (totalPages <= 5) {
+                p = i + 1;
+              } else if (page <= 3) {
+                p = i + 1;
+              } else if (page >= totalPages - 2) {
+                p = totalPages - 4 + i;
+              } else {
+                p = page - 2 + i;
+              }
+              return (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={cn(
+                    'min-w-[32px] rounded-lg px-2 py-1 text-xs font-medium transition-colors',
+                    p === page
+                      ? 'bg-fuchsia-600 text-white'
+                      : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800',
+                  )}
+                >
+                  {p}
+                </button>
+              );
+            })}
+
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-800"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setPage(totalPages)}
+              disabled={page >= totalPages}
+              className="rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-800"
+            >
+              Last
+            </button>
+          </div>
+
+          <span className="text-xs text-gray-400">
+            Page {page} of {totalPages}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
