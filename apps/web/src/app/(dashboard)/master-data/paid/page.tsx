@@ -583,7 +583,7 @@ function EntityListView({ entity, onEdit, onCreate }: {
   const [search, setSearch] = useState('');
   const [parentFilter, setParentFilter] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(10);
   const deleteMut = useDeletePaidRef(entity.category);
 
   // Reset page when filters change
