@@ -2,8 +2,8 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Pencil, Trash2, Search, X, Save, ChevronDown } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { ArrowLeft, Plus, Pencil, Trash2, Search, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   usePaidReferentials,
@@ -19,14 +19,10 @@ import {
 interface FieldDef {
   key: string;
   label: string;
-  type: 'text' | 'textarea' | 'select' | 'multi-text' | 'number' | 'boolean';
+  type: 'text' | 'textarea' | 'select' | 'number' | 'boolean';
   required?: boolean;
   options?: { value: string; label: string }[];
   placeholder?: string;
-  readOnly?: boolean;
-  /** For parent lookups */
-  parentCategory?: PaidRefCategory;
-  parentFilterKey?: string;
 }
 
 interface EntityDef {
@@ -117,18 +113,15 @@ const ENTITIES: EntityDef[] = [
       { key: 'field_code', label: 'Field Code', type: 'text', required: true, placeholder: 'e.g. n_female_trained' },
       { key: 'field_label', label: 'Field Label', type: 'text', required: true, placeholder: 'e.g. Number of females trained' },
       { key: 'field_type', label: 'Field Type', type: 'select', required: true, options: [
-        { value: 'number', label: 'Number' },
-        { value: 'text', label: 'Text' },
-        { value: 'textarea', label: 'Textarea' },
-        { value: 'select', label: 'Select' },
-        { value: 'select_multiple', label: 'Select Multiple' },
-        { value: 'date', label: 'Date' },
+        { value: 'number', label: 'Number' }, { value: 'text', label: 'Text' },
+        { value: 'textarea', label: 'Textarea' }, { value: 'select', label: 'Select' },
+        { value: 'select_multiple', label: 'Select Multiple' }, { value: 'date', label: 'Date' },
       ]},
       { key: 'sort_order', label: 'Sort Order', type: 'number', placeholder: '0' },
       { key: 'is_required', label: 'Required', type: 'boolean' },
     ],
     displayLabel: (i) => `${i.field_code || ''} \u2014 ${i.field_label || ''}`,
-    displaySub: (i) => `PAID Activity: ${i.paid_activity_code || '-'} | Type: ${i.field_type || '-'} | Order: ${i.sort_order ?? 0}`,
+    displaySub: (i) => `PAID Activity: ${i.paid_activity_code || '-'} | Type: ${i.field_type || '-'}`,
   },
   {
     key: 'executive-partners', label: 'Executive Partners', labelFr: 'Partenaires executifs', icon: '\ud83c\udfdb',
@@ -166,23 +159,24 @@ const ENTITIES: EntityDef[] = [
   },
 ];
 
-// ─── Generic CRUD Form Modal ─────────────────────────────────────────────────
+// ─── Inline Form (Create / Edit) ─────────────────────────────────────────────
 
-function CrudModal({ entity, item, onClose }: {
+function InlineForm({ entity, item, onBack }: {
   entity: EntityDef;
-  item: PaidReferentialItem | null; // null = create mode
-  onClose: () => void;
+  item: PaidReferentialItem | null;
+  onBack: () => void;
 }) {
   const isEdit = !!item;
   const createMut = useCreatePaidRef(entity.category);
   const updateMut = useUpdatePaidRef(entity.category);
+
   const [form, setForm] = useState<Record<string, unknown>>(() => {
     if (!item) return {};
     const initial: Record<string, unknown> = {};
     for (const f of entity.fields) {
       const val = (item as any)[f.key];
       if (f.key === 'countries' && Array.isArray(val)) {
-        initial[f.key] = (val as string[]).join(',');
+        initial[f.key] = (val as string[]).join(', ');
       } else {
         initial[f.key] = val ?? '';
       }
@@ -193,11 +187,9 @@ function CrudModal({ entity, item, onClose }: {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload: Record<string, unknown> = { ...form };
-    // Convert comma-separated countries to array
     if (typeof payload.countries === 'string') {
       payload.countries = (payload.countries as string).split(',').map((s) => s.trim()).filter(Boolean);
     }
-    // Convert numeric fields
     if (payload.sort_order !== undefined) payload.sort_order = Number(payload.sort_order) || 0;
     if (payload.is_required !== undefined) payload.is_required = payload.is_required === true || payload.is_required === 'true';
 
@@ -207,7 +199,7 @@ function CrudModal({ entity, item, onClose }: {
       } else {
         await createMut.mutateAsync(payload);
       }
-      onClose();
+      onBack();
     } catch (err: any) {
       alert(err?.message || 'Error saving');
     }
@@ -216,20 +208,31 @@ function CrudModal({ entity, item, onClose }: {
   const isPending = createMut.isPending || updateMut.isPending;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+    <div className="space-y-5">
+      {/* Back button + title */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onBack}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {isEdit ? 'Edit' : 'Create'} {entity.label}
+            {isEdit ? 'Edit' : 'New'} {entity.label}
           </h2>
-          <button onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
-            <X className="h-5 w-5" />
-          </button>
+          <p className="text-xs text-gray-400">
+            {isEdit ? `Editing: ${entity.displayLabel(item!).slice(0, 60)}` : `Create a new ${entity.label.toLowerCase()} record`}
+          </p>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4 p-6">
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+        <div className="grid gap-5 p-6 sm:grid-cols-2">
           {entity.fields.map((f) => (
-            <div key={f.key}>
-              <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
+            <div key={f.key} className={f.type === 'textarea' ? 'sm:col-span-2' : ''}>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 {f.label}
                 {f.required && <span className="ml-0.5 text-red-500">*</span>}
               </label>
@@ -238,7 +241,7 @@ function CrudModal({ entity, item, onClose }: {
                   value={(form[f.key] as string) ?? ''}
                   onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
                   required={f.required}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 >
                   <option value="">-- Select --</option>
                   {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -250,15 +253,15 @@ function CrudModal({ entity, item, onClose }: {
                   required={f.required}
                   placeholder={f.placeholder}
                   rows={3}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 />
               ) : f.type === 'boolean' ? (
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 py-2">
                   <input
                     type="checkbox"
                     checked={form[f.key] === true || form[f.key] === 'true'}
                     onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.checked }))}
-                    className="h-4 w-4 rounded border-gray-300"
+                    className="h-4 w-4 rounded border-gray-300 text-fuchsia-600 focus:ring-fuchsia-500"
                   />
                   <span className="text-sm text-gray-600 dark:text-gray-400">Yes</span>
                 </label>
@@ -269,35 +272,45 @@ function CrudModal({ entity, item, onClose }: {
                   onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
                   required={f.required}
                   placeholder={f.placeholder}
-                  readOnly={f.readOnly}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 />
               )}
             </div>
           ))}
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose}
-              className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800">
-              Cancel
-            </button>
-            <button type="submit" disabled={isPending}
-              className="flex items-center gap-2 rounded-lg bg-fuchsia-600 px-4 py-2 text-sm font-medium text-white hover:bg-fuchsia-700 disabled:opacity-50">
-              <Save className="h-4 w-4" />
-              {isPending ? 'Saving...' : isEdit ? 'Update' : 'Create'}
-            </button>
-          </div>
-        </form>
-      </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between border-t border-gray-100 px-6 py-4 dark:border-gray-800">
+          <button
+            type="button"
+            onClick={onBack}
+            className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isPending}
+            className="flex items-center gap-2 rounded-lg bg-fuchsia-600 px-5 py-2 text-sm font-medium text-white hover:bg-fuchsia-700 disabled:opacity-50 transition-colors"
+          >
+            <Save className="h-4 w-4" />
+            {isPending ? 'Saving...' : isEdit ? 'Update' : 'Create'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
 
-// ─── Entity List Page ─────────────────────────────────────────────────────────
+// ─── Entity List View ─────────────────────────────────────────────────────────
 
-function EntityPage({ entity }: { entity: EntityDef }) {
+function EntityListView({ entity, onEdit, onCreate }: {
+  entity: EntityDef;
+  onEdit: (item: PaidReferentialItem) => void;
+  onCreate: () => void;
+}) {
   const [search, setSearch] = useState('');
   const [parentFilter, setParentFilter] = useState('');
-  const [modalItem, setModalItem] = useState<PaidReferentialItem | null | undefined>(undefined); // undefined = closed
   const deleteMut = useDeletePaidRef(entity.category);
 
   const filters = useMemo(() => {
@@ -310,13 +323,6 @@ function EntityPage({ entity }: { entity: EntityDef }) {
   const { data, isLoading } = usePaidReferentials(entity.category, filters);
   const items = data?.data ?? [];
   const total = data?.meta?.total ?? 0;
-
-  const handleDelete = useCallback((item: PaidReferentialItem) => {
-    const label = entity.displayLabel(item);
-    if (confirm(`Delete "${label}"?`)) {
-      deleteMut.mutate(item.id);
-    }
-  }, [entity, deleteMut]);
 
   return (
     <div className="space-y-4">
@@ -343,7 +349,7 @@ function EntityPage({ entity }: { entity: EntityDef }) {
         )}
         <span className="text-xs text-gray-400">{total} record{total !== 1 ? 's' : ''}</span>
         <button
-          onClick={() => setModalItem(null)}
+          onClick={onCreate}
           className="ml-auto flex items-center gap-1.5 rounded-lg bg-fuchsia-600 px-3 py-2 text-xs font-medium text-white hover:bg-fuchsia-700 transition-colors"
         >
           <Plus className="h-3.5 w-3.5" />
@@ -363,7 +369,7 @@ function EntityPage({ entity }: { entity: EntityDef }) {
           <div className="py-16 text-center">
             <p className="text-sm text-gray-400">No {entity.label.toLowerCase()} found</p>
             <button
-              onClick={() => setModalItem(null)}
+              onClick={onCreate}
               className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-fuchsia-600 hover:text-fuchsia-700"
             >
               <Plus className="h-4 w-4" /> Create first {entity.label.toLowerCase()}
@@ -373,41 +379,33 @@ function EntityPage({ entity }: { entity: EntityDef }) {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50 dark:border-gray-800 dark:bg-gray-800/50">
-                <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  {entity.label}
-                </th>
-                <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  Details
-                </th>
-                <th className="w-24 px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  Actions
-                </th>
+                <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-gray-500">{entity.label}</th>
+                <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-gray-500">Details</th>
+                <th className="w-24 px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {items.map((item: PaidReferentialItem) => (
                 <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-gray-900 dark:text-white truncate max-w-xs">
-                      {entity.displayLabel(item)}
-                    </p>
+                    <p className="font-medium text-gray-900 dark:text-white truncate max-w-xs">{entity.displayLabel(item)}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-xs text-gray-400 truncate max-w-sm">
-                      {entity.displaySub(item)}
-                    </p>
+                    <p className="text-xs text-gray-400 truncate max-w-sm">{entity.displaySub(item)}</p>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
                       <button
-                        onClick={() => setModalItem(item)}
+                        onClick={() => onEdit(item)}
                         className="rounded-lg p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 transition-colors"
                         title="Edit"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(item)}
+                        onClick={() => {
+                          if (confirm(`Delete "${entity.displayLabel(item)}"?`)) deleteMut.mutate(item.id);
+                        }}
                         disabled={deleteMut.isPending}
                         className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
                         title="Delete"
@@ -422,27 +420,26 @@ function EntityPage({ entity }: { entity: EntityDef }) {
           </table>
         )}
       </div>
-
-      {/* CRUD Modal */}
-      {modalItem !== undefined && (
-        <CrudModal
-          entity={entity}
-          item={modalItem}
-          onClose={() => setModalItem(undefined)}
-        />
-      )}
     </div>
   );
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+type ViewMode = { type: 'list' } | { type: 'create' } | { type: 'edit'; item: PaidReferentialItem };
+
 export default function PaidMasterDataPage() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') || 'projects';
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [view, setView] = useState<ViewMode>({ type: 'list' });
 
   const entity = ENTITIES.find((e) => e.key === activeTab) ?? ENTITIES[0];
+
+  const switchTab = (key: string) => {
+    setActiveTab(key);
+    setView({ type: 'list' });
+  };
 
   return (
     <div className="space-y-6">
@@ -468,7 +465,7 @@ export default function PaidMasterDataPage() {
         {ENTITIES.map((e) => (
           <button
             key={e.key}
-            onClick={() => setActiveTab(e.key)}
+            onClick={() => switchTab(e.key)}
             className={cn(
               'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
               activeTab === e.key
@@ -482,8 +479,33 @@ export default function PaidMasterDataPage() {
         ))}
       </div>
 
-      {/* Active entity page */}
-      <EntityPage key={entity.key} entity={entity} />
+      {/* Content: List or Form */}
+      {view.type === 'list' && (
+        <EntityListView
+          key={entity.key}
+          entity={entity}
+          onEdit={(item) => setView({ type: 'edit', item })}
+          onCreate={() => setView({ type: 'create' })}
+        />
+      )}
+
+      {view.type === 'create' && (
+        <InlineForm
+          key={`create-${entity.key}`}
+          entity={entity}
+          item={null}
+          onBack={() => setView({ type: 'list' })}
+        />
+      )}
+
+      {view.type === 'edit' && (
+        <InlineForm
+          key={`edit-${view.item.id}`}
+          entity={entity}
+          item={view.item}
+          onBack={() => setView({ type: 'list' })}
+        />
+      )}
     </div>
   );
 }
