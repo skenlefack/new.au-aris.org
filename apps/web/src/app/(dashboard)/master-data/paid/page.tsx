@@ -63,7 +63,7 @@ const ENTITIES: EntityDef[] = [
     parentFilterKey: 'project', parentFilterLabel: 'Project',
     fields: [
       { key: 'code', label: 'Code', type: 'text', required: true, placeholder: 'e.g. 2.2.1' },
-      { key: 'project_code', label: 'Project', type: 'paid-select', required: true, placeholder: 'Select project' },
+      { key: 'project_code', label: 'Project', type: 'paid-select', required: true, colSpan: 2 },
       { key: 'label', label: 'Label', type: 'textarea', required: true, placeholder: 'Log frame description' },
     ],
     displayLabel: (i) => `${i.code} — ${(i.label || '').slice(0, 80)}`,
@@ -75,7 +75,7 @@ const ENTITIES: EntityDef[] = [
     parentFilterKey: 'logframe', parentFilterLabel: 'Log Frame',
     fields: [
       { key: 'code', label: 'Code', type: 'text', required: true, placeholder: 'e.g. 2.2.1.01' },
-      { key: 'logframe_code', label: 'Log Frame', type: 'paid-select', required: true },
+      { key: 'logframe_code', label: 'Log Frame', type: 'paid-select', required: true, colSpan: 2 },
       { key: 'label', label: 'Label', type: 'textarea', required: true, placeholder: 'Activity description' },
     ],
     displayLabel: (i) => `${i.code} — ${(i.label || '').slice(0, 80)}`,
@@ -87,7 +87,7 @@ const ENTITIES: EntityDef[] = [
     parentFilterKey: 'activity', parentFilterLabel: 'Activity',
     fields: [
       { key: 'code', label: 'Code', type: 'text', required: true, placeholder: 'e.g. 2.2.1.01.01' },
-      { key: 'activity_code', label: 'Activity', type: 'paid-select', required: true },
+      { key: 'activity_code', label: 'Activity', type: 'paid-select', required: true, colSpan: 2 },
       { key: 'label', label: 'Label', type: 'textarea', required: true, placeholder: 'Sub-activity description' },
       { key: 'unit_of_measure', label: 'Unit of Measure', type: 'text', placeholder: 'e.g. Number of MOUs' },
     ],
@@ -100,7 +100,7 @@ const ENTITIES: EntityDef[] = [
     parentFilterKey: 'subactivity', parentFilterLabel: 'Sub-Activity',
     fields: [
       { key: 'code', label: 'Code', type: 'text', required: true, placeholder: 'e.g. 2.2.1.01.01_PA' },
-      { key: 'subactivity_code', label: 'Sub-Activity', type: 'paid-select', required: true },
+      { key: 'subactivity_code', label: 'Sub-Activity', type: 'paid-select', required: true, colSpan: 2 },
       { key: 'label', label: 'Label', type: 'text', required: true, placeholder: 'e.g. Training/sensitization' },
       { key: 'unit_of_measure', label: 'Unit of Measure', type: 'text', placeholder: 'e.g. persons, report' },
     ],
