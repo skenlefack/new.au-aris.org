@@ -24,6 +24,8 @@ interface FieldDef {
   required?: boolean;
   options?: { value: string; label: string }[];
   placeholder?: string;
+  /** Grid column span (1, 2 or 3). Default 1. */
+  colSpan?: number;
 }
 
 interface EntityDef {
@@ -44,13 +46,13 @@ const ENTITIES: EntityDef[] = [
     key: 'projects', label: 'Projects', labelFr: 'Projets', icon: '\ud83d\udccb',
     category: 'PAID_PROJECT',
     fields: [
-      { key: 'code', label: 'Code', type: 'text', required: true, placeholder: 'e.g. ANGR' },
-      { key: 'title', label: 'Title', type: 'text', required: true, placeholder: 'Project full title' },
-      { key: 'type', label: 'Type', type: 'select', required: true, options: [
+      { key: 'code', label: 'Code', type: 'text', required: true, placeholder: 'e.g. ANGR', colSpan: 1 },
+      { key: 'title', label: 'Title', type: 'text', required: true, placeholder: 'Project full title', colSpan: 1 },
+      { key: 'type', label: 'Type', type: 'select', required: true, colSpan: 1, options: [
         { value: 'single_country', label: 'Single Country' },
         { value: 'multiple_countries', label: 'Multiple Countries' },
       ]},
-      { key: 'countries', label: 'Countries', type: 'country-select', required: true },
+      { key: 'countries', label: 'Countries', type: 'country-select', required: true, colSpan: 3 },
     ],
     displayLabel: (i) => `${i.code} — ${i.title || ''}`,
     displaySub: (i) => `Type: ${i.type || '-'} | Countries: ${Array.isArray(i.countries) ? (i.countries as string[]).join(', ') : '-'}`,
@@ -334,10 +336,13 @@ function InlineForm({ entity, item, onBack }: {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
-        <div className="grid gap-5 p-6 sm:grid-cols-2">
-          {entity.fields.map((f) => (
+        <div className="grid gap-5 p-6 sm:grid-cols-3">
+          {entity.fields.map((f) => {
+            const span = f.colSpan ?? (f.type === 'textarea' || f.type === 'country-select' ? 3 : 1);
+            return (
             <div key={f.key} className={cn(
-              (f.type === 'textarea' || f.type === 'country-select') && 'sm:col-span-2',
+              span === 2 && 'sm:col-span-2',
+              span === 3 && 'sm:col-span-3',
             )}>
               <label className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 {f.label}
@@ -389,7 +394,8 @@ function InlineForm({ entity, item, onBack }: {
                 />
               )}
             </div>
-          ))}
+          );
+          })}
         </div>
 
         {/* Actions */}
