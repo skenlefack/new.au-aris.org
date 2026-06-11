@@ -3,8 +3,9 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, Plus, Pencil, Trash2, Search, Save } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, Search, Save, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { COUNTRIES } from '@/data/countries-config';
 import {
   usePaidReferentials,
   useCreatePaidRef,
@@ -19,7 +20,7 @@ import {
 interface FieldDef {
   key: string;
   label: string;
-  type: 'text' | 'textarea' | 'select' | 'number' | 'boolean';
+  type: 'text' | 'textarea' | 'select' | 'number' | 'boolean' | 'country-select';
   required?: boolean;
   options?: { value: string; label: string }[];
   placeholder?: string;
@@ -49,7 +50,7 @@ const ENTITIES: EntityDef[] = [
         { value: 'single_country', label: 'Single Country' },
         { value: 'multiple_countries', label: 'Multiple Countries' },
       ]},
-      { key: 'countries', label: 'Countries (comma-separated codes)', type: 'text', placeholder: 'KE,ET,NG,TZ' },
+      { key: 'countries', label: 'Countries', type: 'country-select', required: true },
     ],
     displayLabel: (i) => `${i.code} \u2014 ${i.title || ''}`,
     displaySub: (i) => `Type: ${i.type || '-'} | Countries: ${Array.isArray(i.countries) ? (i.countries as string[]).join(', ') : '-'}`,
@@ -159,6 +160,116 @@ const ENTITIES: EntityDef[] = [
   },
 ];
 
+// ─── Country Select (single or multiple based on project type) ────────────────
+
+const ALL_COUNTRIES_SORTED = Object.values(COUNTRIES).sort((a, b) => a.name.localeCompare(b.name));
+
+function CountrySelectField({ value, onChange, multiple }: {
+  value: string[];
+  onChange: (value: string[]) => void;
+  multiple: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    if (!search) return ALL_COUNTRIES_SORTED;
+    const q = search.toLowerCase();
+    return ALL_COUNTRIES_SORTED.filter((c) =>
+      c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q),
+    );
+  }, [search]);
+
+  const toggle = (code: string) => {
+    if (multiple) {
+      onChange(value.includes(code) ? value.filter((c) => c !== code) : [...value, code]);
+    } else {
+      onChange([code]);
+      setOpen(false);
+    }
+  };
+
+  const remove = (code: string) => onChange(value.filter((c) => c !== code));
+
+  return (
+    <div>
+      {/* Selected chips */}
+      {value.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {value.map((cc) => {
+            const c = COUNTRIES[cc];
+            return (
+              <span key={cc} className="inline-flex items-center gap-1 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-2.5 py-0.5 text-xs font-medium text-fuchsia-700 dark:border-fuchsia-800 dark:bg-fuchsia-900/20 dark:text-fuchsia-300">
+                {c?.flag} {c?.name ?? cc}
+                <button type="button" onClick={() => remove(cc)} className="ml-0.5 hover:text-red-500">
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Dropdown trigger */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm text-gray-700 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+        >
+          <span className="text-gray-400">
+            {value.length > 0
+              ? `${value.length} countr${value.length > 1 ? 'ies' : 'y'} selected`
+              : multiple ? 'Select countries...' : 'Select a country...'}
+          </span>
+          <ChevronDown className={cn('h-4 w-4 text-gray-400 transition-transform', open && 'rotate-180')} />
+        </button>
+
+        {open && (
+          <div className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+            <div className="sticky top-0 border-b border-gray-100 bg-white p-2 dark:border-gray-800 dark:bg-gray-900">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search..."
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm focus:border-fuchsia-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                autoFocus
+              />
+            </div>
+            {filtered.map((c) => {
+              const selected = value.includes(c.code);
+              return (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => toggle(c.code)}
+                  className={cn(
+                    'flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800',
+                    selected && 'bg-fuchsia-50 dark:bg-fuchsia-900/20',
+                  )}
+                >
+                  {multiple && <input type="checkbox" checked={selected} readOnly className="h-3.5 w-3.5 rounded border-gray-300 text-fuchsia-600" />}
+                  <span>{c.flag}</span>
+                  <span className="text-gray-700 dark:text-gray-300">{c.name}</span>
+                  <span className="ml-auto text-[10px] text-gray-400">{c.code}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {!multiple && (
+        <p className="mt-1 text-[10px] text-gray-400">Single country project \u2014 select one country</p>
+      )}
+      {multiple && (
+        <p className="mt-1 text-[10px] text-gray-400">Multiple countries project \u2014 select all implementation countries</p>
+      )}
+    </div>
+  );
+}
+
 // ─── Inline Form (Create / Edit) ─────────────────────────────────────────────
 
 function InlineForm({ entity, item, onBack }: {
@@ -175,11 +286,7 @@ function InlineForm({ entity, item, onBack }: {
     const initial: Record<string, unknown> = {};
     for (const f of entity.fields) {
       const val = (item as any)[f.key];
-      if (f.key === 'countries' && Array.isArray(val)) {
-        initial[f.key] = (val as string[]).join(', ');
-      } else {
-        initial[f.key] = val ?? '';
-      }
+      initial[f.key] = val ?? '';
     }
     return initial;
   });
@@ -187,9 +294,7 @@ function InlineForm({ entity, item, onBack }: {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload: Record<string, unknown> = { ...form };
-    if (typeof payload.countries === 'string') {
-      payload.countries = (payload.countries as string).split(',').map((s) => s.trim()).filter(Boolean);
-    }
+    // countries is already an array from country-select
     if (payload.sort_order !== undefined) payload.sort_order = Number(payload.sort_order) || 0;
     if (payload.is_required !== undefined) payload.is_required = payload.is_required === true || payload.is_required === 'true';
 
@@ -231,7 +336,9 @@ function InlineForm({ entity, item, onBack }: {
       <form onSubmit={handleSubmit} className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
         <div className="grid gap-5 p-6 sm:grid-cols-2">
           {entity.fields.map((f) => (
-            <div key={f.key} className={f.type === 'textarea' ? 'sm:col-span-2' : ''}>
+            <div key={f.key} className={cn(
+              (f.type === 'textarea' || f.type === 'country-select') && 'sm:col-span-2',
+            )}>
               <label className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 {f.label}
                 {f.required && <span className="ml-0.5 text-red-500">*</span>}
@@ -246,6 +353,12 @@ function InlineForm({ entity, item, onBack }: {
                   <option value="">-- Select --</option>
                   {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
+              ) : f.type === 'country-select' ? (
+                <CountrySelectField
+                  value={Array.isArray(form[f.key]) ? form[f.key] as string[] : []}
+                  onChange={(v) => setForm((p) => ({ ...p, [f.key]: v }))}
+                  multiple={form.type === 'multiple_countries'}
+                />
               ) : f.type === 'textarea' ? (
                 <textarea
                   value={(form[f.key] as string) ?? ''}
