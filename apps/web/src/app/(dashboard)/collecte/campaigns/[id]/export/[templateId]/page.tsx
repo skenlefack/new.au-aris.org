@@ -30,6 +30,7 @@ interface Field {
   type: string;
   masterDataType?: string;
   options?: { label: string; value: string }[];
+  searchable?: boolean;
 }
 
 function extractFields(schema: unknown): Field[] {
@@ -50,6 +51,7 @@ function extractFields(schema: unknown): Field[] {
           type: f.type || 'text',
           masterDataType: props.masterDataType || props.referenceType || undefined,
           options: opts.length > 0 ? opts : undefined,
+          searchable: f.searchable === true || props.searchable === true,
         });
       }
     }
@@ -384,6 +386,8 @@ export default function ExportPage() {
   const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
   const [selectedSub, setSelectedSub] = useState<any | null>(null);
   const [refMap, setRefMap] = useState<Record<string, string>>({});
+  const [showFilters, setShowFilters] = useState(false);
+  const [viewFilters, setViewFilters] = useState<Record<string, string>>({});
 
   // Load reference data for master-data-select fields
   const [refFetched, setRefFetched] = useState(false);
@@ -489,6 +493,55 @@ export default function ExportPage() {
     } catch (e: any) { setError(e?.message || t('exportFailed')); } finally { setExporting(false); }
   }, [campaignId, format, filters, fields, name]);
 
+  // Filter fields: built-in (country, date) + schema searchable fields + auto-detected select/text
+  const viewFilterFields = useMemo(() => {
+    const builtIn: Field[] = [
+      { code: '_country', label: 'Country', type: 'text', searchable: true },
+      { code: '_date', label: 'Date', type: 'date', searchable: true },
+    ];
+    // Fields marked searchable in schema
+    const marked = fields.filter((f) => f.searchable);
+    // Auto-detect: select and key text fields (first few), skip complex types
+    const auto = fields.filter((f) =>
+      !f.searchable && ['select', 'text', 'master-data-select'].includes(f.type) &&
+      !['geo-selector', 'repeater', 'matrix', 'admin-location'].includes(f.type),
+    ).slice(0, 4);
+    // Deduplicate by code
+    const seen = new Set<string>();
+    const result: Field[] = [];
+    for (const f of [...builtIn, ...marked, ...auto]) {
+      if (!seen.has(f.code)) { seen.add(f.code); result.push(f); }
+    }
+    return result.slice(0, 8);
+  }, [fields]);
+
+  // Apply client-side filters to viewData
+  const filteredViewData = useMemo(() => {
+    if (!viewData) return null;
+    const activeFilters = Object.entries(viewFilters).filter(([, v]) => v.trim());
+    if (activeFilters.length === 0) return viewData;
+    return viewData.filter((sub) => {
+      const d = sub.data || {};
+      return activeFilters.every(([key, val]) => {
+        const needle = val.toLowerCase();
+        if (key === '_country') {
+          const code = d.adm0 || d.country || '';
+          const country = COUNTRIES.find((c: any) => c.code === code);
+          const searchStr = `${code} ${country?.name || ''} ${country?.nameFr || ''}`.toLowerCase();
+          return searchStr.includes(needle);
+        }
+        if (key === '_date') {
+          const dateStr = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : '';
+          return dateStr.includes(needle);
+        }
+        const cellVal = String(d[key] ?? '').toLowerCase();
+        // Also check refMap for UUID resolution
+        const resolved = refMap[d[key]] || '';
+        return cellVal.includes(needle) || resolved.toLowerCase().includes(needle);
+      });
+    });
+  }, [viewData, viewFilters, refMap]);
+
   // Compact summary: 4 most meaningful fields
   const summaryFields = useMemo(() => {
     // Prefer: admin_location first, then text/select fields, skip arrays/objects
@@ -514,6 +567,23 @@ export default function ExportPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setShowFilters((p) => !p)}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                    showFilters
+                      ? 'border-emerald-400 bg-emerald-50 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+                      : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400',
+                  )}
+                >
+                  <Filter className="h-3.5 w-3.5" />
+                  {showFilters ? 'Hide filters' : 'Filters'}
+                  {Object.values(viewFilters).some((v) => v.trim()) && (
+                    <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-white">
+                      {Object.values(viewFilters).filter((v) => v.trim()).length}
+                    </span>
+                  )}
+                </button>
                 <Link href={`/collecte/campaigns/${campaignId}/export/${templateId}`}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400">
                   <Download className="h-3.5 w-3.5" /> {t('export')}
@@ -526,6 +596,45 @@ export default function ExportPage() {
             </div>
           </div>
 
+          {/* Filter bar */}
+          {showFilters && (
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm px-4 py-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                {viewFilterFields.map((f) => (
+                  <div key={f.code} className="flex items-center gap-1.5 min-w-0">
+                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">{f.label}</label>
+                    {f.options && f.options.length > 0 ? (
+                      <select
+                        value={viewFilters[f.code] || ''}
+                        onChange={(e) => setViewFilters((p) => ({ ...p, [f.code]: e.target.value }))}
+                        className="h-7 w-[140px] rounded-md border border-gray-200 bg-gray-50 px-2 text-xs text-gray-700 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                      >
+                        <option value="">All</option>
+                        {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    ) : (
+                      <input
+                        type={f.type === 'date' ? 'date' : 'text'}
+                        placeholder={f.type === 'date' ? '' : `Search...`}
+                        value={viewFilters[f.code] || ''}
+                        onChange={(e) => setViewFilters((p) => ({ ...p, [f.code]: e.target.value }))}
+                        className="h-7 w-[130px] rounded-md border border-gray-200 bg-gray-50 px-2 text-xs text-gray-700 placeholder:text-gray-300 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:placeholder:text-gray-600"
+                      />
+                    )}
+                  </div>
+                ))}
+                {Object.values(viewFilters).some((v) => v.trim()) && (
+                  <button
+                    onClick={() => setViewFilters({})}
+                    className="flex items-center gap-1 rounded-md bg-red-50 px-2 py-1 text-[10px] font-medium text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 transition-colors"
+                  >
+                    <X className="h-3 w-3" /> Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
             {viewLoading && (
               <div className="flex items-center justify-center py-16">
@@ -537,14 +646,27 @@ export default function ExportPage() {
                 <AlertCircle className="h-4 w-4 text-red-500 shrink-0" /><p className="text-sm text-red-600">{error}</p>
               </div>
             )}
-            {viewData && viewData.length === 0 && !viewLoading && (
+            {filteredViewData && filteredViewData.length === 0 && !viewLoading && (
               <div className="text-center py-16">
                 <Table2 className="mx-auto h-10 w-10 text-gray-300" />
-                <p className="mt-3 text-sm text-gray-500">{t('noSubmissionsYet') || 'No submissions yet.'}</p>
+                <p className="mt-3 text-sm text-gray-500">
+                  {Object.values(viewFilters).some((v) => v.trim())
+                    ? 'No results match the current filters'
+                    : (t('noSubmissionsYet') || 'No submissions yet.')}
+                </p>
+                {Object.values(viewFilters).some((v) => v.trim()) && (
+                  <button onClick={() => setViewFilters({})} className="mt-2 text-xs text-emerald-600 hover:underline">Clear filters</button>
+                )}
               </div>
             )}
-            {viewData && viewData.length > 0 && (
+            {filteredViewData && filteredViewData.length > 0 && (
               <div>
+                {/* Filtered count indicator */}
+                {Object.values(viewFilters).some((v) => v.trim()) && (
+                  <div className="border-b border-gray-100 dark:border-gray-800 px-4 py-2 text-xs text-gray-500">
+                    Showing {filteredViewData.length} of {viewData?.length ?? 0} submissions
+                  </div>
+                )}
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
@@ -558,7 +680,7 @@ export default function ExportPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                    {viewData.map((sub, idx) => {
+                    {filteredViewData.map((sub, idx) => {
                       const rowData = sub.data || {};
                       const globalIdx = (viewPage - 1) * viewPageSize + idx;
                       return (
