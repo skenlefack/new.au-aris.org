@@ -12,8 +12,12 @@ import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useFormBuilderTemplate } from '@/lib/api/form-builder-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { COUNTRIES } from '@/data/countries-config';
+import { COUNTRIES, type CountryConfig } from '@/data/countries-config';
+import { RECS } from '@/data/recs-config';
 import { ADMIN_DIVISIONS } from '@/data/admin-divisions';
+
+const COUNTRY_LIST = Object.values(COUNTRIES).sort((a, b) => a.name.localeCompare(b.name));
+const REC_LIST = Object.values(RECS).sort((a, b) => a.name.localeCompare(b.name));
 
 // ── Helpers ──
 
@@ -493,49 +497,43 @@ export default function ExportPage() {
     } catch (e: any) { setError(e?.message || t('exportFailed')); } finally { setExporting(false); }
   }, [campaignId, format, filters, fields, name]);
 
-  // Filter fields: built-in (country, date) + schema searchable fields + auto-detected select/text
-  const viewFilterFields = useMemo(() => {
-    const builtIn: Field[] = [
-      { code: '_country', label: 'Country', type: 'text', searchable: true },
-      { code: '_date', label: 'Date', type: 'date', searchable: true },
-    ];
-    // Fields marked searchable in schema
+  // Form-specific filter fields: searchable + auto-detected select/text
+  const formFilterFields = useMemo(() => {
     const marked = fields.filter((f) => f.searchable);
-    // Auto-detect: select and key text fields (first few), skip complex types
     const auto = fields.filter((f) =>
-      !f.searchable && ['select', 'text', 'master-data-select'].includes(f.type) &&
+      !f.searchable && ['select', 'text', 'master-data-select', 'number'].includes(f.type) &&
       !['geo-selector', 'repeater', 'matrix', 'admin-location'].includes(f.type),
     ).slice(0, 4);
-    // Deduplicate by code
     const seen = new Set<string>();
     const result: Field[] = [];
-    for (const f of [...builtIn, ...marked, ...auto]) {
+    for (const f of [...marked, ...auto]) {
       if (!seen.has(f.code)) { seen.add(f.code); result.push(f); }
     }
-    return result.slice(0, 8);
+    return result.slice(0, 5);
   }, [fields]);
 
   // Apply client-side filters to viewData
   const filteredViewData = useMemo(() => {
     if (!viewData) return null;
-    const activeFilters = Object.entries(viewFilters).filter(([, v]) => v.trim());
-    if (activeFilters.length === 0) return viewData;
+    const rec = viewFilters._rec || '';
+    const country = viewFilters._country || '';
+    const formFilters = Object.entries(viewFilters).filter(([k, v]) => v.trim() && !k.startsWith('_'));
+    if (!rec && !country && formFilters.length === 0) return viewData;
+
+    // Get country codes for selected REC
+    const recCountries = rec ? new Set(RECS[rec]?.countryCodes || []) : null;
+
     return viewData.filter((sub) => {
       const d = sub.data || {};
-      return activeFilters.every(([key, val]) => {
+      const subCountry = d.adm0 || d.country || '';
+      // REC filter
+      if (recCountries && !recCountries.has(subCountry)) return false;
+      // Country filter
+      if (country && subCountry !== country) return false;
+      // Form field filters
+      return formFilters.every(([key, val]) => {
         const needle = val.toLowerCase();
-        if (key === '_country') {
-          const code = d.adm0 || d.country || '';
-          const country = COUNTRIES.find((c: any) => c.code === code);
-          const searchStr = `${code} ${country?.name || ''} ${country?.nameFr || ''}`.toLowerCase();
-          return searchStr.includes(needle);
-        }
-        if (key === '_date') {
-          const dateStr = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : '';
-          return dateStr.includes(needle);
-        }
         const cellVal = String(d[key] ?? '').toLowerCase();
-        // Also check refMap for UUID resolution
         const resolved = refMap[d[key]] || '';
         return cellVal.includes(needle) || resolved.toLowerCase().includes(needle);
       });
@@ -598,31 +596,66 @@ export default function ExportPage() {
 
           {/* Filter bar */}
           {showFilters && (
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm px-4 py-3">
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm px-4 py-2.5">
               <div className="flex items-center gap-3 flex-wrap">
-                {viewFilterFields.map((f) => (
-                  <div key={f.code} className="flex items-center gap-1.5 min-w-0">
+                {/* REC select */}
+                <div className="flex items-center gap-1.5">
+                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">REC</label>
+                  <select
+                    value={viewFilters._rec || ''}
+                    onChange={(e) => setViewFilters((p) => ({ ...p, _rec: e.target.value, _country: '' }))}
+                    className="h-7 w-[130px] rounded-md border border-gray-200 bg-gray-50 px-2 text-xs text-gray-700 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                  >
+                    <option value="">All RECs</option>
+                    {REC_LIST.map((r) => <option key={r.code} value={r.code}>{r.name}</option>)}
+                  </select>
+                </div>
+
+                {/* Country select (filtered by REC if selected) */}
+                <div className="flex items-center gap-1.5">
+                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Country</label>
+                  <select
+                    value={viewFilters._country || ''}
+                    onChange={(e) => setViewFilters((p) => ({ ...p, _country: e.target.value }))}
+                    className="h-7 w-[150px] rounded-md border border-gray-200 bg-gray-50 px-2 text-xs text-gray-700 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                  >
+                    <option value="">All countries</option>
+                    {(viewFilters._rec
+                      ? COUNTRY_LIST.filter((c) => c.recs.includes(viewFilters._rec))
+                      : COUNTRY_LIST
+                    ).map((c) => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
+                  </select>
+                </div>
+
+                {/* Separator */}
+                {formFilterFields.length > 0 && <div className="h-5 w-px bg-gray-200 dark:bg-gray-700" />}
+
+                {/* Form-specific filters */}
+                {formFilterFields.map((f) => (
+                  <div key={f.code} className="flex items-center gap-1.5">
                     <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">{f.label}</label>
                     {f.options && f.options.length > 0 ? (
                       <select
                         value={viewFilters[f.code] || ''}
                         onChange={(e) => setViewFilters((p) => ({ ...p, [f.code]: e.target.value }))}
-                        className="h-7 w-[140px] rounded-md border border-gray-200 bg-gray-50 px-2 text-xs text-gray-700 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                        className="h-7 w-[130px] rounded-md border border-gray-200 bg-gray-50 px-2 text-xs text-gray-700 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
                       >
                         <option value="">All</option>
                         {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     ) : (
                       <input
-                        type={f.type === 'date' ? 'date' : 'text'}
-                        placeholder={f.type === 'date' ? '' : `Search...`}
+                        type="text"
+                        placeholder="Search..."
                         value={viewFilters[f.code] || ''}
                         onChange={(e) => setViewFilters((p) => ({ ...p, [f.code]: e.target.value }))}
-                        className="h-7 w-[130px] rounded-md border border-gray-200 bg-gray-50 px-2 text-xs text-gray-700 placeholder:text-gray-300 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:placeholder:text-gray-600"
+                        className="h-7 w-[120px] rounded-md border border-gray-200 bg-gray-50 px-2 text-xs text-gray-700 placeholder:text-gray-300 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:placeholder:text-gray-600"
                       />
                     )}
                   </div>
                 ))}
+
+                {/* Clear */}
                 {Object.values(viewFilters).some((v) => v.trim()) && (
                   <button
                     onClick={() => setViewFilters({})}
