@@ -119,6 +119,120 @@ function DomainSection({
   );
 }
 
+const PAID_ENTITIES = [
+  { slug: 'projects', label: 'Projects', labelFr: 'Projets', icon: '📋' },
+  { slug: 'logframes', label: 'Log Frames (AMERT)', labelFr: 'Cadres logiques (AMERT)', icon: '🎯' },
+  { slug: 'lf-activities', label: 'Activities', labelFr: 'Activites', icon: '⚡' },
+  { slug: 'subactivities', label: 'Sub-Activities', labelFr: 'Sous-activites', icon: '📌' },
+  { slug: 'paid-activities', label: 'PAID Activities', labelFr: 'Activites PAID', icon: '📊' },
+  { slug: 'breakdown-fields', label: 'Breakdown Fields', labelFr: 'Champs de ventilation', icon: '🔧' },
+  { slug: 'executive-partners', label: 'Executive Partners', labelFr: 'Partenaires executifs', icon: '🏛' },
+  { slug: 'impl-partners-intl', label: 'Partners (International)', labelFr: 'Partenaires (International)', icon: '🌍' },
+  { slug: 'impl-partners-national', label: 'Partners (National)', labelFr: 'Partenaires (National)', icon: '🏠' },
+];
+
+function PaidDomainSection({ domain }: { domain: DomainConfig }) {
+  const DomainIcon = domain.icon;
+  const { data } = useRefDataCounts();
+  // Fetch PAID counts from dedicated API
+  const [paidCounts, setPaidCounts] = React.useState<Record<string, number>>({});
+  const [loaded, setLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    try {
+      const raw = localStorage.getItem('aris-auth');
+      if (raw) {
+        const token = JSON.parse(raw)?.state?.accessToken;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      }
+      const t = localStorage.getItem('aris-tenant');
+      if (t) {
+        const tid = JSON.parse(t)?.state?.selectedTenantId;
+        if (tid) headers['X-Tenant-Id'] = tid;
+      }
+    } catch { /* ignore */ }
+
+    Promise.all(
+      PAID_ENTITIES.map(async (e) => {
+        try {
+          const res = await fetch(`/api/v1/master-data/paid/${e.slug}?limit=1`, { headers });
+          if (!res.ok) return [e.slug, 0];
+          const json = await res.json();
+          return [e.slug, json.meta?.total ?? 0];
+        } catch { return [e.slug, 0]; }
+      }),
+    ).then((results) => {
+      const counts: Record<string, number> = {};
+      for (const [slug, count] of results) counts[slug as string] = count as number;
+      setPaidCounts(counts);
+      setLoaded(true);
+    });
+  }, []);
+
+  const totalCount = Object.values(paidCounts).reduce((s, c) => s + c, 0);
+
+  return (
+    <section className="space-y-3">
+      <div className={cn(
+        'flex items-center gap-3 rounded-xl border px-4 py-3',
+        domain.bgColor, 'border-transparent',
+        'dark:bg-opacity-10 dark:border-gray-700',
+      )}>
+        <div className={cn('flex h-10 w-10 items-center justify-center rounded-lg bg-white/80 shadow-sm', 'dark:bg-gray-800/80')}>
+          <DomainIcon className={cn('h-5 w-5', domain.color)} />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{domain.label}</h2>
+            <span className="rounded-full bg-white/60 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800/60 dark:text-gray-400">
+              {PAID_ENTITIES.length} types
+            </span>
+            {loaded && (
+              <span className="rounded-full bg-white/60 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800/60 dark:text-gray-400">
+                {totalCount} records
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-400">{domain.descriptionFr}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {PAID_ENTITIES.map((entity) => (
+          <Link
+            key={entity.slug}
+            href={`/master-data/paid?tab=${entity.slug}`}
+            className={cn(
+              'group relative flex flex-col rounded-xl border border-gray-200 bg-white p-4',
+              'transition-all duration-200 hover:border-fuchsia-300 hover:shadow-md',
+              'dark:border-gray-700 dark:bg-gray-900 dark:hover:border-fuchsia-700',
+            )}
+          >
+            <div className="flex items-start justify-between">
+              <span className="text-2xl">{entity.icon}</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">
+                {loaded ? (paidCounts[entity.slug] ?? 0) : (
+                  <span className="inline-block h-6 w-8 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                )}
+              </span>
+            </div>
+            <h3 className="mt-2 text-sm font-semibold text-gray-900 group-hover:text-fuchsia-600 dark:text-white dark:group-hover:text-fuchsia-400">
+              {entity.label}
+            </h3>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{entity.labelFr}</p>
+            <div className="absolute bottom-3 right-3 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-fuchsia-400 dark:text-gray-600">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function MasterDataDashboard() {
   const t = useTranslations('masterData');
   const { data: countsData, isLoading } = useRefDataCounts();
@@ -151,7 +265,9 @@ export default function MasterDataDashboard() {
 
       {/* Domain sections */}
       <div className="space-y-10">
-        {DOMAIN_CONFIG.map((domain) => (
+        {DOMAIN_CONFIG.map((domain) => domain.slug === 'paid' ? (
+          <PaidDomainSection key="paid" domain={domain} />
+        ) : (
           <DomainSection
             key={domain.slug}
             domain={domain}
