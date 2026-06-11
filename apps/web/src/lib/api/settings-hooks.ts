@@ -616,6 +616,7 @@ export interface ManagedUser {
   locale: string;
   mfaEnabled: boolean;
   isActive: boolean;
+  accountExpiresAt: string | null;
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;

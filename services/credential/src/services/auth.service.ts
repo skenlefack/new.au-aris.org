@@ -168,6 +168,11 @@ export class AuthService {
 
     if (!user || !user.isActive) throw new HttpError(401, 'Adresse e-mail ou mot de passe incorrect');
 
+    // Check temporary account expiry
+    if (user.accountExpiresAt && new Date(user.accountExpiresAt) < new Date()) {
+      throw new HttpError(403, 'Votre compte temporaire a expiré. Contactez votre administrateur pour prolonger la durée de votre accès.');
+    }
+
     const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordValid) {
       await this.lockout.recordFailedAttempt(dto.email);
@@ -300,6 +305,11 @@ export class AuthService {
       include: { tenant: { select: { level: true } } },
     });
     if (!user || !user.isActive) throw new HttpError(401, 'Ce compte a \u00e9t\u00e9 d\u00e9sactiv\u00e9. Contactez votre administrateur.');
+
+    // Check temporary account expiry on refresh too
+    if (user.accountExpiresAt && new Date(user.accountExpiresAt) < new Date()) {
+      throw new HttpError(403, 'Votre compte temporaire a expir\u00e9. Contactez votre administrateur pour prolonger la dur\u00e9e de votre acc\u00e8s.');
+    }
 
     // Fetch fresh hierarchical domain permissions for the new JWT
     let domainPerms: Record<string, string[]> = {};

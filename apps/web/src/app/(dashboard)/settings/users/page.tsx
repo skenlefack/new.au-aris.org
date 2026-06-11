@@ -28,6 +28,8 @@ import {
   Briefcase,
   Lock,
   X,
+  Clock,
+  CalendarDays,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DomainBadge } from '@/components/domain/DomainBadge';
@@ -147,6 +149,8 @@ interface UserFormState {
   lastName: string;
   tenantId: string;
   isActive: boolean;
+  isTemporary: boolean;
+  accountExpiresAt: string;
   domainIds: string[];
   functionIds: string[];
   directRoleIds: string[];
@@ -160,6 +164,8 @@ const EMPTY_FORM: UserFormState = {
   lastName: '',
   tenantId: '',
   isActive: true,
+  isTemporary: false,
+  accountExpiresAt: '',
   domainIds: [],
   functionIds: [],
   directRoleIds: [],
@@ -249,6 +255,7 @@ function UserForm({
         ?.filter((ra) => ra.source === 'direct')
         .map((ra) => ra.role.id) ?? [];
 
+      const hasExpiry = !!editingUser.accountExpiresAt;
       return {
         email: editingUser.email,
         phone: editingUser.phone ?? '',
@@ -257,6 +264,8 @@ function UserForm({
         lastName: editingUser.lastName,
         tenantId: editingUser.tenantId,
         isActive: editingUser.isActive,
+        isTemporary: hasExpiry,
+        accountExpiresAt: hasExpiry ? editingUser.accountExpiresAt!.slice(0, 16) : '',
         domainIds: editingUser.domains?.map((d) => d.id) ?? [],
         functionIds,
         directRoleIds,
@@ -312,6 +321,9 @@ function UserForm({
           phone: form.phone || null,
           role: primaryRole,
           isActive: form.isActive,
+          accountExpiresAt: form.isTemporary && form.accountExpiresAt
+            ? new Date(form.accountExpiresAt).toISOString()
+            : null,
           domainIds: form.domainIds,
           functionIds: form.functionIds,
           directRoleIds: form.directRoleIds,
@@ -335,6 +347,9 @@ function UserForm({
           phone: form.phone || undefined,
           role: primaryRole,
           tenantId: form.tenantId,
+          accountExpiresAt: form.isTemporary && form.accountExpiresAt
+            ? new Date(form.accountExpiresAt).toISOString()
+            : undefined,
           domainIds: form.domainIds.length > 0 ? form.domainIds : undefined,
           functionIds: form.functionIds.length > 0 ? form.functionIds : undefined,
           directRoleIds: form.directRoleIds.length > 0 ? form.directRoleIds : undefined,
@@ -557,6 +572,58 @@ function UserForm({
                 </button>
               </div>
             )}
+
+            {/* Temporary account toggle */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-amber-500" />
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">Temporary Account</p>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {form.isTemporary
+                      ? 'Account will expire on the specified date — login will be blocked after expiry'
+                      : 'Permanent account with no expiry date'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm((p) => ({ ...p, isTemporary: !p.isTemporary, accountExpiresAt: p.isTemporary ? '' : p.accountExpiresAt }))}
+                  className={cn(
+                    'relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0',
+                    form.isTemporary ? 'bg-amber-500' : 'bg-gray-300 dark:bg-gray-600',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
+                      form.isTemporary ? 'translate-x-6' : 'translate-x-1',
+                    )}
+                  />
+                </button>
+              </div>
+
+              {form.isTemporary && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-900/10 px-4 py-3">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <CalendarDays className="inline h-3.5 w-3.5 mr-1 text-amber-600" />
+                    Access End Date
+                  </label>
+                  <input
+                    type="datetime-local"
+                    required={form.isTemporary}
+                    value={form.accountExpiresAt}
+                    onChange={(e) => setForm((p) => ({ ...p, accountExpiresAt: e.target.value }))}
+                    min={new Date().toISOString().slice(0, 16)}
+                    className="w-full rounded-lg border border-amber-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 dark:border-amber-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all"
+                  />
+                  <p className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+                    After this date, the user will be unable to log in until the date is extended by an administrator.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1412,24 +1479,43 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleActive(user)}
-                        disabled={isToggling}
-                        className={cn(
-                          'relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0',
-                          user.isActive ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600',
-                          isToggling && 'opacity-50',
-                        )}
-                        title={user.isActive ? 'Click to deactivate' : 'Click to activate'}
-                      >
-                        <span
+                      <div className="flex flex-col items-start gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleActive(user)}
+                          disabled={isToggling}
                           className={cn(
-                            'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform',
-                            user.isActive ? 'translate-x-[18px]' : 'translate-x-[3px]',
+                            'relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0',
+                            user.isActive ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600',
+                            isToggling && 'opacity-50',
                           )}
-                        />
-                      </button>
+                          title={user.isActive ? 'Click to deactivate' : 'Click to activate'}
+                        >
+                          <span
+                            className={cn(
+                              'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform',
+                              user.isActive ? 'translate-x-[18px]' : 'translate-x-[3px]',
+                            )}
+                          />
+                        </button>
+                        {user.accountExpiresAt && (() => {
+                          const isExpired = new Date(user.accountExpiresAt!) < new Date();
+                          return (
+                            <span
+                              className={cn(
+                                'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold whitespace-nowrap',
+                                isExpired
+                                  ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                  : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+                              )}
+                              title={`Expires: ${new Date(user.accountExpiresAt!).toLocaleString()}`}
+                            >
+                              <Clock className="h-2.5 w-2.5" />
+                              {isExpired ? 'Expired' : 'Temp'}
+                            </span>
+                          );
+                        })()}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">

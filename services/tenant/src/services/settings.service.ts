@@ -1697,7 +1697,7 @@ export class SettingsService {
           id: true, email: true, firstName: true, lastName: true, phone: true,
           role: true, locale: true, mfaEnabled: true, isActive: true,
           lastLoginAt: true, createdAt: true, updatedAt: true,
-          tenantId: true,
+          tenantId: true, accountExpiresAt: true,
           tenant: { select: { id: true, name: true, level: true, countryCode: true, recCode: true } },
           functions: {
             include: {
@@ -1739,7 +1739,7 @@ export class SettingsService {
         id: true, email: true, firstName: true, lastName: true, phone: true,
         role: true, locale: true, mfaEnabled: true, isActive: true,
         lastLoginAt: true, createdAt: true, updatedAt: true,
-        tenantId: true,
+        tenantId: true, accountExpiresAt: true,
         tenant: { select: { id: true, name: true, level: true, countryCode: true, recCode: true } },
         functions: {
           include: {
@@ -1794,10 +1794,14 @@ export class SettingsService {
         // Admin-created users receive a temporary password; ForcePasswordChangeModal
         // will block the UI on first login until they pick a new one.
         mustChangePassword: true,
+        // Temporary accounts: if accountExpiresAt is set, the user can only
+        // log in before that date. After expiry, login is blocked until an
+        // admin extends the date.
+        accountExpiresAt: dto.accountExpiresAt ? new Date(dto.accountExpiresAt as string) : null,
       },
       select: {
         id: true, email: true, firstName: true, lastName: true,
-        role: true, locale: true, isActive: true, tenantId: true, createdAt: true,
+        role: true, locale: true, isActive: true, tenantId: true, accountExpiresAt: true, createdAt: true,
       },
     });
 
@@ -1908,6 +1912,10 @@ export class SettingsService {
     // Hash password if provided
     if (dto.password !== undefined && typeof dto.password === 'string') {
       updateData.passwordHash = await hash(dto.password, BCRYPT_ROUNDS);
+    }
+    // Temporary account expiry: null = permanent, date string = expires at
+    if (dto.accountExpiresAt !== undefined) {
+      updateData.accountExpiresAt = dto.accountExpiresAt ? new Date(dto.accountExpiresAt as string) : null;
     }
 
     const user = await (this.prisma as any).user.update({
