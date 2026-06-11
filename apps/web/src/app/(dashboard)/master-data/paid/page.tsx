@@ -179,9 +179,9 @@ const ENTITIES: EntityDef[] = [
     category: 'PAID_PAID_ACTIVITY',
     parentFilterKey: 'subactivity', parentFilterLabel: 'Sub-Activity',
     fields: [
-      { key: 'code', label: 'Code', type: 'text', required: true, placeholder: 'e.g. 2.2.1.01.01_PA' },
       { key: 'subactivity_code', label: 'Sub-Activity', type: 'paid-select', required: true, colSpan: 2 },
-      { key: 'label', label: 'Label', type: 'text', required: true, placeholder: 'e.g. Training/sensitization' },
+      { key: 'code', label: 'Code', type: 'text', required: true, placeholder: 'e.g. 2.2.1.01.01_PA' },
+      { key: 'label', label: 'Label', type: 'text', required: true, placeholder: 'e.g. Training/sensitization', colSpan: 2 },
       { key: 'unit_of_measure', label: 'Unit of Measure', type: 'text', placeholder: 'e.g. persons, report' },
     ],
     displayLabel: (i) => `${i.code} — ${i.label || ''}`,
