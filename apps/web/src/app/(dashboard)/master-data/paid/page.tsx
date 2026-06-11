@@ -52,7 +52,7 @@ const ENTITIES: EntityDef[] = [
       ]},
       { key: 'countries', label: 'Countries', type: 'country-select', required: true },
     ],
-    displayLabel: (i) => `${i.code} \u2014 ${i.title || ''}`,
+    displayLabel: (i) => `${i.code} — ${i.title || ''}`,
     displaySub: (i) => `Type: ${i.type || '-'} | Countries: ${Array.isArray(i.countries) ? (i.countries as string[]).join(', ') : '-'}`,
   },
   {
@@ -64,7 +64,7 @@ const ENTITIES: EntityDef[] = [
       { key: 'project_code', label: 'Project Code', type: 'text', required: true, placeholder: 'e.g. ANGR' },
       { key: 'label', label: 'Label', type: 'textarea', required: true, placeholder: 'Log frame description' },
     ],
-    displayLabel: (i) => `${i.code} \u2014 ${(i.label || '').slice(0, 80)}`,
+    displayLabel: (i) => `${i.code} — ${(i.label || '').slice(0, 80)}`,
     displaySub: (i) => `Project: ${i.project_code || '-'}`,
   },
   {
@@ -76,7 +76,7 @@ const ENTITIES: EntityDef[] = [
       { key: 'logframe_code', label: 'Log Frame Code', type: 'text', required: true, placeholder: 'e.g. 2.2.1' },
       { key: 'label', label: 'Label', type: 'textarea', required: true, placeholder: 'Activity description' },
     ],
-    displayLabel: (i) => `${i.code} \u2014 ${(i.label || '').slice(0, 80)}`,
+    displayLabel: (i) => `${i.code} — ${(i.label || '').slice(0, 80)}`,
     displaySub: (i) => `Log Frame: ${i.logframe_code || '-'}`,
   },
   {
@@ -89,7 +89,7 @@ const ENTITIES: EntityDef[] = [
       { key: 'label', label: 'Label', type: 'textarea', required: true, placeholder: 'Sub-activity description' },
       { key: 'unit_of_measure', label: 'Unit of Measure', type: 'text', placeholder: 'e.g. Number of MOUs' },
     ],
-    displayLabel: (i) => `${i.code} \u2014 ${(i.label || '').slice(0, 80)}`,
+    displayLabel: (i) => `${i.code} — ${(i.label || '').slice(0, 80)}`,
     displaySub: (i) => `Activity: ${i.activity_code || '-'} | Unit: ${i.unit_of_measure || '-'}`,
   },
   {
@@ -102,7 +102,7 @@ const ENTITIES: EntityDef[] = [
       { key: 'label', label: 'Label', type: 'text', required: true, placeholder: 'e.g. Training/sensitization' },
       { key: 'unit_of_measure', label: 'Unit of Measure', type: 'text', placeholder: 'e.g. persons, report' },
     ],
-    displayLabel: (i) => `${i.code} \u2014 ${i.label || ''}`,
+    displayLabel: (i) => `${i.code} — ${i.label || ''}`,
     displaySub: (i) => `Sub-Activity: ${i.subactivity_code || '-'} | Unit: ${i.unit_of_measure || '-'}`,
   },
   {
@@ -121,7 +121,7 @@ const ENTITIES: EntityDef[] = [
       { key: 'sort_order', label: 'Sort Order', type: 'number', placeholder: '0' },
       { key: 'is_required', label: 'Required', type: 'boolean' },
     ],
-    displayLabel: (i) => `${i.field_code || ''} \u2014 ${i.field_label || ''}`,
+    displayLabel: (i) => `${i.field_code || ''} — ${i.field_label || ''}`,
     displaySub: (i) => `PAID Activity: ${i.paid_activity_code || '-'} | Type: ${i.field_type || '-'}`,
   },
   {
@@ -261,10 +261,10 @@ function CountrySelectField({ value, onChange, multiple }: {
       </div>
 
       {!multiple && (
-        <p className="mt-1 text-[10px] text-gray-400">Single country project \u2014 select one country</p>
+        <p className="mt-1 text-[10px] text-gray-400">Single country project — select one country</p>
       )}
       {multiple && (
-        <p className="mt-1 text-[10px] text-gray-400">Multiple countries project \u2014 select all implementation countries</p>
+        <p className="mt-1 text-[10px] text-gray-400">Multiple countries project — select all implementation countries</p>
       )}
     </div>
   );
@@ -566,7 +566,7 @@ export default function PaidMasterDataPage() {
           Master Data
         </Link>
         <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-          PAID Programme \u2014 Reference Data
+          PAID Programme — Reference Data
         </h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Manage LICS projects, log frames (AMERT), activities, PAID activities, breakdown fields and partners.
