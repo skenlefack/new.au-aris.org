@@ -20,7 +20,7 @@ import {
 interface FieldDef {
   key: string;
   label: string;
-  type: 'text' | 'textarea' | 'select' | 'number' | 'boolean' | 'country-select' | 'paid-select';
+  type: 'text' | 'textarea' | 'select' | 'number' | 'boolean' | 'country-select' | 'paid-select' | 'single-country';
   required?: boolean;
   options?: { value: string; label: string }[];
   placeholder?: string;
@@ -154,7 +154,7 @@ const ENTITIES: EntityDef[] = [
     parentFilterKey: 'project', parentFilterLabel: 'Project',
     fields: [
       { key: 'project_code', label: 'Project', type: 'paid-select', required: true },
-      { key: 'country_code', label: 'Country', type: 'text', placeholder: 'e.g. KE' },
+      { key: 'country_code', label: 'Country', type: 'single-country', required: true },
       { key: 'name', label: 'Name', type: 'text', required: true, placeholder: 'National partner name' },
     ],
     displayLabel: (i) => i.name || '',
@@ -430,6 +430,18 @@ function InlineForm({ entity, item, onBack }: {
                   required={f.required}
                   formValues={form}
                 />
+              ) : f.type === 'single-country' ? (
+                <select
+                  value={(form[f.key] as string) ?? ''}
+                  onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
+                  required={f.required}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                >
+                  <option value="">-- Select country --</option>
+                  {ALL_COUNTRIES_SORTED.map((c) => (
+                    <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+                  ))}
+                </select>
               ) : f.type === 'textarea' ? (
                 <textarea
                   value={(form[f.key] as string) ?? ''}
