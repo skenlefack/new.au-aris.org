@@ -20,7 +20,7 @@ import {
 interface FieldDef {
   key: string;
   label: string;
-  type: 'text' | 'textarea' | 'select' | 'number' | 'boolean' | 'country-select';
+  type: 'text' | 'textarea' | 'select' | 'number' | 'boolean' | 'country-select' | 'paid-select';
   required?: boolean;
   options?: { value: string; label: string }[];
   placeholder?: string;
@@ -60,10 +60,10 @@ const ENTITIES: EntityDef[] = [
   {
     key: 'logframes', label: 'Log Frames (AMERT)', labelFr: 'Cadres logiques', icon: '\ud83c\udfaf',
     category: 'PAID_LOGFRAME',
-    parentFilterKey: 'project', parentFilterLabel: 'Project code',
+    parentFilterKey: 'project', parentFilterLabel: 'Project',
     fields: [
       { key: 'code', label: 'Code', type: 'text', required: true, placeholder: 'e.g. 2.2.1' },
-      { key: 'project_code', label: 'Project Code', type: 'text', required: true, placeholder: 'e.g. ANGR' },
+      { key: 'project_code', label: 'Project', type: 'paid-select', required: true, placeholder: 'Select project' },
       { key: 'label', label: 'Label', type: 'textarea', required: true, placeholder: 'Log frame description' },
     ],
     displayLabel: (i) => `${i.code} — ${(i.label || '').slice(0, 80)}`,
@@ -72,10 +72,10 @@ const ENTITIES: EntityDef[] = [
   {
     key: 'lf-activities', label: 'Activities', labelFr: 'Activites', icon: '\u26a1',
     category: 'PAID_LF_ACTIVITY',
-    parentFilterKey: 'logframe', parentFilterLabel: 'Log Frame code',
+    parentFilterKey: 'logframe', parentFilterLabel: 'Log Frame',
     fields: [
       { key: 'code', label: 'Code', type: 'text', required: true, placeholder: 'e.g. 2.2.1.01' },
-      { key: 'logframe_code', label: 'Log Frame Code', type: 'text', required: true, placeholder: 'e.g. 2.2.1' },
+      { key: 'logframe_code', label: 'Log Frame', type: 'paid-select', required: true },
       { key: 'label', label: 'Label', type: 'textarea', required: true, placeholder: 'Activity description' },
     ],
     displayLabel: (i) => `${i.code} — ${(i.label || '').slice(0, 80)}`,
@@ -84,10 +84,10 @@ const ENTITIES: EntityDef[] = [
   {
     key: 'subactivities', label: 'Sub-Activities', labelFr: 'Sous-activites', icon: '\ud83d\udccc',
     category: 'PAID_SUBACTIVITY',
-    parentFilterKey: 'activity', parentFilterLabel: 'Activity code',
+    parentFilterKey: 'activity', parentFilterLabel: 'Activity',
     fields: [
       { key: 'code', label: 'Code', type: 'text', required: true, placeholder: 'e.g. 2.2.1.01.01' },
-      { key: 'activity_code', label: 'Activity Code', type: 'text', required: true, placeholder: 'e.g. 2.2.1.01' },
+      { key: 'activity_code', label: 'Activity', type: 'paid-select', required: true },
       { key: 'label', label: 'Label', type: 'textarea', required: true, placeholder: 'Sub-activity description' },
       { key: 'unit_of_measure', label: 'Unit of Measure', type: 'text', placeholder: 'e.g. Number of MOUs' },
     ],
@@ -97,10 +97,10 @@ const ENTITIES: EntityDef[] = [
   {
     key: 'paid-activities', label: 'PAID Activities', labelFr: 'Activites PAID', icon: '\ud83d\udcca',
     category: 'PAID_PAID_ACTIVITY',
-    parentFilterKey: 'subactivity', parentFilterLabel: 'Sub-Activity code',
+    parentFilterKey: 'subactivity', parentFilterLabel: 'Sub-Activity',
     fields: [
       { key: 'code', label: 'Code', type: 'text', required: true, placeholder: 'e.g. 2.2.1.01.01_PA' },
-      { key: 'subactivity_code', label: 'Sub-Activity Code', type: 'text', required: true, placeholder: 'e.g. 2.2.1.01.01' },
+      { key: 'subactivity_code', label: 'Sub-Activity', type: 'paid-select', required: true },
       { key: 'label', label: 'Label', type: 'text', required: true, placeholder: 'e.g. Training/sensitization' },
       { key: 'unit_of_measure', label: 'Unit of Measure', type: 'text', placeholder: 'e.g. persons, report' },
     ],
@@ -112,7 +112,7 @@ const ENTITIES: EntityDef[] = [
     category: 'PAID_BREAKDOWN_FIELD',
     parentFilterKey: 'paid_activity', parentFilterLabel: 'PAID Activity code',
     fields: [
-      { key: 'paid_activity_code', label: 'PAID Activity Code', type: 'text', required: true, placeholder: 'e.g. 2.2.1.01.03_PA' },
+      { key: 'paid_activity_code', label: 'PAID Activity', type: 'paid-select', required: true },
       { key: 'field_code', label: 'Field Code', type: 'text', required: true, placeholder: 'e.g. n_female_trained' },
       { key: 'field_label', label: 'Field Label', type: 'text', required: true, placeholder: 'e.g. Number of females trained' },
       { key: 'field_type', label: 'Field Type', type: 'select', required: true, options: [
@@ -129,9 +129,9 @@ const ENTITIES: EntityDef[] = [
   {
     key: 'executive-partners', label: 'Executive Partners', labelFr: 'Partenaires executifs', icon: '\ud83c\udfdb',
     category: 'PAID_EXEC_PARTNER',
-    parentFilterKey: 'project', parentFilterLabel: 'Project code',
+    parentFilterKey: 'project', parentFilterLabel: 'Project',
     fields: [
-      { key: 'project_code', label: 'Project Code', type: 'text', required: true, placeholder: 'e.g. ANGR' },
+      { key: 'project_code', label: 'Project', type: 'paid-select', required: true },
       { key: 'name', label: 'Name', type: 'text', required: true, placeholder: 'e.g. AU-IBAR' },
     ],
     displayLabel: (i) => i.name || '',
@@ -140,9 +140,9 @@ const ENTITIES: EntityDef[] = [
   {
     key: 'impl-partners-intl', label: 'Partners (International)', labelFr: 'Partenaires internationaux', icon: '\ud83c\udf0d',
     category: 'PAID_IMPL_PARTNER_INTL',
-    parentFilterKey: 'project', parentFilterLabel: 'Project code',
+    parentFilterKey: 'project', parentFilterLabel: 'Project',
     fields: [
-      { key: 'project_code', label: 'Project Code', type: 'text', required: true, placeholder: 'e.g. ANGR' },
+      { key: 'project_code', label: 'Project', type: 'paid-select', required: true },
       { key: 'name', label: 'Name', type: 'text', required: true, placeholder: 'Partner organization name' },
     ],
     displayLabel: (i) => i.name || '',
@@ -151,9 +151,9 @@ const ENTITIES: EntityDef[] = [
   {
     key: 'impl-partners-national', label: 'Partners (National)', labelFr: 'Partenaires nationaux', icon: '\ud83c\udfe0',
     category: 'PAID_IMPL_PARTNER_NATIONAL',
-    parentFilterKey: 'project', parentFilterLabel: 'Project code',
+    parentFilterKey: 'project', parentFilterLabel: 'Project',
     fields: [
-      { key: 'project_code', label: 'Project Code', type: 'text', required: true, placeholder: 'e.g. ANGR' },
+      { key: 'project_code', label: 'Project', type: 'paid-select', required: true },
       { key: 'country_code', label: 'Country Code', type: 'text', placeholder: 'e.g. KE' },
       { key: 'name', label: 'Name', type: 'text', required: true, placeholder: 'National partner name' },
     ],
@@ -272,6 +272,64 @@ function CountrySelectField({ value, onChange, multiple }: {
   );
 }
 
+// ─── PAID Entity Select (fetches from PAID API) ──────────────────────────────
+
+const PAID_FIELD_TO_CATEGORY: Record<string, PaidRefCategory> = {
+  project_code: 'PAID_PROJECT',
+  logframe_code: 'PAID_LOGFRAME',
+  activity_code: 'PAID_LF_ACTIVITY',
+  subactivity_code: 'PAID_SUBACTIVITY',
+  paid_activity_code: 'PAID_PAID_ACTIVITY',
+};
+
+function PaidEntitySelect({ fieldKey, value, onChange, required, formValues }: {
+  fieldKey: string;
+  value: string;
+  onChange: (v: string) => void;
+  required?: boolean;
+  formValues: Record<string, unknown>;
+}) {
+  const category = PAID_FIELD_TO_CATEGORY[fieldKey];
+
+  // Build parent filter based on the hierarchy
+  const filters = useMemo(() => {
+    const f: Record<string, string | undefined> = {};
+    if (fieldKey === 'logframe_code' && formValues.project_code) f.project = formValues.project_code as string;
+    if (fieldKey === 'activity_code' && formValues.logframe_code) f.logframe = formValues.logframe_code as string;
+    if (fieldKey === 'subactivity_code' && formValues.activity_code) f.activity = formValues.activity_code as string;
+    if (fieldKey === 'paid_activity_code' && formValues.subactivity_code) f.subactivity = formValues.subactivity_code as string;
+    return f;
+  }, [fieldKey, formValues]);
+
+  const { data, isLoading } = usePaidReferentials(category ?? 'PAID_PROJECT', filters);
+  const items = data?.data ?? [];
+
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      required={required}
+      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+    >
+      <option value="">{isLoading ? 'Loading...' : '-- Select --'}</option>
+      {items.map((item: PaidReferentialItem) => {
+        const label = item.title
+          ? `${item.code} — ${item.title}`
+          : item.label
+            ? `${item.code} — ${(item.label as string).slice(0, 60)}`
+            : item.name
+              ? `${item.code || ''} ${item.name}`
+              : item.code || String(item.id);
+        return (
+          <option key={item.code || item.id} value={item.code || ''}>
+            {label}
+          </option>
+        );
+      })}
+    </select>
+  );
+}
+
 // ─── Inline Form (Create / Edit) ─────────────────────────────────────────────
 
 function InlineForm({ entity, item, onBack }: {
@@ -363,6 +421,14 @@ function InlineForm({ entity, item, onBack }: {
                   value={Array.isArray(form[f.key]) ? form[f.key] as string[] : []}
                   onChange={(v) => setForm((p) => ({ ...p, [f.key]: v }))}
                   multiple={form.type === 'multiple_countries'}
+                />
+              ) : f.type === 'paid-select' ? (
+                <PaidEntitySelect
+                  fieldKey={f.key}
+                  value={(form[f.key] as string) ?? ''}
+                  onChange={(v) => setForm((p) => ({ ...p, [f.key]: v }))}
+                  required={f.required}
+                  formValues={form}
                 />
               ) : f.type === 'textarea' ? (
                 <textarea
