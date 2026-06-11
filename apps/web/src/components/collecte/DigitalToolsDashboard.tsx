@@ -153,6 +153,18 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
   const sQ = useCampaignSubmissions(campaignId, { limit: 5000 });
   const rawSubs: any[] = Array.isArray(sQ.data?.data) ? sQ.data.data : [];
   const loading = sQ.isLoading;
+  const error = sQ.error;
+
+  // Debug: log query state
+  if (typeof window !== 'undefined' && !loading) {
+    console.log('[DigitalToolsDashboard]', {
+      campaignId,
+      status: sQ.status,
+      dataKeys: sQ.data ? Object.keys(sQ.data) : 'null',
+      rawSubsLength: rawSubs.length,
+      error: error?.message,
+    });
+  }
 
   const { countriesInfo, kpis, mapData, toolsByDeveloper } = useMemo(() => {
     const byCountry = new Map<string, CountryDigitalInfo>();
@@ -210,6 +222,18 @@ export default function DigitalToolsDashboard({ campaignId }: { campaignId: stri
 
   const statusColors: Record<DigitalStatus, string> = { uses_digital: '#059669', no_digital: '#DC2626', not_surveyed: '#D1D5DB' };
   const statusLabels: Record<DigitalStatus, string> = { uses_digital: 'Utilise un outil numérique', no_digital: "Pas d'outil numérique", not_surveyed: 'Non enquêté' };
+
+  // Error state
+  if (error && rawSubs.length === 0) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 dark:border-red-800 dark:bg-red-900/20">
+        <p className="text-sm font-medium text-red-700 dark:text-red-400">Failed to load survey data</p>
+        <p className="mt-1 text-xs text-red-500">{error.message}</p>
+        <p className="mt-2 text-xs text-gray-500">Campaign: {campaignId}</p>
+        <button onClick={() => sQ.refetch()} className="mt-2 text-xs text-blue-600 underline">Retry</button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden dark:border-gray-700 dark:bg-gray-950">
