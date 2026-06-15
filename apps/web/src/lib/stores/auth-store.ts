@@ -26,6 +26,8 @@ export interface AuthUser {
   roles: string[];  // effective role codes from permission system
   tenantId: string;
   tenantLevel?: string;
+  /** GeoEntity UUIDs restricting user to specific admin divisions (admin1/admin2/...) */
+  adminDivisionIds?: string[];
   avatarUrl?: string;
   locale?: string;
   /**

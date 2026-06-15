@@ -30,6 +30,7 @@ import {
   X,
   Clock,
   CalendarDays,
+  MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DomainBadge } from '@/components/domain/DomainBadge';
@@ -51,6 +52,8 @@ import { useDomainStore } from '@/lib/stores/domain-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useTenantStore, type TenantNode } from '@/lib/stores/tenant-store';
+import { useGeoEntities, useGeoChildren } from '@/lib/api/geo-hooks';
+import { COUNTRIES } from '@/data/countries-config';
 import * as LucideIcons from 'lucide-react';
 
 /* ================================================================ */
@@ -154,6 +157,7 @@ interface UserFormState {
   domainIds: string[];
   functionIds: string[];
   directRoleIds: string[];
+  adminDivisionIds: string[];
 }
 
 const EMPTY_FORM: UserFormState = {
@@ -169,7 +173,324 @@ const EMPTY_FORM: UserFormState = {
   domainIds: [],
   functionIds: [],
   directRoleIds: [],
+  adminDivisionIds: [],
 };
+
+/* ================================================================ */
+/*  Admin Division Selector                                          */
+/* ================================================================ */
+
+function AdminDivisionSelector({
+  tenantId,
+  assignableTenants,
+  selectedIds,
+  onChange,
+}: {
+  tenantId: string;
+  assignableTenants: { id: string; name: string; code: string; level: string }[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const locale = useLocaleStore((s) => s.locale);
+  const [selectedAdmin1, setSelectedAdmin1] = useState('');
+  const [selectedAdmin2, setSelectedAdmin2] = useState('');
+  const [selectedAdmin3, setSelectedAdmin3] = useState('');
+
+  // Determine if the selected tenant is a MEMBER_STATE
+  const selectedTenant = assignableTenants.find((t) => t.id === tenantId);
+  const isMemberState = selectedTenant?.level === 'MEMBER_STATE';
+
+  // Find country code for this tenant
+  const countryCode = useMemo(() => {
+    if (!isMemberState || !tenantId) return undefined;
+    const country = Object.values(COUNTRIES).find((c) => c.tenantId === tenantId);
+    return country?.code;
+  }, [isMemberState, tenantId]);
+
+  // Fetch ADMIN1 divisions for the country
+  const { data: admin1Data } = useGeoEntities(
+    countryCode ? { level: 'ADMIN1', countryCode, limit: 200 } : undefined,
+  );
+
+  // Fetch ADMIN2 children for selected ADMIN1
+  const { data: admin2Data } = useGeoChildren(
+    selectedAdmin1 || undefined,
+    { limit: 500 },
+  );
+
+  // Fallback: fetch all ADMIN2 by country
+  const admin2Empty = selectedAdmin1 && (!admin2Data?.data || admin2Data.data.length === 0);
+  const { data: admin2ByCountry } = useGeoEntities(
+    admin2Empty && countryCode ? { level: 'ADMIN2', countryCode, limit: 500 } : undefined,
+  );
+
+  // Fetch ADMIN3 children for selected ADMIN2
+  const { data: admin3Data } = useGeoChildren(
+    selectedAdmin2 || undefined,
+    { limit: 500 },
+  );
+
+  const admin1Options = useMemo(() => {
+    if (!admin1Data?.data) return [];
+    return admin1Data.data
+      .map((e) => {
+        const n = e.name;
+        const label = typeof n === 'string' ? n : (n?.[locale] || n?.en || n?.fr || e.code);
+        return { value: e.id, label };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [admin1Data, locale]);
+
+  const admin2Options = useMemo(() => {
+    const items = (admin2Data?.data && admin2Data.data.length > 0) ? admin2Data.data : (admin2ByCountry?.data ?? []);
+    if (items.length === 0) return [];
+    return items
+      .map((e) => {
+        const n = e.name;
+        const label = typeof n === 'string' ? n : (n?.[locale] || n?.en || n?.fr || e.code);
+        return { value: e.id, label };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [admin2Data, admin2ByCountry, locale]);
+
+  const admin3Options = useMemo(() => {
+    if (!admin3Data?.data || admin3Data.data.length === 0) return [];
+    return admin3Data.data
+      .map((e) => {
+        const n = e.name;
+        const label = typeof n === 'string' ? n : (n?.[locale] || n?.en || n?.fr || e.code);
+        return { value: e.id, label };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [admin3Data, locale]);
+
+  // Toggle an admin division in the selected list
+  const toggleDivision = useCallback((id: string) => {
+    if (selectedIds.includes(id)) {
+      onChange(selectedIds.filter((x) => x !== id));
+    } else {
+      onChange([...selectedIds, id]);
+    }
+  }, [selectedIds, onChange]);
+
+  // Add all items of a level
+  const addAll = useCallback((options: { value: string }[]) => {
+    const newIds = new Set(selectedIds);
+    for (const opt of options) newIds.add(opt.value);
+    onChange(Array.from(newIds));
+  }, [selectedIds, onChange]);
+
+  // Remove all items of a level
+  const removeAll = useCallback((options: { value: string }[]) => {
+    const toRemove = new Set(options.map((o) => o.value));
+    onChange(selectedIds.filter((id) => !toRemove.has(id)));
+  }, [selectedIds, onChange]);
+
+  // Reset selections when tenant changes
+  React.useEffect(() => {
+    setSelectedAdmin1('');
+    setSelectedAdmin2('');
+    setSelectedAdmin3('');
+  }, [tenantId]);
+
+  if (!isMemberState || !countryCode) return null;
+
+  const inputClass =
+    'w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all';
+
+  const levelLabels = locale === 'fr'
+    ? { admin1: 'Région / Province', admin2: 'District / Département', admin3: 'Sous-district / Commune' }
+    : { admin1: 'Region / Province', admin2: 'District / Department', admin3: 'Sub-district / Commune' };
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 overflow-hidden">
+      <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-gray-400" />
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+            {locale === 'fr' ? 'Zone de collecte / validation' : 'Collection / Validation Zone'}
+          </h2>
+        </div>
+        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+          {locale === 'fr'
+            ? 'Restreindre cet utilisateur à des divisions administratives spécifiques. Laisser vide pour accès au pays entier.'
+            : 'Restrict this user to specific administrative divisions. Leave empty for full country access.'}
+          {selectedIds.length > 0 && (
+            <span className="ml-1 font-medium text-blue-600 dark:text-blue-400">
+              {selectedIds.length} {locale === 'fr' ? 'sélectionnée(s)' : 'selected'}
+            </span>
+          )}
+        </p>
+      </div>
+      <div className="px-6 py-5 space-y-4">
+        {/* Navigation dropdowns */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Admin1 */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">{levelLabels.admin1}</label>
+            <select
+              value={selectedAdmin1}
+              onChange={(e) => { setSelectedAdmin1(e.target.value); setSelectedAdmin2(''); setSelectedAdmin3(''); }}
+              className={inputClass}
+            >
+              <option value="">{locale === 'fr' ? 'Sélectionner...' : 'Select...'}</option>
+              {admin1Options.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Admin2 */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">{levelLabels.admin2}</label>
+            <select
+              value={selectedAdmin2}
+              onChange={(e) => { setSelectedAdmin2(e.target.value); setSelectedAdmin3(''); }}
+              disabled={!selectedAdmin1}
+              className={cn(inputClass, !selectedAdmin1 && 'opacity-50 cursor-not-allowed')}
+            >
+              <option value="">{!selectedAdmin1 ? (locale === 'fr' ? 'Sélectionnez le parent...' : 'Select parent first...') : (locale === 'fr' ? 'Sélectionner...' : 'Select...')}</option>
+              {admin2Options.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Admin3 */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">{levelLabels.admin3}</label>
+            <select
+              value={selectedAdmin3}
+              onChange={(e) => setSelectedAdmin3(e.target.value)}
+              disabled={!selectedAdmin2 || admin3Options.length === 0}
+              className={cn(inputClass, (!selectedAdmin2 || admin3Options.length === 0) && 'opacity-50 cursor-not-allowed')}
+            >
+              <option value="">{!selectedAdmin2 ? (locale === 'fr' ? 'Sélectionnez le parent...' : 'Select parent first...') : (locale === 'fr' ? 'Sélectionner...' : 'Select...')}</option>
+              {admin3Options.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Add buttons — add the currently navigated level */}
+        <div className="flex flex-wrap gap-2">
+          {selectedAdmin1 && (
+            <button
+              type="button"
+              onClick={() => toggleDivision(selectedAdmin1)}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                selectedIds.includes(selectedAdmin1)
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                  : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800',
+              )}
+            >
+              {selectedIds.includes(selectedAdmin1) ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              {admin1Options.find((o) => o.value === selectedAdmin1)?.label} ({levelLabels.admin1})
+            </button>
+          )}
+          {selectedAdmin2 && (
+            <button
+              type="button"
+              onClick={() => toggleDivision(selectedAdmin2)}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                selectedIds.includes(selectedAdmin2)
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                  : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800',
+              )}
+            >
+              {selectedIds.includes(selectedAdmin2) ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              {admin2Options.find((o) => o.value === selectedAdmin2)?.label} ({levelLabels.admin2})
+            </button>
+          )}
+          {selectedAdmin3 && (
+            <button
+              type="button"
+              onClick={() => toggleDivision(selectedAdmin3)}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                selectedIds.includes(selectedAdmin3)
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                  : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800',
+              )}
+            >
+              {selectedIds.includes(selectedAdmin3) ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              {admin3Options.find((o) => o.value === selectedAdmin3)?.label} ({levelLabels.admin3})
+            </button>
+          )}
+
+          {/* Bulk add: all admin1 / all admin2 under selected admin1 */}
+          {admin1Options.length > 0 && !selectedAdmin1 && (
+            <button
+              type="button"
+              onClick={() => addAll(admin1Options)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-400 hover:bg-blue-100 transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {locale === 'fr' ? `Ajouter toutes les régions` : `Add all regions`}
+            </button>
+          )}
+          {selectedAdmin1 && admin2Options.length > 0 && (
+            <button
+              type="button"
+              onClick={() => addAll(admin2Options)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-400 hover:bg-blue-100 transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {locale === 'fr' ? `Ajouter tous les districts` : `Add all districts`}
+            </button>
+          )}
+        </div>
+
+        {/* Selected divisions chips */}
+        {selectedIds.length > 0 && (
+          <div className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                {locale === 'fr' ? 'Zones assignées' : 'Assigned zones'} ({selectedIds.length})
+              </p>
+              <button
+                type="button"
+                onClick={() => onChange([])}
+                className="text-[11px] font-medium text-red-500 hover:text-red-700 transition-colors"
+              >
+                {locale === 'fr' ? 'Tout retirer' : 'Remove all'}
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {selectedIds.map((id) => {
+                // Find the label from available options
+                const a1 = admin1Options.find((o) => o.value === id);
+                const a2 = admin2Options.find((o) => o.value === id);
+                const a3 = admin3Options.find((o) => o.value === id);
+                const label = a1?.label || a2?.label || a3?.label || id.slice(0, 8) + '...';
+                const levelTag = a1 ? 'A1' : a2 ? 'A2' : a3 ? 'A3' : '?';
+                return (
+                  <span
+                    key={id}
+                    className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 pl-2.5 pr-1 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400"
+                  >
+                    <span className="rounded-full bg-emerald-200 dark:bg-emerald-800 px-1 py-0 text-[9px] font-bold">{levelTag}</span>
+                    {label}
+                    <button
+                      type="button"
+                      onClick={() => toggleDivision(id)}
+                      className="ml-0.5 rounded-full p-0.5 hover:bg-emerald-200 dark:hover:bg-emerald-800 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /* ================================================================ */
 /*  User Form (inline page, not modal)                               */
@@ -269,6 +590,7 @@ function UserForm({
         domainIds: editingUser.domains?.map((d) => d.id) ?? [],
         functionIds,
         directRoleIds,
+        adminDivisionIds: (editingUser as any).adminDivisionIds ?? [],
       };
     }
     return { ...EMPTY_FORM, tenantId: currentUser?.tenantId ?? '' };
@@ -327,6 +649,7 @@ function UserForm({
           domainIds: form.domainIds,
           functionIds: form.functionIds,
           directRoleIds: form.directRoleIds,
+          adminDivisionIds: form.adminDivisionIds,
         };
         if (form.email !== editingUser.email) body.email = form.email;
         if (form.password) body.password = form.password;
@@ -353,6 +676,7 @@ function UserForm({
           domainIds: form.domainIds.length > 0 ? form.domainIds : undefined,
           functionIds: form.functionIds.length > 0 ? form.functionIds : undefined,
           directRoleIds: form.directRoleIds.length > 0 ? form.directRoleIds : undefined,
+          adminDivisionIds: form.adminDivisionIds.length > 0 ? form.adminDivisionIds : undefined,
         });
         toast.success('User created', {
           description: `${fullName} (${form.email}) has been created successfully.`,
@@ -768,6 +1092,14 @@ function UserForm({
             </div>
           </div>
         )}
+
+        {/* ---- Section: Admin Division (collection/validation zone) ---- */}
+        <AdminDivisionSelector
+          tenantId={form.tenantId}
+          assignableTenants={assignableTenants}
+          selectedIds={form.adminDivisionIds}
+          onChange={(ids) => setForm((p) => ({ ...p, adminDivisionIds: ids }))}
+        />
 
         {/* ---- Section: Functions ---- */}
         <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 overflow-hidden">

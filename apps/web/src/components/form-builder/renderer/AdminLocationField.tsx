@@ -101,11 +101,17 @@ export function AdminLocationField({
 
     if (!user) return { allowedCodes: null, isCountryLocked: false };
 
-    if (user.tenantLevel === 'MEMBER_STATE') {
-      // 1. Try matching tenantId in COUNTRIES config (pilot countries)
+    // Infer effective level from tenantLevel or fall back to role-based inference
+    const effectiveLevel = user.tenantLevel
+      || (['SUPER_ADMIN', 'CONTINENTAL_ADMIN'].includes(user.role) ? 'CONTINENTAL' : undefined)
+      || (['REC_ADMIN'].includes(user.role) ? 'REC' : undefined)
+      || 'MEMBER_STATE';
+
+    if (effectiveLevel === 'MEMBER_STATE') {
+      // Match tenantId in COUNTRIES config (all 55 countries have tenantId)
       const byTenant = Object.values(COUNTRIES).find((c) => c.tenantId === user.tenantId);
       if (byTenant) return { allowedCodes: [byTenant.code], isCountryLocked: true };
-      // 2. Fallback: extract country code from email domain (admin@cm.au-aris.org → CM)
+      // Fallback: extract country code from email domain (admin@cm.au-aris.org → CM)
       const emailDomain = user.email.split('@')[1] ?? '';
       const prefix = emailDomain.split('.')[0]?.toUpperCase();
       if (prefix && COUNTRIES[prefix]) {
@@ -113,7 +119,7 @@ export function AdminLocationField({
       }
     }
 
-    if (user.tenantLevel === 'REC') {
+    if (effectiveLevel === 'REC') {
       // Find this REC's member countries
       const rec = Object.values(RECS).find((r) => r.tenantId === user.tenantId);
       if (rec) return { allowedCodes: rec.countryCodes, isCountryLocked: false };

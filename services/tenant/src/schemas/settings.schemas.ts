@@ -285,6 +285,7 @@ export const UserCreateBodySchema = Type.Object({
   functionIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
   directRoleIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
   domainIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
+  adminDivisionIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
 });
 export type UserCreateBodyInput = Static<typeof UserCreateBodySchema>;
 
@@ -309,6 +310,7 @@ export const UserUpdateBodySchema = Type.Object({
   functionIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
   directRoleIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
   domainIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
+  adminDivisionIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
 });
 export type UserUpdateBodyInput = Static<typeof UserUpdateBodySchema>;
 

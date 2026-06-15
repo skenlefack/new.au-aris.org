@@ -278,7 +278,7 @@ export class AuthService {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresIn: 900,
-        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, roles: effectiveRoles, tenantId: user.tenantId, tenantLevel: user.tenant.level, domains: userDomainsResult.data, mustChangePassword: user.mustChangePassword ?? false },
+        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, roles: effectiveRoles, tenantId: user.tenantId, tenantLevel: user.tenant.level, domains: userDomainsResult.data, adminDivisionIds: user.adminDivisionIds ?? [], mustChangePassword: user.mustChangePassword ?? false },
         permissions,
       },
     };

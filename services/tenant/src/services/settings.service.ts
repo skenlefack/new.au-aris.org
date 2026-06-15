@@ -1697,7 +1697,7 @@ export class SettingsService {
           id: true, email: true, firstName: true, lastName: true, phone: true,
           role: true, locale: true, mfaEnabled: true, isActive: true,
           lastLoginAt: true, createdAt: true, updatedAt: true,
-          tenantId: true, accountExpiresAt: true,
+          tenantId: true, accountExpiresAt: true, adminDivisionIds: true,
           tenant: { select: { id: true, name: true, level: true, countryCode: true, recCode: true } },
           functions: {
             include: {
@@ -1739,7 +1739,7 @@ export class SettingsService {
         id: true, email: true, firstName: true, lastName: true, phone: true,
         role: true, locale: true, mfaEnabled: true, isActive: true,
         lastLoginAt: true, createdAt: true, updatedAt: true,
-        tenantId: true, accountExpiresAt: true,
+        tenantId: true, accountExpiresAt: true, adminDivisionIds: true,
         tenant: { select: { id: true, name: true, level: true, countryCode: true, recCode: true } },
         functions: {
           include: {
@@ -1798,10 +1798,12 @@ export class SettingsService {
         // log in before that date. After expiry, login is blocked until an
         // admin extends the date.
         accountExpiresAt: dto.accountExpiresAt ? new Date(dto.accountExpiresAt as string) : null,
+        // Admin division restriction: GeoEntity UUIDs (admin1/admin2/...) this user can collect/validate in
+        adminDivisionIds: (dto.adminDivisionIds as string[]) ?? [],
       },
       select: {
         id: true, email: true, firstName: true, lastName: true,
-        role: true, locale: true, isActive: true, tenantId: true, accountExpiresAt: true, createdAt: true,
+        role: true, locale: true, isActive: true, tenantId: true, accountExpiresAt: true, adminDivisionIds: true, createdAt: true,
       },
     });
 
@@ -1916,6 +1918,10 @@ export class SettingsService {
     // Temporary account expiry: null = permanent, date string = expires at
     if (dto.accountExpiresAt !== undefined) {
       updateData.accountExpiresAt = dto.accountExpiresAt ? new Date(dto.accountExpiresAt as string) : null;
+    }
+    // Admin division restriction
+    if (dto.adminDivisionIds !== undefined) {
+      updateData.adminDivisionIds = dto.adminDivisionIds as string[];
     }
 
     const user = await (this.prisma as any).user.update({
