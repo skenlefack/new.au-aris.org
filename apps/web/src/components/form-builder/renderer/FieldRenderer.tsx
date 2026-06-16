@@ -1,6 +1,6 @@
 'use client';
 
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import type { FormField, MultilingualText, SelectOption, FieldCondition } from '../utils/form-schema';
@@ -90,6 +90,19 @@ export function FieldRenderer({ field, value, onChange, onAutoFill, error, formV
   const label = ml(field.label);
   const placeholder = ml(field.placeholder);
   const helpText = ml(field.helpText);
+
+  // Build parentFilter: merge explicit parentFilter with cascadeSource/cascadeParam from Properties Panel
+  const effectiveParentFilter = useMemo(() => {
+    const explicit = field.properties.parentFilter as Record<string, string> | undefined;
+    if (explicit) return explicit;
+    const cascadeSource = field.properties.cascadeSource as string | undefined;
+    const cascadeParam = field.properties.cascadeParam as string | undefined;
+    if (cascadeSource && cascadeParam) {
+      // cascadeSource = field code of the parent field; build $reference for resolveParentFilter
+      return { [cascadeParam]: `$${cascadeSource}` };
+    }
+    return undefined;
+  }, [field.properties.parentFilter, field.properties.cascadeSource, field.properties.cascadeParam]);
 
   // Layout fields
   if (field.type === 'heading') {
@@ -258,7 +271,7 @@ export function FieldRenderer({ field, value, onChange, onAutoFill, error, formV
             } : undefined}
             placeholder={placeholder}
             parentFilter={resolveParentFilter(
-              field.properties.parentFilter as Record<string, string> | undefined,
+              effectiveParentFilter,
               formValues,
             )}
             className={inputClass}
@@ -274,7 +287,7 @@ export function FieldRenderer({ field, value, onChange, onAutoFill, error, formV
             onChange={(v) => onChange(v)}
             paidActivityCode={
               resolveParentFilter(
-                field.properties.parentFilter as Record<string, string> | undefined,
+                effectiveParentFilter,
                 formValues,
               )?.paid_activity
             }

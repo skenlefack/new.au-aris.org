@@ -527,7 +527,7 @@ function FieldProperties({ field }: { field: FormField }) {
                   >
                     <option value="">{t('fbNoneIndependent')}</option>
                     {allFields.map((f) => (
-                      <option key={f.id} value={f.id}>{f.label.en || f.code || f.id}</option>
+                      <option key={f.id} value={f.code || f.id}>{f.label.en || f.code || f.id}</option>
                     ))}
                   </select>
                 </div>
