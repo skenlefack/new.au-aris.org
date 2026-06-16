@@ -3,6 +3,7 @@ import { REC_SEEDS, COUNTRY_SEEDS, ADMIN1_SEEDS } from './geo-seed-data';
 import { ADMIN1_EXTENDED_SEEDS } from './geo-admin1-seed-data';
 import { ADMIN1_MZ_SEEDS } from './geo-admin1-mz-seed-data';
 import { ADMIN2_SEEDS } from './geo-admin2-seed-data';
+import { LUSOPHONE_ADMIN1_SEEDS, LUSOPHONE_ADMIN2_SEEDS } from './geo-lusophone-seed-data';
 import { SPECIES_SEEDS } from './species-seed-data';
 import { DISEASE_SEEDS } from './disease-seed-data';
 import { UNIT_SEEDS } from './unit-seed-data';
@@ -18,6 +19,8 @@ async function seedGeoEntity(entity: {
   name: string;
   nameEn: string;
   nameFr: string;
+  namePt?: string;
+  nameAr?: string;
   level: string;
   parentCode?: string;
   countryCode: string;
@@ -34,20 +37,33 @@ async function seedGeoEntity(entity: {
     parentId = parent?.id ?? null;
   }
 
+  const data = {
+    code: entity.code,
+    name: entity.name,
+    nameEn: entity.nameEn,
+    nameFr: entity.nameFr,
+    namePt: entity.namePt ?? '',
+    nameAr: entity.nameAr ?? '',
+    level,
+    parentId,
+    countryCode: entity.countryCode,
+    centroidLat: entity.centroidLat ?? null,
+    centroidLng: entity.centroidLng ?? null,
+  };
+
   await prisma.geoEntity.upsert({
     where: { code: entity.code },
-    update: {},
-    create: {
-      code: entity.code,
-      name: entity.name,
-      nameEn: entity.nameEn,
-      nameFr: entity.nameFr,
-      level,
-      parentId,
-      countryCode: entity.countryCode,
-      centroidLat: entity.centroidLat ?? null,
-      centroidLng: entity.centroidLng ?? null,
+    update: {
+      name: data.name,
+      nameEn: data.nameEn,
+      nameFr: data.nameFr,
+      namePt: data.namePt,
+      nameAr: data.nameAr,
+      centroidLat: data.centroidLat,
+      centroidLng: data.centroidLng,
+      parentId: data.parentId,
     },
+    create: data,
   });
 }
 
@@ -93,9 +109,21 @@ async function main(): Promise<void> {
   }
   console.log(`  ✓ ${ADMIN2_SEEDS.length} Admin-2 (5 pilot countries)`);
 
+  // Admin Level 1 — 5 lusophone countries (with PT/AR translations)
+  for (const admin1 of LUSOPHONE_ADMIN1_SEEDS) {
+    await seedGeoEntity(admin1, true);
+  }
+  console.log(`  ✓ ${LUSOPHONE_ADMIN1_SEEDS.length} Admin-1 (5 lusophone countries)`);
+
+  // Admin Level 2 — 5 lusophone countries (with PT/AR translations)
+  for (const admin2 of LUSOPHONE_ADMIN2_SEEDS) {
+    await seedGeoEntity(admin2, true);
+  }
+  console.log(`  ✓ ${LUSOPHONE_ADMIN2_SEEDS.length} Admin-2 (5 lusophone countries)`);
+
   const totalGeo = REC_SEEDS.length + COUNTRY_SEEDS.length +
     ADMIN1_SEEDS.length + ADMIN1_EXTENDED_SEEDS.length + ADMIN1_MZ_SEEDS.length +
-    ADMIN2_SEEDS.length;
+    ADMIN2_SEEDS.length + LUSOPHONE_ADMIN1_SEEDS.length + LUSOPHONE_ADMIN2_SEEDS.length;
   console.log(`  Total geo entities: ${totalGeo}`);
 
   // ── 2. Species ──
