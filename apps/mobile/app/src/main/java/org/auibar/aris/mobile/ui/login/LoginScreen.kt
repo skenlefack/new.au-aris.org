@@ -131,33 +131,34 @@ fun LoginScreen(
                     .padding(horizontal = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // Offline banner
-                if (!isOnline) {
-                    Box(
+                // Connection status badge (soft, modern)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFFFF3E0)),
-                        contentAlignment = Alignment.Center,
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color.White.copy(alpha = 0.15f))
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Icon(
-                                Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = Color(0xFFE65100),
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Text(
-                                text = stringResource(R.string.offline_no_connection),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFFE65100),
-                            )
-                        }
+                        // Pulsing dot
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(if (isOnline) Color(0xFF4CAF50) else Color(0xFFFF9800)),
+                        )
+                        Text(
+                            text = if (isOnline) "Online" else stringResource(R.string.sync_status_offline),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontWeight = FontWeight.Medium,
+                        )
                     }
                 }
 

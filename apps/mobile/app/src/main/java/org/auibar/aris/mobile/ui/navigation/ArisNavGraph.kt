@@ -55,6 +55,7 @@ import org.auibar.aris.mobile.ui.settings.SettingsScreen
 import org.auibar.aris.mobile.ui.message.ComposeMessageScreen
 import org.auibar.aris.mobile.ui.message.MessageListScreen
 import org.auibar.aris.mobile.ui.message.MessageThreadScreen
+import org.auibar.aris.mobile.ui.components.SyncStatusBar
 import org.auibar.aris.mobile.ui.components.UserTopBanner
 import org.auibar.aris.mobile.ui.domain.DomainDashboardScreen
 import org.auibar.aris.mobile.ui.paid.PaidDashboardScreen
@@ -232,6 +233,8 @@ fun ArisNavGraph(
     val bannerViewModel: AppBannerViewModel = hiltViewModel()
     val notifViewModel: NotificationListViewModel = hiltViewModel()
     val bannerUnreadCount by notifViewModel.unreadCount.collectAsStateWithLifecycle()
+    val pendingCount by bannerViewModel.pendingCount.collectAsStateWithLifecycle()
+    val isSyncing by bannerViewModel.isSyncing.collectAsStateWithLifecycle()
 
     Scaffold(
         bottomBar = {
@@ -272,6 +275,16 @@ fun ArisNavGraph(
                             popUpTo(0) { inclusive = true }
                         }
                     },
+                )
+            }
+            // ── Sync Status Bar (visible on all authenticated screens) ──
+            if (showBanner && bannerViewModel.isLoggedIn) {
+                SyncStatusBar(
+                    isOffline = !isOnline,
+                    pendingCount = pendingCount,
+                    lastSyncTime = bannerViewModel.lastSyncTime,
+                    isSyncing = isSyncing,
+                    onSyncNow = { bannerViewModel.triggerSync() },
                 )
             }
             NavHost(
