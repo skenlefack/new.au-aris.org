@@ -26,6 +26,9 @@ interface DashboardDao {
     @Query("SELECT * FROM dashboards WHERE id = :id")
     suspend fun getById(id: String): DashboardEntity?
 
+    @Query("SELECT * FROM dashboards WHERE campaignId = :campaignId ORDER BY titleEn")
+    fun observeByCampaignId(campaignId: String): Flow<List<DashboardEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(dashboards: List<DashboardEntity>)
 

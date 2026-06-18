@@ -118,8 +118,8 @@ class TokenManager @Inject constructor(
 
     /** Server environment: PRODUCTION or STAGING */
     var serverEnvironment: String
-        get() = prefs.getString(KEY_SERVER_ENV, ServerEnvironment.PRODUCTION.name)
-            ?: ServerEnvironment.PRODUCTION.name
+        get() = prefs.getString(KEY_SERVER_ENV, ServerEnvironment.STAGING.name)
+            ?: ServerEnvironment.STAGING.name
         set(value) = prefs.edit().putString(KEY_SERVER_ENV, value).apply()
 
     val isLoggedIn: Boolean
@@ -164,6 +164,6 @@ enum class ServerEnvironment(val label: String, val baseUrl: String) {
 
     companion object {
         fun fromName(name: String): ServerEnvironment =
-            entries.find { it.name == name } ?: PRODUCTION
+            entries.find { it.name == name } ?: STAGING
     }
 }

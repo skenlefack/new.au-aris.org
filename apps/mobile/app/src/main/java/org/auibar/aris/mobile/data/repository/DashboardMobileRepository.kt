@@ -19,6 +19,9 @@ class DashboardMobileRepository @Inject constructor(
     fun observeByScope(scope: String): Flow<List<DashboardEntity>> =
         dashboardDao.observeByScope(scope)
 
+    fun observeByCampaignId(campaignId: String): Flow<List<DashboardEntity>> =
+        dashboardDao.observeByCampaignId(campaignId)
+
     fun observeById(id: String): Flow<DashboardEntity?> = dashboardDao.observeById(id)
 
     fun observeWidgets(dashboardId: String): Flow<List<DashboardWidgetEntity>> =
@@ -44,6 +47,7 @@ class DashboardMobileRepository @Inject constructor(
                     rowHeight = dto.rowHeight,
                     ownerUserId = dto.ownerUserId,
                     isDefault = dto.isDefault,
+                    campaignId = dto.campaignId,
                     syncedAt = now,
                 )
             }
@@ -51,6 +55,38 @@ class DashboardMobileRepository @Inject constructor(
             Result.success(Unit)
         } catch (e: Exception) {
             Timber.e(e, "Failed to refresh dashboards")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun refreshDashboardsForCampaign(campaignId: String): Result<Unit> {
+        return try {
+            val response = dashboardApi.listAccessible(campaignId = campaignId)
+            val now = System.currentTimeMillis()
+            val entities = response.data.map { dto ->
+                DashboardEntity(
+                    id = dto.id,
+                    ownership = dto.ownership,
+                    scope = dto.scope,
+                    domainCode = dto.domainCode,
+                    subDomainCode = dto.subDomainCode,
+                    titleFr = dto.titleFr,
+                    titleEn = dto.titleEn,
+                    titleAr = dto.titleAr,
+                    titlePt = dto.titlePt,
+                    description = dto.description,
+                    gridColumns = dto.gridColumns,
+                    rowHeight = dto.rowHeight,
+                    ownerUserId = dto.ownerUserId,
+                    isDefault = dto.isDefault,
+                    campaignId = dto.campaignId,
+                    syncedAt = now,
+                )
+            }
+            dashboardDao.upsertAll(entities)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to refresh dashboards for campaign $campaignId")
             Result.failure(e)
         }
     }

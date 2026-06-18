@@ -31,6 +31,7 @@ import org.auibar.aris.mobile.data.local.dao.SubmissionDao
 import org.auibar.aris.mobile.data.local.dao.UserDashboardPreferenceDao
 import org.auibar.aris.mobile.data.local.migrations.MIGRATION_9_10
 import org.auibar.aris.mobile.data.local.migrations.MIGRATION_10_11
+import org.auibar.aris.mobile.data.local.migrations.MIGRATION_11_12
 import javax.inject.Singleton
 
 @Module
@@ -45,7 +46,7 @@ object DatabaseModule {
             ArisDatabase::class.java,
             "aris_database",
         )
-            .addMigrations(MIGRATION_9_10, MIGRATION_10_11)
+            .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
             .fallbackToDestructiveMigration()
             .build()
     }

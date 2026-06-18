@@ -173,6 +173,7 @@
 
     <!-- Connectivity -->
     <string name="offline_banner">Voc\u00ea est\u00e1 offline. Os dados ser\u00e3o sincronizados quando conectado.</string>
+    <string name="offline_no_connection">Sem conex\u00e3o com a internet</string>
 
     <!-- Livestock -->
     <string name="livestock_census">Censo Pecu\u00e1rio</string>
@@ -613,4 +614,63 @@
     <string name="sync_status_offline">Offline</string>
     <string name="sync_status_pending">%d pendente(s)</string>
     <string name="sync_status_syncing">Sincronizando\u2026</string>
+
+    <!-- Hardcoded strings externalized -->
+    <string name="analytics_dashboard">Painel anal\u00edtico</string>
+    <string name="kpi_title">Indicadores-chave de desempenho</string>
+    <string name="beneficiaries_by_country">Benefici\u00e1rios por pa\u00eds</string>
+    <string name="submissions_over_time">Submiss\u00f5es ao longo do tempo</string>
+    <string name="period_monthly">Mensal</string>
+    <string name="period_weekly">Semanal</string>
+    <string name="error_occurred">Ocorreu um erro</string>
+    <string name="no_dashboard_configured">Nenhum painel configurado</string>
+    <string name="browse_dashboards">Explorar pain\u00e9is</string>
+    <string name="loading_dashboard">Carregando painel\u2026</string>
+    <string name="sub_domains">Subdom\u00ednios</string>
+    <string name="tab_active">Ativo</string>
+    <string name="tab_planned">Planeado</string>
+    <string name="tab_completed">Conclu\u00eddo</string>
+    <string name="tab_archived">Arquivado</string>
+    <string name="no_status_campaigns">Nenhuma campanha %s</string>
+    <string name="target_label">meta</string>
+    <string name="previous_value">Anterior: %s</string>
+    <string name="widget_image">Imagem</string>
+    <string name="no_image">Sem imagem</string>
+    <string name="widget_map">Mapa de \u00c1frica</string>
+    <string name="widget_embedded">Conte\u00fado BI incorporado</string>
+    <string name="widget_type">Widget: %s</string>
+    <string name="record_submitted_sync">%s submetido para sincroniza\u00e7\u00e3o</string>
+    <string name="record_draft_saved">Rascunho %s salvo</string>
+    <string name="gps_capturing">Capturando\u2026</string>
+    <string name="additional_observations">Observa\u00e7\u00f5es adicionais\u2026</string>
+    <string name="example_park">ex. Parque Nacional do Serengeti</string>
+    <string name="email_password_required">Email e senha s\u00e3o obrigat\u00f3rios</string>
+    <string name="account_expired_default">Sua conta tempor\u00e1ria expirou. Contacte o administrador.</string>
+    <string name="failed_load_form">Falha ao carregar formul\u00e1rio</string>
+    <string name="no_form_fields">Nenhum campo de formul\u00e1rio dispon\u00edvel</string>
+    <string name="close_preview">Fechar pr\u00e9-visualiza\u00e7\u00e3o</string>
+    <string name="preview_label">Pr\u00e9-visualiza\u00e7\u00e3o</string>
+    <string name="preview_mode_msg">Modo de pr\u00e9-visualiza\u00e7\u00e3o \u2014 submiss\u00f5es desativadas para esta campanha.</string>
+    <string name="form_label">Formul\u00e1rio</string>
+
+    <!-- Domain Dashboard Redesign -->
+    <string name="domain_total_submissions">Total de submiss\u00f5es</string>
+    <string name="domain_active_countries">Pa\u00edses ativos</string>
+    <string name="domain_active_campaigns">Campanhas ativas</string>
+    <string name="domain_completion_rate">Taxa de conclus\u00e3o</string>
+    <string name="domain_quality_score">Qualidade dos dados</string>
+    <string name="domain_trend">Tend\u00eancia</string>
+    <string name="domain_trend_delta">%s%% em rela\u00e7\u00e3o ao m\u00eas anterior</string>
+    <string name="domain_countries_suffix"> / 55</string>
+    <string name="domain_synthesis">S\u00edntese visual</string>
+    <string name="domain_country_coverage">Cobertura por pa\u00eds</string>
+    <string name="domain_monthly_trend">Tend\u00eancia mensal</string>
+    <string name="domain_subdomain_breakdown">Por subdom\u00ednio</string>
+    <string name="domain_recent_activity">Atividade recente</string>
+    <string name="domain_activity_submission">Nova submiss\u00e3o</string>
+    <string name="domain_activity_validation">Dados validados</string>
+    <string name="domain_activity_campaign">Campanha iniciada</string>
+    <string name="domain_no_activity">Nenhuma atividade recente</string>
+    <string name="domain_view_all">Ver tudo</string>
+    <string name="domain_data_submissions">submiss\u00f5es</string>
 </resources>

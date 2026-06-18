@@ -11,6 +11,7 @@ import androidx.room.PrimaryKey
         Index("scope"),
         Index("domainCode"),
         Index("ownerUserId"),
+        Index("campaignId"),
     ],
 )
 data class DashboardEntity(
@@ -22,6 +23,7 @@ data class DashboardEntity(
     val valueChainCode: String? = null,
     val recCode: String? = null,
     val countryCode: String? = null,
+    val campaignId: String? = null,
     val titleFr: String,
     val titleEn: String,
     val titleAr: String? = null,

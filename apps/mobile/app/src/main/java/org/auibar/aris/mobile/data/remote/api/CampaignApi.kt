@@ -251,6 +251,28 @@ class CampaignApi @Inject constructor(
         }
     }
 
+    /**
+     * Fetch effective form (base + extension fields) for a campaign + tenant.
+     * Falls back to null if no extension exists or API fails.
+     */
+    suspend fun getEffectiveForm(campaignId: String, baseFormId: String, tenantId: String): FormTemplateDto? {
+        if (campaignId.isBlank() || baseFormId.isBlank() || tenantId.isBlank()) return null
+        return try {
+            val response = client.get("/api/v1/form-builder/campaigns/$campaignId/forms/$baseFormId/effective") {
+                parameter("tenantId", tenantId)
+            }
+            if (response.status.value !in 200..299) {
+                Log.d(TAG, "getEffectiveForm → HTTP ${response.status.value} (no extension)")
+                return null
+            }
+            val body: SafeApiResponse<RawFormTemplateDto> = response.body()
+            body.data?.toFormTemplateDto()
+        } catch (e: Exception) {
+            Log.d(TAG, "getEffectiveForm failed (fallback to base): ${e.message}")
+            null
+        }
+    }
+
     suspend fun getFormTemplateInfo(templateId: String): TemplateInfoDto? {
         if (templateId.isBlank()) return null
         return try {

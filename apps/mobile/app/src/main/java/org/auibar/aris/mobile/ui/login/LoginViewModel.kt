@@ -4,12 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.data.remote.websocket.WebSocketManager
 import org.auibar.aris.mobile.data.repository.AuthRepository
 import org.auibar.aris.mobile.data.repository.LoginResult
+import org.auibar.aris.mobile.util.ConnectivityObserver
 import org.auibar.aris.mobile.util.LocaleManager
 import javax.inject.Inject
 
@@ -21,14 +24,20 @@ data class LoginUiState(
     val isLoggedIn: Boolean = false,
     val mfaRequired: Boolean = false,
     val totpCode: String = "",
+    val accountExpired: Boolean = false,
+    val accountExpiredMessage: String? = null,
 )
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val webSocketManager: WebSocketManager,
+    private val connectivityObserver: ConnectivityObserver,
     val localeManager: LocaleManager,
 ) : ViewModel() {
+
+    val isOnline: StateFlow<Boolean> = connectivityObserver.isOnline
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -70,8 +79,20 @@ class LoginViewModel @Inject constructor(
                 is LoginResult.MfaRequired -> {
                     _uiState.value = _uiState.value.copy(isLoading = false, mfaRequired = true)
                 }
+                is LoginResult.AccountExpired -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        accountExpired = true,
+                        accountExpiredMessage = result.message,
+                    )
+                }
                 is LoginResult.Error -> {
-                    _uiState.value = _uiState.value.copy(isLoading = false, error = result.message)
+                    val msg = if (!isOnline.value) {
+                        "No internet connection. Please check your network and try again."
+                    } else {
+                        result.message
+                    }
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = msg)
                 }
             }
         }
@@ -93,6 +114,13 @@ class LoginViewModel @Inject constructor(
                 }
                 is LoginResult.MfaRequired -> {
                     _uiState.value = _uiState.value.copy(isLoading = false, error = "Invalid verification code")
+                }
+                is LoginResult.AccountExpired -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        accountExpired = true,
+                        accountExpiredMessage = result.message,
+                    )
                 }
                 is LoginResult.Error -> {
                     _uiState.value = _uiState.value.copy(isLoading = false, error = result.message)

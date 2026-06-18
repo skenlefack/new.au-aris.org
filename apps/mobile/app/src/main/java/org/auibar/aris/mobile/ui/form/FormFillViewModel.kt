@@ -100,17 +100,38 @@ class FormFillViewModel @Inject constructor(
                     ?: throw IllegalStateException("Campaign not found")
                 val templateId = overrideTemplateId ?: campaign.templateId
 
-                // Try local first, then fetch from API
-                var template = formTemplateRepository.getById(templateId)
-                if (template == null && templateId.isNotBlank()) {
-                    val dto = campaignApi.getFormTemplate(templateId)
-                    if (dto != null) {
+                // Try effective form (base + extensions) first, then base template
+                var template: org.auibar.aris.mobile.data.repository.FormTemplate? = null
+
+                // 1. Try effective form (campaign + tenant-scoped extensions)
+                val tenantId = tokenManager.tenantId
+                if (tenantId != null && campaignId.isNotBlank() && templateId.isNotBlank()) {
+                    val effectiveDto = campaignApi.getEffectiveForm(campaignId, templateId, tenantId)
+                    if (effectiveDto != null) {
+                        val effectiveId = "${templateId}_eff_${campaignId}"
                         formTemplateDao.upsertAll(listOf(FormTemplateEntity(
-                            id = dto.id, name = dto.name, domain = dto.domain,
-                            schema = dto.schema, uiSchema = dto.uiSchema,
-                            version = dto.version, syncedAt = System.currentTimeMillis(),
+                            id = effectiveId, name = effectiveDto.name, domain = effectiveDto.domain,
+                            schema = effectiveDto.schema, uiSchema = effectiveDto.uiSchema,
+                            version = effectiveDto.version, syncedAt = System.currentTimeMillis(),
                         )))
-                        template = formTemplateRepository.getById(templateId)
+                        template = formTemplateRepository.getById(effectiveId)
+                        Log.d(TAG, "Using effective form: $effectiveId")
+                    }
+                }
+
+                // 2. Fallback: try local base template, then fetch from API
+                if (template == null) {
+                    template = formTemplateRepository.getById(templateId)
+                    if (template == null && templateId.isNotBlank()) {
+                        val dto = campaignApi.getFormTemplate(templateId)
+                        if (dto != null) {
+                            formTemplateDao.upsertAll(listOf(FormTemplateEntity(
+                                id = dto.id, name = dto.name, domain = dto.domain,
+                                schema = dto.schema, uiSchema = dto.uiSchema,
+                                version = dto.version, syncedAt = System.currentTimeMillis(),
+                            )))
+                            template = formTemplateRepository.getById(templateId)
+                        }
                     }
                 }
 

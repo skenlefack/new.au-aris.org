@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -42,6 +43,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.data.local.entity.DashboardWidgetEntity
 
 private val json = Json { ignoreUnknownKeys = true; isLenient = true }
@@ -142,7 +144,7 @@ private fun StatCardContent(config: JsonObject, domainColor: Color) {
             Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (previousValue != null) {
-            Text("Previous: $previousValue", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+            Text(stringResource(R.string.previous_value, previousValue), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
         }
     }
 }
@@ -249,7 +251,7 @@ private fun ImagePlaceholder(config: JsonObject) {
         Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,
     ) {
-        Text(if (url.isNotBlank()) "Image" else "No image", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(if (url.isNotBlank()) stringResource(R.string.widget_image) else stringResource(R.string.no_image), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -259,7 +261,7 @@ private fun MapPlaceholder() {
         Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFE8F5E9)),
         contentAlignment = Alignment.Center,
     ) {
-        Text("Africa Map", style = MaterialTheme.typography.labelMedium, color = Color(0xFF2E7D32))
+        Text(stringResource(R.string.widget_map), style = MaterialTheme.typography.labelMedium, color = Color(0xFF2E7D32))
     }
 }
 
@@ -269,7 +271,7 @@ private fun IframePlaceholder() {
         Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,
     ) {
-        Text("Embedded BI content", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.widget_embedded), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -294,5 +296,5 @@ private fun ListPlaceholder(config: JsonObject) {
 
 @Composable
 private fun UnsupportedContent(type: String) {
-    Text("Widget: $type", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+    Text(stringResource(R.string.widget_type, type), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
 }

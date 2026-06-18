@@ -17,6 +17,9 @@ import org.auibar.aris.mobile.data.remote.dto.LoginRequest
 import org.auibar.aris.mobile.data.remote.dto.LoginResponse
 import javax.inject.Inject
 
+/** Thrown when the backend returns 403 because the temporary account has expired. */
+class AccountExpiredException(message: String) : Exception(message)
+
 class AuthApi @Inject constructor(
     private val client: HttpClient,
 ) {
@@ -31,6 +34,9 @@ class AuthApi @Inject constructor(
             throw Exception("Token refresh failed: ${e.message}")
         }
 
+        if (response.status.value == 403) {
+            throw AccountExpiredException("Your temporary account has expired. Contact your administrator.")
+        }
         if (response.status.value !in 200..299) {
             throw Exception("Token refresh failed (HTTP ${response.status.value})")
         }
@@ -61,6 +67,9 @@ class AuthApi @Inject constructor(
             val msg = errorBody?.message?.ifBlank { null }
                 ?: errorBody?.error?.ifBlank { null }
                 ?: "Login failed (HTTP ${response.status.value})"
+            if (response.status.value == 403) {
+                throw AccountExpiredException(msg)
+            }
             throw Exception(msg)
         }
         return response.body()

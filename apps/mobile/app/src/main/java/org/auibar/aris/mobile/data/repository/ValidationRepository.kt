@@ -17,7 +17,7 @@ class ValidationRepository @Inject constructor(
     suspend fun getValidations(
         page: Int = 1,
         limit: Int = 10,
-        level: Int? = null,
+        level: String? = null,
         status: String? = null,
         entityType: String? = null,
     ): Result<ValidationListResult> {
@@ -50,5 +50,15 @@ class ValidationRepository @Inject constructor(
 
     suspend fun returnItem(id: String, reason: String, comment: String? = null): Boolean {
         return validationApi.performAction(id, "return", comment = comment, reason = reason)
+    }
+
+    /** Validate a submission directly via collecte service (PATCH status). */
+    suspend fun validateSubmission(submissionId: String, reason: String? = null): Boolean {
+        return validationApi.updateSubmissionStatus(submissionId, "VALIDATED", reason)
+    }
+
+    /** Reject a submission directly via collecte service (PATCH status). */
+    suspend fun rejectSubmission(submissionId: String, reason: String): Boolean {
+        return validationApi.updateSubmissionStatus(submissionId, "REJECTED", reason)
     }
 }

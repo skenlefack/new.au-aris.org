@@ -114,13 +114,13 @@ fun FormFillScreen(
                 title = {
                     Column {
                         Text(
-                            uiState.templateName.ifBlank { "Form" },
+                            uiState.templateName.ifBlank { stringResource(R.string.form_label) },
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.titleSmall,
                         )
                         if (readOnly) {
-                            Text("Preview", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f))
+                            Text(stringResource(R.string.preview_label), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f))
                         }
                     }
                 },
@@ -142,11 +142,11 @@ fun FormFillScreen(
         } else if (uiState.fields.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("No form fields available", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.no_form_fields), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(8.dp))
                     Text(uiState.campaignName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(16.dp))
-                    OutlinedButton(onClick = onBack) { Text("Go Back") }
+                    OutlinedButton(onClick = onBack) { Text(stringResource(R.string.go_back)) }
                 }
             }
         } else {
@@ -169,7 +169,7 @@ fun FormFillScreen(
                     Box(
                         Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF1565C0).copy(alpha = 0.08f)).padding(10.dp),
                     ) {
-                        Text("Preview mode — submissions disabled for this campaign.", style = MaterialTheme.typography.bodySmall, color = Color(0xFF1565C0), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                        Text(stringResource(R.string.preview_mode_msg), style = MaterialTheme.typography.bodySmall, color = Color(0xFF1565C0), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                     }
                     Spacer(Modifier.height(8.dp))
                 }
@@ -204,7 +204,7 @@ fun FormFillScreen(
                             modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp),
                             shape = RoundedCornerShape(12.dp),
                         ) {
-                            Text("Close Preview", fontWeight = FontWeight.Medium)
+                            Text(stringResource(R.string.close_preview), fontWeight = FontWeight.Medium)
                         }
                     } else {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {

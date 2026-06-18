@@ -224,6 +224,7 @@
 
     <!-- Connectivity -->
     <string name="offline_banner">You are offline. Data will sync when connected.</string>
+    <string name="offline_no_connection">No internet connection</string>
 
     <!-- Livestock -->
     <string name="livestock_census">Livestock Census</string>
@@ -648,4 +649,63 @@
 
     <!-- Stale Data -->
     <string name="stale_data_warning">Data may be outdated (last updated %s ago). Connect to refresh.</string>
+
+    <!-- Hardcoded strings externalized -->
+    <string name="analytics_dashboard">Analytics Dashboard</string>
+    <string name="kpi_title">Key Performance Indicators</string>
+    <string name="beneficiaries_by_country">Beneficiaries by Country</string>
+    <string name="submissions_over_time">Submissions Over Time</string>
+    <string name="period_monthly">Monthly</string>
+    <string name="period_weekly">Weekly</string>
+    <string name="error_occurred">An error occurred</string>
+    <string name="no_dashboard_configured">No dashboard configured</string>
+    <string name="browse_dashboards">Browse dashboards</string>
+    <string name="loading_dashboard">Loading dashboard\u2026</string>
+    <string name="sub_domains">Sub-domains</string>
+    <string name="tab_active">Active</string>
+    <string name="tab_planned">Planned</string>
+    <string name="tab_completed">Completed</string>
+    <string name="tab_archived">Archived</string>
+    <string name="no_status_campaigns">No %s campaigns</string>
+    <string name="target_label">target</string>
+    <string name="previous_value">Previous: %s</string>
+    <string name="widget_image">Image</string>
+    <string name="no_image">No image</string>
+    <string name="widget_map">Africa Map</string>
+    <string name="widget_embedded">Embedded BI content</string>
+    <string name="widget_type">Widget: %s</string>
+    <string name="record_submitted_sync">%s submitted for sync</string>
+    <string name="record_draft_saved">%s draft saved</string>
+    <string name="gps_capturing">Capturing\u2026</string>
+    <string name="additional_observations">Additional observations\u2026</string>
+    <string name="example_park">e.g. Serengeti National Park</string>
+    <string name="email_password_required">Email and password are required</string>
+    <string name="account_expired_default">Your temporary account has expired. Contact your administrator.</string>
+    <string name="failed_load_form">Failed to load form</string>
+    <string name="no_form_fields">No form fields available</string>
+    <string name="close_preview">Close Preview</string>
+    <string name="preview_label">Preview</string>
+    <string name="preview_mode_msg">Preview mode \u2014 submissions disabled for this campaign.</string>
+    <string name="form_label">Form</string>
+
+    <!-- Domain Dashboard Redesign -->
+    <string name="domain_total_submissions">Total Submissions</string>
+    <string name="domain_active_countries">Active Countries</string>
+    <string name="domain_active_campaigns">Active Campaigns</string>
+    <string name="domain_completion_rate">Completion Rate</string>
+    <string name="domain_quality_score">Data Quality</string>
+    <string name="domain_trend">Trend</string>
+    <string name="domain_trend_delta">%s%% vs last month</string>
+    <string name="domain_countries_suffix"> / 55</string>
+    <string name="domain_synthesis">Visual Synthesis</string>
+    <string name="domain_country_coverage">Country Coverage</string>
+    <string name="domain_monthly_trend">Monthly Trend</string>
+    <string name="domain_subdomain_breakdown">By Sub-domain</string>
+    <string name="domain_recent_activity">Recent Activity</string>
+    <string name="domain_activity_submission">New submission</string>
+    <string name="domain_activity_validation">Data validated</string>
+    <string name="domain_activity_campaign">Campaign started</string>
+    <string name="domain_no_activity">No recent activity</string>
+    <string name="domain_view_all">View all</string>
+    <string name="domain_data_submissions">submissions</string>
 </resources>

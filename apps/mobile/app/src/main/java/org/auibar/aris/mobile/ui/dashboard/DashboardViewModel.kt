@@ -80,17 +80,12 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val result = dashboardRepository.getKpis()
-            _uiState.value = if (result.isSuccess) {
-                _uiState.value.copy(
-                    kpis = result.getOrDefault(emptyList()),
-                    isLoading = false,
-                )
-            } else {
-                _uiState.value.copy(
-                    isLoading = false,
-                    error = result.exceptionOrNull()?.message,
-                )
-            }
+            val kpis = result.getOrDefault(emptyList())
+            _uiState.value = _uiState.value.copy(
+                kpis = kpis.ifEmpty { _uiState.value.kpis }, // Keep existing cached KPIs if fetch returned empty
+                isLoading = false,
+                error = if (kpis.isEmpty() && result.isFailure) result.exceptionOrNull()?.message else null,
+            )
         }
     }
 

@@ -39,6 +39,18 @@ object RoleConfig {
         "FIELD_AGENT" to RoleBadgeStyle(
             background = Color(0xFFFFECB3), text = Color(0xFFE65100),
         ),
+        "KNOWLEDGE_MANAGER" to RoleBadgeStyle(
+            background = Color(0xFFC8E6C9), text = Color(0xFF2E7D32),
+        ),
+        "NATIONAL_LABORATORY" to RoleBadgeStyle(
+            background = Color(0xFFFFE0B2), text = Color(0xFFE65100),
+        ),
+        "REGIONAL_LABORATORY" to RoleBadgeStyle(
+            background = Color(0xFFFFE0B2), text = Color(0xFFE65100),
+        ),
+        "CONTINENTAL_LABORATORY" to RoleBadgeStyle(
+            background = Color(0xFFFFCDD2), text = Color(0xFFC62828),
+        ),
     )
 
     private val defaultBadgeStyle = RoleBadgeStyle(
@@ -58,6 +70,10 @@ object RoleConfig {
         "WAHIS_FOCAL_POINT" to "WAHIS Focal Point",
         "ANALYST" to "Analyst",
         "FIELD_AGENT" to "Field Agent",
+        "KNOWLEDGE_MANAGER" to "Knowledge Manager",
+        "NATIONAL_LABORATORY" to "National Laboratory",
+        "REGIONAL_LABORATORY" to "Regional Laboratory",
+        "CONTINENTAL_LABORATORY" to "Continental Laboratory",
     )
 
     fun labelFor(role: String?): String =
@@ -86,6 +102,10 @@ object RoleConfig {
         "WAHIS_FOCAL_POINT" to setOf("health", "livestock", "fisheries", "wildlife", "trade"),
         "ANALYST" to null,
         "FIELD_AGENT" to setOf("health"),
+        "KNOWLEDGE_MANAGER" to setOf("knowledge"),
+        "NATIONAL_LABORATORY" to null,
+        "REGIONAL_LABORATORY" to null,
+        "CONTINENTAL_LABORATORY" to null,
     )
 
     fun visibleDomains(role: String?): List<DomainInfo> {
@@ -177,6 +197,7 @@ object RoleConfig {
     val canSeeReports = setOf(
         "SUPER_ADMIN", "CONTINENTAL_ADMIN", "REC_ADMIN",
         "NATIONAL_ADMIN", "DATA_STEWARD", "WAHIS_FOCAL_POINT", "ANALYST",
+        "NATIONAL_LABORATORY", "REGIONAL_LABORATORY", "CONTINENTAL_LABORATORY",
     )
 
     fun canCreate(role: String?): Boolean = role in canCreateSubmission

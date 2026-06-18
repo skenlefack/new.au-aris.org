@@ -26,7 +26,15 @@
         <domain includeSubdomains="false">10.202.101.149</domain>
     </domain-config>
 
-    <!-- Pin production certificates -->
+    <!-- Staging: trust system CAs (no pinning — cert rotates frequently) -->
+    <domain-config>
+        <domain includeSubdomains="true">test.au-aris.org</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- Production: pin Let's Encrypt certificates -->
     <domain-config>
         <domain includeSubdomains="true">au-aris.org</domain>
         <trust-anchors>

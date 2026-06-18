@@ -5,6 +5,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.auibar.aris.mobile.data.remote.api.AccountExpiredException
 import org.auibar.aris.mobile.data.remote.api.AuthApi
 import org.auibar.aris.mobile.data.remote.dto.AppDomainDto
 import org.auibar.aris.mobile.data.remote.websocket.WebSocketManager
@@ -16,6 +17,7 @@ sealed class LoginResult {
     object Success : LoginResult()
     object MfaRequired : LoginResult()
     data class Error(val message: String) : LoginResult()
+    data class AccountExpired(val message: String) : LoginResult()
 }
 
 class AuthRepository @Inject constructor(
@@ -37,6 +39,8 @@ class AuthRepository @Inject constructor(
             fetchServerConfig()
             registerFcmToken()
             LoginResult.Success
+        } catch (e: AccountExpiredException) {
+            LoginResult.AccountExpired(e.message ?: "Account expired")
         } catch (e: Exception) {
             LoginResult.Error(e.message ?: "Login failed")
         }
@@ -50,6 +54,8 @@ class AuthRepository @Inject constructor(
             fetchServerConfig()
             registerFcmToken()
             LoginResult.Success
+        } catch (e: AccountExpiredException) {
+            LoginResult.AccountExpired(e.message ?: "Account expired")
         } catch (e: Exception) {
             LoginResult.Error(e.message ?: "Invalid verification code")
         }

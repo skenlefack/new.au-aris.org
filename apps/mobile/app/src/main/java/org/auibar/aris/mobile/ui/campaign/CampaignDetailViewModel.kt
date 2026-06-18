@@ -12,10 +12,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.auibar.aris.mobile.data.local.entity.DashboardEntity
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
 import org.auibar.aris.mobile.data.remote.dto.CampaignProgressDto
 import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.CampaignTarget
+import org.auibar.aris.mobile.data.repository.DashboardMobileRepository
 import org.auibar.aris.mobile.data.repository.FormTemplateRepository
 import org.auibar.aris.mobile.data.repository.Submission
 import org.auibar.aris.mobile.data.repository.SubmissionRepository
@@ -66,6 +68,7 @@ class CampaignDetailViewModel @Inject constructor(
     private val campaignRepository: CampaignRepository,
     private val submissionRepository: SubmissionRepository,
     private val formTemplateRepository: FormTemplateRepository,
+    private val dashboardRepository: DashboardMobileRepository,
     private val campaignApi: CampaignApi,
 ) : ViewModel() {
 
@@ -81,6 +84,11 @@ class CampaignDetailViewModel @Inject constructor(
     val submissionCount: StateFlow<Int> = submissionRepository
         .getCountByCampaign(campaignId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    /** Dashboards linked to this campaign. */
+    val campaignDashboards: StateFlow<List<DashboardEntity>> = dashboardRepository
+        .observeByCampaignId(campaignId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         if (campaignId.isNotBlank()) {
@@ -112,6 +120,9 @@ class CampaignDetailViewModel @Inject constructor(
                     isLoading = false,
                 )
             }
+
+            // Refresh campaign-linked dashboards (fire and forget)
+            launch { dashboardRepository.refreshDashboardsForCampaign(campaignId) }
 
             // Then fetch full detail from API (with progress + templates)
             try {

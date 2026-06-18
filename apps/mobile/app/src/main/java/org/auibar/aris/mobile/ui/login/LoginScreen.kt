@@ -30,6 +30,8 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -89,6 +91,7 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isOnline by viewModel.isOnline.collectAsStateWithLifecycle(initialValue = true)
     val snackbarHostState = remember { SnackbarHostState() }
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -128,6 +131,36 @@ fun LoginScreen(
                     .padding(horizontal = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                // Offline banner
+                if (!isOnline) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFFFF3E0)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFE65100),
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Text(
+                                text = stringResource(R.string.offline_no_connection),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFE65100),
+                            )
+                        }
+                    }
+                }
+
                 // Language switcher (top right)
                 Box(
                     modifier = Modifier
@@ -315,6 +348,34 @@ private fun LoginContent(
                 LoadingSpinner(modifier = Modifier.semantics { contentDescription = signingInDesc }, color = Color.White, size = 24.dp)
             } else {
                 Text(stringResource(R.string.login), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            }
+        }
+
+        // Account expired banner
+        if (uiState.accountExpired) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFFFFF3E0))
+                    .padding(12.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = Color(0xFFE65100),
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(
+                        text = uiState.accountExpiredMessage
+                            ?: stringResource(R.string.account_expired_default),
+                        color = Color(0xFFE65100),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
             }
         }
 

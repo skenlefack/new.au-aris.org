@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.auibar.aris.mobile.R
+import org.auibar.aris.mobile.data.local.entity.DashboardEntity
 import org.auibar.aris.mobile.data.repository.Submission
 import org.auibar.aris.mobile.ui.components.LoadingSpinner
 import org.auibar.aris.mobile.ui.components.TargetBadges
@@ -98,6 +99,7 @@ fun CampaignDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val submissions by viewModel.submissions.collectAsStateWithLifecycle()
     val submissionCount by viewModel.submissionCount.collectAsStateWithLifecycle()
+    val campaignDashboards by viewModel.campaignDashboards.collectAsStateWithLifecycle()
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
 
     Scaffold(
@@ -192,6 +194,11 @@ fun CampaignDetailScreen(
                     // ── Target Countries Card ──
                     if (uiState.targetCountries.isNotEmpty()) {
                         item { TargetCountriesCard(uiState.targetCountries) }
+                    }
+
+                    // ── Campaign Dashboards ──
+                    if (campaignDashboards.isNotEmpty()) {
+                        item { CampaignDashboardsSection(campaignDashboards) }
                     }
 
                     // ── Campaign Info Card ──
@@ -664,6 +671,70 @@ private fun SubmissionRow(submission: Submission) {
                     color = tint,
                     modifier = Modifier.padding(start = 4.dp),
                 )
+            }
+        }
+    }
+}
+
+// ── Campaign Dashboards Section ───────────────────────────────
+@Composable
+private fun CampaignDashboardsSection(dashboards: List<DashboardEntity>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.TrackChanges,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Dashboards",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            dashboards.forEach { dashboard ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    ),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Default.Article,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                dashboard.titleEn.ifBlank { dashboard.titleFr },
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            if (!dashboard.description.isNullOrBlank()) {
+                                Text(
+                                    dashboard.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 2,
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }

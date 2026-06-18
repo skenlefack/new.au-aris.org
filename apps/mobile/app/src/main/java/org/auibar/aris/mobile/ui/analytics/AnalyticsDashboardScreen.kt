@@ -37,10 +37,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.auibar.aris.mobile.R
 import org.auibar.aris.mobile.data.remote.dto.KpiCard
 import org.auibar.aris.mobile.ui.charts.BarChartItem
 import org.auibar.aris.mobile.ui.charts.HorizontalBarChart
@@ -90,12 +92,12 @@ fun AnalyticsDashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Analytics Dashboard") },
+                title = { Text(stringResource(R.string.analytics_dashboard)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.cd_back_button),
                         )
                     }
                 },
@@ -126,13 +128,13 @@ fun AnalyticsDashboardScreen(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = error ?: "An error occurred",
+                                text = error ?: stringResource(R.string.error_occurred),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.error,
                             )
                             Spacer(Modifier.height(16.dp))
                             TextButton(onClick = { viewModel.refresh() }) {
-                                Text("Retry")
+                                Text(stringResource(R.string.retry))
                             }
                         }
                     }
@@ -150,7 +152,7 @@ fun AnalyticsDashboardScreen(
                             item {
                                 Spacer(Modifier.height(4.dp))
                                 Text(
-                                    text = "Key Performance Indicators",
+                                    text = stringResource(R.string.kpi_title),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
                                 )
@@ -169,7 +171,7 @@ fun AnalyticsDashboardScreen(
                         if (submissionsByDomain.isNotEmpty()) {
                             item {
                                 Text(
-                                    text = "Submissions by Domain",
+                                    text = stringResource(R.string.submissions_by_domain),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
                                 )
@@ -200,7 +202,7 @@ fun AnalyticsDashboardScreen(
                         if (beneficiariesByCountry.isNotEmpty()) {
                             item {
                                 Text(
-                                    text = "Beneficiaries by Country",
+                                    text = stringResource(R.string.beneficiaries_by_country),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
                                 )
@@ -230,7 +232,7 @@ fun AnalyticsDashboardScreen(
                         if (timeline.isNotEmpty()) {
                             item {
                                 Text(
-                                    text = "Submissions Over Time",
+                                    text = stringResource(R.string.submissions_over_time),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
                                 )
@@ -241,12 +243,12 @@ fun AnalyticsDashboardScreen(
                                     FilterChip(
                                         selected = timelinePeriod == "monthly",
                                         onClick = { viewModel.setTimelinePeriod("monthly") },
-                                        label = { Text("Monthly") },
+                                        label = { Text(stringResource(R.string.period_monthly)) },
                                     )
                                     FilterChip(
                                         selected = timelinePeriod == "weekly",
                                         onClick = { viewModel.setTimelinePeriod("weekly") },
-                                        label = { Text("Weekly") },
+                                        label = { Text(stringResource(R.string.period_weekly)) },
                                     )
                                 }
                                 Spacer(Modifier.height(8.dp))

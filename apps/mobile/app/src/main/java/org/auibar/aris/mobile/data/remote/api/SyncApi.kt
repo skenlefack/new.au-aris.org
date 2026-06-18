@@ -34,6 +34,6 @@ class SyncApi @Inject constructor(
     }
 
     suspend fun fetchGeoUnits(): ApiResponse<List<GeoDto>> {
-        return client.get("/api/v1/master-data/geo-units").body()
+        return client.get("/api/v1/master-data/geo").body()
     }
 }

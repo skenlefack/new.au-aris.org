@@ -21,7 +21,7 @@ data class ValidationUiState(
     val totalPages: Int = 1,
     val total: Int = 0,
     // Filters
-    val levelFilter: Int? = null,
+    val levelFilter: String? = null,
     val statusFilter: String? = null,
     val entityTypeFilter: String? = null,
     val searchQuery: String = "",
@@ -36,7 +36,7 @@ data class ValidationUiState(
 
 data class ConfirmingAction(
     val id: String,
-    val action: String, // "approve", "reject", "return"
+    val action: String, // "approve", "reject", "return", "validate_submission", "reject_submission"
 )
 
 private const val PAGE_SIZE = 10
@@ -67,10 +67,10 @@ class ValidationListViewModel @Inject constructor(
             result.fold(
                 onSuccess = { data ->
                     val total = data.meta?.total ?: data.items.size
-                    val pending = data.items.count { it.status == "pending" }
+                    val pending = data.items.count { it.status.equals("PENDING", ignoreCase = true) }
                     val weekAgo = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000
                     val approved = data.items.count { item ->
-                        item.status == "approved" && parseIsoToMillis(item.submittedAt) >= weekAgo
+                        item.status.equals("APPROVED", ignoreCase = true) && parseIsoToMillis(item.createdAt) >= weekAgo
                     }
                     _uiState.update {
                         it.copy(
@@ -92,7 +92,7 @@ class ValidationListViewModel @Inject constructor(
         }
     }
 
-    fun setLevelFilter(level: Int?) {
+    fun setLevelFilter(level: String?) {
         _uiState.update { it.copy(levelFilter = level, page = 1) }
         loadValidations()
     }
@@ -150,6 +150,8 @@ class ValidationListViewModel @Inject constructor(
                 "approve" -> repository.approve(confirming.id, comment)
                 "reject" -> repository.reject(confirming.id, comment ?: "", comment)
                 "return" -> repository.returnItem(confirming.id, comment ?: "", comment)
+                "validate_submission" -> repository.validateSubmission(confirming.id, comment)
+                "reject_submission" -> repository.rejectSubmission(confirming.id, comment ?: "")
                 else -> false
             }
             if (success) {

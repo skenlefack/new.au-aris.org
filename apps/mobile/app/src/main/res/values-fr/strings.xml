@@ -173,6 +173,7 @@
 
     <!-- Connectivity -->
     <string name="offline_banner">Vous \u00eates hors ligne. Les donn\u00e9es seront synchronis\u00e9es une fois connect\u00e9.</string>
+    <string name="offline_no_connection">Pas de connexion internet</string>
 
     <!-- Livestock -->
     <string name="livestock_census">Recensement du b\u00e9tail</string>
@@ -613,4 +614,63 @@
     <string name="sync_status_offline">Hors ligne</string>
     <string name="sync_status_pending">%d en attente</string>
     <string name="sync_status_syncing">Synchronisation\u2026</string>
+
+    <!-- Hardcoded strings externalized -->
+    <string name="analytics_dashboard">Tableau de bord analytique</string>
+    <string name="kpi_title">Indicateurs cl\u00e9s de performance</string>
+    <string name="beneficiaries_by_country">B\u00e9n\u00e9ficiaires par pays</string>
+    <string name="submissions_over_time">Soumissions au fil du temps</string>
+    <string name="period_monthly">Mensuel</string>
+    <string name="period_weekly">Hebdomadaire</string>
+    <string name="error_occurred">Une erreur est survenue</string>
+    <string name="no_dashboard_configured">Aucun tableau de bord configur\u00e9</string>
+    <string name="browse_dashboards">Parcourir les tableaux de bord</string>
+    <string name="loading_dashboard">Chargement du tableau de bord\u2026</string>
+    <string name="sub_domains">Sous-domaines</string>
+    <string name="tab_active">Actif</string>
+    <string name="tab_planned">Planifi\u00e9</string>
+    <string name="tab_completed">Termin\u00e9</string>
+    <string name="tab_archived">Archiv\u00e9</string>
+    <string name="no_status_campaigns">Aucune campagne %s</string>
+    <string name="target_label">objectif</string>
+    <string name="previous_value">Pr\u00e9c\u00e9dent : %s</string>
+    <string name="widget_image">Image</string>
+    <string name="no_image">Pas d\'image</string>
+    <string name="widget_map">Carte d\'Afrique</string>
+    <string name="widget_embedded">Contenu BI int\u00e9gr\u00e9</string>
+    <string name="widget_type">Widget : %s</string>
+    <string name="record_submitted_sync">%s soumis pour synchronisation</string>
+    <string name="record_draft_saved">Brouillon %s enregistr\u00e9</string>
+    <string name="gps_capturing">Capture en cours\u2026</string>
+    <string name="additional_observations">Observations suppl\u00e9mentaires\u2026</string>
+    <string name="example_park">ex. Parc national du Serengeti</string>
+    <string name="email_password_required">L\'email et le mot de passe sont requis</string>
+    <string name="account_expired_default">Votre compte temporaire a expir\u00e9. Contactez votre administrateur.</string>
+    <string name="failed_load_form">\u00c9chec du chargement du formulaire</string>
+    <string name="no_form_fields">Aucun champ de formulaire disponible</string>
+    <string name="close_preview">Fermer l\'aper\u00e7u</string>
+    <string name="preview_label">Aper\u00e7u</string>
+    <string name="preview_mode_msg">Mode aper\u00e7u \u2014 soumissions d\u00e9sactiv\u00e9es pour cette campagne.</string>
+    <string name="form_label">Formulaire</string>
+
+    <!-- Domain Dashboard Redesign -->
+    <string name="domain_total_submissions">Total soumissions</string>
+    <string name="domain_active_countries">Pays actifs</string>
+    <string name="domain_active_campaigns">Campagnes actives</string>
+    <string name="domain_completion_rate">Taux de compl\u00e9tion</string>
+    <string name="domain_quality_score">Qualit\u00e9 des donn\u00e9es</string>
+    <string name="domain_trend">Tendance</string>
+    <string name="domain_trend_delta">%s%% par rapport au mois dernier</string>
+    <string name="domain_countries_suffix"> / 55</string>
+    <string name="domain_synthesis">Synth\u00e8se visuelle</string>
+    <string name="domain_country_coverage">Couverture par pays</string>
+    <string name="domain_monthly_trend">Tendance mensuelle</string>
+    <string name="domain_subdomain_breakdown">Par sous-domaine</string>
+    <string name="domain_recent_activity">Activit\u00e9 r\u00e9cente</string>
+    <string name="domain_activity_submission">Nouvelle soumission</string>
+    <string name="domain_activity_validation">Donn\u00e9es valid\u00e9es</string>
+    <string name="domain_activity_campaign">Campagne d\u00e9marr\u00e9e</string>
+    <string name="domain_no_activity">Aucune activit\u00e9 r\u00e9cente</string>
+    <string name="domain_view_all">Voir tout</string>
+    <string name="domain_data_submissions">soumissions</string>
 </resources>

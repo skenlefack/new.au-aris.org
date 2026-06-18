@@ -18,13 +18,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -56,7 +65,16 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.auibar.aris.mobile.R
+import org.auibar.aris.mobile.data.remote.api.DomainActivityEntry
+import org.auibar.aris.mobile.data.remote.api.MonthlyTrendEntry
+import org.auibar.aris.mobile.data.remote.api.SubDomainBreakdownEntry
 import org.auibar.aris.mobile.data.repository.Campaign
+import org.auibar.aris.mobile.ui.charts.HorizontalBarChart
+import org.auibar.aris.mobile.ui.charts.BarChartItem
+import org.auibar.aris.mobile.ui.charts.LineChart
+import org.auibar.aris.mobile.ui.charts.LineChartPoint
+import org.auibar.aris.mobile.ui.charts.PieChart
+import org.auibar.aris.mobile.ui.charts.PieChartSlice
 import org.auibar.aris.mobile.ui.components.DomainIcon
 import org.auibar.aris.mobile.ui.components.arisDomains
 
@@ -106,12 +124,16 @@ fun DomainDashboardScreen(
         config.subtitle
     }
 
-    val tabs = remember {
+    val tabActiveLabel = stringResource(R.string.tab_active)
+    val tabPlannedLabel = stringResource(R.string.tab_planned)
+    val tabCompletedLabel = stringResource(R.string.tab_completed)
+    val tabArchivedLabel = stringResource(R.string.tab_archived)
+    val tabs = remember(tabActiveLabel, tabPlannedLabel, tabCompletedLabel, tabArchivedLabel) {
         listOf(
-            CampaignTab("Active", "ACTIVE"),
-            CampaignTab("Planned", "PLANNED"),
-            CampaignTab("Completed", "COMPLETED"),
-            CampaignTab("Archived", "CANCELLED"),
+            CampaignTab(tabActiveLabel, "ACTIVE"),
+            CampaignTab(tabPlannedLabel, "PLANNED"),
+            CampaignTab(tabCompletedLabel, "COMPLETED"),
+            CampaignTab(tabArchivedLabel, "CANCELLED"),
         )
     }
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -157,25 +179,40 @@ fun DomainDashboardScreen(
                 }
             }
 
-            // ═══ SECTION 1: DASHBOARD ═══
-            item {
-                Spacer(Modifier.height(12.dp))
-                SectionHeader(stringResource(R.string.dashboard), stringResource(R.string.dashboards), onDashboards)
+            // ═══ SECTION 1: KPI BAR (from domain summary API) ═══
+            if (uiState.hasSummary && uiState.summaryKpis != null) {
+                item {
+                    Spacer(Modifier.height(12.dp))
+                    KpiBar(kpis = uiState.summaryKpis!!, domainColor = domainColor)
+                }
             }
 
-            if (uiState.isDashboardLoading) {
-                item { DashboardSkeleton(domainColor) }
-            } else if (dashboardWidgets.isEmpty()) {
+            // ═══ SECTION 2: VISUAL SYNTHESIS ═══
+            if (uiState.hasSummary && (uiState.monthlyTrend.isNotEmpty() || uiState.subDomainBreakdown.isNotEmpty())) {
                 item {
-                    Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))) {
-                        Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("No dashboard configured", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(Modifier.height(8.dp))
-                            Text("Browse dashboards", style = MaterialTheme.typography.labelSmall, color = domainColor, modifier = Modifier.clickable(onClick = onDashboards))
-                        }
-                    }
+                    Spacer(Modifier.height(16.dp))
+                    SectionHeader(stringResource(R.string.domain_synthesis))
                 }
-            } else {
+                // Monthly trend chart
+                if (uiState.monthlyTrend.isNotEmpty()) {
+                    item { MonthlyTrendCard(trend = uiState.monthlyTrend, domainColor = domainColor) }
+                }
+                // Sub-domain breakdown
+                if (uiState.subDomainBreakdown.isNotEmpty()) {
+                    item { SubDomainBreakdownCard(breakdown = uiState.subDomainBreakdown, domainColor = domainColor) }
+                }
+                // Country distribution
+                if (uiState.countryDistribution.isNotEmpty()) {
+                    item { CountryCoverageCard(countries = uiState.countryDistribution, domainColor = domainColor) }
+                }
+            }
+
+            // ═══ SECTION 3: DASHBOARD WIDGETS ═══
+            if (dashboardWidgets.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(16.dp))
+                    SectionHeader(stringResource(R.string.dashboard), stringResource(R.string.dashboards), onDashboards)
+                }
                 items(dashboardWidgets, key = { it.id }) { widget ->
                     MobileWidgetRenderer(widget = widget, domainColor = domainColor, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
                 }
@@ -185,7 +222,7 @@ fun DomainDashboardScreen(
             if (!isSubDomain && uiState.subDomains.isNotEmpty()) {
                 item {
                     Spacer(Modifier.height(20.dp))
-                    SectionHeader("Sub-domains")
+                    SectionHeader(stringResource(R.string.sub_domains))
                 }
                 val rows = uiState.subDomains.chunked(2)
                 rows.forEach { rowItems ->
@@ -211,7 +248,7 @@ fun DomainDashboardScreen(
             // ═══ SECTION 3: CAMPAIGNS ═══
             item {
                 Spacer(Modifier.height(20.dp))
-                SectionHeader("Campaigns")
+                SectionHeader(stringResource(R.string.campaigns))
             }
 
             // Tab row
@@ -260,7 +297,7 @@ fun DomainDashboardScreen(
             if (uiState.isLoading) {
                 item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = domainColor) } }
             } else if (filteredCampaigns.isEmpty()) {
-                item { Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) { Text("No ${tabs[selectedTabIndex].label.lowercase()} campaigns", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
+                item { Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) { Text(stringResource(R.string.no_status_campaigns, tabs[selectedTabIndex].label.lowercase()), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
             } else {
                 items(filteredCampaigns, key = { it.id }) { campaign ->
                     CampaignRow(campaign = campaign, domainColor = domainColor, onClick = { onCampaignClick(campaign.id) })
@@ -269,6 +306,17 @@ fun DomainDashboardScreen(
 
             if (uiState.error != null) {
                 item { Text(uiState.error!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
+            }
+
+            // ═══ SECTION 6: RECENT ACTIVITY ═══
+            if (uiState.recentActivity.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(20.dp))
+                    SectionHeader(stringResource(R.string.domain_recent_activity))
+                }
+                items(uiState.recentActivity.take(8)) { activity ->
+                    ActivityRow(activity = activity)
+                }
             }
 
             item { Spacer(Modifier.height(16.dp)) }
@@ -283,7 +331,7 @@ fun DomainDashboardScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = domainColor)
                     Spacer(Modifier.height(16.dp))
-                    Text("Loading dashboard...", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.loading_dashboard), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -321,9 +369,9 @@ private fun SubDomainCard(sub: SubDomainUi, domainColor: Color, modifier: Modifi
             Text(sub.labelEn, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis, color = domainColor)
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                StatMini(value = "${sub.campaignCount}", label = "Campaigns")
-                StatMini(value = "${sub.formCount}", label = "Forms")
-                StatMini(value = "${sub.submissionCount}", label = "Data")
+                StatMini(value = "${sub.campaignCount}", label = stringResource(R.string.campaigns))
+                StatMini(value = "${sub.formCount}", label = stringResource(R.string.campaign_forms))
+                StatMini(value = "${sub.submissionCount}", label = stringResource(R.string.submissions))
             }
         }
     }
@@ -405,8 +453,8 @@ private fun CampaignRow(campaign: Campaign, domainColor: Color, onClick: () -> U
                         )
                         Text(
                             if (campaign.targetSubmissions != null && campaign.targetSubmissions > 0)
-                                "/ ${campaign.targetSubmissions} target"
-                            else "submissions",
+                                "/ ${campaign.targetSubmissions} ${stringResource(R.string.target_label)}"
+                            else stringResource(R.string.submissions),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -447,17 +495,17 @@ private fun CampaignRow(campaign: Campaign, domainColor: Color, onClick: () -> U
                 ) {
                     CampaignStat(
                         value = "${campaign.validatedSubmissions}",
-                        label = "Validated",
+                        label = stringResource(R.string.validated),
                         color = Color(0xFF2E7D32),
                     )
                     CampaignStat(
                         value = "${campaign.pendingSubmissions}",
-                        label = "Pending",
+                        label = stringResource(R.string.pending),
                         color = Color(0xFFE65100),
                     )
                     CampaignStat(
                         value = "${campaign.rejectedSubmissions}",
-                        label = "Rejected",
+                        label = stringResource(R.string.rejected),
                         color = Color(0xFFC62828),
                     )
                 }
@@ -470,10 +518,10 @@ private fun CampaignRow(campaign: Campaign, domainColor: Color, onClick: () -> U
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         if (campaign.startDate > 0) {
-                            DateLabel(label = "Start", timestamp = campaign.startDate)
+                            DateLabel(label = stringResource(R.string.campaign_start), timestamp = campaign.startDate)
                         }
                         if (campaign.endDate > 0) {
-                            DateLabel(label = "End", timestamp = campaign.endDate)
+                            DateLabel(label = stringResource(R.string.campaign_end), timestamp = campaign.endDate)
                         }
                     }
                 }
@@ -515,13 +563,207 @@ private fun DateLabel(label: String, timestamp: Long) {
     }
 }
 
+// ── KPI Bar (horizontal scrollable) ────────────────────────
+@Composable
+private fun KpiBar(kpis: org.auibar.aris.mobile.data.remote.api.DomainSummaryKpis, domainColor: Color) {
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item { KpiChip(stringResource(R.string.domain_total_submissions), formatNumber(kpis.totalSubmissions), domainColor, kpis.trend.delta) }
+        item { KpiChip(stringResource(R.string.domain_active_countries), "${kpis.activeCountries}/55", domainColor) }
+        item { KpiChip(stringResource(R.string.domain_active_campaigns), "${kpis.activeCampaigns}", domainColor) }
+        item { KpiChip(stringResource(R.string.domain_completion_rate), "${kpis.completionRate.toInt()}%", domainColor) }
+        item { KpiChip(stringResource(R.string.domain_quality_score), "${kpis.qualityScore.toInt()}%", domainColor) }
+    }
+}
+
+@Composable
+private fun KpiChip(label: String, value: String, color: Color, delta: Double = 0.0) {
+    Card(
+        modifier = Modifier.width(140.dp),
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            Spacer(Modifier.height(4.dp))
+            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = color)
+            if (delta != 0.0) {
+                Spacer(Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val trendColor = if (delta > 0) Color(0xFF2E7D32) else Color(0xFFC62828)
+                    val trendIcon = if (delta > 0) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown
+                    Icon(trendIcon, contentDescription = null, modifier = Modifier.size(14.dp), tint = trendColor)
+                    Spacer(Modifier.width(2.dp))
+                    Text("${if (delta > 0) "+" else ""}${"%.1f".format(delta)}%", style = MaterialTheme.typography.labelSmall, color = trendColor)
+                }
+            }
+        }
+    }
+}
+
+private fun formatNumber(n: Int): String = when {
+    n >= 1_000_000 -> "${"%.1f".format(n / 1_000_000.0)}M"
+    n >= 1_000 -> "${"%.1f".format(n / 1_000.0)}K"
+    else -> "$n"
+}
+
+// ── Monthly Trend Card ─────────────────────────────────────
+@Composable
+private fun MonthlyTrendCard(trend: List<MonthlyTrendEntry>, domainColor: Color) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(stringResource(R.string.domain_monthly_trend), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(12.dp))
+            LineChart(
+                points = trend.map { entry ->
+                    val label = if (entry.month.length >= 7) entry.month.substring(5) else entry.month
+                    LineChartPoint(label = label, value = entry.count.toFloat())
+                },
+                modifier = Modifier.fillMaxWidth().height(160.dp),
+                lineColor = domainColor,
+            )
+        }
+    }
+}
+
+// ── Sub-domain Breakdown Card (pie chart) ──────────────────
+private val BREAKDOWN_COLORS = listOf(
+    Color(0xFF1565C0), Color(0xFF2E7D32), Color(0xFFE65100),
+    Color(0xFF6A1B9A), Color(0xFF00838F), Color(0xFFC62828),
+    Color(0xFF37474F), Color(0xFF4E342E), Color(0xFFF9A825),
+)
+
+@Composable
+private fun SubDomainBreakdownCard(breakdown: List<SubDomainBreakdownEntry>, domainColor: Color) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(stringResource(R.string.domain_subdomain_breakdown), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(12.dp))
+            PieChart(
+                slices = breakdown.mapIndexed { index, entry ->
+                    PieChartSlice(
+                        label = entry.label.ifBlank { entry.code },
+                        value = entry.count.toFloat(),
+                        color = BREAKDOWN_COLORS[index % BREAKDOWN_COLORS.size],
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+// ── Country Coverage Card (horizontal bar chart) ───────────
+@Composable
+private fun CountryCoverageCard(countries: List<org.auibar.aris.mobile.data.remote.api.CountryDistributionEntry>, domainColor: Color) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(stringResource(R.string.domain_country_coverage), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(12.dp))
+            HorizontalBarChart(
+                items = countries.take(10).mapIndexed { index, entry ->
+                    BarChartItem(
+                        label = entry.name.ifBlank { entry.code },
+                        value = entry.count.toFloat(),
+                        color = BREAKDOWN_COLORS[index % BREAKDOWN_COLORS.size],
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+// ── Activity Row ───────────────────────────────────────────
+@Composable
+private fun ActivityRow(activity: DomainActivityEntry) {
+    val (icon, iconColor, label) = when (activity.type) {
+        "submission" -> Triple(Icons.Default.Upload, Color(0xFF1565C0), stringResource(R.string.domain_activity_submission))
+        "validation" -> Triple(Icons.Default.CheckCircle, Color(0xFF2E7D32), stringResource(R.string.domain_activity_validation))
+        "campaign_start" -> Triple(Icons.Default.Flag, Color(0xFF6A1B9A), stringResource(R.string.domain_activity_campaign))
+        else -> Triple(Icons.Default.Assessment, Color(0xFF37474F), activity.type)
+    }
+
+    val formLabel = remember(activity.formName) {
+        activity.formName?.let { raw ->
+            // formName may be JSON like {"en":"...", "fr":"..."} — extract simple string
+            if (raw.startsWith("{")) {
+                try {
+                    val cleaned = raw.trim('{', '}')
+                    cleaned.split(",").firstOrNull()?.split(":")?.getOrNull(1)?.trim('"', ' ') ?: raw
+                } catch (_: Exception) { raw }
+            } else raw
+        }
+    }
+
+    val timeAgo = remember(activity.timestamp) {
+        try {
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault())
+            val date = sdf.parse(activity.timestamp)
+            if (date != null) {
+                val diff = System.currentTimeMillis() - date.time
+                val minutes = diff / 60_000
+                val hours = minutes / 60
+                val days = hours / 24
+                when {
+                    minutes < 1 -> "now"
+                    minutes < 60 -> "${minutes}m"
+                    hours < 24 -> "${hours}h"
+                    days < 30 -> "${days}d"
+                    else -> java.text.SimpleDateFormat("dd MMM", java.util.Locale.getDefault()).format(date)
+                }
+            } else ""
+        } catch (_: Exception) { "" }
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(iconColor.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp), tint = iconColor)
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+            if (!formLabel.isNullOrBlank()) {
+                Text(formLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            if (!activity.country.isNullOrBlank()) {
+                Text(activity.country, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (timeAgo.isNotEmpty()) {
+            Text(timeAgo, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
 @Composable
 private fun StatusChip(status: String, domainColor: Color) {
     val (bgColor, label) = when (status.uppercase()) {
-        "ACTIVE" -> Color(0xFF2E7D32) to "Active"
-        "PLANNED" -> Color(0xFF1565C0) to "Planned"
-        "COMPLETED" -> Color(0xFF6A1B9A) to "Completed"
-        "CANCELLED" -> Color(0xFF757575) to "Archived"
+        "ACTIVE" -> Color(0xFF2E7D32) to stringResource(R.string.tab_active)
+        "PLANNED" -> Color(0xFF1565C0) to stringResource(R.string.tab_planned)
+        "COMPLETED" -> Color(0xFF6A1B9A) to stringResource(R.string.tab_completed)
+        "CANCELLED" -> Color(0xFF757575) to stringResource(R.string.tab_archived)
         else -> domainColor to status
     }
     Box(Modifier.clip(RoundedCornerShape(8.dp)).background(bgColor.copy(alpha = 0.12f)).padding(horizontal = 8.dp, vertical = 3.dp)) {

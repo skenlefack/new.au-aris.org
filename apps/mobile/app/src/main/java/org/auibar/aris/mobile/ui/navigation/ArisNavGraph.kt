@@ -67,6 +67,12 @@ import org.auibar.aris.mobile.ui.trade.TradeFlowScreen
 import org.auibar.aris.mobile.ui.trade.SPSCertificateScreen
 import org.auibar.aris.mobile.ui.governance.LegalFrameworkScreen
 import org.auibar.aris.mobile.ui.governance.VetCapacityScreen
+import org.auibar.aris.mobile.ui.apiculture.ApiaryRecordScreen
+import org.auibar.aris.mobile.ui.apiculture.ColonyHealthScreen
+import org.auibar.aris.mobile.ui.wildlife.HumanWildlifeConflictScreen
+import org.auibar.aris.mobile.ui.wildlife.WildlifeObservationScreen
+import org.auibar.aris.mobile.ui.climate.RangelandScreen
+import org.auibar.aris.mobile.ui.climate.WaterStressScreen
 import org.auibar.aris.mobile.ui.knowledge.KnowledgeHubScreen
 import org.auibar.aris.mobile.ui.knowledge.KnowledgeSearchScreen
 import org.auibar.aris.mobile.ui.knowledge.KnowledgeArticleScreen
@@ -122,6 +128,12 @@ object ArisRoutes {
     const val SPS_CERTIFICATE = "sps-certificate/{campaignId}"
     const val LEGAL_FRAMEWORK = "legal-framework/{campaignId}"
     const val VET_CAPACITY = "vet-capacity/{campaignId}"
+    const val APIARY_RECORD = "apiary-record/{campaignId}"
+    const val COLONY_HEALTH = "colony-health/{campaignId}"
+    const val HWC_REPORT = "hwc-report/{campaignId}"
+    const val WILDLIFE_OBSERVATION = "wildlife-observation/{campaignId}"
+    const val RANGELAND = "rangeland/{campaignId}"
+    const val WATER_STRESS = "water-stress/{campaignId}"
     const val PAID_DASHBOARD = "paid-dashboard"
     const val PAID_COLLECTE = "paid-collecte"
     const val KNOWLEDGE_HUB = "knowledge-hub"
@@ -163,6 +175,12 @@ object ArisRoutes {
     fun spsCertificate(campaignId: String) = "sps-certificate/$campaignId"
     fun legalFramework(campaignId: String) = "legal-framework/$campaignId"
     fun vetCapacity(campaignId: String) = "vet-capacity/$campaignId"
+    fun apiaryRecord(campaignId: String) = "apiary-record/$campaignId"
+    fun colonyHealth(campaignId: String) = "colony-health/$campaignId"
+    fun hwcReport(campaignId: String) = "hwc-report/$campaignId"
+    fun wildlifeObservation(campaignId: String) = "wildlife-observation/$campaignId"
+    fun rangeland(campaignId: String) = "rangeland/$campaignId"
+    fun waterStress(campaignId: String) = "water-stress/$campaignId"
     fun photoGallery(submissionId: String) = "photo-gallery/$submissionId"
     fun submissionDetail(submissionId: String) = "submission/$submissionId"
     fun conflictResolution(submissionId: String) = "conflict/$submissionId"
@@ -570,6 +588,75 @@ fun ArisNavGraph(
                 )
             }
 
+            // ── Apiculture ──
+            composable(
+                route = ArisRoutes.APIARY_RECORD,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                ApiaryRecordScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.COLONY_HEALTH,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                ColonyHealthScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // ── Wildlife ──
+            composable(
+                route = ArisRoutes.HWC_REPORT,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                HumanWildlifeConflictScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.WILDLIFE_OBSERVATION,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                WildlifeObservationScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // ── Climate & Environment ──
+            composable(
+                route = ArisRoutes.RANGELAND,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                RangelandScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.WATER_STRESS,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+                WaterStressScreen(
+                    campaignId = campaignId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
             composable(
                 route = ArisRoutes.PHOTO_GALLERY,
                 arguments = listOf(navArgument("submissionId") { type = NavType.StringType }),
@@ -641,6 +728,12 @@ fun ArisNavGraph(
                             "sps_certificate" -> ArisRoutes.spsCertificate("new")
                             "legal_framework" -> ArisRoutes.legalFramework("new")
                             "vet_capacity" -> ArisRoutes.vetCapacity("new")
+                            "apiary_record" -> ArisRoutes.apiaryRecord("new")
+                            "colony_health" -> ArisRoutes.colonyHealth("new")
+                            "hwc_report" -> ArisRoutes.hwcReport("new")
+                            "wildlife_observation" -> ArisRoutes.wildlifeObservation("new")
+                            "rangeland" -> ArisRoutes.rangeland("new")
+                            "water_stress" -> ArisRoutes.waterStress("new")
                             else -> return@DomainDashboardScreen
                         }
                         navController.navigate(route)

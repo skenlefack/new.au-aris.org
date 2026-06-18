@@ -13,7 +13,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.data.local.dao.CampaignDao
 import org.auibar.aris.mobile.data.local.entity.DashboardWidgetEntity
+import org.auibar.aris.mobile.data.remote.api.AnalyticsApi
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
+import org.auibar.aris.mobile.data.remote.api.CountryDistributionEntry
+import org.auibar.aris.mobile.data.remote.api.DomainActivityEntry
+import org.auibar.aris.mobile.data.remote.api.DomainSummaryKpis
+import org.auibar.aris.mobile.data.remote.api.MonthlyTrendEntry
+import org.auibar.aris.mobile.data.remote.api.SubDomainBreakdownEntry
 import org.auibar.aris.mobile.data.remote.dto.FormTemplateSummaryDto
 import org.auibar.aris.mobile.data.repository.Campaign
 import org.auibar.aris.mobile.data.repository.CampaignRepository
@@ -43,6 +49,13 @@ data class DomainDashboardUiState(
     val subDomains: List<SubDomainUi> = emptyList(),
     val defaultDashboardId: String? = null,
     val error: String? = null,
+    // Domain summary data (from /analytics/domains/{code}/summary)
+    val summaryKpis: DomainSummaryKpis? = null,
+    val countryDistribution: List<CountryDistributionEntry> = emptyList(),
+    val monthlyTrend: List<MonthlyTrendEntry> = emptyList(),
+    val subDomainBreakdown: List<SubDomainBreakdownEntry> = emptyList(),
+    val recentActivity: List<DomainActivityEntry> = emptyList(),
+    val hasSummary: Boolean = false,
 )
 
 @HiltViewModel
@@ -52,6 +65,7 @@ class DomainDashboardViewModel @Inject constructor(
     private val campaignDao: CampaignDao,
     private val campaignApi: CampaignApi,
     private val dashboardRepository: DashboardMobileRepository,
+    private val analyticsApi: AnalyticsApi,
 ) : ViewModel() {
 
     val domainKey: String = savedStateHandle.get<String>("domainKey") ?: ""
@@ -80,10 +94,29 @@ class DomainDashboardViewModel @Inject constructor(
     private fun loadAll() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, isDashboardLoading = true, error = null)
+            loadDomainSummary()
             loadDashboard()
             if (subDomainCode == null) loadSubDomains()
             loadCampaigns()
             _uiState.value = _uiState.value.copy(isLoading = false)
+        }
+    }
+
+    private suspend fun loadDomainSummary() {
+        try {
+            val summary = analyticsApi.getDomainSummary(backendDomain)
+            val hasData = summary.kpis.totalSubmissions > 0 || summary.kpis.activeCampaigns > 0
+            _uiState.value = _uiState.value.copy(
+                summaryKpis = summary.kpis,
+                countryDistribution = summary.synthesis.countryDistribution,
+                monthlyTrend = summary.synthesis.monthlyTrend,
+                subDomainBreakdown = summary.synthesis.subDomainBreakdown,
+                recentActivity = summary.recentActivity,
+                hasSummary = hasData,
+            )
+            Log.d(TAG, "Domain summary loaded: ${summary.kpis.totalSubmissions} submissions, ${summary.kpis.activeCampaigns} campaigns")
+        } catch (e: Exception) {
+            Log.w(TAG, "Domain summary failed (offline?): ${e.message}")
         }
     }
 

@@ -78,7 +78,7 @@ import org.auibar.aris.mobile.data.local.entity.UserDashboardPreferenceEntity
         // New v11 entities — KPI snapshots
         KpiSnapshotEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 abstract class ArisDatabase : RoomDatabase() {

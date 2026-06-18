@@ -82,20 +82,29 @@ private val OrangeColor = Color(0xFFE65100)
 private data class LevelStyle(val color: Color, val dotColor: Color)
 
 private val LEVEL_STYLES = mapOf(
-    1 to LevelStyle(BlueDark, Color(0xFF2196F3)),
-    2 to LevelStyle(GreenDark, Color(0xFF4CAF50)),
-    3 to LevelStyle(OrangeColor, Color(0xFFFF9800)),
-    4 to LevelStyle(PurpleColor, Color(0xFF9C27B0)),
+    "NATIONAL_TECHNICAL" to LevelStyle(BlueDark, Color(0xFF2196F3)),
+    "NATIONAL_OFFICIAL" to LevelStyle(GreenDark, Color(0xFF4CAF50)),
+    "REC_HARMONIZATION" to LevelStyle(OrangeColor, Color(0xFFFF9800)),
+    "CONTINENTAL_PUBLICATION" to LevelStyle(PurpleColor, Color(0xFF9C27B0)),
 )
 
-private fun statusColors(status: String): Pair<Color, Color> = when (status) {
-    "pending" -> AmberLight to AmberDark
-    "approved" -> GreenLight to GreenDark
-    "rejected" -> RedLight to RedDark
-    "returned" -> BlueLight to BlueDark
+private fun levelShortLabel(level: String): String = when (level) {
+    "NATIONAL_TECHNICAL" -> "L1"
+    "NATIONAL_OFFICIAL" -> "L2"
+    "REC_HARMONIZATION" -> "L3"
+    "CONTINENTAL_PUBLICATION" -> "L4"
+    else -> level.take(4)
+}
+
+private fun statusColors(status: String): Pair<Color, Color> = when (status.uppercase()) {
+    "PENDING" -> AmberLight to AmberDark
+    "APPROVED" -> GreenLight to GreenDark
+    "REJECTED" -> RedLight to RedDark
+    "RETURNED" -> BlueLight to BlueDark
     else -> Color(0xFFF5F5F5) to Color(0xFF616161)
 }
 
+@Suppress("unused")
 private fun priorityDotColor(priority: String): Color = when (priority) {
     "high" -> Color(0xFFF44336)
     "medium" -> Color(0xFFFFC107)
@@ -333,10 +342,10 @@ private fun KpiCard(
 
 @Composable
 private fun FilterRow(
-    levelFilter: Int?,
+    levelFilter: String?,
     statusFilter: String?,
     entityTypeFilter: String?,
-    onLevelChange: (Int?) -> Unit,
+    onLevelChange: (String?) -> Unit,
     onStatusChange: (String?) -> Unit,
     onEntityTypeChange: (String?) -> Unit,
 ) {
@@ -350,13 +359,13 @@ private fun FilterRow(
         Icon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(18.dp))
 
         FilterChipDropdown(
-            label = levelFilter?.let { "L$it" } ?: stringResource(R.string.validation_all_levels),
+            label = levelFilter?.let { levelShortLabel(it) } ?: stringResource(R.string.validation_all_levels),
             options = listOf(
                 null to stringResource(R.string.validation_all_levels),
-                1 to "Level 1",
-                2 to "Level 2",
-                3 to "Level 3",
-                4 to "Level 4",
+                "NATIONAL_TECHNICAL" to "L1 — National Technical",
+                "NATIONAL_OFFICIAL" to "L2 — National Official",
+                "REC_HARMONIZATION" to "L3 — REC Harmonization",
+                "CONTINENTAL_PUBLICATION" to "L4 — Continental",
             ),
             selected = levelFilter,
             onSelect = onLevelChange,
@@ -367,10 +376,10 @@ private fun FilterRow(
                 ?: stringResource(R.string.validation_all_statuses),
             options = listOf(
                 null to stringResource(R.string.validation_all_statuses),
-                "pending" to stringResource(R.string.workflow_pending),
-                "approved" to stringResource(R.string.workflow_approved),
-                "rejected" to stringResource(R.string.workflow_rejected),
-                "returned" to stringResource(R.string.validation_returned),
+                "PENDING" to stringResource(R.string.workflow_pending),
+                "APPROVED" to stringResource(R.string.workflow_approved),
+                "REJECTED" to stringResource(R.string.workflow_rejected),
+                "RETURNED" to stringResource(R.string.validation_returned),
             ),
             selected = statusFilter,
             onSelect = onStatusChange,
@@ -454,7 +463,7 @@ private fun ValidationItemCard(
     onCommentChange: (String) -> Unit,
 ) {
     val (statusBg, statusFg) = statusColors(item.status)
-    val level = LEVEL_STYLES[item.currentLevel] ?: LEVEL_STYLES[1]!!
+    val level = LEVEL_STYLES[item.currentLevel] ?: LEVEL_STYLES["NATIONAL_TECHNICAL"]!!
     val (entityBg, entityFg) = entityBadgeColors(item.entityType)
 
     Card(
@@ -469,7 +478,7 @@ private fun ValidationItemCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = item.title.ifEmpty { item.entityId },
+                    text = item.domain.replace("_", " ").replaceFirstChar { it.uppercase() }.ifEmpty { item.entityId },
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
@@ -525,24 +534,17 @@ private fun ValidationItemCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "L${item.currentLevel}",
+                        text = levelShortLabel(item.currentLevel),
                         style = MaterialTheme.typography.labelSmall,
                         color = level.color,
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
 
-                // Priority dot + label
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(priorityDotColor(item.priority)),
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
+                // Domain badge
+                if (item.domain.isNotEmpty()) {
                     Text(
-                        text = item.priority.replaceFirstChar { it.uppercase() },
+                        text = item.domain.replace("_", " ").replaceFirstChar { it.uppercase() },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -551,30 +553,19 @@ private fun ValidationItemCard(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // ── Meta info: country, submitted by, date ──
+            // ── Meta info: entity ID, created date ──
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Column {
-                    if (item.country.isNotEmpty()) {
-                        Text(
-                            text = item.country,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (item.submittedBy.isNotEmpty()) {
-                        Text(
-                            text = item.submittedBy,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                if (item.submittedAt.isNotEmpty()) {
+                Text(
+                    text = item.entityId.take(12) + "...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (item.createdAt.isNotEmpty()) {
                     Text(
-                        text = formatDate(item.submittedAt),
+                        text = formatDate(item.createdAt),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -582,7 +573,7 @@ private fun ValidationItemCard(
             }
 
             // ── Actions (only for pending items) ──
-            if (item.status == "pending") {
+            if (item.status.equals("PENDING", ignoreCase = true)) {
                 Spacer(modifier = Modifier.height(8.dp))
                 HorizontalDivider()
                 Spacer(modifier = Modifier.height(8.dp))

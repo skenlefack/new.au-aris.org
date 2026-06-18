@@ -72,9 +72,12 @@ fun ApiaryRecordScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
 
+    val submittedMsg = stringResource(R.string.record_submitted_sync, stringResource(R.string.apiary_record))
+    val draftMsg = stringResource(R.string.record_draft_saved, stringResource(R.string.apiary_record))
+
     LaunchedEffect(state.isSaved) {
         if (state.isSaved) {
-            val msg = if (state.saveMode == "submit") "Apiary record submitted for sync" else "Apiary draft saved"
+            val msg = if (state.saveMode == "submit") submittedMsg else draftMsg
             snackbarHostState.showSnackbar(msg)
         }
     }
@@ -245,7 +248,7 @@ fun ApiaryRecordScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // GPS capture
-            FieldLabel("GPS Location")
+            FieldLabel(stringResource(R.string.gps_location))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -256,7 +259,7 @@ fun ApiaryRecordScreen(
                 ) {
                     Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(18.dp))
                     Text(
-                        text = if (state.isCapturingGps) "Capturing..." else stringResource(R.string.capture_location),
+                        text = if (state.isCapturingGps) stringResource(R.string.gps_capturing) else stringResource(R.string.capture_location),
                         modifier = Modifier.padding(start = 4.dp),
                     )
                 }
@@ -272,14 +275,14 @@ fun ApiaryRecordScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Notes
-            FieldLabel("Notes")
+            FieldLabel(stringResource(R.string.notes))
             OutlinedTextField(
                 value = state.notes,
                 onValueChange = { viewModel.updateNotes(it) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 5,
-                placeholder = { Text("Additional observations...") },
+                placeholder = { Text(stringResource(R.string.additional_observations)) },
             )
 
             Spacer(modifier = Modifier.height(24.dp))

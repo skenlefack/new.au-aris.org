@@ -24,6 +24,7 @@ data class DashboardSummaryDto(
     val rowHeight: Int = 80,
     val ownerUserId: String? = null,
     val isDefault: Boolean = false,
+    val campaignId: String? = null,
 )
 
 @Serializable
@@ -51,9 +52,10 @@ class DashboardMobileApi @Inject constructor(
     private val http: HttpClient,
     private val baseUrl: String,
 ) {
-    suspend fun listAccessible(scope: String? = null): ApiResponse<List<DashboardSummaryDto>> =
+    suspend fun listAccessible(scope: String? = null, campaignId: String? = null): ApiResponse<List<DashboardSummaryDto>> =
         http.get("$baseUrl/api/v1/analytics/dashboards") {
             scope?.let { parameter("scope", it) }
+            campaignId?.let { parameter("campaignId", it) }
         }.body()
 
     suspend fun render(dashboardId: String): ApiResponse<DashboardRenderedDto> =

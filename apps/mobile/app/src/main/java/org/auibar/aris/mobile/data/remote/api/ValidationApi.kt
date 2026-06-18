@@ -5,6 +5,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -20,19 +21,30 @@ data class ValidationItemDto(
     val id: String,
     val entityType: String = "",
     val entityId: String = "",
-    val title: String = "",
-    val country: String = "",
-    val submittedBy: String = "",
-    val submittedAt: String = "",
-    val currentLevel: Int = 1,
-    val status: String = "pending",
-    val assignedTo: String? = null,
-    val priority: String = "medium",
+    val tenantId: String = "",
+    val domain: String = "",
+    val currentLevel: String = "NATIONAL_TECHNICAL",
+    val status: String = "PENDING",
+    val createdBy: String = "",
+    val createdAt: String = "",
+    val updatedAt: String = "",
+    // Optional fields that may not always be present
+    val dataContractId: String? = null,
+    val qualityReportId: String? = null,
+    val wahisReady: Boolean = false,
+    val analyticsReady: Boolean = false,
+    val slaDeadline: String? = null,
 )
 
 @Serializable
 data class ValidationActionBody(
     val comment: String? = null,
+    val reason: String? = null,
+)
+
+@Serializable
+data class UpdateSubmissionStatusBody(
+    val status: String,
     val reason: String? = null,
 )
 
@@ -56,12 +68,12 @@ class ValidationApi @Inject constructor(
     suspend fun getValidations(
         page: Int = 1,
         limit: Int = 10,
-        level: Int? = null,
+        level: String? = null,
         status: String? = null,
         entityType: String? = null,
     ): ValidationListResponse {
         return try {
-            val response = client.get("/api/v1/workflow/validations") {
+            val response = client.get("/api/v1/workflow/instances") {
                 parameter("page", page)
                 parameter("limit", limit)
                 level?.let { parameter("level", it) }
@@ -86,7 +98,7 @@ class ValidationApi @Inject constructor(
         reason: String? = null,
     ): Boolean {
         return try {
-            val endpoint = "/api/v1/workflow/validations/$id/$action"
+            val endpoint = "/api/v1/workflow/instances/$id/$action"
             val response = client.post(endpoint) {
                 contentType(ContentType.Application.Json)
                 setBody(ValidationActionBody(comment = comment, reason = reason))
@@ -98,6 +110,32 @@ class ValidationApi @Inject constructor(
             success
         } catch (e: Exception) {
             Log.w(TAG, "$action $id failed: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * Update submission status directly via collecte service.
+     * PATCH /api/v1/collecte/submissions/:id/status
+     * @param status "VALIDATED" or "REJECTED"
+     */
+    suspend fun updateSubmissionStatus(
+        submissionId: String,
+        status: String,
+        reason: String? = null,
+    ): Boolean {
+        return try {
+            val response = client.patch("/api/v1/collecte/submissions/$submissionId/status") {
+                contentType(ContentType.Application.Json)
+                setBody(UpdateSubmissionStatusBody(status = status, reason = reason))
+            }
+            val success = response.status.value in 200..299
+            if (!success) {
+                Log.w(TAG, "updateSubmissionStatus $submissionId → HTTP ${response.status.value}")
+            }
+            success
+        } catch (e: Exception) {
+            Log.w(TAG, "updateSubmissionStatus $submissionId failed: ${e.message}")
             false
         }
     }
