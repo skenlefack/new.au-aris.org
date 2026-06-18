@@ -1403,6 +1403,7 @@ export class CollectionCampaignService {
     for (const key of [
       'name', 'description', 'targetCountries', 'targetRecIds', 'targetAdminAreas',
       'targetSubmissions', 'targetPerAgent', 'frequency', 'sendReminders', 'reminderDaysBefore', 'metadata', 'formTemplateIds',
+      'formTemplateId',
     ]) {
       if (dto[key] !== undefined) data[key] = dto[key];
     }
@@ -1430,6 +1431,23 @@ export class CollectionCampaignService {
       include: { formTemplate: true, assignments: true },
     });
     return { data: campaign };
+  }
+
+  async deleteCampaign(id: string, user: AuthenticatedUser): Promise<void> {
+    const existing = await (this.prisma as any).collectionCampaign.findUnique({
+      where: { id },
+      include: { assignments: true },
+    });
+    if (!existing) throw new HttpError(404, `Campaign ${id} not found`);
+
+    await this.assertCanEdit(user, existing);
+
+    // Delete assignments first (FK constraint)
+    if (existing.assignments?.length) {
+      await (this.prisma as any).campaignAssignment.deleteMany({ where: { campaignId: id } });
+    }
+
+    await (this.prisma as any).collectionCampaign.delete({ where: { id } });
   }
 
   async addAssignment(campaignId: string, dto: Record<string, unknown>, user: AuthenticatedUser): Promise<ApiResponse<unknown>> {

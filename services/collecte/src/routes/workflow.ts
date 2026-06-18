@@ -397,6 +397,16 @@ export default async function workflowRoutes(app: FastifyInstance): Promise<void
     return campaignService.updateStatus(request.params.id, 'COMPLETED', user);
   });
 
+  // DELETE /api/v1/workflow/campaigns/:id
+  app.delete<{ Params: IdParam }>('/api/v1/workflow/campaigns/:id', {
+    schema: { params: IdParamSchema },
+    preHandler: [auth, tenant, rolesHook(...ADMIN_ROLES)],
+  }, async (request, reply) => {
+    const user = request.user as AuthenticatedUser;
+    await campaignService.deleteCampaign(request.params.id, user);
+    return reply.code(204).send();
+  });
+
   // POST /api/v1/workflow/campaigns/:id/assignments
   app.post<{ Params: IdParam; Body: CreateAssignmentBody }>('/api/v1/workflow/campaigns/:id/assignments', {
     schema: { params: IdParamSchema, body: CreateAssignmentSchema },

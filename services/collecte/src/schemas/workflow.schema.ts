@@ -243,6 +243,7 @@ export const UpdateCollectionCampaignSchema = Type.Object({
   targetSubmissions: Type.Optional(Type.Integer({ minimum: 1 })),
   targetPerAgent: Type.Optional(Type.Integer({ minimum: 1 })),
   frequency: Type.Optional(Type.String()),
+  formTemplateId: Type.Optional(Type.String({ format: 'uuid' })),
   formTemplateIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
   sendReminders: Type.Optional(Type.Boolean()),
   reminderDaysBefore: Type.Optional(Type.Integer({ minimum: 1 })),
