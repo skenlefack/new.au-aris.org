@@ -278,6 +278,7 @@ fun ValidationListScreen(
                 onConfirm = { viewModel.performAction() },
                 onCancel = { viewModel.cancelConfirming() },
                 onCommentChange = { viewModel.setActionComment(item.id, it) },
+                onViewDetails = { /* TODO: navigate to submission detail via item.entityId */ },
             )
         }
 
@@ -461,13 +462,14 @@ private fun ValidationItemCard(
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
     onCommentChange: (String) -> Unit,
+    onViewDetails: () -> Unit = {},
 ) {
     val (statusBg, statusFg) = statusColors(item.status)
     val level = LEVEL_STYLES[item.currentLevel] ?: LEVEL_STYLES["NATIONAL_TECHNICAL"]!!
     val (entityBg, entityFg) = entityBadgeColors(item.entityType)
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onViewDetails),
         shape = RoundedCornerShape(12.dp),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {

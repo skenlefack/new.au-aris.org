@@ -1,6 +1,29 @@
 package org.auibar.aris.mobile.data.remote.dto
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+
+/**
+ * Resolve a name that may be a plain string or a JSON i18n object like
+ * `{"en":"English","fr":"Français","pt":"Português","ar":"عربي"}`.
+ * Returns the best locale match or falls back to first available value.
+ */
+fun resolveI18nName(raw: String, locale: String = "en"): String {
+    val trimmed = raw.trim()
+    if (!trimmed.startsWith("{")) return trimmed
+    return try {
+        val obj = Json.parseToJsonElement(trimmed).jsonObject
+        obj[locale]?.jsonPrimitive?.content
+            ?: obj["en"]?.jsonPrimitive?.content
+            ?: obj["fr"]?.jsonPrimitive?.content
+            ?: obj.values.firstOrNull()?.jsonPrimitive?.content
+            ?: trimmed
+    } catch (_: Exception) {
+        trimmed
+    }
+}
 
 @Serializable
 data class SyncResponse(

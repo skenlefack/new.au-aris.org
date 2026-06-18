@@ -10,6 +10,7 @@ import org.auibar.aris.mobile.data.local.entity.CampaignTargetEntity
 import org.auibar.aris.mobile.data.mapper.TargetMapper
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
 import org.auibar.aris.mobile.data.remote.dto.CampaignDto
+import org.auibar.aris.mobile.data.remote.dto.resolveI18nName
 import org.auibar.aris.mobile.ui.components.RoleConfig
 import org.auibar.aris.mobile.ui.components.TargetUiModel
 import java.text.SimpleDateFormat
@@ -237,7 +238,7 @@ fun CampaignDto.toEntity(syncedAt: Long): CampaignEntity {
     return CampaignEntity(
         id = id,
         tenantId = tenantId,
-        name = name,
+        name = resolveI18nName(name),
         domain = RoleConfig.backendToMobileKey(domain),
         templateId = templateId,
         startDate = CampaignRepository.parseIsoDate(startDate),

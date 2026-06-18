@@ -1,6 +1,7 @@
 package org.auibar.aris.mobile.ui.campaign
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -238,7 +239,10 @@ fun CampaignDetailScreen(
                         }
                     } else {
                         items(submissions, key = { it.id }) { submission ->
-                            SubmissionRow(submission)
+                            SubmissionRow(
+                                submission = submission,
+                                onClick = { /* TODO: navigate to submission detail */ },
+                            )
                         }
                     }
 
@@ -345,10 +349,11 @@ private fun StatusBadge(status: String) {
 @Composable
 private fun ProgressCard(state: CampaignDetailUiState, localSubmissionCount: Int) {
     val progress = state.progress
-    val total = progress?.totalSubmissions ?: localSubmissionCount
+    val apiTotal = progress?.totalSubmissions ?: 0
+    val total = maxOf(apiTotal, localSubmissionCount) // Use whichever is higher: API or local
     val validated = progress?.validated ?: 0
     val rejected = progress?.rejected ?: 0
-    val pending = progress?.pending ?: (total - validated - rejected).coerceAtLeast(0)
+    val pending = if (progress != null) progress.pending else (total - validated - rejected).coerceAtLeast(0)
     val target = state.targetSubmissions ?: total.coerceAtLeast(1)
     val completionPct = if (target > 0) (total * 100 / target).coerceAtMost(100) else 0
 
@@ -622,7 +627,7 @@ private fun InfoRow(label: String, value: String) {
 
 // ── Submission Row ─────────────────────────────────────────────
 @Composable
-private fun SubmissionRow(submission: Submission) {
+private fun SubmissionRow(submission: Submission, onClick: () -> Unit = {}) {
     val dateFormat = remember { SimpleDateFormat("dd MMM HH:mm", Locale.getDefault()) }
     val (icon, tint, label) = when (submission.syncStatus) {
         "SYNCED" -> Triple(Icons.Default.CheckCircle, SyncSuccess, stringResource(R.string.synced))
@@ -642,6 +647,7 @@ private fun SubmissionRow(submission: Submission) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .semantics(mergeDescendants = true) {
                 contentDescription = cardDesc
             },

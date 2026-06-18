@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import org.auibar.aris.mobile.data.local.entity.DashboardEntity
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
 import org.auibar.aris.mobile.data.remote.dto.CampaignProgressDto
+import org.auibar.aris.mobile.data.remote.dto.resolveI18nName
 import org.auibar.aris.mobile.data.repository.CampaignRepository
 import org.auibar.aris.mobile.data.repository.CampaignTarget
 import org.auibar.aris.mobile.data.repository.DashboardMobileRepository
@@ -162,7 +163,7 @@ class CampaignDetailViewModel @Inject constructor(
 
                 _uiState.value = CampaignDetailUiState(
                     isLoading = false,
-                    campaignName = detail.name,
+                    campaignName = resolveI18nName(detail.name),
                     description = detail.description,
                     domain = domainKey,
                     domainLabel = DOMAIN_LABELS[domainKey] ?: domainKey,
