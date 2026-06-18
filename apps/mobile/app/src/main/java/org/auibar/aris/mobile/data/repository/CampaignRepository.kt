@@ -170,7 +170,7 @@ class CampaignRepository @Inject constructor(
             val entity = CampaignEntity(
                 id = detail.id,
                 tenantId = detail.tenantId,
-                name = detail.name,
+                name = resolveI18nName(detail.name),
                 domain = RoleConfig.backendToMobileKey(detail.domain),
                 templateId = detail.templateId ?: detail.templateIds.firstOrNull() ?: "",
                 startDate = parseIsoDate(detail.startDate),

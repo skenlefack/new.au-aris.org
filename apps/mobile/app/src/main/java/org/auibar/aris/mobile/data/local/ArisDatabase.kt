@@ -19,6 +19,7 @@ import org.auibar.aris.mobile.data.local.dao.KnowledgeDao
 import org.auibar.aris.mobile.data.local.dao.MessageDao
 import org.auibar.aris.mobile.data.local.dao.NotificationDao
 import org.auibar.aris.mobile.data.local.dao.PhotoDao
+import org.auibar.aris.mobile.data.local.dao.RefDataCacheDao
 import org.auibar.aris.mobile.data.local.dao.ReportDao
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
 import org.auibar.aris.mobile.data.local.dao.SubmissionDao
@@ -41,6 +42,7 @@ import org.auibar.aris.mobile.data.local.entity.KnowledgePublicationEntity
 import org.auibar.aris.mobile.data.local.entity.MessageEntity
 import org.auibar.aris.mobile.data.local.entity.NotificationEntity
 import org.auibar.aris.mobile.data.local.entity.PhotoEntity
+import org.auibar.aris.mobile.data.local.entity.RefDataCacheEntity
 import org.auibar.aris.mobile.data.local.entity.ReportEntity
 import org.auibar.aris.mobile.data.local.entity.SpeciesEntity
 import org.auibar.aris.mobile.data.local.entity.SubmissionEntity
@@ -77,8 +79,10 @@ import org.auibar.aris.mobile.data.local.entity.UserDashboardPreferenceEntity
         UserDashboardPreferenceEntity::class,
         // New v11 entities — KPI snapshots
         KpiSnapshotEntity::class,
+        // New v13 — generic ref data cache for offline form selects
+        RefDataCacheEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 abstract class ArisDatabase : RoomDatabase() {
@@ -103,4 +107,5 @@ abstract class ArisDatabase : RoomDatabase() {
     abstract fun reportDao(): ReportDao
     abstract fun flashAlertDao(): FlashAlertDao
     abstract fun kpiSnapshotDao(): KpiSnapshotDao
+    abstract fun refDataCacheDao(): RefDataCacheDao
 }

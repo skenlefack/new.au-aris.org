@@ -19,6 +19,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import org.auibar.aris.mobile.data.local.dao.DiseaseDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
+import org.auibar.aris.mobile.data.local.dao.RefDataCacheDao
+import org.auibar.aris.mobile.data.local.entity.RefDataCacheEntity
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
 import org.auibar.aris.mobile.data.local.entity.FormTemplateEntity
 import org.auibar.aris.mobile.data.remote.api.CampaignApi
@@ -75,6 +77,7 @@ class FormFillViewModel @Inject constructor(
     private val speciesDao: SpeciesDao,
     private val diseaseDao: DiseaseDao,
     private val geoDao: GeoDao,
+    private val refDataCacheDao: RefDataCacheDao,
     private val tokenManager: TokenManager,
 ) : ViewModel() {
 
@@ -186,13 +189,25 @@ class FormFillViewModel @Inject constructor(
                         val options = items.map { item ->
                             SelectOption(value = item.id, label = item.displayLabel())
                         }
-                        Log.d(TAG, "Ref data $type from API: ${options.size} options")
+                        // Cache to Room for offline use
+                        val cacheEntities = items.mapIndexed { idx, item ->
+                            RefDataCacheEntity(
+                                type = type,
+                                itemId = item.id,
+                                label = item.displayLabel(),
+                                parentId = null,
+                                sortOrder = idx,
+                            )
+                        }
+                        refDataCacheDao.deleteByType(type)
+                        refDataCacheDao.upsertAll(cacheEntities)
+                        Log.d(TAG, "Ref data $type from API: ${options.size} options (cached)")
                         return@async type to options
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "Ref data $type API failed (offline?): ${e.message}")
                 }
-                // Fallback to Room for known types
+                // Fallback to Room — try dedicated tables first, then generic cache
                 val roomOptions = when (type) {
                     "species" -> speciesDao.getAll().map {
                         SelectOption(value = it.id, label = "${it.commonName} (${it.scientificName})")
@@ -203,7 +218,12 @@ class FormFillViewModel @Inject constructor(
                     "geo", "countries" -> geoDao.getByLevel("COUNTRY").map {
                         SelectOption(value = it.id, label = it.name)
                     }
-                    else -> emptyList()
+                    else -> {
+                        // Generic ref_data_cache fallback for all other types
+                        refDataCacheDao.getByType(type).map {
+                            SelectOption(value = it.itemId, label = it.label)
+                        }
+                    }
                 }
                 Log.d(TAG, "Ref data $type from Room: ${roomOptions.size} options")
                 type to roomOptions

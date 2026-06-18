@@ -32,6 +32,8 @@ import org.auibar.aris.mobile.data.local.dao.UserDashboardPreferenceDao
 import org.auibar.aris.mobile.data.local.migrations.MIGRATION_9_10
 import org.auibar.aris.mobile.data.local.migrations.MIGRATION_10_11
 import org.auibar.aris.mobile.data.local.migrations.MIGRATION_11_12
+import org.auibar.aris.mobile.data.local.migrations.MIGRATION_12_13
+import org.auibar.aris.mobile.data.local.dao.RefDataCacheDao
 import javax.inject.Singleton
 
 @Module
@@ -46,7 +48,7 @@ object DatabaseModule {
             ArisDatabase::class.java,
             "aris_database",
         )
-            .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+            .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -114,4 +116,7 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideKpiSnapshotDao(db: ArisDatabase): KpiSnapshotDao = db.kpiSnapshotDao()
+
+    @Provides
+    fun provideRefDataCacheDao(db: ArisDatabase): RefDataCacheDao = db.refDataCacheDao()
 }
