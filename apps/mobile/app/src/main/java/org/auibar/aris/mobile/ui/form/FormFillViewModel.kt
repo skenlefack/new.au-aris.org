@@ -207,22 +207,24 @@ class FormFillViewModel @Inject constructor(
                 } catch (e: Exception) {
                     Log.w(TAG, "Ref data $type API failed (offline?): ${e.message}")
                 }
-                // Fallback to Room — try dedicated tables first, then generic cache
-                val roomOptions = when (type) {
-                    "species" -> speciesDao.getAll().map {
-                        SelectOption(value = it.id, label = "${it.commonName} (${it.scientificName})")
-                    }
-                    "diseases" -> diseaseDao.getAll().map {
-                        SelectOption(value = it.id, label = it.name)
-                    }
-                    "geo", "countries" -> geoDao.getByLevel("COUNTRY").map {
-                        SelectOption(value = it.id, label = it.name)
-                    }
-                    else -> {
-                        // Generic ref_data_cache fallback for all other types
-                        refDataCacheDao.getByType(type).map {
-                            SelectOption(value = it.itemId, label = it.label)
+                // Fallback to Room — try generic cache first (most reliable for all types),
+                // then dedicated tables as last resort
+                var roomOptions = refDataCacheDao.getByType(type).map {
+                    SelectOption(value = it.itemId, label = it.label)
+                }
+                // If generic cache is empty, try dedicated Room tables
+                if (roomOptions.isEmpty()) {
+                    roomOptions = when (type) {
+                        "species" -> speciesDao.getAll().map {
+                            SelectOption(value = it.id, label = "${it.commonName} (${it.scientificName})")
                         }
+                        "diseases" -> diseaseDao.getAll().map {
+                            SelectOption(value = it.id, label = it.name)
+                        }
+                        "geo", "countries" -> geoDao.getByLevel("COUNTRY").map {
+                            SelectOption(value = it.id, label = it.name)
+                        }
+                        else -> emptyList()
                     }
                 }
                 Log.d(TAG, "Ref data $type from Room: ${roomOptions.size} options")

@@ -15,6 +15,7 @@ class CampaignRefresher @Inject constructor(
     private val campaignDao: CampaignDao,
     private val formTemplateDao: FormTemplateDao,
     private val cachePolicy: CachePolicy,
+    private val masterDataRefresher: MasterDataRefresher,
 ) {
     companion object {
         private const val TAG = "CampaignRefresher"
@@ -31,6 +32,8 @@ class CampaignRefresher @Inject constructor(
     suspend fun forceRefresh() {
         refreshCampaigns()
         prefetchMissingTemplates()
+        // Pre-cache ref data for offline form selects
+        masterDataRefresher.forceRefreshAll()
     }
 
     /** Refresh templates for a specific campaign. */
