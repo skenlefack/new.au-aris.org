@@ -19,6 +19,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import org.auibar.aris.mobile.data.local.dao.DiseaseDao
 import org.auibar.aris.mobile.data.local.dao.FormTemplateDao
 import org.auibar.aris.mobile.data.local.dao.GeoDao
+import org.auibar.aris.mobile.data.local.entity.GeoEntity
 import org.auibar.aris.mobile.data.local.dao.RefDataCacheDao
 import org.auibar.aris.mobile.data.local.entity.RefDataCacheEntity
 import org.auibar.aris.mobile.data.local.dao.SpeciesDao
@@ -258,66 +259,95 @@ class FormFillViewModel @Inject constructor(
     }
 
     private suspend fun loadCountries(): List<SelectOption> {
-        // Try API first
+        // Try Room first (offline-first approach — geo data is bulk-synced)
+        val local = geoDao.getByLevel("COUNTRY").map { SelectOption(value = it.id, label = it.name) }
+        if (local.isNotEmpty()) {
+            Log.d(TAG, "Countries from Room: ${local.size}")
+            return local
+        }
+        // Fallback to API if Room is empty (first launch before sync)
         try {
             val items = campaignApi.getGeoUnits("COUNTRY", null)
             if (items.isNotEmpty()) {
-                Log.d(TAG, "Countries from API: ${items.size}")
+                // Cache to Room for next offline use
+                val entities = items.map { item ->
+                    GeoEntity(id = item.id, name = item.displayLabel(), level = "COUNTRY", parentId = null, isoCode = item.code, syncedAt = System.currentTimeMillis())
+                }
+                geoDao.upsertAll(entities)
+                Log.d(TAG, "Countries from API: ${items.size} (cached to Room)")
                 return items.map { SelectOption(value = it.id, label = it.displayLabel()) }
             }
         } catch (e: Exception) {
             Log.w(TAG, "Countries API failed: ${e.message}")
         }
-        // Fallback to local Room
-        val local = geoDao.getByLevel("COUNTRY").map { SelectOption(value = it.id, label = it.name) }
-        Log.d(TAG, "Countries from Room: ${local.size}")
-        return local
+        return emptyList()
     }
 
     private fun loadAdmin1(countryId: String) {
         viewModelScope.launch {
-            // Try API first
+            // Room first (offline-first)
+            val cached = geoDao.getChildren(countryId).map { SelectOption(value = it.id, label = it.name) }
+            if (cached.isNotEmpty()) {
+                _uiState.value = _uiState.value.copy(admin1Options = cached)
+                Log.d(TAG, "Admin1 from Room: ${cached.size}")
+                return@launch
+            }
+            // API fallback + cache results
             try {
                 val items = campaignApi.getGeoUnits(null, countryId)
                 if (items.isNotEmpty()) {
+                    val entities = items.map { item ->
+                        GeoEntity(id = item.id, name = item.displayLabel(), level = "ADMIN1", parentId = countryId, isoCode = item.code, syncedAt = System.currentTimeMillis())
+                    }
+                    geoDao.upsertAll(entities)
                     _uiState.value = _uiState.value.copy(admin1Options = items.map { SelectOption(value = it.id, label = it.displayLabel()) })
-                    Log.d(TAG, "Admin1 from API: ${items.size}")
+                    Log.d(TAG, "Admin1 from API: ${items.size} (cached)")
                     return@launch
                 }
             } catch (_: Exception) {}
-            // Fallback Room
-            val children = geoDao.getChildren(countryId).map { SelectOption(value = it.id, label = it.name) }
-            _uiState.value = _uiState.value.copy(admin1Options = children)
+            _uiState.value = _uiState.value.copy(admin1Options = emptyList())
         }
     }
 
     private fun loadAdmin2(admin1Id: String) {
         viewModelScope.launch {
+            // Room first (offline-first)
+            val cached = geoDao.getChildren(admin1Id).map { SelectOption(value = it.id, label = it.name) }
+            if (cached.isNotEmpty()) {
+                _uiState.value = _uiState.value.copy(admin2Options = cached)
+                Log.d(TAG, "Admin2 from Room: ${cached.size}")
+                return@launch
+            }
+            // API fallback + cache
             try {
-                // Primary: children of admin1
                 val items = campaignApi.getGeoUnits(null, admin1Id)
                 if (items.isNotEmpty()) {
+                    val entities = items.map { item ->
+                        GeoEntity(id = item.id, name = item.displayLabel(), level = "ADMIN2", parentId = admin1Id, isoCode = item.code, syncedAt = System.currentTimeMillis())
+                    }
+                    geoDao.upsertAll(entities)
                     _uiState.value = _uiState.value.copy(admin2Options = items.map { SelectOption(value = it.id, label = it.displayLabel()) })
-                    Log.d(TAG, "Admin2 from API (parentId=$admin1Id): ${items.size}")
+                    Log.d(TAG, "Admin2 from API: ${items.size} (cached)")
                     return@launch
                 }
                 // Fallback: some countries have admin2 parentId pointing to country, not admin1
-                // Get the selected country and load admin2 from country level with ADMIN2 filter
                 val countryId = _uiState.value.values["_country"]
                 if (!countryId.isNullOrBlank()) {
                     val admin2All = campaignApi.getGeoUnits("ADMIN2", countryId)
                     if (admin2All.isNotEmpty()) {
+                        val entities = admin2All.map { item ->
+                            GeoEntity(id = item.id, name = item.displayLabel(), level = "ADMIN2", parentId = countryId, isoCode = item.code, syncedAt = System.currentTimeMillis())
+                        }
+                        geoDao.upsertAll(entities)
                         _uiState.value = _uiState.value.copy(admin2Options = admin2All.map { SelectOption(value = it.id, label = it.displayLabel()) })
-                        Log.d(TAG, "Admin2 fallback (country=$countryId): ${admin2All.size}")
+                        Log.d(TAG, "Admin2 fallback from API (country=$countryId): ${admin2All.size} (cached)")
                         return@launch
                     }
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Admin2 API failed: ${e.message}")
             }
-            // Room fallback
-            val children = geoDao.getChildren(admin1Id).map { SelectOption(value = it.id, label = it.name) }
-            _uiState.value = _uiState.value.copy(admin2Options = children)
+            _uiState.value = _uiState.value.copy(admin2Options = emptyList())
         }
     }
 
