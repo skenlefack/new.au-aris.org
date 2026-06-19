@@ -24,9 +24,53 @@ data class FormField(
     val decimals: Int? = null,
     /** Section name this field belongs to */
     val sectionName: String? = null,
+
+    // Conditional visibility
+    val conditions: List<FieldCondition> = emptyList(),
+    val conditionLogic: String = "all", // "all" (AND) or "any" (OR)
+
+    // Default value
+    val defaultValue: String? = null,
+
+    // Read-only / hidden
+    val readOnly: Boolean = false,
+    val hidden: Boolean = false,
+
+    // Date constraints
+    val minDate: String? = null,
+    val maxDate: String? = null,
+    val disablePast: Boolean = false,
+
+    // Textarea
+    val multiline: Boolean = false,
+    val rows: Int = 3,
+
+    // Geo mode
+    val geoMode: String = "point", // "point", "polyline", "polygon", "selector"
+
+    // Repeater
+    val repeaterFields: List<FormField> = emptyList(),
+    val minRows: Int = 0,
+    val maxRows: Int = 10,
+
+    // Calculated field formula
+    val formula: String? = null,
+
+    // Custom validation message (i18n)
+    val customValidationMessage: String? = null,
+
+    // Section description
+    val sectionDescription: String? = null,
 )
 
 data class SelectOption(
     val value: String,
     val label: String,
+)
+
+data class FieldCondition(
+    val field: String,
+    val operator: String, // equals, notEquals, contains, isEmpty, isNotEmpty, greaterThan, lessThan, in, isTrue, isFalse
+    val value: String? = null,
+    val action: String = "show", // show, hide, enable, disable, setRequired
 )

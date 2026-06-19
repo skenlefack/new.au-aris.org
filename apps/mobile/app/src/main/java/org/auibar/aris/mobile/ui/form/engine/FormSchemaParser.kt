@@ -11,6 +11,7 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.auibar.aris.mobile.ui.form.model.FieldCondition
 import org.auibar.aris.mobile.ui.form.model.FormField
 import org.auibar.aris.mobile.ui.form.model.FormFieldType
 import org.auibar.aris.mobile.ui.form.model.SelectOption
@@ -50,6 +51,9 @@ class FormSchemaParser {
         for (section in sections) {
             val sec = section.jsonObject
             val sectionFields = sec["fields"]?.jsonArray ?: continue
+            val sectionName = extractLocalizedString(sec["name"]?.jsonObject, null)
+            val sectionDescription = extractLocalizedString(sec["description"]?.jsonObject, null)
+                .ifBlank { null }
 
             for (field in sectionFields) {
                 val f = field.jsonObject
@@ -76,9 +80,53 @@ class FormSchemaParser {
                 val maxLength = validation?.get("maxLength")?.jsonPrimitive?.intOrNull
                 val min = validation?.get("min")?.jsonPrimitive?.content?.toDoubleOrNull()
                 val max = validation?.get("max")?.jsonPrimitive?.content?.toDoubleOrNull()
-                val sectionName = extractLocalizedString(sec["name"]?.jsonObject, null)
 
                 val fieldType = mapSectionFieldType(type, f)
+
+                // Parse conditions
+                val conditions = parseConditions(f)
+                val conditionLogic = props?.get("conditionLogic")?.jsonPrimitive?.content
+                    ?: f["conditionLogic"]?.jsonPrimitive?.content
+                    ?: "all"
+
+                // Default value
+                val defaultValue = props?.get("defaultValue")?.jsonPrimitive?.content
+                    ?: f["defaultValue"]?.jsonPrimitive?.content
+
+                // Read-only / hidden
+                val readOnly = props?.get("readOnly")?.jsonPrimitive?.booleanOrNull ?: false
+                val hidden = props?.get("hidden")?.jsonPrimitive?.booleanOrNull ?: false
+
+                // Date constraints
+                val minDate = validation?.get("minDate")?.jsonPrimitive?.content
+                val maxDate = validation?.get("maxDate")?.jsonPrimitive?.content
+                val disablePast = validation?.get("disablePast")?.jsonPrimitive?.booleanOrNull ?: false
+
+                // Textarea properties
+                val multiline = fieldType == FormFieldType.TEXTAREA
+                val rows = props?.get("rows")?.jsonPrimitive?.intOrNull ?: 3
+
+                // Geo mode
+                val geoMode = props?.get("geoMode")?.jsonPrimitive?.content ?: "point"
+
+                // Repeater fields
+                val repeaterFields = if (fieldType == FormFieldType.REPEATER) {
+                    parseRepeaterFields(f)
+                } else emptyList()
+                val minRows = props?.get("minRows")?.jsonPrimitive?.intOrNull ?: 0
+                val maxRows = props?.get("maxRows")?.jsonPrimitive?.intOrNull ?: 10
+
+                // Calculated formula
+                val formula = props?.get("formula")?.jsonPrimitive?.content
+
+                // Custom validation message
+                val customValidationMessage = validation?.get("customMessage")?.let { el ->
+                    try {
+                        extractLocalizedString(el.jsonObject, null).ifBlank { null }
+                    } catch (_: Exception) {
+                        try { el.jsonPrimitive.content } catch (_: Exception) { null }
+                    }
+                }
 
                 fields.add(
                     FormField(
@@ -99,6 +147,23 @@ class FormSchemaParser {
                         minValue = min,
                         maxValue = max,
                         sectionName = sectionName,
+                        conditions = conditions,
+                        conditionLogic = conditionLogic,
+                        defaultValue = defaultValue,
+                        readOnly = readOnly,
+                        hidden = hidden,
+                        minDate = minDate,
+                        maxDate = maxDate,
+                        disablePast = disablePast,
+                        multiline = multiline,
+                        rows = rows,
+                        geoMode = geoMode,
+                        repeaterFields = repeaterFields,
+                        minRows = minRows,
+                        maxRows = maxRows,
+                        formula = formula,
+                        customValidationMessage = customValidationMessage,
+                        sectionDescription = sectionDescription,
                     )
                 )
                 globalOrder++
@@ -119,11 +184,15 @@ class FormSchemaParser {
 
     private fun mapSectionFieldType(type: String, field: JsonObject): FormFieldType {
         return when (type.lowercase()) {
-            "text", "textarea", "string" -> FormFieldType.TEXT
+            "text", "string" -> FormFieldType.TEXT
+            "textarea" -> FormFieldType.TEXTAREA
             "number", "integer", "decimal" -> FormFieldType.NUMBER
             "date", "datetime" -> FormFieldType.DATE
+            "time" -> FormFieldType.TIME
             "select", "dropdown" -> FormFieldType.SELECT
             "multi-select", "multiselect", "checkboxes", "checkbox-group" -> FormFieldType.MULTI_SELECT
+            "radio" -> FormFieldType.RADIO
+            "toggle", "switch", "boolean" -> FormFieldType.TOGGLE
             "master-data-select" -> {
                 val masterType = field["properties"]?.jsonObject?.get("masterDataType")?.jsonPrimitive?.content
                 when (masterType) {
@@ -133,10 +202,56 @@ class FormSchemaParser {
                 }
             }
             "admin-location" -> FormFieldType.ADMIN_CASCADER
-            "location", "gps", "geo" -> FormFieldType.LOCATION
+            "location", "gps" -> FormFieldType.LOCATION
+            "geo-point" -> FormFieldType.LOCATION
+            "geo-polygon", "geo-selector", "geo" -> FormFieldType.GEO_SELECTOR
             "photo", "image", "camera" -> FormFieldType.PHOTO_CAPTURE
-            "repeater" -> FormFieldType.TEXT // Repeater rendered as text for now
+            "file-upload", "file" -> FormFieldType.FILE_UPLOAD
+            "heading", "title" -> FormFieldType.HEADING
+            "info-box", "info", "callout" -> FormFieldType.INFO_BOX
+            "divider", "separator" -> FormFieldType.DIVIDER
+            "repeater" -> FormFieldType.REPEATER
+            "calculated", "computed" -> FormFieldType.CALCULATED
+            "signature" -> FormFieldType.SIGNATURE
             else -> FormFieldType.TEXT
+        }
+    }
+
+    private fun parseConditions(field: JsonObject): List<FieldCondition> {
+        val conditionsArray = field["conditions"]?.jsonArray ?: return emptyList()
+        return conditionsArray.mapNotNull { el ->
+            try {
+                val cond = el.jsonObject
+                val fieldKey = cond["field"]?.jsonPrimitive?.content ?: return@mapNotNull null
+                val operator = cond["operator"]?.jsonPrimitive?.content ?: "equals"
+                val value = cond["value"]?.jsonPrimitive?.content
+                val action = cond["action"]?.jsonPrimitive?.content ?: "show"
+                FieldCondition(field = fieldKey, operator = operator, value = value, action = action)
+            } catch (_: Exception) { null }
+        }
+    }
+
+    private fun parseRepeaterFields(field: JsonObject): List<FormField> {
+        val fieldsArray = field["fields"]?.jsonArray
+            ?: field["properties"]?.jsonObject?.get("fields")?.jsonArray
+            ?: return emptyList()
+        return fieldsArray.mapNotNull { el ->
+            try {
+                val f = el.jsonObject
+                val code = f["code"]?.jsonPrimitive?.content ?: return@mapNotNull null
+                val type = f["type"]?.jsonPrimitive?.content ?: "text"
+                val label = extractLocalizedString(f["label"]?.jsonObject, code)
+                val required = f["required"]?.jsonPrimitive?.booleanOrNull ?: false
+                val options = parseFieldOptions(f)
+                val fieldType = mapSectionFieldType(type, f)
+                FormField(
+                    key = code,
+                    label = label,
+                    type = fieldType,
+                    required = required,
+                    options = options,
+                )
+            } catch (_: Exception) { null }
         }
     }
 
@@ -211,12 +326,18 @@ class FormSchemaParser {
             "date" -> FormFieldType.DATE
             "multi-select", "checkboxes" -> FormFieldType.MULTI_SELECT
             "select", "radio" -> FormFieldType.SELECT
+            "textarea" -> FormFieldType.TEXTAREA
+            "toggle", "switch" -> FormFieldType.TOGGLE
+            "geo-selector" -> FormFieldType.GEO_SELECTOR
+            "signature" -> FormFieldType.SIGNATURE
             else -> {
                 val type = prop["type"]?.jsonPrimitive?.content
                 val format = prop["format"]?.jsonPrimitive?.content
                 when {
                     format == "date" -> FormFieldType.DATE
+                    format == "time" -> FormFieldType.TIME
                     type == "number" || type == "integer" -> FormFieldType.NUMBER
+                    type == "boolean" -> FormFieldType.TOGGLE
                     type == "array" -> FormFieldType.MULTI_SELECT
                     prop.containsKey("enum") -> FormFieldType.SELECT
                     else -> FormFieldType.TEXT

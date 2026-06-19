@@ -144,6 +144,20 @@ class FormFillViewModel @Inject constructor(
                 val fields = parser.parse(template.schema, template.uiSchema)
                 Log.d(TAG, "Parsed ${fields.size} fields, loading options...")
 
+                // Apply default values for fields that don't have values yet
+                val defaultValues = mutableMapOf<String, String>()
+                fields.forEach { field ->
+                    if (field.defaultValue != null && !_uiState.value.values.containsKey(field.key)) {
+                        defaultValues[field.key] = field.defaultValue
+                    }
+                }
+                if (defaultValues.isNotEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        values = _uiState.value.values + defaultValues,
+                    )
+                    Log.d(TAG, "Applied ${defaultValues.size} default values")
+                }
+
                 // Load geo options — try API first, fallback to local Room
                 val countries = loadCountries()
 
