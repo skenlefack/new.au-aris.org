@@ -166,9 +166,9 @@ class SyncRepository @Inject constructor(
             speciesDao.upsertAll(refs.species.map { dto ->
                 SpeciesEntity(
                     id = dto.id,
-                    commonName = dto.commonName,
-                    scientificName = dto.scientificName,
-                    category = dto.category,
+                    commonName = dto.resolvedName,
+                    scientificName = dto.scientificName ?: "",
+                    category = dto.category ?: "OTHER",
                     syncedAt = now,
                 )
             })
@@ -177,9 +177,9 @@ class SyncRepository @Inject constructor(
             diseaseDao.upsertAll(refs.diseases.map { dto ->
                 DiseaseEntity(
                     id = dto.id,
-                    name = dto.name,
+                    name = dto.resolvedName,
                     woahCode = dto.woahCode,
-                    category = dto.category,
+                    category = dto.category ?: "OTHER",
                     isNotifiable = dto.isNotifiable,
                     syncedAt = now,
                 )

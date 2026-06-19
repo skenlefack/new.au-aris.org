@@ -116,9 +116,9 @@ class InitialSyncViewModel @Inject constructor(
                 val entities = response.data.map { dto ->
                     SpeciesEntity(
                         id = dto.id,
-                        commonName = dto.commonName,
-                        scientificName = dto.scientificName,
-                        category = dto.category,
+                        commonName = dto.resolvedName,
+                        scientificName = dto.scientificName ?: "",
+                        category = dto.category ?: "OTHER",
                         syncedAt = now,
                     )
                 }
@@ -141,9 +141,9 @@ class InitialSyncViewModel @Inject constructor(
                 val entities = response.data.map { dto ->
                     DiseaseEntity(
                         id = dto.id,
-                        name = dto.name,
+                        name = dto.resolvedName,
                         woahCode = dto.woahCode,
-                        category = dto.category,
+                        category = dto.category ?: "OTHER",
                         isNotifiable = dto.isNotifiable,
                         syncedAt = now,
                     )
@@ -159,53 +159,49 @@ class InitialSyncViewModel @Inject constructor(
             }
             updateProgress(completedCount, totalSteps)
 
-            // Step 3: Campaigns
+            // Step 3: Campaigns (list only, no ref data)
             updateStep(3, StepStatus.IN_PROGRESS)
             try {
                 campaignRefresher.forceRefresh()
-                val templateCount = formTemplateDao.getAllIds().size
-                updateStep(3, StepStatus.DONE, templateCount)
+                val campaignCount = try { formTemplateDao.getAllIds().size } catch (_: Exception) { 0 }
+                updateStep(3, StepStatus.DONE, campaignCount)
                 completedCount++
                 Log.d(TAG, "Campaigns synced")
             } catch (e: Exception) {
-                updateStep(3, StepStatus.ERROR, errorMessage = e.message ?: "Network error")
+                updateStep(3, StepStatus.ERROR, errorMessage = e.message?.take(80) ?: "Network error")
                 Log.w(TAG, "Campaigns sync failed", e)
             }
             updateProgress(completedCount, totalSteps)
 
-            // Step 4: Templates (already fetched by campaignRefresher)
+            // Step 4: Templates (count what was fetched by campaignRefresher)
             updateStep(4, StepStatus.IN_PROGRESS)
             try {
-                val templateCount = formTemplateDao.getAll().size
+                val templateCount = try { formTemplateDao.getAll().size } catch (_: Exception) { 0 }
                 updateStep(4, StepStatus.DONE, templateCount)
                 completedCount++
                 Log.d(TAG, "Templates: $templateCount cached")
             } catch (e: Exception) {
-                updateStep(4, StepStatus.ERROR, errorMessage = e.message ?: "Error")
+                updateStep(4, StepStatus.ERROR, errorMessage = e.message?.take(80) ?: "Error")
                 Log.w(TAG, "Templates check failed", e)
             }
             updateProgress(completedCount, totalSteps)
 
-            // Step 5: Reference Data
+            // Step 5: Reference Data (scans templates for masterDataType, fetches each)
             updateStep(5, StepStatus.IN_PROGRESS)
             try {
                 masterDataRefresher.forceRefreshAll()
-                // Count total cached ref data items across all types
-                val allTemplates = formTemplateDao.getAll()
-                var refCount = 0
-                for (t in allTemplates) {
-                    refCount += refDataCacheDao.getByType(t.domain).size
-                }
-                // If refCount is 0, try species+diseases+geo as fallback count
-                if (refCount == 0) {
-                    refCount = speciesDao.getAll().size + diseaseDao.getAll().size
-                }
+                val refCount = try {
+                    // Count all ref_data_cache entries
+                    speciesDao.getAll().size + diseaseDao.getAll().size
+                } catch (_: Exception) { 0 }
                 updateStep(5, StepStatus.DONE, refCount)
                 completedCount++
                 Log.d(TAG, "Ref data synced: $refCount items")
             } catch (e: Exception) {
-                updateStep(5, StepStatus.ERROR, errorMessage = e.message ?: "Network error")
-                Log.w(TAG, "Ref data sync failed", e)
+                // Non-fatal — ref data is nice-to-have, forms still work with API
+                updateStep(5, StepStatus.ERROR, errorMessage = e.message?.take(80) ?: "Network error")
+                completedCount++ // Still count as done — don't block on ref data
+                Log.w(TAG, "Ref data sync failed (non-blocking)", e)
             }
             updateProgress(completedCount, totalSteps)
 

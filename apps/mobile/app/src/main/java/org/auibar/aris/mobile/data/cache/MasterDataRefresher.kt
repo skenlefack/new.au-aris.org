@@ -128,10 +128,12 @@ class MasterDataRefresher @Inject constructor(
      */
     private suspend fun extractAllMasterDataTypes(): Set<String> {
         val types = mutableSetOf<String>()
-        val templates = formTemplateDao.getAll()
+        val templates = try { formTemplateDao.getAll() } catch (_: Exception) { emptyList() }
         for (template in templates) {
             try {
-                val root = json.parseToJsonElement(template.schema).jsonObject
+                val schemaStr = template.schema
+                if (schemaStr.isBlank() || !schemaStr.trimStart().startsWith("{")) continue
+                val root = json.parseToJsonElement(schemaStr).jsonObject
                 val sections = root["sections"]?.jsonArray ?: continue
                 for (sec in sections) {
                     val fields = sec.jsonObject["fields"]?.jsonArray ?: continue
@@ -161,9 +163,9 @@ class MasterDataRefresher @Inject constructor(
             val entities = response.data.map { dto ->
                 SpeciesEntity(
                     id = dto.id,
-                    commonName = dto.commonName,
-                    scientificName = dto.scientificName,
-                    category = dto.category,
+                    commonName = dto.resolvedName,
+                    scientificName = dto.scientificName ?: "",
+                    category = dto.category ?: "OTHER",
                     syncedAt = now,
                 )
             }
@@ -182,9 +184,9 @@ class MasterDataRefresher @Inject constructor(
             val entities = response.data.map { dto ->
                 DiseaseEntity(
                     id = dto.id,
-                    name = dto.name,
+                    name = dto.resolvedName,
                     woahCode = dto.woahCode,
-                    category = dto.category,
+                    category = dto.category ?: "OTHER",
                     isNotifiable = dto.isNotifiable,
                     syncedAt = now,
                 )

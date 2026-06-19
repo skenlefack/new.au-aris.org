@@ -32,8 +32,17 @@ class CampaignRefresher @Inject constructor(
     suspend fun forceRefresh() {
         refreshCampaigns()
         prefetchMissingTemplates()
-        // Pre-cache ref data for offline form selects
-        masterDataRefresher.forceRefreshAll()
+    }
+
+    /** Full refresh including ref data — used by initial sync. */
+    suspend fun forceRefreshWithRefData() {
+        refreshCampaigns()
+        prefetchMissingTemplates()
+        try {
+            masterDataRefresher.forceRefreshAll()
+        } catch (e: Exception) {
+            Log.w(TAG, "Ref data pre-cache failed (non-blocking): ${e.message}")
+        }
     }
 
     /** Refresh templates for a specific campaign. */
