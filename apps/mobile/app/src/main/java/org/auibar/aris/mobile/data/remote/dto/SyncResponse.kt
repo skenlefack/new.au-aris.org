@@ -151,25 +151,30 @@ data class ReferentialUpdates(
 data class SpeciesDto(
     val id: String,
     val commonName: String? = null,
+    val commonNameEn: String? = null,
+    val commonNameFr: String? = null,
     val scientificName: String? = null,
-    val name: String? = null, // Some APIs return "name" instead of "commonName"
+    val name: String? = null,
     val category: String? = null,
     val code: String? = null,
 ) {
-    /** Resolved common name: tries commonName, then name, then code, then id */
-    val resolvedName: String get() = commonName ?: name ?: code ?: id
+    val resolvedName: String get() = commonNameEn ?: commonName ?: commonNameFr ?: name ?: code ?: id
 }
 
 @Serializable
 data class DiseaseDto(
     val id: String,
     val name: String? = null,
+    val nameEn: String? = null,
+    val nameFr: String? = null,
     val woahCode: String? = null,
+    val wahisCategory: String? = null,
     val category: String? = null,
     val isNotifiable: Boolean = false,
+    val isWoahListed: Boolean = false,
     val code: String? = null,
 ) {
-    val resolvedName: String get() = name ?: code ?: id
+    val resolvedName: String get() = nameEn ?: name ?: nameFr ?: code ?: id
 }
 
 @Serializable

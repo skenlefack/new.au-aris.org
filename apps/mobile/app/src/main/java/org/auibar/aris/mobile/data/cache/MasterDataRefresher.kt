@@ -84,8 +84,10 @@ class MasterDataRefresher @Inject constructor(
     /**
      * Scan all cached form templates, extract unique masterDataType values,
      * and pre-fetch ref data for each type so forms work offline.
+     * Public so InitialSyncViewModel can call it directly (skipping species/diseases/geo
+     * which are already synced in earlier steps).
      */
-    private suspend fun refreshAllRefData() {
+    suspend fun refreshAllRefData() {
         try {
             val types = extractAllMasterDataTypes()
             if (types.isEmpty()) {

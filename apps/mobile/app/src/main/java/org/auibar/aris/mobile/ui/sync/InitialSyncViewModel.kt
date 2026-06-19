@@ -187,9 +187,10 @@ class InitialSyncViewModel @Inject constructor(
             updateProgress(completedCount, totalSteps)
 
             // Step 5: Reference Data (scans templates for masterDataType, fetches each)
+            // Only fetches custom ref data types — species/diseases/geo already done in steps 0-2
             updateStep(5, StepStatus.IN_PROGRESS)
             try {
-                masterDataRefresher.forceRefreshAll()
+                masterDataRefresher.refreshAllRefData()
                 val refCount = try {
                     // Count all ref_data_cache entries
                     speciesDao.getAll().size + diseaseDao.getAll().size
