@@ -673,4 +673,22 @@
     <string name="domain_no_activity">Aucune activit\u00e9 r\u00e9cente</string>
     <string name="domain_view_all">Voir tout</string>
     <string name="domain_data_submissions">soumissions</string>
+
+    <!-- Initial Sync -->
+    <string name="sync_setting_up">Configuration d\'ARIS</string>
+    <string name="sync_preparing">Pr\u00e9paration de votre espace hors ligne\u2026</string>
+    <string name="sync_step_geo">Pays et divisions administratives</string>
+    <string name="sync_step_species">Catalogue des esp\u00e8ces</string>
+    <string name="sync_step_diseases">Registre des maladies</string>
+    <string name="sync_step_campaigns">Campagnes actives</string>
+    <string name="sync_step_templates">Mod\u00e8les de formulaires</string>
+    <string name="sync_step_refdata">Donn\u00e9es de r\u00e9f\u00e9rence</string>
+    <string name="sync_step_dashboard">Tableau de bord et indicateurs</string>
+    <string name="sync_waiting">En attente\u2026</string>
+    <string name="sync_in_progress">Synchronisation\u2026</string>
+    <string name="sync_step_done">%d enregistrements</string>
+    <string name="sync_step_failed">\u00c9chec</string>
+    <string name="sync_completed">termin\u00e9</string>
+    <string name="sync_once_hint">Cela ne se fait qu\'une seule fois. Les donn\u00e9es seront disponibles hors ligne.</string>
+    <string name="sync_continue">Continuer</string>
 </resources>

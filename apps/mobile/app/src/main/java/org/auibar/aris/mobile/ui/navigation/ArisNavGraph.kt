@@ -90,6 +90,7 @@ import org.auibar.aris.mobile.ui.lock.AppLockScreen
 import org.auibar.aris.mobile.ui.lock.SetPinScreen
 import org.auibar.aris.mobile.ui.navigation.AppLockViewModel
 import org.auibar.aris.mobile.ui.submission.SubmissionListScreen
+import org.auibar.aris.mobile.ui.sync.InitialSyncScreen
 import org.auibar.aris.mobile.ui.tenant.TenantHierarchyScreen
 import org.auibar.aris.mobile.ui.validation.ValidationListScreen
 import org.auibar.aris.mobile.util.AppLockManager
@@ -152,6 +153,7 @@ object ArisRoutes {
     const val DASHBOARD_VIEW = "dashboard-view/{dashboardId}"
     const val FLASH_ALERTS = "flash-alerts"
     const val TILE_DOWNLOAD = "tile-download"
+    const val INITIAL_SYNC = "initial-sync"
     const val MESSAGES = "messages"
     const val COMPOSE_MESSAGE = "compose-message"
     const val MESSAGE_THREAD = "messages/{threadId}/{recipientId}/{recipientName}"
@@ -217,7 +219,7 @@ val bottomNavItems = listOf(
 
 private val bottomNavRoutes = bottomNavItems.map { it.route }.toSet()
 
-private val hideBannerRoutes = setOf(ArisRoutes.SPLASH, ArisRoutes.LOGIN, ArisRoutes.APP_LOCK, ArisRoutes.SET_PIN)
+private val hideBannerRoutes = setOf(ArisRoutes.SPLASH, ArisRoutes.LOGIN, ArisRoutes.APP_LOCK, ArisRoutes.SET_PIN, ArisRoutes.INITIAL_SYNC)
 
 @Composable
 fun ArisNavGraph(
@@ -314,8 +316,23 @@ fun ArisNavGraph(
             composable(ArisRoutes.LOGIN) {
                 LoginScreen(
                     onLoginSuccess = {
-                        navController.navigate(ArisRoutes.HOME) {
+                        val dest = if (bannerViewModel.needsInitialSync()) {
+                            ArisRoutes.INITIAL_SYNC
+                        } else {
+                            ArisRoutes.HOME
+                        }
+                        navController.navigate(dest) {
                             popUpTo(ArisRoutes.LOGIN) { inclusive = true }
+                        }
+                    },
+                )
+            }
+
+            composable(ArisRoutes.INITIAL_SYNC) {
+                InitialSyncScreen(
+                    onSyncComplete = {
+                        navController.navigate(ArisRoutes.HOME) {
+                            popUpTo(ArisRoutes.INITIAL_SYNC) { inclusive = true }
                         }
                     },
                 )

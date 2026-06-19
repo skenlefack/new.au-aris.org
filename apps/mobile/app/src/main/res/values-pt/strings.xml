@@ -673,4 +673,22 @@
     <string name="domain_no_activity">Nenhuma atividade recente</string>
     <string name="domain_view_all">Ver tudo</string>
     <string name="domain_data_submissions">submiss\u00f5es</string>
+
+    <!-- Initial Sync -->
+    <string name="sync_setting_up">Configurando ARIS</string>
+    <string name="sync_preparing">Preparando seu espa\u00e7o offline\u2026</string>
+    <string name="sync_step_geo">Pa\u00edses e divis\u00f5es administrativas</string>
+    <string name="sync_step_species">Cat\u00e1logo de esp\u00e9cies</string>
+    <string name="sync_step_diseases">Registro de doen\u00e7as</string>
+    <string name="sync_step_campaigns">Campanhas ativas</string>
+    <string name="sync_step_templates">Modelos de formul\u00e1rios</string>
+    <string name="sync_step_refdata">Dados de refer\u00eancia</string>
+    <string name="sync_step_dashboard">Painel e indicadores</string>
+    <string name="sync_waiting">Aguardando\u2026</string>
+    <string name="sync_in_progress">Sincronizando\u2026</string>
+    <string name="sync_step_done">%d registros</string>
+    <string name="sync_step_failed">Falhou</string>
+    <string name="sync_completed">conclu\u00eddo</string>
+    <string name="sync_once_hint">Isso s\u00f3 acontece uma vez. Os dados estar\u00e3o dispon\u00edveis offline.</string>
+    <string name="sync_continue">Continuar</string>
 </resources>

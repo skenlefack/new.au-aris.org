@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.auibar.aris.mobile.data.cache.CachePolicy
 import org.auibar.aris.mobile.data.local.dao.SubmissionDao
 import org.auibar.aris.mobile.data.repository.AuthRepository
 import org.auibar.aris.mobile.sync.SyncWorker
@@ -23,6 +24,7 @@ class AppBannerViewModel @Inject constructor(
     private val tokenManager: TokenManager,
     private val authRepository: AuthRepository,
     private val submissionDao: SubmissionDao,
+    private val cachePolicy: CachePolicy,
     @ApplicationContext private val appContext: Context,
     val localeManager: LocaleManager,
 ) : ViewModel() {
@@ -52,6 +54,11 @@ class AppBannerViewModel @Inject constructor(
             kotlinx.coroutines.delay(3000)
             _isSyncing.value = false
         }
+    }
+
+    /** Returns true if the device has never completed an initial data sync. */
+    fun needsInitialSync(): Boolean {
+        return cachePolicy.getLastRefresh(CachePolicy.KEY_MASTER_GEO) == 0L
     }
 
     fun logout() {

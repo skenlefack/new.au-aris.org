@@ -708,4 +708,22 @@
     <string name="domain_no_activity">No recent activity</string>
     <string name="domain_view_all">View all</string>
     <string name="domain_data_submissions">submissions</string>
+
+    <!-- Initial Sync -->
+    <string name="sync_setting_up">Setting up ARIS</string>
+    <string name="sync_preparing">Preparing your offline workspace\u2026</string>
+    <string name="sync_step_geo">Countries &amp; Admin Divisions</string>
+    <string name="sync_step_species">Species Catalog</string>
+    <string name="sync_step_diseases">Disease Registry</string>
+    <string name="sync_step_campaigns">Active Campaigns</string>
+    <string name="sync_step_templates">Form Templates</string>
+    <string name="sync_step_refdata">Reference Data</string>
+    <string name="sync_step_dashboard">Dashboard &amp; KPIs</string>
+    <string name="sync_waiting">Waiting\u2026</string>
+    <string name="sync_in_progress">Syncing\u2026</string>
+    <string name="sync_step_done">%d records</string>
+    <string name="sync_step_failed">Failed</string>
+    <string name="sync_completed">completed</string>
+    <string name="sync_once_hint">This only happens once. Data will be available offline.</string>
+    <string name="sync_continue">Continue</string>
 </resources>
