@@ -27,11 +27,15 @@ class SyncApi @Inject constructor(
     }
 
     suspend fun fetchSpecies(): ApiResponse<List<SpeciesDto>> {
-        return client.get("/api/v1/master-data/species").body()
+        return client.get("/api/v1/master-data/species") {
+            parameter("limit", 5000) // Load ALL species for offline use
+        }.body()
     }
 
     suspend fun fetchDiseases(): ApiResponse<List<DiseaseDto>> {
-        return client.get("/api/v1/master-data/diseases").body()
+        return client.get("/api/v1/master-data/diseases") {
+            parameter("limit", 5000) // Load ALL diseases for offline use
+        }.body()
     }
 
     suspend fun fetchGeoUnits(): ApiResponse<List<GeoDto>> {

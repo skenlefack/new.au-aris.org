@@ -66,6 +66,7 @@ class DomainDashboardViewModel @Inject constructor(
     private val campaignApi: CampaignApi,
     private val dashboardRepository: DashboardMobileRepository,
     private val analyticsApi: AnalyticsApi,
+    private val refDataCacheDao: org.auibar.aris.mobile.data.local.dao.RefDataCacheDao,
 ) : ViewModel() {
 
     val domainKey: String = savedStateHandle.get<String>("domainKey") ?: ""
@@ -149,6 +150,8 @@ class DomainDashboardViewModel @Inject constructor(
     }
 
     private suspend fun loadSubDomains() {
+        val cacheKey = "subdomain_$backendDomain"
+        // Try API first
         try {
             for (code in listOf(backendDomain, domainKey).distinct()) {
                 val dtos = campaignApi.getSubDomains(code)
@@ -161,12 +164,35 @@ class DomainDashboardViewModel @Inject constructor(
                         )
                     }
                     _uiState.value = _uiState.value.copy(subDomains = items)
-                    Log.d(TAG, "Sub-domains: ${items.size} for code=$code")
+                    // Cache for offline
+                    val entities = items.mapIndexed { idx, item ->
+                        org.auibar.aris.mobile.data.local.entity.RefDataCacheEntity(
+                            type = cacheKey, itemId = item.id, label = "${item.code}|${item.labelEn}|${item.labelFr}",
+                            sortOrder = idx,
+                        )
+                    }
+                    refDataCacheDao.deleteByType(cacheKey)
+                    refDataCacheDao.upsertAll(entities)
+                    Log.d(TAG, "Sub-domains: ${items.size} for code=$code (cached)")
                     return
                 }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Sub-domains fetch failed (offline?): ${e.message}")
+            Log.w(TAG, "Sub-domains API failed, trying cache: ${e.message}")
+        }
+        // Offline fallback from cache
+        val cached = refDataCacheDao.getByType(cacheKey)
+        if (cached.isNotEmpty()) {
+            val items = cached.map { entity ->
+                val parts = entity.label.split("|", limit = 3)
+                SubDomainUi(
+                    id = entity.itemId, code = parts.getOrElse(0) { "" },
+                    labelEn = parts.getOrElse(1) { parts[0] },
+                    labelFr = parts.getOrElse(2) { parts.getOrElse(1) { parts[0] } },
+                )
+            }
+            _uiState.value = _uiState.value.copy(subDomains = items)
+            Log.d(TAG, "Sub-domains from cache: ${items.size}")
         }
     }
 
