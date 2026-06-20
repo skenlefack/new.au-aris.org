@@ -186,23 +186,20 @@ class InitialSyncViewModel @Inject constructor(
             }
             updateProgress(completedCount, totalSteps)
 
-            // Step 5: Reference Data (scans templates for masterDataType, fetches each)
-            // Only fetches custom ref data types — species/diseases/geo already done in steps 0-2
+            // Step 5: Reference Data
+            // Ref data for form selects is cached on-demand when user opens a form.
+            // We just count what's already available from species + diseases synced above.
             updateStep(5, StepStatus.IN_PROGRESS)
             try {
-                masterDataRefresher.refreshAllRefData()
                 val refCount = try {
-                    // Count all ref_data_cache entries
                     speciesDao.getAll().size + diseaseDao.getAll().size
                 } catch (_: Exception) { 0 }
                 updateStep(5, StepStatus.DONE, refCount)
                 completedCount++
-                Log.d(TAG, "Ref data synced: $refCount items")
+                Log.d(TAG, "Ref data ready: $refCount base items (custom types cached on form open)")
             } catch (e: Exception) {
-                // Non-fatal — ref data is nice-to-have, forms still work with API
-                updateStep(5, StepStatus.ERROR, errorMessage = e.message?.take(80) ?: "Network error")
-                completedCount++ // Still count as done — don't block on ref data
-                Log.w(TAG, "Ref data sync failed (non-blocking)", e)
+                updateStep(5, StepStatus.DONE, 0)
+                completedCount++
             }
             updateProgress(completedCount, totalSteps)
 
