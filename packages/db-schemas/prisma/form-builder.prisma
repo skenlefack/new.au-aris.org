@@ -225,6 +225,68 @@ model FormReviewComment {
   @@schema("form_builder")
 }
 
+// ── Form Extension: campaign-scoped field additions by REC/Country ──
+
+enum FormExtensionLevel {
+  REC
+  COUNTRY
+
+  @@schema("form_builder")
+}
+
+enum FormExtensionStatus {
+  DRAFT
+  PENDING_VALIDATION
+  PUBLISHED
+  ARCHIVED
+
+  @@schema("form_builder")
+}
+
+model FormExtension {
+  id                String              @id @default(uuid()) @db.Uuid
+  base_form_id      String              @db.Uuid
+  base_form_version Int
+  campaign_id       String              @db.Uuid
+  level             FormExtensionLevel
+  tenant_id         String              @db.Uuid
+  version           Int                 @default(1)
+  status            FormExtensionStatus @default(DRAFT)
+  created_by        String              @db.Uuid
+  validated_by      String?             @db.Uuid
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+
+  fields            FormExtensionField[]
+
+  @@unique([base_form_id, campaign_id, level, tenant_id, version])
+  @@index([campaign_id, tenant_id])
+  @@index([base_form_id])
+  @@map("form_extensions")
+  @@schema("form_builder")
+}
+
+model FormExtensionField {
+  id                String   @id @default(uuid()) @db.Uuid
+  extension_id      String   @db.Uuid
+  field_key         String   @db.VarChar(255)
+  label_i18n        Json                    // { en, fr, ar, pt }
+  type              String   @db.VarChar(50) // text | number | date | select | boolean | ...
+  required          Boolean  @default(false)
+  validation_rules  Json?
+  reference_data_id String?  @db.Uuid
+  properties        Json?                   // type-specific configuration (options, min, max, etc.)
+  order             Int      @default(0)
+  created_at        DateTime @default(now())
+
+  extension         FormExtension @relation(fields: [extension_id], references: [id], onDelete: Cascade)
+
+  @@unique([extension_id, field_key])
+  @@index([extension_id])
+  @@map("form_extension_fields")
+  @@schema("form_builder")
+}
+
 // Version history for audit trail on templates and overlays
 model FormVersionHistory {
   id            String   @id @default(uuid()) @db.Uuid

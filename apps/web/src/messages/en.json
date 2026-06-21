@@ -2695,7 +2695,9 @@
     "arabic": "Arabic",
     "locked": "Locked",
     "cancel": "Cancel",
-    "save": "Save"
+    "save": "Save",
+    "extensionFieldsSection": "Extension Fields",
+    "extensionFieldsDesc": "Additional fields added by your organization for this campaign"
   },
   "masterData": {
     "title": "Master Data",

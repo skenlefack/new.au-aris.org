@@ -2695,7 +2695,9 @@
     "arabic": "Arabe",
     "locked": "Verrouillé",
     "cancel": "Annuler",
-    "save": "Enregistrer"
+    "save": "Enregistrer",
+    "extensionFieldsSection": "Champs d'extension",
+    "extensionFieldsDesc": "Champs supplémentaires ajoutés par votre organisation pour cette campagne"
   },
   "masterData": {
     "title": "Données de référence",

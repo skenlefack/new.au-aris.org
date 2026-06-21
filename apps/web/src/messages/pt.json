@@ -2696,7 +2696,9 @@
     "arabic": "Árabe",
     "locked": "Bloqueado",
     "cancel": "Cancelar",
-    "save": "Salvar"
+    "save": "Salvar",
+    "extensionFieldsSection": "Campos de Extensão",
+    "extensionFieldsDesc": "Campos adicionais adicionados pela sua organização para esta campanha"
   },
   "masterData": {
     "title": "Dados Mestres",

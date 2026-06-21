@@ -1,18 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import {
   useFormBuilderTemplate,
   useCreateSubmission,
+  useEffectiveForm,
   type FormTemplateListItem,
 } from '@/lib/api/form-builder-hooks';
 import { FormRenderer } from '@/components/form-builder/renderer/FormRenderer';
+import type { ExtensionFieldDef } from '@/components/form-builder/renderer/FormRenderer';
 import { Skeleton } from '@/components/ui/Skeleton';
 import type { FormSchema } from '@/components/form-builder/utils/form-schema';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTenantStore } from '@/lib/stores/tenant-store';
 
 function extractSchema(tpl: FormTemplateListItem | undefined): FormSchema | null {
   if (!tpl?.schema) return null;
@@ -29,10 +33,18 @@ export default function FormFillPage() {
   const t = useTranslations('collecte');
 
   const templateId = params.id as string;
-  const returnTo = searchParams.get('returnTo') ?? '/collecte/forms';
+  const campaignId = searchParams?.get('campaignId') ?? undefined;
+  const returnTo = searchParams?.get('returnTo') ?? '/collecte/forms';
+
+  const user = useAuthStore((s) => s.user);
+  const selectedTenant = useTenantStore((s) => s.selectedTenant);
+  const tenantId = user?.tenantId ?? selectedTenant?.id;
 
   const { data: templateRes, isLoading } = useFormBuilderTemplate(templateId);
   const submitMutation = useCreateSubmission();
+
+  // Fetch effective form (base + extension) when in campaign context
+  const { data: effectiveData } = useEffectiveForm(campaignId, templateId, tenantId);
 
   const [submitted, setSubmitted] = useState(false);
 
@@ -40,12 +52,30 @@ export default function FormFillPage() {
   const schema = extractSchema(template);
   const templateName = template?.name ?? 'Form';
 
+  // Map effective form extension fields to ExtensionFieldDef[]
+  const extensionFields = useMemo<ExtensionFieldDef[]>(() => {
+    if (!effectiveData?.extensionFields?.length) return [];
+    return effectiveData.extensionFields.map((ef) => ({
+      id: ef.id,
+      fieldKey: ef.fieldKey,
+      label: ef.label as Record<string, string>,
+      type: ef.type,
+      required: ef.required,
+      order: ef.order,
+      properties: ef.properties as Record<string, unknown> | null,
+      referenceDataId: ef.referenceDataId,
+      validation: ef.validation,
+    }));
+  }, [effectiveData]);
+
   const handleSubmit = async (formData: Record<string, unknown>) => {
     try {
       await submitMutation.mutateAsync({
         templateId,
         data: formData,
         status: 'SUBMITTED',
+        ...(campaignId ? { campaignId } : {}),
+        ...(effectiveData?.extension ? { extensionId: effectiveData.extension.id } : {}),
       });
       setSubmitted(true);
     } catch {
@@ -125,6 +155,7 @@ export default function FormFillPage() {
         schema={schema}
         formName={templateName}
         onSubmit={handleSubmit}
+        extensionFields={extensionFields.length > 0 ? extensionFields : undefined}
       />
     </div>
   );

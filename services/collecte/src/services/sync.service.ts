@@ -512,6 +512,21 @@ export class SyncService {
         )
       : [];
 
+    // Updated form extensions (published extensions for this tenant's campaigns)
+    const updatedExtensions = includeAll || types!.includes('templates')
+      ? await (this.prisma as any).$queryRawUnsafe(
+          `SELECT fe.id, fe.base_form_id as "baseFormId", fe.campaign_id as "campaignId",
+                  fe.level, fe.tenant_id as "tenantId", fe.version, fe.status,
+                  fe.updated_at as "updatedAt"
+           FROM form_builder.form_extensions fe
+           WHERE fe.tenant_id = $1 AND fe.status = 'PUBLISHED' AND fe.updated_at > $2
+           ORDER BY fe.updated_at DESC
+           LIMIT 100`,
+          tenantId,
+          sinceDate,
+        )
+      : [];
+
     // Workflow updates for user's submissions
     const workflowUpdates = includeAll || types!.includes('submissions')
       ? await (this.prisma as any).$queryRawUnsafe(
@@ -546,6 +561,16 @@ export class SyncService {
         domain: t.domain ?? '',
         version: t.version ?? 1,
         updatedAt: t.updatedAt instanceof Date ? t.updatedAt.toISOString() : String(t.updatedAt),
+      })),
+      updatedExtensions: (updatedExtensions as any[]).map((e: any) => ({
+        id: e.id,
+        baseFormId: e.baseFormId,
+        campaignId: e.campaignId,
+        level: e.level,
+        tenantId: e.tenantId,
+        version: e.version ?? 1,
+        status: e.status,
+        updatedAt: e.updatedAt instanceof Date ? e.updatedAt.toISOString() : String(e.updatedAt),
       })),
       updatedReferentials,
       workflowUpdates: (workflowUpdates as any[]).map((w: any) => ({

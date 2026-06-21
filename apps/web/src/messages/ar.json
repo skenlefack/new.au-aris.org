@@ -2696,7 +2696,9 @@
     "arabic": "العربية",
     "locked": "مقفل",
     "cancel": "إلغاء",
-    "save": "حفظ"
+    "save": "حفظ",
+    "extensionFieldsSection": "حقول التوسيع",
+    "extensionFieldsDesc": "حقول إضافية أضافتها مؤسستك لهذه الحملة"
   },
   "masterData": {
     "title": "البيانات المرجعية",

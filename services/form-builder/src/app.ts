@@ -7,6 +7,7 @@ import prismaPlugin from './plugins/prisma';
 import templateRoutes from './routes/templates';
 import submissionRoutes from './routes/submissions';
 import overlayRoutes from './routes/overlays';
+import extensionRoutes from './routes/extensions';
 import reviewRoutes from './routes/reviews';
 
 export async function buildApp() {
@@ -59,6 +60,7 @@ export async function buildApp() {
   await app.register(templateRoutes);
   await app.register(submissionRoutes);
   await app.register(overlayRoutes);
+  await app.register(extensionRoutes);
   await app.register(reviewRoutes);
 
   return app;

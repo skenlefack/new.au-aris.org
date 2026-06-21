@@ -317,6 +317,8 @@ export function useCreateSubmission() {
       data: Record<string, unknown>;
       status?: 'DRAFT' | 'SUBMITTED';
       geoLocation?: Record<string, unknown>;
+      campaignId?: string;
+      extensionId?: string;
     }) => fb.post<ApiResponse<FormSubmissionListItem>>(
       `/templates/${templateId}/submissions`,
       body,
@@ -662,5 +664,222 @@ export function useCloseReview() {
       qc.invalidateQueries({ queryKey: ['form-builder', 'review', reviewId] });
       qc.invalidateQueries({ queryKey: ['form-builder', 'reviews'] });
     },
+  });
+}
+
+// ===========================================================================
+// ── Form Extensions (campaign-scoped field additions by REC/Country) ──
+// ===========================================================================
+
+export interface FormExtensionFieldEntity {
+  id: string;
+  extensionId: string;
+  fieldKey: string;
+  labelI18n: Record<string, string>;
+  type: string;
+  required: boolean;
+  validationRules: unknown | null;
+  referenceDataId: string | null;
+  properties: unknown | null;
+  order: number;
+  createdAt: string;
+}
+
+export interface FormExtensionEntity {
+  id: string;
+  baseFormId: string;
+  baseFormVersion: number;
+  campaignId: string;
+  level: 'REC' | 'COUNTRY';
+  tenantId: string;
+  version: number;
+  status: 'DRAFT' | 'PENDING_VALIDATION' | 'PUBLISHED' | 'ARCHIVED';
+  createdBy: string;
+  validatedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  fields: FormExtensionFieldEntity[];
+}
+
+export interface EffectiveField {
+  id: string;
+  fieldKey: string;
+  label: unknown;
+  type: string;
+  required: boolean;
+  order: number;
+  origin: 'base' | 'extension';
+  locked: boolean;
+  section?: string;
+  validation?: unknown;
+  properties?: unknown;
+  referenceDataId?: string | null;
+}
+
+export interface EffectiveForm {
+  template: { id: string; name: string; version: number; schema: unknown };
+  baseFields: EffectiveField[];
+  extensionFields: EffectiveField[];
+  allFields: EffectiveField[];
+  extension: { id: string; level: string; tenantId: string; version: number } | null;
+}
+
+// ---- List extensions for a base form + campaign ----
+export function useFormExtensions(
+  baseFormId: string | undefined,
+  params?: { campaignId?: string; tenantId?: string; page?: number; limit?: number },
+) {
+  return useQuery({
+    queryKey: ['form-builder', 'extensions', baseFormId, params],
+    queryFn: () =>
+      fb.get<{ data: FormExtensionEntity[]; meta: { total: number; page: number; limit: number } }>(
+        `/forms/${baseFormId}/extensions`,
+        {
+          ...(params?.campaignId && { campaignId: params.campaignId }),
+          ...(params?.tenantId && { tenantId: params.tenantId }),
+          ...(params?.page && { page: String(params.page) }),
+          ...(params?.limit && { limit: String(params.limit) }),
+        },
+      ),
+    enabled: !!baseFormId && !!params?.campaignId,
+  });
+}
+
+// ---- Get a single extension ----
+export function useFormExtension(extensionId: string | undefined) {
+  return useQuery({
+    queryKey: ['form-builder', 'extension', extensionId],
+    queryFn: () =>
+      fb.get<{ data: FormExtensionEntity }>(`/extensions/${extensionId}`),
+    enabled: !!extensionId,
+  });
+}
+
+// ---- Create extension ----
+export function useCreateExtension() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { baseFormId: string; campaignId: string; level: 'REC' | 'COUNTRY'; tenantId: string }) =>
+      fb.post<{ data: FormExtensionEntity }>(`/forms/${data.baseFormId}/extensions`, {
+        campaignId: data.campaignId,
+        level: data.level,
+        tenantId: data.tenantId,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['form-builder', 'extensions'] });
+    },
+  });
+}
+
+// ---- Add field to extension ----
+export function useAddExtensionField() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      extensionId: string;
+      fieldKey: string;
+      labelI18n: Record<string, string>;
+      type: string;
+      required?: boolean;
+      validationRules?: unknown;
+      referenceDataId?: string;
+      properties?: unknown;
+      order?: number;
+    }) =>
+      fb.post<{ data: FormExtensionFieldEntity }>(`/extensions/${data.extensionId}/fields`, {
+        fieldKey: data.fieldKey,
+        labelI18n: data.labelI18n,
+        type: data.type,
+        required: data.required,
+        validationRules: data.validationRules,
+        referenceDataId: data.referenceDataId,
+        properties: data.properties,
+        order: data.order,
+      }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['form-builder', 'extension', vars.extensionId] });
+      qc.invalidateQueries({ queryKey: ['form-builder', 'extensions'] });
+    },
+  });
+}
+
+// ---- Update extension field ----
+export function useUpdateExtensionField() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      extensionId: string;
+      fieldId: string;
+      fieldKey?: string;
+      labelI18n?: Record<string, string>;
+      type?: string;
+      required?: boolean;
+      validationRules?: unknown | null;
+      referenceDataId?: string | null;
+      properties?: unknown | null;
+      order?: number;
+    }) => {
+      const { extensionId, fieldId, ...body } = data;
+      return fb.patch<{ data: FormExtensionFieldEntity }>(`/extensions/${extensionId}/fields/${fieldId}`, body);
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['form-builder', 'extension', vars.extensionId] });
+    },
+  });
+}
+
+// ---- Delete extension field ----
+export function useDeleteExtensionField() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { extensionId: string; fieldId: string }) =>
+      fb.del(`/extensions/${data.extensionId}/fields/${data.fieldId}`),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['form-builder', 'extension', vars.extensionId] });
+      qc.invalidateQueries({ queryKey: ['form-builder', 'extensions'] });
+    },
+  });
+}
+
+// ---- Submit extension for validation ----
+export function useSubmitExtension() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (extensionId: string) =>
+      fb.post<{ data: FormExtensionEntity }>(`/extensions/${extensionId}/submit`),
+    onSuccess: (_, extensionId) => {
+      qc.invalidateQueries({ queryKey: ['form-builder', 'extension', extensionId] });
+      qc.invalidateQueries({ queryKey: ['form-builder', 'extensions'] });
+    },
+  });
+}
+
+// ---- Publish extension ----
+export function usePublishExtension() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (extensionId: string) =>
+      fb.post<{ data: FormExtensionEntity }>(`/extensions/${extensionId}/publish`),
+    onSuccess: (_, extensionId) => {
+      qc.invalidateQueries({ queryKey: ['form-builder', 'extension', extensionId] });
+      qc.invalidateQueries({ queryKey: ['form-builder', 'extensions'] });
+    },
+  });
+}
+
+// ---- Get effective form (base + extension) ----
+export function useEffectiveForm(
+  campaignId: string | undefined,
+  baseFormId: string | undefined,
+  tenantId: string | undefined,
+) {
+  return useQuery({
+    queryKey: ['form-builder', 'effective-form', campaignId, baseFormId, tenantId],
+    queryFn: () =>
+      fb.get<EffectiveForm>(
+        `/campaigns/${campaignId}/forms/${baseFormId}/effective`,
+        { tenantId: tenantId! },
+      ),
+    enabled: !!campaignId && !!baseFormId && !!tenantId,
   });
 }

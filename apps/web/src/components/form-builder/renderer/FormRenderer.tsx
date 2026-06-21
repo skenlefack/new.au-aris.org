@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useMemo, useState, useRef } from 'react';
 import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { FormSchema, FormSection, FormField, FieldCondition } from '../utils/form-schema';
+import type { FormSchema, FormSection, FormField, FieldCondition, MultilingualText } from '../utils/form-schema';
 import { FieldRenderer } from './FieldRenderer';
 import { evaluateFieldCondition, evaluateCrossFieldRules } from './ConditionEvaluator';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -21,6 +21,19 @@ function isCommentField(field: FormField): boolean {
   return code.includes('comment') || code.includes('observation') || code.includes('remarks') || code.includes('remark');
 }
 
+/** Extension field from the effective form API — mapped to FormField for rendering */
+export interface ExtensionFieldDef {
+  id: string;
+  fieldKey: string;
+  label: Record<string, string>;
+  type: string;
+  required: boolean;
+  order: number;
+  properties?: Record<string, unknown> | null;
+  referenceDataId?: string | null;
+  validation?: unknown;
+}
+
 interface FormRendererProps {
   schema: FormSchema;
   formName: string;
@@ -33,6 +46,10 @@ interface FormRendererProps {
   onSubmit?: (data: Record<string, unknown>) => void;
   /** Campaign target countries (ISO codes) — filters admin-location fields */
   campaignTargetCountries?: string[];
+  /** Extension fields from effective form — rendered as an extra section after base sections */
+  extensionFields?: ExtensionFieldDef[];
+  /** Label for the extension section (defaults to "Extension Fields") */
+  extensionSectionLabel?: string;
 }
 
 /** Check if a value is considered "empty" for required-field validation */
@@ -45,7 +62,7 @@ function isEmptyValue(value: unknown): boolean {
 /** Layout/display-only field types that should never be required */
 const LAYOUT_TYPES = new Set(['heading', 'divider', 'spacer', 'info-box']);
 
-export function FormRenderer({ schema, formName, mobile = false, preview = false, isSubmitting = false, onSubmit, campaignTargetCountries }: FormRendererProps) {
+export function FormRenderer({ schema, formName, mobile = false, preview = false, isSubmitting = false, onSubmit, campaignTargetCountries, extensionFields, extensionSectionLabel }: FormRendererProps) {
   const t = useTranslations('collecte');
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
@@ -53,6 +70,31 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
   const [isTranslating, setIsTranslating] = useState(false);
   const locale = useLocaleStore((s) => s.locale);
   const translateMut = useTranslateToAll();
+
+  // Convert extension fields to FormField objects for rendering
+  const extensionFormFields: FormField[] = useMemo(() => {
+    if (!extensionFields?.length) return [];
+    return extensionFields
+      .sort((a, b) => a.order - b.order)
+      .map((ef) => ({
+        id: ef.id,
+        type: ef.type,
+        code: ef.fieldKey,
+        label: (ef.label ?? {}) as MultilingualText,
+        column: 1,
+        columnSpan: 1,
+        order: ef.order,
+        required: ef.required,
+        readOnly: false,
+        hidden: false,
+        validation: ef.validation ?? {},
+        conditions: [],
+        properties: {
+          ...(ef.properties ?? {}),
+          ...(ef.referenceDataId ? { referenceDataId: ef.referenceDataId } : {}),
+        },
+      } as FormField));
+  }, [extensionFields]);
 
   // Cross-field validation errors (dynamic rules from schema)
   const crossFieldErrors = useMemo(
@@ -182,6 +224,15 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
       }
     }
 
+    // Validate required extension fields
+    for (const ef of extensionFormFields) {
+      if (ef.required && isEmptyValue(values[ef.code])) {
+        const lang = locale?.slice(0, 2) ?? 'en';
+        const label = ef.label?.[lang] || ef.label?.en || ef.label?.fr || ef.code;
+        errors[ef.code] = `${label} is required`;
+      }
+    }
+
     if (Object.keys(errors).length > 0) {
       setRequiredErrors(errors);
       setCollapsedSections((prev) => {
@@ -239,6 +290,41 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
               />
             );
           })}
+
+        {/* Extension Fields section */}
+        {extensionFormFields.length > 0 && (
+          <div className="rounded-xl border border-purple-200 bg-white shadow-sm dark:bg-gray-800 dark:border-purple-800">
+            <div className="flex items-center gap-3 px-6 py-4">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/40">
+                <svg className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                  {extensionSectionLabel ?? t('extensionFieldsSection')}
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">{t('extensionFieldsDesc')}</p>
+              </div>
+            </div>
+            <div className="px-6 pb-6">
+              <div className={mobile ? 'grid gap-4 grid-cols-1' : 'grid gap-4 grid-cols-1 md:grid-cols-2'}>
+                {extensionFormFields.map((field) => (
+                  <div key={field.id}>
+                    <FieldRenderer
+                      field={field}
+                      value={values[field.code]}
+                      onChange={(v) => handleFieldChange(field.code, v)}
+                      onAutoFill={(code, v) => handleFieldChange(code, v)}
+                      error={fieldErrors[field.code]}
+                      formValues={values}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Validation summary */}
         {Object.keys(requiredErrors).length > 0 && (
