@@ -196,7 +196,7 @@ def run_tests(base_url, env_label):
     # -- 8b. Verify SUPER_ADMIN gets 403 at L1 (role check) --
     # (Already moved past L1, so create a second instance to verify)
     print("\n-- 8b. Verify SUPER_ADMIN cannot act at L1 --")
-    test_sub_id_rbac = "00000000-aaaa-bbbb-cccc-e2erbac00001"
+    test_sub_id_rbac = "00000000-aaaa-bbbb-cccc-e2e00bac0001"
     data = test("Create RBAC test instance", "POST", f"{WF}/instances", 201, sa_h,
                  body={"entityType": "E2ETest", "entityId": test_sub_id_rbac, "domain": "health"})
     rbac_inst_id = data.get("data", {}).get("id") if data else None
@@ -240,7 +240,7 @@ def run_tests(base_url, env_label):
     print("\n-- 11. Return for correction --")
     # We cannot return from L3 as NATIONAL_ADMIN (403), so skip this step.
     # Instead, create a new instance and test return at L1 level with NATIONAL_ADMIN.
-    test_sub_id_return = "00000000-aaaa-bbbb-cccc-e2eret000001"
+    test_sub_id_return = "00000000-aaaa-bbbb-cccc-e2e00e000001"
     data = test("Create return-test instance", "POST", f"{WF}/instances", 201, sa_h,
                  body={"entityType": "E2ETest", "entityId": test_sub_id_return, "domain": "health"})
     return_inst_id = data.get("data", {}).get("id") if data else None

@@ -97,8 +97,7 @@ export class WorkflowService {
         tenant_id: user.tenantId,
         entity_type: dto.entityType,
         entity_id: dto.entityId,
-        domain: dto.domain, // Backward compat: writes legacy domain field from campaign/form, prefer targets[]
-        campaign_id: dto.campaignId ?? null,
+        domain: dto.domain,
         current_level: startLevel,
         status: 'PENDING',
         data_contract_id: dto.dataContractId ?? null,
@@ -106,6 +105,16 @@ export class WorkflowService {
         created_by: user.userId,
       },
     });
+
+    // Set campaign_id via raw SQL (Prisma client may not have the column in its generated types yet)
+    if (dto.campaignId) {
+      await (this.prisma as any).$executeRawUnsafe(
+        `UPDATE workflow.workflow_instances SET campaign_id = $1::uuid WHERE id = $2::uuid`,
+        dto.campaignId,
+        instance.id,
+      );
+      instance.campaign_id = dto.campaignId;
+    }
 
     // Task 3: SLA deadline auto-population from WorkflowDefinition
     const updatedInstance = await this.applySlaDeadline(instance, user.tenantId);
@@ -143,10 +152,18 @@ export class WorkflowService {
       ...this.buildTenantFilter(user),
       ...(query.level && { current_level: query.level as Prisma.EnumWfLevelFilter }),
       ...(query.status && { status: query.status as Prisma.EnumWfStatusFilter }),
-      ...(query.domain && { domain: query.domain }), // Backward compat: reads legacy domain field, prefer targets[]
+      ...(query.domain && { domain: query.domain }),
       ...(query.entityId && { entity_id: query.entityId }),
-      ...(query.campaignId && { campaign_id: query.campaignId }),
     };
+
+    // campaign_id filter via raw SQL (column added via migration, not in Prisma generated types)
+    if (query.campaignId) {
+      const ids: Array<{ id: string }> = await (this.prisma as any).$queryRawUnsafe(
+        `SELECT id FROM workflow.workflow_instances WHERE campaign_id = $1::uuid`,
+        query.campaignId,
+      );
+      (where as any).id = { in: ids.map(r => r.id) };
+    }
 
     const [data, total] = await Promise.all([
       (this.prisma as any).workflowInstance.findMany({ where, skip, take: limit, orderBy }),
