@@ -24,6 +24,7 @@ data class ValidationUiState(
     val levelFilter: String? = null,
     val statusFilter: String? = null,
     val entityTypeFilter: String? = null,
+    val campaignFilter: String? = null,
     val searchQuery: String = "",
     // KPIs
     val pendingCount: Int = 0,
@@ -63,6 +64,7 @@ class ValidationListViewModel @Inject constructor(
                 level = state.levelFilter,
                 status = state.statusFilter,
                 entityType = state.entityTypeFilter,
+                campaignId = state.campaignFilter,
             )
             result.fold(
                 onSuccess = { data ->
@@ -104,6 +106,11 @@ class ValidationListViewModel @Inject constructor(
 
     fun setEntityTypeFilter(type: String?) {
         _uiState.update { it.copy(entityTypeFilter = type, page = 1) }
+        loadValidations()
+    }
+
+    fun setCampaignFilter(campaignId: String?) {
+        _uiState.update { it.copy(campaignFilter = campaignId, page = 1) }
         loadValidations()
     }
 
@@ -150,6 +157,7 @@ class ValidationListViewModel @Inject constructor(
                 "approve" -> repository.approve(confirming.id, comment)
                 "reject" -> repository.reject(confirming.id, comment ?: "", comment)
                 "return" -> repository.returnItem(confirming.id, comment ?: "", comment)
+                "comment" -> repository.comment(confirming.id, comment ?: "")
                 "validate_submission" -> repository.validateSubmission(confirming.id, comment)
                 "reject_submission" -> repository.rejectSubmission(confirming.id, comment ?: "")
                 else -> false

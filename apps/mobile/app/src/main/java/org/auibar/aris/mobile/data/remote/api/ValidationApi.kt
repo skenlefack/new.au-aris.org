@@ -11,7 +11,11 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
+import org.auibar.aris.mobile.data.remote.dto.BulkActionBody
+import org.auibar.aris.mobile.data.remote.dto.BulkActionResponse
 import org.auibar.aris.mobile.data.remote.dto.SafeApiResponse
+import org.auibar.aris.mobile.data.remote.dto.WorkflowCommentBody
+import org.auibar.aris.mobile.data.remote.dto.WorkflowDashboardDto
 import javax.inject.Inject
 
 private const val TAG = "ValidationApi"
@@ -71,6 +75,7 @@ class ValidationApi @Inject constructor(
         level: String? = null,
         status: String? = null,
         entityType: String? = null,
+        campaignId: String? = null,
     ): ValidationListResponse {
         return try {
             val response = client.get("/api/v1/workflow/instances") {
@@ -79,6 +84,7 @@ class ValidationApi @Inject constructor(
                 level?.let { parameter("level", it) }
                 status?.let { parameter("status", it) }
                 entityType?.let { parameter("entityType", it) }
+                campaignId?.let { parameter("campaignId", it) }
             }
             if (response.status.value !in 200..299) {
                 Log.w(TAG, "getValidations → HTTP ${response.status.value}")
@@ -137,6 +143,54 @@ class ValidationApi @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "updateSubmissionStatus $submissionId failed: ${e.message}")
             false
+        }
+    }
+
+    /** Post a comment on a workflow instance without changing level. */
+    suspend fun comment(id: String, text: String): Boolean {
+        return try {
+            val response = client.post("/api/v1/workflow/instances/$id/comment") {
+                contentType(ContentType.Application.Json)
+                setBody(WorkflowCommentBody(text = text))
+            }
+            val ok = response.status.value in 200..299
+            if (!ok) Log.w(TAG, "comment $id -> HTTP ${response.status.value}")
+            ok
+        } catch (e: Exception) {
+            Log.w(TAG, "comment $id failed: ${e.message}")
+            false
+        }
+    }
+
+    /** Bulk action on multiple workflow instances. */
+    suspend fun bulkAction(ids: List<String>, action: String, comment: String? = null): BulkActionResponse? {
+        return try {
+            val response = client.post("/api/v1/workflow/instances/bulk-action") {
+                contentType(ContentType.Application.Json)
+                setBody(BulkActionBody(ids = ids, action = action, comment = comment))
+            }
+            if (response.status.value !in 200..299) {
+                Log.w(TAG, "bulk-action -> HTTP ${response.status.value}")
+                return null
+            }
+            val body: SafeApiResponse<BulkActionResponse> = response.body()
+            body.data
+        } catch (e: Exception) {
+            Log.w(TAG, "bulk-action failed: ${e.message}")
+            null
+        }
+    }
+
+    /** Get workflow dashboard metrics. */
+    suspend fun getDashboardMetrics(): WorkflowDashboardDto? {
+        return try {
+            val response = client.get("/api/v1/workflow/dashboard")
+            if (response.status.value !in 200..299) return null
+            val body: SafeApiResponse<WorkflowDashboardDto> = response.body()
+            body.data
+        } catch (e: Exception) {
+            Log.w(TAG, "dashboard metrics failed: ${e.message}")
+            null
         }
     }
 }

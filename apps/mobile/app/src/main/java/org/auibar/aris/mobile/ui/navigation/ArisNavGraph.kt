@@ -37,6 +37,7 @@ import org.auibar.aris.mobile.ui.analytics.AnalyticsDashboardScreen
 import org.auibar.aris.mobile.ui.conflict.ConflictResolutionScreen
 import org.auibar.aris.mobile.ui.campaign.CampaignDetailScreen
 import org.auibar.aris.mobile.ui.campaign.CampaignListScreen
+import org.auibar.aris.mobile.ui.campaign.CampaignSubmissionsScreen
 import org.auibar.aris.mobile.ui.dashboard.DashboardScreen
 import org.auibar.aris.mobile.ui.form.FormFillScreen
 import org.auibar.aris.mobile.ui.gpstrack.GpsTrackScreen
@@ -102,6 +103,7 @@ object ArisRoutes {
     const val DASHBOARD = "dashboard"
     const val CAMPAIGNS = "campaigns"
     const val CAMPAIGN_DETAIL = "campaign/{campaignId}"
+    const val CAMPAIGN_SUBMISSIONS = "campaign/{campaignId}/submissions"
     const val FORM_FILL = "form/{campaignId}?templateId={templateId}&mode={mode}"
     const val FORM_FILL_BASE = "form/{campaignId}"
     const val SUBMISSIONS = "submissions"
@@ -160,6 +162,7 @@ object ArisRoutes {
 
     fun domainDashboard(domainKey: String) = "domain/$domainKey"
     fun campaignDetail(campaignId: String) = "campaign/$campaignId"
+    fun campaignSubmissions(campaignId: String) = "campaign/$campaignId/submissions"
     fun formFill(campaignId: String, templateId: String? = null, mode: String = "fill") =
         buildString {
             append("form/$campaignId")
@@ -405,7 +408,22 @@ fun ArisNavGraph(
                     onFillTemplate = { cId, templateId, mode ->
                         navController.navigate(ArisRoutes.formFill(cId, templateId, mode))
                     },
+                    onViewSubmissions = {
+                        navController.navigate(ArisRoutes.campaignSubmissions(campaignId))
+                    },
                     onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = ArisRoutes.CAMPAIGN_SUBMISSIONS,
+                arguments = listOf(navArgument("campaignId") { type = NavType.StringType }),
+            ) { _ ->
+                CampaignSubmissionsScreen(
+                    onBack = { navController.popBackStack() },
+                    onSubmissionClick = { submissionId ->
+                        navController.navigate(ArisRoutes.submissionDetail(submissionId))
+                    },
                 )
             }
 

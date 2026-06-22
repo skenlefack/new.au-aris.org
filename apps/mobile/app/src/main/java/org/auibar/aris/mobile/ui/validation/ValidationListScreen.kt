@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Inbox
@@ -275,6 +276,7 @@ fun ValidationListScreen(
                 onApprove = { viewModel.startConfirming(item.id, "approve") },
                 onReject = { viewModel.startConfirming(item.id, "reject") },
                 onReturn = { viewModel.startConfirming(item.id, "return") },
+                onComment = { viewModel.startConfirming(item.id, "comment") },
                 onConfirm = { viewModel.performAction() },
                 onCancel = { viewModel.cancelConfirming() },
                 onCommentChange = { viewModel.setActionComment(item.id, it) },
@@ -459,6 +461,7 @@ private fun ValidationItemCard(
     onApprove: () -> Unit,
     onReject: () -> Unit,
     onReturn: () -> Unit,
+    onComment: () -> Unit,
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
     onCommentChange: (String) -> Unit,
@@ -551,6 +554,30 @@ private fun ValidationItemCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+
+                // SLA deadline badge
+                if (item.slaDeadline != null && item.slaDeadline.isNotEmpty()) {
+                    val deadlineMs = try { java.time.Instant.parse(item.slaDeadline).toEpochMilli() } catch (_: Exception) { 0L }
+                    val now = System.currentTimeMillis()
+                    val remainingHours = ((deadlineMs - now) / 3600_000).toInt()
+                    val slaBg: Color
+                    val slaFg: Color
+                    val slaText: String
+                    when {
+                        remainingHours < 0 -> { slaBg = Color(0xFFFFEBEE); slaFg = Color(0xFFC62828); slaText = "Overdue" }
+                        remainingHours < 24 -> { slaBg = Color(0xFFFFF3E0); slaFg = Color(0xFFE65100); slaText = "${remainingHours}h left" }
+                        else -> { slaBg = Color(0xFFE8F5E9); slaFg = Color(0xFF2E7D32); slaText = "${remainingHours}h left" }
+                    }
+                    Spacer(Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(slaBg)
+                            .padding(horizontal = 4.dp, vertical = 1.dp),
+                    ) {
+                        Text(slaText, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = slaFg, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -608,6 +635,7 @@ private fun ValidationItemCard(
                                     "approve" -> GreenDark
                                     "reject" -> RedDark
                                     "return" -> BlueDark
+                                    "comment" -> MaterialTheme.colorScheme.secondary
                                     else -> MaterialTheme.colorScheme.primary
                                 },
                             ),
@@ -633,6 +661,15 @@ private fun ValidationItemCard(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        // Comment
+                        TextButton(
+                            onClick = onComment,
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                        ) {
+                            Icon(Icons.Default.ChatBubble, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Comment", style = MaterialTheme.typography.labelSmall)
+                        }
                         // Approve
                         TextButton(
                             onClick = onApprove,

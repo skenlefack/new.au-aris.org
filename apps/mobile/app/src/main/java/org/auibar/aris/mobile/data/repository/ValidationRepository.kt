@@ -3,6 +3,8 @@ package org.auibar.aris.mobile.data.repository
 import org.auibar.aris.mobile.data.remote.api.ValidationApi
 import org.auibar.aris.mobile.data.remote.api.ValidationItemDto
 import org.auibar.aris.mobile.data.remote.api.ValidationMeta
+import org.auibar.aris.mobile.data.remote.dto.BulkActionResponse
+import org.auibar.aris.mobile.data.remote.dto.WorkflowDashboardDto
 import javax.inject.Inject
 
 data class ValidationListResult(
@@ -20,6 +22,7 @@ class ValidationRepository @Inject constructor(
         level: String? = null,
         status: String? = null,
         entityType: String? = null,
+        campaignId: String? = null,
     ): Result<ValidationListResult> {
         return try {
             val response = validationApi.getValidations(
@@ -28,6 +31,7 @@ class ValidationRepository @Inject constructor(
                 level = level,
                 status = status,
                 entityType = entityType,
+                campaignId = campaignId,
             )
             Result.success(
                 ValidationListResult(
@@ -60,5 +64,20 @@ class ValidationRepository @Inject constructor(
     /** Reject a submission directly via collecte service (PATCH status). */
     suspend fun rejectSubmission(submissionId: String, reason: String): Boolean {
         return validationApi.updateSubmissionStatus(submissionId, "REJECTED", reason)
+    }
+
+    /** Post a comment on a workflow instance without changing level. */
+    suspend fun comment(id: String, text: String): Boolean {
+        return validationApi.comment(id, text)
+    }
+
+    /** Bulk action on multiple workflow instances. */
+    suspend fun bulkAction(ids: List<String>, action: String, comment: String?): BulkActionResponse? {
+        return validationApi.bulkAction(ids, action, comment)
+    }
+
+    /** Get workflow dashboard metrics. */
+    suspend fun getDashboardMetrics(): WorkflowDashboardDto? {
+        return validationApi.getDashboardMetrics()
     }
 }

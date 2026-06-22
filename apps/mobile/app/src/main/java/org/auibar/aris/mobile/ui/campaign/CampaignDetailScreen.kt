@@ -95,6 +95,7 @@ fun CampaignDetailScreen(
     onNewSubmission: () -> Unit,
     onBack: () -> Unit,
     onFillTemplate: ((campaignId: String, templateId: String, mode: String) -> Unit)? = null,
+    onViewSubmissions: (() -> Unit)? = null,
     viewModel: CampaignDetailViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -216,14 +217,26 @@ fun CampaignDetailScreen(
                                 stringResource(R.string.submissions),
                                 style = MaterialTheme.typography.titleMedium,
                             )
-                            if (uiState.status == "ACTIVE") {
-                                Button(
-                                    onClick = onNewSubmission,
-                                    contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                                ) {
-                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(stringResource(R.string.new_submission))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (onViewSubmissions != null) {
+                                    OutlinedButton(
+                                        onClick = onViewSubmissions,
+                                        contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                                    ) {
+                                        Icon(Icons.Default.Article, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("View All")
+                                    }
+                                }
+                                if (uiState.status == "ACTIVE") {
+                                    Button(
+                                        onClick = onNewSubmission,
+                                        contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(stringResource(R.string.new_submission))
+                                    }
                                 }
                             }
                         }
