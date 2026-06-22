@@ -707,6 +707,30 @@ export function useWorkflowDashboard() {
       wfFallback,
     ),
     placeholderData: wfFallback,
+    staleTime: 120_000, // 2 min
+  });
+}
+
+/**
+ * Lightweight hook for sidebar badge — returns totalPending count from workflow dashboard.
+ * Re-fetches every 2 minutes so validators see updated counts without page reload.
+ */
+export function useWorkflowPendingCount() {
+  const wfFallback: { data: WorkflowDashboardMetrics } = {
+    data: {
+      pendingByLevel: {}, totalPending: 0, totalInReview: 0, totalApproved: 0,
+      totalRejected: 0, totalEscalated: 0, slaBreaches: 0, wahisReadyCount: 0, analyticsReadyCount: 0,
+    },
+  };
+  return useQuery({
+    queryKey: ['workflow', 'dashboard'],
+    queryFn: withFallback(
+      () => collecteClient.get<{ data: WorkflowDashboardMetrics }>('/workflow/dashboard'),
+      wfFallback,
+    ),
+    placeholderData: wfFallback,
+    staleTime: 120_000,
+    refetchInterval: 120_000,
   });
 }
 
@@ -797,6 +821,7 @@ export interface CollecteSubmission {
   id: string;
   campaignId: string;
   campaignName: string;
+  templateId?: string;
   formData: Record<string, unknown>;
   status: 'draft' | 'submitted' | 'validated' | 'rejected' | 'corrected';
   submittedBy: string;

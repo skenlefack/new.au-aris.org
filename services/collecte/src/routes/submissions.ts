@@ -7,12 +7,14 @@ import {
   ListSubmissionsQuerySchema,
   IdParamSchema,
   UpdateStatusSchema,
+  UpdateDataSchema,
 } from '../schemas/submission.schema';
 import type {
   CreateSubmissionBody,
   ListSubmissionsQuery,
   IdParam,
   UpdateStatusBody,
+  UpdateDataBody,
 } from '../schemas/submission.schema';
 
 export default async function submissionRoutes(app: FastifyInstance): Promise<void> {
@@ -67,5 +69,14 @@ export default async function submissionRoutes(app: FastifyInstance): Promise<vo
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return service.updateStatus(request.params.id, request.body, user);
+  });
+
+  // PATCH /api/v1/collecte/submissions/:id/data — Correction & resubmission
+  app.patch<{ Params: IdParam; Body: UpdateDataBody }>('/api/v1/collecte/submissions/:id/data', {
+    schema: { params: IdParamSchema, body: UpdateDataSchema },
+    preHandler: [auth, tenant],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return service.updateData(request.params.id, request.body.data, user);
   });
 }

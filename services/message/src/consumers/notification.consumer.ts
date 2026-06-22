@@ -3,6 +3,8 @@ import {
   NotificationChannel,
   TOPIC_AU_WORKFLOW_VALIDATION_APPROVED,
   TOPIC_AU_WORKFLOW_VALIDATION_REJECTED,
+  TOPIC_AU_WORKFLOW_VALIDATION_SUBMITTED,
+  TOPIC_AU_WORKFLOW_VALIDATION_ESCALATED,
   TOPIC_AU_QUALITY_RECORD_REJECTED,
   TOPIC_AU_QUALITY_CORRECTION_OVERDUE,
   TOPIC_MS_COLLECTE_FORM_SUBMITTED,
@@ -28,6 +30,17 @@ import type { MessageChannel } from '../services/channel.interface';
 const GROUP_ID = 'message-service-notifications';
 const DEFAULT_LOCALE = 'en';
 
+/**
+ * RBAC mapping: which roles should be notified at each workflow level.
+ * Mirrors LEVEL_ROLES from workflow service entities.
+ */
+const LEVEL_ROLES: Record<string, readonly string[]> = {
+  NATIONAL_TECHNICAL: ['DATA_STEWARD', 'NATIONAL_ADMIN'],
+  NATIONAL_OFFICIAL: ['NATIONAL_ADMIN', 'WAHIS_FOCAL_POINT'],
+  REC_HARMONIZATION: ['REC_ADMIN', 'DATA_STEWARD'],
+  CONTINENTAL_PUBLICATION: ['CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
+};
+
 export class NotificationConsumer {
   constructor(
     private readonly kafkaConsumer: StandaloneKafkaConsumer,
@@ -42,6 +55,8 @@ export class NotificationConsumer {
     await Promise.all([
       this.subscribeWorkflowApproved(),
       this.subscribeWorkflowRejected(),
+      this.subscribeWorkflowSubmitted(),
+      this.subscribeWorkflowEscalated(),
       this.subscribeQualityRejected(),
       this.subscribeCorrectionOverdue(),
       this.subscribeFormSubmitted(),
@@ -159,6 +174,125 @@ export class NotificationConsumer {
       await this.sendToPreferredChannels(data.submittedBy, data.tenantId, 'WORKFLOW_REJECTED', templateData,
         `Your ${data.entityType} submission (${data.recordId}) was rejected at level ${data.level}. Reason: ${data.reason}`);
     });
+  }
+
+  /**
+   * Workflow SUBMITTED — notify Level 1 validators (DATA_STEWARD + NATIONAL_ADMIN)
+   * in the same tenant so they know a new submission is awaiting validation.
+   */
+  private async subscribeWorkflowSubmitted(): Promise<void> {
+    await this.kafkaConsumer.subscribe(
+      { topic: TOPIC_AU_WORKFLOW_VALIDATION_SUBMITTED, groupId: GROUP_ID },
+      async (payload) => {
+        const data = payload as any;
+        const tenantId = data.tenant_id ?? data.tenantId;
+        const entityType = data.entity_type ?? data.entityType ?? 'record';
+        const entityId = data.entity_id ?? data.entityId ?? data.id;
+        const domain = data.domain ?? '';
+        const currentLevel = data.current_level ?? data.currentLevel ?? 'NATIONAL_TECHNICAL';
+        const campaignId = data.campaign_id ?? data.campaignId ?? null;
+
+        if (!tenantId || !this.prisma) {
+          console.warn('[NotificationConsumer] Missing tenantId or prisma — cannot notify validators for SUBMITTED');
+          return;
+        }
+
+        // Resolve roles for the current level (Level 1 on initial submission)
+        const targetRoles = LEVEL_ROLES[currentLevel] ?? LEVEL_ROLES['NATIONAL_TECHNICAL'];
+
+        const dashboardUrl = process.env['DASHBOARD_URL'] ?? 'https://au-aris.org';
+        const reviewUrl = `${dashboardUrl}/workflow`;
+        const body = `A new ${entityType} submission${domain ? ` (${domain})` : ''} is awaiting validation at level ${currentLevel}.${campaignId ? ` Campaign: ${campaignId}` : ''}\n\n${reviewUrl}`;
+
+        try {
+          const validators = await (this.prisma as any).user.findMany({
+            where: {
+              tenantId,
+              role: { in: [...targetRoles] },
+              isActive: true,
+            },
+            select: { id: true, tenantId: true },
+          });
+
+          for (const v of validators) {
+            await this.notificationService.send(
+              {
+                userId: v.id,
+                channel: NotificationChannel.IN_APP,
+                subject: `New submission awaiting validation: ${entityType}`,
+                body,
+              },
+              v.tenantId,
+            );
+          }
+
+          if (validators.length > 0) {
+            console.log(`[WORKFLOW_SUBMITTED] Notified ${validators.length} validators in tenant ${tenantId}`);
+          }
+        } catch (err) {
+          console.error('[NotificationConsumer] Failed to notify validators for SUBMITTED:', err);
+        }
+      },
+    );
+  }
+
+  /**
+   * Workflow ESCALATED — SLA breached, notify validators at the escalated-to level.
+   * The event payload includes `toLevel` indicating which level now owns the instance.
+   */
+  private async subscribeWorkflowEscalated(): Promise<void> {
+    await this.kafkaConsumer.subscribe(
+      { topic: TOPIC_AU_WORKFLOW_VALIDATION_ESCALATED, groupId: GROUP_ID },
+      async (payload) => {
+        const data = payload as any;
+        const tenantId = data.tenant_id ?? data.tenantId;
+        const entityType = data.entity_type ?? data.entityType ?? 'record';
+        const entityId = data.entity_id ?? data.entityId ?? data.instanceId;
+        const fromLevel = data.fromLevel ?? data.from_level ?? 'NATIONAL_TECHNICAL';
+        const toLevel = data.toLevel ?? data.to_level ?? 'NATIONAL_OFFICIAL';
+        const reason = data.reason ?? 'SLA deadline breached';
+
+        if (!tenantId || !this.prisma) {
+          console.warn('[NotificationConsumer] Missing tenantId or prisma — cannot notify validators for ESCALATED');
+          return;
+        }
+
+        const targetRoles = LEVEL_ROLES[toLevel] ?? LEVEL_ROLES['NATIONAL_OFFICIAL'];
+
+        const dashboardUrl = process.env['DASHBOARD_URL'] ?? 'https://au-aris.org';
+        const reviewUrl = `${dashboardUrl}/workflow`;
+        const body = `A ${entityType} submission has been escalated from ${fromLevel} to ${toLevel}. Reason: ${reason}\n\n${reviewUrl}`;
+
+        try {
+          const validators = await (this.prisma as any).user.findMany({
+            where: {
+              tenantId,
+              role: { in: [...targetRoles] },
+              isActive: true,
+            },
+            select: { id: true, tenantId: true },
+          });
+
+          for (const v of validators) {
+            await this.notificationService.send(
+              {
+                userId: v.id,
+                channel: NotificationChannel.IN_APP,
+                subject: `Escalated submission requires attention: ${entityType}`,
+                body,
+              },
+              v.tenantId,
+            );
+          }
+
+          if (validators.length > 0) {
+            console.log(`[WORKFLOW_ESCALATED] Notified ${validators.length} validators at level ${toLevel} in tenant ${tenantId}`);
+          }
+        } catch (err) {
+          console.error('[NotificationConsumer] Failed to notify validators for ESCALATED:', err);
+        }
+      },
+    );
   }
 
   private async subscribeQualityRejected(): Promise<void> {

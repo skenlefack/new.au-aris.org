@@ -1,7 +1,7 @@
 import type { WorkflowLevel, UserRole } from '@aris/shared-types';
 import type { WfLevel } from '@prisma/client';
 
-export type TransitionAction = 'SUBMIT' | 'APPROVE' | 'REJECT' | 'RETURN' | 'ESCALATE';
+export type TransitionAction = 'SUBMIT' | 'APPROVE' | 'REJECT' | 'RETURN' | 'ESCALATE' | 'COMMENT';
 
 export interface WorkflowTransitionEntity {
   id: string;
@@ -23,6 +23,7 @@ export interface WorkflowInstanceEntity {
   entityType: string;
   entityId: string;
   domain: string;
+  campaignId: string | null;
   currentLevel: WorkflowLevel;
   status: string;
   dataContractId: string | null;

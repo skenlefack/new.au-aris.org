@@ -41,6 +41,7 @@ import {
   type WorkflowStatus,
   type SubmissionRecord,
 } from '@/lib/api/hooks';
+import { useBulkWorkflowAction } from '@/lib/api/workflow-hooks';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -202,7 +203,7 @@ function FieldValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
         <span className="inline-flex items-center gap-1.5 text-sm">
           <MapPin className="h-3.5 w-3.5 text-blue-500" />
           <span className="font-mono text-blue-700 dark:text-blue-300">{Number(obj.lat).toFixed(4)}, {Number(obj.lng).toFixed(4)}</span>
-          {obj.accuracy && <span className="text-gray-400 text-xs">(+/-{Number(obj.accuracy).toFixed(0)}m)</span>}
+          {obj.accuracy != null && <span className="text-gray-400 text-xs">(+/-{Number(obj.accuracy).toFixed(0)}m)</span>}
         </span>
       );
     }
@@ -514,6 +515,8 @@ export default function WorkflowPage() {
   const [viewingSub, setViewingSub] = useState<SubmissionRecord | null>(null);
   const [viewingWf, setViewingWf] = useState<WorkflowItem | null>(null);
   const [actionDialog, setActionDialog] = useState<{ id: string; action: 'approve' | 'reject' | 'return' } | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkToast, setBulkToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const { submissionData, workflowData, hasWorkflowData, isLoading, isError, refetch } =
     useWorkflowItems({ page, limit: PAGE_SIZE, status: statusFilter, level: levelFilter });
@@ -522,6 +525,7 @@ export default function WorkflowPage() {
   const workflowAction = useWorkflowAction();
   const startValidation = useStartValidation();
   const updateStatus = useUpdateSubmissionStatus();
+  const bulkAction = useBulkWorkflowAction();
 
   const submissions = submissionData?.data ?? [];
   const subTotal = submissionData?.meta?.total ?? 0;
@@ -552,6 +556,30 @@ export default function WorkflowPage() {
     workflowAction.mutate(
       { id, action, ...(action === 'approve' ? { comment: text } : { reason: text }) },
       { onSuccess: () => setActionDialog(null) },
+    );
+  }
+
+  function handleBulk(action: 'APPROVE' | 'REJECT') {
+    if (selectedIds.size === 0) return;
+    bulkAction.mutate(
+      { ids: Array.from(selectedIds), action },
+      {
+        onSuccess: (res: any) => {
+          const succeeded = res?.data?.succeeded ?? selectedIds.size;
+          const failed = res?.data?.failed ?? 0;
+          if (failed > 0) {
+            setBulkToast({ message: t('bulkPartial', { succeeded: String(succeeded), failed: String(failed) }), type: 'error' });
+          } else {
+            setBulkToast({ message: t('bulkSuccess', { count: String(succeeded) }), type: 'success' });
+          }
+          setSelectedIds(new Set());
+          setTimeout(() => setBulkToast(null), 4000);
+        },
+        onError: () => {
+          setBulkToast({ message: t('bulkFailed') ?? 'Bulk action failed', type: 'error' });
+          setTimeout(() => setBulkToast(null), 4000);
+        },
+      },
     );
   }
 
@@ -586,14 +614,14 @@ export default function WorkflowPage() {
         {hasWorkflowData && (
           <div className="relative">
             <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <select value={levelFilter ?? ''} onChange={(e) => { setLevelFilter(e.target.value || undefined); setPage(1); }}
+            <select value={levelFilter ?? ''} onChange={(e) => { setLevelFilter(e.target.value || undefined); setPage(1); setSelectedIds(new Set()); }}
               className="appearance-none rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-8 text-sm text-gray-700 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
               <option value="">{t('allLevels')}</option>
               {ALL_LEVELS.map((lvl) => <option key={lvl} value={lvl}>{t(LEVEL_CONFIG[lvl].label)}</option>)}
             </select>
           </div>
         )}
-        <select value={statusFilter ?? ''} onChange={(e) => { setStatusFilter(e.target.value || undefined); setPage(1); }}
+        <select value={statusFilter ?? ''} onChange={(e) => { setStatusFilter(e.target.value || undefined); setPage(1); setSelectedIds(new Set()); }}
           className="appearance-none rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
           <option value="">{t('allStatuses')}</option>
           {(hasWorkflowData ? ALL_WF_STATUSES : ALL_SUB_STATUSES).map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
@@ -611,10 +639,12 @@ export default function WorkflowPage() {
           </div>
         ) : hasWorkflowData ? (
           <WorkflowTable items={wfItems} total={displayTotal} page={page} totalPages={totalPages} setPage={setPage}
-            onView={setViewingWf} onAction={(id, action) => setActionDialog({ id, action })} t={t} />
+            onView={setViewingWf} onAction={(id, action) => setActionDialog({ id, action })} t={t}
+            selectedIds={selectedIds} setSelectedIds={setSelectedIds} />
         ) : (
           <SubmissionsTable items={submissions} total={displayTotal} page={page} totalPages={totalPages} setPage={setPage}
-            onView={setViewingSub} t={t} />
+            onView={setViewingSub} t={t}
+            selectedIds={selectedIds} setSelectedIds={setSelectedIds} />
         )}
 
       {/* Modals */}
@@ -623,6 +653,47 @@ export default function WorkflowPage() {
       {viewingWf && <WfDetailModal item={viewingWf} onClose={() => setViewingWf(null)} t={t} />}
       {actionDialog && <ActionDialog itemId={actionDialog.id} action={actionDialog.action} onClose={() => setActionDialog(null)}
         onConfirm={(text) => handleWfAction(actionDialog.id, actionDialog.action, text)} isPending={workflowAction.isPending} t={t} />}
+
+      {/* Bulk action floating bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {selectedIds.size} {t('selected') ?? 'selected'}
+          </span>
+          <button
+            onClick={() => handleBulk('APPROVE')}
+            disabled={bulkAction.isPending}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+          >
+            <CheckCircle className="h-3.5 w-3.5" />
+            {t('bulkApprove')}
+          </button>
+          <button
+            onClick={() => handleBulk('REJECT')}
+            disabled={bulkAction.isPending}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+          >
+            <XCircle className="h-3.5 w-3.5" />
+            {t('bulkReject')}
+          </button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
+          >
+            {t('bulkCancel')}
+          </button>
+        </div>
+      )}
+
+      {/* Bulk toast notification */}
+      {bulkToast && (
+        <div className={cn(
+          'fixed top-6 right-6 z-50 rounded-lg px-4 py-3 text-sm font-medium shadow-lg',
+          bulkToast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white',
+        )}>
+          {bulkToast.message}
+        </div>
+      )}
     </div>
   );
 }
@@ -640,15 +711,35 @@ function KpiCard({ icon, bg, label, value }: { icon: React.ReactNode; bg: string
   );
 }
 
-function SubmissionsTable({ items, total, page, totalPages, setPage, onView, t }: {
+function SubmissionsTable({ items, total, page, totalPages, setPage, onView, t, selectedIds, setSelectedIds }: {
   items: SubmissionRecord[]; total: number; page: number; totalPages: number;
   setPage: (p: number | ((prev: number) => number)) => void; onView: (item: SubmissionRecord) => void; t: (key: string) => string;
+  selectedIds: Set<string>; setSelectedIds: (ids: Set<string>) => void;
 }) {
+  const allOnPage = items.map((i) => i.id);
+  const allSelected = allOnPage.length > 0 && allOnPage.every((id) => selectedIds.has(id));
+  const toggleAll = () => {
+    if (allSelected) {
+      const next = new Set(selectedIds);
+      allOnPage.forEach((id) => next.delete(id));
+      setSelectedIds(next);
+    } else {
+      const next = new Set(selectedIds);
+      allOnPage.forEach((id) => next.add(id));
+      setSelectedIds(next);
+    }
+  };
+  const toggleOne = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelectedIds(next);
+  };
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400">
+            <th className="w-10 px-4 py-3"><input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></th>
             <th className="px-4 py-3">Campaign</th><th className="px-4 py-3">Domain</th><th className="px-4 py-3">{t('status')}</th>
             <th className="px-4 py-3">{t('date')}</th><th className="px-4 py-3 text-right">{t('actions')}</th>
           </tr></thead>
@@ -657,7 +748,8 @@ function SubmissionsTable({ items, total, page, totalPages, setPage, onView, t }
               const cn2 = localizeName((item as any).campaignName);
               const domain = (item as any).domain as string | undefined;
               return (
-                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                <tr key={item.id} className={cn('hover:bg-gray-50 dark:hover:bg-gray-800/50', selectedIds.has(item.id) && 'bg-blue-50/50 dark:bg-blue-900/10')}>
+                  <td className="px-4 py-3"><input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => toggleOne(item.id)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></td>
                   <td className="px-4 py-3"><div><p className="font-medium text-gray-900 dark:text-white truncate max-w-[280px]">{cn2 !== '--' ? cn2 : <span className="font-mono text-xs text-gray-400">{item.campaignId.slice(0, 8)}</span>}</p><p className="text-[11px] font-mono text-gray-400 mt-0.5">{item.id.slice(0, 12)}</p></div></td>
                   <td className="px-4 py-3">{domain ? <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', DOMAIN_COLORS[domain] ?? 'bg-gray-100 text-gray-600')}>{DOMAIN_LABELS[domain] ?? domain}</span> : <span className="text-gray-400 text-xs">--</span>}</td>
                   <td className="px-4 py-3"><StatusBadge status={item.status} /></td>
@@ -678,16 +770,36 @@ function SubmissionsTable({ items, total, page, totalPages, setPage, onView, t }
   );
 }
 
-function WorkflowTable({ items, total, page, totalPages, setPage, onView, onAction, t }: {
+function WorkflowTable({ items, total, page, totalPages, setPage, onView, onAction, t, selectedIds, setSelectedIds }: {
   items: WorkflowItem[]; total: number; page: number; totalPages: number;
   setPage: (p: number | ((prev: number) => number)) => void; onView: (item: WorkflowItem) => void;
   onAction: (id: string, action: 'approve' | 'reject' | 'return') => void; t: (key: string) => string;
+  selectedIds: Set<string>; setSelectedIds: (ids: Set<string>) => void;
 }) {
+  const allOnPage = items.map((i) => i.id);
+  const allSelected = allOnPage.length > 0 && allOnPage.every((id) => selectedIds.has(id));
+  const toggleAll = () => {
+    if (allSelected) {
+      const next = new Set(selectedIds);
+      allOnPage.forEach((id) => next.delete(id));
+      setSelectedIds(next);
+    } else {
+      const next = new Set(selectedIds);
+      allOnPage.forEach((id) => next.add(id));
+      setSelectedIds(next);
+    }
+  };
+  const toggleOne = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelectedIds(next);
+  };
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400">
+            <th className="w-10 px-4 py-3"><input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></th>
             <th className="px-4 py-3">Domain</th><th className="px-4 py-3">{t('colLevel')}</th><th className="px-4 py-3">{t('colStatus')}</th>
             <th className="px-4 py-3">{t('colDate')}</th><th className="px-4 py-3">{t('deadline')}</th><th className="px-4 py-3 text-right">{t('colActions')}</th>
           </tr></thead>
@@ -697,7 +809,8 @@ function WorkflowTable({ items, total, page, totalPages, setPage, onView, onActi
               const isActionable = ['PENDING', 'IN_REVIEW', 'RETURNED'].includes(item.status);
               const isOverdue = item.slaDeadline && new Date(item.slaDeadline) < new Date() && isActionable;
               return (
-                <tr key={item.id} className={cn('hover:bg-gray-50 dark:hover:bg-gray-800/50', isOverdue && 'bg-red-50/30 dark:bg-red-900/5')}>
+                <tr key={item.id} className={cn('hover:bg-gray-50 dark:hover:bg-gray-800/50', isOverdue && 'bg-red-50/30 dark:bg-red-900/5', selectedIds.has(item.id) && 'bg-blue-50/50 dark:bg-blue-900/10')}>
+                  <td className="px-4 py-3"><input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => toggleOne(item.id)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></td>
                   <td className="px-4 py-3">{DOMAIN_LABELS[item.domain] ?? item.domain}</td>
                   <td className="px-4 py-3"><div className="flex items-center gap-1.5"><span className={cn('h-2 w-2 rounded-full', level.dot)} /><span className={cn('text-xs font-medium', level.color)}>{level.shortLabel}</span></div></td>
                   <td className="px-4 py-3"><StatusBadge status={item.status} /></td>

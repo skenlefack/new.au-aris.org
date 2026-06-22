@@ -50,6 +50,10 @@ interface FormRendererProps {
   extensionFields?: ExtensionFieldDef[];
   /** Label for the extension section (defaults to "Extension Fields") */
   extensionSectionLabel?: string;
+  /** Initial values to pre-fill the form (used for edit/correction mode) */
+  initialValues?: Record<string, unknown>;
+  /** Custom label for the submit button */
+  submitLabel?: string;
 }
 
 /** Check if a value is considered "empty" for required-field validation */
@@ -62,9 +66,9 @@ function isEmptyValue(value: unknown): boolean {
 /** Layout/display-only field types that should never be required */
 const LAYOUT_TYPES = new Set(['heading', 'divider', 'spacer', 'info-box']);
 
-export function FormRenderer({ schema, formName, mobile = false, preview = false, isSubmitting = false, onSubmit, campaignTargetCountries, extensionFields, extensionSectionLabel }: FormRendererProps) {
+export function FormRenderer({ schema, formName, mobile = false, preview = false, isSubmitting = false, onSubmit, campaignTargetCountries, extensionFields, extensionSectionLabel, initialValues, submitLabel }: FormRendererProps) {
   const t = useTranslations('collecte');
-  const [values, setValues] = useState<Record<string, unknown>>({});
+  const [values, setValues] = useState<Record<string, unknown>>(initialValues ?? {});
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [requiredErrors, setRequiredErrors] = useState<Record<string, string>>({});
   const [isTranslating, setIsTranslating] = useState(false);
@@ -351,7 +355,7 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
               {(isSubmitting || isTranslating) && (
                 <Loader2 className="h-4 w-4 animate-spin" />
               )}
-              {isTranslating ? t('translatingBeforeSubmit') : isSubmitting ? t('submitting') : t('submitForm')}
+              {isTranslating ? t('translatingBeforeSubmit') : isSubmitting ? t('submitting') : (submitLabel ?? t('submitForm'))}
             </button>
           </div>
         )}

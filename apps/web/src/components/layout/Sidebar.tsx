@@ -10,6 +10,7 @@ import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useTranslations } from '@/lib/i18n/translations';
 import { usePublicDomains } from '@/lib/api/settings-hooks';
 import { useOpenTicketCount } from '@/lib/api/support-hooks';
+import { useWorkflowPendingCount } from '@/lib/api/hooks';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import { resolveIcon } from '@/lib/lucide-icon-map';
 import type { LucideIcon } from 'lucide-react';
@@ -344,18 +345,32 @@ export function Sidebar({
   const { data: ticketCountData } = useOpenTicketCount();
   const openTicketCount = isAdminUser ? (ticketCountData?.data?.count ?? 0) : 0;
 
-  // Inject dynamic badge into support nav item
+  // Workflow pending count badge for validators
+  const VALIDATOR_ROLES_SET = new Set([
+    'SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN',
+    'DATA_STEWARD', 'WAHIS_FOCAL_POINT',
+  ]);
+  const isValidator = user?.role && VALIDATOR_ROLES_SET.has(user.role);
+  const { data: wfDashData } = useWorkflowPendingCount();
+  const workflowPendingCount = isValidator ? ((wfDashData as any)?.data?.totalPending ?? 0) : 0;
+
+  // Inject dynamic badges into nav items (support + workflow)
   const visibleGroups = useMemo(() => {
-    if (!openTicketCount) return filteredGroups;
+    const hasBadges = openTicketCount > 0 || workflowPendingCount > 0;
+    if (!hasBadges) return filteredGroups;
     return filteredGroups.map((group) => ({
       ...group,
-      items: group.items.map((item) =>
-        item.tKey === 'support'
-          ? { ...item, badge: String(openTicketCount) }
-          : item,
-      ),
+      items: group.items.map((item) => {
+        if (item.tKey === 'support' && openTicketCount > 0) {
+          return { ...item, badge: String(openTicketCount) };
+        }
+        if (item.tKey === 'workflow' && workflowPendingCount > 0) {
+          return { ...item, badge: String(workflowPendingCount) };
+        }
+        return item;
+      }),
     }));
-  }, [filteredGroups, openTicketCount]);
+  }, [filteredGroups, openTicketCount, workflowPendingCount]);
 
   const sidebarRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);

@@ -205,6 +205,93 @@ export class SubmissionService {
     return { data: updated as unknown as SubmissionEntity };
   }
 
+  /**
+   * Update submission data for correction/resubmission.
+   * Only allowed when status is RETURNED or REJECTED.
+   * Resets status to SUBMITTED, increments version, and re-triggers quality validation.
+   */
+  async updateData(
+    id: string,
+    data: Record<string, unknown>,
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<SubmissionEntity>> {
+    // 1. Find submission
+    const submission = await (this.prisma as any).submission.findUnique({
+      where: { id },
+    });
+
+    if (!submission) {
+      throw new HttpError(404, `Submission ${id} not found`);
+    }
+
+    // Tenant isolation
+    if (
+      user.tenantLevel !== TenantLevel.CONTINENTAL &&
+      submission.tenantId !== user.tenantId
+    ) {
+      throw new HttpError(404, `Submission ${id} not found`);
+    }
+
+    // 2. Guard: only allow update if status is RETURNED or REJECTED
+    const editableStatuses = ['RETURNED', 'REJECTED'];
+    if (!editableStatuses.includes(submission.status)) {
+      throw new HttpError(
+        400,
+        `Submission ${id} cannot be edited (status: ${submission.status}). Only RETURNED or REJECTED submissions can be corrected.`,
+      );
+    }
+
+    // Authorization: submitter or admin
+    const isAdmin = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN'].includes(user.role);
+    if (!isAdmin && submission.submittedBy !== user.userId) {
+      throw new HttpError(403, 'Not authorized to edit this submission');
+    }
+
+    // 3. Update submission: new data, reset status to SUBMITTED, increment version
+    const updated = await (this.prisma as any).submission.update({
+      where: { id },
+      data: {
+        data: data as Prisma.InputJsonValue,
+        status: 'SUBMITTED',
+        version: { increment: 1 },
+      },
+    });
+
+    // 4. Re-trigger quality validation via Kafka event
+    // Resolve campaign domain
+    let domain = 'collecte';
+    try {
+      let cam = await (this.prisma as any).collectionCampaign.findUnique({
+        where: { id: submission.campaignId },
+        select: { domain: true },
+      });
+      if (!cam) {
+        cam = await (this.prisma as any).campaign.findUnique({
+          where: { id: submission.campaignId },
+          select: { domain: true },
+        });
+      }
+      if (cam?.domain) domain = cam.domain;
+    } catch {
+      // best effort
+    }
+
+    await this.requestQualityValidation(
+      { id: updated.id, data: updated.data, templateId: updated.templateId },
+      domain,
+      user,
+    );
+
+    // 5. Publish resubmission event
+    await this.publishSubmittedEvent(updated, user);
+
+    console.log(
+      `[SubmissionService] Submission ${id} data updated and resubmitted by ${user.email} (version ${updated.version})`,
+    );
+
+    return { data: updated as unknown as SubmissionEntity };
+  }
+
   async findAll(
     user: AuthenticatedUser,
     query: PaginationQuery & {
@@ -400,11 +487,12 @@ export class SubmissionService {
     qualityReportId: string | null,
     tenantId: string,
     userId: string,
+    campaignId?: string,
   ): Promise<void> {
     if (!this.kafka) return;
 
     try {
-      const event: Omit<WorkflowInstanceRequestedEvent, 'eventId' | 'timestamp'> = {
+      const event: Omit<WorkflowInstanceRequestedEvent, 'eventId' | 'timestamp'> & { payload: { campaignId?: string } } = {
         eventType: EVENTS.WORKFLOW.INSTANCE_REQUESTED,
         source: SERVICE_NAME,
         version: 1,
@@ -415,6 +503,7 @@ export class SubmissionService {
           entityId: submissionId,
           domain,
           qualityReportId: qualityReportId ?? undefined,
+          campaignId,
         },
       };
 
@@ -444,7 +533,7 @@ export class SubmissionService {
   ): Promise<void> {
     const passed = overallStatus === 'PASSED' || overallStatus === 'WARNING';
 
-    await (this.prisma as any).submission.update({
+    const submission = await (this.prisma as any).submission.update({
       where: { id: submissionId },
       data: {
         qualityReportId: reportId,
@@ -454,7 +543,7 @@ export class SubmissionService {
 
     if (passed) {
       console.log(`[SubmissionService] Submission ${submissionId} passed quality gates`);
-      await this.requestWorkflowCreation(submissionId, domain, reportId, tenantId, userId);
+      await this.requestWorkflowCreation(submissionId, domain, reportId, tenantId, userId, submission.campaignId);
     } else {
       console.warn(
         `[SubmissionService] Submission ${submissionId} rejected by quality gates: ${overallStatus}`,

@@ -38,6 +38,8 @@ import { COUNTRIES } from '@/data/countries-config';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import LabResultsTab, { detectLabRepeaters } from '@/components/collecte/LabResultsTab';
+import CampaignSubmissionsTab from '@/components/collecte/CampaignSubmissionsTab';
+import CampaignQualityDashboard from '@/components/collecte/CampaignQualityDashboard';
 import dynamic from 'next/dynamic';
 
 const DigitalToolsDashboard = dynamic(
@@ -162,7 +164,7 @@ export default function CampaignDetailPage() {
   const user = useAuthStore((s) => s.user);
   const editable = canEditCampaign(user, campaign);
 
-  const [activeTab, setActiveTab] = useState<'details' | 'lab-results' | 'dashboards'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'submissions' | 'lab-results' | 'dashboards'>('details');
 
   // Resolve each campaign templateId to a { name, tpl, tplId } object.
   // Matching strategy: try ID match first (real DB IDs), then fall back to
@@ -356,6 +358,23 @@ export default function CampaignDetailPage() {
         >
           {t('campaignInfo')}
         </button>
+        <button
+          onClick={() => setActiveTab('submissions')}
+          className={cn(
+            'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5',
+            activeTab === 'submissions'
+              ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+          )}
+        >
+          <FileText className="h-4 w-4" />
+          {t('submissionsTab')}
+          {totalSubmissions > 0 && (
+            <span className="ml-1 inline-flex items-center justify-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+              {totalSubmissions}
+            </span>
+          )}
+        </button>
         {hasLabTab && (
           <button
             onClick={() => setActiveTab('lab-results')}
@@ -383,6 +402,14 @@ export default function CampaignDetailPage() {
           Tableaux de bord
         </button>
       </div>
+
+      {/* Submissions Tab */}
+      {activeTab === 'submissions' && (
+        <div className="space-y-6">
+          <CampaignQualityDashboard campaignId={campaignId} />
+          <CampaignSubmissionsTab campaignId={campaignId} />
+        </div>
+      )}
 
       {/* Lab Results Tab */}
       {activeTab === 'lab-results' && hasLabTab && labTemplates.map((lt) => (

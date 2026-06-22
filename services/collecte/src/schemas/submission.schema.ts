@@ -37,6 +37,11 @@ export const UpdateStatusSchema = Type.Object({
 });
 export type UpdateStatusBody = Static<typeof UpdateStatusSchema>;
 
+export const UpdateDataSchema = Type.Object({
+  data: Type.Record(Type.String(), Type.Unknown()),
+});
+export type UpdateDataBody = Static<typeof UpdateDataSchema>;
+
 export const IdParamSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
 });

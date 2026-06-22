@@ -68,6 +68,7 @@ export default fp(
                 domain: string;
                 qualityReportId?: string;
                 dataContractId?: string;
+                campaignId?: string;
               };
               tenantId?: string;
               userId?: string;
@@ -75,7 +76,7 @@ export default fp(
             } | null;
             if (!event?.payload) return;
 
-            const { entityType, entityId, domain, qualityReportId, dataContractId } = event.payload;
+            const { entityType, entityId, domain, qualityReportId, dataContractId, campaignId } = event.payload;
 
             const user = {
               userId: event.userId ?? '00000000-0000-0000-0000-000000000000',
@@ -87,7 +88,7 @@ export default fp(
 
             try {
               await app.workflowService.create(
-                { entityType, entityId, domain, qualityReportId, dataContractId },
+                { entityType, entityId, domain, qualityReportId, dataContractId, campaignId },
                 user as never,
               );
             } catch (error) {

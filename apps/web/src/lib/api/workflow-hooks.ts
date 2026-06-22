@@ -39,6 +39,25 @@ async function wfFetch<T>(path: string, opts?: RequestInit): Promise<T> {
 }
 
 // ═══════════════════════════════════════════════════════
+// SUBMISSION CORRECTION
+// ═══════════════════════════════════════════════════════
+
+export function useUpdateSubmissionData() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      wfFetch(`/api/v1/collecte/submissions/${id}/data`, {
+        method: 'PATCH',
+        body: JSON.stringify({ data }),
+      }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['collecte', 'submissions', vars.id] });
+      qc.invalidateQueries({ queryKey: ['campaign-submissions'] });
+    },
+  });
+}
+
+// ═══════════════════════════════════════════════════════
 // WORKFLOW DEFINITIONS
 // ═══════════════════════════════════════════════════════
 
@@ -212,7 +231,7 @@ export function useStartWorkflow() {
   });
 }
 
-export function useWorkflowInstances(query?: { page?: number; limit?: number; status?: string; assignee?: string }) {
+export function useWorkflowInstances(query?: { page?: number; limit?: number; status?: string; assignee?: string; entityId?: string }) {
   return useQuery({
     queryKey: ['workflow-instances', query],
     queryFn: () => {
@@ -221,6 +240,7 @@ export function useWorkflowInstances(query?: { page?: number; limit?: number; st
       if (query?.limit) params.set('limit', String(query.limit));
       if (query?.status) params.set('status', query.status);
       if (query?.assignee) params.set('assignee', query.assignee);
+      if (query?.entityId) params.set('entityId', query.entityId);
       return wfFetch<any>(`/api/v1/workflow/instances?${params}`);
     },
   });
@@ -291,6 +311,24 @@ export function useReassignInstance() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['workflow-instance'] });
       qc.invalidateQueries({ queryKey: ['workflow-my-tasks'] });
+    },
+  });
+}
+
+export function useBulkWorkflowAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { ids: string[]; action: 'APPROVE' | 'REJECT' | 'RETURN'; comment?: string }) =>
+      wfFetch('/api/v1/workflow/instances/bulk-action', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workflow-instances'] });
+      qc.invalidateQueries({ queryKey: ['workflow-instance'] });
+      qc.invalidateQueries({ queryKey: ['workflow-my-tasks'] });
+      qc.invalidateQueries({ queryKey: ['workflow-stats'] });
+      qc.invalidateQueries({ queryKey: ['campaign-submissions'] });
     },
   });
 }

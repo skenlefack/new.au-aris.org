@@ -5,14 +5,18 @@ import {
   ApproveSchema,
   RejectSchema,
   ReturnSchema,
+  CommentSchema,
   UuidParamSchema,
   ListQuerySchema,
+  BulkActionSchema,
   type CreateInstanceInput,
   type ApproveInput,
   type RejectInput,
   type ReturnInput,
+  type CommentInput,
   type UuidParamInput,
   type ListQueryInput,
+  type BulkActionBody,
 } from '../schemas/workflow.schemas.js';
 
 export async function registerWorkflowRoutes(app: FastifyInstance): Promise<void> {
@@ -43,6 +47,16 @@ export async function registerWorkflowRoutes(app: FastifyInstance): Promise<void
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.workflowService.getDashboard(user);
+  });
+
+  // POST /api/v1/workflow/instances/bulk-action
+  app.post<{ Body: BulkActionBody }>('/api/v1/workflow/instances/bulk-action', {
+    schema: { body: BulkActionSchema },
+    preHandler: [auth],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    const result = await app.workflowService.bulkAction(request.body, user);
+    return { data: result };
   });
 
   // GET /api/v1/workflow/instances/:id
@@ -79,5 +93,14 @@ export async function registerWorkflowRoutes(app: FastifyInstance): Promise<void
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return app.workflowService.returnForCorrection(request.params.id, request.body.reason, user);
+  });
+
+  // POST /api/v1/workflow/instances/:id/comment
+  app.post<{ Params: UuidParamInput; Body: CommentInput }>('/api/v1/workflow/instances/:id/comment', {
+    schema: { params: UuidParamSchema, body: CommentSchema },
+    preHandler: [auth],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.workflowService.addComment(request.params.id, request.body.text, user);
   });
 }

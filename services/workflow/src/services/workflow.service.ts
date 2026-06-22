@@ -59,6 +59,7 @@ export class WorkflowService {
         entity_type: dto.entityType,
         entity_id: dto.entityId,
         domain: dto.domain, // Backward compat: writes legacy domain field from campaign/form, prefer targets[]
+        campaign_id: dto.campaignId ?? null,
         current_level: 'NATIONAL_TECHNICAL',
         status: 'PENDING',
         data_contract_id: dto.dataContractId ?? null,
@@ -67,13 +68,16 @@ export class WorkflowService {
       },
     });
 
+    // Task 3: SLA deadline auto-population from WorkflowDefinition
+    const updatedInstance = await this.applySlaDeadline(instance, user.tenantId);
+
     await this.publishEvent(
       TOPIC_AU_WORKFLOW_VALIDATION_SUBMITTED,
-      instance,
+      updatedInstance,
       user,
     );
 
-    return { data: this.toEntity(instance) };
+    return { data: this.toEntity(updatedInstance) };
   }
 
   // ── List ──
@@ -84,6 +88,8 @@ export class WorkflowService {
       level?: string;
       status?: string;
       domain?: string;
+      entityId?: string;
+      campaignId?: string;
     },
   ): Promise<PaginatedResponse<WorkflowInstanceEntity>> {
     const page = query.page ?? DEFAULT_PAGE;
@@ -99,6 +105,8 @@ export class WorkflowService {
       ...(query.level && { current_level: query.level as Prisma.EnumWfLevelFilter }),
       ...(query.status && { status: query.status as Prisma.EnumWfStatusFilter }),
       ...(query.domain && { domain: query.domain }), // Backward compat: reads legacy domain field, prefer targets[]
+      ...(query.entityId && { entity_id: query.entityId }),
+      ...(query.campaignId && { campaign_id: query.campaignId }),
     };
 
     const [data, total] = await Promise.all([
@@ -157,6 +165,27 @@ export class WorkflowService {
       ? instance.current_level
       : LEVEL_ORDER[currentLevelIdx + 1];
 
+    // Task 4: Validation chain advisory — suggest validator for the next level
+    let transitionComment = comment ?? null;
+    if (!isLastLevel) {
+      try {
+        const chain = await (this.prisma as any).validationChain.findFirst({
+          where: {
+            user_id: instance.created_by,
+            level_type: nextLevel,
+          },
+        });
+        if (chain) {
+          const advisory = ` [Suggested validator: ${chain.validator_id}]`;
+          transitionComment = transitionComment
+            ? transitionComment + advisory
+            : advisory;
+        }
+      } catch {
+        // Non-critical — proceed without advisory
+      }
+    }
+
     // Determine new status and flags
     const nextStatus = isLastLevel ? 'APPROVED' : 'PENDING';
     const wahisReady =
@@ -187,10 +216,15 @@ export class WorkflowService {
           action: 'APPROVE',
           actor_user_id: user.userId,
           actor_role: user.role,
-          comment: comment ?? null,
+          comment: transitionComment,
         },
       }),
     ]);
+
+    // Task 3: Reset SLA deadline for the next level (not on final approval)
+    if (!isLastLevel) {
+      await this.applySlaDeadline(updated, instance.tenant_id);
+    }
 
     // Publish approval event
     await this.publishEvent(TOPIC_AU_WORKFLOW_VALIDATION_APPROVED, updated, user);
@@ -307,6 +341,75 @@ export class WorkflowService {
     return { data: this.toEntityWithTransitions(updated) };
   }
 
+  // ── Bulk Action ──
+
+  async bulkAction(
+    dto: { ids: string[]; action: string; comment?: string },
+    user: AuthenticatedUser,
+  ): Promise<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }> {
+    const succeeded: string[] = [];
+    const failed: Array<{ id: string; error: string }> = [];
+
+    for (const id of dto.ids) {
+      try {
+        if (dto.action === 'APPROVE') {
+          await this.approve(id, dto.comment ?? undefined, user);
+        } else if (dto.action === 'REJECT') {
+          await this.reject(id, dto.comment ?? 'Bulk rejected', user);
+        } else if (dto.action === 'RETURN') {
+          await this.returnForCorrection(id, dto.comment ?? 'Returned for correction', user);
+        }
+        succeeded.push(id);
+      } catch (err: any) {
+        failed.push({ id, error: err.message ?? 'Unknown error' });
+      }
+    }
+
+    return { succeeded, failed };
+  }
+
+  // ── Comment ──
+
+  async addComment(
+    id: string,
+    text: string,
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<WorkflowInstanceEntity>> {
+    const instance = await (this.prisma as any).workflowInstance.findUnique({
+      where: { id },
+    });
+
+    if (!instance) {
+      throw new HttpError(404, `Workflow instance ${id} not found`);
+    }
+
+    this.verifyTenantAccess(user, instance.tenant_id);
+    this.verifyActionable(instance.status);
+    this.verifyRoleForLevel(user, instance.current_level);
+
+    // Create a COMMENT transition — same from/to level and status (no state change)
+    await (this.prisma as any).workflowTransition.create({
+      data: {
+        instance_id: id,
+        from_level: instance.current_level,
+        to_level: instance.current_level,
+        from_status: instance.status,
+        to_status: instance.status,
+        action: 'COMMENT',
+        actor_user_id: user.userId,
+        actor_role: user.role,
+        comment: text,
+      },
+    });
+
+    const updated = await (this.prisma as any).workflowInstance.findUnique({
+      where: { id },
+      include: { transitions: { orderBy: { created_at: 'asc' } } },
+    });
+
+    return { data: this.toEntityWithTransitions(updated) };
+  }
+
   // ── Escalate (called by EscalationService) ──
 
   async escalate(
@@ -361,7 +464,7 @@ export class WorkflowService {
       await this.kafkaProducer.send(
         TOPIC_AU_WORKFLOW_VALIDATION_ESCALATED,
         instance.id,
-        { instanceId: instance.id, entityType: instance.entity_type, entityId: instance.entity_id, fromLevel: instance.current_level, toLevel: nextLevel, reason },
+        { instanceId: instance.id, entityType: instance.entity_type, entityId: instance.entity_id, domain: instance.domain, tenantId: instance.tenant_id, campaignId: instance.campaign_id, fromLevel: instance.current_level, toLevel: nextLevel, reason },
         headers,
       );
     } catch (error) {
@@ -502,6 +605,37 @@ export class WorkflowService {
     ]);
   }
 
+  // ── SLA Deadline Helper ──
+
+  /**
+   * Look up WorkflowDefinition for tenant; if default_validation_delay > 0,
+   * set sla_deadline on the instance. Returns the (possibly updated) instance.
+   */
+  private async applySlaDeadline(
+    instance: { id: string; [key: string]: unknown },
+    tenantId: string,
+  ): Promise<any> {
+    try {
+      const definition = await (this.prisma as any).workflowDefinition.findFirst({
+        where: { tenant_id: tenantId, is_active: true },
+      });
+
+      if (definition && definition.default_validation_delay > 0) {
+        const deadline = new Date(
+          Date.now() + definition.default_validation_delay * 3_600_000,
+        );
+        return await (this.prisma as any).workflowInstance.update({
+          where: { id: instance.id },
+          data: { sla_deadline: deadline },
+          include: { transitions: { orderBy: { created_at: 'asc' } } },
+        });
+      }
+    } catch {
+      // Non-critical — instance continues without SLA deadline
+    }
+    return instance;
+  }
+
   // ── RBAC Checks ──
 
   verifyRoleForLevel(user: AuthenticatedUser, level: string): void {
@@ -592,6 +726,7 @@ export class WorkflowService {
     entity_type: string;
     entity_id: string;
     domain: string;
+    campaign_id?: string | null;
     current_level: string;
     status: string;
     data_contract_id: string | null;
@@ -609,6 +744,7 @@ export class WorkflowService {
       entityType: row.entity_type,
       entityId: row.entity_id,
       domain: row.domain, // Backward compat: reads legacy domain field, prefer targets[]
+      campaignId: row.campaign_id ?? null,
       currentLevel: row.current_level as WorkflowLevel,
       status: row.status,
       dataContractId: row.data_contract_id,
@@ -628,6 +764,7 @@ export class WorkflowService {
     entity_type: string;
     entity_id: string;
     domain: string;
+    campaign_id?: string | null;
     current_level: string;
     status: string;
     data_contract_id: string | null;

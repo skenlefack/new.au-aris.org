@@ -3,7 +3,8 @@ export type SubmissionStatusType =
   | 'SUBMITTED'
   | 'VALIDATING'
   | 'VALIDATED'
-  | 'REJECTED';
+  | 'REJECTED'
+  | 'RETURNED';
 
 export interface SubmissionEntity {
   id: string;

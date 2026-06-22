@@ -20,6 +20,7 @@ enum SubmissionStatus {
   VALIDATING
   VALIDATED
   REJECTED
+  RETURNED
 
   @@map("submission_status")
   @@schema("public")

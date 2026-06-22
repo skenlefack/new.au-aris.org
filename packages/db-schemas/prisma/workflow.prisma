@@ -27,6 +27,7 @@ enum WfAction {
   REJECT
   RETURN
   ESCALATE
+  COMMENT
 
   @@schema("workflow")
 }
@@ -39,6 +40,7 @@ model WorkflowInstance {
   domain             String               @db.VarChar(50)
   current_level      WfLevel              @default(NATIONAL_TECHNICAL)
   status             WfStatus             @default(PENDING)
+  campaign_id        String?              @db.Uuid
   data_contract_id   String?              @db.Uuid
   quality_report_id  String?              @db.VarChar(255)
   wahis_ready        Boolean              @default(false)
@@ -54,6 +56,7 @@ model WorkflowInstance {
   @@index([entity_type, entity_id])
   @@index([current_level, status])
   @@index([domain])
+  @@index([campaign_id])
   @@index([sla_deadline])
   @@map("workflow_instances")
   @@schema("workflow")
