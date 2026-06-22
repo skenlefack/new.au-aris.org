@@ -21,8 +21,17 @@ enum SubmissionStatus {
   VALIDATED
   REJECTED
   RETURNED
+  CONFLICT
 
   @@map("submission_status")
+  @@schema("public")
+}
+
+enum ConflictResolutionStatus {
+  PENDING
+  RESOLVED
+
+  @@map("conflict_resolution_status")
   @@schema("public")
 }
 
@@ -152,6 +161,12 @@ model Submission {
   status              SubmissionStatus @default(SUBMITTED)
   dataClassification  String           @default("RESTRICTED") @map("data_classification") @db.VarChar(20)
   version             Int              @default(1)
+  conflictStatus      ConflictResolutionStatus? @map("conflict_status")
+  conflictClientData  Json?            @map("conflict_client_data")
+  conflictClientVersion Int?           @map("conflict_client_version")
+  conflictDetectedAt  DateTime?        @map("conflict_detected_at") @db.Timestamptz
+  conflictResolvedAt  DateTime?        @map("conflict_resolved_at") @db.Timestamptz
+  conflictResolvedBy  String?          @map("conflict_resolved_by") @db.Uuid
   createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -162,6 +177,7 @@ model Submission {
   @@index([submittedBy], map: "idx_submission_submitted_by")
   @@index([status], map: "idx_submission_status")
   @@index([offlineCreatedAt], map: "idx_submission_offline_created_at")
+  @@index([conflictStatus], map: "idx_submission_conflict_status")
   @@map("submissions")
   @@schema("public")
 }

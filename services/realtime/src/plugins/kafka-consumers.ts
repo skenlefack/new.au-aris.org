@@ -7,6 +7,7 @@ import {
   TOPIC_REC_HEALTH_OUTBREAK_ALERT,
   TOPIC_AU_WORKFLOW_VALIDATION_APPROVED,
   TOPIC_AU_WORKFLOW_VALIDATION_REJECTED,
+  TOPIC_AU_WORKFLOW_VALIDATION_RETURNED,
   TOPIC_SYS_MESSAGE_NOTIFICATION_SENT,
   TOPIC_MS_COLLECTE_FORM_SYNCED,
   TOPIC_MS_COLLECTE_FORM_SUBMITTED,
@@ -185,6 +186,17 @@ export default fp(async (app: FastifyInstance) => {
             timestamp: ts,
           });
         }
+
+        // Broadcast to submission-specific room
+        const entityId = data?.entity_id ?? data?.entityId ?? headers['entityId'];
+        if (entityId) {
+          broadcastMessage(`${ROOM_PREFIX.SUBMISSION}${entityId}`, {
+            type: 'STATUS_CHANGE',
+            action: 'approved',
+            data: payload,
+            timestamp: ts,
+          });
+        }
       },
     );
   } catch (error) {
@@ -193,7 +205,7 @@ export default fp(async (app: FastifyInstance) => {
     );
   }
 
-  // ── au.workflow.validation.rejected.v1 → workflow:{tenantId} ──
+  // ── au.workflow.validation.rejected.v1 → workflow:{tenantId} + submission room ──
 
   try {
     await kafkaConsumer.subscribe(
@@ -202,6 +214,7 @@ export default fp(async (app: FastifyInstance) => {
         const tenantId = headers['tenantId'];
         if (!tenantId) return;
         const ts = new Date().toISOString();
+        const data = payload as Record<string, unknown> | null;
 
         broadcastToRoom(
           `workflow:${tenantId}`,
@@ -213,11 +226,84 @@ export default fp(async (app: FastifyInstance) => {
           'workflow:updated',
           { tenantId, action: 'rejected', data: payload, timestamp: ts },
         );
+
+        // Broadcast to submission-specific room
+        const entityId = data?.entity_id ?? data?.entityId ?? headers['entityId'];
+        if (entityId) {
+          broadcastMessage(`${ROOM_PREFIX.SUBMISSION}${entityId}`, {
+            type: 'STATUS_CHANGE',
+            action: 'rejected',
+            data: payload,
+            timestamp: ts,
+          });
+        }
+
+        // Broadcast to campaign room
+        const campaignId = data?.campaignId ?? data?.campaign_id ?? headers['campaignId'];
+        if (campaignId) {
+          broadcastMessage(`${ROOM_PREFIX.CAMPAIGN}${campaignId}`, {
+            type: 'DATA_UPDATE',
+            entity: 'workflow',
+            data: { action: 'rejected', ...data },
+            timestamp: ts,
+          });
+        }
       },
     );
   } catch (error) {
     app.log.error(
       `Failed to subscribe to workflow rejected: ${error instanceof Error ? error.stack : String(error)}`,
+    );
+  }
+
+  // ── au.workflow.validation.returned.v1 → workflow:{tenantId} + submission room ──
+
+  try {
+    await kafkaConsumer.subscribe(
+      { topic: TOPIC_AU_WORKFLOW_VALIDATION_RETURNED, groupId: 'realtime-workflow-returned' },
+      async (payload, headers) => {
+        const tenantId = headers['tenantId'];
+        if (!tenantId) return;
+        const ts = new Date().toISOString();
+        const data = payload as Record<string, unknown> | null;
+
+        broadcastToRoom(
+          `workflow:${tenantId}`,
+          'workflow:returned',
+          { tenantId, data: payload, timestamp: ts },
+        );
+        broadcastToRoom(
+          `workflow:${tenantId}`,
+          'workflow:updated',
+          { tenantId, action: 'returned', data: payload, timestamp: ts },
+        );
+
+        // Broadcast to submission-specific room if entityId is present
+        const entityId = data?.entity_id ?? data?.entityId ?? headers['entityId'];
+        if (entityId) {
+          broadcastMessage(`${ROOM_PREFIX.SUBMISSION}${entityId}`, {
+            type: 'STATUS_CHANGE',
+            action: 'returned',
+            data: payload,
+            timestamp: ts,
+          });
+        }
+
+        // Broadcast to campaign room if campaignId is present
+        const campaignId = data?.campaignId ?? data?.campaign_id ?? headers['campaignId'];
+        if (campaignId) {
+          broadcastMessage(`${ROOM_PREFIX.CAMPAIGN}${campaignId}`, {
+            type: 'DATA_UPDATE',
+            entity: 'workflow',
+            data: { action: 'returned', ...data },
+            timestamp: ts,
+          });
+        }
+      },
+    );
+  } catch (error) {
+    app.log.error(
+      `Failed to subscribe to workflow returned: ${error instanceof Error ? error.stack : String(error)}`,
     );
   }
 

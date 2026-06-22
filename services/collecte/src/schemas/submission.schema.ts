@@ -42,6 +42,16 @@ export const UpdateDataSchema = Type.Object({
 });
 export type UpdateDataBody = Static<typeof UpdateDataSchema>;
 
+export const ResolveConflictSchema = Type.Object({
+  resolution: Type.Union([
+    Type.Literal('KEEP_SERVER'),
+    Type.Literal('KEEP_CLIENT'),
+    Type.Literal('MERGE'),
+  ]),
+  mergedData: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+});
+export type ResolveConflictBody = Static<typeof ResolveConflictSchema>;
+
 export const IdParamSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
 });

@@ -92,6 +92,7 @@ export function useRealtime(): void {
     // ── Workflow events ──
     socket.on('workflow:approved', () => {
       queryClient.invalidateQueries({ queryKey: ['workflow'] });
+      queryClient.invalidateQueries({ queryKey: ['submissions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'kpis'] });
       addToast({
         type: 'success',
@@ -102,11 +103,28 @@ export function useRealtime(): void {
 
     socket.on('workflow:rejected', () => {
       queryClient.invalidateQueries({ queryKey: ['workflow'] });
+      queryClient.invalidateQueries({ queryKey: ['submissions'] });
       addToast({
         type: 'warning',
         title: 'Workflow Rejected',
         message: 'A validation has been rejected. Review required.',
       });
+    });
+
+    socket.on('workflow:returned', () => {
+      queryClient.invalidateQueries({ queryKey: ['workflow'] });
+      queryClient.invalidateQueries({ queryKey: ['submissions'] });
+      addToast({
+        type: 'info',
+        title: 'Returned for Correction',
+        message: 'A submission has been returned for correction.',
+      });
+    });
+
+    // Generic workflow:updated — catch-all for any action
+    socket.on('workflow:updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['workflow'] });
+      queryClient.invalidateQueries({ queryKey: ['submissions'] });
     });
 
     // ── Notification events ──
@@ -117,6 +135,13 @@ export function useRealtime(): void {
     // ── Sync events ──
     socket.on('sync:completed', () => {
       queryClient.invalidateQueries({ queryKey: ['collecte'] });
+      queryClient.invalidateQueries({ queryKey: ['submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      addToast({
+        type: 'success',
+        title: 'Sync Complete',
+        message: 'New submissions have been synced.',
+      });
     });
 
     // ── Presence ──

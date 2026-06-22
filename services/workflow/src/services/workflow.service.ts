@@ -8,6 +8,7 @@ import {
   TOPIC_AU_WORKFLOW_VALIDATION_SUBMITTED,
   TOPIC_AU_WORKFLOW_VALIDATION_APPROVED,
   TOPIC_AU_WORKFLOW_VALIDATION_REJECTED,
+  TOPIC_AU_WORKFLOW_VALIDATION_RETURNED,
   TOPIC_AU_WORKFLOW_VALIDATION_ESCALATED,
   TOPIC_AU_WORKFLOW_WAHIS_READY,
   TOPIC_AU_WORKFLOW_ANALYTICS_READY,
@@ -40,7 +41,39 @@ export class HttpError extends Error {
   }
 }
 
+/** Cached definition + steps for a tenant */
+interface DefinitionWithSteps {
+  definition: {
+    id: string;
+    tenant_id: string;
+    auto_transmit_enabled: boolean;
+    auto_validate_enabled: boolean;
+    require_comment: boolean;
+    allow_reject: boolean;
+    allow_return: boolean;
+    default_validation_delay: number;
+    default_transmit_delay: number;
+    is_active: boolean;
+    [key: string]: unknown;
+  };
+  steps: Array<{
+    id: string;
+    step_order: number;
+    level_type: string;
+    can_edit: boolean;
+    can_validate: boolean;
+    transmit_delay_hours: number | null;
+    [key: string]: unknown;
+  }>;
+  /** Ordered level_type sequence derived from steps */
+  levelOrder: string[];
+}
+
 export class WorkflowService {
+  /** In-memory cache: tenantId → definition+steps (TTL managed by simple expiry) */
+  private definitionCache = new Map<string, { data: DefinitionWithSteps | null; expiresAt: number }>();
+  private static readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
   constructor(
     private readonly prisma: PrismaClient,
     private readonly kafkaProducer: StandaloneKafkaProducer,
@@ -53,6 +86,12 @@ export class WorkflowService {
     dto: CreateInstanceInput,
     user: AuthenticatedUser,
   ): Promise<ApiResponse<WorkflowInstanceEntity>> {
+    // Determine start level from definition or fall back to NATIONAL_TECHNICAL
+    const def = await this.getDefinitionWithSteps(user.tenantId);
+    const startLevel = def && def.levelOrder.length > 0
+      ? def.levelOrder[0]
+      : 'NATIONAL_TECHNICAL';
+
     const instance = await (this.prisma as any).workflowInstance.create({
       data: {
         tenant_id: user.tenantId,
@@ -60,7 +99,7 @@ export class WorkflowService {
         entity_id: dto.entityId,
         domain: dto.domain, // Backward compat: writes legacy domain field from campaign/form, prefer targets[]
         campaign_id: dto.campaignId ?? null,
-        current_level: 'NATIONAL_TECHNICAL',
+        current_level: startLevel,
         status: 'PENDING',
         data_contract_id: dto.dataContractId ?? null,
         quality_report_id: dto.qualityReportId ?? null,
@@ -159,11 +198,21 @@ export class WorkflowService {
     this.verifyActionable(instance.status);
     this.verifyRoleForLevel(user, instance.current_level);
 
-    const currentLevelIdx = LEVEL_ORDER.indexOf(instance.current_level);
-    const isLastLevel = currentLevelIdx === LEVEL_ORDER.length - 1;
+    // Fetch dynamic definition for the tenant
+    const def = await this.getDefinitionWithSteps(instance.tenant_id);
+
+    // Enforce require_comment if definition mandates it
+    if (def && def.definition.require_comment && (!comment || comment.trim().length === 0)) {
+      throw new HttpError(400, 'Comment is required for approval in this workflow configuration');
+    }
+
+    // Determine level sequence (dynamic or hardcoded fallback)
+    const levelOrder = def ? def.levelOrder : [...LEVEL_ORDER];
+    const currentLevelIdx = levelOrder.indexOf(instance.current_level);
+    const isLastLevel = currentLevelIdx === levelOrder.length - 1;
     const nextLevel = isLastLevel
       ? instance.current_level
-      : LEVEL_ORDER[currentLevelIdx + 1];
+      : levelOrder[currentLevelIdx + 1];
 
     // Task 4: Validation chain advisory — suggest validator for the next level
     let transitionComment = comment ?? null;
@@ -223,7 +272,34 @@ export class WorkflowService {
 
     // Task 3: Reset SLA deadline for the next level (not on final approval)
     if (!isLastLevel) {
-      await this.applySlaDeadline(updated, instance.tenant_id);
+      // Check for step-level transmit_delay_hours override
+      const nextStepDelay = def
+        ? this.findStep(def, nextLevel as string)?.transmit_delay_hours ?? undefined
+        : undefined;
+      await this.applySlaDeadline(updated, instance.tenant_id, nextStepDelay);
+    }
+
+    // Auto-validate: if the next step has auto_validate_enabled and quality gates passed,
+    // recursively approve through that step without manual intervention
+    if (!isLastLevel && def && def.definition.auto_validate_enabled) {
+      const nextStep = this.findStep(def, nextLevel as string);
+      if (nextStep && updated.quality_report_id) {
+        // Auto-advance through the next level
+        try {
+          const systemUser: AuthenticatedUser = {
+            userId: '00000000-0000-0000-0000-000000000000',
+            role: 'SUPER_ADMIN' as any,
+            roles: ['SUPER_ADMIN'],
+            tenantId: instance.tenant_id,
+            tenantLevel: TenantLevel.CONTINENTAL,
+            email: 'system@au-aris.org',
+            domains: {},
+          };
+          await this.approve(updated.id, `Auto-validated: quality gates passed`, systemUser);
+        } catch {
+          // Non-critical — manual validation still possible
+        }
+      }
     }
 
     // Publish approval event
@@ -262,6 +338,12 @@ export class WorkflowService {
     this.verifyTenantAccess(user, instance.tenant_id);
     this.verifyActionable(instance.status);
     this.verifyRoleForLevel(user, instance.current_level);
+
+    // Check if rejection is allowed by workflow definition
+    const def = await this.getDefinitionWithSteps(instance.tenant_id);
+    if (def && !def.definition.allow_reject) {
+      throw new HttpError(400, 'Rejection is not allowed in this workflow configuration');
+    }
 
     const [updated] = await (this.prisma as any).$transaction([
       (this.prisma as any).workflowInstance.update({
@@ -308,11 +390,18 @@ export class WorkflowService {
     this.verifyActionable(instance.status);
     this.verifyRoleForLevel(user, instance.current_level);
 
-    // Return drops back one level (or stays at level 1)
-    const currentIdx = LEVEL_ORDER.indexOf(instance.current_level);
+    // Check if return is allowed by workflow definition
+    const def = await this.getDefinitionWithSteps(instance.tenant_id);
+    if (def && !def.definition.allow_return) {
+      throw new HttpError(400, 'Return for correction is not allowed in this workflow configuration');
+    }
+
+    // Return drops back one level (or stays at level 1) — use dynamic level order
+    const levelOrder = def ? def.levelOrder : [...LEVEL_ORDER];
+    const currentIdx = levelOrder.indexOf(instance.current_level);
     const previousLevel = currentIdx > 0
-      ? LEVEL_ORDER[currentIdx - 1]
-      : LEVEL_ORDER[0];
+      ? levelOrder[currentIdx - 1]
+      : levelOrder[0];
 
     const [updated] = await (this.prisma as any).$transaction([
       (this.prisma as any).workflowInstance.update({
@@ -337,6 +426,8 @@ export class WorkflowService {
         },
       }),
     ]);
+
+    await this.publishEvent(TOPIC_AU_WORKFLOW_VALIDATION_RETURNED, updated, user);
 
     return { data: this.toEntityWithTransitions(updated) };
   }
@@ -424,9 +515,11 @@ export class WorkflowService {
       return;
     }
 
-    const currentIdx = LEVEL_ORDER.indexOf(instance.current_level);
-    const nextLevel = currentIdx < LEVEL_ORDER.length - 1
-      ? LEVEL_ORDER[currentIdx + 1]
+    // Use dynamic level order for escalation
+    const levelOrder = await this.getLevelOrder(instance.tenant_id);
+    const currentIdx = levelOrder.indexOf(instance.current_level);
+    const nextLevel = currentIdx < levelOrder.length - 1
+      ? levelOrder[currentIdx + 1]
       : instance.current_level;
 
     await (this.prisma as any).$transaction([
@@ -560,7 +653,10 @@ export class WorkflowService {
   }
 
   /**
-   * Auto-advance Level 1 (NATIONAL_TECHNICAL) for a workflow instance.
+   * Auto-advance a workflow instance when quality gates pass.
+   * Originally Level 1 only (NATIONAL_TECHNICAL), now supports any level
+   * that has auto_validate_enabled in the workflow definition.
+   *
    * Called when au.quality.record.validated.v1 is received — quality passed means
    * technical validation is automatically approved.
    */
@@ -568,10 +664,10 @@ export class WorkflowService {
     entityId: string,
     qualityReportId: string,
   ): Promise<void> {
+    // Find any pending instance for this entity (not just NATIONAL_TECHNICAL)
     const instance = await (this.prisma as any).workflowInstance.findFirst({
       where: {
         entity_id: entityId,
-        current_level: 'NATIONAL_TECHNICAL',
         status: { in: ['PENDING', 'IN_REVIEW', 'RETURNED'] },
       },
     });
@@ -580,11 +676,33 @@ export class WorkflowService {
       return;
     }
 
+    // Determine which level to auto-advance and the next level
+    const def = await this.getDefinitionWithSteps(instance.tenant_id);
+    const levelOrder = def ? def.levelOrder : [...LEVEL_ORDER];
+
+    const currentIdx = levelOrder.indexOf(instance.current_level);
+    if (currentIdx === -1 || currentIdx >= levelOrder.length - 1) {
+      // Unknown level or already at final level — skip auto-advance
+      return;
+    }
+
+    // Check if auto-validate is enabled: either the definition-level flag
+    // or the original L1 auto-advance behavior (always allowed for NATIONAL_TECHNICAL)
+    const isLevel1 = instance.current_level === 'NATIONAL_TECHNICAL';
+    const defAutoValidate = def?.definition.auto_validate_enabled ?? false;
+
+    if (!isLevel1 && !defAutoValidate) {
+      // Only auto-advance L1 by default; other levels need explicit auto_validate_enabled
+      return;
+    }
+
+    const nextLevel = levelOrder[currentIdx + 1];
+
     await (this.prisma as any).$transaction([
       (this.prisma as any).workflowInstance.update({
         where: { id: instance.id },
         data: {
-          current_level: 'NATIONAL_OFFICIAL',
+          current_level: nextLevel,
           status: 'PENDING',
           quality_report_id: qualityReportId,
         },
@@ -592,8 +710,8 @@ export class WorkflowService {
       (this.prisma as any).workflowTransition.create({
         data: {
           instance_id: instance.id,
-          from_level: 'NATIONAL_TECHNICAL',
-          to_level: 'NATIONAL_OFFICIAL',
+          from_level: instance.current_level,
+          to_level: nextLevel,
           from_status: instance.status,
           to_status: 'PENDING',
           action: 'APPROVE',
@@ -603,26 +721,38 @@ export class WorkflowService {
         },
       }),
     ]);
+
+    // If the next level also has auto_validate_enabled and quality gates passed,
+    // recursively auto-advance
+    if (defAutoValidate) {
+      await this.autoAdvanceLevel1(entityId, qualityReportId);
+    }
   }
 
   // ── SLA Deadline Helper ──
 
   /**
-   * Look up WorkflowDefinition for tenant; if default_validation_delay > 0,
-   * set sla_deadline on the instance. Returns the (possibly updated) instance.
+   * Look up WorkflowDefinition for tenant; if delay > 0, set sla_deadline.
+   * Priority: stepDelayHours (step-level override) > definition default_validation_delay.
+   * Returns the (possibly updated) instance.
    */
   private async applySlaDeadline(
     instance: { id: string; [key: string]: unknown },
     tenantId: string,
+    stepDelayHours?: number,
   ): Promise<any> {
     try {
-      const definition = await (this.prisma as any).workflowDefinition.findFirst({
-        where: { tenant_id: tenantId, is_active: true },
-      });
+      // Use step-level delay if provided, otherwise look up definition default
+      let delayHours = stepDelayHours;
 
-      if (definition && definition.default_validation_delay > 0) {
+      if (delayHours === undefined || delayHours === null) {
+        const def = await this.getDefinitionWithSteps(tenantId);
+        delayHours = def ? def.definition.default_validation_delay : 0;
+      }
+
+      if (delayHours && delayHours > 0) {
         const deadline = new Date(
-          Date.now() + definition.default_validation_delay * 3_600_000,
+          Date.now() + delayHours * 3_600_000,
         );
         return await (this.prisma as any).workflowInstance.update({
           where: { id: instance.id },
@@ -634,6 +764,59 @@ export class WorkflowService {
       // Non-critical — instance continues without SLA deadline
     }
     return instance;
+  }
+
+  // ── Definition Helpers ──
+
+  /**
+   * Fetch and cache the active WorkflowDefinition + ordered steps for a tenant.
+   * Returns null if no definition exists — callers fall back to hardcoded defaults.
+   */
+  private async getDefinitionWithSteps(tenantId: string): Promise<DefinitionWithSteps | null> {
+    const cached = this.definitionCache.get(tenantId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data;
+    }
+
+    try {
+      const definition = await (this.prisma as any).workflowDefinition.findFirst({
+        where: { tenant_id: tenantId, is_active: true },
+        include: { steps: { orderBy: { step_order: 'asc' } } },
+      });
+
+      if (!definition || !definition.steps || definition.steps.length === 0) {
+        this.definitionCache.set(tenantId, { data: null, expiresAt: Date.now() + WorkflowService.CACHE_TTL_MS });
+        return null;
+      }
+
+      const result: DefinitionWithSteps = {
+        definition,
+        steps: definition.steps,
+        levelOrder: definition.steps.map((s: any) => s.level_type),
+      };
+
+      this.definitionCache.set(tenantId, { data: result, expiresAt: Date.now() + WorkflowService.CACHE_TTL_MS });
+      return result;
+    } catch {
+      // Non-critical — fall back to hardcoded defaults
+      return null;
+    }
+  }
+
+  /**
+   * Get the ordered level sequence for a tenant.
+   * Uses dynamic definition steps if available, otherwise hardcoded LEVEL_ORDER.
+   */
+  private async getLevelOrder(tenantId: string): Promise<readonly string[]> {
+    const def = await this.getDefinitionWithSteps(tenantId);
+    return def ? def.levelOrder : LEVEL_ORDER;
+  }
+
+  /**
+   * Find the step config for a given level_type within the definition.
+   */
+  private findStep(def: DefinitionWithSteps, levelType: string): DefinitionWithSteps['steps'][number] | undefined {
+    return def.steps.find((s) => s.level_type === levelType);
   }
 
   // ── RBAC Checks ──

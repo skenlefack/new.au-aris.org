@@ -36,6 +36,7 @@ export const ROOM_PREFIX = {
   REC: 'room:rec:',
   COUNTRY: 'room:country:',
   CAMPAIGN: 'room:campaign:',
+  SUBMISSION: 'room:submission:',
   ALERT: 'room:alert:',
 } as const;
 
@@ -177,6 +178,11 @@ export class RoomManagerService {
       return { authorized: true };
     }
 
+    // room:submission:{submissionId} — any authenticated user (data-level access checked upstream)
+    if (roomId.startsWith(ROOM_PREFIX.SUBMISSION)) {
+      return { authorized: true };
+    }
+
     // room:alert:{alertId} — any authenticated user
     if (roomId.startsWith(ROOM_PREFIX.ALERT)) {
       return { authorized: true };
@@ -194,6 +200,7 @@ export class RoomManagerService {
       roomId.startsWith(ROOM_PREFIX.REC) ||
       roomId.startsWith(ROOM_PREFIX.COUNTRY) ||
       roomId.startsWith(ROOM_PREFIX.CAMPAIGN) ||
+      roomId.startsWith(ROOM_PREFIX.SUBMISSION) ||
       roomId.startsWith(ROOM_PREFIX.ALERT)
     );
   }

@@ -4,7 +4,10 @@ export type SubmissionStatusType =
   | 'VALIDATING'
   | 'VALIDATED'
   | 'REJECTED'
-  | 'RETURNED';
+  | 'RETURNED'
+  | 'CONFLICT';
+
+export type ConflictResolutionStatusType = 'PENDING' | 'RESOLVED';
 
 export interface SubmissionEntity {
   id: string;
@@ -25,6 +28,12 @@ export interface SubmissionEntity {
   status: SubmissionStatusType;
   dataClassification: string;
   version: number;
+  conflictStatus: ConflictResolutionStatusType | null;
+  conflictClientData: unknown | null;
+  conflictClientVersion: number | null;
+  conflictDetectedAt: Date | null;
+  conflictResolvedAt: Date | null;
+  conflictResolvedBy: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

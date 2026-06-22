@@ -91,6 +91,31 @@ export class SubmissionService {
       );
     }
 
+    // Deadline enforcement: check start_date and end_date
+    const now = new Date();
+    const GRACE_PERIOD_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+    if (campaign.startDate) {
+      const startDate = new Date(campaign.startDate);
+      if (now < startDate) {
+        throw new HttpError(
+          400,
+          `Campaign has not started yet. Submissions are accepted from ${startDate.toISOString().slice(0, 10)}`,
+        );
+      }
+    }
+
+    if (campaign.endDate) {
+      const endDate = new Date(campaign.endDate);
+      const deadlineWithGrace = new Date(endDate.getTime() + GRACE_PERIOD_MS);
+      if (now > deadlineWithGrace) {
+        throw new HttpError(
+          400,
+          `Campaign has ended. Submissions are no longer accepted after ${endDate.toISOString().slice(0, 10)} (24h grace period expired)`,
+        );
+      }
+    }
+
     // Tenant isolation
     if (user.tenantLevel !== TenantLevel.CONTINENTAL) {
       if (isCollectionCampaign) {
@@ -638,6 +663,115 @@ export class SubmissionService {
         `[CollecteEventConsumer] Kafka consumers not available — async callbacks disabled: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+  }
+
+  /**
+   * List submissions with conflict status (PENDING resolution).
+   */
+  async findConflicts(
+    user: AuthenticatedUser,
+    query: PaginationQuery,
+  ): Promise<PaginatedResponse<SubmissionEntity>> {
+    const page = query.page ?? DEFAULT_PAGE;
+    const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
+    const skip = (page - 1) * limit;
+
+    const where: Record<string, unknown> = {
+      conflictStatus: 'PENDING',
+    };
+
+    if (user.tenantLevel !== TenantLevel.CONTINENTAL) {
+      where['tenantId'] = user.tenantId;
+    }
+
+    const [data, total] = await Promise.all([
+      (this.prisma as any).submission.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { conflictDetectedAt: 'desc' },
+      }),
+      (this.prisma as any).submission.count({ where }),
+    ]);
+
+    return {
+      data: data as unknown as SubmissionEntity[],
+      meta: { total, page, limit },
+    };
+  }
+
+  /**
+   * Resolve a sync conflict on a submission.
+   *
+   * - KEEP_SERVER: Clear conflict flag, keep current server data.
+   * - KEEP_CLIENT: Replace data with the stored client version.
+   * - MERGE: Replace data with the provided mergedData.
+   */
+  async resolveConflict(
+    id: string,
+    dto: {
+      resolution: 'KEEP_SERVER' | 'KEEP_CLIENT' | 'MERGE';
+      mergedData?: Record<string, unknown>;
+    },
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<SubmissionEntity>> {
+    const submission = await (this.prisma as any).submission.findUnique({
+      where: { id },
+    });
+
+    if (!submission) {
+      throw new HttpError(404, `Submission ${id} not found`);
+    }
+
+    // Tenant isolation
+    if (
+      user.tenantLevel !== TenantLevel.CONTINENTAL &&
+      submission.tenantId !== user.tenantId
+    ) {
+      throw new HttpError(404, `Submission ${id} not found`);
+    }
+
+    if (submission.conflictStatus !== 'PENDING') {
+      throw new HttpError(400, `Submission ${id} has no pending conflict`);
+    }
+
+    // Authorization: admin roles only
+    const isAdmin = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN', 'DATA_STEWARD'].includes(user.role);
+    if (!isAdmin) {
+      throw new HttpError(403, 'Not authorized to resolve conflicts');
+    }
+
+    const updateData: Record<string, unknown> = {
+      status: 'SUBMITTED', // Reset to SUBMITTED for re-processing
+      conflictStatus: 'RESOLVED',
+      conflictResolvedAt: new Date(),
+      conflictResolvedBy: user.userId,
+      version: { increment: 1 },
+    };
+
+    if (dto.resolution === 'KEEP_CLIENT') {
+      if (!submission.conflictClientData) {
+        throw new HttpError(400, 'No client data available for this conflict');
+      }
+      updateData['data'] = submission.conflictClientData;
+    } else if (dto.resolution === 'MERGE') {
+      if (!dto.mergedData) {
+        throw new HttpError(400, 'mergedData is required for MERGE resolution');
+      }
+      updateData['data'] = dto.mergedData as any;
+    }
+    // KEEP_SERVER: no data change needed
+
+    const updated = await (this.prisma as any).submission.update({
+      where: { id },
+      data: updateData,
+    });
+
+    console.log(
+      `[SubmissionService] Conflict resolved for submission ${id}: ${dto.resolution} by ${user.email}`,
+    );
+
+    return { data: updated as unknown as SubmissionEntity };
   }
 
   /**

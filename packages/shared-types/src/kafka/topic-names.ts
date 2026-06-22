@@ -43,6 +43,7 @@ export const TOPIC_MS_FORMBUILDER_EXTENSION_PUBLISHED = 'ms.formbuilder.extensio
 export const TOPIC_AU_WORKFLOW_VALIDATION_SUBMITTED = 'au.workflow.validation.submitted.v1' as const;
 export const TOPIC_AU_WORKFLOW_VALIDATION_APPROVED = 'au.workflow.validation.approved.v1' as const;
 export const TOPIC_AU_WORKFLOW_VALIDATION_REJECTED = 'au.workflow.validation.rejected.v1' as const;
+export const TOPIC_AU_WORKFLOW_VALIDATION_RETURNED = 'au.workflow.validation.returned.v1' as const;
 export const TOPIC_AU_WORKFLOW_VALIDATION_ESCALATED = 'au.workflow.validation.escalated.v1' as const;
 export const TOPIC_AU_WORKFLOW_WAHIS_READY = 'au.workflow.wahis.ready.v1' as const;
 export const TOPIC_AU_WORKFLOW_ANALYTICS_READY = 'au.workflow.analytics.ready.v1' as const;
@@ -250,6 +251,7 @@ export const ALL_TOPICS = [
   TOPIC_AU_WORKFLOW_VALIDATION_SUBMITTED,
   TOPIC_AU_WORKFLOW_VALIDATION_APPROVED,
   TOPIC_AU_WORKFLOW_VALIDATION_REJECTED,
+  TOPIC_AU_WORKFLOW_VALIDATION_RETURNED,
   TOPIC_AU_WORKFLOW_VALIDATION_ESCALATED,
   TOPIC_AU_WORKFLOW_WAHIS_READY,
   TOPIC_AU_WORKFLOW_ANALYTICS_READY,

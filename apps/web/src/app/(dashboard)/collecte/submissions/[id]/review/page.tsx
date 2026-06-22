@@ -39,6 +39,7 @@ import { useFormBuilderTemplate } from '@/lib/api/form-builder-hooks';
 import { useWorkflowInstances } from '@/lib/api/workflow-hooks';
 import { DetailSkeleton } from '@/components/ui/Skeleton';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useSubmissionRealtime } from '@/lib/realtime/use-workflow-realtime';
 import { useTranslations } from '@/lib/i18n/translations';
 import type { FormSchema } from '@/components/form-builder/utils/form-schema';
 
@@ -397,6 +398,9 @@ export default function SubmissionReviewPage() {
   const params = useParams();
   const id = params.id as string;
   const t = useTranslations('collecte');
+
+  // Real-time updates for this submission
+  useSubmissionRealtime(id);
 
   // Fetch submission
   const { data: subRes, isLoading: subLoading } = useSubmission(id);

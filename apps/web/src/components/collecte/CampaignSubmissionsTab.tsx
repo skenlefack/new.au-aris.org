@@ -8,9 +8,11 @@ import {
   Search,
   CheckCircle2,
   Minus,
+  AlertTriangle,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useCampaignSubmissions } from '@/lib/api/workflow-hooks';
+import { useCampaignSubmissions, useResolveConflict } from '@/lib/api/workflow-hooks';
 import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { ExportMenu } from '@/components/ui/ExportMenu';
@@ -24,9 +26,10 @@ const STATUS_STYLES: Record<string, { bg: string; dot: string }> = {
   VALIDATED: { bg: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', dot: 'bg-green-500' },
   REJECTED:  { bg: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500' },
   DRAFT:     { bg: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400', dot: 'bg-gray-400' },
+  CONFLICT:  { bg: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', dot: 'bg-orange-500' },
 };
 
-const STATUS_OPTIONS = ['ALL', 'SUBMITTED', 'VALIDATED', 'REJECTED'] as const;
+const STATUS_OPTIONS = ['ALL', 'SUBMITTED', 'VALIDATED', 'REJECTED', 'CONFLICT'] as const;
 
 function StatusBadge({ status }: { status: string }) {
   const s = STATUS_STYLES[status] ?? { bg: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400', dot: 'bg-gray-400' };
@@ -48,6 +51,191 @@ function formatDate(iso: string | null | undefined): string {
   }
 }
 
+/* ── Conflict Resolution Dialog ──────────────────────────────────────────── */
+
+interface ConflictDialogProps {
+  submission: any;
+  onClose: () => void;
+  onResolved: () => void;
+}
+
+function ConflictResolutionDialog({ submission, onClose, onResolved }: ConflictDialogProps) {
+  const t = useTranslations('collecte');
+  const resolve = useResolveConflict();
+  const [resolution, setResolution] = useState<'KEEP_SERVER' | 'KEEP_CLIENT' | 'MERGE'>('KEEP_SERVER');
+  const [mergedData, setMergedData] = useState('');
+  const [error, setError] = useState('');
+
+  const serverData = submission.data ?? {};
+  const clientData = submission.conflictClientData ?? {};
+
+  // Collect all keys
+  const allKeys = Array.from(new Set([
+    ...Object.keys(serverData),
+    ...Object.keys(clientData),
+  ])).sort();
+
+  // Find differing keys
+  const diffKeys = allKeys.filter(
+    (k) => JSON.stringify(serverData[k]) !== JSON.stringify(clientData[k]),
+  );
+
+  const handleResolve = async () => {
+    setError('');
+    try {
+      let merged: Record<string, unknown> | undefined;
+      if (resolution === 'MERGE') {
+        if (!mergedData.trim()) {
+          setError(t('mergedDataRequired'));
+          return;
+        }
+        try {
+          merged = JSON.parse(mergedData);
+        } catch {
+          setError(t('invalidJson'));
+          return;
+        }
+      }
+
+      await resolve.mutateAsync({
+        id: submission.id,
+        resolution,
+        mergedData: merged,
+      });
+      onResolved();
+    } catch (err: any) {
+      setError(err.message ?? 'Failed to resolve conflict');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="mx-4 w-full max-w-4xl rounded-xl bg-white shadow-2xl dark:bg-gray-900 max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b px-6 py-4 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-orange-500" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {t('resolveConflict')}
+            </h2>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1 hover:bg-gray-100 dark:hover:bg-gray-800">
+            <X className="h-5 w-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Side-by-side data comparison */}
+        <div className="px-6 py-4">
+          <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+            {t('conflictDescription')}
+          </p>
+
+          <div className="mb-4 text-xs text-gray-500 dark:text-gray-400">
+            {t('serverVersion')}: v{submission.version} | {t('clientVersion')}: v{submission.conflictClientVersion ?? '?'}
+            {submission.conflictDetectedAt && (
+              <> | {t('detectedAt')}: {formatDate(submission.conflictDetectedAt)}</>
+            )}
+          </div>
+
+          {diffKeys.length > 0 ? (
+            <div className="overflow-x-auto rounded-lg border dark:border-gray-700">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-gray-50 text-left text-xs font-medium uppercase text-gray-500 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400">
+                    <th className="px-4 py-2">{t('field')}</th>
+                    <th className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20">{t('serverValue')}</th>
+                    <th className="px-4 py-2 bg-orange-50 dark:bg-orange-900/20">{t('clientValue')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {diffKeys.map((key) => (
+                    <tr key={key}>
+                      <td className="px-4 py-2 font-mono text-xs font-medium text-gray-700 dark:text-gray-300">
+                        {key}
+                      </td>
+                      <td className="px-4 py-2 bg-blue-50/50 dark:bg-blue-900/10 text-xs break-all">
+                        {JSON.stringify(serverData[key] ?? null)}
+                      </td>
+                      <td className="px-4 py-2 bg-orange-50/50 dark:bg-orange-900/10 text-xs break-all">
+                        {JSON.stringify(clientData[key] ?? null)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 italic">{t('noFieldDifferences')}</p>
+          )}
+        </div>
+
+        {/* Resolution options */}
+        <div className="border-t px-6 py-4 dark:border-gray-700">
+          <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{t('chooseResolution')}</h3>
+          <div className="space-y-2">
+            {(['KEEP_SERVER', 'KEEP_CLIENT', 'MERGE'] as const).map((opt) => (
+              <label key={opt} className="flex items-start gap-3 rounded-lg border p-3 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
+                <input
+                  type="radio"
+                  name="resolution"
+                  value={opt}
+                  checked={resolution === opt}
+                  onChange={() => setResolution(opt)}
+                  className="mt-0.5"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {t(`resolution_${opt}`)}
+                  </span>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {t(`resolution_${opt}_desc`)}
+                  </p>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          {resolution === 'MERGE' && (
+            <div className="mt-3">
+              <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
+                {t('mergedDataJson')}
+              </label>
+              <textarea
+                value={mergedData}
+                onChange={(e) => setMergedData(e.target.value)}
+                rows={6}
+                placeholder='{ "field1": "value1", ... }'
+                className="w-full rounded-lg border p-3 font-mono text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+              />
+            </div>
+          )}
+
+          {error && (
+            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-3 border-t px-6 py-4 dark:border-gray-700">
+          <button
+            onClick={onClose}
+            className="rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            {t('cancel')}
+          </button>
+          <button
+            onClick={handleResolve}
+            disabled={resolve.isPending}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {resolve.isPending ? t('resolving') : t('resolveConflictBtn')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Main component ──────────────────────────────────────────────────────── */
 
 interface CampaignSubmissionsTabProps {
@@ -60,6 +248,7 @@ export default function CampaignSubmissionsTab({ campaignId }: CampaignSubmissio
   const [limit, setLimit] = useState(20);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState('');
+  const [conflictSub, setConflictSub] = useState<any>(null);
 
   const { data: response, isLoading } = useCampaignSubmissions(campaignId, {
     page,
@@ -204,7 +393,12 @@ export default function CampaignSubmissionsTab({ campaignId }: CampaignSubmissio
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={sub.status} />
+                      <div className="flex items-center gap-1.5">
+                        <StatusBadge status={sub.status} />
+                        {sub.conflictStatus === 'PENDING' && (
+                          <span title={t('pendingConflict')}><AlertTriangle className="h-4 w-4 text-orange-500" /></span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
@@ -222,13 +416,24 @@ export default function CampaignSubmissionsTab({ campaignId }: CampaignSubmissio
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/collecte/submissions/${sub.id}/review`}
-                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20 transition-colors"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                        {t('viewSubmission')}
-                      </Link>
+                      <div className="flex items-center justify-end gap-2">
+                        {sub.conflictStatus === 'PENDING' && (
+                          <button
+                            onClick={() => setConflictSub(sub)}
+                            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 dark:text-orange-400 dark:bg-orange-900/20 transition-colors"
+                          >
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            {t('resolveConflictBtn')}
+                          </button>
+                        )}
+                        <Link
+                          href={`/collecte/submissions/${sub.id}/review`}
+                          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20 transition-colors"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          {t('viewSubmission')}
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -247,6 +452,15 @@ export default function CampaignSubmissionsTab({ campaignId }: CampaignSubmissio
             />
           )}
         </div>
+      )}
+
+      {/* Conflict Resolution Dialog */}
+      {conflictSub && (
+        <ConflictResolutionDialog
+          submission={conflictSub}
+          onClose={() => setConflictSub(null)}
+          onResolved={() => setConflictSub(null)}
+        />
       )}
     </div>
   );

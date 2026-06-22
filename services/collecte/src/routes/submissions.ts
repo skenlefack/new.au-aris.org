@@ -8,6 +8,7 @@ import {
   IdParamSchema,
   UpdateStatusSchema,
   UpdateDataSchema,
+  ResolveConflictSchema,
 } from '../schemas/submission.schema';
 import type {
   CreateSubmissionBody,
@@ -15,6 +16,7 @@ import type {
   IdParam,
   UpdateStatusBody,
   UpdateDataBody,
+  ResolveConflictBody,
 } from '../schemas/submission.schema';
 
 export default async function submissionRoutes(app: FastifyInstance): Promise<void> {
@@ -53,6 +55,16 @@ export default async function submissionRoutes(app: FastifyInstance): Promise<vo
     });
   });
 
+  // GET /api/v1/collecte/submissions/conflicts — List submissions with pending conflicts
+  // (registered before /:id to ensure static path takes priority)
+  app.get<{ Querystring: ListSubmissionsQuery }>('/api/v1/collecte/submissions/conflicts', {
+    schema: { querystring: ListSubmissionsQuerySchema },
+    preHandler: [auth, tenant],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return service.findConflicts(user, request.query);
+  });
+
   // GET /api/v1/collecte/submissions/:id
   app.get<{ Params: IdParam }>('/api/v1/collecte/submissions/:id', {
     schema: { params: IdParamSchema },
@@ -78,5 +90,14 @@ export default async function submissionRoutes(app: FastifyInstance): Promise<vo
   }, async (request) => {
     const user = request.user as AuthenticatedUser;
     return service.updateData(request.params.id, request.body.data, user);
+  });
+
+  // PATCH /api/v1/collecte/submissions/:id/resolve-conflict — Resolve a sync conflict
+  app.patch<{ Params: IdParam; Body: ResolveConflictBody }>('/api/v1/collecte/submissions/:id/resolve-conflict', {
+    schema: { params: IdParamSchema, body: ResolveConflictSchema },
+    preHandler: [auth, tenant],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return service.resolveConflict(request.params.id, request.body, user);
   });
 }

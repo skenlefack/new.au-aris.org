@@ -37,6 +37,7 @@ import {
 import { COUNTRIES } from '@/data/countries-config';
 import { DOMAIN_OPTIONS } from '@/components/form-builder/utils/field-types';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import { useWorkflowRealtime } from '@/lib/realtime/use-workflow-realtime';
 import LabResultsTab, { detectLabRepeaters } from '@/components/collecte/LabResultsTab';
 import CampaignSubmissionsTab from '@/components/collecte/CampaignSubmissionsTab';
 import CampaignQualityDashboard from '@/components/collecte/CampaignQualityDashboard';
@@ -152,6 +153,7 @@ export default function CampaignDetailPage() {
   const campaignId = params.id as string;
 
   const { data: campaignRes, isLoading } = useCollectionCampaign(campaignId);
+  useWorkflowRealtime(campaignId);
   const updateCampaign = useUpdateCollectionCampaign();
   const activateMut = useActivateCampaign();
   const completeMut = useCompleteCampaign();

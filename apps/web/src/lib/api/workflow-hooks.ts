@@ -443,6 +443,42 @@ export function useCampaignSubmissions(campaignId: string | undefined, params?: 
   });
 }
 
+// ═══════════════════════════════════════════════════════
+// CONFLICT RESOLUTION
+// ═══════════════════════════════════════════════════════
+
+export function useConflictSubmissions(params?: { page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ['conflict-submissions', params],
+    queryFn: () => {
+      const qs = new URLSearchParams();
+      if (params?.page) qs.set('page', String(params.page));
+      if (params?.limit) qs.set('limit', String(params.limit));
+      return wfFetch<any>(`/api/v1/collecte/submissions/conflicts?${qs}`);
+    },
+    staleTime: 30_000,
+  });
+}
+
+export function useResolveConflict() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, resolution, mergedData }: {
+      id: string;
+      resolution: 'KEEP_SERVER' | 'KEEP_CLIENT' | 'MERGE';
+      mergedData?: Record<string, unknown>;
+    }) =>
+      wfFetch(`/api/v1/collecte/submissions/${id}/resolve-conflict`, {
+        method: 'PATCH',
+        body: JSON.stringify({ resolution, mergedData }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['conflict-submissions'] });
+      qc.invalidateQueries({ queryKey: ['campaign-submissions'] });
+    },
+  });
+}
+
 export function useCreateCollectionCampaign() {
   const qc = useQueryClient();
   return useMutation({

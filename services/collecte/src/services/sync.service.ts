@@ -269,6 +269,18 @@ export class SyncService {
     const clientVersion = payload.version ?? 1;
 
     if (strategy === 'MANUAL_MERGE') {
+      // Store client data on the submission for later manual resolution
+      await (this.prisma as any).submission.update({
+        where: { id: existing.id },
+        data: {
+          status: 'CONFLICT',
+          conflictStatus: 'PENDING',
+          conflictClientData: payload.data as any,
+          conflictClientVersion: clientVersion,
+          conflictDetectedAt: syncedAt,
+        },
+      });
+
       return {
         status: 'conflict',
         id: existing.id,
