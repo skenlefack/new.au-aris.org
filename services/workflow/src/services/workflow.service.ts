@@ -87,9 +87,11 @@ export class WorkflowService {
     user: AuthenticatedUser,
   ): Promise<ApiResponse<WorkflowInstanceEntity>> {
     // Determine start level from definition or fall back to NATIONAL_TECHNICAL
+    const VALID_LEVELS = new Set(LEVEL_ORDER);
     const def = await this.getDefinitionWithSteps(user.tenantId);
-    const startLevel = def && def.levelOrder.length > 0
-      ? def.levelOrder[0]
+    const defStartLevel = def && def.levelOrder.length > 0 ? def.levelOrder[0] : null;
+    const startLevel = defStartLevel && VALID_LEVELS.has(defStartLevel)
+      ? defStartLevel
       : 'NATIONAL_TECHNICAL';
 
     const instance = await (this.prisma as any).workflowInstance.create({
@@ -825,8 +827,12 @@ export class WorkflowService {
    * Uses dynamic definition steps if available, otherwise hardcoded LEVEL_ORDER.
    */
   private async getLevelOrder(tenantId: string): Promise<readonly string[]> {
+    const VALID_LEVELS = new Set(LEVEL_ORDER);
     const def = await this.getDefinitionWithSteps(tenantId);
-    return def ? def.levelOrder : LEVEL_ORDER;
+    if (!def) return LEVEL_ORDER;
+    // Filter to only valid enum values — definition steps may have legacy level_type values
+    const validDefLevels = def.levelOrder.filter(l => VALID_LEVELS.has(l));
+    return validDefLevels.length > 0 ? validDefLevels : LEVEL_ORDER;
   }
 
   /**
