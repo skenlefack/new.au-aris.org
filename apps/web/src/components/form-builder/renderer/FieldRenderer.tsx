@@ -307,13 +307,7 @@ export function FieldRenderer({ field, value, onChange, onAutoFill, error, formV
       )}
 
       {field.type === 'form-data-select' && (
-        <select
-          value={(value as string) || ''}
-          onChange={(e) => onChange(e.target.value)}
-          className={inputClass}
-        >
-          <option value="">{placeholder || 'Select...'}</option>
-        </select>
+        <FormDataSelectField field={field} value={value} onChange={onChange} placeholder={placeholder} ml={ml} />
       )}
 
       {field.type === 'multi-select' && (() => {
@@ -367,16 +361,35 @@ export function FieldRenderer({ field, value, onChange, onAutoFill, error, formV
         </div>
       )}
 
-      {field.type === 'checkbox' && (
-        <div className="space-y-1">
-          {((field.properties.options || []) as SelectOption[]).map((opt, i) => (
-            <label key={i} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-              <input type="checkbox" className="rounded border-gray-300" />
-              {ml(opt.label) || opt.value}
-            </label>
-          ))}
-        </div>
-      )}
+      {field.type === 'checkbox' && (() => {
+        const selectedValues = Array.isArray(value) ? (value as string[]) : [];
+        const maxSel = (field.properties.maxSelections as number) || 0;
+        return (
+          <div className="space-y-1">
+            {((field.properties.options || []) as SelectOption[]).map((opt, i) => {
+              const checked = selectedValues.includes(opt.value);
+              const atMax = maxSel > 0 && selectedValues.length >= maxSel && !checked;
+              return (
+                <label key={i} className={cn('flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300', atMax && 'opacity-50')}>
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300"
+                    checked={checked}
+                    disabled={field.readOnly || atMax}
+                    onChange={() => {
+                      const next = checked
+                        ? selectedValues.filter((v) => v !== opt.value)
+                        : [...selectedValues, opt.value];
+                      onChange(next);
+                    }}
+                  />
+                  {ml(opt.label) || opt.value}
+                </label>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {field.type === 'toggle' && (
         <div className="flex items-center gap-3">
@@ -433,21 +446,27 @@ export function FieldRenderer({ field, value, onChange, onAutoFill, error, formV
         <DateTimeFieldWithDefault field={field} value={value} onChange={onChange} />
       )}
 
-      {field.type === 'date-range' && (
-        <div className="flex items-center gap-2">
-          <input
-            type="date"
-            className={cn(inputClass, 'flex-1')}
-            placeholder={t('fbStart')}
-          />
-          <span className="text-gray-400">—</span>
-          <input
-            type="date"
-            className={cn(inputClass, 'flex-1')}
-            placeholder={t('fbEnd')}
-          />
-        </div>
-      )}
+      {field.type === 'date-range' && (() => {
+        const rangeVal = (value && typeof value === 'object' ? value : {}) as { start?: string; end?: string };
+        return (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={rangeVal.start || ''}
+              onChange={(e) => onChange({ ...rangeVal, start: e.target.value })}
+              className={cn(inputClass, 'flex-1')}
+            />
+            <span className="text-gray-400">—</span>
+            <input
+              type="date"
+              value={rangeVal.end || ''}
+              onChange={(e) => onChange({ ...rangeVal, end: e.target.value })}
+              min={rangeVal.start || undefined}
+              className={cn(inputClass, 'flex-1')}
+            />
+          </div>
+        );
+      })()}
 
       {field.type === 'admin-location' && (
         <Suspense fallback={
@@ -518,51 +537,28 @@ export function FieldRenderer({ field, value, onChange, onAutoFill, error, formV
       )}
 
       {(field.type === 'file-upload' || field.type === 'image') && (
-        <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6 dark:border-gray-600">
-          <div className="text-center">
-            {field.type === 'image' ? <ImageIcon className="mx-auto h-8 w-8 text-gray-300" /> : <Upload className="mx-auto h-8 w-8 text-gray-300" />}
-            <p className="mt-2 text-sm text-gray-500">
-              {t('fbClickToUpload')}
-            </p>
-            <p className="mt-1 text-xs text-gray-400">
-              {field.type === 'image' ? 'PNG, JPG, GIF' : 'Any file type'}
-              {field.validation.maxSize && ` up to ${Math.round(field.validation.maxSize / 1048576)}MB`}
-            </p>
-          </div>
-        </div>
+        <FileUploadField
+          field={field}
+          value={value}
+          onChange={onChange}
+          isImage={field.type === 'image'}
+        />
       )}
 
       {field.type === 'signature' && (
-        <div
-          className="rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center"
-          style={{
-            width: (field.properties.width as number) || 400,
-            height: (field.properties.height as number) || 200,
-          }}
-        >
-          <div className="text-center">
-            <Pencil className="mx-auto h-6 w-6 text-gray-300" />
-            <p className="mt-1 text-xs text-gray-400">{t('fbSignHere')}</p>
-          </div>
-        </div>
+        <SignatureField
+          field={field}
+          value={value}
+          onChange={onChange}
+        />
       )}
 
       {field.type === 'calculated' && (
-        <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
-          <Calculator className="h-4 w-4 text-gray-400" />
-          <span className="text-sm text-gray-500 italic">
-            {(field.properties.formula as string) || t('fbNoFormulaSet')}
-          </span>
-        </div>
+        <CalculatedField field={field} value={value} onChange={onChange} formValues={formValues} />
       )}
 
       {field.type === 'auto-id' && (
-        <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
-          <Fingerprint className="h-4 w-4 text-gray-400" />
-          <span className="text-sm font-mono text-gray-500">
-            {(field.properties.prefix as string) || ''}{(field.properties.format as string) || '{SEQ}'}
-          </span>
-        </div>
+        <AutoIdField field={field} value={value} onChange={onChange} />
       )}
 
       {field.type === 'repeater' && (
@@ -607,9 +603,7 @@ export function FieldRenderer({ field, value, onChange, onAutoFill, error, formV
       )}
 
       {field.type === 'lookup' && (
-        <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
-          <span className="text-sm text-gray-500 italic">{t('fbLookupValue')}</span>
-        </div>
+        <LookupField field={field} value={value} onChange={onChange} formValues={formValues} />
       )}
 
       {error && <FieldError message={error} />}
@@ -777,3 +771,435 @@ function DateTimeFieldWithDefault({ field, value, onChange }: { field: FormField
 
 const inputClass =
   'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500';
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FILE UPLOAD & IMAGE FIELD
+   ══════════════════════════════════════════════════════════════════════════ */
+
+interface FileInfo { id: string; name: string; url: string; size: number; mimeType: string }
+
+function FileUploadField({
+  field, value, onChange, isImage,
+}: { field: FormField; value: unknown; onChange: (v: unknown) => void; isImage: boolean }) {
+  const t = useTranslations('collecte');
+  const fileRef = React.useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = React.useState(false);
+  const [progress, setProgress] = React.useState(0);
+
+  const files: FileInfo[] = Array.isArray(value) ? value as FileInfo[] : value ? [value as FileInfo] : [];
+  const maxFiles = (field.properties.maxFiles as number) || (field.validation.maxFiles as number) || 5;
+  const maxSizeMB = (field.properties.maxSize as number) || (field.validation.maxSize as number) || 10 * 1048576;
+  const accept = (field.properties.accept as string) || (isImage ? 'image/*' : undefined);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (!fileList?.length) return;
+
+    const newFiles: FileInfo[] = [];
+    setUploading(true);
+    setProgress(0);
+
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      if (file.size > maxSizeMB) {
+        alert(`${file.name} exceeds ${Math.round(maxSizeMB / 1048576)}MB limit`);
+        continue;
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('folder', `form-submissions/${field.code}`);
+
+        const resp = await fetch('/api/v1/drive/upload', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}` },
+          body: formData,
+        });
+
+        if (resp.ok) {
+          const json = await resp.json();
+          const uploaded = json.data || json;
+          newFiles.push({
+            id: uploaded.id || uploaded.fileId || crypto.randomUUID(),
+            name: file.name,
+            url: uploaded.url || uploaded.path || '',
+            size: file.size,
+            mimeType: file.type,
+          });
+        }
+      } catch (err) {
+        console.error('Upload failed:', err);
+      }
+      setProgress(Math.round(((i + 1) / fileList.length) * 100));
+    }
+
+    setUploading(false);
+    const all = [...files, ...newFiles].slice(0, maxFiles);
+    onChange(all.length === 1 ? all[0] : all);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const removeFile = (idx: number) => {
+    const next = files.filter((_, i) => i !== idx);
+    onChange(next.length === 0 ? null : next.length === 1 ? next[0] : next);
+  };
+
+  return (
+    <div className="space-y-2">
+      {/* Uploaded files list */}
+      {files.length > 0 && (
+        <div className="space-y-1">
+          {files.map((f, i) => (
+            <div key={f.id || i} className="flex items-center gap-2 rounded-lg border border-gray-200 p-2 dark:border-gray-700">
+              {isImage && f.url && <img src={f.url} alt={f.name} className="h-10 w-10 rounded object-cover" />}
+              <span className="flex-1 truncate text-sm">{f.name}</span>
+              <span className="text-xs text-gray-400">{(f.size / 1024).toFixed(0)} KB</span>
+              <button type="button" onClick={() => removeFile(i)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Upload zone */}
+      {files.length < maxFiles && (
+        <label className="flex cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-4 hover:border-blue-400 transition-colors dark:border-gray-600 dark:hover:border-blue-500">
+          <input
+            ref={fileRef}
+            type="file"
+            accept={accept}
+            multiple={maxFiles > 1}
+            onChange={handleUpload}
+            className="hidden"
+            disabled={uploading}
+          />
+          <div className="text-center">
+            {uploading ? (
+              <>
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+                <p className="mt-2 text-sm text-blue-500">{progress}%</p>
+              </>
+            ) : (
+              <>
+                {isImage ? <ImageIcon className="mx-auto h-8 w-8 text-gray-300" /> : <Upload className="mx-auto h-8 w-8 text-gray-300" />}
+                <p className="mt-2 text-sm text-gray-500">{t('fbClickToUpload')}</p>
+                <p className="mt-1 text-xs text-gray-400">
+                  {isImage ? 'PNG, JPG, GIF, WebP' : 'PDF, DOC, XLS, CSV, ZIP...'}
+                  {' — max ' + Math.round(maxSizeMB / 1048576) + 'MB'}
+                </p>
+              </>
+            )}
+          </div>
+        </label>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SIGNATURE FIELD — Canvas-based drawing
+   ══════════════════════════════════════════════════════════════════════════ */
+
+function SignatureField({
+  field, value, onChange,
+}: { field: FormField; value: unknown; onChange: (v: unknown) => void }) {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const [drawing, setDrawing] = React.useState(false);
+  const [hasContent, setHasContent] = React.useState(!!value);
+  const w = (field.properties.width as number) || 400;
+  const h = (field.properties.height as number) || 200;
+  const penColor = (field.properties.penColor as string) || '#1a1a1a';
+
+  // Restore existing signature
+  React.useEffect(() => {
+    if (value && typeof value === 'string' && canvasRef.current) {
+      const img = new Image();
+      img.onload = () => {
+        const ctx = canvasRef.current?.getContext('2d');
+        if (ctx) ctx.drawImage(img, 0, 0);
+      };
+      img.src = value as string;
+      setHasContent(true);
+    }
+  }, []);
+
+  const getPos = (e: React.MouseEvent | React.TouchEvent): { x: number; y: number } | null => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    if ('touches' in e) {
+      const touch = e.touches[0];
+      return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+    }
+    return { x: (e as React.MouseEvent).clientX - rect.left, y: (e as React.MouseEvent).clientY - rect.top };
+  };
+
+  const startDraw = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    const pos = getPos(e);
+    if (!pos) return;
+    setDrawing(true);
+    const ctx = canvasRef.current?.getContext('2d');
+    if (ctx) {
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+      ctx.strokeStyle = penColor;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+    }
+  };
+
+  const draw = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!drawing) return;
+    e.preventDefault();
+    const pos = getPos(e);
+    if (!pos) return;
+    const ctx = canvasRef.current?.getContext('2d');
+    if (ctx) {
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      setHasContent(true);
+    }
+  };
+
+  const endDraw = () => {
+    if (drawing) {
+      setDrawing(false);
+      // Save as base64 PNG
+      if (canvasRef.current) {
+        onChange(canvasRef.current.toDataURL('image/png'));
+      }
+    }
+  };
+
+  const clear = () => {
+    const ctx = canvasRef.current?.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, w, h);
+      setHasContent(false);
+      onChange(null);
+    }
+  };
+
+  return (
+    <div className="space-y-1">
+      <div className="relative inline-block">
+        <canvas
+          ref={canvasRef}
+          width={w}
+          height={h}
+          className="rounded-lg border-2 border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-900 cursor-crosshair touch-none"
+          onMouseDown={startDraw}
+          onMouseMove={draw}
+          onMouseUp={endDraw}
+          onMouseLeave={endDraw}
+          onTouchStart={startDraw}
+          onTouchMove={draw}
+          onTouchEnd={endDraw}
+        />
+        {!hasContent && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              <Pencil className="mx-auto h-6 w-6 text-gray-300" />
+              <p className="mt-1 text-xs text-gray-400">Sign here</p>
+            </div>
+          </div>
+        )}
+      </div>
+      {hasContent && (
+        <button type="button" onClick={clear} className="text-xs text-red-500 hover:text-red-700">
+          Clear signature
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CALCULATED FIELD — evaluates simple formulas referencing other fields
+   Formula syntax: {field_code} + {field_code} * 2
+   Operators: + - * / ( )
+   ══════════════════════════════════════════════════════════════════════════ */
+
+function CalculatedField({
+  field, value, onChange, formValues,
+}: { field: FormField; value: unknown; onChange: (v: unknown) => void; formValues?: Record<string, unknown> }) {
+  const formula = (field.properties.formula as string) || '';
+
+  React.useEffect(() => {
+    if (!formula || !formValues) return;
+
+    // Replace {field_code} references with actual values
+    let expr = formula.replace(/\{([^}]+)\}/g, (_, code: string) => {
+      const v = formValues[code.trim()];
+      const num = typeof v === 'number' ? v : parseFloat(String(v));
+      return isNaN(num) ? '0' : String(num);
+    });
+
+    // Sanitize: only allow digits, operators, parentheses, dots
+    expr = expr.replace(/[^0-9+\-*/().% ]/g, '');
+    if (!expr.trim()) return;
+
+    try {
+      // Safe evaluation using Function (no eval)
+      const result = new Function(`"use strict"; return (${expr})`)();
+      const rounded = typeof result === 'number' && !isNaN(result)
+        ? Math.round(result * 100) / 100
+        : null;
+      if (rounded !== value) {
+        onChange(rounded);
+      }
+    } catch {
+      // Invalid formula — keep current value
+    }
+  }, [formula, formValues]);
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
+      <Calculator className="h-4 w-4 text-gray-400" />
+      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        {value !== null && value !== undefined ? String(value) : '—'}
+      </span>
+      {formula && (
+        <span className="text-xs text-gray-400 ml-auto">
+          = {formula}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   AUTO-ID FIELD — generates an ID when the form is first loaded
+   Format: {prefix}{DATE}{SEQ} or {UUID}
+   ══════════════════════════════════════════════════════════════════════════ */
+
+function AutoIdField({
+  field, value, onChange,
+}: { field: FormField; value: unknown; onChange: (v: unknown) => void }) {
+  const hasInit = React.useRef(false);
+
+  React.useEffect(() => {
+    if (hasInit.current || value) return;
+    hasInit.current = true;
+
+    const prefix = (field.properties.prefix as string) || '';
+    const format = (field.properties.format as string) || '{SEQ}';
+    const now = new Date();
+
+    let id = `${prefix}${format}`;
+    id = id.replace('{DATE}', now.toISOString().slice(0, 10).replace(/-/g, ''));
+    id = id.replace('{YEAR}', String(now.getFullYear()));
+    id = id.replace('{MONTH}', String(now.getMonth() + 1).padStart(2, '0'));
+    id = id.replace('{UUID}', crypto.randomUUID().slice(0, 8).toUpperCase());
+    id = id.replace('{SEQ}', String(Math.floor(Math.random() * 9000) + 1000));
+    id = id.replace('{TS}', Date.now().toString(36).toUpperCase());
+
+    onChange(id);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
+      <Fingerprint className="h-4 w-4 text-gray-400" />
+      <span className="text-sm font-mono text-gray-700 dark:text-gray-300">
+        {(value as string) || '—'}
+      </span>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LOOKUP FIELD — resolves value from master-data based on a source field
+   Properties: sourceField (field code), lookupType (master-data type),
+   lookupField (which field to display from the resolved entity)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+function LookupField({
+  field, value, onChange, formValues,
+}: { field: FormField; value: unknown; onChange: (v: unknown) => void; formValues?: Record<string, unknown> }) {
+  const sourceField = (field.properties.sourceField as string) || '';
+  const lookupField = (field.properties.lookupField as string) || 'name';
+  const locale = useLocaleStore((s) => s.locale);
+
+  const sourceValue = formValues?.[sourceField];
+
+  React.useEffect(() => {
+    if (!sourceValue || !sourceField) {
+      if (value) onChange(null);
+      return;
+    }
+
+    // Try to resolve from the __meta_ stored by master-data-select auto-fill
+    const meta = formValues?.[`__meta_${sourceField}`] as Record<string, unknown> | undefined;
+    if (meta) {
+      const resolved = meta[lookupField];
+      if (resolved !== undefined) {
+        const display = typeof resolved === 'object' && resolved !== null
+          ? (resolved as Record<string, string>)[locale] || (resolved as Record<string, string>).en || JSON.stringify(resolved)
+          : String(resolved);
+        if (display !== value) onChange(display);
+        return;
+      }
+    }
+  }, [sourceValue, formValues, sourceField, lookupField, locale]);
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
+      <span className="text-sm text-gray-700 dark:text-gray-300">
+        {value ? String(value) : <span className="italic text-gray-400">—</span>}
+      </span>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FORM-DATA-SELECT — loads data from previous form submissions
+   Properties: sourceFormId (template UUID), sourceFieldCode (field to show),
+   valueFieldCode (field to use as value)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+function FormDataSelectField({
+  field, value, onChange, placeholder, ml,
+}: { field: FormField; value: unknown; onChange: (v: unknown) => void; placeholder: string; ml: (t?: MultilingualText) => string }) {
+  const [options, setOptions] = React.useState<Array<{ value: string; label: string }>>([]);
+  const [loading, setLoading] = React.useState(false);
+  const sourceFormId = (field.properties.sourceFormId as string) || '';
+  const sourceFieldCode = (field.properties.sourceFieldCode as string) || '';
+  const valueFieldCode = (field.properties.valueFieldCode as string) || sourceFieldCode;
+
+  React.useEffect(() => {
+    if (!sourceFormId) return;
+    setLoading(true);
+
+    fetch(`/api/v1/collecte/submissions?templateId=${sourceFormId}&limit=200&status=SUBMITTED`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}` },
+    })
+      .then((r) => r.json())
+      .then((json) => {
+        const items = (json.data || []) as Array<{ data: Record<string, unknown>; id: string }>;
+        const opts = items
+          .map((item) => {
+            const label = String(item.data?.[sourceFieldCode] ?? item.id);
+            const val = String(item.data?.[valueFieldCode] ?? item.id);
+            return { value: val, label };
+          })
+          .filter((o) => o.label && o.value);
+        // Deduplicate
+        const seen = new Set<string>();
+        setOptions(opts.filter((o) => { if (seen.has(o.value)) return false; seen.add(o.value); return true; }));
+      })
+      .catch(() => setOptions([]))
+      .finally(() => setLoading(false));
+  }, [sourceFormId, sourceFieldCode, valueFieldCode]);
+
+  return (
+    <SearchableSelect
+      value={(value as string) || ''}
+      onChange={(v) => onChange(v)}
+      options={options}
+      placeholder={loading ? 'Loading...' : (placeholder || 'Select...')}
+      disabled={field.readOnly || loading}
+    />
+  );
+}
