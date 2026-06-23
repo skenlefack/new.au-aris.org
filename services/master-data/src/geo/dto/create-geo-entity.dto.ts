@@ -32,7 +32,7 @@ export class CreateGeoEntityDto {
   @MaxLength(255)
   nameFr!: string;
 
-  @IsEnum(['COUNTRY', 'ADMIN1', 'ADMIN2', 'ADMIN3', 'SPECIAL_ZONE'] as const)
+  @IsEnum(['COUNTRY', 'ADMIN1', 'ADMIN2', 'ADMIN3', 'ADMIN4', 'ADMIN5', 'SPECIAL_ZONE'] as const)
   level!: GeoLevel;
 
   @IsOptional()

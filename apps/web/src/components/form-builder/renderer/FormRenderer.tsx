@@ -9,6 +9,7 @@ import { evaluateFieldCondition, evaluateCrossFieldRules } from './ConditionEval
 import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useTranslateToAll } from '@/lib/api/translation-hooks';
+import { resolveAdminLocationValues } from '@/lib/api/geo-hooks';
 
 /** Context to propagate mobile flag to all nested renderers (repeaters, etc.) */
 export const FormMobileContext = createContext(false);
@@ -257,8 +258,10 @@ export function FormRenderer({ schema, formName, mobile = false, preview = false
     setIsTranslating(true);
     try {
       const translatedValues = await translateUntranslatedFields(values);
-      setValues(translatedValues);
-      onSubmit?.(translatedValues);
+      // Resolve any __new: admin location values (create missing divisions on-the-fly)
+      const resolvedValues = await resolveAdminLocationValues(translatedValues);
+      setValues(resolvedValues);
+      onSubmit?.(resolvedValues);
     } finally {
       setIsTranslating(false);
     }

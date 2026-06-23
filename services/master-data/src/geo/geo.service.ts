@@ -86,6 +86,78 @@ export class GeoService {
     return { data: entity as GeoEntityRecord };
   }
 
+  /**
+   * Idempotent "ensure" — find existing entity by name+level+countryCode+parentId,
+   * or create it with an auto-generated code. Used by form submission to create
+   * missing admin divisions on-the-fly.
+   */
+  async ensure(
+    dto: { name: string; level: string; countryCode: string; parentId?: string },
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<GeoEntityRecord>> {
+    // 1. Try to find existing entity matching name + level + country + parent
+    const where: Record<string, unknown> = {
+      level: dto.level,
+      countryCode: dto.countryCode,
+      isActive: true,
+      OR: [
+        { name: { equals: dto.name, mode: 'insensitive' } },
+        { nameEn: { equals: dto.name, mode: 'insensitive' } },
+        { nameFr: { equals: dto.name, mode: 'insensitive' } },
+      ],
+    };
+    if (dto.parentId) {
+      where['parentId'] = dto.parentId;
+    } else {
+      where['parentId'] = null;
+    }
+
+    const existing = await this.prisma.geoEntity.findFirst({ where });
+    if (existing) {
+      this.logger.log(`GeoEntity ensure: found existing ${existing.code} (${existing.id})`);
+      return { data: existing as GeoEntityRecord };
+    }
+
+    // 2. Auto-generate a unique code: CC_LEVEL_TIMESTAMP  (e.g. KE_A3_1719100800)
+    const levelShort = dto.level.replace('ADMIN', 'A');
+    const ts = Date.now().toString(36).toUpperCase();
+    let code = `${dto.countryCode}_${levelShort}_${ts}`;
+    // Ensure uniqueness (very unlikely collision)
+    const codeExists = await this.prisma.geoEntity.findUnique({ where: { code } });
+    if (codeExists) {
+      code = `${code}_${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+    }
+
+    // 3. Create
+    const entity = await this.prisma.geoEntity.create({
+      data: {
+        code,
+        name: dto.name,
+        nameEn: dto.name,
+        nameFr: dto.name,
+        namePt: dto.name,
+        nameAr: dto.name,
+        level: dto.level as any,
+        parentId: dto.parentId ?? null,
+        countryCode: dto.countryCode,
+        isActive: true,
+      },
+    });
+
+    await this.audit.log({
+      entityType: 'GeoEntity',
+      entityId: entity.id,
+      action: 'CREATE',
+      user,
+      newVersion: entity as unknown as object,
+      dataClassification: 'PUBLIC',
+    });
+
+    await this.publishEvent(entity, user);
+    this.logger.log(`GeoEntity ensure: created ${entity.code} (${entity.id}) for "${dto.name}"`);
+    return { data: entity as GeoEntityRecord };
+  }
+
   async findAll(
     query: PaginationQuery & {
       level?: string;

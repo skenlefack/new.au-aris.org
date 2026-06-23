@@ -310,6 +310,83 @@ export function useCreateGeoEntity() {
   });
 }
 
+/**
+ * Idempotent ensure — find existing entity by name+level+countryCode+parentId,
+ * or create it on-the-fly. Used by AdminLocationField when admin divisions
+ * are not yet configured for a country.
+ */
+export function useEnsureGeoEntity() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (body: {
+      name: string;
+      level: string;
+      countryCode: string;
+      parentId?: string;
+    }) => apiClient.post<{ data: GeoEntity }>('/master-data/geo/ensure', body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['geo'] });
+    },
+  });
+}
+
+/**
+ * Resolve admin_location values that contain __new: prefixes.
+ * Creates missing geo entities via the /ensure endpoint in parent→child order,
+ * then replaces text values with the real UUIDs.
+ *
+ * This is a standalone async function (not a hook) — call it imperatively before form submission.
+ */
+const NEW_PREFIX = '__new:';
+export async function resolveAdminLocationValues(
+  formData: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const adminLoc = formData['admin_location'] as Record<string, string> | undefined | null;
+  if (!adminLoc) return formData;
+
+  // Check if any level has __new: prefix
+  const hasNewValues = Object.values(adminLoc).some((v) => typeof v === 'string' && v.startsWith(NEW_PREFIX));
+  if (!hasNewValues) return formData;
+
+  const countryCode = adminLoc['level_0'];
+  if (!countryCode) return formData;
+
+  const resolved = { ...adminLoc };
+  const sortedLevels = Object.keys(adminLoc)
+    .filter((k) => k.startsWith('level_'))
+    .map((k) => parseInt(k.split('_')[1], 10))
+    .sort((a, b) => a - b);
+
+  // Process levels in order so parent UUID is available for child creation
+  for (const level of sortedLevels) {
+    const key = `level_${level}`;
+    const val = resolved[key];
+    if (!val || !val.startsWith(NEW_PREFIX)) continue;
+
+    const name = val.slice(NEW_PREFIX.length);
+    const parentKey = `level_${level - 1}`;
+    const parentId = level > 0 ? resolved[parentKey] : undefined;
+
+    const geoLevel = level === 0 ? 'COUNTRY' : `ADMIN${level}`;
+
+    try {
+      const resp = await apiClient.post<{ data: GeoEntity }>('/master-data/geo/ensure', {
+        name,
+        level: geoLevel,
+        countryCode,
+        parentId: parentId && !parentId.startsWith(NEW_PREFIX) ? parentId : undefined,
+      });
+      resolved[key] = resp.data.id;
+    } catch (err) {
+      console.error(`[resolveAdminLocation] Failed to ensure ${geoLevel} "${name}":`, err);
+      // Keep the text value — backend submission may fail but user can retry
+    }
+  }
+
+  return { ...formData, admin_location: resolved };
+}
+
 export function useUpdateGeoEntity() {
   const queryClient = useQueryClient();
 

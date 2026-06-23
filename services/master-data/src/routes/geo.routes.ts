@@ -15,6 +15,15 @@ export async function registerGeoRoutes(app: FastifyInstance): Promise<void> {
     return reply.code(201).send(result);
   });
 
+  // Idempotent ensure — find-or-create a geo entity (used by form submission for missing admin divisions)
+  app.post<{ Body: { name: string; level: string; countryCode: string; parentId?: string } }>('/api/v1/master-data/geo/ensure', {
+    preHandler: authAndTenant,
+  }, async (request, reply) => {
+    const user = request.user as AuthenticatedUser;
+    const result = await app.geoService.ensure(request.body, user);
+    return reply.code(200).send(result);
+  });
+
   app.get<{ Querystring: { page?: string; limit?: string; sort?: string; order?: string; level?: string; countryCode?: string; parentId?: string; search?: string } }>('/api/v1/master-data/geo', {
     preHandler: authAndTenant,
   }, async (request) => {
