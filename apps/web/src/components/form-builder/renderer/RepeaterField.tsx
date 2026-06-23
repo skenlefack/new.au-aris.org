@@ -188,14 +188,22 @@ export function RepeaterField({ field, value, onChange, formValues }: RepeaterFi
   );
 
   // Each row is a Record<string, unknown> keyed by sub-field code
-  const rows = Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [{}];
+  const rows = useMemo(
+    () => Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [{}],
+    [value],
+  );
+
+  // Ref to always read the latest rows inside callbacks (avoids stale closure)
+  const rowsRef = React.useRef(rows);
+  rowsRef.current = rows;
 
   // Per-row validation errors: rowIndex → { fieldCode → errorMessage }
   const [rowErrors, setRowErrors] = useState<Record<number, Record<string, string>>>({});
 
   const handleRowFieldChange = useCallback(
     (rowIndex: number, fieldCode: string, fieldValue: unknown) => {
-      const updated = [...rows];
+      const currentRows = rowsRef.current;
+      const updated = [...currentRows];
       updated[rowIndex] = { ...updated[rowIndex], [fieldCode]: fieldValue };
       onChange(updated);
 
@@ -211,26 +219,28 @@ export function RepeaterField({ field, value, onChange, formValues }: RepeaterFi
         return next;
       });
     },
-    [rows, onChange, fieldCodes],
+    [onChange, fieldCodes],
   );
 
   const addRow = useCallback(() => {
-    if (rows.length >= maxRows) return;
+    const currentRows = rowsRef.current;
+    if (currentRows.length >= maxRows) return;
     const newRow: Record<string, unknown> = {};
     // Auto-fill sample_code for the new row
     if (hasSampleCode) {
-      newRow.sample_code = computeSampleCode(rows.length);
+      newRow.sample_code = computeSampleCode(currentRows.length);
     }
-    onChange([...rows, newRow]);
-  }, [rows, maxRows, onChange]);
+    onChange([...currentRows, newRow]);
+  }, [maxRows, onChange]);
 
   const removeRow = useCallback(
     (index: number) => {
-      if (rows.length <= minRows) return;
-      const updated = rows.filter((_, i) => i !== index);
+      const currentRows = rowsRef.current;
+      if (currentRows.length <= minRows) return;
+      const updated = currentRows.filter((_, i) => i !== index);
       onChange(updated.length > 0 ? updated : [{}]);
     },
-    [rows, minRows, onChange],
+    [minRows, onChange],
   );
 
   if (subFields.length === 0) {

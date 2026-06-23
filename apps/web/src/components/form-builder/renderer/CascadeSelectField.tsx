@@ -42,9 +42,15 @@ export function CascadeSelectField({ field, value, onChange }: CascadeSelectFiel
   const options = (field.properties.options || []) as CascadeOption[];
 
   // Value is Record<levelKey, selectedValue>
-  const cascadeValue = (value && typeof value === 'object' && !Array.isArray(value))
-    ? value as Record<string, string>
-    : {};
+  const cascadeValue = useMemo(
+    () => (value && typeof value === 'object' && !Array.isArray(value))
+      ? value as Record<string, string>
+      : {},
+    [value],
+  );
+
+  const cascadeRef = React.useRef(cascadeValue);
+  cascadeRef.current = cascadeValue;
 
   /**
    * For a given level index, resolve the available options by walking the tree
@@ -52,11 +58,12 @@ export function CascadeSelectField({ field, value, onChange }: CascadeSelectFiel
    */
   const getOptionsForLevel = useCallback(
     (levelIndex: number): CascadeOption[] => {
+      const current_cascade = cascadeRef.current;
       let current = options;
       for (let i = 0; i < levelIndex; i++) {
         const levelKey = levels[i]?.key;
         if (!levelKey) return [];
-        const selected = cascadeValue[levelKey];
+        const selected = current_cascade[levelKey];
         if (!selected) return [];
         const match = current.find((o) => o.value === selected);
         if (!match || !match.children) return [];
@@ -64,7 +71,7 @@ export function CascadeSelectField({ field, value, onChange }: CascadeSelectFiel
       }
       return current;
     },
-    [levels, options, cascadeValue],
+    [levels, options],
   );
 
   const handleLevelChange = useCallback(
@@ -72,7 +79,8 @@ export function CascadeSelectField({ field, value, onChange }: CascadeSelectFiel
       const levelKey = levels[levelIndex]?.key;
       if (!levelKey) return;
 
-      const updated = { ...cascadeValue, [levelKey]: selectedValue };
+      const current = cascadeRef.current;
+      const updated = { ...current, [levelKey]: selectedValue };
 
       // Clear all child level selections when a parent changes
       for (let i = levelIndex + 1; i < levels.length; i++) {
@@ -82,13 +90,14 @@ export function CascadeSelectField({ field, value, onChange }: CascadeSelectFiel
 
       onChange(updated);
     },
-    [levels, cascadeValue, onChange],
+    [levels, onChange],
   );
 
-  // Pre-compute options for each level
+  // Pre-compute options for each level (re-compute when cascadeValue changes)
   const levelOptions = useMemo(
     () => levels.map((_, i) => getOptionsForLevel(i)),
-    [levels, getOptionsForLevel],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [levels, getOptionsForLevel, cascadeValue],
   );
 
   if (levels.length === 0) {

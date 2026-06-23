@@ -43,18 +43,26 @@ export function MatrixField({ field, value, onChange }: MatrixFieldProps) {
   const showTotals = (field.properties.showTotals as boolean) || false;
 
   // Value is Record<rowKey, Record<colKey, unknown>>
-  const matrixValue = (value && typeof value === 'object' && !Array.isArray(value))
-    ? value as Record<string, Record<string, unknown>>
-    : {};
+  const matrixValue = useMemo(
+    () => (value && typeof value === 'object' && !Array.isArray(value))
+      ? value as Record<string, Record<string, unknown>>
+      : {},
+    [value],
+  );
+
+  // Ref to always read the latest matrixValue inside callbacks (avoids stale closure)
+  const matrixRef = React.useRef(matrixValue);
+  matrixRef.current = matrixValue;
 
   const handleCellChange = useCallback(
     (rowKey: string, colKey: string, cellValue: unknown) => {
-      const updated = { ...matrixValue };
+      const current = matrixRef.current;
+      const updated = { ...current };
       if (!updated[rowKey]) updated[rowKey] = {};
       updated[rowKey] = { ...updated[rowKey], [colKey]: cellValue };
       onChange(updated);
     },
-    [matrixValue, onChange],
+    [onChange],
   );
 
   // Compute row totals
