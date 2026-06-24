@@ -87,7 +87,7 @@ DATASET_META = {
     },
     "livestock__Animal_Population_and_Composition__filled": {
         "name": "Animal Population & Composition (2008–2025)",
-        "domain": "livestock",
+        "domain": "livestock-prod",
         "description": "Livestock population census data. "
                        "249 records of animal population by species, age group, and production system.",
         "tags": ["historical", "census", "population", "livestock"],

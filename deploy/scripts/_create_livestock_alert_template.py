@@ -17,7 +17,7 @@ token = json.loads(stdout.read().decode())["data"]["accessToken"]
 
 template = {
     "name": "Livestock & Production Event Alert",
-    "domain": "livestock",
+    "domain": "livestock-prod",
     "formType": "EVENT_ALERT",
     "schema": {
         "sections": [

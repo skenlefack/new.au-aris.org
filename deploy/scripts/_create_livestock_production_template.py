@@ -17,7 +17,7 @@ token = json.loads(stdout.read().decode())["data"]["accessToken"]
 
 template = {
     "name": "Livestock Production Report",
-    "domain": "livestock",
+    "domain": "livestock-prod",
     "formType": "CAMPAIGN",
     "schema": {
         "sections": [
@@ -194,7 +194,7 @@ if result.get("data", {}).get("id"):
         "code": "LP_PRODUCTION_QUARTERLY_2026",
         "name": {"en": "Quarterly Livestock Production Report 2026", "fr": "Rapport trimestriel de production animale 2026", "pt": "Relatorio trimestral de producao animal 2026"},
         "description": {"en": "Quarterly collection of livestock production data covering milk, meat, eggs, wool, hides, and honey across all AU Member States", "fr": "Collecte trimestrielle des donnees de production animale couvrant lait, viande, oeufs, laine, cuirs et miel dans tous les Etats membres", "pt": "Recolha trimestral de dados de producao animal abrangendo leite, carne, ovos, la, couros e mel em todos os Estados membros"},
-        "domain": "livestock",
+        "domain": "livestock-prod",
         "formTemplateId": tid,
         "startDate": "2026-01-01", "endDate": "2026-12-31",
         "targetCountries": ALL_55, "targetSubmissions": 440, "targetPerAgent": 8,

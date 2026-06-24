@@ -38,7 +38,7 @@ def api_post(path, body):
 
 template = {
     "name": "Transhumance Corridor Report",
-    "domain": "livestock",
+    "domain": "livestock-prod",
     "formType": "CAMPAIGN",
     "schema": {
         "sections": [
@@ -172,7 +172,7 @@ if r.get("data", {}).get("id"):
         "code": "LP_TRANSHUMANCE_CORRIDORS_2026",
         "name": {"en": "Transhumance Corridors Mapping 2026", "fr": "Cartographie des corridors de transhumance 2026", "pt": "Mapeamento dos corredores de transumancia 2026"},
         "description": {"en": "Annual mapping and monitoring of transhumance corridors, seasonal movements, and cross-border livestock flows", "fr": "Cartographie et suivi annuel des corridors de transhumance, mouvements saisonniers et flux transfrontaliers de betail", "pt": "Mapeamento e monitoramento anual dos corredores de transumancia, movimentos sazonais e fluxos transfronteiricos de gado"},
-        "domain": "livestock", "formTemplateId": tid,
+        "domain": "livestock-prod", "formTemplateId": tid,
         "startDate": "2026-01-01", "endDate": "2026-12-31",
         "targetCountries": ALL_55, "targetSubmissions": 200, "targetPerAgent": 5,
         "frequency": "annual", "scope": "continental",

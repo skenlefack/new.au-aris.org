@@ -43,7 +43,7 @@ def api_post(path, body):
 # ── Template ──
 template = {
     "name": "Livestock Production Report",
-    "domain": "livestock",
+    "domain": "livestock-prod",
     "formType": "CAMPAIGN",
     "schema": {
         "sections": [
@@ -90,7 +90,7 @@ if r.get("data", {}).get("id"):
         "code": "LP_PRODUCTION_QUARTERLY_2026",
         "name": {"en": "Quarterly Livestock Production Report 2026", "fr": "Rapport trimestriel de production animale 2026", "pt": "Relatorio trimestral de producao animal 2026"},
         "description": {"en": "Quarterly collection of livestock production data", "fr": "Collecte trimestrielle des donnees de production animale"},
-        "domain": "livestock", "formTemplateId": tid,
+        "domain": "livestock-prod", "formTemplateId": tid,
         "startDate": "2026-01-01", "endDate": "2026-12-31",
         "targetCountries": ALL_55, "targetSubmissions": 440, "targetPerAgent": 8,
         "frequency": "quarterly", "scope": "continental",
