@@ -204,9 +204,14 @@ export default function NewCampaignPage() {
   // Filter templates: published + domain match + owned by user's tenant or parent tenants
   const publishedTemplates = useMemo(() => {
     const apiData = templatesData?.data ?? [];
+
+    // Normalize domain codes for matching (handle both hyphen and underscore formats)
+    const normalize = (d: string) => d.replace(/-/g, '_').replace('_prod', '');
+    const selectedNorm = new Set(selectedDomains.map(normalize));
+
     return apiData.filter((tmpl) => {
       if (tmpl.status !== 'PUBLISHED') return false;
-      if (selectedDomains.length > 0 && !selectedDomains.includes(tmpl.domain)) return false;
+      if (selectedDomains.length > 0 && !selectedNorm.has(normalize(tmpl.domain))) return false;
       // Show templates from user's own tenant + parent tenants (continental always visible)
       if (selectedTenantId && tmpl.tenantId !== selectedTenantId) {
         const tmplTenant = findTenantById(tenantTree, tmpl.tenantId);
@@ -235,7 +240,11 @@ export default function NewCampaignPage() {
   const handleDomainsChange = (codes: string[]) => {
     setSelectedDomains(codes);
     if (codes.length > 0) {
-      setSelectedTemplates((prev) => prev.filter((tmpl) => codes.includes(tmpl.domain)));
+      const normCodes = new Set(codes.map((c) => c.replace(/-/g, '_').replace('_prod', '')));
+      setSelectedTemplates((prev) => prev.filter((tmpl) => {
+        const tmplNorm = tmpl.domain.replace(/-/g, '_').replace('_prod', '');
+        return normCodes.has(tmplNorm);
+      }));
       // Convert form codes to store codes before comparing with sub-domain domainCode
       const storeCodes = codes.map((c) => FORM_TO_STORE[c] ?? c);
       setSelectedSubDomains((prev) => {
@@ -803,7 +812,7 @@ export default function NewCampaignPage() {
               <span className="flex items-center gap-2">
                 <span>{tmpl.name}</span>
                 <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-                  {DOMAIN_OPTIONS.find((d) => d.value === tmpl.domain)?.label ?? tmpl.domain}
+                  {DOMAIN_OPTIONS.find((d) => d.value === tmpl.domain || d.value.replace(/-/g, '_') === tmpl.domain.replace(/-/g, '_'))?.label ?? tmpl.domain}
                 </span>
               </span>
             )}
@@ -811,7 +820,7 @@ export default function NewCampaignPage() {
               <span className="flex items-center gap-1">
                 {tmpl.name}
                 <span className="rounded bg-aris-primary-100 px-1 text-[9px] text-aris-primary-600 dark:bg-aris-primary-800/50 dark:text-aris-primary-300">
-                  {DOMAIN_OPTIONS.find((d) => d.value === tmpl.domain)?.label ?? tmpl.domain}
+                  {DOMAIN_OPTIONS.find((d) => d.value === tmpl.domain || d.value.replace(/-/g, '_') === tmpl.domain.replace(/-/g, '_'))?.label ?? tmpl.domain}
                 </span>
               </span>
             )}
