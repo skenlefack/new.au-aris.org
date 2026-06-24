@@ -25,6 +25,8 @@ export const TOPIC_AU_QUALITY_VALIDATION_REQUESTED = 'au.quality.validation.requ
 
 // ── Collecte Topics ──
 export const TOPIC_MS_COLLECTE_CAMPAIGN_CREATED = 'ms.collecte.campaign.created.v1' as const;
+export const TOPIC_MS_COLLECTE_CAMPAIGN_ACTIVATED = 'ms.collecte.campaign.activated.v1' as const;
+export const TOPIC_MS_COLLECTE_CAMPAIGN_COMPLETED = 'ms.collecte.campaign.completed.v1' as const;
 export const TOPIC_MS_COLLECTE_FORM_SUBMITTED = 'ms.collecte.form.submitted.v1' as const;
 export const TOPIC_MS_COLLECTE_FORM_SYNCED = 'ms.collecte.form.synced.v1' as const;
 export const TOPIC_MS_COLLECTE_SUBMISSION_QUALITY_COMPLETED = 'ms.collecte.submission.quality-completed.v1' as const;
@@ -237,6 +239,8 @@ export const ALL_TOPICS = [
   TOPIC_AU_QUALITY_CORRECTION_OVERDUE,
   TOPIC_AU_QUALITY_VALIDATION_REQUESTED,
   TOPIC_MS_COLLECTE_CAMPAIGN_CREATED,
+  TOPIC_MS_COLLECTE_CAMPAIGN_ACTIVATED,
+  TOPIC_MS_COLLECTE_CAMPAIGN_COMPLETED,
   TOPIC_MS_COLLECTE_FORM_SUBMITTED,
   TOPIC_MS_COLLECTE_FORM_SYNCED,
   TOPIC_MS_COLLECTE_SUBMISSION_QUALITY_COMPLETED,

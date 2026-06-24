@@ -397,6 +397,14 @@ export default async function workflowRoutes(app: FastifyInstance): Promise<void
     return campaignService.updateStatus(request.params.id, 'COMPLETED', user);
   });
 
+  // POST /api/v1/workflow/campaigns/scheduler — auto-activate/close campaigns (called by cron)
+  app.post('/api/v1/workflow/campaigns/scheduler', {
+    preHandler: [auth, tenant, rolesHook(UserRole.SUPER_ADMIN)],
+  }, async () => {
+    const result = await campaignService.runScheduler();
+    return { data: result };
+  });
+
   // DELETE /api/v1/workflow/campaigns/:id
   app.delete<{ Params: IdParam }>('/api/v1/workflow/campaigns/:id', {
     schema: { params: IdParamSchema },

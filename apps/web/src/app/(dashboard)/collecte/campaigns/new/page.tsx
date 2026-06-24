@@ -30,6 +30,7 @@ import { MultiSearchCombobox } from '@/components/ui/MultiSearchCombobox';
 import { MultilingualInput } from '@/components/settings/MultilingualInput';
 import { MultilingualTextarea } from '@/components/settings/MultilingualTextarea';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 import { SubDomainTreeSelector } from '@/components/forms/SubDomainTreeSelector';
 import { useDomainStore } from '@/lib/stores/domain-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -61,6 +62,7 @@ export default function NewCampaignPage() {
   const router = useRouter();
   const t = useTranslations('collecte');
   const tAi = useTranslations('ai');
+  const locale = useLocaleStore((s) => s.locale);
   const createCampaign = useCreateCollectionCampaign();
   const allDomains = useDomainStore((s) => s.allDomains);
   const user = useAuthStore((s) => s.user);
@@ -126,8 +128,11 @@ export default function NewCampaignPage() {
 
   const [selectedTemplates, setSelectedTemplates] = useState<FormTemplateListItem[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<CountryConfig[]>([]);
+  const [isPermanent, setIsPermanent] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [autoActivate, setAutoActivate] = useState(false);
+  const [autoClose, setAutoClose] = useState(false);
   const [targetSubmissions, setTargetSubmissions] = useState<string>('');
   const [frequency, setFrequency] = useState('one_time');
   const [sendReminders, setSendReminders] = useState(false);
@@ -264,9 +269,11 @@ export default function NewCampaignPage() {
     if (selectedDomains.length === 0) e.domains = t('domainRequired');
     if (selectedTemplates.length === 0) e.templates = t('templateRequired');
     if (selectedCountries.length === 0 && userLevel !== 'MEMBER_STATE') e.countries = t('countriesRequired');
-    if (!startDate) e.startDate = t('startDateRequired');
-    if (!endDate) e.endDate = t('endDateRequired');
-    if (startDate && endDate && startDate > endDate) e.endDate = t('endDateAfterStart');
+    if (!isPermanent) {
+      if (!startDate) e.startDate = t('startDateRequired');
+      if (!endDate) e.endDate = t('endDateRequired');
+      if (startDate && endDate && startDate > endDate) e.endDate = t('endDateAfterStart');
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -277,7 +284,8 @@ export default function NewCampaignPage() {
 
     const primaryDomain = selectedDomains[0];
     const uniqueSuffix = Math.random().toString(36).slice(2, 6).toUpperCase();
-    const code = `${primaryDomain.replace(/[^a-zA-Z]/g, '_').toUpperCase().slice(0, 10)}_${startDate.replace(/-/g, '')}_${uniqueSuffix}`;
+    const datePart = isPermanent ? 'PERM' : startDate.replace(/-/g, '');
+    const code = `${primaryDomain.replace(/[^a-zA-Z]/g, '_').toUpperCase().slice(0, 10)}_${datePart}_${uniqueSuffix}`;
 
     // Build targets from domains + sub-domains
     // Each selected domain gets a target; sub-domains attach to their parent domain
@@ -320,8 +328,11 @@ export default function NewCampaignPage() {
       domain: primaryDomain,
       formTemplateId: selectedTemplates[0]?.id ?? '',
       formTemplateIds: selectedTemplates.map((t: any) => t.id),
-      startDate,
-      endDate,
+      isPermanent,
+      startDate: isPermanent ? undefined : startDate,
+      endDate: isPermanent ? undefined : endDate,
+      autoActivate: isPermanent ? false : autoActivate,
+      autoClose: isPermanent ? false : autoClose,
       targetCountries: selectedCountries.map((c: CountryConfig) => c.code),
       targetRecIds: selectedRecs.length > 0 ? selectedRecs.map((r) => r.tenantId) : undefined,
       targetZones: targetAdminZones.length > 0 ? targetAdminZones.map((z) => z.id) : undefined,
@@ -434,32 +445,121 @@ export default function NewCampaignPage() {
                 {t('scheduling')}
               </h2>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('startDate')} <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                  />
-                  {errors.startDate && <p className="mt-1 text-xs text-red-600">{errors.startDate}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('endDate')} <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                  />
-                  {errors.endDate && <p className="mt-1 text-xs text-red-600">{errors.endDate}</p>}
-                </div>
+              {/* Campaign type: Permanent vs Scheduled */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setIsPermanent(false); setAutoActivate(false); setAutoClose(false); }}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                    !isPermanent
+                      ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/30 dark:text-blue-300'
+                      : 'border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  {locale === 'fr' ? 'Planifiee' : 'Scheduled'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsPermanent(true); setStartDate(''); setEndDate(''); setAutoActivate(false); setAutoClose(false); }}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                    isPermanent
+                      ? 'border-green-500 bg-green-50 text-green-700 dark:border-green-400 dark:bg-green-900/30 dark:text-green-300'
+                      : 'border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  {locale === 'fr' ? 'Permanente' : 'Permanent'}
+                </button>
               </div>
+
+              {isPermanent && (
+                <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300">
+                  {locale === 'fr'
+                    ? 'Cette campagne restera active indefiniment sans date de debut ni de fin. Elle peut etre clôturee manuellement a tout moment.'
+                    : 'This campaign will remain active indefinitely with no start or end date. It can be closed manually at any time.'}
+                </div>
+              )}
+
+              {/* Date fields — only for scheduled campaigns */}
+              {!isPermanent && (
+                <>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {t('startDate')} <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                      />
+                      {errors.startDate && <p className="mt-1 text-xs text-red-600">{errors.startDate}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {t('endDate')} <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        min={startDate || undefined}
+                        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                      />
+                      {errors.endDate && <p className="mt-1 text-xs text-red-600">{errors.endDate}</p>}
+                    </div>
+                  </div>
+
+                  {/* Auto-activate / Auto-close toggles */}
+                  <div className="space-y-3 rounded-lg border border-gray-100 bg-gray-50/50 p-3 dark:border-gray-700 dark:bg-gray-800/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {locale === 'fr' ? 'Activation automatique' : 'Auto-activate'}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {locale === 'fr'
+                            ? 'La campagne sera automatiquement activee a la date de debut'
+                            : 'Campaign will automatically activate on the start date'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAutoActivate(!autoActivate)}
+                        className={`relative h-6 w-11 rounded-full transition-colors ${autoActivate ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                      >
+                        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${autoActivate ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {locale === 'fr' ? 'Cloture automatique' : 'Auto-close'}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {locale === 'fr'
+                            ? 'La campagne sera automatiquement clôturee a la date de fin'
+                            : 'Campaign will automatically close on the end date'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAutoClose(!autoClose)}
+                        className={`relative h-6 w-11 rounded-full transition-colors ${autoClose ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                      >
+                        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${autoClose ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+                    {!autoActivate && !autoClose && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                        {locale === 'fr'
+                          ? 'L\'activation et la cloture de la campagne seront manuelles.'
+                          : 'Campaign activation and closure will be manual.'}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
@@ -475,22 +575,24 @@ export default function NewCampaignPage() {
                     className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('frequency')}
-                  </label>
-                  <select
-                    value={frequency}
-                    onChange={(e) => setFrequency(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                  >
-                    {FREQUENCY_OPTIONS.map((f) => (
-                      <option key={f.value} value={f.value}>
-                        {t(f.tKey)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {!isPermanent && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t('frequency')}
+                    </label>
+                    <select
+                      value={frequency}
+                      onChange={(e) => setFrequency(e.target.value)}
+                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-aris-primary-500 focus:outline-none focus:ring-1 focus:ring-aris-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    >
+                      {FREQUENCY_OPTIONS.map((f) => (
+                        <option key={f.value} value={f.value}>
+                          {t(f.tKey)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -376,8 +376,11 @@ model CollectionCampaign {
   domain              String                   @db.VarChar(50)
   formTemplateId      String                   @map("form_template_id") @db.Uuid
   formTemplateIds     String[]                 @default([]) @map("form_template_ids") @db.Uuid
-  startDate           DateTime                 @map("start_date") @db.Date
-  endDate             DateTime                 @map("end_date") @db.Date
+  isPermanent         Boolean                  @default(false) @map("is_permanent")
+  startDate           DateTime?                @map("start_date") @db.Date
+  endDate             DateTime?                @map("end_date") @db.Date
+  autoActivate        Boolean                  @default(false) @map("auto_activate")
+  autoClose           Boolean                  @default(false) @map("auto_close")
   targetCountries     Json?                    @map("target_countries")   // ["KE", "TZ"]
   targetRecIds        Json?                    @map("target_rec_ids")
   targetAdminAreas    Json?                    @map("target_admin_areas")

@@ -1161,10 +1161,19 @@ export class CollectionCampaignService {
   ) {}
 
   async create(dto: Record<string, unknown>, user: AuthenticatedUser): Promise<ApiResponse<unknown>> {
-    const startDate = new Date(dto.startDate as string);
-    const endDate = new Date(dto.endDate as string);
-    if (endDate <= startDate) {
-      throw new HttpError(400, 'endDate must be after startDate');
+    const isPermanent = !!dto.isPermanent;
+    let startDate: Date | null = null;
+    let endDate: Date | null = null;
+
+    if (!isPermanent) {
+      if (!dto.startDate || !dto.endDate) {
+        throw new HttpError(400, 'startDate and endDate are required for scheduled campaigns');
+      }
+      startDate = new Date(dto.startDate as string);
+      endDate = new Date(dto.endDate as string);
+      if (endDate <= startDate) {
+        throw new HttpError(400, 'endDate must be after startDate');
+      }
     }
 
     const campaign = await (this.prisma as any).collectionCampaign.create({
@@ -1172,17 +1181,20 @@ export class CollectionCampaignService {
         code: dto.code as string,
         name: dto.name,
         description: dto.description ?? null,
-        domain: dto.domain as string, // Backward compat: writes legacy domain field, prefer targets[]
+        domain: dto.domain as string,
         formTemplateId: dto.formTemplateId as string,
         formTemplateIds: Array.isArray(dto.formTemplateIds) ? dto.formTemplateIds : (dto.formTemplateId ? [dto.formTemplateId as string] : []),
+        isPermanent,
         startDate,
         endDate,
+        autoActivate: !isPermanent && !!dto.autoActivate,
+        autoClose: !isPermanent && !!dto.autoClose,
         targetCountries: dto.targetCountries ?? null,
         targetRecIds: dto.targetRecIds ?? null,
         targetAdminAreas: dto.targetAdminAreas ?? null,
         targetSubmissions: (dto.targetSubmissions as number) ?? null,
         targetPerAgent: (dto.targetPerAgent as number) ?? null,
-        frequency: (dto.frequency as string) ?? null,
+        frequency: isPermanent ? 'permanent' : ((dto.frequency as string) ?? null),
         scope: (dto.scope as string) ?? 'continental',
         ownerId: user.tenantId,
         ownerType: user.tenantLevel ?? 'CONTINENTAL',
@@ -1403,12 +1415,13 @@ export class CollectionCampaignService {
     for (const key of [
       'name', 'description', 'targetCountries', 'targetRecIds', 'targetAdminAreas',
       'targetSubmissions', 'targetPerAgent', 'frequency', 'sendReminders', 'reminderDaysBefore', 'metadata', 'formTemplateIds',
-      'formTemplateId',
+      'formTemplateId', 'isPermanent', 'autoActivate', 'autoClose',
     ]) {
       if (dto[key] !== undefined) data[key] = dto[key];
     }
-    if (dto.startDate) data['startDate'] = new Date(dto.startDate as string);
-    if (dto.endDate) data['endDate'] = new Date(dto.endDate as string);
+    // Handle dates — allow setting to null for permanent campaigns
+    if (dto.startDate !== undefined) data['startDate'] = dto.startDate ? new Date(dto.startDate as string) : null;
+    if (dto.endDate !== undefined) data['endDate'] = dto.endDate ? new Date(dto.endDate as string) : null;
 
     const campaign = await (this.prisma as any).collectionCampaign.update({
       where: { id },
@@ -1420,7 +1433,10 @@ export class CollectionCampaignService {
   }
 
   async updateStatus(id: string, status: string, user: AuthenticatedUser): Promise<ApiResponse<unknown>> {
-    const existing = await (this.prisma as any).collectionCampaign.findUnique({ where: { id } });
+    const existing = await (this.prisma as any).collectionCampaign.findUnique({
+      where: { id },
+      include: { assignments: true },
+    });
     if (!existing) throw new HttpError(404, `Campaign ${id} not found`);
 
     await this.assertCanEdit(user, existing);
@@ -1430,7 +1446,145 @@ export class CollectionCampaignService {
       data: { status: status.toUpperCase() },
       include: { formTemplate: true, assignments: true },
     });
+
+    // Publish Kafka events for status changes
+    const upperStatus = status.toUpperCase();
+    if (upperStatus === 'ACTIVE') {
+      await this.publishCampaignEvent(campaign, user, 'ACTIVATED');
+    } else if (upperStatus === 'COMPLETED') {
+      await this.publishCampaignEvent(campaign, user, 'COMPLETED');
+    }
+
     return { data: campaign };
+  }
+
+  /**
+   * Publish campaign lifecycle events to Kafka for the message service to pick up.
+   * The message consumer listens for campaign.activated/completed events
+   * and sends notifications to all users in the target countries.
+   */
+  private async publishCampaignEvent(
+    campaign: Record<string, unknown>,
+    user: AuthenticatedUser,
+    action: 'ACTIVATED' | 'COMPLETED',
+  ): Promise<void> {
+    const topic = action === 'ACTIVATED'
+      ? 'ms.collecte.campaign.activated.v1'
+      : 'ms.collecte.campaign.completed.v1';
+
+    const name = campaign.name as Record<string, string> | string;
+    const campaignName = typeof name === 'string' ? name : (name?.en || name?.fr || 'Campaign');
+
+    const payload = {
+      campaignId: campaign.id,
+      campaignName,
+      domain: campaign.domain,
+      status: action,
+      targetCountries: campaign.targetCountries,
+      isPermanent: campaign.isPermanent ?? false,
+      startDate: campaign.startDate,
+      endDate: campaign.endDate,
+      scope: campaign.scope,
+    };
+
+    try {
+      await Promise.race([
+        this.kafkaProducer.send(
+          topic,
+          campaign.id as string,
+          payload,
+          {
+            correlationId: crypto.randomUUID(),
+            sourceService: 'collecte-service',
+            tenantId: user.tenantId,
+            userId: user.userId,
+            schemaVersion: '1',
+            timestamp: new Date().toISOString(),
+          },
+        ),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Kafka publish timeout')), 5000)),
+      ]);
+    } catch (err) {
+      console.error(`[CollectionCampaignService] Kafka publish ${topic} failed:`, err);
+    }
+  }
+
+  /**
+   * Scheduler — called periodically (e.g., every 5 minutes via cron route).
+   * Auto-activates PLANNED campaigns whose startDate has arrived (when autoActivate=true).
+   * Auto-closes ACTIVE campaigns whose endDate has passed (when autoClose=true).
+   * Returns counts of campaigns transitioned.
+   */
+  async runScheduler(): Promise<{ activated: number; completed: number }> {
+    const now = new Date();
+    const today = new Date(now.toISOString().slice(0, 10)); // midnight UTC
+
+    // 1. Auto-activate: PLANNED + autoActivate + startDate <= today
+    const toActivate = await (this.prisma as any).collectionCampaign.findMany({
+      where: {
+        status: 'PLANNED',
+        autoActivate: true,
+        isPermanent: false,
+        startDate: { lte: today },
+      },
+    });
+
+    let activated = 0;
+    for (const campaign of toActivate) {
+      try {
+        await (this.prisma as any).collectionCampaign.update({
+          where: { id: campaign.id },
+          data: { status: 'ACTIVE' },
+        });
+        // Publish activation event for notifications
+        const systemUser = {
+          userId: campaign.createdBy || 'system',
+          tenantId: campaign.ownerId || '00000000-0000-4000-a000-000000000001',
+          tenantLevel: campaign.ownerType || 'CONTINENTAL',
+          role: 'SUPER_ADMIN',
+          email: 'system@au-aris.org',
+        } as AuthenticatedUser;
+        await this.publishCampaignEvent(campaign, systemUser, 'ACTIVATED');
+        activated++;
+        console.log(`[Scheduler] Auto-activated campaign ${campaign.code} (${campaign.id})`);
+      } catch (err) {
+        console.error(`[Scheduler] Failed to auto-activate ${campaign.id}:`, err);
+      }
+    }
+
+    // 2. Auto-close: ACTIVE + autoClose + endDate < today
+    const toComplete = await (this.prisma as any).collectionCampaign.findMany({
+      where: {
+        status: 'ACTIVE',
+        autoClose: true,
+        isPermanent: false,
+        endDate: { lt: today },
+      },
+    });
+
+    let completed = 0;
+    for (const campaign of toComplete) {
+      try {
+        await (this.prisma as any).collectionCampaign.update({
+          where: { id: campaign.id },
+          data: { status: 'COMPLETED' },
+        });
+        const systemUser = {
+          userId: campaign.createdBy || 'system',
+          tenantId: campaign.ownerId || '00000000-0000-4000-a000-000000000001',
+          tenantLevel: campaign.ownerType || 'CONTINENTAL',
+          role: 'SUPER_ADMIN',
+          email: 'system@au-aris.org',
+        } as AuthenticatedUser;
+        await this.publishCampaignEvent(campaign, systemUser, 'COMPLETED');
+        completed++;
+        console.log(`[Scheduler] Auto-completed campaign ${campaign.code} (${campaign.id})`);
+      } catch (err) {
+        console.error(`[Scheduler] Failed to auto-complete ${campaign.id}:`, err);
+      }
+    }
+
+    return { activated, completed };
   }
 
   async deleteCampaign(id: string, user: AuthenticatedUser): Promise<void> {

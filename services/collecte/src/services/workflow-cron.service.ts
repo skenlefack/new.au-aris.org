@@ -1,6 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 import type { StandaloneKafkaProducer } from '@aris/kafka-client';
-import { WorkflowInstanceService } from './workflow-engine.service';
+import { WorkflowInstanceService, CollectionCampaignService } from './workflow-engine.service';
 
 /**
  * Cron-based background jobs for workflow automation.
@@ -8,15 +8,18 @@ import { WorkflowInstanceService } from './workflow-engine.service';
  */
 export class WorkflowCronService {
   private readonly instanceService: WorkflowInstanceService;
+  private readonly campaignService: CollectionCampaignService;
   private autoTransmitTimer: ReturnType<typeof setInterval> | null = null;
   private escalationTimer: ReturnType<typeof setInterval> | null = null;
   private reminderTimer: ReturnType<typeof setInterval> | null = null;
+  private campaignSchedulerTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private readonly prisma: PrismaClient,
     private readonly kafkaProducer: StandaloneKafkaProducer,
   ) {
     this.instanceService = new WorkflowInstanceService(prisma, kafkaProducer);
+    this.campaignService = new CollectionCampaignService(prisma, kafkaProducer);
   }
 
   /** Start all cron jobs */
@@ -42,7 +45,14 @@ export class WorkflowCronService {
       );
     }, 6 * 60 * 60 * 1000);
 
-    console.log('[WorkflowCron] Started: auto-transmit (15min), escalation (1h), reminders (6h)');
+    // Campaign scheduler: every 5 minutes — auto-activate/close campaigns
+    this.campaignSchedulerTimer = setInterval(() => {
+      this.runCampaignScheduler().catch((err) =>
+        console.error('[WorkflowCron] Campaign scheduler error:', err),
+      );
+    }, 5 * 60 * 1000);
+
+    console.log('[WorkflowCron] Started: auto-transmit (15min), escalation (1h), reminders (6h), campaign-scheduler (5min)');
 
     // Run initial auto-transmit after 30 seconds
     setTimeout(() => {
@@ -50,6 +60,13 @@ export class WorkflowCronService {
         console.error('[WorkflowCron] Initial auto-transmit error:', err),
       );
     }, 30_000);
+
+    // Run campaign scheduler once after 60 seconds (initial check on startup)
+    setTimeout(() => {
+      this.runCampaignScheduler().catch((err) =>
+        console.error('[WorkflowCron] Initial campaign scheduler error:', err),
+      );
+    }, 60_000);
   }
 
   /** Stop all cron jobs */
@@ -57,6 +74,7 @@ export class WorkflowCronService {
     if (this.autoTransmitTimer) clearInterval(this.autoTransmitTimer);
     if (this.escalationTimer) clearInterval(this.escalationTimer);
     if (this.reminderTimer) clearInterval(this.reminderTimer);
+    if (this.campaignSchedulerTimer) clearInterval(this.campaignSchedulerTimer);
     console.log('[WorkflowCron] Stopped all cron jobs');
   }
 
@@ -121,6 +139,14 @@ export class WorkflowCronService {
           // Kafka publishing failures are non-fatal for reminders
         }
       }
+    }
+  }
+
+  /** Auto-activate PLANNED campaigns at startDate and auto-close ACTIVE campaigns at endDate */
+  private async runCampaignScheduler(): Promise<void> {
+    const result = await this.campaignService.runScheduler();
+    if (result.activated > 0 || result.completed > 0) {
+      console.log(`[WorkflowCron] Campaign scheduler: activated=${result.activated}, completed=${result.completed}`);
     }
   }
 }
