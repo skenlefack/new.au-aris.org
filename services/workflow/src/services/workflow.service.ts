@@ -87,12 +87,9 @@ export class WorkflowService {
     user: AuthenticatedUser,
   ): Promise<ApiResponse<WorkflowInstanceEntity>> {
     // Determine start level from definition or fall back to NATIONAL_TECHNICAL
-    const VALID_LEVELS = new Set(LEVEL_ORDER);
     const def = await this.getDefinitionWithSteps(user.tenantId);
-    const defStartLevel = def && def.levelOrder.length > 0 ? def.levelOrder[0] : null;
-    const startLevel = defStartLevel && VALID_LEVELS.has(defStartLevel)
-      ? defStartLevel
-      : 'NATIONAL_TECHNICAL';
+    const safeLevelOrder = await this.getLevelOrder(user.tenantId);
+    const startLevel = safeLevelOrder[0] ?? 'NATIONAL_TECHNICAL';
 
     const instance = await (this.prisma as any).workflowInstance.create({
       data: {
@@ -225,10 +222,10 @@ export class WorkflowService {
       throw new HttpError(400, 'Comment is required for approval in this workflow configuration');
     }
 
-    // Determine level sequence (dynamic or hardcoded fallback)
-    const levelOrder = def ? def.levelOrder : [...LEVEL_ORDER];
+    // Determine level sequence — use safe filtered levelOrder (validates against WfLevel enum)
+    const levelOrder = await this.getLevelOrder(instance.tenant_id);
     const currentLevelIdx = levelOrder.indexOf(instance.current_level);
-    const isLastLevel = currentLevelIdx === levelOrder.length - 1;
+    const isLastLevel = currentLevelIdx === -1 || currentLevelIdx === levelOrder.length - 1;
     const nextLevel = isLastLevel
       ? instance.current_level
       : levelOrder[currentLevelIdx + 1];
@@ -415,8 +412,8 @@ export class WorkflowService {
       throw new HttpError(400, 'Return for correction is not allowed in this workflow configuration');
     }
 
-    // Return drops back one level (or stays at level 1) — use dynamic level order
-    const levelOrder = def ? def.levelOrder : [...LEVEL_ORDER];
+    // Return drops back one level (or stays at level 1) — use safe filtered level order
+    const levelOrder = await this.getLevelOrder(instance.tenant_id);
     const currentIdx = levelOrder.indexOf(instance.current_level);
     const previousLevel = currentIdx > 0
       ? levelOrder[currentIdx - 1]
@@ -697,7 +694,7 @@ export class WorkflowService {
 
     // Determine which level to auto-advance and the next level
     const def = await this.getDefinitionWithSteps(instance.tenant_id);
-    const levelOrder = def ? def.levelOrder : [...LEVEL_ORDER];
+    const levelOrder = await this.getLevelOrder(instance.tenant_id);
 
     const currentIdx = levelOrder.indexOf(instance.current_level);
     if (currentIdx === -1 || currentIdx >= levelOrder.length - 1) {
