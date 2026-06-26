@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authHook, rolesHook, tenantHook } from '@aris/auth-middleware';
 import type { AuthHookOptions, AuthenticatedUser } from '@aris/auth-middleware';
@@ -5,10 +6,12 @@ import { UserRole } from '@aris/shared-types';
 import type { PaginationQuery } from '@aris/shared-types';
 
 export async function registerInteropRoutes(app: FastifyInstance): Promise<void> {
-  // Auth hooks
-  const authOpts: AuthHookOptions = {
-    publicKey: (process.env['JWT_PUBLIC_KEY'] ?? '').replace(/\\n/g, '\n'),
-  };
+  // Auth hooks — try env var first, then read from file path
+  let publicKey = (process.env['JWT_PUBLIC_KEY'] ?? '').replace(/\\n/g, '\n');
+  if (!publicKey && process.env['JWT_PUBLIC_KEY_PATH']) {
+    try { publicKey = readFileSync(process.env['JWT_PUBLIC_KEY_PATH'], 'utf8'); } catch { /* ignore */ }
+  }
+  const authOpts: AuthHookOptions = { publicKey };
   const auth = authHook(authOpts);
   const tenant = tenantHook();
 

@@ -25,6 +25,14 @@ export async function registerSpeciesRoutes(app: FastifyInstance): Promise<void>
     });
   });
 
+  // GET /api/v1/master-data/species-groups — list distinct species categories with counts
+  app.get('/api/v1/master-data/species-groups', {
+    preHandler: authAndTenant,
+  }, async () => {
+    const groups = await app.speciesService.listGroups();
+    return groups;
+  });
+
   app.get<{ Params: { id: string } }>('/api/v1/master-data/species/:id', {
     preHandler: authAndTenant,
   }, async (request) => {

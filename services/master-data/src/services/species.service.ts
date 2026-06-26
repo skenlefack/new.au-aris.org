@@ -68,6 +68,21 @@ export class SpeciesService {
     return { data: entity };
   }
 
+  async listGroups(): Promise<{ data: Array<{ category: string; count: number }> }> {
+    const groups = await this.prisma.species.groupBy({
+      by: ['category'],
+      where: { isActive: true },
+      _count: { id: true },
+      orderBy: { category: 'asc' },
+    });
+    return {
+      data: groups.map((g: any) => ({
+        category: g.category,
+        count: g._count.id,
+      })),
+    };
+  }
+
   async findAll(
     query: PaginationQuery & { category?: string; search?: string },
   ): Promise<PaginatedResponse<any>> {
