@@ -123,6 +123,63 @@ export class GeoService {
     return { data: this.toMultilingual(entity) };
   }
 
+  /**
+   * Idempotent "ensure" — find existing entity by name+level+countryCode+parentId,
+   * or create it with an auto-generated code. Used by form submission to create
+   * missing admin divisions on-the-fly.
+   */
+  async ensure(
+    dto: { name: string; level: string; countryCode: string; parentId?: string },
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<any>> {
+    // 1. Try to find existing entity
+    const where: Record<string, unknown> = {
+      level: dto.level,
+      countryCode: dto.countryCode,
+      isActive: true,
+      OR: [
+        { name: { equals: dto.name, mode: 'insensitive' } },
+        { nameEn: { equals: dto.name, mode: 'insensitive' } },
+        { nameFr: { equals: dto.name, mode: 'insensitive' } },
+      ],
+    };
+    where['parentId'] = dto.parentId ?? null;
+
+    const existing = await (this.prisma as any).geoEntity.findFirst({ where });
+    if (existing) {
+      return { data: this.toMultilingual(existing) };
+    }
+
+    // 2. Auto-generate code
+    const levelShort = dto.level.replace('ADMIN', 'A');
+    const ts = Date.now().toString(36).toUpperCase();
+    let code = `${dto.countryCode}_${levelShort}_${ts}`;
+    const codeExists = await (this.prisma as any).geoEntity.findUnique({ where: { code } });
+    if (codeExists) {
+      code = `${code}_${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+    }
+
+    // 3. Create
+    const entity = await (this.prisma as any).geoEntity.create({
+      data: {
+        code,
+        name: dto.name,
+        nameEn: dto.name,
+        nameFr: dto.name,
+        namePt: dto.name,
+        nameAr: dto.name,
+        level: dto.level,
+        parentId: dto.parentId ?? null,
+        countryCode: dto.countryCode,
+        isActive: true,
+      },
+    });
+
+    await this.publishEvent(entity, user);
+    await this.cache.invalidateByPattern('master-data', 'geo');
+    return { data: this.toMultilingual(entity) };
+  }
+
   async findAll(
     query: PaginationQuery & {
       level?: string;
