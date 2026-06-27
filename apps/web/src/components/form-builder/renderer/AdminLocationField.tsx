@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { MapPin, Pencil } from 'lucide-react';
+import { MapPin, Pencil, List, ToggleLeft, ToggleRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { COUNTRIES } from '@/data/countries-config';
 import { RECS } from '@/data/recs-config';
@@ -89,6 +89,8 @@ export function AdminLocationField({
   const locale = useLocaleStore((s) => s.locale);
   const user = useAuthStore((s) => s.user);
   const [selections, setSelections] = useState<Record<string, string>>(value || {});
+  // Levels manually toggled to text-input mode by the user (even when options exist)
+  const [manualModeLevels, setManualModeLevels] = useState<Set<number>>(new Set());
 
   // Determine allowed country codes based on user scope + campaign targets
   const { allowedCodes, isCountryLocked } = useMemo(() => {
@@ -322,7 +324,13 @@ export function AdminLocationField({
     5: admin5Options,
   };
 
-  /** Determine which levels are in text-input (fallback) mode */
+  /** Determine which levels are in text-input (fallback) mode.
+   *  A level is text mode when:
+   *  - User manually toggled it (manualModeLevels), OR
+   *  - Parent is a text value (__new:), OR
+   *  - Options are empty after loading
+   *  Once a level is text, all subsequent levels are also text.
+   */
   const textModeLevels = useMemo(() => {
     const textLevels = new Set<number>();
     let forcedText = false;
@@ -332,6 +340,13 @@ export function AdminLocationField({
 
       if (forcedText) {
         textLevels.add(level);
+        continue;
+      }
+
+      // User manually toggled this level to text mode
+      if (manualModeLevels.has(level)) {
+        textLevels.add(level);
+        forcedText = true;
         continue;
       }
 
@@ -353,7 +368,7 @@ export function AdminLocationField({
       }
     }
     return textLevels;
-  }, [levels, selections, levelLoadingMap, optionsMap]);
+  }, [levels, selections, manualModeLevels, levelLoadingMap, optionsMap]);
 
   // ═══════════════════════════════════════════════════════════════════
   // Event handlers
@@ -400,6 +415,26 @@ export function AdminLocationField({
     return !parentVal;
   };
 
+  /** Toggle a level between select and manual text input */
+  const toggleManualMode = (level: number) => {
+    setManualModeLevels((prev) => {
+      const next = new Set(prev);
+      if (next.has(level)) {
+        next.delete(level);
+      } else {
+        next.add(level);
+      }
+      return next;
+    });
+    // Clear this level and deeper levels when toggling
+    const updated = { ...selections };
+    for (const l of levels) {
+      if (l >= level) delete updated[`level_${l}`];
+    }
+    setSelections(updated);
+    onChange(Object.keys(updated).length > 0 ? updated : null);
+  };
+
   return (
     <div className="space-y-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
       <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -415,18 +450,47 @@ export function AdminLocationField({
           const isLoading = !isTextMode && level > 0 && levelLoadingMap[level] && !!selections[`level_${level - 1}`];
           const currentVal = selections[`level_${level}`] || '';
 
+          // Can toggle: level > 0, not disabled, not forced by parent being __new:
+          const parentVal = level > 0 ? selections[`level_${level - 1}`] : undefined;
+          const isForcedByParent = parentVal?.startsWith(NEW_GEO_PREFIX) ?? false;
+          const canToggle = level > 0 && !disabled && !isForcedByParent;
+
           return (
             <div key={level}>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                {levelLabel}
-                {isRequired && <span className="text-red-500 ml-0.5">*</span>}
+              <div className="flex items-center gap-1.5 mb-1">
+                {/* Toggle button — switch between select and manual input */}
+                {canToggle && (
+                  <button
+                    type="button"
+                    onClick={() => toggleManualMode(level)}
+                    title={isTextMode
+                      ? (locale === 'fr' ? 'Basculer en liste' : 'Switch to list')
+                      : (locale === 'fr' ? 'Basculer en saisie libre' : 'Switch to manual entry')
+                    }
+                    className={cn(
+                      'flex-shrink-0 rounded p-0.5 transition-colors',
+                      isTextMode
+                        ? 'text-amber-500 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/30'
+                        : 'text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30',
+                    )}
+                  >
+                    {isTextMode
+                      ? <List className="h-3.5 w-3.5" />
+                      : <Pencil className="h-3.5 w-3.5" />
+                    }
+                  </button>
+                )}
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {levelLabel}
+                  {isRequired && <span className="text-red-500 ml-0.5">*</span>}
+                </label>
                 {isTextMode && (
-                  <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                  <span className="inline-flex items-center gap-0.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
                     <Pencil className="h-2.5 w-2.5" />
-                    {locale === 'fr' ? 'Saisie libre' : 'Manual entry'}
+                    {locale === 'fr' ? 'Nouveau' : 'New'}
                   </span>
                 )}
-              </label>
+              </div>
 
               {isTextMode ? (
                 /* ── Text input fallback ── */
