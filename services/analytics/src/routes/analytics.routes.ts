@@ -302,4 +302,48 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
     const data = await app.crossDomainService.getVetScores(country);
     return reply.code(200).send({ data });
   });
+
+  // ── Submissions by domain (mobile dashboard) ──
+
+  app.get(`${PREFIX}/submissions/by-domain`, {
+    preHandler: [app.authHookFn, tenantHook()],
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
+    const stats = await app.dbStatsService.getDashboardStats();
+    const breakdown = (stats.domainBreakdown || []).map((d) => ({
+      domain: d.domain,
+      count: d.records,
+      quality: d.quality,
+    }));
+    return reply.code(200).send({
+      data: breakdown,
+      total: stats.totalRecords,
+    });
+  });
+
+  // ── Submissions timeline (mobile dashboard) ──
+
+  app.get(`${PREFIX}/submissions/timeline`, {
+    preHandler: [app.authHookFn, tenantHook()],
+  }, async (
+    request: FastifyRequest<{ Querystring: { period?: string } }>,
+    reply: FastifyReply,
+  ) => {
+    const stats = await app.dbStatsService.getDashboardStats();
+    return reply.code(200).send({
+      data: stats.qualityTrendLine || [],
+    });
+  });
+
+  // ── Beneficiaries by country (mobile dashboard) ──
+
+  app.get(`${PREFIX}/beneficiaries/by-country`, {
+    preHandler: [app.authHookFn, tenantHook()],
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
+    const stats = await app.dbStatsService.getDashboardStats();
+    // Derive country breakdown from domain stats
+    return reply.code(200).send({
+      data: [],
+      note: 'Beneficiary tracking not yet implemented — use /continental/kpis for country-level data',
+    });
+  });
 }
