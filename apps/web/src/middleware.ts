@@ -60,6 +60,7 @@ const PUBLIC_PREFIXES = [
   '/sw.js',
   '/manifest.json',
   '/au-logo.png',
+  '/aris-logo.png',
 ];
 
 export function middleware(request: NextRequest) {

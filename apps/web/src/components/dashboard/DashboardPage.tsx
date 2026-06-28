@@ -59,11 +59,11 @@ function TitleIcon({ isFullscreen, size = 'md' }: { isFullscreen: boolean; size?
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src="/au-logo.png"
-        alt="AU-IBAR"
+        src="/aris-logo.png"
+        alt="ARIS"
         className={cn(
           'flex-shrink-0 object-contain',
-          size === 'sm' ? 'h-5 w-5' : 'h-6 w-6',
+          size === 'sm' ? 'h-6' : 'h-8',
         )}
       />
     );

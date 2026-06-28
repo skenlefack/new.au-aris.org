@@ -69,12 +69,8 @@ function LoaderContent() {
 
         {/* Text */}
         <div className="text-center">
-          <p
-            className="text-lg font-bold tracking-tight"
-            style={{ color: '#800020' }}
-          >
-            ARIS
-          </p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/aris-logo.png" alt="ARIS" className="h-8 object-contain mx-auto" />
           <p className="mt-1 text-xs text-slate-400 dark:text-slate-500 tracking-wider uppercase">
             Loading
           </p>

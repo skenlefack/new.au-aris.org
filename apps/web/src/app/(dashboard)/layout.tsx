@@ -146,12 +146,9 @@ export default function DashboardLayout({
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="ml-3 flex items-center gap-2">
+            <div className="ml-3 flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/au-logo.png" alt="AU-IBAR" className="h-7 w-7 object-contain" />
-              <span className="font-bold" style={{ fontSize: '1.2rem', color: '#800020' }}>
-                ARIS
-              </span>
+              <img src="/aris-logo.png" alt="ARIS - Animal Resources Information System" className="h-9 object-contain" />
             </div>
           </div>
 
