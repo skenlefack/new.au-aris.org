@@ -13,6 +13,8 @@ import org.auibar.aris.mobile.data.local.entity.FormTemplateEntity
 import org.auibar.aris.mobile.data.local.entity.GeoEntity
 import org.auibar.aris.mobile.data.local.entity.SpeciesEntity
 import org.auibar.aris.mobile.data.mapper.TargetMapper
+import org.auibar.aris.mobile.data.remote.dto.WorkflowUpdateDto
+import org.auibar.aris.mobile.data.remote.dto.QualityResultDto
 import org.auibar.aris.mobile.BuildConfig
 import org.auibar.aris.mobile.data.remote.api.SyncApi
 import org.auibar.aris.mobile.data.remote.dto.SubmissionDto
@@ -199,12 +201,12 @@ class SyncRepository @Inject constructor(
         }
 
         // Update workflow statuses
-        syncData.workflowUpdates.forEach { wf ->
+        syncData.workflowUpdates.forEach { wf: WorkflowUpdateDto ->
             submissionDao.updateWorkflow(wf.submissionId, wf.level, wf.status)
         }
 
         // Update quality gate results
-        syncData.qualityResults.forEach { qr ->
+        syncData.qualityResults.forEach { qr: QualityResultDto ->
             submissionDao.updateQualityResults(qr.submissionId, qr.results)
         }
     }
