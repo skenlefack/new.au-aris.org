@@ -37,6 +37,14 @@ export async function registerValidationChainRoutes(app: FastifyInstance): Promi
     return reply.code(201).send(result);
   });
 
+  // GET /api/v1/workflow/potential-validators
+  app.get('/api/v1/workflow/potential-validators', {
+    preHandler: [auth],
+  }, async (request) => {
+    const user = request.user as AuthenticatedUser;
+    return app.validationChainService.findPotentialValidators(user);
+  });
+
   // GET /api/v1/workflow/validation-chains/user/:userId
   app.get<{ Params: ChainUserParamInput }>('/api/v1/workflow/validation-chains/user/:userId', {
     schema: { params: ChainUserParamSchema },

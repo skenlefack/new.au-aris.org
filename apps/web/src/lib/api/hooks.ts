@@ -643,6 +643,7 @@ export function useWorkflowItems(params?: {
   if (params?.page) searchParams.page = String(params.page);
   if (params?.limit) searchParams.limit = String(params.limit);
   if (params?.status) searchParams.status = params.status;
+  if (params?.level) searchParams.level = params.level;
 
   // Try workflow instances first — if empty, fall back to submissions
   const workflowFallback: PaginatedResponse<WorkflowItem> = { data: [], meta: { total: 0, page: 1, limit: 10 } };

@@ -208,10 +208,11 @@ export class SubmissionService {
       throw new HttpError(404, `Submission ${id} not found`);
     }
 
-    // Allow: the kit_recipient, or any admin
-    const isAdmin = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN'].includes(user.role);
+    // Allow: the kit_recipient, the submitter, DATA_STEWARD, or any admin
+    const isAdmin = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN', 'DATA_STEWARD'].includes(user.role);
     const isRecipient = submission.data?.kit_recipient === user.userId;
-    if (!isAdmin && !isRecipient) {
+    const isSubmitter = submission.submittedBy === user.userId;
+    if (!isAdmin && !isRecipient && !isSubmitter) {
       throw new HttpError(403, 'Not authorized to update this submission status');
     }
 

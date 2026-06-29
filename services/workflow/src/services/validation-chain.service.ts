@@ -234,6 +234,60 @@ export class ValidationChainService {
     return entities;
   }
 
+  // ── Potential Validators ──
+
+  /**
+   * Find potential validators for a user: same tenantId, higher-level roles.
+   * Used when no validation chain is configured for the submitter.
+   */
+  async findPotentialValidators(
+    user: AuthenticatedUser,
+  ): Promise<ApiResponse<Array<{ id: string; displayName: string; email: string; role: string }>>> {
+    // Role hierarchy: higher roles that can validate data from lower roles
+    const ROLE_HIERARCHY: Record<string, string[]> = {
+      FIELD_AGENT: ['DATA_STEWARD', 'NATIONAL_ADMIN', 'WAHIS_FOCAL_POINT', 'REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
+      DATA_STEWARD: ['NATIONAL_ADMIN', 'WAHIS_FOCAL_POINT', 'REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
+      WAHIS_FOCAL_POINT: ['NATIONAL_ADMIN', 'REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
+      NATIONAL_ADMIN: ['REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
+      REC_ADMIN: ['CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
+      CONTINENTAL_ADMIN: ['SUPER_ADMIN'],
+      ANALYST: ['DATA_STEWARD', 'NATIONAL_ADMIN', 'REC_ADMIN', 'CONTINENTAL_ADMIN', 'SUPER_ADMIN'],
+      SUPER_ADMIN: [],
+    };
+
+    const higherRoles = ROLE_HIERARCHY[user.role] ?? [];
+    if (higherRoles.length === 0) {
+      return { data: [] };
+    }
+
+    try {
+      const users: any[] = await (this.prisma as any).$queryRawUnsafe(
+        `SELECT id, first_name || ' ' || last_name AS display_name, email, role
+         FROM public.users
+         WHERE tenant_id = $1::uuid
+           AND role = ANY($2::text[])
+           AND id != $3::uuid
+           AND is_active = true
+         ORDER BY role, first_name, last_name
+         LIMIT 50`,
+        user.tenantId,
+        higherRoles,
+        user.userId,
+      );
+
+      return {
+        data: users.map((u: any) => ({
+          id: u.id,
+          displayName: u.display_name,
+          email: u.email,
+          role: u.role,
+        })),
+      };
+    } catch {
+      return { data: [] };
+    }
+  }
+
   // ── Tenant Filtering ──
 
   private buildTenantFilter(user: AuthenticatedUser): Record<string, unknown> {

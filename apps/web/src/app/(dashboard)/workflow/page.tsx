@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -27,6 +27,7 @@ import {
   Send,
   Users,
   BarChart3,
+  Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -38,10 +39,15 @@ import {
   useUpdateSubmissionStatus,
   type WorkflowItem,
   type WorkflowLevel,
-  type WorkflowStatus,
   type SubmissionRecord,
 } from '@/lib/api/hooks';
-import { useBulkWorkflowAction } from '@/lib/api/workflow-hooks';
+import {
+  useBulkWorkflowAction,
+  useValidationChainsByUser,
+  usePotentialValidators,
+  useCreateValidationChain,
+} from '@/lib/api/workflow-hooks';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 import { QueryError } from '@/components/ui/QueryError';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -86,9 +92,17 @@ const DOMAIN_COLORS: Record<string, string> = {
 };
 
 const ALL_LEVELS: WorkflowLevel[] = ['NATIONAL_TECHNICAL', 'NATIONAL_OFFICIAL', 'REC_HARMONIZATION', 'CONTINENTAL_PUBLICATION'];
-const ALL_WF_STATUSES: WorkflowStatus[] = ['PENDING', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'RETURNED', 'ESCALATED'];
-const ALL_SUB_STATUSES = ['SUBMITTED', 'VALIDATED', 'REJECTED', 'DRAFT'];
 const PAGE_SIZE = 20;
+
+/** Tabs mapping: each tab has a set of statuses it displays */
+type TabKey = 'toValidate' | 'rejected' | 'returned' | 'validated';
+
+const TAB_STATUS_MAP: Record<TabKey, string[]> = {
+  toValidate: ['SUBMITTED', 'PENDING', 'IN_REVIEW', 'ESCALATED'],
+  rejected: ['REJECTED'],
+  returned: ['RETURNED'],
+  validated: ['VALIDATED', 'APPROVED'],
+};
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
 
@@ -123,6 +137,17 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: 'Super Admin',
+  CONTINENTAL_ADMIN: 'Continental Admin',
+  REC_ADMIN: 'REC Admin',
+  NATIONAL_ADMIN: 'National Admin',
+  DATA_STEWARD: 'Data Steward',
+  WAHIS_FOCAL_POINT: 'WAHIS Focal Point',
+  ANALYST: 'Analyst',
+  FIELD_AGENT: 'Field Agent',
+};
+
 /* ══════════════════════════════════════════════════════════════════════════ */
 /* ── Smart Field Renderer                                                ── */
 /* ══════════════════════════════════════════════════════════════════════════ */
@@ -131,8 +156,6 @@ function FieldValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
   if (value == null || value === '' || value === '[]' || value === '{}' || value === 'null') {
     return <span className="text-gray-300 italic text-xs">N/A</span>;
   }
-
-  // UUID → short violet tag
   if (isUuid(value)) {
     return (
       <span className="inline-flex items-center rounded-md bg-violet-50 px-2 py-0.5 text-[11px] font-mono text-violet-600 dark:bg-violet-900/20 dark:text-violet-400">
@@ -140,28 +163,17 @@ function FieldValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
       </span>
     );
   }
-
-  // ISO Date → formatted
   if (isIsoDate(value)) return <span className="text-sm">{formatDate(value as string)}</span>;
-
-  // Boolean
   if (typeof value === 'boolean') {
     return value ? <span className="text-green-600 font-medium text-xs">Yes</span> : <span className="text-gray-400 text-xs">No</span>;
   }
-
-  // Number
   if (typeof value === 'number') {
     return <span className="font-semibold text-gray-900 dark:text-white tabular-nums">{value.toLocaleString()}</span>;
   }
-
-  // String
   if (typeof value === 'string') return <span className="text-sm text-gray-900 dark:text-white">{value}</span>;
 
-  // Array of objects → render as card list
   if (Array.isArray(value)) {
     if (value.length === 0) return <span className="text-gray-300 italic text-xs">Empty</span>;
-
-    // Array of primitives
     if (value.every((v) => typeof v !== 'object' || v === null)) {
       return (
         <div className="flex flex-wrap gap-1">
@@ -173,8 +185,6 @@ function FieldValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
         </div>
       );
     }
-
-    // Array of objects → mini cards
     return (
       <div className="space-y-2 w-full">
         {value.map((item, i) => (
@@ -193,11 +203,8 @@ function FieldValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
     );
   }
 
-  // Object
   if (typeof value === 'object' && value !== null) {
     const obj = value as Record<string, unknown>;
-
-    // Geo coordinates
     if ('lat' in obj && 'lng' in obj) {
       return (
         <span className="inline-flex items-center gap-1.5 text-sm">
@@ -207,8 +214,6 @@ function FieldValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
         </span>
       );
     }
-
-    // Admin location
     if ('level_0' in obj) {
       return (
         <div className="flex flex-wrap gap-1">
@@ -221,11 +226,7 @@ function FieldValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
         </div>
       );
     }
-
-    // Multilingual
     if ('en' in obj || 'fr' in obj) return <span className="text-sm">{localizeName(obj)}</span>;
-
-    // Generic object → render as mini key-value
     const entries = Object.entries(obj).filter(([, v]) => v != null && v !== '');
     if (entries.length === 0) return <span className="text-gray-300 italic text-xs">Empty</span>;
     return (
@@ -241,6 +242,109 @@ function FieldValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
   }
 
   return <span className="text-sm">{String(value)}</span>;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════ */
+/* ── Choose Validator Dialog                                             ── */
+/* ══════════════════════════════════════════════════════════════════════════ */
+
+function ChooseValidatorDialog({ onClose, onSelect, t }: {
+  onClose: () => void;
+  onSelect: (validatorId: string) => void;
+  t: (key: string) => string;
+}) {
+  const { data: validatorsRes, isLoading } = usePotentialValidators(true);
+  const validators = validatorsRes?.data ?? [];
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filtered = useMemo(() => {
+    if (!searchTerm) return validators;
+    const q = searchTerm.toLowerCase();
+    return validators.filter(v =>
+      v.displayName.toLowerCase().includes(q) ||
+      v.email.toLowerCase().includes(q) ||
+      (ROLE_LABELS[v.role] ?? v.role).toLowerCase().includes(q)
+    );
+  }, [validators, searchTerm]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('chooseValidator')}</h3>
+            <p className="mt-0.5 text-sm text-gray-500">{t('chooseValidatorDesc')}</p>
+          </div>
+          <button onClick={onClose} className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="px-6 py-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={t('selectValidator')}
+              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+        </div>
+
+        <div className="max-h-[340px] overflow-y-auto px-6 pb-2">
+          {isLoading ? (
+            <div className="py-8 text-center text-sm text-gray-400">Loading...</div>
+          ) : filtered.length === 0 ? (
+            <div className="py-8 text-center text-sm text-gray-400">{t('noValidatorsFound')}</div>
+          ) : (
+            <div className="space-y-1.5">
+              {filtered.map((v) => (
+                <button
+                  key={v.id}
+                  onClick={() => setSelectedId(v.id)}
+                  className={cn(
+                    'flex w-full items-center gap-3 rounded-xl border-2 p-3 text-left transition-all',
+                    selectedId === v.id
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-transparent hover:border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50',
+                  )}
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                    {v.displayName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{v.displayName}</p>
+                    <p className="text-xs text-gray-500 truncate">{v.email}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                    {ROLE_LABELS[v.role] ?? v.role}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-gray-200 px-6 py-4 dark:border-gray-700">
+          <button onClick={onClose}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
+            {t('cancel')}
+          </button>
+          <button
+            onClick={() => selectedId && onSelect(selectedId)}
+            disabled={!selectedId}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            <Send className="h-4 w-4" />
+            {t('sendForValidation')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /* ══════════════════════════════════════════════════════════════════════════ */
@@ -424,7 +528,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                 </div>
               </div>
 
-              {/* Action form (when an action is selected) */}
+              {/* Action form */}
               {actionType && (
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
                   <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
@@ -509,32 +613,71 @@ function DataSection({ title, icon, fields, defaultOpen = false }: {
 
 export default function WorkflowPage() {
   const t = useTranslations('workflow');
+  const user = useAuthStore((s) => s.user);
+
+  // Active tab
+  const [activeTab, setActiveTab] = useState<TabKey>('toValidate');
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [levelFilter, setLevelFilter] = useState<string | undefined>(undefined);
   const [viewingSub, setViewingSub] = useState<SubmissionRecord | null>(null);
   const [viewingWf, setViewingWf] = useState<WorkflowItem | null>(null);
   const [actionDialog, setActionDialog] = useState<{ id: string; action: 'approve' | 'reject' | 'return' } | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkToast, setBulkToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [showValidatorChooser, setShowValidatorChooser] = useState<{ submissionId: string; domain: string } | null>(null);
+
+  // Compute status filter from active tab
+  const tabStatuses = TAB_STATUS_MAP[activeTab];
+
+  // Fetch data — use the first status from the tab's status set for server filtering
+  const primaryStatus = tabStatuses.length === 1 ? tabStatuses[0] : undefined;
 
   const { submissionData, workflowData, hasWorkflowData, isLoading, isError, refetch } =
-    useWorkflowItems({ page, limit: PAGE_SIZE, status: statusFilter, level: levelFilter });
+    useWorkflowItems({ page, limit: PAGE_SIZE, status: primaryStatus, level: levelFilter });
   const { data: dashboardRes } = useWorkflowDashboard();
   const dashboard = dashboardRes?.data;
   const workflowAction = useWorkflowAction();
   const startValidation = useStartValidation();
   const updateStatus = useUpdateSubmissionStatus();
   const bulkAction = useBulkWorkflowAction();
+  const createChain = useCreateValidationChain();
 
-  const submissions = submissionData?.data ?? [];
+  // Check if user has a validation chain configured
+  const { data: chainsRes } = useValidationChainsByUser(user?.id);
+  const hasValidationChain = (chainsRes?.data ?? []).length > 0;
+
+  // Filter submissions/workflow items by tab statuses (client-side for multi-status tabs)
+  const allSubmissions = submissionData?.data ?? [];
   const subTotal = submissionData?.meta?.total ?? 0;
   const wfItems = workflowData?.data ?? [];
   const wfTotal = workflowData?.meta?.total ?? 0;
+
+  // For multi-status tabs, we filter client-side from the server results
+  const filteredSubmissions = primaryStatus
+    ? allSubmissions
+    : allSubmissions.filter((s) => tabStatuses.includes(s.status));
+
+  const filteredWfItems = primaryStatus
+    ? wfItems
+    : wfItems.filter((w) => tabStatuses.includes(w.status));
+
   const displayTotal = hasWorkflowData ? wfTotal : subTotal;
   const totalPages = Math.ceil(displayTotal / PAGE_SIZE);
 
   const isActionPending = workflowAction.isPending || startValidation.isPending || updateStatus.isPending;
+
+  // Tab counts from dashboard
+  const tabCounts: Record<TabKey, number> = {
+    toValidate: (dashboard?.totalPending ?? 0) + (dashboard?.totalInReview ?? 0) + (dashboard?.totalEscalated ?? 0),
+    rejected: dashboard?.totalRejected ?? 0,
+    returned: 0, // Not tracked separately in dashboard — will show from data
+    validated: dashboard?.totalApproved ?? 0,
+  };
+
+  // If we don't have workflow data, use submission counts
+  if (!hasWorkflowData) {
+    tabCounts.toValidate = subTotal; // The default query returns SUBMITTED items
+  }
 
   function handleValidate(id: string) {
     updateStatus.mutate({ id, status: 'VALIDATED' }, { onSuccess: () => setViewingSub(null) });
@@ -543,13 +686,38 @@ export default function WorkflowPage() {
     updateStatus.mutate({ id, status: 'REJECTED', reason }, { onSuccess: () => setViewingSub(null) });
   }
   function handleReturn(id: string, reason: string) {
-    // Return = reject with reason (can be resubmitted)
-    updateStatus.mutate({ id, status: 'REJECTED', reason: `[RETURN] ${reason}` }, { onSuccess: () => setViewingSub(null) });
+    updateStatus.mutate({ id, status: 'RETURNED', reason }, { onSuccess: () => setViewingSub(null) });
   }
   function handleStartWorkflow(entityId: string, domain: string) {
+    // If user has no validation chain, show validator chooser dialog
+    if (!hasValidationChain) {
+      setShowValidatorChooser({ submissionId: entityId, domain });
+      return;
+    }
     startValidation.mutate(
       { entityType: 'Submission', entityId, domain },
       { onSuccess: () => setViewingSub(null) },
+    );
+  }
+  function handleSelectValidator(validatorId: string) {
+    if (!showValidatorChooser || !user) return;
+    // Create the validation chain on-the-fly, then start the workflow
+    createChain.mutate(
+      {
+        userId: user.id,
+        validatorId,
+        levelType: 'national',
+        priority: 1,
+      },
+      {
+        onSuccess: () => {
+          // Now start the workflow
+          startValidation.mutate(
+            { entityType: 'Submission', entityId: showValidatorChooser.submissionId, domain: showValidatorChooser.domain },
+            { onSuccess: () => { setShowValidatorChooser(null); setViewingSub(null); } },
+          );
+        },
+      },
     );
   }
   function handleWfAction(id: string, action: 'approve' | 'reject' | 'return', text: string) {
@@ -583,6 +751,19 @@ export default function WorkflowPage() {
     );
   }
 
+  function switchTab(tab: TabKey) {
+    setActiveTab(tab);
+    setPage(1);
+    setSelectedIds(new Set());
+  }
+
+  const TAB_CONFIG: { key: TabKey; label: string; icon: React.ReactNode; color: string; activeColor: string }[] = [
+    { key: 'toValidate', label: t('tabToValidate'), icon: <Clock className="h-4 w-4" />, color: 'text-amber-600', activeColor: 'border-amber-500 bg-amber-50 dark:bg-amber-900/20' },
+    { key: 'rejected', label: t('tabRejected'), icon: <XCircle className="h-4 w-4" />, color: 'text-red-600', activeColor: 'border-red-500 bg-red-50 dark:bg-red-900/20' },
+    { key: 'returned', label: t('tabReturned'), icon: <RotateCcw className="h-4 w-4" />, color: 'text-orange-600', activeColor: 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' },
+    { key: 'validated', label: t('tabValidated'), icon: <CheckCircle className="h-4 w-4" />, color: 'text-green-600', activeColor: 'border-green-500 bg-green-50 dark:bg-green-900/20' },
+  ];
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-6">
       <div>
@@ -590,28 +771,46 @@ export default function WorkflowPage() {
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('pageSubtitle')}</p>
       </div>
 
-      {/* KPI Cards */}
+      {/* ── KPI Cards ── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {hasWorkflowData ? (
-          <>
-            <KpiCard icon={<Clock className="h-5 w-5 text-amber-600" />} bg="bg-amber-50 dark:bg-amber-900/20" label={t('pendingValidation')} value={dashboard?.totalPending ?? 0} />
-            <KpiCard icon={<CheckCircle className="h-5 w-5 text-green-600" />} bg="bg-green-50 dark:bg-green-900/20" label="Approved" value={dashboard?.totalApproved ?? 0} />
-            <KpiCard icon={<AlertTriangle className="h-5 w-5 text-red-600" />} bg="bg-red-50 dark:bg-red-900/20" label={'SLA ' + t('overdue')} value={dashboard?.slaBreaches ?? 0} />
-            <KpiCard icon={<Shield className="h-5 w-5 text-blue-600" />} bg="bg-blue-50 dark:bg-blue-900/20" label="WAHIS Ready" value={dashboard?.wahisReadyCount ?? 0} />
-          </>
-        ) : (
-          <>
-            <KpiCard icon={<FileText className="h-5 w-5 text-blue-600" />} bg="bg-blue-50 dark:bg-blue-900/20" label="Total Submissions" value={subTotal.toLocaleString()} />
-            <KpiCard icon={<Clock className="h-5 w-5 text-amber-600" />} bg="bg-amber-50 dark:bg-amber-900/20" label="Awaiting Review" value={submissions.filter((s) => s.status === 'SUBMITTED').length} />
-            <KpiCard icon={<CheckCircle className="h-5 w-5 text-green-600" />} bg="bg-green-50 dark:bg-green-900/20" label="Validated" value={submissions.filter((s) => s.status === 'VALIDATED').length} />
-            <KpiCard icon={<Shield className="h-5 w-5 text-purple-600" />} bg="bg-purple-50 dark:bg-purple-900/20" label="Pipeline Ready" value={dashboard?.totalPending ?? 0} />
-          </>
-        )}
+        <KpiCard icon={<Clock className="h-5 w-5 text-amber-600" />} bg="bg-amber-50 dark:bg-amber-900/20" label={t('pendingValidation')} value={dashboard?.totalPending ?? 0} />
+        <KpiCard icon={<CheckCircle className="h-5 w-5 text-green-600" />} bg="bg-green-50 dark:bg-green-900/20" label={t('approved')} value={dashboard?.totalApproved ?? 0} />
+        <KpiCard icon={<XCircle className="h-5 w-5 text-red-600" />} bg="bg-red-50 dark:bg-red-900/20" label={t('rejected')} value={dashboard?.totalRejected ?? 0} />
+        <KpiCard icon={<AlertTriangle className="h-5 w-5 text-purple-600" />} bg="bg-purple-50 dark:bg-purple-900/20" label={t('overdue') + ' SLA'} value={dashboard?.slaBreaches ?? 0} />
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        {hasWorkflowData && (
+      {/* ── Tabs ── */}
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+        {TAB_CONFIG.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => switchTab(tab.key)}
+            className={cn(
+              'relative flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-all',
+              activeTab === tab.key
+                ? `${tab.activeColor} border-current`
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300',
+            )}
+          >
+            <span className={activeTab === tab.key ? tab.color : ''}>{tab.icon}</span>
+            {tab.label}
+            {tabCounts[tab.key] > 0 && (
+              <span className={cn(
+                'ml-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                activeTab === tab.key
+                  ? 'bg-white text-gray-700 dark:bg-gray-700 dark:text-gray-200'
+                  : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400',
+              )}>
+                {tabCounts[tab.key]}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Filters ── */}
+      {hasWorkflowData && (
+        <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
             <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <select value={levelFilter ?? ''} onChange={(e) => { setLevelFilter(e.target.value || undefined); setPage(1); setSelectedIds(new Set()); }}
@@ -620,29 +819,24 @@ export default function WorkflowPage() {
               {ALL_LEVELS.map((lvl) => <option key={lvl} value={lvl}>{t(LEVEL_CONFIG[lvl].label)}</option>)}
             </select>
           </div>
-        )}
-        <select value={statusFilter ?? ''} onChange={(e) => { setStatusFilter(e.target.value || undefined); setPage(1); setSelectedIds(new Set()); }}
-          className="appearance-none rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
-          <option value="">{t('allStatuses')}</option>
-          {(hasWorkflowData ? ALL_WF_STATUSES : ALL_SUB_STATUSES).map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
-        </select>
-      </div>
+        </div>
+      )}
 
-      {/* Table */}
+      {/* ── Table ── */}
       {isLoading ? <TableSkeleton rows={5} cols={6} />
         : isError ? <QueryError message="Failed to load data" onRetry={() => refetch()} />
-        : (hasWorkflowData ? wfItems : submissions).length === 0 ? (
+        : (hasWorkflowData ? filteredWfItems : filteredSubmissions).length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white py-16 dark:border-gray-700 dark:bg-gray-900">
             <Inbox className="h-12 w-12 text-gray-300 dark:text-gray-600" />
             <h3 className="mt-4 text-sm font-semibold text-gray-900 dark:text-white">{t('noItems')}</h3>
-            <p className="mt-1 text-sm text-gray-500">{statusFilter || levelFilter ? t('adjustFilters') : t('noItemsHint')}</p>
+            <p className="mt-1 text-sm text-gray-500">{levelFilter ? t('adjustFilters') : t('noItemsHint')}</p>
           </div>
         ) : hasWorkflowData ? (
-          <WorkflowTable items={wfItems} total={displayTotal} page={page} totalPages={totalPages} setPage={setPage}
+          <WorkflowTable items={filteredWfItems} total={displayTotal} page={page} totalPages={totalPages} setPage={setPage}
             onView={setViewingWf} onAction={(id, action) => setActionDialog({ id, action })} t={t}
-            selectedIds={selectedIds} setSelectedIds={setSelectedIds} />
+            selectedIds={selectedIds} setSelectedIds={setSelectedIds} activeTab={activeTab} />
         ) : (
-          <SubmissionsTable items={submissions} total={displayTotal} page={page} totalPages={totalPages} setPage={setPage}
+          <SubmissionsTable items={filteredSubmissions} total={displayTotal} page={page} totalPages={totalPages} setPage={setPage}
             onView={setViewingSub} t={t}
             selectedIds={selectedIds} setSelectedIds={setSelectedIds} />
         )}
@@ -653,6 +847,7 @@ export default function WorkflowPage() {
       {viewingWf && <WfDetailModal item={viewingWf} onClose={() => setViewingWf(null)} t={t} />}
       {actionDialog && <ActionDialog itemId={actionDialog.id} action={actionDialog.action} onClose={() => setActionDialog(null)}
         onConfirm={(text) => handleWfAction(actionDialog.id, actionDialog.action, text)} isPending={workflowAction.isPending} t={t} />}
+      {showValidatorChooser && <ChooseValidatorDialog onClose={() => setShowValidatorChooser(null)} onSelect={handleSelectValidator} t={t} />}
 
       {/* Bulk action floating bar */}
       {selectedIds.size > 0 && (
@@ -770,11 +965,12 @@ function SubmissionsTable({ items, total, page, totalPages, setPage, onView, t, 
   );
 }
 
-function WorkflowTable({ items, total, page, totalPages, setPage, onView, onAction, t, selectedIds, setSelectedIds }: {
+function WorkflowTable({ items, total, page, totalPages, setPage, onView, onAction, t, selectedIds, setSelectedIds, activeTab }: {
   items: WorkflowItem[]; total: number; page: number; totalPages: number;
   setPage: (p: number | ((prev: number) => number)) => void; onView: (item: WorkflowItem) => void;
   onAction: (id: string, action: 'approve' | 'reject' | 'return') => void; t: (key: string) => string;
   selectedIds: Set<string>; setSelectedIds: (ids: Set<string>) => void;
+  activeTab: TabKey;
 }) {
   const allOnPage = items.map((i) => i.id);
   const allSelected = allOnPage.length > 0 && allOnPage.every((id) => selectedIds.has(id));
@@ -794,6 +990,7 @@ function WorkflowTable({ items, total, page, totalPages, setPage, onView, onActi
     if (next.has(id)) next.delete(id); else next.add(id);
     setSelectedIds(next);
   };
+  const showActions = activeTab === 'toValidate';
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
       <div className="overflow-x-auto">
@@ -806,7 +1003,7 @@ function WorkflowTable({ items, total, page, totalPages, setPage, onView, onActi
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
             {items.map((item) => {
               const level = LEVEL_CONFIG[item.currentLevel] ?? LEVEL_CONFIG.NATIONAL_TECHNICAL;
-              const isActionable = ['PENDING', 'IN_REVIEW', 'RETURNED'].includes(item.status);
+              const isActionable = showActions && ['PENDING', 'IN_REVIEW', 'RETURNED'].includes(item.status);
               const isOverdue = item.slaDeadline && new Date(item.slaDeadline) < new Date() && isActionable;
               return (
                 <tr key={item.id} className={cn('hover:bg-gray-50 dark:hover:bg-gray-800/50', isOverdue && 'bg-red-50/30 dark:bg-red-900/5', selectedIds.has(item.id) && 'bg-blue-50/50 dark:bg-blue-900/10')}>
@@ -922,6 +1119,7 @@ function Pagination({ total, page, totalPages, setPage, t }: {
       <p className="text-sm text-gray-500">{t('showing')} <span className="font-medium text-gray-700 dark:text-gray-300">{(page - 1) * PAGE_SIZE + 1} - {Math.min(page * PAGE_SIZE, total)}</span> {t('of')} <span className="font-medium">{total.toLocaleString()}</span></p>
       <div className="flex items-center gap-2">
         <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"><ChevronLeft className="h-4 w-4" /> {t('previous')}</button>
+        <span className="text-sm font-medium text-gray-500">{page} / {totalPages}</span>
         <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">{t('next')} <ChevronRight className="h-4 w-4" /></button>
       </div>
     </div>

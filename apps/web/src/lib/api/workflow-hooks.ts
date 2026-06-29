@@ -215,6 +215,26 @@ export function useDeleteValidationChain() {
 }
 
 // ═══════════════════════════════════════════════════════
+// POTENTIAL VALIDATORS (fallback when no chain configured)
+// ═══════════════════════════════════════════════════════
+
+export interface PotentialValidator {
+  id: string;
+  displayName: string;
+  email: string;
+  role: string;
+}
+
+export function usePotentialValidators(enabled = true) {
+  return useQuery({
+    queryKey: ['potential-validators'],
+    queryFn: () => wfFetch<{ data: PotentialValidator[] }>('/api/v1/workflow/potential-validators'),
+    enabled,
+    staleTime: 300_000, // 5 min
+  });
+}
+
+// ═══════════════════════════════════════════════════════
 // WORKFLOW INSTANCES
 // ═══════════════════════════════════════════════════════
 
