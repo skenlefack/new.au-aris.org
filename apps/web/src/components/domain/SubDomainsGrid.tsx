@@ -13,11 +13,8 @@ interface SubDomainsGridProps {
   domainCode: string;
 }
 
-// Map page route codes to DB domain values (e.g. 'livestock-prod' → 'livestock')
-const DOMAIN_MAP: Record<string, string> = { 'livestock-prod': 'livestock' };
-function normalizeDomain(code: string): string {
-  return DOMAIN_MAP[code] ?? code.replace(/-/g, '_');
-}
+// Domain codes are stored in kebab-case in DB (e.g. 'animal-health', 'trade-sps')
+// No normalization needed — pass through as-is
 
 /** Fetch lightweight stats for all sub-domains of a domain in one call */
 function useSubDomainStats(domainCode: string) {
@@ -25,7 +22,6 @@ function useSubDomainStats(domainCode: string) {
     queryKey: ['sub-domain-stats', domainCode],
     queryFn: async () => {
       // Fetch campaigns and forms for this domain — direct fetch to avoid double /api/v1 prefix
-      const dbDomain = normalizeDomain(domainCode);
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       try {
         const raw = localStorage.getItem('aris-auth');
@@ -45,8 +41,8 @@ function useSubDomainStats(domainCode: string) {
         return res.json();
       };
       const [campaignsRes, formsRes] = await Promise.allSettled([
-        fetchJson(`/api/v1/collecte/campaigns?domain=${dbDomain}&limit=100`),
-        fetchJson(`/api/v1/form-builder/templates?domain=${dbDomain}&limit=100&status=PUBLISHED`),
+        fetchJson(`/api/v1/collecte/campaigns?domain=${domainCode}&limit=100`),
+        fetchJson(`/api/v1/form-builder/templates?domain=${domainCode}&limit=100&status=PUBLISHED`),
       ]);
 
       const campaigns = campaignsRes.status === 'fulfilled' ? (campaignsRes.value?.data ?? []) : [];

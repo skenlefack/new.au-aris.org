@@ -51,9 +51,9 @@ export function PlanningsSection({ target }: PlanningsSectionProps) {
   const t = useTranslations('collecte');
   const [filter, setFilter] = useState<StatusFilter>('ALL');
 
-  // Map page route codes to DB domain values (e.g. 'livestock-prod' → 'livestock')
-  const DOMAIN_MAP: Record<string, string> = { 'livestock-prod': 'livestock' };
-  const domainParam = DOMAIN_MAP[target.domainCode ?? ''] ?? target.domainCode?.replace(/-/g, '_') ?? undefined;
+  // Domain codes are stored in kebab-case in DB (e.g. 'animal-health', 'trade-sps')
+  // Pass through as-is — no normalization needed
+  const domainParam = target.domainCode ?? undefined;
 
   const { data, isLoading } = useCollectionCampaigns({
     domain: domainParam,
