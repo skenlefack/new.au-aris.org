@@ -754,7 +754,18 @@
     "bulkSuccess": "تمت معالجة {count} عناصر بنجاح",
     "bulkPartial": "نجح {succeeded}، فشل {failed}",
     "bulkFailed": "فشل الإجراء الجماعي",
-    "selected": "محدد"
+    "selected": "محدد",
+    "tabToValidate": "للتحقق",
+    "tabRejected": "مرفوضة",
+    "tabReturned": "مُعادة",
+    "tabValidated": "مُصادق عليها",
+    "approved": "موافق عليه",
+    "chooseValidator": "اختيار مُدقق",
+    "chooseValidatorDesc": "لم يتم تكوين سلسلة تحقق لحسابك. يرجى اختيار مُدقق لإرسال بياناتك إليه.",
+    "selectValidator": "اختيار مُدقق",
+    "sendForValidation": "إرسال للتحقق",
+    "noValidatorsFound": "لا يوجد مُدققون متاحون لمنظمتك",
+    "submitter": "مُقدم"
   },
   "quality": {
     "title": "جودة البيانات",

@@ -754,7 +754,18 @@
     "bulkSuccess": "{count} elementos procesados con exito",
     "bulkPartial": "{succeeded} exitosos, {failed} fallidos",
     "bulkFailed": "La accion masiva fallo",
-    "selected": "seleccionados"
+    "selected": "seleccionados",
+    "tabToValidate": "Por validar",
+    "tabRejected": "Rechazados",
+    "tabReturned": "Devueltos",
+    "tabValidated": "Validados",
+    "approved": "Aprobado",
+    "chooseValidator": "Elegir un validador",
+    "chooseValidatorDesc": "No hay cadena de validacion configurada para su cuenta. Seleccione un validador para enviar sus datos.",
+    "selectValidator": "Seleccionar un validador",
+    "sendForValidation": "Enviar para validacion",
+    "noValidatorsFound": "No hay validadores disponibles para su organizacion",
+    "submitter": "Remitente"
   },
   "quality": {
     "title": "Calidad de Datos",

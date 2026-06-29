@@ -754,7 +754,18 @@
     "bulkSuccess": "{count} items processed successfully",
     "bulkPartial": "{succeeded} succeeded, {failed} failed",
     "bulkFailed": "Bulk action failed",
-    "selected": "selected"
+    "selected": "selected",
+    "tabToValidate": "To Validate",
+    "tabRejected": "Rejected",
+    "tabReturned": "Returned",
+    "tabValidated": "Validated",
+    "approved": "Approved",
+    "chooseValidator": "Choose a Validator",
+    "chooseValidatorDesc": "No validation chain is configured for your account. Please select a validator to send your data to.",
+    "selectValidator": "Select a validator",
+    "sendForValidation": "Send for Validation",
+    "noValidatorsFound": "No validators available for your organisation",
+    "submitter": "Submitter"
   },
   "quality": {
     "title": "Data Quality",

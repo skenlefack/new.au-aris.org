@@ -754,7 +754,18 @@
     "bulkSuccess": "{count} elements traites avec succes",
     "bulkPartial": "{succeeded} reussis, {failed} echoues",
     "bulkFailed": "Action groupee echouee",
-    "selected": "selectionnes"
+    "selected": "selectionnes",
+    "tabToValidate": "A valider",
+    "tabRejected": "Rejetees",
+    "tabReturned": "Renvoyees",
+    "tabValidated": "Validees",
+    "approved": "Approuve",
+    "chooseValidator": "Choisir un validateur",
+    "chooseValidatorDesc": "Aucune chaine de validation n'est configuree pour votre compte. Veuillez selectionner un validateur pour envoyer vos donnees.",
+    "selectValidator": "Selectionner un validateur",
+    "sendForValidation": "Envoyer pour validation",
+    "noValidatorsFound": "Aucun validateur disponible pour votre organisation",
+    "submitter": "Soumetteur"
   },
   "quality": {
     "title": "Qualité des données",
