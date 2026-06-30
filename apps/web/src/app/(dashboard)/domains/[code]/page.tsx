@@ -11,6 +11,7 @@ import { DomainSynthesis } from '@/components/domain/DomainSynthesis';
 import { DomainActivityFeed } from '@/components/domain/DomainActivityFeed';
 import { PlanningsSection } from '@/components/domain/PlanningsSection';
 import { SubDomainsGrid } from '@/components/domain/SubDomainsGrid';
+import { usePageReady } from '@/components/ui/PageLoader';
 
 /* -- Domain metadata for colors / descriptions -- */
 
@@ -70,6 +71,9 @@ export default function DomainPage() {
 
   const { data: summaryRes, isLoading } = useDomainSummary(code);
   const summary = summaryRes?.data ?? null;
+
+  // Signal to the route-change loader that the page is ready
+  usePageReady(!isLoading);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">

@@ -1,7 +1,27 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+
+/* ── Page-ready signaling ─────────────────────────────────────────────── */
+
+const PageReadyContext = createContext<{
+  signalReady: () => void;
+  /** True once the current page called signalReady() */
+  isReady: boolean;
+}>({ signalReady: () => {}, isReady: false });
+
+/**
+ * Hook for pages to signal that their critical data is loaded.
+ * Call `usePageReady(isLoaded)` — the route-change loader stays visible
+ * until isLoaded becomes true.
+ */
+export function usePageReady(isLoaded: boolean) {
+  const { signalReady } = useContext(PageReadyContext);
+  useEffect(() => {
+    if (isLoaded) signalReady();
+  }, [isLoaded, signalReady]);
+}
 
 /**
  * Full-screen branded loading overlay (for initial app load / auth pages).
@@ -103,44 +123,58 @@ export function TopProgressBar() {
  * How it works:
  * 1. Intercepts clicks on <a> links that trigger client-side navigation
  * 2. Shows the ContentLoader overlay immediately on click
- * 3. When usePathname() changes (route arrived), fades out and hides
+ * 3. Waits for the page to signal "ready" via usePageReady() before fading out
+ * 4. Falls back to hiding after pathname change + 300ms if no signal is received
+ * 5. Safety timeout at 8s max
  */
 export function RouteChangeLoader() {
   const pathname = usePathname();
+  const { isReady: pageReady } = useContext(PageReadyContext);
   const [loading, setLoading] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
   const prevPathRef = useRef(pathname);
+  const routeArrivedRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
-  // When the pathname actually changes → fade out the loader
+  const dismiss = useCallback(() => {
+    setFadeOut(true);
+    timeoutRef.current = setTimeout(() => {
+      setLoading(false);
+      setFadeOut(false);
+      routeArrivedRef.current = false;
+    }, 300);
+  }, []);
+
+  // Track when pathname changes (route component mounted)
   useEffect(() => {
     if (prevPathRef.current !== pathname) {
       prevPathRef.current = pathname;
-      if (loading) {
-        setFadeOut(true);
-        timeoutRef.current = setTimeout(() => {
-          setLoading(false);
-          setFadeOut(false);
-        }, 300);
-      }
+      routeArrivedRef.current = true;
+      // If no usePageReady signal after 400ms, dismiss (pages without signal)
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        if (!pageReady) dismiss();
+      }, 400);
     }
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [pathname, loading]);
+  }, [pathname, pageReady, dismiss]);
 
-  // Safety: hide loader after 5s max (in case route never changes)
+  // When page signals ready → dismiss loader
+  useEffect(() => {
+    if (pageReady && loading && routeArrivedRef.current) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      dismiss();
+    }
+  }, [pageReady, loading, dismiss]);
+
+  // Safety: hide loader after 8s max
   useEffect(() => {
     if (!loading) return;
-    const safety = setTimeout(() => {
-      setFadeOut(true);
-      setTimeout(() => {
-        setLoading(false);
-        setFadeOut(false);
-      }, 300);
-    }, 5000);
+    const safety = setTimeout(() => dismiss(), 8000);
     return () => clearTimeout(safety);
-  }, [loading]);
+  }, [loading, dismiss]);
 
   // Intercept link clicks to show loader
   const handleClick = useCallback(
@@ -171,6 +205,7 @@ export function RouteChangeLoader() {
 
       setLoading(true);
       setFadeOut(false);
+      routeArrivedRef.current = false;
     },
     [pathname],
   );
@@ -183,4 +218,39 @@ export function RouteChangeLoader() {
   if (!loading) return null;
 
   return <ContentLoader fadeOut={fadeOut} />;
+}
+
+/**
+ * Wraps children and provides the page-ready signaling context.
+ * Place this in the dashboard layout around {children}.
+ */
+export function PageReadyProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <PageReadySignalProvider>
+      {children}
+    </PageReadySignalProvider>
+  );
+}
+
+function PageReadySignalProvider({ children }: { children: React.ReactNode }) {
+  const [ready, setReady] = useState(false);
+  const pathname = usePathname();
+  const prevRef = useRef(pathname);
+
+  // Reset ready state on route change
+  useEffect(() => {
+    if (prevRef.current !== pathname) {
+      prevRef.current = pathname;
+      setReady(false);
+    }
+  }, [pathname]);
+
+  const signalReady = useCallback(() => setReady(true), []);
+  const value = React.useMemo(() => ({ signalReady, isReady: ready }), [signalReady, ready]);
+
+  return (
+    <PageReadyContext.Provider value={value}>
+      {children}
+    </PageReadyContext.Provider>
+  );
 }

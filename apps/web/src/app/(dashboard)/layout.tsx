@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { ToastContainer } from '@/components/realtime/ToastContainer';
-import { RouteChangeLoader } from '@/components/ui/PageLoader';
+import { RouteChangeLoader, PageReadyProvider } from '@/components/ui/PageLoader';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { ForcePasswordChangeModal } from '@/components/auth/ForcePasswordChangeModal';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -158,16 +158,18 @@ export default function DashboardLayout({
           />
 
           <main className="relative flex-1 overflow-y-auto bg-slate-50 dark:bg-gray-950">
-            <RouteChangeLoader />
-            {isFullBleed ? (
-              <div className="h-full animate-fade-in">
-                {children}
-              </div>
-            ) : (
-              <div className="px-4 py-5 sm:px-6 pb-8 animate-fade-in">
-                {children}
-              </div>
-            )}
+            <PageReadyProvider>
+              <RouteChangeLoader />
+              {isFullBleed ? (
+                <div className="h-full animate-fade-in">
+                  {children}
+                </div>
+              ) : (
+                <div className="px-4 py-5 sm:px-6 pb-8 animate-fade-in">
+                  {children}
+                </div>
+              )}
+            </PageReadyProvider>
           </main>
         </div>
         <ToastContainer />
