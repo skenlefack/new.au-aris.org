@@ -345,14 +345,9 @@ export function Sidebar({
   const { data: ticketCountData } = useOpenTicketCount();
   const openTicketCount = isAdminUser ? (ticketCountData?.data?.count ?? 0) : 0;
 
-  // Workflow pending count badge for validators
-  const VALIDATOR_ROLES_SET = new Set([
-    'SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'REC_ADMIN', 'NATIONAL_ADMIN',
-    'DATA_STEWARD', 'WAHIS_FOCAL_POINT',
-  ]);
-  const isValidator = user?.role && VALIDATOR_ROLES_SET.has(user.role);
-  const { data: wfDashData } = useWorkflowPendingCount();
-  const workflowPendingCount = isValidator ? ((wfDashData as any)?.data?.totalPending ?? 0) : 0;
+  // Workflow badge: to-validate + returned + rejected count
+  const { badgeTotal: wfBadgeTotal } = useWorkflowPendingCount();
+  const workflowPendingCount = wfBadgeTotal ?? 0;
 
   // Inject dynamic badges into nav items (support + workflow)
   const visibleGroups = useMemo(() => {

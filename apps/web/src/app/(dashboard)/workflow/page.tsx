@@ -29,6 +29,7 @@ import {
   BarChart3,
   Search,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import {
   useWorkflowItems,
@@ -41,6 +42,7 @@ import {
   type WorkflowLevel,
   type SubmissionRecord,
 } from '@/lib/api/hooks';
+import { collecteClient } from '@/lib/api/client';
 import {
   useBulkWorkflowAction,
   useValidationChainsByUser,
@@ -661,23 +663,44 @@ export default function WorkflowPage() {
     ? wfItems
     : wfItems.filter((w) => tabStatuses.includes(w.status));
 
+  // Enrich submissions with "isMine" flag for "À valider" tab
+  const enrichedSubmissions = useMemo(() => {
+    if (!user) return filteredSubmissions;
+    return filteredSubmissions.map((s) => ({
+      ...s,
+      _isMine: s.submittedBy === user.id,
+    }));
+  }, [filteredSubmissions, user]);
+
   const displayTotal = hasWorkflowData ? wfTotal : subTotal;
   const totalPages = Math.ceil(displayTotal / PAGE_SIZE);
 
   const isActionPending = workflowAction.isPending || startValidation.isPending || updateStatus.isPending;
 
-  // Tab counts from dashboard
-  const tabCounts: Record<TabKey, number> = {
-    toValidate: (dashboard?.totalPending ?? 0) + (dashboard?.totalInReview ?? 0) + (dashboard?.totalEscalated ?? 0),
-    rejected: dashboard?.totalRejected ?? 0,
-    returned: 0, // Not tracked separately in dashboard — will show from data
-    validated: dashboard?.totalApproved ?? 0,
-  };
+  // Tab counts from separate lightweight queries (limit=1, just need meta.total)
+  type CountResponse = { data: unknown[]; meta: { total: number; page: number; limit: number } };
+  const countFallback: CountResponse = { data: [], meta: { total: 0, page: 1, limit: 1 } };
+  const countOpts = (status: string) => ({
+    queryKey: ['workflow', 'count', status],
+    queryFn: async () => {
+      try {
+        return await collecteClient.get<CountResponse>('/collecte/submissions', { status, limit: '1' });
+      } catch { return countFallback; }
+    },
+    placeholderData: countFallback,
+    staleTime: 60_000,
+  });
+  const { data: countSubmitted } = useQuery(countOpts('SUBMITTED'));
+  const { data: countRejected } = useQuery(countOpts('REJECTED'));
+  const { data: countReturned } = useQuery(countOpts('RETURNED'));
+  const { data: countValidated } = useQuery(countOpts('VALIDATED'));
 
-  // If we don't have workflow data, use submission counts
-  if (!hasWorkflowData) {
-    tabCounts.toValidate = subTotal; // The default query returns SUBMITTED items
-  }
+  const tabCounts: Record<TabKey, number> = {
+    toValidate: countSubmitted?.meta?.total ?? 0,
+    rejected: countRejected?.meta?.total ?? 0,
+    returned: countReturned?.meta?.total ?? 0,
+    validated: countValidated?.meta?.total ?? 0,
+  };
 
   function handleValidate(id: string) {
     updateStatus.mutate({ id, status: 'VALIDATED' }, { onSuccess: () => setViewingSub(null) });
@@ -825,7 +848,7 @@ export default function WorkflowPage() {
       {/* ── Table ── */}
       {isLoading ? <TableSkeleton rows={5} cols={6} />
         : isError ? <QueryError message="Failed to load data" onRetry={() => refetch()} />
-        : (hasWorkflowData ? filteredWfItems : filteredSubmissions).length === 0 ? (
+        : (hasWorkflowData ? filteredWfItems : enrichedSubmissions).length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white py-16 dark:border-gray-700 dark:bg-gray-900">
             <Inbox className="h-12 w-12 text-gray-300 dark:text-gray-600" />
             <h3 className="mt-4 text-sm font-semibold text-gray-900 dark:text-white">{t('noItems')}</h3>
@@ -836,7 +859,7 @@ export default function WorkflowPage() {
             onView={setViewingWf} onAction={(id, action) => setActionDialog({ id, action })} t={t}
             selectedIds={selectedIds} setSelectedIds={setSelectedIds} activeTab={activeTab} />
         ) : (
-          <SubmissionsTable items={filteredSubmissions} total={displayTotal} page={page} totalPages={totalPages} setPage={setPage}
+          <SubmissionsTable items={enrichedSubmissions} total={displayTotal} page={page} totalPages={totalPages} setPage={setPage}
             onView={setViewingSub} t={t}
             selectedIds={selectedIds} setSelectedIds={setSelectedIds} />
         )}
@@ -907,7 +930,7 @@ function KpiCard({ icon, bg, label, value }: { icon: React.ReactNode; bg: string
 }
 
 function SubmissionsTable({ items, total, page, totalPages, setPage, onView, t, selectedIds, setSelectedIds }: {
-  items: SubmissionRecord[]; total: number; page: number; totalPages: number;
+  items: (SubmissionRecord & { _isMine?: boolean })[]; total: number; page: number; totalPages: number;
   setPage: (p: number | ((prev: number) => number)) => void; onView: (item: SubmissionRecord) => void; t: (key: string) => string;
   selectedIds: Set<string>; setSelectedIds: (ids: Set<string>) => void;
 }) {
@@ -935,17 +958,29 @@ function SubmissionsTable({ items, total, page, totalPages, setPage, onView, t, 
         <table className="w-full text-sm">
           <thead><tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400">
             <th className="w-10 px-4 py-3"><input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></th>
-            <th className="px-4 py-3">Campaign</th><th className="px-4 py-3">Domain</th><th className="px-4 py-3">{t('status')}</th>
+            <th className="px-4 py-3">Campaign</th><th className="px-4 py-3">Source</th><th className="px-4 py-3">Domain</th><th className="px-4 py-3">{t('status')}</th>
             <th className="px-4 py-3">{t('date')}</th><th className="px-4 py-3 text-right">{t('actions')}</th>
           </tr></thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
             {items.map((item) => {
               const cn2 = localizeName((item as any).campaignName);
               const domain = (item as any).domain as string | undefined;
+              const isMine = (item as any)._isMine;
               return (
                 <tr key={item.id} className={cn('hover:bg-gray-50 dark:hover:bg-gray-800/50', selectedIds.has(item.id) && 'bg-blue-50/50 dark:bg-blue-900/10')}>
                   <td className="px-4 py-3"><input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => toggleOne(item.id)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></td>
                   <td className="px-4 py-3"><div><p className="font-medium text-gray-900 dark:text-white truncate max-w-[280px]">{cn2 !== '--' ? cn2 : <span className="font-mono text-xs text-gray-400">{item.campaignId.slice(0, 8)}</span>}</p><p className="text-[11px] font-mono text-gray-400 mt-0.5">{item.id.slice(0, 12)}</p></div></td>
+                  <td className="px-4 py-3">
+                    {isMine ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                        <FileText className="h-3 w-3" />{t('myData')}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-[11px] font-semibold text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                        <Users className="h-3 w-3" />{t('toReview')}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">{domain ? <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', DOMAIN_COLORS[domain] ?? 'bg-gray-100 text-gray-600')}>{DOMAIN_LABELS[domain] ?? domain}</span> : <span className="text-gray-400 text-xs">--</span>}</td>
                   <td className="px-4 py-3"><StatusBadge status={item.status} /></td>
                   <td className="px-4 py-3 text-xs text-gray-500">{formatDate(item.submittedAt)}</td>

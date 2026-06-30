@@ -765,7 +765,9 @@
     "selectValidator": "اختيار مُدقق",
     "sendForValidation": "إرسال للتحقق",
     "noValidatorsFound": "لا يوجد مُدققون متاحون لمنظمتك",
-    "submitter": "مُقدم"
+    "submitter": "مُقدم",
+    "myData": "بياناتي",
+    "toReview": "للمراجعة"
   },
   "quality": {
     "title": "جودة البيانات",

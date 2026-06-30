@@ -765,7 +765,9 @@
     "selectValidator": "Selectionner un validateur",
     "sendForValidation": "Envoyer pour validation",
     "noValidatorsFound": "Aucun validateur disponible pour votre organisation",
-    "submitter": "Soumetteur"
+    "submitter": "Soumetteur",
+    "myData": "Mes donnees",
+    "toReview": "A examiner"
   },
   "quality": {
     "title": "Qualité des données",

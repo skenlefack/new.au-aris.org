@@ -765,7 +765,9 @@
     "selectValidator": "Select a validator",
     "sendForValidation": "Send for Validation",
     "noValidatorsFound": "No validators available for your organisation",
-    "submitter": "Submitter"
+    "submitter": "Submitter",
+    "myData": "My Data",
+    "toReview": "To Review"
   },
   "quality": {
     "title": "Data Quality",

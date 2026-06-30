@@ -638,6 +638,7 @@ export function useWorkflowItems(params?: {
   level?: string;
   status?: string;
   domain?: string;
+  agent?: string;
 }) {
   const searchParams: Record<string, string> = {};
   if (params?.page) searchParams.page = String(params.page);
@@ -656,11 +657,12 @@ export function useWorkflowItems(params?: {
     placeholderData: workflowFallback,
   });
 
-  // Also fetch submissions (the 758K+ records that always exist)
+  // Also fetch submissions
   const subParams: Record<string, string> = {};
   if (params?.page) subParams.page = String(params.page);
   if (params?.limit) subParams.limit = String(params.limit);
   if (params?.status) subParams.status = params.status;
+  if (params?.agent) subParams.agent = params.agent;
   const subFallback: PaginatedResponse<SubmissionRecord> = { data: [], meta: { total: 0, page: 1, limit: 10 } };
   const submissionQuery = useQuery({
     queryKey: ['workflow', 'submissions', params],
@@ -713,7 +715,8 @@ export function useWorkflowDashboard() {
 }
 
 /**
- * Lightweight hook for sidebar badge — returns totalPending count from workflow dashboard.
+ * Lightweight hook for sidebar badge — returns composite count
+ * (pending + returned + rejected) from workflow dashboard.
  * Re-fetches every 2 minutes so validators see updated counts without page reload.
  */
 export function useWorkflowPendingCount() {
@@ -723,7 +726,7 @@ export function useWorkflowPendingCount() {
       totalRejected: 0, totalEscalated: 0, slaBreaches: 0, wahisReadyCount: 0, analyticsReadyCount: 0,
     },
   };
-  return useQuery({
+  const query = useQuery({
     queryKey: ['workflow', 'dashboard'],
     queryFn: withFallback(
       () => collecteClient.get<{ data: WorkflowDashboardMetrics }>('/workflow/dashboard'),
@@ -733,6 +736,46 @@ export function useWorkflowPendingCount() {
     staleTime: 120_000,
     refetchInterval: 120_000,
   });
+
+  // Also fetch submission counts for SUBMITTED + RETURNED + REJECTED
+  const subCountFallback = { data: [], meta: { total: 0, page: 1, limit: 1 } };
+  const submittedQuery = useQuery({
+    queryKey: ['workflow', 'badge', 'submitted'],
+    queryFn: withFallback(
+      () => collecteClient.get<PaginatedResponse<unknown>>('/collecte/submissions', { status: 'SUBMITTED', limit: '1' }),
+      subCountFallback,
+    ),
+    placeholderData: subCountFallback,
+    staleTime: 120_000,
+    refetchInterval: 120_000,
+  });
+  const returnedQuery = useQuery({
+    queryKey: ['workflow', 'badge', 'returned'],
+    queryFn: withFallback(
+      () => collecteClient.get<PaginatedResponse<unknown>>('/collecte/submissions', { status: 'RETURNED', limit: '1' }),
+      subCountFallback,
+    ),
+    placeholderData: subCountFallback,
+    staleTime: 120_000,
+    refetchInterval: 120_000,
+  });
+  const rejectedQuery = useQuery({
+    queryKey: ['workflow', 'badge', 'rejected'],
+    queryFn: withFallback(
+      () => collecteClient.get<PaginatedResponse<unknown>>('/collecte/submissions', { status: 'REJECTED', limit: '1' }),
+      subCountFallback,
+    ),
+    placeholderData: subCountFallback,
+    staleTime: 120_000,
+    refetchInterval: 120_000,
+  });
+
+  const submittedCount = submittedQuery.data?.meta?.total ?? 0;
+  const returnedCount = returnedQuery.data?.meta?.total ?? 0;
+  const rejectedCount = rejectedQuery.data?.meta?.total ?? 0;
+  const badgeTotal = submittedCount + returnedCount + rejectedCount;
+
+  return { ...query, badgeTotal };
 }
 
 export function useWorkflowAction() {
