@@ -767,7 +767,9 @@
     "noValidatorsFound": "Aucun validateur disponible pour votre organisation",
     "submitter": "Soumetteur",
     "myData": "Mes donnees",
-    "toReview": "A examiner"
+    "toReview": "A examiner",
+    "disabledFirstStage": "Desactive a la premiere etape",
+    "bulkReturn": "Tout renvoyer"
   },
   "quality": {
     "title": "Qualité des données",

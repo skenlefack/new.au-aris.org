@@ -767,7 +767,9 @@
     "noValidatorsFound": "Nenhum validador disponivel para a sua organizacao",
     "submitter": "Remetente",
     "myData": "Meus dados",
-    "toReview": "Para revisar"
+    "toReview": "Para revisar",
+    "disabledFirstStage": "Desativado na primeira etapa",
+    "bulkReturn": "Devolver todos"
   },
   "quality": {
     "title": "Qualidade dos dados",

@@ -767,7 +767,9 @@
     "noValidatorsFound": "لا يوجد مُدققون متاحون لمنظمتك",
     "submitter": "مُقدم",
     "myData": "بياناتي",
-    "toReview": "للمراجعة"
+    "toReview": "للمراجعة",
+    "disabledFirstStage": "معطل في المرحلة الأولى",
+    "bulkReturn": "إعادة الكل"
   },
   "quality": {
     "title": "جودة البيانات",

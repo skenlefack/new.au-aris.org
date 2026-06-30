@@ -94,7 +94,7 @@ const DOMAIN_COLORS: Record<string, string> = {
 };
 
 const ALL_LEVELS: WorkflowLevel[] = ['NATIONAL_TECHNICAL', 'NATIONAL_OFFICIAL', 'REC_HARMONIZATION', 'CONTINENTAL_PUBLICATION'];
-const PAGE_SIZE = 20;
+const PAGE_SIZES = [10, 20, 50, 100];
 
 /** Tabs mapping: each tab has a set of statuses it displays */
 type TabKey = 'toValidate' | 'rejected' | 'returned' | 'validated';
@@ -353,7 +353,7 @@ function ChooseValidatorDialog({ onClose, onSelect, t }: {
 /* ── Submission Detail Modal                                             ── */
 /* ══════════════════════════════════════════════════════════════════════════ */
 
-function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, onStartWorkflow, isActionPending, t }: {
+function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, onStartWorkflow, isActionPending, isMine, t }: {
   item: SubmissionRecord & { campaignName?: unknown; domain?: string };
   onClose: () => void;
   onValidate: (id: string) => void;
@@ -361,6 +361,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
   onReturn: (id: string, reason: string) => void;
   onStartWorkflow: (id: string, domain: string) => void;
   isActionPending: boolean;
+  isMine: boolean;
   t: (key: string) => string;
 }) {
   const [activeTab, setActiveTab] = useState<'data' | 'actions'>('data');
@@ -371,6 +372,8 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
   const campaignName = localizeName((item as any).campaignName);
   const domain = (item as any).domain as string | undefined;
   const isSubmitted = item.status === 'SUBMITTED';
+  // At first stage (user's own data), reject/return are disabled
+  const canRejectReturn = !isMine;
 
   // Categorize fields
   const sections: { title: string; icon: React.ReactNode; fields: [string, unknown][]; open: boolean }[] = [];
@@ -493,30 +496,34 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                       </button>
 
                       <button
-                        onClick={() => setActionType('return')}
-                        disabled={isActionPending}
-                        className={cn('flex items-center gap-3 rounded-xl border-2 p-4 transition-all', actionType === 'return' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 hover:border-orange-300 dark:border-gray-700')}
-                      >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30"><RotateCcw className="h-5 w-5 text-orange-600" /></div>
-                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('returnAction')}</p><p className="text-xs text-gray-500">Send back for correction</p></div>
-                      </button>
-
-                      <button
-                        onClick={() => setActionType('reject')}
-                        disabled={isActionPending}
-                        className={cn('flex items-center gap-3 rounded-xl border-2 p-4 transition-all', actionType === 'reject' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-200 hover:border-red-300 dark:border-gray-700')}
-                      >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30"><XCircle className="h-5 w-5 text-red-600" /></div>
-                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('reject')}</p><p className="text-xs text-gray-500">Reject this submission</p></div>
-                      </button>
-
-                      <button
                         onClick={() => onStartWorkflow(item.id, domain ?? 'collecte')}
                         disabled={isActionPending}
                         className="flex items-center gap-3 rounded-xl border-2 border-gray-200 p-4 transition-all hover:border-blue-300 dark:border-gray-700"
                       >
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"><Play className="h-5 w-5 text-blue-600" /></div>
                         <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">Start Pipeline</p><p className="text-xs text-gray-500">Submit to 4-level validation</p></div>
+                      </button>
+
+                      <button
+                        onClick={() => setActionType('return')}
+                        disabled={isActionPending || !canRejectReturn}
+                        className={cn('flex items-center gap-3 rounded-xl border-2 p-4 transition-all',
+                          !canRejectReturn ? 'opacity-40 cursor-not-allowed border-gray-200 dark:border-gray-700' :
+                          actionType === 'return' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 hover:border-orange-300 dark:border-gray-700')}
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30"><RotateCcw className="h-5 w-5 text-orange-600" /></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('returnAction')}</p><p className="text-xs text-gray-500">{isMine ? t('disabledFirstStage') : 'Send back for correction'}</p></div>
+                      </button>
+
+                      <button
+                        onClick={() => setActionType('reject')}
+                        disabled={isActionPending || !canRejectReturn}
+                        className={cn('flex items-center gap-3 rounded-xl border-2 p-4 transition-all',
+                          !canRejectReturn ? 'opacity-40 cursor-not-allowed border-gray-200 dark:border-gray-700' :
+                          actionType === 'reject' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-200 hover:border-red-300 dark:border-gray-700')}
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30"><XCircle className="h-5 w-5 text-red-600" /></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('reject')}</p><p className="text-xs text-gray-500">{isMine ? t('disabledFirstStage') : 'Reject this submission'}</p></div>
                       </button>
                     </>
                   )}
@@ -536,15 +543,13 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                   <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
                     {actionType === 'validate' ? t('validateSubmission') : actionType === 'reject' ? t('rejectSubmission') : t('returnForCorrection')}
                   </h4>
-                  {actionType !== 'validate' && (
-                    <textarea
-                      rows={3}
-                      value={actionText}
-                      onChange={(e) => setActionText(e.target.value)}
-                      placeholder={actionType === 'reject' ? t('reasonForRejection') : t('whatNeedsCorrecting')}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white mb-3"
-                    />
-                  )}
+                  <textarea
+                    rows={3}
+                    value={actionText}
+                    onChange={(e) => setActionText(e.target.value)}
+                    placeholder={actionType === 'reject' ? t('reasonForRejection') : actionType === 'return' ? t('whatNeedsCorrecting') : t('addCommentPlaceholder')}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white mb-3"
+                  />
                   <div className="flex items-center justify-end gap-2">
                     <button onClick={() => { setActionType(null); setActionText(''); }}
                       className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
@@ -552,7 +557,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                     </button>
                     <button
                       onClick={handleActionSubmit}
-                      disabled={isActionPending || (actionType !== 'validate' && !actionText.trim())}
+                      disabled={isActionPending || (['reject', 'return'].includes(actionType ?? '') && !actionText.trim())}
                       className={cn('rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50', actionType === 'validate' ? 'bg-green-600 hover:bg-green-700' : actionType === 'reject' ? 'bg-red-600 hover:bg-red-700' : 'bg-orange-600 hover:bg-orange-700')}
                     >
                       {isActionPending ? t('processing') : actionType === 'validate' ? t('validateAndAdvance') : actionType === 'reject' ? t('reject') : t('returnForCorrection')}
@@ -620,6 +625,7 @@ export default function WorkflowPage() {
   // Active tab
   const [activeTab, setActiveTab] = useState<TabKey>('toValidate');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [levelFilter, setLevelFilter] = useState<string | undefined>(undefined);
   const [viewingSub, setViewingSub] = useState<SubmissionRecord | null>(null);
   const [viewingWf, setViewingWf] = useState<WorkflowItem | null>(null);
@@ -642,7 +648,7 @@ export default function WorkflowPage() {
   const primaryStatus = TAB_PRIMARY_STATUS[activeTab];
 
   const { submissionData, workflowData, hasWorkflowData, isLoading, isError, refetch } =
-    useWorkflowItems({ page, limit: PAGE_SIZE, status: primaryStatus, level: levelFilter });
+    useWorkflowItems({ page, limit: pageSize, status: primaryStatus, level: levelFilter });
   const { data: dashboardRes } = useWorkflowDashboard();
   const dashboard = dashboardRes?.data;
   const workflowAction = useWorkflowAction();
@@ -677,7 +683,7 @@ export default function WorkflowPage() {
   }, [filteredSubmissions, user]);
 
   const displayTotal = hasWorkflowData ? wfTotal : subTotal;
-  const totalPages = Math.ceil(displayTotal / PAGE_SIZE);
+  const totalPages = Math.ceil(displayTotal / pageSize);
 
   const isActionPending = workflowAction.isPending || startValidation.isPending || updateStatus.isPending;
 
@@ -754,7 +760,7 @@ export default function WorkflowPage() {
     );
   }
 
-  function handleBulk(action: 'APPROVE' | 'REJECT') {
+  function handleBulk(action: 'APPROVE' | 'REJECT' | 'RETURN') {
     if (selectedIds.size === 0) return;
     bulkAction.mutate(
       { ids: Array.from(selectedIds), action },
@@ -780,6 +786,12 @@ export default function WorkflowPage() {
 
   function switchTab(tab: TabKey) {
     setActiveTab(tab);
+    setPage(1);
+    setSelectedIds(new Set());
+  }
+
+  function handlePageSizeChange(size: number) {
+    setPageSize(size);
     setPage(1);
     setSelectedIds(new Set());
   }
@@ -859,18 +871,19 @@ export default function WorkflowPage() {
             <p className="mt-1 text-sm text-gray-500">{levelFilter ? t('adjustFilters') : t('noItemsHint')}</p>
           </div>
         ) : hasWorkflowData ? (
-          <WorkflowTable items={filteredWfItems} total={displayTotal} page={page} totalPages={totalPages} setPage={setPage}
+          <WorkflowTable items={filteredWfItems} total={displayTotal} page={page} totalPages={totalPages} pageSize={pageSize} setPage={setPage} onPageSizeChange={handlePageSizeChange}
             onView={setViewingWf} onAction={(id, action) => setActionDialog({ id, action })} t={t}
             selectedIds={selectedIds} setSelectedIds={setSelectedIds} activeTab={activeTab} />
         ) : (
-          <SubmissionsTable items={enrichedSubmissions} total={displayTotal} page={page} totalPages={totalPages} setPage={setPage}
+          <SubmissionsTable items={enrichedSubmissions} total={displayTotal} page={page} totalPages={totalPages} pageSize={pageSize} setPage={setPage} onPageSizeChange={handlePageSizeChange}
             onView={setViewingSub} t={t}
             selectedIds={selectedIds} setSelectedIds={setSelectedIds} />
         )}
 
       {/* Modals */}
       {viewingSub && <SubmissionDetailModal item={viewingSub} onClose={() => setViewingSub(null)}
-        onValidate={handleValidate} onReject={handleReject} onReturn={handleReturn} onStartWorkflow={handleStartWorkflow} isActionPending={isActionPending} t={t} />}
+        onValidate={handleValidate} onReject={handleReject} onReturn={handleReturn} onStartWorkflow={handleStartWorkflow}
+        isActionPending={isActionPending} isMine={(viewingSub as any)._isMine ?? (viewingSub.submittedBy === user?.id)} t={t} />}
       {viewingWf && <WfDetailModal item={viewingWf} onClose={() => setViewingWf(null)} t={t} />}
       {actionDialog && <ActionDialog itemId={actionDialog.id} action={actionDialog.action} onClose={() => setActionDialog(null)}
         onConfirm={(text) => handleWfAction(actionDialog.id, actionDialog.action, text)} isPending={workflowAction.isPending} t={t} />}
@@ -891,8 +904,18 @@ export default function WorkflowPage() {
             {t('bulkApprove')}
           </button>
           <button
+            onClick={() => handleBulk('RETURN')}
+            disabled={bulkAction.isPending || activeTab === 'toValidate'}
+            title={activeTab === 'toValidate' ? t('disabledFirstStage') : ''}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 disabled:opacity-50"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            {t('bulkReturn')}
+          </button>
+          <button
             onClick={() => handleBulk('REJECT')}
-            disabled={bulkAction.isPending}
+            disabled={bulkAction.isPending || activeTab === 'toValidate'}
+            title={activeTab === 'toValidate' ? t('disabledFirstStage') : ''}
             className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
           >
             <XCircle className="h-3.5 w-3.5" />
@@ -933,9 +956,10 @@ function KpiCard({ icon, bg, label, value }: { icon: React.ReactNode; bg: string
   );
 }
 
-function SubmissionsTable({ items, total, page, totalPages, setPage, onView, t, selectedIds, setSelectedIds }: {
-  items: (SubmissionRecord & { _isMine?: boolean })[]; total: number; page: number; totalPages: number;
-  setPage: (p: number | ((prev: number) => number)) => void; onView: (item: SubmissionRecord) => void; t: (key: string) => string;
+function SubmissionsTable({ items, total, page, totalPages, pageSize, setPage, onPageSizeChange, onView, t, selectedIds, setSelectedIds }: {
+  items: (SubmissionRecord & { _isMine?: boolean })[]; total: number; page: number; totalPages: number; pageSize: number;
+  setPage: (p: number | ((prev: number) => number)) => void; onPageSizeChange: (size: number) => void;
+  onView: (item: SubmissionRecord) => void; t: (key: string) => string;
   selectedIds: Set<string>; setSelectedIds: (ids: Set<string>) => void;
 }) {
   const allOnPage = items.map((i) => i.id);
@@ -999,14 +1023,15 @@ function SubmissionsTable({ items, total, page, totalPages, setPage, onView, t, 
           </tbody>
         </table>
       </div>
-      <Pagination total={total} page={page} totalPages={totalPages} setPage={setPage} t={t} />
+      <Pagination total={total} page={page} totalPages={totalPages} pageSize={pageSize} setPage={setPage} onPageSizeChange={onPageSizeChange} t={t} />
     </div>
   );
 }
 
-function WorkflowTable({ items, total, page, totalPages, setPage, onView, onAction, t, selectedIds, setSelectedIds, activeTab }: {
-  items: WorkflowItem[]; total: number; page: number; totalPages: number;
-  setPage: (p: number | ((prev: number) => number)) => void; onView: (item: WorkflowItem) => void;
+function WorkflowTable({ items, total, page, totalPages, pageSize, setPage, onPageSizeChange, onView, onAction, t, selectedIds, setSelectedIds, activeTab }: {
+  items: WorkflowItem[]; total: number; page: number; totalPages: number; pageSize: number;
+  setPage: (p: number | ((prev: number) => number)) => void; onPageSizeChange: (size: number) => void;
+  onView: (item: WorkflowItem) => void;
   onAction: (id: string, action: 'approve' | 'reject' | 'return') => void; t: (key: string) => string;
   selectedIds: Set<string>; setSelectedIds: (ids: Set<string>) => void;
   activeTab: TabKey;
@@ -1068,7 +1093,7 @@ function WorkflowTable({ items, total, page, totalPages, setPage, onView, onActi
           </tbody>
         </table>
       </div>
-      <Pagination total={total} page={page} totalPages={totalPages} setPage={setPage} t={t} />
+      <Pagination total={total} page={page} totalPages={totalPages} pageSize={pageSize} setPage={setPage} onPageSizeChange={onPageSizeChange} t={t} />
     </div>
   );
 }
@@ -1148,19 +1173,36 @@ function ActionDialog({ itemId, action, onClose, onConfirm, isPending, t }: {
   );
 }
 
-function Pagination({ total, page, totalPages, setPage, t }: {
-  total: number; page: number; totalPages: number;
-  setPage: (p: number | ((prev: number) => number)) => void; t: (key: string) => string;
+function Pagination({ total, page, totalPages, pageSize, setPage, onPageSizeChange, t }: {
+  total: number; page: number; totalPages: number; pageSize: number;
+  setPage: (p: number | ((prev: number) => number)) => void;
+  onPageSizeChange: (size: number) => void;
+  t: (key: string) => string;
 }) {
-  if (totalPages <= 1) return null;
   return (
     <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 dark:border-gray-700">
-      <p className="text-sm text-gray-500">{t('showing')} <span className="font-medium text-gray-700 dark:text-gray-300">{(page - 1) * PAGE_SIZE + 1} - {Math.min(page * PAGE_SIZE, total)}</span> {t('of')} <span className="font-medium">{total.toLocaleString()}</span></p>
-      <div className="flex items-center gap-2">
-        <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"><ChevronLeft className="h-4 w-4" /> {t('previous')}</button>
-        <span className="text-sm font-medium text-gray-500">{page} / {totalPages}</span>
-        <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">{t('next')} <ChevronRight className="h-4 w-4" /></button>
+      <div className="flex items-center gap-3">
+        <p className="text-sm text-gray-500">
+          {total > 0 && <>{t('showing')} <span className="font-medium text-gray-700 dark:text-gray-300">{(page - 1) * pageSize + 1} - {Math.min(page * pageSize, total)}</span> {t('of')} </>}
+          <span className="font-medium">{total.toLocaleString()}</span>
+        </p>
+        <select
+          value={pageSize}
+          onChange={(e) => onPageSizeChange(Number(e.target.value))}
+          className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+        >
+          {PAGE_SIZES.map((s) => (
+            <option key={s} value={s}>{s} / page</option>
+          ))}
+        </select>
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center gap-2">
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"><ChevronLeft className="h-4 w-4" /> {t('previous')}</button>
+          <span className="text-sm font-medium text-gray-500">{page} / {totalPages}</span>
+          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">{t('next')} <ChevronRight className="h-4 w-4" /></button>
+        </div>
+      )}
     </div>
   );
 }

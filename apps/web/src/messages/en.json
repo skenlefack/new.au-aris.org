@@ -767,7 +767,9 @@
     "noValidatorsFound": "No validators available for your organisation",
     "submitter": "Submitter",
     "myData": "My Data",
-    "toReview": "To Review"
+    "toReview": "To Review",
+    "disabledFirstStage": "Disabled at first stage",
+    "bulkReturn": "Return All"
   },
   "quality": {
     "title": "Data Quality",
