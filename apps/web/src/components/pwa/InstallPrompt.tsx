@@ -68,7 +68,9 @@ export function InstallPrompt() {
         <Download className="h-5 w-5 text-aris-primary-600" />
       </div>
       <div>
-        <p className="text-sm font-medium text-gray-900">Install ARIS</p>
+        <p className="text-sm font-medium text-gray-900">
+          Install ARIS{(process.env.NEXT_PUBLIC_API_URL ?? '').includes('test.') ? ' (Staging)' : ''}
+        </p>
         <p className="text-xs text-gray-500">Quick access from your desktop</p>
       </div>
       <button

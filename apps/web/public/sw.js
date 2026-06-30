@@ -46,6 +46,7 @@ self.addEventListener('fetch', (event) => {
 
   // Never intercept the manifest, the SW itself, or Next.js internals
   if (
+    req.url.includes('/manifest.webmanifest') ||
     req.url.includes('/manifest.json') ||
     req.url.includes('/sw.js') ||
     req.url.includes('/_next/data/') ||

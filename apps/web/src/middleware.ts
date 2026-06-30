@@ -59,6 +59,7 @@ const PUBLIC_PREFIXES = [
   '/icons/',     // Static assets
   '/sw.js',
   '/manifest.json',
+  '/manifest.webmanifest',
   '/au-logo.png',
   '/aris-logo.png',
 ];

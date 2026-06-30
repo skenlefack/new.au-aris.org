@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: 'ARIS — Animal Resources Information System',
   description:
     'AU-IBAR Continental Digital Infrastructure for Animal Resources across 55 Member States',
-  manifest: '/manifest.json',
+  manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
