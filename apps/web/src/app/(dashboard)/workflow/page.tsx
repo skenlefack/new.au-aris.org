@@ -48,6 +48,7 @@ import {
   useValidationChainsByUser,
   usePotentialValidators,
   useCreateValidationChain,
+  useWorkflowTimeline,
 } from '@/lib/api/workflow-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { TableSkeleton } from '@/components/ui/Skeleton';
@@ -364,9 +365,23 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
   isMine: boolean;
   t: (key: string) => string;
 }) {
-  const [activeTab, setActiveTab] = useState<'data' | 'actions'>('data');
+  const [activeTab, setActiveTab] = useState<'data' | 'actions' | 'timeline'>('data');
   const [actionType, setActionType] = useState<'validate' | 'reject' | 'return' | null>(null);
   const [actionText, setActionText] = useState('');
+  const [shakeModal, setShakeModal] = useState(false);
+
+  // Fetch validation timeline if submission has a workflow instance
+  const instanceId = (item as any).collecteInstance?.id;
+  const { data: timelineData } = useWorkflowTimeline(instanceId);
+  const timeline: any[] = (() => {
+    const raw = (timelineData as any)?.data ?? timelineData;
+    return Array.isArray(raw) ? raw : [];
+  })();
+
+  const handleBackdropClick = () => {
+    setShakeModal(true);
+    setTimeout(() => setShakeModal(false), 300);
+  };
 
   const data = item.data ?? {};
   const campaignName = localizeName((item as any).campaignName);
@@ -414,12 +429,18 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="relative max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={handleBackdropClick}>
+      <div
+        className={cn(
+          'relative max-h-[95vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900',
+          shakeModal && 'animate-[shake_0.3s_ease-in-out]',
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
 
         {/* ── Header ── */}
         <div className="relative border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-5 dark:border-gray-700 dark:from-gray-800 dark:to-gray-800">
-          <button onClick={onClose} className="absolute right-4 top-4 rounded-full p-1.5 text-gray-400 hover:bg-white/60 hover:text-gray-600 dark:hover:bg-gray-700">
+          <button onClick={onClose} className="absolute right-4 top-4 rounded-full p-2 text-gray-400 hover:bg-white/60 hover:text-gray-600 dark:hover:bg-gray-700 transition-colors z-10">
             <X className="h-5 w-5" />
           </button>
           <div className="flex items-start gap-4">
@@ -427,11 +448,12 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
               <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate">{campaignName !== '--' ? campaignName : t('submissionDetails')}</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate pr-10">{campaignName !== '--' ? campaignName : t('submissionDetails')}</h2>
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
                 {domain && <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium', DOMAIN_COLORS[domain] ?? 'bg-gray-100 text-gray-700')}>{DOMAIN_LABELS[domain] ?? domain}</span>}
                 <StatusBadge status={item.status} />
                 <span className="text-xs text-gray-500 font-mono">{item.id.slice(0, 8)}</span>
+                {item.submittedBy && <span className="text-xs text-gray-400">Soumis par: <span className="font-medium text-gray-600 dark:text-gray-300">{(item as any).submittedByName || item.submittedBy.slice(0, 8)}</span></span>}
               </div>
             </div>
           </div>
@@ -440,17 +462,32 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
         {/* ── Tabs ── */}
         <div className="flex border-b border-gray-200 dark:border-gray-700">
           <button onClick={() => setActiveTab('data')}
-            className={cn('flex-1 py-2.5 text-sm font-medium text-center transition-colors', activeTab === 'data' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700')}>
-            <Eye className="inline h-4 w-4 mr-1.5" />Data
+            className={cn('flex-1 py-2.5 text-sm font-medium text-center transition-colors', activeTab === 'data' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300')}>
+            <Eye className="inline h-4 w-4 mr-1.5" />Donnees
           </button>
           <button onClick={() => setActiveTab('actions')}
-            className={cn('flex-1 py-2.5 text-sm font-medium text-center transition-colors', activeTab === 'actions' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700')}>
-            <CheckCircle className="inline h-4 w-4 mr-1.5" />Actions & Comments
+            className={cn('flex-1 py-2.5 text-sm font-medium text-center transition-colors', activeTab === 'actions' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300')}>
+            <CheckCircle className="inline h-4 w-4 mr-1.5" />Actions
+          </button>
+          <button onClick={() => setActiveTab('timeline')}
+            className={cn('flex-1 py-2.5 text-sm font-medium text-center transition-colors', activeTab === 'timeline' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300')}>
+            <Clock className="inline h-4 w-4 mr-1.5" />Suivi validation
+            {timeline.length > 0 && <span className="ml-1 inline-flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-1.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">{timeline.length}</span>}
           </button>
         </div>
 
         {/* ── Scrollable content ── */}
-        <div className="max-h-[calc(92vh-180px)] overflow-y-auto">
+        <div className="max-h-[calc(95vh-180px)] overflow-y-auto">
+
+        <style>{`
+          @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-6px); }
+            40% { transform: translateX(6px); }
+            60% { transform: translateX(-4px); }
+            80% { transform: translateX(4px); }
+          }
+        `}</style>
 
           {activeTab === 'data' ? (
             <>
@@ -475,7 +512,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                 {sections.map((sec) => <DataSection key={sec.title} {...sec} defaultOpen={sec.open} />)}
               </div>
             </>
-          ) : (
+          ) : activeTab === 'actions' ? (
             /* ── Actions & Comments Tab ── */
             <div className="px-6 py-4 space-y-4">
 
@@ -578,7 +615,104 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                 </div>
               </div>
             </div>
-          )}
+          ) : activeTab === 'timeline' ? (
+            /* ── Suivi validation Tab ── */
+            <div className="px-6 py-4 space-y-4">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Clock className="h-4 w-4 text-gray-400" />
+                Suivi de validation
+                {timeline.length > 0 && <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-gray-700 dark:text-gray-400">{timeline.length} actions</span>}
+              </h3>
+
+              {timeline.length > 0 ? (
+                <div className="relative">
+                  {/* Vertical line */}
+                  <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
+
+                  <div className="space-y-0">
+                    {timeline.map((entry: any, idx: number) => {
+                      const action = entry.action || entry.status || 'unknown';
+                      const actionConfig: Record<string, { icon: React.ReactNode; color: string; bg: string; label: string }> = {
+                        submitted: { icon: <Send className="h-3.5 w-3.5" />, color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/30', label: 'Soumission' },
+                        validated: { icon: <CheckCircle className="h-3.5 w-3.5" />, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/30', label: 'Validation' },
+                        approved: { icon: <CheckCircle className="h-3.5 w-3.5" />, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/30', label: 'Approbation' },
+                        rejected: { icon: <XCircle className="h-3.5 w-3.5" />, color: 'text-red-600', bg: 'bg-red-100 dark:bg-red-900/30', label: 'Rejet' },
+                        returned: { icon: <RotateCcw className="h-3.5 w-3.5" />, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-900/30', label: 'Retour pour correction' },
+                        escalated: { icon: <AlertTriangle className="h-3.5 w-3.5" />, color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-900/30', label: 'Escalade' },
+                        auto_transmitted: { icon: <ArrowRight className="h-3.5 w-3.5" />, color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/30', label: 'Transmission auto' },
+                        auto_validated: { icon: <CheckCircle className="h-3.5 w-3.5" />, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/30', label: 'Validation auto' },
+                        reassigned: { icon: <Users className="h-3.5 w-3.5" />, color: 'text-indigo-600', bg: 'bg-indigo-100 dark:bg-indigo-900/30', label: 'Reassignation' },
+                        commented: { icon: <MessageSquare className="h-3.5 w-3.5" />, color: 'text-gray-600', bg: 'bg-gray-100 dark:bg-gray-800', label: 'Commentaire' },
+                      };
+                      const cfg = actionConfig[action.toLowerCase()] || { icon: <Clock className="h-3.5 w-3.5" />, color: 'text-gray-600', bg: 'bg-gray-100 dark:bg-gray-800', label: action };
+                      const performer = entry.performedByName || entry.performed_by_name || (entry.performedBy || entry.performed_by || '').slice(0, 8);
+                      const performedAt = entry.performedAt || entry.performed_at;
+                      const comment = typeof entry.comment === 'object' ? (entry.comment?.fr || entry.comment?.en || '') : (entry.comment || '');
+                      const reason = entry.reason || '';
+                      const fromStep = entry.fromStep ?? entry.from_step;
+                      const toStep = entry.toStep ?? entry.to_step;
+                      const isAuto = entry.isAutomatic || entry.is_automatic;
+
+                      return (
+                        <div key={entry.id || idx} className="relative flex items-start gap-4 pb-4 pl-2">
+                          {/* Timeline dot */}
+                          <div className={cn('relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full', cfg.bg, cfg.color)}>
+                            {cfg.icon}
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0 pt-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={cn('text-sm font-semibold', cfg.color)}>{cfg.label}</span>
+                              {isAuto && <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-400">Auto</span>}
+                              {fromStep != null && toStep != null && fromStep !== toStep && (
+                                <span className="text-[10px] text-gray-400">Etape {fromStep} → {toStep}</span>
+                              )}
+                            </div>
+
+                            {/* Performer + date */}
+                            <div className="mt-0.5 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                              {performer && (
+                                <span className="flex items-center gap-1">
+                                  <Users className="h-3 w-3" />
+                                  <span className="font-medium text-gray-700 dark:text-gray-300">{performer}</span>
+                                </span>
+                              )}
+                              {performedAt && (
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {new Date(performedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  {' '}
+                                  {new Date(performedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Comment / reason */}
+                            {(comment || reason) && (
+                              <div className="mt-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3 py-2">
+                                <p className="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{comment || reason}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 py-10 text-center">
+                  <Clock className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
+                  <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {instanceId ? 'Aucune action enregistree pour le moment' : "Le pipeline de validation n'a pas encore ete demarre"}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-400">
+                    {instanceId ? 'Les validations, rejets et retours apparaitront ici' : "Utilisez le bouton Start Pipeline dans l'onglet Actions"}
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -987,7 +1121,7 @@ function SubmissionsTable({ items, total, page, totalPages, pageSize, setPage, o
           <thead><tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400">
             <th className="w-10 px-4 py-3"><input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></th>
             <th className="px-4 py-3">Campaign</th><th className="px-4 py-3">Source</th><th className="px-4 py-3">Domain</th><th className="px-4 py-3">{t('status')}</th>
-            <th className="px-4 py-3">{t('date')}</th><th className="px-4 py-3 text-right">{t('actions')}</th>
+            <th className="px-4 py-3">Soumis par</th><th className="px-4 py-3">{t('date')}</th><th className="px-4 py-3 text-right">{t('actions')}</th>
           </tr></thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
             {items.map((item) => {
@@ -1011,6 +1145,9 @@ function SubmissionsTable({ items, total, page, totalPages, pageSize, setPage, o
                   </td>
                   <td className="px-4 py-3">{domain ? <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', DOMAIN_COLORS[domain] ?? 'bg-gray-100 text-gray-600')}>{DOMAIN_LABELS[domain] ?? domain}</span> : <span className="text-gray-400 text-xs">--</span>}</td>
                   <td className="px-4 py-3"><StatusBadge status={item.status} /></td>
+                  <td className="px-4 py-3">
+                    <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">{(item as any).submittedByName || item.submittedBy?.slice(0, 8) || '--'}</span>
+                  </td>
                   <td className="px-4 py-3 text-xs text-gray-500">{formatDate(item.submittedAt)}</td>
                   <td className="px-4 py-3 text-right">
                     <button onClick={() => onView(item)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20 transition-colors">
