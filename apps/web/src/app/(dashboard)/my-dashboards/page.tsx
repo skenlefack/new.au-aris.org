@@ -198,7 +198,7 @@ export default function MyDashboardsPage() {
   const allRecs: any[] = recsData?.data ?? [];
   const { data: countriesData } = useSettingsCountries({ limit: 100 });
   const allCountries: any[] = countriesData?.data ?? [];
-  const { data: campaignsData } = useCampaigns({ limit: 200 });
+  const { data: campaignsData } = useCampaigns({ limit: 100 });
   const allCampaigns: any[] = campaignsData?.data ?? [];
 
   const openCreateModal = () => {
