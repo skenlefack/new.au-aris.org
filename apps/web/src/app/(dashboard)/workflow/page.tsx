@@ -631,8 +631,15 @@ export default function WorkflowPage() {
   // Compute status filter from active tab
   const tabStatuses = TAB_STATUS_MAP[activeTab];
 
-  // Fetch data — use the first status from the tab's status set for server filtering
-  const primaryStatus = tabStatuses.length === 1 ? tabStatuses[0] : undefined;
+  // Map tab to the primary status for server-side filtering
+  // "toValidate" uses SUBMITTED for submissions (PENDING/IN_REVIEW/ESCALATED are workflow-level)
+  const TAB_PRIMARY_STATUS: Record<TabKey, string> = {
+    toValidate: 'SUBMITTED',
+    rejected: 'REJECTED',
+    returned: 'RETURNED',
+    validated: 'VALIDATED',
+  };
+  const primaryStatus = TAB_PRIMARY_STATUS[activeTab];
 
   const { submissionData, workflowData, hasWorkflowData, isLoading, isError, refetch } =
     useWorkflowItems({ page, limit: PAGE_SIZE, status: primaryStatus, level: levelFilter });
@@ -654,14 +661,11 @@ export default function WorkflowPage() {
   const wfItems = workflowData?.data ?? [];
   const wfTotal = workflowData?.meta?.total ?? 0;
 
-  // For multi-status tabs, we filter client-side from the server results
-  const filteredSubmissions = primaryStatus
-    ? allSubmissions
-    : allSubmissions.filter((s) => tabStatuses.includes(s.status));
-
-  const filteredWfItems = primaryStatus
-    ? wfItems
-    : wfItems.filter((w) => tabStatuses.includes(w.status));
+  // Server already filters by status; for workflow instances also accept related statuses
+  const filteredSubmissions = allSubmissions;
+  const filteredWfItems = wfItems.length > 0
+    ? wfItems.filter((w) => tabStatuses.includes(w.status))
+    : wfItems;
 
   // Enrich submissions with "isMine" flag for "À valider" tab
   const enrichedSubmissions = useMemo(() => {
