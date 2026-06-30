@@ -53,84 +53,6 @@ const DOMAIN_META: Record<string, { color: string; description: string }> = {
   },
 };
 
-/* ── Loading Skeleton ── */
-
-function DomainLoadingSkeleton({ color, name }: { color: string; name: string }) {
-  return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Header skeleton */}
-      <div
-        className="rounded-xl border p-6"
-        style={{ borderColor: `${color}30`, background: `linear-gradient(135deg, ${color}08 0%, transparent 60%)` }}
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-12 w-12 items-center justify-center rounded-xl text-white text-lg font-bold"
-            style={{ backgroundColor: color }}
-          >
-            {name.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white capitalize">{name}</h1>
-            <div className="mt-1.5 h-3.5 w-56 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-          </div>
-        </div>
-      </div>
-
-      {/* KPI bar skeleton */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900"
-          >
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 animate-pulse rounded-xl" style={{ backgroundColor: `${color}15` }} />
-              <div className="flex-1 space-y-2">
-                <div className="h-6 w-16 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-                <div className="h-3 w-24 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Synthesis skeleton — map + charts */}
-      <div className="grid gap-4 lg:grid-cols-5">
-        <div className="lg:col-span-3 h-[320px] animate-pulse rounded-xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
-          <div className="flex h-full items-center justify-center">
-            <div className="text-center">
-              <div className="mx-auto h-10 w-10 rounded-xl animate-pulse" style={{ backgroundColor: `${color}20` }} />
-              <p className="mt-2 text-xs text-gray-400">Loading map...</p>
-            </div>
-          </div>
-        </div>
-        <div className="lg:col-span-2 space-y-4">
-          <div className="h-[150px] animate-pulse rounded-xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50" />
-          <div className="h-[150px] animate-pulse rounded-xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50" />
-        </div>
-      </div>
-
-      {/* Sub-domains skeleton */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-20 animate-pulse rounded-xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50" />
-        ))}
-      </div>
-
-      {/* Plannings skeleton */}
-      <div className="rounded-xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-        <div className="h-5 w-32 animate-pulse rounded bg-gray-200 dark:bg-gray-700 mb-4" />
-        <div className="space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-16 animate-pulse rounded-lg bg-gray-50 dark:bg-gray-800" />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function DomainPage() {
   const params = useParams<{ code: string }>();
   const code = params.code;
@@ -149,14 +71,9 @@ export default function DomainPage() {
   const { data: summaryRes, isLoading } = useDomainSummary(code);
   const summary = summaryRes?.data ?? null;
 
-  // Show full-page skeleton on initial load
-  if (isLoading && !summary) {
-    return <DomainLoadingSkeleton color={meta.color} name={domainName} />;
-  }
-
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Header */}
+    <div className="space-y-6 animate-in fade-in duration-200">
+      {/* Header — renders instantly, no API dependency */}
       <div
         className="rounded-xl border p-6"
         style={{
@@ -193,19 +110,19 @@ export default function DomainPage() {
         </div>
       </div>
 
-      {/* KPI Bar */}
+      {/* KPI Bar — has built-in loading skeleton */}
       <DomainKpiBar kpis={summary?.kpis ?? null} loading={isLoading} />
 
-      {/* Visual Synthesis -- Map, Trend, Breakdown */}
+      {/* Visual Synthesis — has built-in loading skeleton */}
       <DomainSynthesis synthesis={summary?.synthesis ?? null} loading={isLoading} domainColor={meta.color} />
 
-      {/* Sub-domains Grid */}
+      {/* Sub-domains Grid — fetches its own data independently */}
       <SubDomainsGrid domainCode={code} />
 
-      {/* Plannings */}
+      {/* Plannings — fetches its own data independently */}
       <PlanningsSection target={{ domainCode: code }} />
 
-      {/* Recent Activity */}
+      {/* Recent Activity — has built-in loading skeleton */}
       <DomainActivityFeed activities={summary?.recentActivity ?? null} loading={isLoading} domainColor={meta.color} />
     </div>
   );
