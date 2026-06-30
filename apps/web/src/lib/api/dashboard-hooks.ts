@@ -397,6 +397,8 @@ export function useCreateDashboard() {
       title?: string;
       titleFr?: string;
       titleEn?: string;
+      titlePt?: string;
+      titleAr?: string;
       description?: string;
       scope: DashboardScope;
       domainCode?: string;
@@ -410,6 +412,8 @@ export function useCreateDashboard() {
         ...body,
         titleFr: body.titleFr || body.title || 'Nouveau tableau de bord',
         titleEn: body.titleEn || body.title || 'New Dashboard',
+        titlePt: body.titlePt || null,
+        titleAr: body.titleAr || null,
       };
       return analyticsClient.post<{ data: Dashboard }>('/analytics/dashboards', payload);
     },

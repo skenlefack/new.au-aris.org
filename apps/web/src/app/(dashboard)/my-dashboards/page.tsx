@@ -35,7 +35,8 @@ import { useDomainStore } from '@/lib/stores/domain-store';
 import { useSubDomains } from '@/hooks/use-sub-domains';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useSettingsRecs, useSettingsCountries } from '@/lib/api/settings-hooks';
-import { useCollectionCampaigns } from '@/lib/api/workflow-hooks';
+import { useCampaigns } from '@/lib/api/hooks';
+import { MultilingualInput } from '@/components/settings/MultilingualInput';
 
 type Tab = 'USER_OWNED' | 'SHARED' | 'SYSTEM_TEMPLATE';
 
@@ -174,7 +175,7 @@ export default function MyDashboardsPage() {
 
   // New dashboard modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
+  const [newTitle, setNewTitle] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '' });
   const [newZone, setNewZone] = useState<'principal' | 'domain' | 'subdomain' | 'campaign' | 'public_rec' | 'public_country'>(
     searchParams.get('domain') ? 'domain' : 'principal',
   );
@@ -197,11 +198,11 @@ export default function MyDashboardsPage() {
   const allRecs: any[] = recsData?.data ?? [];
   const { data: countriesData } = useSettingsCountries({ limit: 100 });
   const allCountries: any[] = countriesData?.data ?? [];
-  const { data: campaignsData } = useCollectionCampaigns({ limit: 200 });
-  const allCampaigns: any[] = Array.isArray(campaignsData?.data) ? campaignsData.data : [];
+  const { data: campaignsData } = useCampaigns({ limit: 200 });
+  const allCampaigns: any[] = campaignsData?.data ?? [];
 
   const openCreateModal = () => {
-    setNewTitle('');
+    setNewTitle({ en: '', fr: '', pt: '', ar: '' });
     setNewZone(searchParams.get('domain') ? 'domain' : 'principal');
     setNewDomainCode(searchParams.get('domain') ?? '');
     setNewSubDomainCode('');
@@ -237,7 +238,10 @@ export default function MyDashboardsPage() {
       }
 
       const result = await createMutation.mutateAsync({
-        title: newTitle || 'New Dashboard',
+        titleFr: newTitle.fr || newTitle.en || 'Nouveau tableau de bord',
+        titleEn: newTitle.en || newTitle.fr || 'New Dashboard',
+        titlePt: newTitle.pt || undefined,
+        titleAr: newTitle.ar || undefined,
         scope,
         domainCode: (newZone === 'domain' || newZone === 'subdomain') && newDomainCode ? newDomainCode : undefined,
         recCode,
@@ -420,18 +424,14 @@ export default function MyDashboardsPage() {
 
             {/* Body — scrollable */}
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-              {/* Title */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Titre du tableau de bord</label>
-                <input
-                  type="text"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Ex: Vue d'ensemble Sante animale..."
-                  autoFocus
-                  className="w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm shadow-sm focus:border-[#1F4E79] focus:outline-none focus:ring-1 focus:ring-[#1F4E79] dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
-              </div>
+              {/* Title — multilingual with auto-translate */}
+              <MultilingualInput
+                label="Titre du tableau de bord"
+                value={newTitle}
+                onChange={setNewTitle}
+                placeholder="Ex: Vue d'ensemble Santé animale..."
+                required
+              />
 
               {/* Zone — 3 options */}
               <div>
@@ -559,7 +559,6 @@ export default function MyDashboardsPage() {
                   </div>
                 </div>
               )}
-            </div>
 
               {/* Campaign selector (zone=campaign) */}
               {newZone === 'campaign' && (
@@ -595,9 +594,18 @@ export default function MyDashboardsPage() {
                             )}
                           >
                             <ClipboardList className="h-4 w-4 shrink-0 text-gray-400" />
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <span className="block truncate">{name}</span>
-                              <span className="text-[10px] text-gray-400">{c.status}</span>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className={cn(
+                                  'inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase',
+                                  c.status === 'ACTIVE' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                  c.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                  c.status === 'PLANNED' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                  'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400',
+                                )}>{c.status}</span>
+                                {c.domain && <span className="text-[9px] text-gray-400">{c.domain}</span>}
+                              </div>
                             </div>
                           </button>
                         );
@@ -691,6 +699,7 @@ export default function MyDashboardsPage() {
                   )}
                 </div>
               )}
+            </div>
 
             {/* Footer */}
             <div className="flex items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-700 px-6 py-4 shrink-0">

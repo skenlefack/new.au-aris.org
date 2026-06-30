@@ -12,8 +12,9 @@ import {
 } from '@/lib/api/dashboard-hooks';
 import { useRealtimeStore } from '@/lib/realtime/realtime-store';
 import { useIndicators, type Indicator } from '@/lib/api/indicator-hooks';
-import { useFormBuilderTemplates, type FormTemplateListItem } from '@/lib/api/form-builder-hooks';
+import { useFormBuilderTemplates, useFormBuilderTemplate, type FormTemplateListItem } from '@/lib/api/form-builder-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useKpiDefinitions } from '@/lib/api/settings-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 import { KpiCardConfig } from './config/KpiCardConfig';
 import { ChartConfig } from './config/ChartConfig';
@@ -512,6 +513,60 @@ function IndicatorPicker({
   );
 }
 
+/* ─── Helper: extract fields from JSON Schema ──────────────────────────── */
+
+interface FormFieldInfo {
+  key: string;
+  label: string;
+  type: string;
+  isNumeric: boolean;
+}
+
+function extractFieldsFromSchema(schema: unknown): FormFieldInfo[] {
+  if (!schema || typeof schema !== 'object') return [];
+  const s = schema as Record<string, unknown>;
+  const properties = (s.properties ?? {}) as Record<string, unknown>;
+  const fields: FormFieldInfo[] = [];
+
+  for (const [key, def] of Object.entries(properties)) {
+    if (!def || typeof def !== 'object') continue;
+    const d = def as Record<string, unknown>;
+    const type = String(d.type ?? 'string');
+    const title = String(d.title ?? d.label ?? key);
+    const isNumeric = type === 'number' || type === 'integer';
+    fields.push({ key, label: title, type, isNumeric });
+
+    // If it's an object with nested properties (repeater/group), flatten one level
+    if (type === 'object' && d.properties && typeof d.properties === 'object') {
+      const nested = d.properties as Record<string, unknown>;
+      for (const [nk, nd] of Object.entries(nested)) {
+        if (!nd || typeof nd !== 'object') continue;
+        const ndObj = nd as Record<string, unknown>;
+        const nType = String(ndObj.type ?? 'string');
+        const nTitle = String(ndObj.title ?? ndObj.label ?? nk);
+        fields.push({ key: `${key}.${nk}`, label: `${title} > ${nTitle}`, type: nType, isNumeric: nType === 'number' || nType === 'integer' });
+      }
+    }
+
+    // If it's an array with item properties (repeater rows)
+    if (type === 'array' && d.items && typeof d.items === 'object') {
+      const items = d.items as Record<string, unknown>;
+      if (items.properties && typeof items.properties === 'object') {
+        const nested = items.properties as Record<string, unknown>;
+        for (const [nk, nd] of Object.entries(nested)) {
+          if (!nd || typeof nd !== 'object') continue;
+          const ndObj = nd as Record<string, unknown>;
+          const nType = String(ndObj.type ?? 'string');
+          const nTitle = String(ndObj.title ?? ndObj.label ?? nk);
+          fields.push({ key: `${key}[].${nk}`, label: `${title} > ${nTitle}`, type: nType, isNumeric: nType === 'number' || nType === 'integer' });
+        }
+      }
+    }
+  }
+
+  return fields;
+}
+
 /* ─── Form Aggregation Picker ────────────────────────────────────────────── */
 
 function FormAggregationPicker({
@@ -524,27 +579,50 @@ function FormAggregationPicker({
   const t = useTranslations('dashboard');
   const [formSearchOpen, setFormSearchOpen] = useState(false);
   const [formSearch, setFormSearch] = useState('');
+  const [fieldSearch, setFieldSearch] = useState('');
   const formDropdownRef = useRef<HTMLDivElement>(null);
 
   const { data: templatesData, isLoading } = useFormBuilderTemplates({
     status: 'PUBLISHED',
-    limit: 20,
+    limit: 50,
   });
 
   const templates = templatesData?.data ?? [];
+
+  // Fetch selected template details (with schema) when a form is selected
+  const selectedFormId = (config.formId as string) || undefined;
+  const { data: templateDetail } = useFormBuilderTemplate(selectedFormId);
+  const templateData = (templateDetail as any)?.data ?? templateDetail;
+
+  // Extract fields from the template schema
+  const formFields = useMemo(() => {
+    if (!templateData?.schema) return [];
+    return extractFieldsFromSchema(templateData.schema);
+  }, [templateData?.schema]);
+
+  // Filter fields by search and aggregation compatibility
+  const aggregation = (config.aggregation as string) ?? 'count';
+  const filteredFields = useMemo(() => {
+    let list = formFields;
+    if (fieldSearch) {
+      const q = fieldSearch.toLowerCase();
+      list = list.filter((f) => f.key.toLowerCase().includes(q) || f.label.toLowerCase().includes(q));
+    }
+    return list;
+  }, [formFields, fieldSearch]);
 
   // Filter templates by search
   const filteredTemplates = useMemo(() => {
     if (!formSearch) return templates;
     const q = formSearch.toLowerCase();
     return templates.filter(
-      (t) => t.name.toLowerCase().includes(q) || t.domain.toLowerCase().includes(q)
+      (tpl) => tpl.name.toLowerCase().includes(q) || tpl.domain.toLowerCase().includes(q)
     );
   }, [templates, formSearch]);
 
   const selectedTemplate = useMemo(() => {
     if (!config.formId) return null;
-    return templates.find((t) => t.id === config.formId) ?? null;
+    return templates.find((tpl) => tpl.id === config.formId) ?? null;
   }, [config.formId, templates]);
 
   // Close dropdown on outside click
@@ -559,7 +637,7 @@ function FormAggregationPicker({
   }, []);
 
   const handleSelectTemplate = (template: FormTemplateListItem) => {
-    onChange({ formId: template.id });
+    onChange({ formId: template.id, field: '' });
     setFormSearchOpen(false);
     setFormSearch('');
   };
@@ -568,6 +646,8 @@ function FormAggregationPicker({
     onChange({ formId: '', field: '' });
     setFormSearch('');
   };
+
+  const selectedField = formFields.find((f) => f.key === config.field);
 
   return (
     <div className="space-y-3">
@@ -646,6 +726,7 @@ function FormAggregationPicker({
             </div>
             <p className="mt-0.5 text-xs text-green-700 dark:text-green-300">
               {selectedTemplate.domain} - v{selectedTemplate.version}
+              {formFields.length > 0 && <span className="ml-2">{formFields.length} champs detectes</span>}
             </p>
           </div>
         )}
@@ -655,30 +736,110 @@ function FormAggregationPicker({
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbAggregation')}</label>
         <select
-          value={(config.aggregation as string) ?? 'count'}
+          value={aggregation}
           onChange={(e) => onChange({ aggregation: e.target.value })}
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
         >
-          <option value="count">{t('dbCount')}</option>
-          <option value="sum">{t('dbSum')}</option>
-          <option value="avg">{t('dbAverage')}</option>
+          <option value="count">{t('dbCount')} — Nombre de soumissions</option>
+          <option value="sum">{t('dbSum')} — Somme d&apos;un champ numerique</option>
+          <option value="avg">{t('dbAverage')} — Moyenne d&apos;un champ numerique</option>
         </select>
       </div>
 
-      {/* Field input */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbField')}</label>
-        <input
-          type="text"
-          value={(config.field as string) ?? ''}
-          onChange={(e) => onChange({ field: e.target.value })}
-          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
-          placeholder={t('dbPlaceholderFieldName')}
-        />
-        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-          {t('dbFieldHelpText')}
-        </p>
-      </div>
+      {/* Field selector — dropdown from schema fields */}
+      {config.formId && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {t('dbField')}
+            {aggregation === 'count' && <span className="ml-1 text-xs text-gray-400 font-normal">(optionnel pour count)</span>}
+            {aggregation !== 'count' && <span className="ml-0.5 text-red-500">*</span>}
+          </label>
+
+          {formFields.length > 0 ? (
+            <>
+              {/* Field search for large schemas */}
+              {formFields.length > 8 && (
+                <input
+                  type="text"
+                  value={fieldSearch}
+                  onChange={(e) => setFieldSearch(e.target.value)}
+                  placeholder="Rechercher un champ..."
+                  className="mb-2 w-full rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                />
+              )}
+
+              <div className="max-h-48 overflow-y-auto rounded-md border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+                {/* "None" option for count */}
+                {aggregation === 'count' && (
+                  <button
+                    type="button"
+                    onClick={() => onChange({ field: '' })}
+                    className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                      !config.field ? 'bg-[#1F4E79]/5 dark:bg-[#1F4E79]/20 text-[#1F4E79] font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <span className="italic">Toutes les soumissions (count total)</span>
+                  </button>
+                )}
+                {filteredFields.map((field) => (
+                  <button
+                    key={field.key}
+                    type="button"
+                    onClick={() => onChange({ field: field.key })}
+                    className={`w-full text-left px-3 py-2 transition-colors ${
+                      config.field === field.key
+                        ? 'bg-[#1F4E79]/5 dark:bg-[#1F4E79]/20'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm truncate ${config.field === field.key ? 'text-[#1F4E79] dark:text-[#C9A227] font-medium' : 'text-gray-900 dark:text-gray-100'}`}>
+                        {field.label}
+                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-mono ${
+                          field.isNumeric
+                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                        }`}>
+                          {field.type}
+                        </span>
+                        {config.field === field.key && <Check className="h-3.5 w-3.5 text-[#1F4E79] dark:text-[#C9A227]" />}
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-gray-400 font-mono">{field.key}</span>
+                  </button>
+                ))}
+                {filteredFields.length === 0 && (
+                  <div className="px-3 py-3 text-center text-xs text-gray-500">Aucun champ trouve</div>
+                )}
+              </div>
+
+              {/* Selected field summary */}
+              {selectedField && (
+                <div className="mt-2 flex items-center gap-2 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 px-3 py-1.5">
+                  <Check className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <span className="text-xs text-blue-700 dark:text-blue-300">
+                    <span className="font-medium">{selectedField.label}</span>
+                    <span className="ml-1 font-mono text-blue-500">({selectedField.key})</span>
+                    <span className="ml-1">— {aggregation === 'count' ? 'count' : aggregation === 'sum' ? 'somme' : 'moyenne'}</span>
+                  </span>
+                </div>
+              )}
+
+              {/* Warning for non-numeric field with sum/avg */}
+              {selectedField && !selectedField.isNumeric && aggregation !== 'count' && (
+                <div className="mt-1 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                  <AlertCircle className="h-3 w-3 shrink-0" />
+                  Ce champ n&apos;est pas numerique — {aggregation === 'sum' ? 'la somme' : 'la moyenne'} peut echouer
+                </div>
+              )}
+            </>
+          ) : selectedFormId ? (
+            <div className="text-xs text-gray-400 italic py-2">Chargement des champs du formulaire...</div>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
@@ -697,14 +858,35 @@ function KpiPicker({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Fetch KPI definitions dynamically from the API
+  const { data: kpiData, isLoading: kpiLoading } = useKpiDefinitions({ isActive: true });
+  const kpiDefinitions: any[] = useMemo(() => {
+    const raw = (kpiData as any)?.data ?? kpiData;
+    return Array.isArray(raw) ? raw : [];
+  }, [kpiData]);
+
+  // Build KPI codes list: API data + fallback hardcoded list
+  const allKpiCodes = useMemo(() => {
+    if (kpiDefinitions.length > 0) {
+      return kpiDefinitions.map((kpi: any) => ({
+        code: kpi.code,
+        name: kpi.nameFr || kpi.nameEn || kpi.name || kpi.code,
+        scope: kpi.scope || '',
+        domain: kpi.domainCode || '',
+      }));
+    }
+    // Fallback to hardcoded if API returns nothing
+    return KNOWN_KPI_CODES.map((code) => ({ code, name: code.replace(/_/g, ' '), scope: '', domain: '' }));
+  }, [kpiDefinitions]);
+
   const currentCode = (config.kpiCode as string) ?? '';
-  const isKnownCode = KNOWN_KPI_CODES.includes(currentCode);
+  const isKnownCode = allKpiCodes.some((k) => k.code === currentCode);
 
   const filteredKpis = useMemo(() => {
-    if (!searchQuery) return KNOWN_KPI_CODES;
+    if (!searchQuery) return allKpiCodes;
     const q = searchQuery.toLowerCase();
-    return KNOWN_KPI_CODES.filter((code) => code.toLowerCase().includes(q));
-  }, [searchQuery]);
+    return allKpiCodes.filter((k) => k.code.toLowerCase().includes(q) || k.name.toLowerCase().includes(q));
+  }, [searchQuery, allKpiCodes]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -716,6 +898,8 @@ function KpiPicker({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const selectedKpi = allKpiCodes.find((k) => k.code === currentCode);
 
   return (
     <div className="space-y-3" ref={dropdownRef}>
@@ -746,38 +930,69 @@ function KpiPicker({
         )}
       </div>
 
-      {isOpen && filteredKpis.length > 0 ? (
+      {isOpen && (
         <div className="relative z-10">
-          <div className="absolute top-0 left-0 right-0 max-h-48 overflow-y-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
-            {filteredKpis.map((code) => (
-              <button
-                key={code}
-                type="button"
-                onClick={() => {
-                  onChange({ kpiCode: code });
-                  setSearchQuery('');
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 text-sm font-mono transition-colors ${
-                  currentCode === code ? 'bg-[#1F4E79]/5 dark:bg-[#1F4E79]/20 text-[#1F4E79] dark:text-[#C9A227]' : 'text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                {code}
-              </button>
-            ))}
+          <div className="absolute top-0 left-0 right-0 max-h-52 overflow-y-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+            {kpiLoading ? (
+              <div className="px-3 py-4 text-center text-sm text-gray-500">{t('dbLoading')}</div>
+            ) : filteredKpis.length === 0 ? (
+              <div className="px-3 py-4 text-center text-sm text-gray-500">Aucun KPI trouve</div>
+            ) : (
+              filteredKpis.map((kpi) => (
+                <button
+                  key={kpi.code}
+                  type="button"
+                  onClick={() => {
+                    onChange({ kpiCode: kpi.code });
+                    setSearchQuery('');
+                    setIsOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-colors ${
+                    currentCode === kpi.code ? 'bg-[#1F4E79]/5 dark:bg-[#1F4E79]/20' : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm font-mono truncate ${currentCode === kpi.code ? 'text-[#1F4E79] dark:text-[#C9A227] font-medium' : 'text-gray-700 dark:text-gray-300'}`}>
+                      {kpi.code}
+                    </span>
+                    {kpi.scope && (
+                      <span className="ml-2 shrink-0 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[#1F4E79]/10 text-[#1F4E79] dark:bg-[#C9A227]/20 dark:text-[#C9A227]">
+                        {kpi.scope}
+                      </span>
+                    )}
+                  </div>
+                  {kpi.name !== kpi.code && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                      {kpi.name}
+                      {kpi.domain && <span className="ml-1 text-gray-400">({kpi.domain})</span>}
+                    </div>
+                  )}
+                </button>
+              ))
+            )}
           </div>
         </div>
-      ) : null}
+      )}
 
-      {/* Validation feedback */}
+      {/* Selected KPI summary */}
+      {currentCode && selectedKpi && (
+        <div className="rounded-md border border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+            <div>
+              <span className="text-sm font-medium text-green-800 dark:text-green-200 font-mono">{selectedKpi.code}</span>
+              {selectedKpi.name !== selectedKpi.code && (
+                <p className="text-xs text-green-700 dark:text-green-300">{selectedKpi.name}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Validation feedback for custom codes */}
       {currentCode && !isKnownCode && (
         <p className="text-xs text-amber-600 dark:text-amber-400">
           {t('dbCustomKpiHint')}
-        </p>
-      )}
-      {currentCode && isKnownCode && (
-        <p className="text-xs text-green-600 dark:text-green-400">
-          {t('dbRecognizedKpi')}
         </p>
       )}
     </div>
