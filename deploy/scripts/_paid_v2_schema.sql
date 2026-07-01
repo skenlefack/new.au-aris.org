@@ -17,7 +17,7 @@ DROP TABLE IF EXISTS animal_health.paid_sectors CASCADE;
 -- 2. Create new PAID v2 tables
 -- ============================================================
 
--- Projects (LICS: OHDAA, ANGR, LIVESYS, VET_GOV)
+-- Projects (LICS: AQBIOD, RAFFS, ANGR, LIVESYS, APMD, PPPS_RVLC, AH_VET_GOV)
 CREATE TABLE IF NOT EXISTS animal_health.paid_projects (
   id SERIAL PRIMARY KEY,
   code VARCHAR(30) NOT NULL UNIQUE,

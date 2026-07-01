@@ -160,9 +160,9 @@ class MasterDataRefresher @Inject constructor(
 
     private suspend fun refreshSpecies() {
         try {
-            val response = syncApi.fetchSpecies()
+            val allSpecies = syncApi.fetchAllSpecies()
             val now = System.currentTimeMillis()
-            val entities = response.data.map { dto ->
+            val entities = allSpecies.map { dto ->
                 SpeciesEntity(
                     id = dto.id,
                     commonName = dto.resolvedName,
@@ -181,9 +181,9 @@ class MasterDataRefresher @Inject constructor(
 
     private suspend fun refreshDiseases() {
         try {
-            val response = syncApi.fetchDiseases()
+            val allDiseases = syncApi.fetchAllDiseases()
             val now = System.currentTimeMillis()
-            val entities = response.data.map { dto ->
+            val entities = allDiseases.map { dto ->
                 DiseaseEntity(
                     id = dto.id,
                     name = dto.resolvedName,
@@ -203,9 +203,9 @@ class MasterDataRefresher @Inject constructor(
 
     private suspend fun refreshGeo() {
         try {
-            val response = syncApi.fetchGeoUnits()
+            val allGeo = syncApi.fetchAllGeoUnits()
             val now = System.currentTimeMillis()
-            val entities = response.data.map { dto ->
+            val entities = allGeo.map { dto ->
                 GeoEntity(
                     id = dto.id,
                     name = dto.name,

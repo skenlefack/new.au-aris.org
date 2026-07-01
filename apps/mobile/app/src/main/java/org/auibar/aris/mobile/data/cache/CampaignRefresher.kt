@@ -94,9 +94,9 @@ class CampaignRefresher @Inject constructor(
 
     private suspend fun refreshCampaigns() {
         try {
-            val response = campaignApi.getActiveCampaigns()
+            val response = campaignApi.getActiveCampaignsSafe()
             val now = System.currentTimeMillis()
-            val entities = response.data.map { it.toEntity(now) }
+            val entities = response.map { it.toEntity(now) }
             campaignDao.upsertAll(entities)
             cachePolicy.markRefreshed(CachePolicy.KEY_CAMPAIGNS)
             Log.d(TAG, "Campaigns refreshed: ${entities.size} items")

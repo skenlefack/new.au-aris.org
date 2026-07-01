@@ -82,12 +82,12 @@ class InitialSyncViewModel @Inject constructor(
             val totalSteps = _state.value.steps.size
             var completedCount = 0
 
-            // Step 0: Geo
+            // Step 0: Geo (paginated — backend MAX_LIMIT=100)
             updateStep(0, StepStatus.IN_PROGRESS)
             try {
-                val response = syncApi.fetchGeoUnits()
+                val allGeo = syncApi.fetchAllGeoUnits()
                 val now = System.currentTimeMillis()
-                val entities = response.data.map { dto ->
+                val entities = allGeo.map { dto ->
                     GeoEntity(
                         id = dto.id,
                         name = dto.name,
@@ -108,12 +108,12 @@ class InitialSyncViewModel @Inject constructor(
             }
             updateProgress(completedCount, totalSteps)
 
-            // Step 1: Species
+            // Step 1: Species (paginated — backend MAX_LIMIT=100)
             updateStep(1, StepStatus.IN_PROGRESS)
             try {
-                val response = syncApi.fetchSpecies()
+                val allSpecies = syncApi.fetchAllSpecies()
                 val now = System.currentTimeMillis()
-                val entities = response.data.map { dto ->
+                val entities = allSpecies.map { dto ->
                     SpeciesEntity(
                         id = dto.id,
                         commonName = dto.resolvedName,
@@ -133,12 +133,12 @@ class InitialSyncViewModel @Inject constructor(
             }
             updateProgress(completedCount, totalSteps)
 
-            // Step 2: Diseases
+            // Step 2: Diseases (paginated — backend MAX_LIMIT=100)
             updateStep(2, StepStatus.IN_PROGRESS)
             try {
-                val response = syncApi.fetchDiseases()
+                val allDiseases = syncApi.fetchAllDiseases()
                 val now = System.currentTimeMillis()
-                val entities = response.data.map { dto ->
+                val entities = allDiseases.map { dto ->
                     DiseaseEntity(
                         id = dto.id,
                         name = dto.resolvedName,

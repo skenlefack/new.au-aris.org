@@ -85,7 +85,7 @@ class SyncRepository @Inject constructor(
                     break
                 }
 
-                val syncData = response.data
+                val syncData = response.data ?: break // Server returned error without data
                 val now = System.currentTimeMillis()
 
                 processSyncResponse(syncData, now)

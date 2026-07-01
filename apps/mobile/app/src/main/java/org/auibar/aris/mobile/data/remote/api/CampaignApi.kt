@@ -104,6 +104,24 @@ class CampaignApi @Inject constructor(
         return client.get("/api/v1/collecte/campaigns?status=ACTIVE").body()
     }
 
+    /** Safe variant that handles error responses without crashing. */
+    suspend fun getActiveCampaignsSafe(): List<CampaignDto> {
+        return try {
+            val response = client.get("/api/v1/collecte/campaigns") {
+                parameter("status", "ACTIVE")
+            }
+            if (response.status.value !in 200..299) {
+                Log.w(TAG, "getActiveCampaignsSafe → HTTP ${response.status.value}")
+                return emptyList()
+            }
+            val body: SafeApiResponse<List<CampaignDto>> = response.body()
+            body.data ?: emptyList()
+        } catch (e: Exception) {
+            Log.w(TAG, "getActiveCampaignsSafe failed: ${e.message}")
+            emptyList()
+        }
+    }
+
     /**
      * Get ALL campaigns for a domain (all statuses). Safe parsing.
      * Uses /api/v1/workflow/campaigns (same as web PlanningsSection)

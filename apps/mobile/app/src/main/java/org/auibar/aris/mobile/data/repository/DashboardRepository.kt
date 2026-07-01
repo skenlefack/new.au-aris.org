@@ -37,19 +37,19 @@ class DashboardRepository @Inject constructor(
 
     suspend fun getKpis(forceRefresh: Boolean = false): Result<List<KpiCard>> {
         return getCachedOrFetch(CachePolicy.KEY_KPI_HEALTH, forceRefresh) {
-            analyticsApi.getHealthKpis().data.kpis
+            analyticsApi.getHealthKpis().data?.kpis ?: emptyList()
         }
     }
 
     suspend fun getContinentalKpis(forceRefresh: Boolean = false): Result<List<KpiCard>> {
         return getCachedOrFetch(CachePolicy.KEY_KPI_CONTINENTAL, forceRefresh) {
-            analyticsApi.getContinentalKpis().data.kpis
+            analyticsApi.getContinentalKpis().data?.kpis ?: emptyList()
         }
     }
 
     suspend fun getDomainKpis(domainKey: String, forceRefresh: Boolean = false): Result<List<KpiCard>> {
         return getCachedOrFetch(CachePolicy.keyKpiDomain(domainKey), forceRefresh) {
-            analyticsApi.getDomainKpis(domainKey).data.kpis
+            analyticsApi.getDomainKpis(domainKey).data?.kpis ?: emptyList()
         }
     }
 
@@ -95,7 +95,7 @@ class DashboardRepository @Inject constructor(
         // 2. Fetch from network
         return try {
             val response = analyticsApi.getDashboardCharts()
-            val charts = response.data
+            val charts = response.data ?: DashboardChartsResponse()
             // Persist to Room
             val entity = KpiSnapshotEntity(
                 id = roomKey,

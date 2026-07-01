@@ -5,7 +5,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
-import org.auibar.aris.mobile.data.remote.dto.ApiResponse
+import org.auibar.aris.mobile.data.remote.dto.SafeApiResponse
 import org.auibar.aris.mobile.data.remote.dto.BeneficiariesByCountryResponse
 import org.auibar.aris.mobile.data.remote.dto.KpiResponse
 import org.auibar.aris.mobile.data.remote.dto.SubmissionsByDomainResponse
@@ -95,39 +95,39 @@ data class DomainSummaryResponse(
 class AnalyticsApi @Inject constructor(
     private val client: HttpClient,
 ) {
-    suspend fun getHealthKpis(): ApiResponse<KpiResponse> {
+    suspend fun getHealthKpis(): SafeApiResponse<KpiResponse> {
         return client.get("/api/v1/analytics/health/kpis").body()
     }
 
-    suspend fun getContinentalKpis(): ApiResponse<KpiResponse> {
+    suspend fun getContinentalKpis(): SafeApiResponse<KpiResponse> {
         return client.get("/api/v1/analytics/continental/kpis").body()
     }
 
-    suspend fun getDomainKpis(domainKey: String): ApiResponse<KpiResponse> {
+    suspend fun getDomainKpis(domainKey: String): SafeApiResponse<KpiResponse> {
         return client.get("/api/v1/analytics/$domainKey/kpis").body()
     }
 
-    suspend fun getDashboardCharts(): ApiResponse<DashboardChartsResponse> {
+    suspend fun getDashboardCharts(): SafeApiResponse<DashboardChartsResponse> {
         return client.get("/api/v1/analytics/dashboard/charts").body()
     }
 
-    suspend fun getSubmissionsByDomain(): ApiResponse<SubmissionsByDomainResponse> {
+    suspend fun getSubmissionsByDomain(): SafeApiResponse<SubmissionsByDomainResponse> {
         return client.get("/api/v1/analytics/submissions/by-domain").body()
     }
 
-    suspend fun getSubmissionsTimeline(period: String = "monthly"): ApiResponse<SubmissionsTimelineResponse> {
+    suspend fun getSubmissionsTimeline(period: String = "monthly"): SafeApiResponse<SubmissionsTimelineResponse> {
         return client.get("/api/v1/analytics/submissions/timeline") {
             parameter("period", period)
         }.body()
     }
 
-    suspend fun getBeneficiariesByCountry(): ApiResponse<BeneficiariesByCountryResponse> {
+    suspend fun getBeneficiariesByCountry(): SafeApiResponse<BeneficiariesByCountryResponse> {
         return client.get("/api/v1/analytics/beneficiaries/by-country").body()
     }
 
     suspend fun getDomainSummary(domainCode: String): DomainSummaryResponse {
         return try {
-            val response: ApiResponse<DomainSummaryResponse> = client.get("/api/v1/analytics/domains/$domainCode/summary").body()
+            val response: SafeApiResponse<DomainSummaryResponse> = client.get("/api/v1/analytics/domains/$domainCode/summary").body()
             response.data ?: DomainSummaryResponse()
         } catch (e: Exception) {
             Log.w("AnalyticsApi", "getDomainSummary($domainCode) failed: ${e.message}")

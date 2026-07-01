@@ -116,15 +116,13 @@ export interface PaidProject {
 }
 
 export const PAID_PROJECT_CODES = [
-  { code: 'RAFFS', title: 'Resilient African Feed and Fodder Systems' },
-  { code: 'PPR', title: 'Pan African PPR Eradication Programme' },
-  { code: 'APMD', title: 'Africa Pastoral Market Development' },
-  { code: 'AQBIOD', title: 'Aquatic Biodiversity' },
-  { code: 'AUOHDAA', title: 'African Union One Health Data Alliance' },
-  { code: 'AWFDKY', title: 'Animal Welfare; Donkey Species Preservation' },
-  { code: 'TADS', title: 'Regional program for controlling Transboundary Animal Diseases' },
-  { code: 'FISHGOV', title: 'Enhancing Sustainable Fisheries Management and Aquaculture Development' },
-  { code: 'PPREU', title: 'EU support for PPR Eradication' },
+  { code: 'AQBIOD', title: 'Aquatic Biodiversity (FISH GOV 2)' },
+  { code: 'RAFFS', title: 'Regional Animal Feed and Fodder Systems (RAFFS)' },
+  { code: 'ANGR', title: 'Animal Genetics Resources (AnGR)' },
+  { code: 'LIVESYS', title: 'Climate Resilient and Sustainable Livestock Systems' },
+  { code: 'APMD', title: 'African Pastoral Markets Development (APMD)' },
+  { code: 'PPPS_RVLC', title: 'Producers-Public-Private Partnerships & Regional Value Chains (PPPPs-RVLC)' },
+  { code: 'AH_VET_GOV', title: 'Animal Health, One Health, Disease Control & Veterinary Governance' },
 ] as const;
 
 /* ------------------------------------------------------------------ */

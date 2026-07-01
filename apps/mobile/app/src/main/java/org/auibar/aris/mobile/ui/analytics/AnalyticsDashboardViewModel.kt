@@ -56,7 +56,7 @@ class AnalyticsDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val response = analyticsApi.getSubmissionsTimeline(period)
-                _timeline.value = response.data.points
+                _timeline.value = response.data?.points ?: emptyList()
             } catch (e: Exception) {
                 // Keep existing timeline data on period switch failure
             }
@@ -87,19 +87,19 @@ class AnalyticsDashboardViewModel @Inject constructor(
                 kpiResult.onFailure { _error.value = it.message }
 
                 try {
-                    _submissionsByDomain.value = domainDeferred.await().data.items
+                    _submissionsByDomain.value = domainDeferred.await().data?.items ?: emptyList()
                 } catch (e: Exception) {
                     if (_error.value == null) _error.value = e.message
                 }
 
                 try {
-                    _timeline.value = timelineDeferred.await().data.points
+                    _timeline.value = timelineDeferred.await().data?.points ?: emptyList()
                 } catch (e: Exception) {
                     if (_error.value == null) _error.value = e.message
                 }
 
                 try {
-                    _beneficiariesByCountry.value = beneficiariesDeferred.await().data.items
+                    _beneficiariesByCountry.value = beneficiariesDeferred.await().data?.items ?: emptyList()
                 } catch (e: Exception) {
                     if (_error.value == null) _error.value = e.message
                 }

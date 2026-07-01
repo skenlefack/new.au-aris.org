@@ -1,6 +1,6 @@
 """
-PAID v2 Seed — Parse AMERT Excel and populate new PAID tables.
-Creates schema + inserts 4 LICS projects with full hierarchy.
+PAID v2 Seed — Parse AMERT Excel (V-03 refine_Nephat) and populate PAID tables.
+TRUNCATES all PAID tables then re-inserts 7 LICS projects with full hierarchy.
 
 Usage: python deploy/scripts/_paid_v2_seed.py [--target stg|prod]
 """
@@ -20,10 +20,21 @@ TARGETS = {
 
 EXCEL_PATH = os.path.join(os.path.dirname(__file__), "..", "..",
     "form", "LICS",
-    "AMERT SUB- ACTIVITY BREAKDOWN FOR LICS - 2026 - OHDAA, ANGR, LIVESYS, VET GOV.xlsx")
+    "AMERT SUB- ACTIVITY BREAKDOWN FOR LICS - 2026 - V-03 refine_Nephat.xlsx")
 
-# Project metadata
+# ── Project metadata ──────────────────────────────────────────
+# Maps internal project code → title, type, countries
 PROJECT_META = {
+    "AQBIOD": {
+        "title": "Aquatic Biodiversity (FISH GOV 2)",
+        "type": "multiple_countries",
+        "countries": ["KE", "TZ", "MZ", "MG", "SN", "GH", "NG", "CM", "MR", "CV"],
+    },
+    "RAFFS": {
+        "title": "Regional Animal Feed and Fodder Systems (RAFFS)",
+        "type": "multiple_countries",
+        "countries": ["KE", "ET", "NG", "TZ", "UG", "SN", "NE", "ML", "BF", "TD"],
+    },
     "ANGR": {
         "title": "Animal Genetics Resources (AnGR)",
         "type": "multiple_countries",
@@ -34,24 +45,115 @@ PROJECT_META = {
         "type": "multiple_countries",
         "countries": ["KE", "ET", "NG", "TZ", "UG", "SN", "NE", "ML", "BF", "TD"],
     },
-    "OHDAA": {
-        "title": "One Health, Disease Control, Animal Health & Veterinary Governance",
+    "APMD": {
+        "title": "African Pastoral Markets Development (APMD)",
         "type": "multiple_countries",
-        "countries": ["KE", "ET", "NG", "TZ", "UG", "SN", "CM", "GH", "ZA", "MZ"],
+        "countries": ["KE", "ET", "NG", "TZ", "UG", "SN", "NE", "ML", "BF", "TD", "DJ", "SO"],
     },
-    "VET_GOV": {
-        "title": "Veterinary Governance and Animal Welfare",
+    "PPPS_RVLC": {
+        "title": "Producers-Public-Private Partnerships & Regional Value Chains (PPPPs-RVLC)",
+        "type": "multiple_countries",
+        "countries": ["KE", "ET", "NG", "TZ", "UG", "SN", "GH", "CM", "ZA", "MZ"],
+    },
+    "AH_VET_GOV": {
+        "title": "Animal Health, One Health, Disease Control & Veterinary Governance",
         "type": "multiple_countries",
         "countries": ["KE", "ET", "NG", "TZ", "UG", "SN", "CM", "GH", "ZA", "MZ"],
     },
 }
 
+# ── Excel project name → internal project code ──────────────
+PROJECT_NAME_MAP = {
+    "AQUATIC BIODIVERSITY": "AQBIOD",
+    "FISH GOV 2": "AQBIOD",       # sub-header within AQUATIC BIODIVERSITY
+    "RAFFS PROJECT": "RAFFS",
+    "ANGR": "ANGR",
+    "LIVESYS": "LIVESYS",
+    "APMD": "APMD",
+    "PPPS - RVLC": "PPPS_RVLC",
+    "AH & VET GOV": "AH_VET_GOV",
+}
+
 # Executive partners (per project)
 EXEC_PARTNERS = {
+    "AQBIOD": ["AU-IBAR"],
+    "RAFFS": ["AU-IBAR"],
     "ANGR": ["AU-IBAR"],
     "LIVESYS": ["AU-IBAR"],
-    "OHDAA": ["AU-IBAR", "FAO"],
-    "VET_GOV": ["AU-IBAR"],
+    "APMD": ["AU-IBAR"],
+    "PPPS_RVLC": ["AU-IBAR"],
+    "AH_VET_GOV": ["AU-IBAR", "FAO"],
+}
+
+# International implementing partners (per project)
+INTL_PARTNERS = {
+    "AQBIOD": ["FAO", "WorldFish"],
+    "RAFFS": ["ILRI", "ICRISAT"],
+    "ANGR": ["ILRI", "ICARDA"],
+    "LIVESYS": ["ILRI", "FAO", "ICARDA", "CIRAD"],
+    "APMD": ["ILRI", "FAO"],
+    "PPPS_RVLC": ["ILRI", "FAO"],
+    "AH_VET_GOV": ["FAO", "WOAH", "WHO", "ILRI"],
+}
+
+# National implementing partners (per project + country)
+NATIONAL_PARTNERS = {
+    "AQBIOD": {
+        "KE": ["Kenya Fisheries Service (KeFS)"],
+        "TZ": ["Tanzania Fisheries Research Institute (TAFIRI)"],
+        "MZ": ["Instituto Nacional de Investigacao Pesqueira (IIP)"],
+        "SN": ["Direction des Peches Maritimes, Senegal"],
+        "GH": ["Fisheries Commission, Ghana"],
+        "NG": ["Federal Department of Fisheries, Nigeria"],
+    },
+    "RAFFS": {
+        "KE": ["KALRO - Kenya Agricultural and Livestock Research Organization"],
+        "ET": ["Ethiopian Institute of Agricultural Research (EIAR)"],
+        "NG": ["National Animal Production Research Institute (NAPRI)"],
+        "TZ": ["Tanzania Livestock Research Institute (TALIRI)"],
+        "SN": ["ISRA - Institut Senegalais de Recherches Agricoles"],
+    },
+    "ANGR": {
+        "KE": ["Kenya Agricultural and Livestock Research Organization (KALRO)", "Ministry of Agriculture, Kenya"],
+        "ET": ["Ethiopian Institute of Agricultural Research (EIAR)"],
+        "NG": ["National Animal Production Research Institute (NAPRI)"],
+        "TZ": ["Tanzania Livestock Research Institute (TALIRI)"],
+        "UG": ["National Animal Genetic Resources Centre (NAGRC)"],
+        "SN": ["ISRA - Institut Senegalais de Recherches Agricoles"],
+        "CM": ["IRAD - Institut de Recherche Agricole pour le Developpement"],
+        "ZA": ["Agricultural Research Council (ARC)"],
+    },
+    "LIVESYS": {
+        "KE": ["Ministry of Agriculture, Kenya", "KALRO"],
+        "ET": ["Ministry of Agriculture, Ethiopia"],
+        "NG": ["Federal Ministry of Agriculture, Nigeria"],
+        "TZ": ["Ministry of Livestock and Fisheries, Tanzania"],
+        "UG": ["Ministry of Agriculture, Uganda"],
+        "SN": ["Ministere de l'Elevage, Senegal"],
+    },
+    "APMD": {
+        "KE": ["Ministry of Agriculture, Kenya"],
+        "ET": ["Ministry of Agriculture, Ethiopia"],
+        "NG": ["Federal Ministry of Agriculture, Nigeria"],
+        "SN": ["Ministere de l'Elevage, Senegal"],
+        "DJ": ["Ministere de l'Agriculture, Djibouti"],
+    },
+    "PPPS_RVLC": {
+        "KE": ["Ministry of Agriculture, Kenya"],
+        "ET": ["Ministry of Agriculture, Ethiopia"],
+        "NG": ["Federal Ministry of Agriculture, Nigeria"],
+        "GH": ["Ministry of Food and Agriculture, Ghana"],
+    },
+    "AH_VET_GOV": {
+        "KE": ["DVS Kenya - Directorate of Veterinary Services"],
+        "ET": ["Ethiopian Veterinary Drug and Animal Feed Authority"],
+        "NG": ["Federal Ministry of Agriculture, Nigeria"],
+        "TZ": ["Tanzania Veterinary Laboratory Agency (TVLA)"],
+        "GH": ["Veterinary Services Directorate, Ghana"],
+        "ZA": ["Department of Agriculture, Land Reform and Rural Development"],
+        "SN": ["Direction des Services Veterinaires, Senegal"],
+        "ML": ["Direction Nationale des Services Veterinaires, Mali"],
+    },
 }
 
 # Breakdown fields for training activities
@@ -68,16 +170,26 @@ def esc(s):
     return str(s).replace("'", "''").strip()
 
 
+def clean_code(code):
+    """Normalize a code: strip whitespace and trailing dots."""
+    c = code.strip()
+    while c.endswith("."):
+        c = c[:-1]
+    return c
+
+
 def parse_excel():
-    """Parse the AMERT Excel and return structured hierarchy."""
+    """Parse the AMERT V-03 Excel and return structured hierarchy.
+
+    Structure:
+      Project header → Output (X.X) → Activity (X.X.X.XX) → Sub-activity (X.X.X.XX.XX)
+    Logframes are auto-derived from the first 3 segments of Activity codes (X.X.X).
+    """
     wb = openpyxl.load_workbook(EXCEL_PATH, read_only=True, data_only=True)
     ws = wb["Sheet1"]
 
     current_project = None
-    current_output_code = None
-    current_logframe_code = None
-    current_activity_code = None
-
+    current_output_label = None
     projects = {}
 
     for row in ws.iter_rows(min_row=2, max_row=ws.max_row, values_only=True):
@@ -89,18 +201,21 @@ def parse_excel():
         col_f = str(row[5] or "").strip()  # PAID activity label
         col_g = str(row[6] or "").strip()  # PAID activity unit
 
-        # Project header (no dots, no other columns)
-        if col_a and "." not in col_a and not col_b and not col_c:
-            # Map Excel name to our project codes
+        if not col_a:
+            continue
+
+        # ── Project header (no digits at all) ──
+        has_digit = any(ch.isdigit() for ch in col_a.replace(" ", ""))
+        if not has_digit:
             name_upper = col_a.upper().strip()
-            if "VET" in name_upper or "AH" in name_upper:
-                current_project = "OHDAA"
-            elif name_upper == "ANGR":
-                current_project = "ANGR"
-            elif name_upper == "LIVESYS":
-                current_project = "LIVESYS"
+            mapped = PROJECT_NAME_MAP.get(name_upper)
+            if mapped:
+                current_project = mapped
             else:
-                current_project = col_a.upper().replace(" ", "_")
+                # Fallback: use the name as-is
+                current_project = name_upper.replace(" ", "_").replace("-", "_")
+                print(f"  [WARN] Unmapped project name: '{col_a}' -> {current_project}")
+
             if current_project not in projects:
                 projects[current_project] = {"logframes": {}}
             continue
@@ -108,64 +223,105 @@ def parse_excel():
         if not current_project:
             continue
 
-        dots = col_a.count(".")
+        code = clean_code(col_a)
+        parts = code.split(".")
+        num_parts = len(parts)
 
-        # Output (e.g. 2.2) — we skip this level, use logframe directly
-        if dots == 1 and col_b:
-            current_output_code = col_a
+        # ── Output level: X.X (2 parts) ──
+        if num_parts == 2 and col_b:
+            current_output_label = col_b
             continue
 
-        # Logframe (e.g. 2.2.1)
-        if dots == 2 and col_b:
-            current_logframe_code = col_a
-            projects[current_project]["logframes"][col_a] = {
-                "label": col_b,
-                "activities": {},
-            }
-            continue
-
-        # Activity (e.g. 2.2.1.01)
-        if dots == 3 and col_c:
-            current_activity_code = col_a
-            lf_key = ".".join(col_a.split(".")[:3])
-            if lf_key in projects[current_project]["logframes"]:
-                projects[current_project]["logframes"][lf_key]["activities"][col_a] = {
-                    "label": col_c,
-                    "subactivities": {},
+        # ── Logframe level: X.X.X (3 parts) — explicit row (rare in V-03) ──
+        if num_parts == 3 and col_b:
+            lf_code = code
+            if lf_code not in projects[current_project]["logframes"]:
+                projects[current_project]["logframes"][lf_code] = {
+                    "label": col_b,
+                    "activities": {},
                 }
             continue
 
-        # Sub-activity (e.g. 2.2.1.01.01)
-        if dots == 4 and col_d:
-            lf_key = ".".join(col_a.split(".")[:3])
-            act_key = ".".join(col_a.split(".")[:4])
+        # ── Activity level: X.X.X.XX (4 parts) ──
+        if num_parts == 4 and col_c:
+            # Auto-create logframe from first 3 parts if not already present
+            lf_code = ".".join(parts[:3])
+            if lf_code not in projects[current_project]["logframes"]:
+                # Use the output label or derive from activity
+                lf_label = current_output_label or col_c
+                projects[current_project]["logframes"][lf_code] = {
+                    "label": lf_label,
+                    "activities": {},
+                }
+
+            projects[current_project]["logframes"][lf_code]["activities"][code] = {
+                "label": col_c,
+                "subactivities": {},
+            }
+            continue
+
+        # ── Sub-activity level: X.X.X.XX.XX (5 parts) ──
+        if num_parts == 5:
+            lf_code = ".".join(parts[:3])
+            act_code = ".".join(parts[:4])
+
+            # Build label: prefer col_d, fallback to col_c
+            sa_label = col_d or col_c
+            if not sa_label:
+                continue
+
             try:
-                projects[current_project]["logframes"][lf_key]["activities"][act_key]["subactivities"][col_a] = {
-                    "label": col_d,
+                projects[current_project]["logframes"][lf_code]["activities"][act_code]["subactivities"][code] = {
+                    "label": sa_label,
                     "unit": col_e,
                     "paid_activity": col_f,
                     "paid_unit": col_g,
                 }
             except KeyError:
-                pass
+                # Activity or logframe missing — auto-create
+                if lf_code not in projects[current_project]["logframes"]:
+                    projects[current_project]["logframes"][lf_code] = {
+                        "label": current_output_label or "Auto-derived",
+                        "activities": {},
+                    }
+                if act_code not in projects[current_project]["logframes"][lf_code]["activities"]:
+                    projects[current_project]["logframes"][lf_code]["activities"][act_code] = {
+                        "label": f"Activity {act_code}",
+                        "subactivities": {},
+                    }
+                projects[current_project]["logframes"][lf_code]["activities"][act_code]["subactivities"][code] = {
+                    "label": sa_label,
+                    "unit": col_e,
+                    "paid_activity": col_f,
+                    "paid_unit": col_g,
+                }
 
     wb.close()
     return projects
 
 
 def generate_sql(projects):
-    """Generate INSERT SQL from parsed hierarchy."""
+    """Generate TRUNCATE + INSERT SQL from parsed hierarchy."""
     lines = []
 
-    # Read and include schema SQL
-    schema_path = os.path.join(os.path.dirname(__file__), "_paid_v2_schema.sql")
-    with open(schema_path, "r", encoding="utf-8") as f:
-        lines.append(f.read())
+    # ── TRUNCATE all PAID tables (reverse dependency order) ──
+    lines.append("-- ============================================================")
+    lines.append("-- TRUNCATE all PAID tables")
+    lines.append("-- ============================================================")
+    lines.append("TRUNCATE TABLE animal_health.paid_breakdown_fields CASCADE;")
+    lines.append("TRUNCATE TABLE animal_health.paid_paid_activities CASCADE;")
+    lines.append("TRUNCATE TABLE animal_health.paid_subactivities CASCADE;")
+    lines.append("TRUNCATE TABLE animal_health.paid_lf_activities CASCADE;")
+    lines.append("TRUNCATE TABLE animal_health.paid_logframes CASCADE;")
+    lines.append("TRUNCATE TABLE animal_health.paid_impl_partners_national CASCADE;")
+    lines.append("TRUNCATE TABLE animal_health.paid_impl_partners_intl CASCADE;")
+    lines.append("TRUNCATE TABLE animal_health.paid_executive_partners CASCADE;")
+    lines.append("TRUNCATE TABLE animal_health.paid_projects CASCADE;")
     lines.append("")
 
-    # Insert projects
+    # ── Insert projects ──
     lines.append("-- ============================================================")
-    lines.append("-- SEED DATA")
+    lines.append("-- SEED DATA (V-03 refine_Nephat)")
     lines.append("-- ============================================================")
     lines.append("")
 
@@ -179,7 +335,7 @@ def generate_sql(projects):
 
     lines.append("")
 
-    # Executive partners
+    # ── Executive partners ──
     for proj, partners in EXEC_PARTNERS.items():
         for p in partners:
             lines.append(
@@ -188,11 +344,29 @@ def generate_sql(projects):
             )
     lines.append("")
 
-    # Logframes, activities, sub-activities, PAID activities
+    # ── International implementing partners ──
+    for proj, partners in INTL_PARTNERS.items():
+        for p in partners:
+            lines.append(
+                f"INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) "
+                f"VALUES ('{esc(proj)}', '{esc(p)}');"
+            )
+    lines.append("")
+
+    # ── National implementing partners ──
+    for proj, countries in NATIONAL_PARTNERS.items():
+        for cc, partners in countries.items():
+            for p in partners:
+                lines.append(
+                    f"INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) "
+                    f"VALUES ('{esc(proj)}', '{esc(cc)}', '{esc(p)}');"
+                )
+    lines.append("")
+
+    # ── Logframes, activities, sub-activities, PAID activities ──
     paid_activity_codes_seen = set()
 
     for proj_code, proj_data in projects.items():
-        # Map project codes if needed
         if proj_code not in PROJECT_META:
             print(f"  [WARN] Skipping unknown project: {proj_code}")
             continue
@@ -267,18 +441,31 @@ def deploy_sql(sql, target_key):
         f.write(sql)
     sftp.close()
 
+    # Determine container name based on target
+    pg_container = "aris-stg-postgres" if target_key == "stg" else "aris-postgres"
+    sudo = f"echo '{SSH_PASS}' | sudo -S"
     db_url = f"postgresql://{t['db_user']}:{t['db_pass']}@localhost:5432/aris"
-    cmd = f'psql "{db_url}" -f {remote_path}'
+
+    # Copy SQL file into container, then run via psql inside container
+    copy_cmd = f"{sudo} docker cp {remote_path} {pg_container}:/tmp/_paid_v2_seed.sql"
+    exec_cmd = (
+        f"{sudo} docker exec {pg_container} psql "
+        f"\"postgresql://{t['db_user']}:{t['db_pass']}@localhost:5432/aris\" "
+        f"-f /tmp/_paid_v2_seed.sql"
+    )
+
+    print(f"[*] Copying SQL to {pg_container}...")
+    ssh.exec_command(copy_cmd, timeout=30)
 
     print("[*] Running seed SQL...")
-    _, stdout, stderr = ssh.exec_command(cmd, timeout=120)
+    _, stdout, stderr = ssh.exec_command(exec_cmd, timeout=120)
     out = stdout.read().decode("utf-8", errors="replace")
     err = stderr.read().decode("utf-8", errors="replace")
 
     # Count inserts
     insert_count = out.count("INSERT")
-    create_count = out.count("CREATE")
-    print(f"  Created {create_count} tables, inserted {insert_count} rows")
+    truncate_count = out.count("TRUNCATE")
+    print(f"  Truncated {truncate_count} tables, inserted {insert_count} rows")
 
     if err.strip():
         err_clean = "\n".join(
@@ -296,9 +483,16 @@ UNION ALL SELECT 'activities', count(*) FROM animal_health.paid_lf_activities
 UNION ALL SELECT 'subactivities', count(*) FROM animal_health.paid_subactivities
 UNION ALL SELECT 'paid_activities', count(*) FROM animal_health.paid_paid_activities
 UNION ALL SELECT 'breakdown_fields', count(*) FROM animal_health.paid_breakdown_fields
-UNION ALL SELECT 'exec_partners', count(*) FROM animal_health.paid_executive_partners;
+UNION ALL SELECT 'exec_partners', count(*) FROM animal_health.paid_executive_partners
+UNION ALL SELECT 'impl_intl', count(*) FROM animal_health.paid_impl_partners_intl
+UNION ALL SELECT 'impl_national', count(*) FROM animal_health.paid_impl_partners_national;
 """
-    _, stdout2, _ = ssh.exec_command(f'psql "{db_url}" -t -c "{verify_sql}"', timeout=15)
+    verify_cmd = (
+        f"{sudo} docker exec {pg_container} psql "
+        f"\"postgresql://{t['db_user']}:{t['db_pass']}@localhost:5432/aris\" "
+        f"-t -c \"{verify_sql}\""
+    )
+    _, stdout2, _ = ssh.exec_command(verify_cmd, timeout=15)
     verify = stdout2.read().decode("utf-8", errors="replace").strip()
     print(f"\n  Verification:\n{verify}")
 
@@ -315,7 +509,7 @@ def main():
         if arg in TARGETS:
             target = arg
 
-    print("[*] Parsing AMERT Excel...")
+    print("[*] Parsing AMERT Excel (V-03 refine_Nephat)...")
     projects = parse_excel()
 
     total_lf = sum(len(p["logframes"]) for p in projects.values())

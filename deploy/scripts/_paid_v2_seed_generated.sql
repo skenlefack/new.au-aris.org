@@ -1,147 +1,258 @@
--- PAID v2 Schema — New hierarchical tables for LICS projects
--- Run in: animal_health schema on PostgreSQL 16
+-- ============================================================
+-- TRUNCATE all PAID tables
+-- ============================================================
+TRUNCATE TABLE animal_health.paid_breakdown_fields CASCADE;
+TRUNCATE TABLE animal_health.paid_paid_activities CASCADE;
+TRUNCATE TABLE animal_health.paid_subactivities CASCADE;
+TRUNCATE TABLE animal_health.paid_lf_activities CASCADE;
+TRUNCATE TABLE animal_health.paid_logframes CASCADE;
+TRUNCATE TABLE animal_health.paid_impl_partners_national CASCADE;
+TRUNCATE TABLE animal_health.paid_impl_partners_intl CASCADE;
+TRUNCATE TABLE animal_health.paid_executive_partners CASCADE;
+TRUNCATE TABLE animal_health.paid_projects CASCADE;
 
 -- ============================================================
--- 1. Drop old PAID tables
--- ============================================================
-DROP TABLE IF EXISTS animal_health.paid_partners_national CASCADE;
-DROP TABLE IF EXISTS animal_health.paid_partners_intl CASCADE;
-DROP TABLE IF EXISTS animal_health.paid_projects CASCADE;
-DROP TABLE IF EXISTS animal_health.paid_diseases CASCADE;
-DROP TABLE IF EXISTS animal_health.paid_production_systems CASCADE;
-DROP TABLE IF EXISTS animal_health.paid_species CASCADE;
-DROP TABLE IF EXISTS animal_health.paid_activities CASCADE;
-DROP TABLE IF EXISTS animal_health.paid_sectors CASCADE;
-
--- ============================================================
--- 2. Create new PAID v2 tables
+-- SEED DATA (V-03 refine_Nephat)
 -- ============================================================
 
--- Projects (LICS: OHDAA, ANGR, LIVESYS, VET_GOV)
-CREATE TABLE IF NOT EXISTS animal_health.paid_projects (
-  id SERIAL PRIMARY KEY,
-  code VARCHAR(30) NOT NULL UNIQUE,
-  title TEXT NOT NULL,
-  type VARCHAR(20) NOT NULL DEFAULT 'single_country',
-  countries TEXT[] DEFAULT '{}',
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX idx_paid_projects_type ON animal_health.paid_projects(type);
-
--- Executive partners (per project)
-CREATE TABLE IF NOT EXISTS animal_health.paid_executive_partners (
-  id SERIAL PRIMARY KEY,
-  project_code VARCHAR(30) NOT NULL,
-  name VARCHAR(300) NOT NULL,
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX idx_paid_exec_partners_project ON animal_health.paid_executive_partners(project_code);
-
--- Implementing partners international (per project)
-CREATE TABLE IF NOT EXISTS animal_health.paid_impl_partners_intl (
-  id SERIAL PRIMARY KEY,
-  project_code VARCHAR(30) NOT NULL,
-  name VARCHAR(300) NOT NULL,
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX idx_paid_impl_intl_project ON animal_health.paid_impl_partners_intl(project_code);
-
--- Implementing partners national (per project + country)
-CREATE TABLE IF NOT EXISTS animal_health.paid_impl_partners_national (
-  id SERIAL PRIMARY KEY,
-  project_code VARCHAR(30) NOT NULL,
-  country_code VARCHAR(5),
-  name VARCHAR(300) NOT NULL,
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX idx_paid_impl_nat_project ON animal_health.paid_impl_partners_national(project_code);
-CREATE INDEX idx_paid_impl_nat_country ON animal_health.paid_impl_partners_national(country_code);
-
--- Log Frame Activity (AMERT) — per project
-CREATE TABLE IF NOT EXISTS animal_health.paid_logframes (
-  id SERIAL PRIMARY KEY,
-  code VARCHAR(30) NOT NULL UNIQUE,
-  project_code VARCHAR(30) NOT NULL,
-  label TEXT NOT NULL,
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX idx_paid_logframes_project ON animal_health.paid_logframes(project_code);
-
--- Activity — per logframe
-CREATE TABLE IF NOT EXISTS animal_health.paid_lf_activities (
-  id SERIAL PRIMARY KEY,
-  code VARCHAR(30) NOT NULL UNIQUE,
-  logframe_code VARCHAR(30) NOT NULL,
-  label TEXT NOT NULL,
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX idx_paid_lf_activities_logframe ON animal_health.paid_lf_activities(logframe_code);
-
--- Sub-activity — per activity
-CREATE TABLE IF NOT EXISTS animal_health.paid_subactivities (
-  id SERIAL PRIMARY KEY,
-  code VARCHAR(30) NOT NULL UNIQUE,
-  activity_code VARCHAR(30) NOT NULL,
-  label TEXT NOT NULL,
-  unit_of_measure VARCHAR(100),
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX idx_paid_subactivities_activity ON animal_health.paid_subactivities(activity_code);
-
--- PAID Activity — per sub-activity (carries the unit of measure)
-CREATE TABLE IF NOT EXISTS animal_health.paid_paid_activities (
-  id SERIAL PRIMARY KEY,
-  code VARCHAR(50) NOT NULL UNIQUE,
-  subactivity_code VARCHAR(30) NOT NULL,
-  label TEXT NOT NULL,
-  unit_of_measure VARCHAR(100),
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX idx_paid_paid_activities_sub ON animal_health.paid_paid_activities(subactivity_code);
-
--- Breakdown fields config (dynamic fields per PAID activity)
-CREATE TABLE IF NOT EXISTS animal_health.paid_breakdown_fields (
-  id SERIAL PRIMARY KEY,
-  paid_activity_code VARCHAR(50) NOT NULL,
-  field_code VARCHAR(50) NOT NULL,
-  field_label TEXT NOT NULL,
-  field_type VARCHAR(20) NOT NULL DEFAULT 'number',
-  field_options JSONB,
-  sort_order INT NOT NULL DEFAULT 0,
-  is_required BOOLEAN NOT NULL DEFAULT false,
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(paid_activity_code, field_code)
-);
-CREATE INDEX idx_paid_breakdown_pa ON animal_health.paid_breakdown_fields(paid_activity_code);
-
-
--- ============================================================
--- SEED DATA
--- ============================================================
-
+INSERT INTO animal_health.paid_projects (code, title, type, countries) VALUES ('AQBIOD', 'Aquatic Biodiversity (FISH GOV 2)', 'multiple_countries', '{KE,TZ,MZ,MG,SN,GH,NG,CM,MR,CV}') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_projects (code, title, type, countries) VALUES ('RAFFS', 'Regional Animal Feed and Fodder Systems (RAFFS)', 'multiple_countries', '{KE,ET,NG,TZ,UG,SN,NE,ML,BF,TD}') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_projects (code, title, type, countries) VALUES ('ANGR', 'Animal Genetics Resources (AnGR)', 'multiple_countries', '{KE,ET,NG,TZ,UG,SN,CM,ZA}') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_projects (code, title, type, countries) VALUES ('LIVESYS', 'Climate Resilient and Sustainable Livestock Systems', 'multiple_countries', '{KE,ET,NG,TZ,UG,SN,NE,ML,BF,TD}') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_projects (code, title, type, countries) VALUES ('OHDAA', 'One Health, Disease Control, Animal Health & Veterinary Governance', 'multiple_countries', '{KE,ET,NG,TZ,UG,SN,CM,GH,ZA,MZ}') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_projects (code, title, type, countries) VALUES ('VET_GOV', 'Veterinary Governance and Animal Welfare', 'multiple_countries', '{KE,ET,NG,TZ,UG,SN,CM,GH,ZA,MZ}') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_projects (code, title, type, countries) VALUES ('APMD', 'African Pastoral Markets Development (APMD)', 'multiple_countries', '{KE,ET,NG,TZ,UG,SN,NE,ML,BF,TD,DJ,SO}') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_projects (code, title, type, countries) VALUES ('PPPS_RVLC', 'Producers-Public-Private Partnerships & Regional Value Chains (PPPPs-RVLC)', 'multiple_countries', '{KE,ET,NG,TZ,UG,SN,GH,CM,ZA,MZ}') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_projects (code, title, type, countries) VALUES ('AH_VET_GOV', 'Animal Health, One Health, Disease Control & Veterinary Governance', 'multiple_countries', '{KE,ET,NG,TZ,UG,SN,CM,GH,ZA,MZ}') ON CONFLICT (code) DO NOTHING;
 
+INSERT INTO animal_health.paid_executive_partners (project_code, name) VALUES ('AQBIOD', 'AU-IBAR');
+INSERT INTO animal_health.paid_executive_partners (project_code, name) VALUES ('RAFFS', 'AU-IBAR');
 INSERT INTO animal_health.paid_executive_partners (project_code, name) VALUES ('ANGR', 'AU-IBAR');
 INSERT INTO animal_health.paid_executive_partners (project_code, name) VALUES ('LIVESYS', 'AU-IBAR');
-INSERT INTO animal_health.paid_executive_partners (project_code, name) VALUES ('OHDAA', 'AU-IBAR');
-INSERT INTO animal_health.paid_executive_partners (project_code, name) VALUES ('OHDAA', 'FAO');
-INSERT INTO animal_health.paid_executive_partners (project_code, name) VALUES ('VET_GOV', 'AU-IBAR');
+INSERT INTO animal_health.paid_executive_partners (project_code, name) VALUES ('APMD', 'AU-IBAR');
+INSERT INTO animal_health.paid_executive_partners (project_code, name) VALUES ('PPPS_RVLC', 'AU-IBAR');
+INSERT INTO animal_health.paid_executive_partners (project_code, name) VALUES ('AH_VET_GOV', 'AU-IBAR');
+INSERT INTO animal_health.paid_executive_partners (project_code, name) VALUES ('AH_VET_GOV', 'FAO');
+
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('AQBIOD', 'FAO');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('AQBIOD', 'WorldFish');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('RAFFS', 'ILRI');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('RAFFS', 'ICRISAT');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('ANGR', 'ILRI');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('ANGR', 'ICARDA');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('LIVESYS', 'ILRI');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('LIVESYS', 'FAO');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('LIVESYS', 'ICARDA');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('LIVESYS', 'CIRAD');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('APMD', 'ILRI');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('APMD', 'FAO');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('PPPS_RVLC', 'ILRI');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('PPPS_RVLC', 'FAO');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('AH_VET_GOV', 'FAO');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('AH_VET_GOV', 'WOAH');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('AH_VET_GOV', 'WHO');
+INSERT INTO animal_health.paid_impl_partners_intl (project_code, name) VALUES ('AH_VET_GOV', 'ILRI');
+
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('AQBIOD', 'KE', 'Kenya Fisheries Service (KeFS)');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('AQBIOD', 'TZ', 'Tanzania Fisheries Research Institute (TAFIRI)');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('AQBIOD', 'MZ', 'Instituto Nacional de Investigacao Pesqueira (IIP)');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('AQBIOD', 'SN', 'Direction des Peches Maritimes, Senegal');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('AQBIOD', 'GH', 'Fisheries Commission, Ghana');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('AQBIOD', 'NG', 'Federal Department of Fisheries, Nigeria');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('RAFFS', 'KE', 'KALRO - Kenya Agricultural and Livestock Research Organization');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('RAFFS', 'ET', 'Ethiopian Institute of Agricultural Research (EIAR)');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('RAFFS', 'NG', 'National Animal Production Research Institute (NAPRI)');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('RAFFS', 'TZ', 'Tanzania Livestock Research Institute (TALIRI)');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('RAFFS', 'SN', 'ISRA - Institut Senegalais de Recherches Agricoles');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('ANGR', 'KE', 'Kenya Agricultural and Livestock Research Organization (KALRO)');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('ANGR', 'KE', 'Ministry of Agriculture, Kenya');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('ANGR', 'ET', 'Ethiopian Institute of Agricultural Research (EIAR)');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('ANGR', 'NG', 'National Animal Production Research Institute (NAPRI)');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('ANGR', 'TZ', 'Tanzania Livestock Research Institute (TALIRI)');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('ANGR', 'UG', 'National Animal Genetic Resources Centre (NAGRC)');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('ANGR', 'SN', 'ISRA - Institut Senegalais de Recherches Agricoles');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('ANGR', 'CM', 'IRAD - Institut de Recherche Agricole pour le Developpement');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('ANGR', 'ZA', 'Agricultural Research Council (ARC)');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('LIVESYS', 'KE', 'Ministry of Agriculture, Kenya');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('LIVESYS', 'KE', 'KALRO');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('LIVESYS', 'ET', 'Ministry of Agriculture, Ethiopia');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('LIVESYS', 'NG', 'Federal Ministry of Agriculture, Nigeria');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('LIVESYS', 'TZ', 'Ministry of Livestock and Fisheries, Tanzania');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('LIVESYS', 'UG', 'Ministry of Agriculture, Uganda');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('LIVESYS', 'SN', 'Ministere de l''Elevage, Senegal');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('APMD', 'KE', 'Ministry of Agriculture, Kenya');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('APMD', 'ET', 'Ministry of Agriculture, Ethiopia');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('APMD', 'NG', 'Federal Ministry of Agriculture, Nigeria');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('APMD', 'SN', 'Ministere de l''Elevage, Senegal');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('APMD', 'DJ', 'Ministere de l''Agriculture, Djibouti');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('PPPS_RVLC', 'KE', 'Ministry of Agriculture, Kenya');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('PPPS_RVLC', 'ET', 'Ministry of Agriculture, Ethiopia');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('PPPS_RVLC', 'NG', 'Federal Ministry of Agriculture, Nigeria');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('PPPS_RVLC', 'GH', 'Ministry of Food and Agriculture, Ghana');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('AH_VET_GOV', 'KE', 'DVS Kenya - Directorate of Veterinary Services');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('AH_VET_GOV', 'ET', 'Ethiopian Veterinary Drug and Animal Feed Authority');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('AH_VET_GOV', 'NG', 'Federal Ministry of Agriculture, Nigeria');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('AH_VET_GOV', 'TZ', 'Tanzania Veterinary Laboratory Agency (TVLA)');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('AH_VET_GOV', 'GH', 'Veterinary Services Directorate, Ghana');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('AH_VET_GOV', 'ZA', 'Department of Agriculture, Land Reform and Rural Development');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('AH_VET_GOV', 'SN', 'Direction des Services Veterinaires, Senegal');
+INSERT INTO animal_health.paid_impl_partners_national (project_code, country_code, name) VALUES ('AH_VET_GOV', 'ML', 'Direction Nationale des Services Veterinaires, Mali');
+
+-- Project: AQBIOD
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('1.1.1', 'AQBIOD', 'Conservation of fishery resources and their ecosystems enhanced in the context of Africa''s Blue Economy') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.1.1.01', '1.1.1', 'Support regional and national initiatives for implementation and governance of marine spatial planning process') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.1.1.02', '1.1.1', 'Strengthen knowledge management and Advocacy for inclusive aquatic biodiversity conservation and environmental management') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.1.1.02.01', '1.1.1.02', 'Communication, Advocacy and Visibility,', 'Number of communication and advocacy materials developed') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.1.1.02.01_PA', '1.1.1.02.01', 'Communication Media (radio, TV, video, pamphlet, newsletters, etc.)', 'number') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.1.1.03', '1.1.1', 'Support active participation of MSs in regional and global initiatives related to aquatic biodiversity and environmental regimes (including ABNJ, CITES, COP meeting relating to CC, BRS)') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.1.1.03.02', '1.1.1.03', 'Organize online virtual training workshop on active participation of MSs in regional and global initiatives related to aquatic biodiversity and environmental regimes x 2 days', 'Number of training workshops conducted; Number of Member States participating') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.1.1.03.02_PA', '1.1.1.03.02', 'Training /sensitization/Capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.1.1.03.02_PA', 'n_female_trained', 'Number of females trained', 'number', 0, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.1.1.03.02_PA', 'n_male_trained', 'Number of males trained', 'number', 1, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.1.1.04', '1.1.1', 'Promote Ratification and implementation of conventions and agreements related to conservation of biodiversity in AU MSs and RECs') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.1.1.04.02', '1.1.1.04', 'Conduct one continental training workshop among AU Member States on key priority Instruments (Principally, The  Agreement under the United Nations Convention on the Law of the Sea on the Conservation and Sustainable Use of Marine Biological Diversity of Areas Beyond National Jurisdiction (BBNJ Agreement); The Kunming-Montreal Global Biodiversity Framework (GBF);Agreement to promote compliance, with international conservation and management, measures by fishing vessels on the high seas; UN Fish S', '# of training workshops , # MS participating') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.1.1.04.02_PA', '1.1.1.04.02', 'Training /sensitization/Capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.1.1.04.02_PA', 'n_female_trained', 'Number of females trained', 'number', 0, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.1.1.04.02_PA', 'n_male_trained', 'Number of males trained', 'number', 1, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.1.1.04.03', '1.1.1.04', 'Enhance effective role and participation  of AU member states in regional, continental and global aquatic biodiversity and environmental related regimes', '# of MS enaged') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.1.1.04.03_PA', '1.1.1.04.03', 'coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.1.1.05', '1.1.1', 'Strengthen enforceable regulatory frameworks for effective and sustainable regional MCS systems – (MCS, data collection and LME)') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.1.1.05.02', '1.1.1.05', 'Organize a training workshop on effective and sustainable regional MCS systems', '# of training workshops , # MS participating') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.1.1.05.02_PA', '1.1.1.05.02', 'Training /sensitization/Capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.1.1.05.02_PA', 'n_female_trained', 'Number of females trained', 'number', 0, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.1.1.05.02_PA', 'n_male_trained', 'Number of males trained', 'number', 1, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.1.1.06', '1.1.1', 'Operationalize a framework for establishing national, regional and transboundary cooperation on Africa Blue Economy Strategy Thematic Areas') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.1.1.07', '1.1.1', 'Strengthen capacities for restoring and conserving threatened aquatic biodiversity and environment - (MPA and CoEs)') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.1.1.07.02', '1.1.1.07', 'Organize one regional expert training workshop on restoring and conserving threatened aquatic biodiversity and environment', '# of training workshops conducted , # MS participating') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.1.1.07.02_PA', '1.1.1.07.02', 'Training /sensitization/Capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.1.1.07.02_PA', 'n_female_trained', 'Number of females trained', 'number', 0, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.1.1.07.02_PA', 'n_male_trained', 'Number of males trained', 'number', 1, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.1.1.08', '1.1.1', 'Strengthen measures for minimizing the negative impacts of climate change on biodiversity and environment - (NBS and plastics)') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.1.1.08.02', '1.1.1.08', 'Collaborate on ongoing initiatives to Pilot the continent strategy on nature-based solutions in two communities', '# of Pilot Initiatives supported, # of Pilot communities supported') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.1.1.08.02_PA', '1.1.1.08.02', 'policy and stratey formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.1.1.09', '1.1.1', 'Roll out Strategies and priority actions for an integrated strategic framework for sustainable (minimizing negative effects of) coastal and marine tourism and mining on conservation of aquatic biodiversity') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.1.1.09.02', '1.1.1.09', 'Organize training workshop for 4 days including travel days', 'Number of training workshops conducted; Number of Member States participating') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.1.1.09.02_PA', '1.1.1.09.02', 'Training /sensitization/Capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.1.1.09.02_PA', 'n_female_trained', 'Number of females trained', 'number', 0, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.1.1.09.02_PA', 'n_male_trained', 'Number of males trained', 'number', 1, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.1.1.09.03', '1.1.1.09', 'Organize exchange on best practices for production, handing and processing and marketing and inclusive fisheries', '# of exchange workshops conducted, # Participants engaged') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.1.1.09.03_PA', '1.1.1.09.03', 'coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.1.1.10', '1.1.1', 'Promote blue economy value chain development and enhance capacity of the value chain actors') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.1.1.11', '1.1.1', 'Enhance capacities of Centres of excellence in aquatic biodiversity conservation and ecosystems management') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.1.1.11.01', '1.1.1.11', '.Support capacity building on the continent in aquatic biodiversity conservation and ecosystems management', 'Number of capacity-building activities conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.1.1.11.01_PA', '1.1.1.11.01', 'Training /sensitization/Capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.1.1.11.01_PA', 'n_female_trained', 'Number of females trained', 'number', 0, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.1.1.11.01_PA', 'n_male_trained', 'Number of males trained', 'number', 1, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.1.1.11.03', '1.1.1.11', 'Organize one annual meeting of AU Endorsed centres of excellence; to operationalize the network of COEs, workplans, coordination, student exchange programme', 'Number of coordination meetings conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.1.1.11.03_PA', '1.1.1.11.03', 'coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.1.1.12', '1.1.1', 'Support stakeholders’ consultation to validate the fisheries and aquaculture blue economy strategies at national and regional levels') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('1.2.1', 'AQBIOD', 'Sustainable fisheries management and aquaculture development enhanced') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.01', '1.2.1', 'Facilitate access to quality knowledge products on African fisheries and aquaculture') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.01.01', '1.2.1.01', 'Collect and centralize information and research relating to fisheries and aquaculture in Africa as a repository within AU institutions and establish a mechanism for regular updating', 'Number of datasets compiled and centralized, Number of repository systems established') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.01.01_PA', '1.2.1.01.01', 'Management of Information System/ Database', 'number') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.02', '1.2.1', 'Operationalise existing platforms and networks for effective participation of stakeholders in policy development and implementation') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.02.01', '1.2.1.02', 'Simplify and operationalise the AFRM', 'Number of systems operationalized') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.02.01_PA', '1.2.1.02.01', 'coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.03', '1.2.1', 'Put in place and integrate into the CAADP process a solid reporting system to the STC- ARDWE on the implementation of the PFRS') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.03.01', '1.2.1.03', 'Actively contribute to the agenda of STC meetings, based on strategic planning and support the organization of biennial African ministerial dialogue on Fisheries and aquaculture', 'Number of technical contributions to policy processes, Number of policy meetings supported') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.03.01_PA', '1.2.1.03.01', 'coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.04', '1.2.1', 'Develop mechanisms to ensure sustainable fisheries and aquaculture are mainstreamed in the development of AU policies / initiatives affecting the sector') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.04.01', '1.2.1.04', 'Map initiatives that are underway or planned at the AU that are relevant to fisheries and aquaculture and contribute to their development / implementation by providing relevant input (of. discussions on blue economy, maritime security, environmental protection and ocean governance etc). Build synergies and support alignment among these different sectors', 'Number of initiatives mapped and aligned') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.04.01_PA', '1.2.1.04.01', 'policy and strategy formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.05', '1.2.1', 'Improve advocacy and create awareness on the importance of sustainable fisheries and aquaculture') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.05.01', '1.2.1.05', 'Develop and operationalise an effective communication and advocacy strategy, in collaboration with competent AU services;', 'Number of communication strategies developed and operationalized') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.05.01_PA', '1.2.1.05.01', 'policy and strategy formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.05.02', '1.2.1.05', 'Strengthen communication and advocacy capacities in AUC, AU-IBAR and AUDA-NEPAD.', 'Number of capacity-building activities conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.05.02_PA', '1.2.1.05.02', 'Training /sensitization/Capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.2.1.05.02_PA', 'n_female_trained', 'Number of females trained', 'number', 0, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.2.1.05.02_PA', 'n_male_trained', 'Number of males trained', 'number', 1, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.06', '1.2.1', 'Strengthen capacities of Member States to develop realistic sustainable fisheries and aquaculture policies in coherence with the PFRS') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.06.01', '1.2.1.06', 'Support member States in reviewing their policies and legislations and aligning them with best international practices (i.e. the FAO code of conduct for responsible Fisheries, etc) and existing continental / regional instruments (e.g. PRFS, RFB/RSC recommendations etc)', 'Number of Member States supported in policy alignment') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.06.01_PA', '1.2.1.06.01', 'policy and strategy formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.06.02', '1.2.1.06', 'Mainstream sustainable and climate-resilient fisheries and aquaculture in NAIPS, RAIPs and other Investment programmes', 'Number of programmes integrating fisheries priorities') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.06.02_PA', '1.2.1.06.02', 'Training /sensitization/Capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.2.1.06.02_PA', 'n_female_trained', 'Number of females trained', 'number', 0, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.2.1.06.02_PA', 'n_male_trained', 'Number of males trained', 'number', 1, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.07', '1.2.1', 'Enhance capacities of AU Member States – including SIDS - in terms of international negotiations and put in place a mechanism to coordinate African common positions') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.07.01', '1.2.1.07', 'Identify specific needs of African SIDS and take them into account in strategic positions in international fora', 'Number of assessments conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.07.01_PA', '1.2.1.07.01', 'survey/assessments', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.07.02', '1.2.1.07', 'Prepare African common positions using AU processes', 'Number of common positions developed') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.07.02_PA', '1.2.1.07.02', 'policy and strategy formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.07.03', '1.2.1.07', 'Assist AU policy organs in the identification and participation of African champions (HSG and Ministers) in relevant High level events, enhancing visibility of the African voice', 'Number of high-level engagements supported') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.07.03_PA', '1.2.1.07.03', 'coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.08', '1.2.1', 'Put in place mechanisms to encourage and facilitate the domestication of global instruments and initiatives at continental, regional and national levels') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.08.01', '1.2.1.08', 'Establish and regularly update their state of ratification and domestication', 'Number of Member States monitored for ratification and domestication status') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.08.01_PA', '1.2.1.08.01', 'policy and strategy formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.08.02', '1.2.1.08', 'Identify mechanisms supporting developing countries’ involvement and compliance and promote their use by AU member States', 'Number of mechanisms developed and promoted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.08.02_PA', '1.2.1.08.02', 'policy and strategy formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.09', '1.2.1', 'Strengthen capacities of AU Member States to effectively articulate African positions on fisheries and aquaculture in the AU-EU dialogue') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.09.01', '1.2.1.09', 'Collect information on relevant EU initiatives (Alliance for Sustainable Investment and Jobs, EIP etc)', 'Number of policy intelligence reports produced') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.09.01_PA', '1.2.1.09.01', 'policy and strategy formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.09.02', '1.2.1.09', 'Engage in a regular sectoral dialogue with European Commission services and identify issues of common interest', 'Number of policy dialogues conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.09.02_PA', '1.2.1.09.02', 'coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.09.03', '1.2.1.09', 'Prepare technical inputs to relevant AU bodies in view of AU-EU summits', 'Number of technical inputs developed') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.09.03_PA', '1.2.1.09.03', 'coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.09.04', '1.2.1.09', 'Consider the organisation of joint technical events or the development of common positions at global level', 'Number of joint technical events organized; Number of common positions developed') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.09.04_PA', '1.2.1.09.04', 'coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.10', '1.2.1', 'Support AU MSs and RECs to improve aquatic animal health capacities') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.10.01', '1.2.1.10', 'Enhance the capacity of fisheries and aquaculture traders with due consideration for small scale traders and women engaged in fish trade an processing;', 'Number of capacity-building activities conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('1.2.1.10.01_PA', '1.2.1.10.01', 'Training /sensitization/Capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.2.1.10.01_PA', 'n_female_trained', 'Number of females trained', 'number', 0, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('1.2.1.10.01_PA', 'n_male_trained', 'Number of males trained', 'number', 1, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.11', '1.2.1', 'Support Centres of Excellence in Fisheries and Aquaculture') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('1.2.1.11.01', '1.2.1.11', 'Procure Equipment for Fishculture/Aquaculture', '') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.12', '1.2.1', 'Support operationalization of networks and platforms (including women and youth) for inclusive fisheries and aquaculture governance; Operationalizing AFRM') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.13', '1.2.1', 'Enhance ocean governance capacity and promote climate change adaptation and resilience in fisheries and aquaculture') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.14', '1.2.1', 'Facilitate transboundary management and partnership for management of shared fish stocks and aquaculture resources') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.15', '1.2.1', 'Strength effective participation of private sector, Women and youth in fisheries and aquaculture value chain') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.16', '1.2.1', 'Promote suitability of aquaculture and small-scale fisheries (marine and inland) for increased sustainable contribution to food and nutrition security and income') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.17', '1.2.1', 'Other project operating costs') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.1.18', '1.2.1', 'Project Staff Costs') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('1.2.2', 'AQBIOD', 'Sustainable fisheries management and aquaculture development enhanced') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.2.01', '1.2.2', 'Improve capacities and systems for regional collaboration and integration regarding shared fisheries and aquaculture resources management') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.2.02', '1.2.2', 'Support the AU-IBAR/Worldfish/COMESA initiative on Fish Trade for Livelihoods and Nutrition Security') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.2.03', '1.2.2', 'Promote PPP in fisheries and aquaculture and enhance capacity for inter and Intra-regional fish trade development') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.2.04', '1.2.2', 'Launch regional frameworks and mechanisms in support of sustainable management and utilization of transboundary aquatic genetic resources for sustainable fisheries and aquaculture development') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.2.05', '1.2.2', 'Strengthen capacities to facilitate intra and inter regional fish trade in line with the regional integration trade agenda and the Protocol on Trade in Goods of the Africa Continental Free Trade Area') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('1.2.2.06', '1.2.2', 'Strengthen capacities of RECs and RFBs to develop realistic sustainable fisheries and aquaculture policies in coherence with the PFRS') ON CONFLICT (code) DO NOTHING;
+
+-- Project: RAFFS
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.1.1', 'RAFFS', 'Availability of Feed and Fodder promoted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.1.1.01', '2.1.1', 'Re-articulate and reposition the feed and fodder development sector to be demand-driven') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.1.1.01.01', '2.1.1.01', 'Development of key knowledge products: Policy briefs, Discussion papers and peer reviewed articles with IFPRI', 'Number of knowledge products developed') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.1.1.01.01_PA', '2.1.1.01.01', 'policy and strategy formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.1.1.01.02', '2.1.1.01', 'Development and update of feed inventories: Completion of Cameroon Spatial Analysis and Finalize Technical Reports for Cameroon and Nigeria. Consolidation of the Regulated and Integrated Feed and Fodder Early Warning System', 'Number of country feed inventories developed and updated; Number of data systems operationalized') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.1.1.01.03', '2.1.1.01', 'A desk review/study on the effect of the crises on women, children and other vulnerable groups access to animal sourced foods', 'Number of analytical studies conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.1.1.01.03_PA', '2.1.1.01.03', 'survey/assessments', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.1.1.02', '2.1.1', 'Develop and institutionalise Investment, financing, insurance options for the feed and fodder sector') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.1.1.03', '2.1.1', 'Support viable business models, strategic partnerships, catalytic interventions for coordinated action') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.1.1.04', '2.1.1', 'Establish and operationalise a knowledge and analytical ecosystem for informing evidence-based solutions on feed and fodder') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.1.1.04.01', '2.1.1.04', 'Installation and Operationalization of Equipment for National Data Ecosystems', 'Number of data systems installed and operationalized') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.1.1.04.01_PA', '2.1.1.04.01', 'Management of Information System/ Database', 'number') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.1.1.04.02', '2.1.1.04', 'Technical Assistance & Capacity Building for Cameroon, Zimbabwe, and Uganda', 'Number of technical assistance and capacity-building activities conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.1.1.04.02_PA', '2.1.1.04.02', 'Training /sensitization/Capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('2.1.1.04.02_PA', 'n_female_trained', 'Number of females trained', 'number', 0, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('2.1.1.04.02_PA', 'n_male_trained', 'Number of males trained', 'number', 1, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.1.1.04.03', '2.1.1.04', 'Consolidation of Criteria for a Functional Feed & Fodder Data Ecosystem', 'Number of technical criteria frameworks developed and consolidated') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.1.1.04.03_PA', '2.1.1.04.03', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.1.1.04.04', '2.1.1.04', 'Institutionalization of National Data Ecosystems (5 Countries)', 'Number of national data ecosystems institutionalized') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.1.1.04.04_PA', '2.1.1.04.04', 'Management of Information System/ Database', 'number') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.1.1.04.05', '2.1.1.04', 'Completion of Dashboarding for Investment Profiles (4 Countries)', 'Number of country investment dashboards developed and completed') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.1.1.04.05_PA', '2.1.1.04.05', 'Management of Information System/ Database', 'number') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.1.1.04.06', '2.1.1.04', 'Initiate IFFMIS Co-Development with Safaricom', 'Number of system co-development initiatives initiated') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.1.1.04.06_PA', '2.1.1.04.06', 'Management of Information System/ Database', 'number') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.1.1.04.07', '2.1.1.04', 'Indicator Standardization (ARSO Collaboration)', 'Number of indicator frameworks standardized') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.1.1.04.07_PA', '2.1.1.04.07', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.1.1.05', '2.1.1', 'Develop and implement policies, regulations, and institutions reformed for the development of a more sustainable and resilient feed and fodder industry') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.1.1.05.01', '2.1.1.05', 'Review and address gaps and opportunities of national feed and fodder industry policy and regulatory frameworks', 'Number of policy reviews and gap assessments conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.1.1.05.01_PA', '2.1.1.05.01', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.1.1.05.02', '2.1.1.05', 'Support accountability on feed and fodder sector in the CAADP Biennial Review Report and 10 year assessment of Malabo Declaraton', 'Number of accountability and reporting processes supported') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.1.1.05.02_PA', '2.1.1.05.02', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.1.1.06', '2.1.1', 'Empower women to participate and benefit from feed and fodder and animal-sourced food supply chains to enhance their food and nutrition security') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.1.1.08', '2.1.1', 'Activity 2.1.1.08') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.1.1.08.01', '2.1.1.08', 'Resource mobilisation for the 2nd Phase of the RAFFS Project', '') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.1.1.08.02', '2.1.1.08', 'Innovative finance and financial mechanisms and infrastructure', '') ON CONFLICT (code) DO NOTHING;
 
 -- Project: ANGR
-INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.2.1', 'ANGR', '# of African Union Animal Seed Centres of Excellence (CoEs) supported to provide services to AU MSs') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.2.1', 'ANGR', 'Animal Genetics enhanced') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.2.1.01', '2.2.1', 'Promote and operationalize the African Union Animal Seed Centres of Excellence and the continental gene bank') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.2.1.01.01', '2.2.1.01', 'Support the MOU approvals and domestication and SOPs', 'Number of MOUs approved and SOPs developed and domesticated') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.2.1.01.01_PA', '2.2.1.01.01', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
@@ -169,11 +280,9 @@ INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_o
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.2.1.04.02_PA', '2.2.1.04.02', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.2.1.04.03', '2.2.1.04', 'Formulate and domesticate national animal seed industry guidelines and standards', 'Number of guidelines and standards developed and domesticated') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.2.1.04.03_PA', '2.2.1.04.03', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.2.1.05', '2.2.1', 'Project Staff Costs') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.2.1.06', '2.2.1', 'Other Project Operating Costs') ON CONFLICT (code) DO NOTHING;
 
 -- Project: LIVESYS
-INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.3.1', 'LIVESYS', 'Output Indicator: Number of Member States supported to effectively participate at global climate change agenda fora') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.3.1', 'LIVESYS', 'Climate Resilient and sustainable livestock systems promoted') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.3.1.01', '2.3.1', 'Promote enabling institutional and policy environment for increased targeted Investment for climate smart production systems') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.3.1.01.01', '2.3.1.01', 'Develop and domesticate an Africa Common Position on Sustainable, Resilient and Nature-positive livetsock systems', 'Number of continental policy positions developed and domesticated') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.3.1.01.01_PA', '2.3.1.01.01', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
@@ -203,11 +312,62 @@ INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_o
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.3.1.04.02_PA', '2.3.1.04.02', 'Management of Information System/ Database', 'number') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.3.1.04.03', '2.3.1.04', 'Establish and operationalize a climate livetsock consortium - climate risk analytics, inventorires on livestock methane emmissions etc', 'Number of coordination platforms established') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.3.1.04.03_PA', '2.3.1.04.03', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.3.1.05', '2.3.1', 'Project Staff Costs') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.3.1.06', '2.3.1', 'Other project operating costs') ON CONFLICT (code) DO NOTHING;
 
--- Project: OHDAA
-INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.6.1', 'OHDAA', '% implementation of the continental strategy for the elimination of Rabies') ON CONFLICT (code) DO NOTHING;
+-- Project: APMD
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.4.1', 'APMD', 'Pastoral production systems transformed') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.4.1.01', '2.4.1', 'Assess the implementation of Priority transformation actions') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.01.01', '2.4.1.01', 'Develop National Livestock socio-economic contribution briefs', 'Number of national socio-economic briefs developed') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.01.01_PA', '2.4.1.01.01', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.01.02', '2.4.1.01', 'Develop Continental Pastoral Market Integration Impact dashboard', 'Number of continental dashboards developed and operationalized') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.01.02_PA', '2.4.1.01.02', 'Management of Information System/ Database', 'number') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.01.03', '2.4.1.01', 'Support the integration of Prioritized Livestock Sector Intervention 2 (PLSI2) into Kampala CAADP reporting framework', 'Number of reporting frameworks integrated') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.01.03_PA', '2.4.1.01.03', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.4.1.02', '2.4.1', 'Promote the adoption and implementation of Pastoral Market Transformation strategy and actions') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.02.01', '2.4.1.02', 'Training on Market Access through Quality Assurance and Contracting Models', 'Number of training sessions conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.02.01_PA', '2.4.1.02.01', 'Training /sensitization/Capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('2.4.1.02.01_PA', 'n_female_trained', 'Number of females trained', 'number', 0, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('2.4.1.02.01_PA', 'n_male_trained', 'Number of males trained', 'number', 1, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.02.02', '2.4.1.02', 'Facilitate Annual Pan-African Pastoral Market Convenings (Africa Pastoral Markets Transformation Forum — Showcasing Proven Business Models & Investment Opportunities)', 'Number of continental convenings conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.02.02_PA', '2.4.1.02.02', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.02.03', '2.4.1.02', 'Facilitate pastoralists and private sector actors’ participation in regional and international buyer–seller forums and livestock trade fairs (e.g., Kenya Meat Expo, Dubai Gulf Food, AgriInvest Africa ) to expand offtake markets and strengthen direct linkages to high-value markets', 'Number of market linkage events facilitated') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.02.03_PA', '2.4.1.02.03', 'Market Support (linkages, construction, rehabilitation, etc.)', 'markets') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.02.04', '2.4.1.02', 'Continental High-Level Policy Dialogue on AfCFTA-Enabled Pastoral Livestock Trade and Market Integration', 'Number of high-level policy dialogues conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.02.04_PA', '2.4.1.02.04', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.02.05', '2.4.1.02', 'Facilitate Cross-Border Livestock Movement Governance  for AfCFTA Market Access', 'Number of cross-border coordination mechanisms supported') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.02.05_PA', '2.4.1.02.05', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.4.1.03', '2.4.1', 'Project staff cost - Pastoral Platform - Animal Production, Natural Resource Mgt & Resilience Expert (Project Coordinator)') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.4.1.04', '2.4.1', 'Establish and operationalise the platform in Light House countries to support implementation of prioritized actions and interventions') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.04.01', '2.4.1.04', 'Develop, validate and disseminate evidence-based case studies and exemplar compendiums on high-performing market models for regional learning and decision-making', 'Number of knowledge products developed and disseminated') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.04.01_PA', '2.4.1.04.01', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.04.02', '2.4.1.04', 'Develop and Disseminate Policy notes and reform-guidance for documented private-sector examplers, to promote enabeling policy environment.', 'Number of policy notes developed and disseminated') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.04.02_PA', '2.4.1.04.02', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.04.03', '2.4.1.04', 'Support convenings of TWG', 'Number of technical working group meetings conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.04.03_PA', '2.4.1.04.03', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.04.04', '2.4.1.04', 'APMD Project Technical and Steering Committee', 'Number of coordination meetings conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.04.04_PA', '2.4.1.04.04', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.4.1.05', '2.4.1', 'Share knowledge and advocate for promoting regional outreach and market transformation') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.05.01', '2.4.1.05', 'High-Level Learning and Replication Missions on Proven Pastoral Market Mod', 'Number of learning missions conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.05.01_PA', '2.4.1.05.01', 'Training /sensitization/Capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('2.4.1.05.01_PA', 'n_female_trained', 'Number of females trained', 'number', 0, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('2.4.1.05.01_PA', 'n_male_trained', 'Number of males trained', 'number', 1, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.05.02', '2.4.1.05', 'Support data collection for evidence-based advocacy and decision making', 'Number of datasets collected and analysed') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.05.02_PA', '2.4.1.05.02', 'Management of Information System/ Database', 'number') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.4.1.06', '2.4.1', 'Support the mobilization of sustainable funding for the sustainable operationalization of the platform') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.06.01', '2.4.1.06', 'Document pastoral livestock business models and investment briefs, validate and disseminate them to targeted investor audiences, and catalyze investor uptake through facilitated pitch sessions and strategic publication', 'Number of investment briefs developed and disseminated') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.06.01_PA', '2.4.1.06.01', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.06.02', '2.4.1.06', 'Facilitate Private Investment in Pastoral Market Systems through Structured Financing Partnerships and B2B Market Matchmaking', 'Number of investment facilitation engagements conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.1.06.02_PA', '2.4.1.06.02', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.4.1.08', '2.4.1', 'Activity 2.4.1.08') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.1.08.01', '2.4.1.08', 'APMD Project Technical and Steering Committee', '') ON CONFLICT (code) DO NOTHING;
+
+-- Project: PPPS_RVLC
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.5.1', 'PPPS_RVLC', 'Producers-Public-Private Partnership (PPPPs) investments, promoted and supported for sustainable regional livestock value chains') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.5.1.01', '2.5.1', 'Develop a continental policy for PPPPs investment in livestock chains') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.5.1.01.01', '2.5.1.01', 'Convene investment coordination meetings to develop policy for PPPP investment and crowed in investment and partnership for the IRLVC', 'Number of investment coordination meetings conducted') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.5.1.01.01_PA', '2.5.1.01.01', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+
+-- Project: AH_VET_GOV
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.6.1', 'AH_VET_GOV', 'Improved governance for veterinary services and strengthened animal health, control and eradication of priority diseases') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.6.1.01', '2.6.1', 'Develop, validate and implement a continental Rabies elimination strategy and Dog Population Management (DPM)') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.6.1.01.01', '2.6.1.01', 'Disseminate and create awareness on the Rabies Strategy', 'Number of advocacy and awareness activities conducted') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.1.01.01_PA', '2.6.1.01.01', 'Policy and strategy Formulation', 'Report') ON CONFLICT (code) DO NOTHING;
@@ -216,7 +376,7 @@ INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, u
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.6.1.01.03', '2.6.1.01', 'Create/ strengthen governance mechanisms for the implementation of the Rabies Strategy', 'Number of governance mechanisms established') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.1.01.03_PA', '2.6.1.01.03', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.6.1.01.04', '2.6.1.01', 'Undertake resource  mobilization', '') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.6.2', 'OHDAA', 'Number of RECs supported to establish Centres of Excellence (CoEs) to promote and build animal health capacities in the region') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.6.2', 'AH_VET_GOV', 'Improved governance for veterinary services and strengthened animal health, control and eradication of priority diseases') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.6.2.01', '2.6.2', 'Promote PPPs for reinforcing veterinary governance at national, regional and continental levels') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.6.2.01.01', '2.6.2.01', 'Promote regional Public–Private Partnership guidelines to leverage the Africa Public-Private Partnership Forum', 'Number of policy guidelines developed and promoted') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.2.01.01_PA', '2.6.2.01.01', 'policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
@@ -237,7 +397,7 @@ INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_o
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.2.03.03_PA', '2.6.2.03.03', 'Training/sensitization/capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('2.6.2.03.03_PA', 'n_female_trained', 'Number of females trained', 'number', 0, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
 INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('2.6.2.03.03_PA', 'n_male_trained', 'Number of males trained', 'number', 1, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
-INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.6.3', 'OHDAA', '# of MSs supported to improve their capacities, align and implement the Animal Welfare Strategy for Africa') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.6.3', 'AH_VET_GOV', 'Improved governance for veterinary services and strengthened animal health, control and eradication of priority diseases') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.6.3.01', '2.6.3', 'Promote compliance with animal health and welfare standards') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.6.3.01.01', '2.6.3.01', 'Capacity building of Member States on animal health and welfare standards', 'Number of capacity-building activities conducted') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.3.01.01_PA', '2.6.3.01.01', 'Training/sensitization/capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
@@ -269,7 +429,7 @@ INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_o
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.3.04.02_PA', '2.6.3.04.02', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.6.3.04.03', '2.6.3.04', 'Convene continental and regional APAW coordination forums', 'Number of coordination forums conducted') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.3.04.03_PA', '2.6.3.04.03', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.6.4', 'OHDAA', 'Number of strategies, frameworks for TADs prevention and control developed or revised, endorsed and coordinated at continental level') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.6.4', 'AH_VET_GOV', 'Improved governance for veterinary services and strengthened animal health, control and eradication of priority diseases') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.6.4.01', '2.6.4', 'Support Africa Swine Fever (ASF) prevention, control and response at national, regional and continental levels') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.6.4.01.01', '2.6.4.01', 'Finalize the continental ASF implementation roadmap', 'Number of strategies/roadmaps developed') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.4.01.01_PA', '2.6.4.01.01', 'policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
@@ -290,7 +450,11 @@ INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_o
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.4.02.03_PA', '2.6.4.02.03', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.6.4.02.04', '2.6.4.02', 'Undertake resource  mobilization', 'Number of resource mobilization initiatives conducted') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.4.02.04_PA', '2.6.4.02.04', 'Grants', 'USD') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.6.5', 'OHDAA', '% implementation of the continental donkey welfare strategy') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.4.6', 'AH_VET_GOV', 'Improved governance for veterinary services and strengthened animal health, control and eradication of priority diseases') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.4.6.03', '2.4.6', 'Support Contagious Bovine Pleuro-Pneumonia (CBPP) prevention, control and response at national, regional and continental levels') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.4.6.03.01', '2.4.6.03', 'Initiate the development of the Continental Startegy for CBPP', 'Number of strategies initiated') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.4.6.03.01_PA', '2.4.6.03.01', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.6.5', 'AH_VET_GOV', 'Improved governance for veterinary services and strengthened animal health, control and eradication of priority diseases') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.6.5.01', '2.6.5', 'Support formulation, validation and implementation the Donkey preservation strategy and action Plan') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.6.5.01.01', '2.6.5.01', 'Sustain the position of Donkey Expert', '') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.6.5.01.02', '2.6.5.01', 'Recruit and second an advocacy and campaigns advisor to AU-IBAR', '') ON CONFLICT (code) DO NOTHING;
@@ -317,14 +481,14 @@ INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_o
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.5.02.02_PA', '2.6.5.02.02', 'Survey/assesments', 'report') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.6.5.02.03', '2.6.5.02', 'Country-level domestication', 'Number of MS supported') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.5.02.03_PA', '2.6.5.02.03', 'policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.7.1', 'OHDAA', 'Output Indicator: # of MSs supported to use the One Health Digital Data Platform') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.7.1', 'AH_VET_GOV', 'One Health governance and Management in Africa enhanced') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.7.1.01', '2.7.1', 'Strengthen capacity of regional and national institutions on One Health data management and surveillance') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.7.1.02', '2.7.1', 'Develop a continental roadmap for the domestication of the African Union Digital One Health platform') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.7.1.03', '2.7.1', 'Develop the Digital One Health Curriculum and e-learning platform') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.7.1.04', '2.7.1', 'Roll-out the AU One Health Platform and feedback tool hosted at AU-IBAR in 5 MS and 2 RECs') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.7.1.05', '2.7.1', 'Establish and operationalize the Continental One Health Secretariat') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.7.1.06', '2.7.1', 'Project Staff Costs') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.7.2', 'OHDAA', 'Output Indicator: Number of MSs technical experts trained on digital One Health Data management and governance') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.7.2', 'AH_VET_GOV', 'One Health governance and Management in Africa enhanced') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.7.2.01', '2.7.2', 'Develop and disseminate training manuals and Conduct Regional Training of trainers on data analytics and management') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.7.2.01.01', '2.7.2.01', 'Publish and disseminate training manuals, data agreements', 'Number of training manuals and agreements developed and disseminated') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.7.2.01.01_PA', '2.7.2.01.01', 'Communication Media (radio, TV, video, pamphlet, newsletters, etc.)', 'number') ON CONFLICT (code) DO NOTHING;
@@ -332,132 +496,56 @@ INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_o
 INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.7.2.01.02_PA', '2.7.2.01.02', 'Training/sensitization/capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('2.7.2.01.02_PA', 'n_female_trained', 'Number of females trained', 'number', 0, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
 INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('2.7.2.01.02_PA', 'n_male_trained', 'Number of males trained', 'number', 1, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
-
--- ============================================================
--- FIX: CBPP activity — corrected code 2.4.6.03 → 2.6.4.03
--- ============================================================
-INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.6.4.03', '2.6.4', 'Support Contagious Bovine Pleuro-Pneumonia (CBPP) prevention, control and response at national, regional and continental levels') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.6.4.03.01', '2.6.4.03', 'Initiate the development of the Continental Strategy for CBPP', 'Number of strategies initiated') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.4.03.01_PA', '2.6.4.03.01', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
-
--- ============================================================
--- FIX: Missing PAID Activities for orphan sub-activities
--- ============================================================
--- 2.2.1.02.02: Breeding programs — no PAID Activity was defined
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.2.1.02.02_PA', '2.2.1.02.02', 'Technical Field Support mission', 'report') ON CONFLICT (code) DO NOTHING;
-
--- 2.6.1.01.04: Resource mobilization — no unit in Excel
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.1.01.04_PA', '2.6.1.01.04', 'Grants', 'USD') ON CONFLICT (code) DO NOTHING;
-
--- 2.6.3.01.02: Welfare integration into health programmes
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.3.01.02_PA', '2.6.3.01.02', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
-
--- 2.6.5.01.01: Sustain Donkey Expert position
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.5.01.01_PA', '2.6.5.01.01', 'Project Staff Costs', 'person-months') ON CONFLICT (code) DO NOTHING;
-
--- 2.6.5.01.02: Recruit advocacy advisor
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.6.5.01.02_PA', '2.6.5.01.02', 'Project Staff Costs', 'person-months') ON CONFLICT (code) DO NOTHING;
-
--- ============================================================
--- Project: PPR — Peste des Petits Ruminants eradication
--- ============================================================
-INSERT INTO animal_health.paid_projects (code, title, type, countries) VALUES ('PPR', 'PPR Eradication Programme', 'multiple_countries', '{KE,ET,NG,TZ,UG,SN,CM,GH,ZA,MZ,NE,ML,BF,TD,SO,SD,SS}') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_executive_partners (project_code, name) VALUES ('PPR', 'AU-IBAR');
-INSERT INTO animal_health.paid_executive_partners (project_code, name) VALUES ('PPR', 'PANVAC');
-
--- Logframe 2.9.1
-INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.9.1', 'PPR', '# of MSs whose capacities are strengthened to eradicate PPR') ON CONFLICT (code) DO NOTHING;
-
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.8.1', 'AH_VET_GOV', 'The capacity of AU-IBAR to deliver on its mandate strengthened') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.8.1.01', '2.8.1', 'Ensure effective resource mobilisation and management to achieve AU-IBAR mandate') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.8.2', 'AH_VET_GOV', 'The capacity of AU-IBAR to deliver on its mandate strengthened') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.8.2.01', '2.8.2', 'Strengthen stakeholder engagement and AU-IBAR visibility') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.8.2.02', '2.8.2', 'Operationalize the Africa Animal Resources Performance and Planning Platform') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.8.2.03', '2.8.2', 'Support AU-IBAR IT capacity and digitalization improvement') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.8.2.04', '2.8.2', 'Staff Salaries and other office operational costs') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.9.1', 'AH_VET_GOV', 'MSs capacities for PPR eradication by 2030 enhanced') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.01', '2.9.1', 'Establish formal linkages and modalities for cooperation and coordination') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.01.00', '2.9.1.01', 'Establish formal linkages and modalities for cooperation and coordination', 'Number of coordination mechanisms established') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.01.00_PA', '2.9.1.01.00', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.02', '2.9.1', 'Develop strategies for vaccination based on a clear understanding of animal mobility') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.02.00', '2.9.1.02', 'Develop strategies for vaccination based on a clear understanding of animal mobility', 'Number of vaccination strategies developed') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.02.00_PA', '2.9.1.02.00', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.03', '2.9.1', 'Develop PPR resource mobilisation plan') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.03.00', '2.9.1.03', 'Develop PPR resource mobilisation plan', 'Number of resource mobilization plans developed') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.03.00_PA', '2.9.1.03.00', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.04', '2.9.1', 'Develop a PPR business model') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.04.00', '2.9.1.04', 'Develop a PPR business model', 'Number of business models developed') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.04.00_PA', '2.9.1.04.00', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.05', '2.9.1', 'Develop PPR eradication strategy and implementation plan') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.05.00', '2.9.1.05', 'Develop PPR eradication strategy and implementation plan', 'Number of strategies and plans developed') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.05.00_PA', '2.9.1.05.00', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
-
-INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.06', '2.9.1', 'Validate the strategy and implementation plan with stakeholders') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.06.00', '2.9.1.06', 'Validate the strategy and implementation plan with stakeholders', 'Number of validation workshops conducted') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.06.00_PA', '2.9.1.06.00', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
-
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.06', '2.9.1', 'Validate the strategy and implementation plan with stakeholder') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.07', '2.9.1', 'Analyse data on vaccination and impact on disease occurrence in countries') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.07.00', '2.9.1.07', 'Analyse data on vaccination and impact on disease occurrence in countries', 'Number of analytical studies conducted') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.07.00_PA', '2.9.1.07.00', 'Survey/assesments', 'report') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.08', '2.9.1', 'Prepare exit strategies') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.08.00', '2.9.1.08', 'Prepare exit strategies', 'Number of exit strategies developed') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.08.00_PA', '2.9.1.08.00', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.09', '2.9.1', 'Review/update the continental PPR eradication strategy, programme and plan') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.09.00', '2.9.1.09', 'Review/update the continental PPR eradication strategy, programme and plan', 'Number of strategies reviewed and updated') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.09.00_PA', '2.9.1.09.00', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.10', '2.9.1', 'Establish a PPR protection area/buffer zone') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.10.00', '2.9.1.10', 'Establish a PPR protection area/buffer zone', 'Number of protection zones established') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.10.00_PA', '2.9.1.10.00', 'Quarantine zones (creation, rehabilitation, etc.)', 'Quarantine zones') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.11', '2.9.1', 'AU-IBAR, PANVAC, FAO, WOAH, RECS and RAHNs provide technical support') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.11.00', '2.9.1.11', 'AU-IBAR, PANVAC, FAO, WOAH, RECS and RAHNs provide technical support', 'Number of technical support missions conducted') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.11.00_PA', '2.9.1.11.00', 'Technical Field Support mission', 'Man Days') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.12', '2.9.1', 'Support selected member states to carry out PPR surveillance') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.12.00', '2.9.1.12', 'Support selected member states to carry out PPR surveillance', 'Number of surveillance activities supported') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.12.00_PA', '2.9.1.12.00', 'Epidemio-Surveillance survey', 'survey') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.13', '2.9.1', 'Support and strengthen data collection, storage and analysis') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.13.00', '2.9.1.13', 'Support and strengthen data collection, storage and analysis', 'Number of data systems strengthened') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.13.00_PA', '2.9.1.13.00', 'Management of Information System/database', 'number') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.14', '2.9.1', 'Support and provide guidance to national Veterinary services') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.14.00', '2.9.1.14', 'Support and provide guidance to national Veterinary services', 'Number of technical support interventions conducted') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.14.00_PA', '2.9.1.14.00', 'Support to private vets', 'persons') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.15', '2.9.1', 'Undertake targeted and risk-based vaccination to consolidate the achievements') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.15.00', '2.9.1.15', 'Undertake targeted and risk-based vaccination to consolidate the achievements', 'Number of vaccination campaigns conducted') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.15.00_PA', '2.9.1.15.00', 'Vaccination', 'heads') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.16', '2.9.1', 'Use appropriate laboratory mapping tools to assess national and regional laboratories') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.16.00', '2.9.1.16', 'Use appropriate laboratory mapping tools to assess national and regional laboratories', 'Number of laboratory assessments conducted') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.16.00_PA', '2.9.1.16.00', 'Mapping of Livestock Value Chain Actors', 'report') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.17', '2.9.1', 'Sensitise and raise awareness among different stakeholders on PPR') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.17.00', '2.9.1.17', 'Sensitise and raise awareness among different stakeholders on PPR', 'Number of sensitization/awareness initiatives conducted') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.17.00_PA', '2.9.1.17.00', 'Training/sensitization/capacity building', 'persons') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('2.9.1.17.00_PA', 'n_female_trained', 'Number of females trained', 'number', 0, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
-INSERT INTO animal_health.paid_breakdown_fields (paid_activity_code, field_code, field_label, field_type, sort_order, is_required) VALUES ('2.9.1.17.00_PA', 'n_male_trained', 'Number of males trained', 'number', 1, false) ON CONFLICT (paid_activity_code, field_code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.18', '2.9.1', 'Establish a multi-stakeholder forum (Continental Advisory Group)') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.18.00', '2.9.1.18', 'Establish a multi-stakeholder forum (Continental Advisory Group)', 'Number of coordination platforms established') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.18.00_PA', '2.9.1.18.00', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
-
-INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.19', '2.9.1', 'Project Staff Costs') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.20', '2.9.1', 'Other project operating costs') ON CONFLICT (code) DO NOTHING;
-
-INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.21', '2.9.1', 'Support enhancement of Trade in livestock and livestock products, amid PPR eradication') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.1.21.00', '2.9.1.21', 'Support enhancement of Trade in livestock and livestock products, amid PPR eradication', 'Number of analytical outputs developed') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.1.21.00_PA', '2.9.1.21.00', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
-
--- Logframe 2.9.2
-INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.9.2', 'PPR', '# of RECs whose capacities are strengthened to eradicate PPR') ON CONFLICT (code) DO NOTHING;
-
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.1.21', '2.9.1', 'Support enhancement of Trade in livestock and livestock products, amid PPR eradication and other priority trade-sensitive disease threats in Africa through improved coordination and spatial Analysis') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('2.9.2', 'AH_VET_GOV', 'MSs capacities for PPR eradication by 2030 enhanced') ON CONFLICT (code) DO NOTHING;
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.2.01', '2.9.2', 'Reinforce the roles of the Regional Animal Health Networks (RAHNs)') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.2.01.00', '2.9.2.01', 'Reinforce the roles of the Regional Animal Health Networks (RAHNs)', 'Number of regional networks strengthened') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.2.01.00_PA', '2.9.2.01.00', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.2.02', '2.9.2', 'Support Regional Advisory Groups (RAGs)') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('2.9.2.02.00', '2.9.2.02', 'Support Regional Advisory Groups (RAGs)', 'Number of coordination platforms supported') ON CONFLICT (code) DO NOTHING;
-INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('2.9.2.02.00_PA', '2.9.2.02.00', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
-
 INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('2.9.2.03', '2.9.2', 'Project staff costs') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('3.1.1', 'AH_VET_GOV', 'Intra-African Trade in Animals and Animal Products promoted in the context of AfCFTA protocols') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('3.1.1.01', '3.1.1', 'Coordinate development of African Positions and facilitate inter-regional dialogue on animal health standards') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('3.1.1.01.02', '3.1.1.01', 'Develop African Positions for WOAH Specialist Commissions', 'Number of African positions developed') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('3.1.1.01.02_PA', '3.1.1.01.02', 'Policy and strategy Formulation', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('3.1.1.01.03', '3.1.1.01', 'Convene the 18th Pan African CVOs Meeting', 'Number of Countries represented') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('3.1.1.01.03_PA', '3.1.1.01.03', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_subactivities (code, activity_code, label, unit_of_measure) VALUES ('3.1.1.01.04', '3.1.1.01', 'Support participation in 93 WOAH General Assembly', 'Number of high-level engagements supported') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_paid_activities (code, subactivity_code, label, unit_of_measure) VALUES ('3.1.1.01.04_PA', '3.1.1.01.04', 'Coordination meeting', 'report') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('3.1.1.02', '3.1.1', 'Strengthen national, regional and continental coordination mechanisms effective participation in WOAH') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('3.1.1.03', '3.1.1', 'Build capacities of Member States on governance, surveillance and monitoring of AMR in the animal health sector') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('3.1.1.04', '3.1.1', 'Facilitate mitigation and control of antimicrobial resistance') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('3.1.1.05', '3.1.1', 'Strengthen advocacy and public-private partnerships for sustainable investment in the leather sector') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('3.1.1.06', '3.1.1', 'Enhance export and import control procedures and practices for trade in animals and animal products') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('3.1.1.07', '3.1.1', 'Project Staff Costs') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('3.1.2', 'AH_VET_GOV', 'Intra-African Trade in Animals and Animal Products promoted in the context of AfCFTA protocols') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('3.1.2.01', '3.1.2', 'Build capacity to enhance Codex work management and food control in Member States') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('3.1.2.02', '3.1.2', 'Coordinate development of African Positions and facilitate inter-regional dialogue on Codex standards') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('3.1.2.03', '3.1.2', 'Strengthen SPS public private partnerships and governance for enhanced investment and improved compliance') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('3.1.2.04', '3.1.2', 'Build core competencies on risk-based sanitary measures for market access') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_logframes (code, project_code, label) VALUES ('3.1.3', 'AH_VET_GOV', 'Intra-African Trade in Animals and Animal Products promoted in the context of AfCFTA protocols') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('3.1.3.01', '3.1.3', 'Develop and disseminate policy papers and advocacy products on PPPs in leather value chains in Africa') ON CONFLICT (code) DO NOTHING;
+INSERT INTO animal_health.paid_lf_activities (code, logframe_code, label) VALUES ('3.1.3.02', '3.1.3', 'Collaborate with stakeholders to build local capacities for improved quality of African leather') ON CONFLICT (code) DO NOTHING;
