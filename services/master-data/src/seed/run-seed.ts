@@ -131,7 +131,10 @@ async function main(): Promise<void> {
   for (const species of SPECIES_SEEDS) {
     await prisma.species.upsert({
       where: { code: species.code },
-      update: {},
+      update: {
+        faoAlphaCode: species.faoAlphaCode ?? null,
+        scientificName: species.scientificName,
+      },
       create: {
         code: species.code,
         scientificName: species.scientificName,
@@ -140,6 +143,7 @@ async function main(): Promise<void> {
         category: species.category,
         productionCategories: species.productionCategories,
         isWoahListed: species.isWoahListed,
+        faoAlphaCode: species.faoAlphaCode ?? null,
       },
     });
   }
