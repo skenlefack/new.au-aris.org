@@ -20,6 +20,121 @@ import {
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useCampaignSubmissions } from '@/lib/api/workflow-hooks';
 import { AFRICA_COUNTRIES } from '@/components/dashboard/maps/africa-geo-data';
+import { useLocaleStore } from '@/lib/stores/locale-store';
+
+/* ── Fisheries dashboard i18n ── */
+const FD_I18N: Record<string, Record<string, string>> = {
+  'Total catches': { fr: 'Captures totales', pt: 'Capturas totais', ar: 'إجمالي المصيد' },
+  'Countries': { fr: 'Pays', pt: 'Países', ar: 'البلدان' },
+  'Species': { fr: 'Espèces', pt: 'Espécies', ar: 'الأنواع' },
+  'Top gear type': { fr: 'Engin principal', pt: 'Arte principal', ar: 'نوع المعدات الرئيسي' },
+  'Fishing Environment': { fr: 'Environnement de pêche', pt: 'Ambiente de pesca', ar: 'بيئة الصيد' },
+  'Production Type': { fr: 'Type de production', pt: 'Tipo de produção', ar: 'نوع الإنتاج' },
+  'Gear Types': { fr: 'Types d\'engins', pt: 'Tipos de arte', ar: 'أنواع المعدات' },
+  'Top 10 Species by Quantity (kg)': { fr: 'Top 10 espèces par quantité (kg)', pt: 'Top 10 espécies por quantidade (kg)', ar: 'أفضل 10 أنواع حسب الكمية (كجم)' },
+  'Top 10 Countries by Quantity (kg)': { fr: 'Top 10 pays par quantité (kg)', pt: 'Top 10 países por quantidade (kg)', ar: 'أفضل 10 بلدان حسب الكمية (كجم)' },
+  'Country': { fr: 'Pays', pt: 'País', ar: 'البلد' },
+  'Quantity (kg)': { fr: 'Quantité (kg)', pt: 'Quantidade (kg)', ar: 'الكمية (كجم)' },
+  'Gear': { fr: 'Engin', pt: 'Arte', ar: 'المعدات' },
+  'Date': { fr: 'Date', pt: 'Data', ar: 'التاريخ' },
+  'Landing Site': { fr: 'Site de débarquement', pt: 'Local de desembarque', ar: 'موقع الإنزال' },
+  'Total vessels': { fr: 'Total navires', pt: 'Total embarcações', ar: 'إجمالي السفن' },
+  'Active vessels': { fr: 'Navires actifs', pt: 'Embarcações ativas', ar: 'السفن النشطة' },
+  'Vessels by Country (Top 10)': { fr: 'Navires par pays (Top 10)', pt: 'Embarcações por país (Top 10)', ar: 'السفن حسب البلد (أفضل 10)' },
+  'Vessel Types': { fr: 'Types de navires', pt: 'Tipos de embarcação', ar: 'أنواع السفن' },
+  'Fleet Status': { fr: 'Statut de la flotte', pt: 'Estado da frota', ar: 'حالة الأسطول' },
+  'Active': { fr: 'Actif', pt: 'Ativo', ar: 'نشط' },
+  'Inactive': { fr: 'Inactif', pt: 'Inativo', ar: 'غير نشط' },
+  'Vessel Name': { fr: 'Nom du navire', pt: 'Nome da embarcação', ar: 'اسم السفينة' },
+  'Type': { fr: 'Type', pt: 'Tipo', ar: 'النوع' },
+  'Length (m)': { fr: 'Longueur (m)', pt: 'Comprimento (m)', ar: 'الطول (م)' },
+  'Port': { fr: 'Port', pt: 'Porto', ar: 'الميناء' },
+  'Status': { fr: 'Statut', pt: 'Estado', ar: 'الحالة' },
+  'Total farms': { fr: 'Total fermes', pt: 'Total fazendas', ar: 'إجمالي المزارع' },
+  'Active farms': { fr: 'Fermes actives', pt: 'Fazendas ativas', ar: 'المزارع النشطة' },
+  'Farms by Country (Top 10)': { fr: 'Fermes par pays (Top 10)', pt: 'Fazendas por país (Top 10)', ar: 'المزارع حسب البلد (أفضل 10)' },
+  'Farm Types': { fr: 'Types de fermes', pt: 'Tipos de fazenda', ar: 'أنواع المزارع' },
+  'Water Sources': { fr: 'Sources d\'eau', pt: 'Fontes de água', ar: 'مصادر المياه' },
+  'Farm Name': { fr: 'Nom de la ferme', pt: 'Nome da fazenda', ar: 'اسم المزرعة' },
+  'Area (ha)': { fr: 'Surface (ha)', pt: 'Área (ha)', ar: 'المساحة (هكتار)' },
+  'Capacity (t/yr)': { fr: 'Capacité (t/an)', pt: 'Capacidade (t/ano)', ar: 'السعة (طن/سنة)' },
+  'Workers': { fr: 'Travailleurs', pt: 'Trabalhadores', ar: 'العمال' },
+  'Total production': { fr: 'Production totale', pt: 'Produção total', ar: 'الإنتاج الإجمالي' },
+  'Farms': { fr: 'Fermes', pt: 'Fazendas', ar: 'المزارع' },
+  'Production by Species (Top 10, kg)': { fr: 'Production par espèce (Top 10, kg)', pt: 'Produção por espécie (Top 10, kg)', ar: 'الإنتاج حسب النوع (أفضل 10، كجم)' },
+  'Production by Country (Top 10, kg)': { fr: 'Production par pays (Top 10, kg)', pt: 'Produção por país (Top 10, kg)', ar: 'الإنتاج حسب البلد (أفضل 10، كجم)' },
+  'Farm': { fr: 'Ferme', pt: 'Fazenda', ar: 'المزرعة' },
+  'Method': { fr: 'Méthode', pt: 'Método', ar: 'الطريقة' },
+  'Survival %': { fr: 'Survie %', pt: 'Sobrevivência %', ar: 'نسبة البقاء %' },
+  'Harvest Weight': { fr: 'Poids récolte', pt: 'Peso colheita', ar: 'وزن الحصاد' },
+  'Effort Types': { fr: 'Types d\'effort', pt: 'Tipos de esforço', ar: 'أنواع الجهد' },
+  'Effort by Country (Top 10)': { fr: 'Effort par pays (Top 10)', pt: 'Esforço por país (Top 10)', ar: 'الجهد حسب البلد (أفضل 10)' },
+  'Gear Usage': { fr: 'Utilisation des engins', pt: 'Uso de artes', ar: 'استخدام المعدات' },
+  'Effort Value': { fr: 'Valeur d\'effort', pt: 'Valor de esforço', ar: 'قيمة الجهد' },
+  'Crew Size': { fr: 'Taille équipage', pt: 'Tamanho tripulação', ar: 'حجم الطاقم' },
+  'Start': { fr: 'Début', pt: 'Início', ar: 'البداية' },
+  'End': { fr: 'Fin', pt: 'Fim', ar: 'النهاية' },
+  'Total volume': { fr: 'Volume total', pt: 'Volume total', ar: 'الحجم الإجمالي' },
+  'Total value': { fr: 'Valeur totale', pt: 'Valor total', ar: 'القيمة الإجمالية' },
+  'Trade Partners': { fr: 'Partenaires commerciaux', pt: 'Parceiros comerciais', ar: 'الشركاء التجاريون' },
+  'Trade by Product State': { fr: 'Commerce par état du produit', pt: 'Comércio por estado do produto', ar: 'التجارة حسب حالة المنتج' },
+  'Trade Flow (Export / Import)': { fr: 'Flux commercial (Export / Import)', pt: 'Fluxo comercial (Exportação / Importação)', ar: 'التدفق التجاري (تصدير / استيراد)' },
+  'Top Trade Routes by Volume': { fr: 'Principales routes commerciales par volume', pt: 'Principais rotas comerciais por volume', ar: 'أفضل طرق التجارة حسب الحجم' },
+  'Export': { fr: 'Exportation', pt: 'Exportação', ar: 'تصدير' },
+  'Import': { fr: 'Importation', pt: 'Importação', ar: 'استيراد' },
+  'From': { fr: 'De', pt: 'De', ar: 'من' },
+  'To': { fr: 'Vers', pt: 'Para', ar: 'إلى' },
+  'Volume (t)': { fr: 'Volume (t)', pt: 'Volume (t)', ar: 'الحجم (طن)' },
+  'Value (USD)': { fr: 'Valeur (USD)', pt: 'Valor (USD)', ar: 'القيمة (دولار)' },
+  'Product': { fr: 'Produit', pt: 'Produto', ar: 'المنتج' },
+  'records': { fr: 'enregistrements', pt: 'registos', ar: 'سجلات' },
+  'vessels': { fr: 'navires', pt: 'embarcações', ar: 'سفن' },
+  'farms': { fr: 'fermes', pt: 'fazendas', ar: 'مزارع' },
+  'submissions': { fr: 'soumissions', pt: 'submissões', ar: 'تقديمات' },
+  'Loading fisheries data...': { fr: 'Chargement des données halieutiques...', pt: 'Carregando dados de pesca...', ar: 'جاري تحميل بيانات الصيد...' },
+  'Avg crew capacity': { fr: 'Capacité équipage moy.', pt: 'Capacidade média tripulação', ar: 'متوسط سعة الطاقم' },
+  'Active vs Inactive': { fr: 'Actifs vs Inactifs', pt: 'Ativos vs Inativos', ar: 'نشط مقابل غير نشط' },
+  'Name': { fr: 'Nom', pt: 'Nome', ar: 'الاسم' },
+  'Tonnage': { fr: 'Tonnage', pt: 'Tonelagem', ar: 'الحمولة' },
+  'Crew': { fr: 'Équipage', pt: 'Tripulação', ar: 'الطاقم' },
+  'License': { fr: 'Licence', pt: 'Licença', ar: 'الرخصة' },
+  'Licensed': { fr: 'Licencié', pt: 'Licenciado', ar: 'مرخص' },
+  'No license': { fr: 'Sans licence', pt: 'Sem licença', ar: 'بدون رخصة' },
+  'Total workers': { fr: 'Total travailleurs', pt: 'Total trabalhadores', ar: 'إجمالي العمال' },
+  'Total area': { fr: 'Surface totale', pt: 'Área total', ar: 'المساحة الإجمالية' },
+  'Workers by Gender': { fr: 'Travailleurs par genre', pt: 'Trabalhadores por género', ar: 'العمال حسب الجنس' },
+  'Male': { fr: 'Hommes', pt: 'Masculino', ar: 'ذكور' },
+  'Female': { fr: 'Femmes', pt: 'Feminino', ar: 'إناث' },
+  'Ponds': { fr: 'Bassins', pt: 'Tanques', ar: 'الأحواض' },
+  'Total harvest': { fr: 'Récolte totale', pt: 'Colheita total', ar: 'إجمالي الحصاد' },
+  'Avg survival rate': { fr: 'Taux survie moy.', pt: 'Taxa sobrevivência média', ar: 'متوسط معدل البقاء' },
+  'Avg FCR': { fr: 'TCA moyen', pt: 'TCA médio', ar: 'متوسط معامل التحويل' },
+  'Culture Methods': { fr: 'Méthodes de culture', pt: 'Métodos de cultura', ar: 'طرق الاستزراع' },
+  'Total records': { fr: 'Total enregistrements', pt: 'Total registos', ar: 'إجمالي السجلات' },
+  'Avg crew size': { fr: 'Taille équipage moy.', pt: 'Tamanho médio tripulação', ar: 'متوسط حجم الطاقم' },
+  'Top effort type': { fr: 'Type d\'effort principal', pt: 'Tipo de esforço principal', ar: 'نوع الجهد الرئيسي' },
+  'Vessel': { fr: 'Navire', pt: 'Embarcação', ar: 'السفينة' },
+  'Value': { fr: 'Valeur', pt: 'Valor', ar: 'القيمة' },
+  'Unit': { fr: 'Unité', pt: 'Unidade', ar: 'الوحدة' },
+  'Period': { fr: 'Période', pt: 'Período', ar: 'الفترة' },
+  'Total trade volume': { fr: 'Volume commercial total', pt: 'Volume comercial total', ar: 'إجمالي حجم التجارة' },
+  'Export volume': { fr: 'Volume exporté', pt: 'Volume exportado', ar: 'حجم التصدير' },
+  'Import volume': { fr: 'Volume importé', pt: 'Volume importado', ar: 'حجم الاستيراد' },
+  'Flow Direction': { fr: 'Direction du flux', pt: 'Direção do fluxo', ar: 'اتجاه التدفق' },
+  'Product States': { fr: 'États du produit', pt: 'Estados do produto', ar: 'حالات المنتج' },
+  'Commodity Groups': { fr: 'Groupes de produits', pt: 'Grupos de produtos', ar: 'مجموعات السلع' },
+  'Trade by Country (Top 10, kg)': { fr: 'Commerce par pays (Top 10, kg)', pt: 'Comércio por país (Top 10, kg)', ar: 'التجارة حسب البلد (أفضل 10، كجم)' },
+  'Direction': { fr: 'Direction', pt: 'Direção', ar: 'الاتجاه' },
+  'Exporter': { fr: 'Exportateur', pt: 'Exportador', ar: 'المصدّر' },
+  'Importer': { fr: 'Importateur', pt: 'Importador', ar: 'المستورد' },
+  'Commodity': { fr: 'Produit', pt: 'Produto', ar: 'السلعة' },
+  'Qty (kg)': { fr: 'Qté (kg)', pt: 'Qtd (kg)', ar: 'الكمية (كجم)' },
+};
+
+function useFdT() {
+  const locale = useLocaleStore((s) => s.locale);
+  return (key: string) => (locale === 'en' ? key : FD_I18N[key]?.[locale] ?? key);
+}
 
 /* ── Country code helpers ── */
 const ISO2_TO_NAME: Record<string, string> = {};
@@ -304,6 +419,7 @@ function DataTable({ headers, rows }: { headers: string[]; rows: React.ReactNode
 
 /* ── 1. Captures ── */
 function CapturesDashboard({ subs }: { subs: any[] }) {
+  const t = useFdT();
   const data = useMemo(() => subs.map((s) => s.data || {}), [subs]);
   const totalKg = useMemo(() => data.reduce((s, d) => s + (parseFloat(d.quantity_kg) || 0), 0), [data]);
   const countries = uniqueCount(data, 'country');
@@ -315,25 +431,25 @@ function CapturesDashboard({ subs }: { subs: any[] }) {
   const countriesByQty = sumBy(data, 'country', 'quantity_kg').slice(0, 10).map((e) => ({ ...e, label: resolveCountryName(e.label) }));
 
   return (
-    <DashShell color="#0EA5E9" icon={Fish} title="AFADATA Fisheries - Captures" badge={`${subs.length} records`}
-      footer={`AFADATA Fisheries Captures survey - AU-IBAR. ${subs.length} submissions from ${countries} countries.`}>
+    <DashShell color="#0EA5E9" icon={Fish} title="AFADATA - Captures" badge={`${subs.length} ${t('records')}`}
+      footer={`AFADATA Captures - AU-IBAR. ${subs.length} ${t('submissions')} / ${countries} ${t('Countries')}.`}>
       <KpiRow items={[
-        { icon: BarChart3, val: fmtTonnes(totalKg), label: 'Total catches', color: '#0EA5E9', bg: '#F0F9FF' },
-        { icon: Globe2, val: countries, label: 'Countries', color: '#059669', bg: '#ECFDF5' },
-        { icon: Fish, val: species, label: 'Species', color: '#7C3AED', bg: '#F5F3FF' },
-        { icon: Anchor, val: topEntry(gearTypes), label: 'Top gear type', color: '#EA580C', bg: '#FFF7ED' },
+        { icon: BarChart3, val: fmtTonnes(totalKg), label: t('Total catches'), color: '#0EA5E9', bg: '#F0F9FF' },
+        { icon: Globe2, val: countries, label: t('Countries'), color: '#059669', bg: '#ECFDF5' },
+        { icon: Fish, val: species, label: t('Species'), color: '#7C3AED', bg: '#F5F3FF' },
+        { icon: Anchor, val: topEntry(gearTypes), label: t('Top gear type'), color: '#EA580C', bg: '#FFF7ED' },
       ]} />
       <div className="grid gap-4 lg:grid-cols-3">
-        <ChartCard title="Fishing Environment"><PieChart entries={envEntries} colors={PIE_COLORS} size={140} /></ChartCard>
-        <ChartCard title="Production Type"><PieChart entries={prodTypes} colors={['#0EA5E9', '#F59E0B', '#059669', '#7C3AED', '#DC2626']} size={140} /></ChartCard>
-        <ChartCard title="Gear Types"><PieChart entries={gearTypes.slice(0, 8)} colors={PIE_COLORS} size={140} /></ChartCard>
+        <ChartCard title={t('Fishing Environment')}><PieChart entries={envEntries} colors={PIE_COLORS} size={140} /></ChartCard>
+        <ChartCard title={t('Production Type')}><PieChart entries={prodTypes} colors={['#0EA5E9', '#F59E0B', '#059669', '#7C3AED', '#DC2626']} size={140} /></ChartCard>
+        <ChartCard title={t('Gear Types')}><PieChart entries={gearTypes.slice(0, 8)} colors={PIE_COLORS} size={140} /></ChartCard>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard title="Top 10 Species by Quantity (kg)"><HBarChart entries={speciesByQty} color="#0EA5E9" /></ChartCard>
-        <ChartCard title="Top 10 Countries by Quantity (kg)"><HBarChart entries={countriesByQty} color="#0891B2" /></ChartCard>
+        <ChartCard title={t('Top 10 Species by Quantity (kg)')}><HBarChart entries={speciesByQty} color="#0EA5E9" /></ChartCard>
+        <ChartCard title={t('Top 10 Countries by Quantity (kg)')}><HBarChart entries={countriesByQty} color="#0891B2" /></ChartCard>
       </div>
       <DataTable
-        headers={['Country', 'Species', 'Quantity (kg)', 'Gear', 'Date', 'Landing Site']}
+        headers={[t('Country'), t('Species'), t('Quantity (kg)'), t('Gear'), t('Date'), t('Landing Site')]}
         rows={data.slice(0, 200).map((d) => [
           resolveCountryName(d.country),
           d.species || '—',
@@ -349,6 +465,7 @@ function CapturesDashboard({ subs }: { subs: any[] }) {
 
 /* ── 2. Vessels ── */
 function VesselsDashboard({ subs }: { subs: any[] }) {
+  const t = useFdT();
   const data = useMemo(() => subs.map((s) => s.data || {}), [subs]);
   const totalVessels = data.length;
   const activeVessels = data.filter((d) => (d.status || '').toLowerCase() === 'active').length;
@@ -359,24 +476,24 @@ function VesselsDashboard({ subs }: { subs: any[] }) {
   const countriesByCount = countBy(data, 'country').slice(0, 10).map((e) => ({ ...e, label: resolveCountryName(e.label) }));
 
   return (
-    <DashShell color="#0284C7" icon={Ship} title="AFADATA Fisheries - Vessels" badge={`${totalVessels} vessels`}
-      footer={`AFADATA Fisheries Vessels registry - AU-IBAR. ${totalVessels} vessels from ${countries} countries.`}>
+    <DashShell color="#0284C7" icon={Ship} title="AFADATA - Vessels" badge={`${totalVessels} ${t('vessels')}`}
+      footer={`AFADATA Fisheries Vessels registry - AU-IBAR. ${totalVessels} ${t('vessels')} / ${countries} ${t('Countries')}.`}>
       <KpiRow items={[
-        { icon: Ship, val: totalVessels, label: 'Total vessels', color: '#0284C7', bg: '#F0F9FF' },
-        { icon: Anchor, val: activeVessels, label: 'Active vessels', color: '#059669', bg: '#ECFDF5' },
-        { icon: Globe2, val: countries, label: 'Countries', color: '#7C3AED', bg: '#F5F3FF' },
-        { icon: Users, val: avgCrew, label: 'Avg crew capacity', color: '#EA580C', bg: '#FFF7ED' },
+        { icon: Ship, val: totalVessels, label: t('Total vessels'), color: '#0284C7', bg: '#F0F9FF' },
+        { icon: Anchor, val: activeVessels, label: t('Active vessels'), color: '#059669', bg: '#ECFDF5' },
+        { icon: Globe2, val: countries, label: t('Countries'), color: '#7C3AED', bg: '#F5F3FF' },
+        { icon: Users, val: avgCrew, label: t('Avg crew capacity'), color: '#EA580C', bg: '#FFF7ED' },
       ]} />
       <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard title="Vessel Types"><PieChart entries={vesselTypes.slice(0, 8)} colors={PIE_COLORS} size={140} /></ChartCard>
-        <ChartCard title="Active vs Inactive">
-          <DonutChart entries={[{ label: 'Active', value: activeVessels }, { label: 'Inactive', value: totalVessels - activeVessels }]}
+        <ChartCard title={t('Vessel Types')}><PieChart entries={vesselTypes.slice(0, 8)} colors={PIE_COLORS} size={140} /></ChartCard>
+        <ChartCard title={t('Active vs Inactive')}>
+          <DonutChart entries={[{ label: t('Active'), value: activeVessels }, { label: t('Inactive'), value: totalVessels - activeVessels }]}
             colors={['#059669', '#9CA3AF']} size={140} centerLabel={`${Math.round((activeVessels / (totalVessels || 1)) * 100)}%`} />
         </ChartCard>
       </div>
-      <ChartCard title="Vessels by Country (Top 10)"><HBarChart entries={countriesByCount} color="#0284C7" /></ChartCard>
+      <ChartCard title={t('Vessels by Country (Top 10)')}><HBarChart entries={countriesByCount} color="#0284C7" /></ChartCard>
       <DataTable
-        headers={['Name', 'Type', 'Country', 'Length (m)', 'Tonnage', 'Crew', 'License']}
+        headers={[t('Name'), t('Type'), t('Country'), t('Length (m)'), t('Tonnage'), t('Crew'), t('License')]}
         rows={data.slice(0, 200).map((d) => [
           d.vessel_name || '—',
           d.vessel_type || '—',
@@ -385,9 +502,9 @@ function VesselsDashboard({ subs }: { subs: any[] }) {
           d.tonnage || '—',
           d.crew_capacity || '—',
           d.license_number ? (
-            <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">Licensed</span>
+            <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">{t('Licensed')}</span>
           ) : (
-            <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/20 dark:text-red-400">No license</span>
+            <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/20 dark:text-red-400">{t('No license')}</span>
           ),
         ])}
       />
@@ -397,6 +514,7 @@ function VesselsDashboard({ subs }: { subs: any[] }) {
 
 /* ── 3. Farms ── */
 function FarmsDashboard({ subs }: { subs: any[] }) {
+  const t = useFdT();
   const data = useMemo(() => subs.map((s) => s.data || {}), [subs]);
   const totalFarms = data.length;
   const totalWorkers = data.reduce((s, d) => s + (parseFloat(d.total_workers) || (parseFloat(d.male_workers) || 0) + (parseFloat(d.female_workers) || 0)), 0);
@@ -410,27 +528,27 @@ function FarmsDashboard({ subs }: { subs: any[] }) {
   const femaleWorkers = data.reduce((s, d) => s + (parseFloat(d.female_workers) || 0), 0);
 
   return (
-    <DashShell color="#059669" icon={Factory} title="AFADATA Fisheries - Aquaculture Farms" badge={`${totalFarms} farms`}
-      footer={`AFADATA Fisheries Aquaculture Farms survey - AU-IBAR. ${totalFarms} farms from ${countries} countries.`}>
+    <DashShell color="#059669" icon={Factory} title="AFADATA - Aquaculture Farms" badge={`${totalFarms} ${t('farms')}`}
+      footer={`AFADATA Fisheries Aquaculture Farms - AU-IBAR. ${totalFarms} ${t('farms')} / ${countries} ${t('Countries')}.`}>
       <KpiRow items={[
-        { icon: Factory, val: totalFarms, label: 'Total farms', color: '#059669', bg: '#ECFDF5' },
-        { icon: Users, val: Math.round(totalWorkers), label: 'Total workers', color: '#0284C7', bg: '#F0F9FF' },
-        { icon: Leaf, val: activeFarms, label: 'Active farms', color: '#7C3AED', bg: '#F5F3FF' },
-        { icon: Ruler, val: totalArea.toFixed(1) + ' ha', label: 'Total area', color: '#EA580C', bg: '#FFF7ED' },
+        { icon: Factory, val: totalFarms, label: t('Total farms'), color: '#059669', bg: '#ECFDF5' },
+        { icon: Users, val: Math.round(totalWorkers), label: t('Total workers'), color: '#0284C7', bg: '#F0F9FF' },
+        { icon: Leaf, val: activeFarms, label: t('Active farms'), color: '#7C3AED', bg: '#F5F3FF' },
+        { icon: Ruler, val: totalArea.toFixed(1) + ' ha', label: t('Total area'), color: '#EA580C', bg: '#FFF7ED' },
       ]} />
       <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard title="Farm Types"><PieChart entries={farmTypes.slice(0, 8)} colors={PIE_COLORS} size={140} /></ChartCard>
-        <ChartCard title="Water Sources"><PieChart entries={waterSources.slice(0, 8)} colors={['#0EA5E9', '#059669', '#F59E0B', '#7C3AED', '#DC2626']} size={140} /></ChartCard>
+        <ChartCard title={t('Farm Types')}><PieChart entries={farmTypes.slice(0, 8)} colors={PIE_COLORS} size={140} /></ChartCard>
+        <ChartCard title={t('Water Sources')}><PieChart entries={waterSources.slice(0, 8)} colors={['#0EA5E9', '#059669', '#F59E0B', '#7C3AED', '#DC2626']} size={140} /></ChartCard>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard title="Farms by Country (Top 10)"><HBarChart entries={countriesByCount} color="#059669" /></ChartCard>
-        <ChartCard title="Workers by Gender">
-          <DonutChart entries={[{ label: 'Male', value: Math.round(maleWorkers) }, { label: 'Female', value: Math.round(femaleWorkers) }]}
+        <ChartCard title={t('Farms by Country (Top 10)')}><HBarChart entries={countriesByCount} color="#059669" /></ChartCard>
+        <ChartCard title={t('Workers by Gender')}>
+          <DonutChart entries={[{ label: t('Male'), value: Math.round(maleWorkers) }, { label: t('Female'), value: Math.round(femaleWorkers) }]}
             colors={['#0284C7', '#EC4899']} size={140} centerLabel={`${Math.round(totalWorkers)}`} />
         </ChartCard>
       </div>
       <DataTable
-        headers={['Farm', 'Type', 'Country', 'Area (ha)', 'Workers', 'Ponds']}
+        headers={[t('Farm'), t('Type'), t('Country'), t('Area (ha)'), t('Workers'), t('Ponds')]}
         rows={data.slice(0, 200).map((d) => [
           d.farm_name || '—',
           d.farm_type || '—',
@@ -446,6 +564,7 @@ function FarmsDashboard({ subs }: { subs: any[] }) {
 
 /* ── 4. Aquaculture Production ── */
 function AquacultureDashboard({ subs }: { subs: any[] }) {
+  const t = useFdT();
   const data = useMemo(() => subs.map((s) => s.data || {}), [subs]);
   const totalHarvestKg = data.reduce((s, d) => s + (parseFloat(d.harvest_quantity_kg) || parseFloat(d.quantity_kg) || 0), 0);
   const species = uniqueCount(data, 'species');
@@ -463,23 +582,23 @@ function AquacultureDashboard({ subs }: { subs: any[] }) {
   ).slice(0, 10).map((e) => ({ ...e, label: resolveCountryName(e.label) }));
 
   return (
-    <DashShell color="#10B981" icon={Waves} title="AFADATA Fisheries - Aquaculture Production" badge={`${subs.length} records`}
-      footer={`AFADATA Fisheries Aquaculture Production survey - AU-IBAR. ${subs.length} production records.`}>
+    <DashShell color="#10B981" icon={Waves} title="AFADATA - Aquaculture Production" badge={`${subs.length} ${t('records')}`}
+      footer={`AFADATA Fisheries Aquaculture Production - AU-IBAR. ${subs.length} ${t('records')}.`}>
       <KpiRow items={[
-        { icon: BarChart3, val: fmtTonnes(totalHarvestKg), label: 'Total harvest', color: '#10B981', bg: '#ECFDF5' },
-        { icon: Fish, val: species, label: 'Species', color: '#0284C7', bg: '#F0F9FF' },
-        { icon: TrendingUp, val: avgSurvival + '%', label: 'Avg survival rate', color: '#7C3AED', bg: '#F5F3FF' },
-        { icon: Ruler, val: avgFcr, label: 'Avg FCR', color: '#EA580C', bg: '#FFF7ED' },
+        { icon: BarChart3, val: fmtTonnes(totalHarvestKg), label: t('Total harvest'), color: '#10B981', bg: '#ECFDF5' },
+        { icon: Fish, val: species, label: t('Species'), color: '#0284C7', bg: '#F0F9FF' },
+        { icon: TrendingUp, val: avgSurvival + '%', label: t('Avg survival rate'), color: '#7C3AED', bg: '#F5F3FF' },
+        { icon: Ruler, val: avgFcr, label: t('Avg FCR'), color: '#EA580C', bg: '#FFF7ED' },
       ]} />
       <div className="grid gap-4 lg:grid-cols-1">
-        <ChartCard title="Culture Methods"><PieChart entries={cultureMethods.slice(0, 8)} colors={PIE_COLORS} size={140} /></ChartCard>
+        <ChartCard title={t('Culture Methods')}><PieChart entries={cultureMethods.slice(0, 8)} colors={PIE_COLORS} size={140} /></ChartCard>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard title="Production by Species (Top 10, kg)"><HBarChart entries={speciesByQty} color="#10B981" /></ChartCard>
-        <ChartCard title="Production by Country (Top 10, kg)"><HBarChart entries={countriesByQty} color="#059669" /></ChartCard>
+        <ChartCard title={t('Production by Species (Top 10, kg)')}><HBarChart entries={speciesByQty} color="#10B981" /></ChartCard>
+        <ChartCard title={t('Production by Country (Top 10, kg)')}><HBarChart entries={countriesByQty} color="#059669" /></ChartCard>
       </div>
       <DataTable
-        headers={['Farm', 'Species', 'Quantity (kg)', 'Method', 'Survival %', 'Harvest Weight']}
+        headers={[t('Farm'), t('Species'), t('Quantity (kg)'), t('Method'), t('Survival %'), t('Harvest Weight')]}
         rows={data.slice(0, 200).map((d) => [
           d.farm_name || d.farm || '—',
           d.species || '—',
@@ -495,6 +614,7 @@ function AquacultureDashboard({ subs }: { subs: any[] }) {
 
 /* ── 5. Fishing Effort ── */
 function EffortDashboard({ subs }: { subs: any[] }) {
+  const t = useFdT();
   const data = useMemo(() => subs.map((s) => s.data || {}), [subs]);
   const countries = uniqueCount(data, 'country');
   const crewVals = data.map((d) => parseFloat(d.crew_size) || 0).filter((v) => v > 0);
@@ -504,21 +624,21 @@ function EffortDashboard({ subs }: { subs: any[] }) {
   const countriesByCount = countBy(data, 'country').slice(0, 10).map((e) => ({ ...e, label: resolveCountryName(e.label) }));
 
   return (
-    <DashShell color="#7C3AED" icon={Anchor} title="AFADATA Fisheries - Fishing Effort" badge={`${subs.length} records`}
-      footer={`AFADATA Fisheries Fishing Effort survey - AU-IBAR. ${subs.length} effort records from ${countries} countries.`}>
+    <DashShell color="#7C3AED" icon={Anchor} title="AFADATA - Fishing Effort" badge={`${subs.length} ${t('records')}`}
+      footer={`AFADATA Fisheries Fishing Effort - AU-IBAR. ${subs.length} ${t('records')} / ${countries} ${t('Countries')}.`}>
       <KpiRow items={[
-        { icon: BarChart3, val: subs.length, label: 'Total records', color: '#7C3AED', bg: '#F5F3FF' },
-        { icon: Globe2, val: countries, label: 'Countries', color: '#059669', bg: '#ECFDF5' },
-        { icon: Users, val: avgCrew, label: 'Avg crew size', color: '#0284C7', bg: '#F0F9FF' },
-        { icon: Anchor, val: topEntry(effortTypes), label: 'Top effort type', color: '#EA580C', bg: '#FFF7ED' },
+        { icon: BarChart3, val: subs.length, label: t('Total records'), color: '#7C3AED', bg: '#F5F3FF' },
+        { icon: Globe2, val: countries, label: t('Countries'), color: '#059669', bg: '#ECFDF5' },
+        { icon: Users, val: avgCrew, label: t('Avg crew size'), color: '#0284C7', bg: '#F0F9FF' },
+        { icon: Anchor, val: topEntry(effortTypes), label: t('Top effort type'), color: '#EA580C', bg: '#FFF7ED' },
       ]} />
       <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard title="Effort Types"><PieChart entries={effortTypes.slice(0, 8)} colors={PIE_COLORS} size={140} /></ChartCard>
-        <ChartCard title="Gear Types"><PieChart entries={gearTypes.slice(0, 8)} colors={['#7C3AED', '#0EA5E9', '#F59E0B', '#059669', '#DC2626', '#EA580C']} size={140} /></ChartCard>
+        <ChartCard title={t('Effort Types')}><PieChart entries={effortTypes.slice(0, 8)} colors={PIE_COLORS} size={140} /></ChartCard>
+        <ChartCard title={t('Gear Types')}><PieChart entries={gearTypes.slice(0, 8)} colors={['#7C3AED', '#0EA5E9', '#F59E0B', '#059669', '#DC2626', '#EA580C']} size={140} /></ChartCard>
       </div>
-      <ChartCard title="Effort by Country (Top 10)"><HBarChart entries={countriesByCount} color="#7C3AED" /></ChartCard>
+      <ChartCard title={t('Effort by Country (Top 10)')}><HBarChart entries={countriesByCount} color="#7C3AED" /></ChartCard>
       <DataTable
-        headers={['Vessel', 'Type', 'Value', 'Unit', 'Gear', 'Crew', 'Period']}
+        headers={[t('Vessel'), t('Type'), t('Value'), t('Unit'), t('Gear'), t('Crew'), t('Period')]}
         rows={data.slice(0, 200).map((d) => [
           d.vessel_name || d.vessel || '—',
           d.effort_type || '—',
@@ -535,6 +655,7 @@ function EffortDashboard({ subs }: { subs: any[] }) {
 
 /* ── 6. Fish Trade ── */
 function TradeDashboard({ subs }: { subs: any[] }) {
+  const t = useFdT();
   const data = useMemo(() => subs.map((s) => s.data || {}), [subs]);
   const totalKg = data.reduce((s, d) => s + (parseFloat(d.quantity_kg) || parseFloat(d.quantity) || 0), 0);
   const exportKg = data.filter((d) => (d.flow_direction || '').toLowerCase().includes('export'))
@@ -550,22 +671,22 @@ function TradeDashboard({ subs }: { subs: any[] }) {
     : sumBy(data, 'export_country', 'quantity').slice(0, 10).map((e) => ({ ...e, label: resolveCountryName(e.label) }));
 
   return (
-    <DashShell color="#F59E0B" icon={ArrowLeftRight} title="AFADATA Fisheries - Fish Trade" badge={`${subs.length} records`}
-      footer={`AFADATA Fisheries Fish Trade survey - AU-IBAR. ${subs.length} trade records involving ${countries} countries.`}>
+    <DashShell color="#F59E0B" icon={ArrowLeftRight} title="AFADATA - Fish Trade" badge={`${subs.length} ${t('records')}`}
+      footer={`AFADATA Fisheries Fish Trade - AU-IBAR. ${subs.length} ${t('records')} / ${countries} ${t('Countries')}.`}>
       <KpiRow items={[
-        { icon: BarChart3, val: fmtTonnes(totalKg), label: 'Total trade volume', color: '#F59E0B', bg: '#FFFBEB' },
-        { icon: TrendingUp, val: fmtTonnes(exportKg), label: 'Export volume', color: '#059669', bg: '#ECFDF5' },
-        { icon: Droplets, val: fmtTonnes(importKg), label: 'Import volume', color: '#0284C7', bg: '#F0F9FF' },
-        { icon: Globe2, val: countries, label: 'Countries', color: '#7C3AED', bg: '#F5F3FF' },
+        { icon: BarChart3, val: fmtTonnes(totalKg), label: t('Total trade volume'), color: '#F59E0B', bg: '#FFFBEB' },
+        { icon: TrendingUp, val: fmtTonnes(exportKg), label: t('Export volume'), color: '#059669', bg: '#ECFDF5' },
+        { icon: Droplets, val: fmtTonnes(importKg), label: t('Import volume'), color: '#0284C7', bg: '#F0F9FF' },
+        { icon: Globe2, val: countries, label: t('Countries'), color: '#7C3AED', bg: '#F5F3FF' },
       ]} />
       <div className="grid gap-4 lg:grid-cols-3">
-        <ChartCard title="Flow Direction"><PieChart entries={flowDirs} colors={['#059669', '#0284C7', '#F59E0B', '#7C3AED']} size={140} /></ChartCard>
-        <ChartCard title="Product States"><PieChart entries={productStates.slice(0, 8)} colors={PIE_COLORS} size={140} /></ChartCard>
-        <ChartCard title="Commodity Groups"><PieChart entries={commodityGroups.slice(0, 8)} colors={['#F59E0B', '#0EA5E9', '#059669', '#7C3AED', '#DC2626', '#EA580C']} size={140} /></ChartCard>
+        <ChartCard title={t('Flow Direction')}><PieChart entries={flowDirs} colors={['#059669', '#0284C7', '#F59E0B', '#7C3AED']} size={140} /></ChartCard>
+        <ChartCard title={t('Product States')}><PieChart entries={productStates.slice(0, 8)} colors={PIE_COLORS} size={140} /></ChartCard>
+        <ChartCard title={t('Commodity Groups')}><PieChart entries={commodityGroups.slice(0, 8)} colors={['#F59E0B', '#0EA5E9', '#059669', '#7C3AED', '#DC2626', '#EA580C']} size={140} /></ChartCard>
       </div>
-      <ChartCard title="Trade by Country (Top 10, kg)"><HBarChart entries={countriesByQty} color="#F59E0B" /></ChartCard>
+      <ChartCard title={t('Trade by Country (Top 10, kg)')}><HBarChart entries={countriesByQty} color="#F59E0B" /></ChartCard>
       <DataTable
-        headers={['Direction', 'Exporter', 'Importer', 'Species', 'Commodity', 'Qty (kg)', 'Value (USD)']}
+        headers={[t('Direction'), t('Exporter'), t('Importer'), t('Species'), t('Commodity'), t('Qty (kg)'), t('Value (USD)')]}
         rows={data.slice(0, 200).map((d) => [
           d.flow_direction || '—',
           resolveCountryName(d.export_country),
@@ -585,6 +706,7 @@ function TradeDashboard({ subs }: { subs: any[] }) {
 /* ================================================================== */
 
 export default function FisheriesDashboard({ campaignId, campaignName }: { campaignId: string; campaignName: string }) {
+  const t = useFdT();
   const sQ = useCampaignSubmissions(campaignId, { limit: 100 });
   const rawSubs: any[] = Array.isArray(sQ.data?.data) ? sQ.data.data : [];
   const loading = sQ.isLoading;
@@ -602,7 +724,7 @@ export default function FisheriesDashboard({ campaignId, campaignName }: { campa
             <Fish className="h-5 w-5 text-white/80" />
             <span className="text-sm font-bold tracking-wide text-white">AFADATA Fisheries Dashboard</span>
           </div>
-          <span className="rounded bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white">Loading...</span>
+          <span className="rounded bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white">{t('Loading fisheries data...')}</span>
         </div>
         <div className="grid flex-1 gap-4 p-4 lg:grid-cols-2">
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="min-h-[200px] rounded-xl" />)}
