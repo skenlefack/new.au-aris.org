@@ -76,7 +76,8 @@ export default async function CountryPage({ params }: Props) {
   }
 
   const primaryRec = recs[0];
-  const isConfigured = !!country.tenantId;
+  // A country is "configured" only if it's truly active (has admin + users + data)
+  const isConfigured = isActive;
   const showRealSections = isActive || hasInterop;
 
   // Fetch active domain codes to filter illustrative stats

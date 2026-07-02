@@ -283,8 +283,8 @@ export function CountryPageContent({
         </div>
       </section>
 
-      {/* Public Dashboard Section */}
-      <PublicDashboardSection scope="COUNTRY" code={country.code} />
+      {/* Public Dashboard Section — show empty state if country is active but has no dashboard */}
+      <PublicDashboardSection scope="COUNTRY" code={country.code} showEmptyState={isActive} />
     </>
   );
 }

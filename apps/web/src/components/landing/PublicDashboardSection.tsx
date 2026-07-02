@@ -1,23 +1,49 @@
 'use client';
 
 import React from 'react';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, Info } from 'lucide-react';
 import { usePublicDashboard, type DashboardScope } from '@/lib/api/dashboard-hooks';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 
 interface PublicDashboardSectionProps {
   scope: DashboardScope;
   code: string;
+  /** If true, show a "no statistics" message when no dashboard exists */
+  showEmptyState?: boolean;
 }
 
-export function PublicDashboardSection({ scope, code }: PublicDashboardSectionProps) {
+const NO_STATS_MSG: Record<string, string> = {
+  en: 'No country statistics available yet. Data will appear here once collection campaigns are completed.',
+  fr: 'Aucune statistique pays disponible pour le moment. Les données apparaîtront ici une fois les campagnes de collecte terminées.',
+  pt: 'Nenhuma estatística do país disponível de momento. Os dados aparecerão aqui após a conclusão das campanhas de recolha.',
+  ar: 'لا تتوفر إحصائيات للبلد حالياً. ستظهر البيانات هنا بمجرد اكتمال حملات جمع البيانات.',
+};
+
+export function PublicDashboardSection({ scope, code, showEmptyState }: PublicDashboardSectionProps) {
   const { data, isLoading } = usePublicDashboard(scope, code?.toLowerCase());
+  const locale = useLocaleStore((s) => s.locale);
 
   const dashboard = data?.data;
 
-  // Don't render anything if no dashboard is configured for this page
-  if (!dashboard || isLoading) return null;
+  if (isLoading) return null;
 
-  const title = (dashboard as any).title || (dashboard as any).title_fr || (dashboard as any).titleFr || '';
+  // No dashboard configured — show empty state if requested
+  if (!dashboard) {
+    if (!showEmptyState) return null;
+    return (
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 p-8 text-center dark:border-gray-700 dark:bg-gray-900/50">
+          <Info className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
+          <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+            {NO_STATS_MSG[locale] ?? NO_STATS_MSG.en}
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  const db = dashboard as any;
+  const title = db[`title_${locale}`] ?? db.title_en ?? db.title ?? db.title_fr ?? db.titleFr ?? '';
   const sections = (dashboard as any).sections ?? [];
   const widgetData = (dashboard as any).widgetData ?? {};
 
@@ -41,9 +67,9 @@ export function PublicDashboardSection({ scope, code }: PublicDashboardSectionPr
       <div className="space-y-6">
         {sections.map((section: any) => (
           <div key={section.id} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            {section.title_fr && (
+            {(section[`title_${locale}`] ?? section.title_en) && (
               <h3 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                {section.title_fr || section.titleFr || section.title_en || section.titleEn}
+                {section[`title_${locale}`] ?? section.title_en ?? section.title_fr ?? ''}
               </h3>
             )}
             <div
@@ -55,9 +81,9 @@ export function PublicDashboardSection({ scope, code }: PublicDashboardSectionPr
                   key={widget.id}
                   className="rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/50"
                 >
-                  {widget.title_fr && (
+                  {(widget[`title_${locale}`] ?? widget.title_en) && (
                     <p className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
-                      {widget.title_fr || widget.titleFr || widget.title_en || widget.titleEn}
+                      {widget[`title_${locale}`] ?? widget.title_en ?? widget.title_fr ?? ''}
                     </p>
                   )}
                   <WidgetValueDisplay

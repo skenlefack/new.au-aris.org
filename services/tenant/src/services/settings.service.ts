@@ -1145,12 +1145,48 @@ export class SettingsService {
       }
     }
 
+    // Auto-compute activity status: a country is considered active if it has
+    // admin divisions configured + users connected + data submitted
+    let autoActive = country.isActive;
+    let adminCount = 0;
+    let userCount = 0;
+    let submissionCount = 0;
+    if (country.tenantId) {
+      try {
+        const rows: any[] = await (this.prisma as any).$queryRawUnsafe(`
+          SELECT
+            (SELECT count(*)::int FROM public.geo_entities WHERE country_code = $1 AND level IN ('ADMIN1','ADMIN2')) AS admin_count,
+            (SELECT count(*)::int FROM public.users u JOIN public.tenants t ON u.tenant_id = t.id WHERE t.country_code = $1) AS user_count,
+            (SELECT count(*)::int FROM public.submissions s JOIN public.tenants t2 ON s.tenant_id = t2.id WHERE t2.country_code = $1) AS submission_count
+        `, code);
+        adminCount = rows[0]?.admin_count ?? 0;
+        userCount = rows[0]?.user_count ?? 0;
+        submissionCount = rows[0]?.submission_count ?? 0;
+
+        // Auto-activate if admin divisions + users + submissions exist
+        if (!autoActive && adminCount >= 1 && userCount >= 1 && submissionCount >= 1) {
+          autoActive = true;
+          // Persist the auto-activation to DB
+          await (this.prisma as any).country.update({
+            where: { code },
+            data: { isActive: true, isOperational: true },
+          }).catch(() => {});
+        }
+      } catch {
+        // Tables may not exist
+      }
+    }
+
     const result = {
       data: {
         ...country,
+        isActive: autoActive,
         statistics,
         kpiScores,
         hasInterop,
+        adminCount,
+        userCount,
+        submissionCount,
       },
     };
     await this.cacheSet(cacheKey, result, CACHE_TTL_PUBLIC);
