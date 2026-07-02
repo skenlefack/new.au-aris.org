@@ -359,12 +359,30 @@ export class SubmissionService {
       }
     }
 
+    // Enrich with submitter name
+    const submitterIds = [...new Set(data.map((s: any) => s.submittedBy).filter(Boolean))];
+    let submitterMap: Record<string, string> = {};
+    if (submitterIds.length > 0) {
+      try {
+        const users: any[] = await (this.prisma as any).$queryRawUnsafe(
+          `SELECT id, first_name || ' ' || last_name AS display_name FROM public.users WHERE id = ANY($1::uuid[])`,
+          submitterIds,
+        );
+        for (const u of users) {
+          submitterMap[u.id] = u.display_name;
+        }
+      } catch {
+        // Cross-schema query failed — return without user names
+      }
+    }
+
     const enriched = data.map((s: any) => {
       const campaign = campaignMap[s.campaignId];
       return {
         ...s,
         campaignName: campaign?.name ?? null,
         domain: campaign?.domain ?? null,
+        submittedByName: submitterMap[s.submittedBy] ?? null,
       };
     });
 
