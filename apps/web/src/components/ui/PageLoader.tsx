@@ -150,16 +150,17 @@ export function RouteChangeLoader() {
     if (prevPathRef.current !== pathname) {
       prevPathRef.current = pathname;
       routeArrivedRef.current = true;
-      // If no usePageReady signal after 400ms, dismiss (pages without signal)
+      // Wait for usePageReady signal. If none after 600ms, dismiss (pages without signal).
+      // Don't check pageReady here — it may still be stale from previous page.
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
-        if (!pageReady) dismiss();
-      }, 400);
+        dismiss();
+      }, 600);
     }
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [pathname, pageReady, dismiss]);
+  }, [pathname, dismiss]);
 
   // When page signals ready → dismiss loader
   useEffect(() => {
@@ -235,18 +236,18 @@ export function PageReadyProvider({ children }: { children: React.ReactNode }) {
 function PageReadySignalProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const pathname = usePathname();
-  const prevRef = useRef(pathname);
 
-  // Reset ready state on route change
-  useEffect(() => {
-    if (prevRef.current !== pathname) {
-      prevRef.current = pathname;
-      setReady(false);
-    }
-  }, [pathname]);
-
+  // Reset ready state synchronously on every pathname change
+  // Using a key-based remount ensures clean state
   const signalReady = useCallback(() => setReady(true), []);
   const value = React.useMemo(() => ({ signalReady, isReady: ready }), [signalReady, ready]);
+
+  // Reset on pathname change — use layout effect for synchronous reset before children render
+  const prevRef = useRef(pathname);
+  if (prevRef.current !== pathname) {
+    prevRef.current = pathname;
+    if (ready) setReady(false);
+  }
 
   return (
     <PageReadyContext.Provider value={value}>

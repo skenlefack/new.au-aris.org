@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useCollectionCampaigns } from '@/lib/api/workflow-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 
 interface PlanningTarget {
   domainCode?: string;
@@ -187,10 +188,11 @@ const CARD_COLORS = ['#C62828', '#1565C0', '#2E7D32', '#E65100', '#6A1B9A', '#00
 
 function CampaignCard({ campaign }: { campaign: any }) {
   const t = useTranslations('collecte');
+  const locale = useLocaleStore((s) => s.locale);
   const c = campaign;
   const name =
     typeof c.name === 'object'
-      ? c.name?.en ?? c.name?.fr ?? Object.values(c.name)[0]
+      ? c.name?.[locale] ?? c.name?.en ?? c.name?.fr ?? Object.values(c.name)[0]
       : c.name;
   const progress =
     c.targetSubmissions > 0
