@@ -12,45 +12,46 @@ import { DomainActivityFeed } from '@/components/domain/DomainActivityFeed';
 import { PlanningsSection } from '@/components/domain/PlanningsSection';
 import { SubDomainsGrid } from '@/components/domain/SubDomainsGrid';
 import { usePageReady } from '@/components/ui/PageLoader';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 
 /* -- Domain metadata for colors / descriptions -- */
 
-const DOMAIN_META: Record<string, { color: string; description: string }> = {
+const DOMAIN_META: Record<string, { color: string; description: Record<string, string> }> = {
   'animal-health': {
     color: '#C62828',
-    description: 'Surveillance, outbreaks, laboratory, vaccination, AMR',
+    description: { en: 'Surveillance, outbreaks, laboratory, vaccination, AMR', fr: 'Surveillance, foyers, laboratoire, vaccination, RAM', pt: 'Vigilância, surtos, laboratório, vacinação, RAM', ar: 'المراقبة، البؤر، المختبر، التطعيم، مقاومة مضادات الميكروبات' },
   },
   'livestock-prod': {
     color: '#E65100',
-    description: 'Census, production systems, transhumance corridors',
+    description: { en: 'Census, production systems, transhumance corridors', fr: 'Recensement, systèmes de production, couloirs de transhumance', pt: 'Censo, sistemas de produção, corredores de transumância', ar: 'التعداد، أنظمة الإنتاج، ممرات الترحال' },
   },
   fisheries: {
     color: '#0277BD',
-    description: 'Captures, fleet, licenses, aquaculture, aquatic health',
+    description: { en: 'Captures, fleet, licenses, aquaculture, aquatic health', fr: 'Captures, flotte, licences, aquaculture, santé aquatique', pt: 'Capturas, frota, licenças, aquicultura, saúde aquática', ar: 'المصيد، الأسطول، التراخيص، الاستزراع المائي، الصحة المائية' },
   },
   'trade-sps': {
     color: '#2E7D32',
-    description: 'Trade flows, SPS certification, market intelligence',
+    description: { en: 'Trade flows, SPS certification, market intelligence', fr: 'Flux commerciaux, certification SPS, veille commerciale', pt: 'Fluxos comerciais, certificação SPS, inteligência de mercado', ar: 'التدفقات التجارية، شهادات SPS، معلومات السوق' },
   },
   governance: {
     color: '#4527A0',
-    description: 'Legal frameworks, veterinary capacities, PVS metrics',
+    description: { en: 'Legal frameworks, veterinary capacities, PVS metrics', fr: 'Cadres juridiques, capacités vétérinaires, indicateurs PVS', pt: 'Quadros jurídicos, capacidades veterinárias, indicadores PVS', ar: 'الأطر القانونية، القدرات البيطرية، مؤشرات PVS' },
   },
   wildlife: {
     color: '#795548',
-    description: 'Inventories, protected areas, CITES, human-wildlife conflict',
+    description: { en: 'Inventories, protected areas, CITES, human-wildlife conflict', fr: 'Inventaires, aires protégées, CITES, conflits homme-faune', pt: 'Inventários, áreas protegidas, CITES, conflitos homem-fauna', ar: 'الجرد، المناطق المحمية، اتفاقية CITES، صراعات الإنسان والحياة البرية' },
   },
   apiculture: {
     color: '#F9A825',
-    description: 'Apiaries, honey production, colony health',
+    description: { en: 'Apiaries, honey production, colony health', fr: 'Ruchers, production de miel, santé des colonies', pt: 'Apiários, produção de mel, saúde das colónias', ar: 'المناحل، إنتاج العسل، صحة المستعمرات' },
   },
   'climate-env': {
     color: '#00695C',
-    description: 'Water stress, rangelands, GHG, vulnerability hotspots',
+    description: { en: 'Water stress, rangelands, GHG, vulnerability hotspots', fr: 'Stress hydrique, pâturages, GES, zones de vulnérabilité', pt: 'Stress hídrico, pastagens, GEE, zonas de vulnerabilidade', ar: 'الإجهاد المائي، المراعي، غازات الاحتباس الحراري، مناطق الضعف' },
   },
   'knowledge-hub': {
     color: '#1565C0',
-    description: 'Portal, e-repository, briefs, monitoring & evaluation',
+    description: { en: 'Portal, e-repository, briefs, monitoring & evaluation', fr: 'Portail, dépôt numérique, notes, suivi et évaluation', pt: 'Portal, repositório digital, resumos, monitorização e avaliação', ar: 'البوابة، المستودع الرقمي، الموجزات، المتابعة والتقييم' },
   },
 };
 
@@ -65,9 +66,11 @@ export default function DomainPage() {
     allDomains.find((d) => d.code === code) ??
     userDomains.find((d) => d.code === code);
 
-  const meta = DOMAIN_META[code] ?? { color: '#1F4E79', description: '' };
+  const locale = useLocaleStore((s) => s.locale);
+  const meta = DOMAIN_META[code] ?? { color: '#1F4E79', description: {} };
   const domainName =
-    domain?.name?.en ?? domain?.name?.fr ?? code.replace(/-/g, ' ');
+    domain?.name?.[locale] ?? domain?.name?.en ?? domain?.name?.fr ?? code.replace(/-/g, ' ');
+  const domainDescription = meta.description[locale] ?? meta.description.en ?? '';
 
   const { data: summaryRes, isLoading } = useDomainSummary(code);
   const summary = summaryRes?.data ?? null;
@@ -97,9 +100,9 @@ export default function DomainPage() {
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white capitalize">
                 {domainName}
               </h1>
-              {meta.description && (
+              {domainDescription && (
                 <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-                  {meta.description}
+                  {domainDescription}
                 </p>
               )}
             </div>
