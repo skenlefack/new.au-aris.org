@@ -201,6 +201,57 @@ export async function registerRefDataRoutes(app: FastifyInstance): Promise<void>
     };
   });
 
+  // ── Fish species (FAO ASFIS aquatic species from public.species) ──
+  // Returns scientific_name as primary label (Latin, not translated)
+  app.get<{ Querystring: Record<string, string | undefined> }>('/api/v1/master-data/ref/fish-species/for-select', {
+    preHandler: authAndTenant,
+  }, async (request) => {
+    const { search, group, habitat } = request.query;
+    const where: Record<string, unknown> = { isActive: true, category: 'AQUATIC' };
+    if (group) where['speciesGroup'] = group;
+    if (habitat) where['habitatType'] = habitat;
+    if (search) {
+      where['OR'] = [
+        { scientificName: { contains: search, mode: 'insensitive' } },
+        { commonNameEn: { contains: search, mode: 'insensitive' } },
+        { commonNameFr: { contains: search, mode: 'insensitive' } },
+        { code: { contains: search, mode: 'insensitive' } },
+        { faoAlphaCode: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    const rows = await (app.prisma as any).species.findMany({
+      where,
+      select: {
+        id: true,
+        code: true,
+        scientificName: true,
+        commonNameEn: true,
+        commonNameFr: true,
+        faoAlphaCode: true,
+        speciesGroup: true,
+        habitatType: true,
+      },
+      orderBy: { scientificName: 'asc' },
+      take: 200,
+    });
+    return {
+      data: rows.map((r: any) => ({
+        id: r.id,
+        code: r.code,
+        // scientific_name is the primary label (Latin — never translated)
+        name: {
+          en: `${r.scientificName}${r.commonNameEn ? ` (${r.commonNameEn})` : ''}`,
+          fr: `${r.scientificName}${r.commonNameFr ? ` (${r.commonNameFr})` : r.commonNameEn ? ` (${r.commonNameEn})` : ''}`,
+          pt: `${r.scientificName}${r.commonNameEn ? ` (${r.commonNameEn})` : ''}`,
+          ar: `${r.scientificName}${r.commonNameEn ? ` (${r.commonNameEn})` : ''}`,
+        },
+        scientificName: r.scientificName,
+        faoAlphaCode: r.faoAlphaCode,
+        speciesGroup: r.speciesGroup,
+      })),
+    };
+  });
+
   app.get<{ Querystring: Record<string, string | undefined> }>('/api/v1/master-data/ref/units/for-select', {
     preHandler: authAndTenant,
   }, async (request) => {

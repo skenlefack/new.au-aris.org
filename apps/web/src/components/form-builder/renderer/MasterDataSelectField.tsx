@@ -26,7 +26,7 @@ const VALID_REF_TYPES: Set<string> = new Set([
   'markets', 'checkpoints', 'production-systems',
   'breeds', 'vaccine-types', 'test-types', 'labs',
   'livestock-products', 'census-methodologies',
-  'gear-types', 'vessel-types', 'aquaculture-farm-types', 'landing-sites',
+  'gear-types', 'vessel-types', 'aquaculture-farm-types', 'landing-sites', 'fish-species',
   'conservation-statuses', 'habitat-types', 'crime-types',
   'commodities', 'hive-types', 'bee-diseases', 'floral-sources',
   'legal-framework-types', 'stakeholder-types',
