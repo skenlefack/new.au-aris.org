@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { useRefDataForSelect, usePaidReferentials, type RefDataType, type PaidRefCategory } from '@/lib/api/ref-data-hooks';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { MultiSearchCombobox } from '@/components/ui/MultiSearchCombobox';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 
 interface MasterDataSelectFieldProps {
   masterDataType: string;
@@ -64,6 +65,7 @@ export function MasterDataSelectField({
   className,
   multiple,
 }: MasterDataSelectFieldProps) {
+  const locale = useLocaleStore((s) => s.locale);
   const usePaid = isPaidType(masterDataType);
   const isValidType = usePaid || VALID_REF_TYPES.has(masterDataType);
 
@@ -148,12 +150,17 @@ export function MasterDataSelectField({
           label = `${item.code} — ${item.title}`;
         }
       } else {
-        // Standard ref items have { name: { en, fr } }
+        // Standard ref items have { name: { en, fr, pt, ar } }
         if (item.name && typeof item.name === 'object') {
-          label = item.name.en || item.name.fr || item.name.pt || '';
+          label = item.name[locale] || item.name.en || item.name.fr || item.name.pt || '';
         } else if (typeof item.name === 'string') {
           label = item.name;
         }
+        // Some items use common_name_XX or name_XX pattern (species, diseases)
+        if (!label && item[`common_name_${locale}`]) label = item[`common_name_${locale}`];
+        if (!label && item[`name_${locale}`]) label = item[`name_${locale}`];
+        if (!label && item.common_name_en) label = item.common_name_en;
+        if (!label && item.name_en) label = item.name_en;
       }
 
       if (!label) label = item.code || String(item.id);
@@ -163,7 +170,7 @@ export function MasterDataSelectField({
       const val = usePaid ? (item.code || String(item.id)) : item.id;
       return { value: val, label };
     });
-  }, [activeQuery.data, usePaid, masterDataType, projectCountryCodes]);
+  }, [activeQuery.data, usePaid, masterDataType, projectCountryCodes, locale]);
 
   const selectedArray = useMemo(() => {
     if (!value) return [] as string[];
