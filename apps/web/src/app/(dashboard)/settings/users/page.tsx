@@ -33,6 +33,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n/translations';
 import { DomainBadge } from '@/components/domain/DomainBadge';
 import {
   useSettingsUsers,
@@ -90,19 +91,20 @@ type PageView = 'list' | 'form';
 /*  Helpers                                                          */
 /* ================================================================ */
 
-function formatRelativeTime(dateStr: string | null | undefined): string {
-  if (!dateStr) return 'Never';
+function formatRelativeTime(dateStr: string | null | undefined, t: (key: string) => string, locale: string): string {
+  if (!dateStr) return t('never');
   const date = new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60_000);
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffMins < 1) return t('justNow');
+  if (diffMins < 60) return t('minutesAgo').replace('{count}', String(diffMins));
   const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffHours < 24) return t('hoursAgo').replace('{count}', String(diffHours));
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (diffDays < 7) return t('daysAgo').replace('{count}', String(diffDays));
+  const loc = locale === 'fr' ? 'fr-FR' : locale === 'pt' ? 'pt-PT' : locale === 'ar' ? 'ar-SA' : locale === 'es' ? 'es-ES' : 'en-US';
+  return date.toLocaleDateString(loc, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function getInitials(firstName: string, lastName: string): string {
@@ -193,6 +195,7 @@ function AdminDivisionSelector({
   onChange: (ids: string[]) => void;
 }) {
   const locale = useLocaleStore((s) => s.locale);
+  const t = useTranslations('userMgmt');
   const [selectedAdmin1, setSelectedAdmin1] = useState('');
   const [selectedAdmin2, setSelectedAdmin2] = useState('');
   const [selectedAdmin3, setSelectedAdmin3] = useState('');
@@ -299,9 +302,7 @@ function AdminDivisionSelector({
   const inputClass =
     'w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all';
 
-  const levelLabels = locale === 'fr'
-    ? { admin1: 'Région / Province', admin2: 'District / Département', admin3: 'Sous-district / Commune' }
-    : { admin1: 'Region / Province', admin2: 'District / Department', admin3: 'Sub-district / Commune' };
+  const levelLabels = { admin1: t('admin1Label'), admin2: t('admin2Label'), admin3: t('admin3Label') };
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 overflow-hidden">
@@ -309,16 +310,14 @@ function AdminDivisionSelector({
         <div className="flex items-center gap-2">
           <MapPin className="h-4 w-4 text-gray-400" />
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-            {locale === 'fr' ? 'Zone de collecte / validation' : 'Collection / Validation Zone'}
+            {t('collectionZone')}
           </h2>
         </div>
         <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-          {locale === 'fr'
-            ? 'Restreindre cet utilisateur à des divisions administratives spécifiques. Laisser vide pour accès au pays entier.'
-            : 'Restrict this user to specific administrative divisions. Leave empty for full country access.'}
+          {t('collectionZoneDesc')}
           {selectedIds.length > 0 && (
             <span className="ml-1 font-medium text-blue-600 dark:text-blue-400">
-              {selectedIds.length} {locale === 'fr' ? 'sélectionnée(s)' : 'selected'}
+              {selectedIds.length} {t('selected')}
             </span>
           )}
         </p>
@@ -334,7 +333,7 @@ function AdminDivisionSelector({
               onChange={(e) => { setSelectedAdmin1(e.target.value); setSelectedAdmin2(''); setSelectedAdmin3(''); }}
               className={inputClass}
             >
-              <option value="">{locale === 'fr' ? 'Sélectionner...' : 'Select...'}</option>
+              <option value="">{t('select')}</option>
               {admin1Options.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
@@ -350,7 +349,7 @@ function AdminDivisionSelector({
               disabled={!selectedAdmin1}
               className={cn(inputClass, !selectedAdmin1 && 'opacity-50 cursor-not-allowed')}
             >
-              <option value="">{!selectedAdmin1 ? (locale === 'fr' ? 'Sélectionnez le parent...' : 'Select parent first...') : (locale === 'fr' ? 'Sélectionner...' : 'Select...')}</option>
+              <option value="">{!selectedAdmin1 ? t('selectParentFirst') : t('select')}</option>
               {admin2Options.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
@@ -366,7 +365,7 @@ function AdminDivisionSelector({
               disabled={!selectedAdmin2 || admin3Options.length === 0}
               className={cn(inputClass, (!selectedAdmin2 || admin3Options.length === 0) && 'opacity-50 cursor-not-allowed')}
             >
-              <option value="">{!selectedAdmin2 ? (locale === 'fr' ? 'Sélectionnez le parent...' : 'Select parent first...') : (locale === 'fr' ? 'Sélectionner...' : 'Select...')}</option>
+              <option value="">{!selectedAdmin2 ? t('selectParentFirst') : t('select')}</option>
               {admin3Options.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
@@ -430,7 +429,7 @@ function AdminDivisionSelector({
               className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-400 hover:bg-blue-100 transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
-              {locale === 'fr' ? `Ajouter toutes les régions` : `Add all regions`}
+              {t('addAllRegions')}
             </button>
           )}
           {selectedAdmin1 && admin2Options.length > 0 && (
@@ -440,7 +439,7 @@ function AdminDivisionSelector({
               className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-400 hover:bg-blue-100 transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
-              {locale === 'fr' ? `Ajouter tous les districts` : `Add all districts`}
+              {t('addAllDistricts')}
             </button>
           )}
         </div>
@@ -450,14 +449,14 @@ function AdminDivisionSelector({
           <div className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 p-3">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
-                {locale === 'fr' ? 'Zones assignées' : 'Assigned zones'} ({selectedIds.length})
+                {t('assignedZones')} ({selectedIds.length})
               </p>
               <button
                 type="button"
                 onClick={() => onChange([])}
                 className="text-[11px] font-medium text-red-500 hover:text-red-700 transition-colors"
               >
-                {locale === 'fr' ? 'Tout retirer' : 'Remove all'}
+                {t('removeAll')}
               </button>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -508,6 +507,7 @@ function UserForm({
   const storeDomains = useDomainStore((s) => s.allDomains);
   const setAllDomains = useDomainStore((s) => s.setAllDomains);
   const locale = useLocaleStore((s) => s.locale);
+  const t = useTranslations('userMgmt');
   const tenantTree = useTenantStore((s) => s.tenantTree);
 
   // Fetch domains directly as fallback if store is empty
@@ -672,8 +672,8 @@ function UserForm({
           body.tenantId = form.tenantId;
         }
         await updateMut.mutateAsync(body as any);
-        toast.success('User updated', {
-          description: `${fullName} has been updated successfully.`,
+        toast.success(t('toastUserUpdated'), {
+          description: t('toastUserUpdatedDesc').replace('{name}', fullName),
         });
       } else {
         await createMut.mutateAsync({
@@ -692,15 +692,15 @@ function UserForm({
           directRoleIds: form.directRoleIds.length > 0 ? form.directRoleIds : undefined,
           adminDivisionIds: form.adminDivisionIds.length > 0 ? form.adminDivisionIds : undefined,
         });
-        toast.success('User created', {
-          description: `${fullName} (${form.email}) has been created successfully.`,
+        toast.success(t('toastUserCreated'), {
+          description: t('toastUserCreatedDesc').replace('{name}', fullName).replace('{email}', form.email),
         });
       }
       setSaved(true);
       setTimeout(() => onBack(), 1000);
     } catch (err: any) {
-      toast.error(editingUser ? 'Failed to update user' : 'Failed to create user', {
-        description: err?.message ?? 'An unexpected error occurred. Please try again.',
+      toast.error(editingUser ? t('toastUpdateFailed') : t('toastCreateFailed'), {
+        description: err?.message ?? t('toastUnexpectedError'),
       });
     }
   }, [form, editingUser, createMut, updateMut, onBack, allRoles, allSelectedRoleIds]);
@@ -755,7 +755,7 @@ function UserForm({
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors mb-4"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Users
+          {t('backToUsers')}
         </button>
         <div className="flex items-center gap-3">
           <div
@@ -769,10 +769,10 @@ function UserForm({
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              {editingUser ? `Edit ${editingUser.firstName} ${editingUser.lastName}` : 'Create New User'}
+              {editingUser ? t('editUser').replace('{firstName}', editingUser.firstName).replace('{lastName}', editingUser.lastName) : t('createNewUser')}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {editingUser ? 'Update account details, functions, roles and domain assignments' : 'Set up a new user account with functions, roles and domain access'}
+              {editingUser ? t('editSubtitle') : t('createSubtitle')}
             </p>
           </div>
         </div>
@@ -784,32 +784,32 @@ function UserForm({
           <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
             <div className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-gray-400" />
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Account Information</h2>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{t('accountInfo')}</h2>
             </div>
-            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Name, email, phone and password</p>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{t('accountInfoDesc')}</p>
           </div>
           <div className="px-6 py-5 space-y-5">
             {/* Name row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">First Name</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('firstName')}</label>
                 <input
                   type="text"
                   required
                   value={form.firstName}
                   onChange={(e) => setForm((p) => ({ ...p, firstName: e.target.value }))}
-                  placeholder="e.g. Amina"
+                  placeholder={t('placeholderFirstName')}
                   className="w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Last Name</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('lastName')}</label>
                 <input
                   type="text"
                   required
                   value={form.lastName}
                   onChange={(e) => setForm((p) => ({ ...p, lastName: e.target.value }))}
-                  placeholder="e.g. Mwangi"
+                  placeholder={t('placeholderLastName')}
                   className="w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
                 />
               </div>
@@ -818,7 +818,7 @@ function UserForm({
             {/* Email + Phone row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email Address</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('emailAddress')}</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
@@ -826,20 +826,20 @@ function UserForm({
                     required
                     value={form.email}
                     onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                    placeholder="e.g. user@au-aris.org"
+                    placeholder={t('placeholderEmail')}
                     className="w-full rounded-lg border border-gray-200 bg-gray-50/50 pl-9 pr-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">WhatsApp Number</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('whatsappNumber')}</label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="tel"
                     value={form.phone}
                     onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
-                    placeholder="e.g. +254 712 345 678"
+                    placeholder={t('placeholderPhone')}
                     className="w-full rounded-lg border border-gray-200 bg-gray-50/50 pl-9 pr-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
                   />
                 </div>
@@ -849,7 +849,7 @@ function UserForm({
             {/* Password + Generate */}
             <div>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                {editingUser ? 'New Password' : 'Password'}
+                {editingUser ? t('newPassword') : t('password')}
               </label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
@@ -859,7 +859,7 @@ function UserForm({
                     minLength={8}
                     value={form.password}
                     onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                    placeholder={editingUser ? 'Leave empty to keep current password' : 'Minimum 8 characters'}
+                    placeholder={editingUser ? t('placeholderPasswordKeep') : t('placeholderPasswordMin')}
                     className="w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3.5 py-2.5 pr-11 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
                   />
                   <button
@@ -876,11 +876,11 @@ function UserForm({
                   className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3.5 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors whitespace-nowrap"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
-                  Generate
+                  {t('btnGenerate')}
                 </button>
               </div>
               {!editingUser && (
-                <p className="mt-1 text-[11px] text-gray-400">Must be at least 8 characters</p>
+                <p className="mt-1 text-[11px] text-gray-400">{t('passwordMinHint')}</p>
               )}
             </div>
 
@@ -888,9 +888,9 @@ function UserForm({
             {editingUser && (
               <div className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">Account Status</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{t('accountStatus')}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {form.isActive ? 'User can log in and access the system' : 'User is blocked from logging in'}
+                    {form.isActive ? t('accountStatusActiveDesc') : t('accountStatusInactiveDesc')}
                   </p>
                 </div>
                 <button
@@ -917,12 +917,12 @@ function UserForm({
                 <div>
                   <div className="flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5 text-amber-500" />
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">Temporary Account</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{t('temporaryAccount')}</p>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {form.isTemporary
-                      ? 'Account will expire on the specified date — login will be blocked after expiry'
-                      : 'Permanent account with no expiry date'}
+                      ? t('temporaryActiveDesc')
+                      : t('permanentDesc')}
                   </p>
                 </div>
                 <button
@@ -946,7 +946,7 @@ function UserForm({
                 <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-900/10 px-4 py-3">
                   <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                     <CalendarDays className="inline h-3.5 w-3.5 mr-1 text-amber-600" />
-                    Access End Date
+                    {t('accessEndDate')}
                   </label>
                   <input
                     type="datetime-local"
@@ -957,7 +957,7 @@ function UserForm({
                     className="w-full rounded-lg border border-amber-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 dark:border-amber-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all"
                   />
                   <p className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">
-                    After this date, the user will be unable to log in until the date is extended by an administrator.
+                    {t('expiryWarning')}
                   </p>
                 </div>
               )}
@@ -971,14 +971,14 @@ function UserForm({
             <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
               <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-gray-400" />
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Organisation</h2>
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{t('organisation')}</h2>
               </div>
               <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                Select the organisation (AU-IBAR, REC or Member State) this user belongs to
+                {t('organisationDesc')}
               </p>
             </div>
             <div className="px-6 py-5">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Country / Organisation</label>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('countryOrganisation')}</label>
               <div className="relative">
                 {/* Search input */}
                 <div className="relative">
@@ -988,7 +988,7 @@ function UserForm({
                     value={tenantDropdownOpen ? tenantSearch : selectedTenantLabel}
                     onChange={(e) => { setTenantSearch(e.target.value); if (!tenantDropdownOpen) setTenantDropdownOpen(true); }}
                     onFocus={() => { setTenantDropdownOpen(true); setTenantSearch(''); }}
-                    placeholder="Search country, REC or organisation..."
+                    placeholder={t('searchOrgPlaceholder')}
                     className="w-full rounded-lg border border-gray-200 bg-gray-50/50 pl-9 pr-9 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all"
                   />
                   {form.tenantId && !tenantDropdownOpen && (
@@ -1010,7 +1010,7 @@ function UserForm({
                     <div className="absolute z-20 bottom-full mb-1 w-full max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
                       {filteredTenants.length === 0 ? (
                         <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                          No matching organisation found
+                          {t('noMatchingOrg')}
                         </div>
                       ) : (
                         (() => {
@@ -1030,42 +1030,42 @@ function UserForm({
                           return (
                             <>
                               {/* Continental */}
-                              {continental.map((t) => (
+                              {continental.map((tn) => (
                                 <button
-                                  key={t.id}
+                                  key={tn.id}
                                   type="button"
-                                  onClick={() => { setForm((p) => ({ ...p, tenantId: t.id })); setTenantDropdownOpen(false); setTenantSearch(''); }}
+                                  onClick={() => { setForm((p) => ({ ...p, tenantId: tn.id })); setTenantDropdownOpen(false); setTenantSearch(''); }}
                                   className={cn(
                                     'flex items-center gap-3 w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20',
-                                    form.tenantId === t.id && 'bg-blue-50 dark:bg-blue-900/20',
+                                    form.tenantId === tn.id && 'bg-blue-50 dark:bg-blue-900/20',
                                   )}
                                 >
                                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-purple-100 text-[10px] font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 flex-shrink-0">AU</span>
                                   <div className="min-w-0">
-                                    <p className="font-medium text-gray-900 dark:text-white truncate">{t.name}</p>
-                                    <p className="text-[10px] text-purple-600 dark:text-purple-400">Continental</p>
+                                    <p className="font-medium text-gray-900 dark:text-white truncate">{tn.name}</p>
+                                    <p className="text-[10px] text-purple-600 dark:text-purple-400">{t('continental')}</p>
                                   </div>
-                                  {form.tenantId === t.id && <CheckCircle2 className="h-4 w-4 text-blue-600 ml-auto flex-shrink-0" />}
+                                  {form.tenantId === tn.id && <CheckCircle2 className="h-4 w-4 text-blue-600 ml-auto flex-shrink-0" />}
                                 </button>
                               ))}
 
                               {/* RECs */}
-                              {recs.map((t) => (
+                              {recs.map((tn) => (
                                 <button
-                                  key={t.id}
+                                  key={tn.id}
                                   type="button"
-                                  onClick={() => { setForm((p) => ({ ...p, tenantId: t.id })); setTenantDropdownOpen(false); setTenantSearch(''); }}
+                                  onClick={() => { setForm((p) => ({ ...p, tenantId: tn.id })); setTenantDropdownOpen(false); setTenantSearch(''); }}
                                   className={cn(
                                     'flex items-center gap-3 w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20',
-                                    form.tenantId === t.id && 'bg-blue-50 dark:bg-blue-900/20',
+                                    form.tenantId === tn.id && 'bg-blue-50 dark:bg-blue-900/20',
                                   )}
                                 >
-                                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 flex-shrink-0">{t.code.slice(0, 2)}</span>
+                                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 flex-shrink-0">{tn.code.slice(0, 2)}</span>
                                   <div className="min-w-0">
-                                    <p className="font-medium text-gray-900 dark:text-white truncate">{t.name}</p>
-                                    <p className="text-[10px] text-blue-600 dark:text-blue-400">REC</p>
+                                    <p className="font-medium text-gray-900 dark:text-white truncate">{tn.name}</p>
+                                    <p className="text-[10px] text-blue-600 dark:text-blue-400">{t('rec')}</p>
                                   </div>
-                                  {form.tenantId === t.id && <CheckCircle2 className="h-4 w-4 text-blue-600 ml-auto flex-shrink-0" />}
+                                  {form.tenantId === tn.id && <CheckCircle2 className="h-4 w-4 text-blue-600 ml-auto flex-shrink-0" />}
                                 </button>
                               ))}
 
@@ -1075,22 +1075,22 @@ function UserForm({
                                   <div className="sticky top-0 bg-gray-50 dark:bg-gray-800 px-4 py-1.5 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-t border-gray-100 dark:border-gray-700">
                                     {recName}
                                   </div>
-                                  {members.map((t) => (
+                                  {members.map((tn) => (
                                     <button
-                                      key={t.id}
+                                      key={tn.id}
                                       type="button"
-                                      onClick={() => { setForm((p) => ({ ...p, tenantId: t.id })); setTenantDropdownOpen(false); setTenantSearch(''); }}
+                                      onClick={() => { setForm((p) => ({ ...p, tenantId: tn.id })); setTenantDropdownOpen(false); setTenantSearch(''); }}
                                       className={cn(
                                         'flex items-center gap-3 w-full px-4 py-2 text-left text-sm transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20',
-                                        form.tenantId === t.id && 'bg-blue-50 dark:bg-blue-900/20',
+                                        form.tenantId === tn.id && 'bg-blue-50 dark:bg-blue-900/20',
                                       )}
                                     >
-                                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 flex-shrink-0">{t.code}</span>
+                                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 flex-shrink-0">{tn.code}</span>
                                       <div className="min-w-0">
-                                        <p className="font-medium text-gray-900 dark:text-white truncate">{t.name}</p>
-                                        <p className="text-[10px] text-gray-400 dark:text-gray-500">Member State</p>
+                                        <p className="font-medium text-gray-900 dark:text-white truncate">{tn.name}</p>
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500">{t('memberState')}</p>
                                       </div>
-                                      {form.tenantId === t.id && <CheckCircle2 className="h-4 w-4 text-blue-600 ml-auto flex-shrink-0" />}
+                                      {form.tenantId === tn.id && <CheckCircle2 className="h-4 w-4 text-blue-600 ml-auto flex-shrink-0" />}
                                     </button>
                                   ))}
                                 </div>
@@ -1120,13 +1120,13 @@ function UserForm({
           <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
             <div className="flex items-center gap-2">
               <Briefcase className="h-4 w-4 text-gray-400" />
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Functions</h2>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{t('functions')}</h2>
             </div>
             <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-              Select user functions (job titles). Each function brings its associated roles automatically.
+              {t('functionsDesc')}
               {form.functionIds.length > 0 && (
                 <span className="ml-1 font-medium text-blue-600 dark:text-blue-400">
-                  {form.functionIds.length} selected
+                  {form.functionIds.length} {t('selected')}
                 </span>
               )}
             </p>
@@ -1184,7 +1184,7 @@ function UserForm({
                 })}
               </div>
             ) : (
-              <p className="text-xs text-gray-400 italic">No functions available. Create functions in Settings &gt; Functions first.</p>
+              <p className="text-xs text-gray-400 italic">{t('noFunctionsAvailable')}</p>
             )}
           </div>
         </div>
@@ -1194,13 +1194,13 @@ function UserForm({
           <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-gray-400" />
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Roles</h2>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{t('roles')}</h2>
             </div>
             <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-              Roles inherited from functions are locked. You can assign additional direct roles.
+              {t('rolesDesc')}
               {allSelectedRoleIds.size > 0 && (
                 <span className="ml-1 font-medium text-blue-600 dark:text-blue-400">
-                  {allSelectedRoleIds.size} effective role{allSelectedRoleIds.size !== 1 ? 's' : ''}
+                  {allSelectedRoleIds.size} {allSelectedRoleIds.size !== 1 ? t('effectiveRoles') : t('effectiveRole')}
                 </span>
               )}
             </p>
@@ -1246,12 +1246,12 @@ function UserForm({
                           {isDerived && (
                             <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700 dark:text-amber-400 flex-shrink-0">
                               <Lock className="h-2.5 w-2.5" />
-                              function
+                              {t('fromFunction')}
                             </span>
                           )}
                           {isDirect && !isDerived && (
                             <span className="inline-flex rounded-full bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 text-[9px] font-semibold text-blue-700 dark:text-blue-400 flex-shrink-0">
-                              direct
+                              {t('direct')}
                             </span>
                           )}
                         </div>
@@ -1268,14 +1268,14 @@ function UserForm({
                 })}
               </div>
             ) : (
-              <p className="text-xs text-gray-400 italic">Loading roles...</p>
+              <p className="text-xs text-gray-400 italic">{t('loadingRoles')}</p>
             )}
 
             {/* Effective roles summary */}
             {allSelectedRoleIds.size > 0 && (
               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                 <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-2">
-                  Effective Roles Summary
+                  {t('effectiveRolesSummary')}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {allRoles
@@ -1305,20 +1305,20 @@ function UserForm({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Globe className="h-4 w-4 text-gray-400" />
-                  <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Domain Access</h2>
+                  <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{t('domainAccess')}</h2>
                 </div>
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={selectAllDomains} className="text-[11px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 transition-colors">
-                    Select All
+                    {t('selectAll')}
                   </button>
                   <span className="text-gray-300 dark:text-gray-600">|</span>
                   <button type="button" onClick={clearAllDomains} className="text-[11px] font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 transition-colors">
-                    Clear
+                    {t('clear')}
                   </button>
                 </div>
               </div>
               <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                Select which business domains this user can access ({form.domainIds.length}/{allDomains.length} selected)
+                {t('domainAccessDesc').replace('{count}', String(form.domainIds.length)).replace('{total}', String(allDomains.length))}
               </p>
             </div>
             <div className="px-6 py-5">
@@ -1389,7 +1389,7 @@ function UserForm({
             onClick={onBack}
             className="rounded-lg border border-gray-200 dark:border-gray-700 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
-            Cancel
+            {t('btnCancel')}
           </button>
           <button
             type="submit"
@@ -1403,7 +1403,7 @@ function UserForm({
             ) : (
               <Save className="h-4 w-4" />
             )}
-            {editingUser ? 'Save Changes' : 'Create User'}
+            {editingUser ? t('btnSaveChanges') : t('btnCreateUser')}
           </button>
         </div>
       </form>
@@ -1417,6 +1417,7 @@ function UserForm({
 
 function LockedAccountsPanel() {
   const me = useAuthStore((s) => s.user);
+  const t = useTranslations('userMgmt');
   const isSuperOrContinental = me?.role === 'SUPER_ADMIN' || me?.role === 'CONTINENTAL_ADMIN';
   const { data, isLoading } = useLockedAccounts();
   const unlockMut = useUnlockAccount();
@@ -1431,7 +1432,7 @@ function LockedAccountsPanel() {
       <div className="mb-3 flex items-center gap-2">
         <Lock className="h-4 w-4 text-red-600 dark:text-red-400" />
         <h3 className="text-sm font-semibold text-red-800 dark:text-red-300">
-          Locked Accounts ({locked.length})
+          {t('lockedAccounts')} ({locked.length})
         </h3>
       </div>
       <div className="space-y-2">
@@ -1445,7 +1446,7 @@ function LockedAccountsPanel() {
               <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">{acc.email}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {acc.attempts} failed attempts — auto-unlock in {minutes} min
+                  {t('failedAttempts').replace('{attempts}', String(acc.attempts)).replace('{minutes}', String(minutes))}
                 </p>
               </div>
               <button
@@ -1453,16 +1454,16 @@ function LockedAccountsPanel() {
                 onClick={async () => {
                   try {
                     await unlockMut.mutateAsync(acc.email);
-                    toast.success(`${acc.email} unlocked`);
+                    toast.success(t('unlocked').replace('{email}', acc.email));
                   } catch {
-                    toast.error('Failed to unlock account');
+                    toast.error(t('failedUnlock'));
                   }
                 }}
                 disabled={unlockMut.isPending}
                 className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50 dark:border-red-700 dark:bg-gray-900 dark:text-red-400 dark:hover:bg-red-900/30"
               >
                 <Lock className="h-3 w-3" />
-                Unlock
+                {t('btnUnlock')}
               </button>
             </div>
           );
@@ -1486,6 +1487,7 @@ function DeleteConfirm({
   onConfirm: () => void;
   isPending: boolean;
 }) {
+  const t = useTranslations('userMgmt');
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in">
       <div className="mx-4 w-full max-w-sm rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl p-6 space-y-4">
@@ -1494,19 +1496,19 @@ function DeleteConfirm({
             <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Delete User</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">This action cannot be undone</p>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('deleteUser')}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('deleteWarning')}</p>
           </div>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-300">
-          Are you sure you want to permanently delete <strong>{user.firstName} {user.lastName}</strong> ({user.email})?
+          {t('deleteConfirm')} <strong>{user.firstName} {user.lastName}</strong> ({user.email})?
         </p>
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={onCancel}
             className="rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
-            Cancel
+            {t('btnCancel')}
           </button>
           <button
             onClick={onConfirm}
@@ -1514,7 +1516,7 @@ function DeleteConfirm({
             className="flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
           >
             {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            Delete
+            {t('btnDelete')}
           </button>
         </div>
       </div>
@@ -1527,6 +1529,8 @@ function DeleteConfirm({
 /* ================================================================ */
 
 export default function UsersPage() {
+  const t = useTranslations('userMgmt');
+  const locale = useLocaleStore((s) => s.locale);
   const [view, setView] = useState<PageView>('list');
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('');
@@ -1576,9 +1580,9 @@ export default function UsersPage() {
     try {
       await deleteMut.mutateAsync(deletingUser.id);
       setDeletingUser(null);
-      toast.success('User deleted', { description: `${name} has been removed.` });
+      toast.success(t('toastUserDeleted'), { description: t('toastUserDeletedDesc').replace('{name}', name) });
     } catch (err: any) {
-      toast.error('Failed to delete user', { description: err?.message ?? 'Please try again.' });
+      toast.error(t('toastDeleteFailed'), { description: err?.message ?? t('toastTryAgain') });
     }
   }, [deletingUser, deleteMut]);
 
@@ -1588,11 +1592,11 @@ export default function UsersPage() {
     toggleActiveMut.mutate(
       { id: user.id, isActive: willBeActive },
       {
-        onSuccess: () => toast.success(willBeActive ? 'User activated' : 'User deactivated', {
-          description: `${name} is now ${willBeActive ? 'active' : 'inactive'}.`,
+        onSuccess: () => toast.success(willBeActive ? t('toastUserActivated') : t('toastUserDeactivated'), {
+          description: t('toastUserStatusDesc').replace('{name}', name).replace('{status}', willBeActive ? t('active') : t('inactive')),
         }),
-        onError: (err: any) => toast.error('Failed to update status', {
-          description: err?.message ?? 'Please try again.',
+        onError: (err: any) => toast.error(t('toastStatusFailed'), {
+          description: err?.message ?? t('toastTryAgain'),
         }),
       },
     );
@@ -1625,15 +1629,15 @@ export default function UsersPage() {
               className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Back to Settings
+              {t('backToSettings')}
             </Link>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Users className="h-6 w-6 text-blue-600" />
-            User Management
+            {t('pageTitle')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Manage user accounts, functions, roles and domain assignments
+            {t('pageSubtitle')}
           </p>
         </div>
         <button
@@ -1641,7 +1645,7 @@ export default function UsersPage() {
           className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md"
         >
           <Plus className="h-4 w-4" />
-          Add User
+          {t('addUser')}
         </button>
       </div>
 
@@ -1653,7 +1657,7 @@ export default function UsersPage() {
           </div>
           <div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{meta.total}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Total Users</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('totalUsers')}</p>
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -1664,7 +1668,7 @@ export default function UsersPage() {
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
               {users.filter((u) => !!u.accountExpiresAt).length}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Temporary Accounts</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('temporaryAccounts')}</p>
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -1673,7 +1677,7 @@ export default function UsersPage() {
           </div>
           <div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{activeCount}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Active (this page)</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('activeThisPage')}</p>
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -1684,7 +1688,7 @@ export default function UsersPage() {
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
               {users.filter((u) => !u.lastLoginAt).length}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Never Logged In</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('neverLoggedIn')}</p>
           </div>
         </div>
       </div>
@@ -1700,7 +1704,7 @@ export default function UsersPage() {
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search by name or email..."
+            placeholder={t('searchPlaceholder')}
             className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
@@ -1709,7 +1713,7 @@ export default function UsersPage() {
           onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
         >
-          <option value="">All Roles</option>
+          <option value="">{t('allRoles')}</option>
           {filterRoles.map((role) => (
             <option key={role.id} value={role.code}>{role.name?.en ?? role.code}</option>
           ))}
@@ -1719,9 +1723,9 @@ export default function UsersPage() {
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
         >
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option value="">{t('allStatus')}</option>
+          <option value="active">{t('statusActive')}</option>
+          <option value="inactive">{t('statusInactive')}</option>
         </select>
       </div>
 
@@ -1737,7 +1741,7 @@ export default function UsersPage() {
         <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-5 dark:border-red-800 dark:bg-red-900/20">
           <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
           <p className="text-sm font-medium text-red-700 dark:text-red-400">
-            Failed to load users: {(error as any)?.message ?? 'Unknown error'}
+            {t('failedToLoadUsers')}: {(error as any)?.message ?? ''}
           </p>
         </div>
       )}
@@ -1748,12 +1752,12 @@ export default function UsersPage() {
           <table className="w-full text-left text-sm">
             <thead className="border-b border-gray-100 bg-gray-50/80 dark:border-gray-800 dark:bg-gray-800/50">
               <tr>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Name</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Email</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Organisation</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Roles</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-[70px]">Active</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right w-[120px]">Actions</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('thName')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('thEmail')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('thOrganisation')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('thRoles')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-[70px]">{t('thActive')}</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right w-[120px]">{t('thActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
@@ -1846,7 +1850,7 @@ export default function UsersPage() {
                             user.isActive ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600',
                             isToggling && 'opacity-50',
                           )}
-                          title={user.isActive ? 'Click to deactivate' : 'Click to activate'}
+                          title={user.isActive ? t('clickToDeactivate') : t('clickToActivate')}
                         >
                           <span
                             className={cn(
@@ -1868,7 +1872,7 @@ export default function UsersPage() {
                               title={`Expires: ${new Date(user.accountExpiresAt!).toLocaleString()}`}
                             >
                               <Clock className="h-2.5 w-2.5" />
-                              {isExpired ? 'Expired' : 'Temp'}
+                              {isExpired ? t('expired') : t('temp')}
                             </span>
                           );
                         })()}
@@ -1881,13 +1885,13 @@ export default function UsersPage() {
                           className="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-all"
                         >
                           <Pencil className="h-3 w-3" />
-                          Edit
+                          {t('btnEdit')}
                         </button>
                         {canDelete && (
                           <button
                             onClick={() => setDeletingUser(user)}
                             className="inline-flex items-center rounded-lg border border-gray-200 dark:border-gray-700 p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-all"
-                            title="Delete user (never logged in)"
+                            title={t('deleteUserNeverLoggedIn')}
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
@@ -1905,8 +1909,8 @@ export default function UsersPage() {
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
                         <Users className="h-6 w-6 text-gray-400" />
                       </div>
-                      <p className="font-medium text-gray-900 dark:text-white">No users found</p>
-                      <p className="text-xs text-gray-500">Try adjusting your search or filter criteria.</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{t('noUsersFound')}</p>
+                      <p className="text-xs text-gray-500">{t('noUsersHint')}</p>
                     </div>
                   </td>
                 </tr>
@@ -1918,13 +1922,13 @@ export default function UsersPage() {
           {meta.total > ITEMS_PER_PAGE && (
             <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 px-4 py-3">
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Showing{' '}
+                {t('showing')}{' '}
                 <span className="font-medium text-gray-900 dark:text-white">{(page - 1) * ITEMS_PER_PAGE + 1}</span>
-                {' '}to{' '}
+                {' '}{t('to')}{' '}
                 <span className="font-medium text-gray-900 dark:text-white">{Math.min(page * ITEMS_PER_PAGE, meta.total)}</span>
-                {' '}of{' '}
+                {' '}{t('of')}{' '}
                 <span className="font-medium text-gray-900 dark:text-white">{meta.total}</span>
-                {' '}users
+                {' '}{t('users')}
               </p>
               <div className="flex items-center gap-1">
                 <button
@@ -1933,7 +1937,7 @@ export default function UsersPage() {
                   className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
-                  Prev
+                  {t('prev')}
                 </button>
                 {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
                   let p: number;
@@ -1961,7 +1965,7 @@ export default function UsersPage() {
                   disabled={page >= totalPages}
                   className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
-                  Next
+                  {t('next')}
                   <ChevronRight className="h-3.5 w-3.5" />
                 </button>
               </div>
