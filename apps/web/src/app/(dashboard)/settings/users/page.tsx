@@ -52,6 +52,7 @@ import { useDomainStore } from '@/lib/stores/domain-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useTenantStore, type TenantNode } from '@/lib/stores/tenant-store';
+import { usePublicDomains } from '@/lib/api/settings-hooks';
 import { useGeoEntities, useGeoChildren } from '@/lib/api/geo-hooks';
 import { COUNTRIES } from '@/data/countries-config';
 import * as LucideIcons from 'lucide-react';
@@ -504,9 +505,22 @@ function UserForm({
   onBack: () => void;
 }) {
   const currentUser = useAuthStore((s) => s.user);
-  const allDomains = useDomainStore((s) => s.allDomains);
+  const storeDomains = useDomainStore((s) => s.allDomains);
+  const setAllDomains = useDomainStore((s) => s.setAllDomains);
   const locale = useLocaleStore((s) => s.locale);
   const tenantTree = useTenantStore((s) => s.tenantTree);
+
+  // Fetch domains directly as fallback if store is empty
+  const { data: publicDomainData } = usePublicDomains();
+  const allDomains = useMemo(() => {
+    if (storeDomains.length > 0) return storeDomains;
+    const fetched = (publicDomainData as any)?.data;
+    if (Array.isArray(fetched) && fetched.length > 0) {
+      setAllDomains(fetched);
+      return fetched;
+    }
+    return [];
+  }, [storeDomains, publicDomainData, setAllDomains]);
 
   // Determine if current user can assign to other tenants
   const canAssignTenant = currentUser?.role === 'SUPER_ADMIN'
