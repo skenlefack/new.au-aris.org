@@ -66,6 +66,7 @@ export function CountryPageContent({
   recs,
   primaryRec,
   isConfigured,
+  isActive,
   showRealSections,
   apiStatistics,
   apiKpiScores,
