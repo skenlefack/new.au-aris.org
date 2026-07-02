@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ChevronLeft,
   ChevronRight,
@@ -1014,14 +1015,26 @@ export default function WorkflowPage() {
             selectedIds={selectedIds} setSelectedIds={setSelectedIds} />
         )}
 
-      {/* Modals */}
-      {viewingSub && <SubmissionDetailModal item={viewingSub} onClose={() => setViewingSub(null)}
-        onValidate={handleValidate} onReject={handleReject} onReturn={handleReturn} onStartWorkflow={handleStartWorkflow}
-        isActionPending={isActionPending} isMine={(viewingSub as any)._isMine ?? (viewingSub.submittedBy === user?.id)} t={t} />}
-      {viewingWf && <WfDetailModal item={viewingWf} onClose={() => setViewingWf(null)} t={t} />}
-      {actionDialog && <ActionDialog itemId={actionDialog.id} action={actionDialog.action} onClose={() => setActionDialog(null)}
-        onConfirm={(text) => handleWfAction(actionDialog.id, actionDialog.action, text)} isPending={workflowAction.isPending} t={t} />}
-      {showValidatorChooser && <ChooseValidatorDialog onClose={() => setShowValidatorChooser(null)} onSelect={handleSelectValidator} t={t} />}
+      {/* Modals — rendered via portal to escape layout stacking context */}
+      {viewingSub && createPortal(
+        <SubmissionDetailModal item={viewingSub} onClose={() => setViewingSub(null)}
+          onValidate={handleValidate} onReject={handleReject} onReturn={handleReturn} onStartWorkflow={handleStartWorkflow}
+          isActionPending={isActionPending} isMine={(viewingSub as any)._isMine ?? (viewingSub.submittedBy === user?.id)} t={t} />,
+        document.body,
+      )}
+      {viewingWf && createPortal(
+        <WfDetailModal item={viewingWf} onClose={() => setViewingWf(null)} t={t} />,
+        document.body,
+      )}
+      {actionDialog && createPortal(
+        <ActionDialog itemId={actionDialog.id} action={actionDialog.action} onClose={() => setActionDialog(null)}
+          onConfirm={(text) => handleWfAction(actionDialog.id, actionDialog.action, text)} isPending={workflowAction.isPending} t={t} />,
+        document.body,
+      )}
+      {showValidatorChooser && createPortal(
+        <ChooseValidatorDialog onClose={() => setShowValidatorChooser(null)} onSelect={handleSelectValidator} t={t} />,
+        document.body,
+      )}
 
       {/* Bulk action floating bar */}
       {selectedIds.size > 0 && (
