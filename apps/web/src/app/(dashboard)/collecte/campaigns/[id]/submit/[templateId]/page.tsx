@@ -6,6 +6,8 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, AlertCircle, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
+import { resolveTemplateName } from '@/lib/utils/template-names';
 import { useSubmitCampaignForm } from '@/lib/api/hooks';
 import { useCollectionCampaign } from '@/lib/api/workflow-hooks';
 import {
@@ -93,7 +95,8 @@ export default function CampaignSubmitPage() {
     return direct;
   }, [directRes, allTemplatesRes, seedName]);
 
-  const templateName = resolvedTemplate?.name ?? seedName ?? templateId.slice(0, 8) + '...';
+  const locale = useLocaleStore((s) => s.locale);
+  const templateName = resolveTemplateName(resolvedTemplate?.name ?? seedName ?? templateId.slice(0, 8) + '...', locale);
   const schema = extractSchema(resolvedTemplate);
 
   // Show loading until we either resolved a template or both fetches settled

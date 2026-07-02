@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import { resolveTemplateName } from '@/lib/utils/template-names';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -199,8 +200,8 @@ export default function CampaignDetailPage() {
   }, [campaign, apiTemplates]);
 
   const templateNames = useMemo(
-    () => resolvedTemplates.map((r) => r.name),
-    [resolvedTemplates],
+    () => resolvedTemplates.map((r) => resolveTemplateName(r.name, locale)),
+    [resolvedTemplates, locale],
   );
 
   // Resolve country info
@@ -506,7 +507,7 @@ export default function CampaignDetailPage() {
                     >
                       <FileText className="h-4 w-4 text-gray-400 shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{rt.name}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{resolveTemplateName(rt.name, locale)}</p>
                         {rt.tpl && (
                           <p className="text-xs text-gray-500 dark:text-gray-400">
                             {getDomainLabel(rt.tpl.domain)} &middot; v{rt.tpl.version}
