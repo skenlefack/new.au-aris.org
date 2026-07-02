@@ -762,6 +762,7 @@ export default function WorkflowPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [levelFilter, setLevelFilter] = useState<string | undefined>(undefined);
+  const [dataFilter, setDataFilter] = useState<'all' | 'mine' | 'toReview'>('all');
   const [viewingSub, setViewingSub] = useState<SubmissionRecord | null>(null);
   const [viewingWf, setViewingWf] = useState<WorkflowItem | null>(null);
   const [actionDialog, setActionDialog] = useState<{ id: string; action: 'approve' | 'reject' | 'return' } | null>(null);
@@ -782,8 +783,9 @@ export default function WorkflowPage() {
   };
   const primaryStatus = TAB_PRIMARY_STATUS[activeTab];
 
+  const agentFilter = dataFilter === 'mine' ? user?.id : undefined;
   const { submissionData, workflowData, hasWorkflowData, isLoading, isError, refetch } =
-    useWorkflowItems({ page, limit: pageSize, status: primaryStatus, level: levelFilter });
+    useWorkflowItems({ page, limit: pageSize, status: primaryStatus, level: levelFilter, agent: agentFilter });
   const { data: dashboardRes } = useWorkflowDashboard();
   const dashboard = dashboardRes?.data;
   const workflowAction = useWorkflowAction();
@@ -802,8 +804,10 @@ export default function WorkflowPage() {
   const wfItems = workflowData?.data ?? [];
   const wfTotal = workflowData?.meta?.total ?? 0;
 
-  // Server already filters by status; for workflow instances also accept related statuses
-  const filteredSubmissions = allSubmissions;
+  // Filter by data ownership: mine (submitted by me) vs toReview (submitted by others)
+  const filteredSubmissions = dataFilter === 'toReview'
+    ? allSubmissions.filter((s) => s.submittedBy !== user?.id)
+    : allSubmissions;
   const filteredWfItems = wfItems.length > 0
     ? wfItems.filter((w) => tabStatuses.includes(w.status))
     : wfItems;
@@ -951,6 +955,31 @@ export default function WorkflowPage() {
         <KpiCard icon={<CheckCircle className="h-5 w-5 text-green-600" />} bg="bg-green-50 dark:bg-green-900/20" label={t('approved')} value={dashboard?.totalApproved ?? 0} />
         <KpiCard icon={<XCircle className="h-5 w-5 text-red-600" />} bg="bg-red-50 dark:bg-red-900/20" label={t('rejected')} value={dashboard?.totalRejected ?? 0} />
         <KpiCard icon={<AlertTriangle className="h-5 w-5 text-purple-600" />} bg="bg-purple-50 dark:bg-purple-900/20" label={t('overdue') + ' SLA'} value={dashboard?.slaBreaches ?? 0} />
+      </div>
+
+      {/* ── Data ownership filter ── */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Filter:</span>
+        <div className="flex items-center gap-1 rounded-lg border border-gray-200 p-0.5 dark:border-gray-700">
+          {([
+            { key: 'all' as const, label: t('filterAll'), icon: <BarChart3 className="h-3 w-3" /> },
+            { key: 'mine' as const, label: t('myData'), icon: <FileText className="h-3 w-3" /> },
+            { key: 'toReview' as const, label: t('toReview'), icon: <Users className="h-3 w-3" /> },
+          ]).map((f) => (
+            <button
+              key={f.key}
+              onClick={() => { setDataFilter(f.key); setPage(1); }}
+              className={cn(
+                'flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                dataFilter === f.key
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+              )}
+            >
+              {f.icon}{f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── Tabs ── */}
