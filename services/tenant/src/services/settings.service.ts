@@ -1163,8 +1163,9 @@ export class SettingsService {
         userCount = rows[0]?.user_count ?? 0;
         submissionCount = rows[0]?.submission_count ?? 0;
 
-        // Auto-activate if admin divisions + users + submissions exist
-        if (!autoActive && adminCount >= 1 && userCount >= 1 && submissionCount >= 1) {
+        // Auto-activate if admin divisions exist AND data has been collected
+        // (submissions can come from country users OR continental-level campaigns)
+        if (!autoActive && adminCount >= 1 && (submissionCount >= 1 || userCount >= 1)) {
           autoActive = true;
           // Persist the auto-activation to DB
           await (this.prisma as any).country.update({
