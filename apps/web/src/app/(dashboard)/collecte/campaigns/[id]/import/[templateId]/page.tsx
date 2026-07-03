@@ -1,166 +1,578 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { ArrowLeft, Upload, FileSpreadsheet, FileDown, Loader2, AlertCircle, Check } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import {
+  ArrowLeft, Upload, FileSpreadsheet, FileDown, Loader2, AlertCircle,
+  Check, CheckCircle2, XCircle, Pencil, RefreshCw, ChevronDown, ChevronUp,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 import { useFormBuilderTemplate } from '@/lib/api/form-builder-hooks';
+import { resolveTemplateName } from '@/lib/utils/template-names';
+import {
+  type FieldDef, type ResolvedRow,
+  resolveRow, buildSubmissionData,
+} from '@/lib/utils/import-resolver';
 
-function tplName(name: unknown): string {
-  if (!name) return '';
-  if (typeof name === 'string') return name;
-  if (typeof name === 'object') { const o = name as Record<string, string>; return o.en ?? o.fr ?? Object.values(o)[0] ?? ''; }
-  return String(name);
+// ── Helpers ──
+
+function ml(val: unknown): string {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object') {
+    const o = val as Record<string, string>;
+    return o.en ?? o.fr ?? Object.values(o)[0] ?? '';
+  }
+  return String(val);
 }
 
-interface Field { code: string; label: string; type: string }
-
-function extractFields(schema: unknown): Field[] {
-  const s = schema as { sections?: { fields?: { code?: string; label?: { en?: string; fr?: string }; type?: string }[] }[] } | null;
+function extractFields(schema: unknown): FieldDef[] {
+  const s = schema as {
+    sections?: {
+      order?: number;
+      fields?: {
+        code?: string;
+        label?: Record<string, string>;
+        type?: string;
+        required?: boolean;
+        hidden?: boolean;
+        properties?: any;
+      }[];
+    }[];
+  } | null;
   if (!s?.sections) return [];
-  const rows: Field[] = [];
-  for (const sec of s.sections) for (const f of sec.fields || []) if (f.code) rows.push({ code: f.code, label: f.label?.en || f.label?.fr || f.code, type: f.type || 'text' });
+  const rows: FieldDef[] = [];
+  const sorted = [...(s.sections || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  for (const sec of sorted) {
+    for (const f of sec.fields || []) {
+      if (!f.code) continue;
+      if (['heading', 'divider', 'spacer', 'info-box', 'geo-selector'].includes(f.type ?? '')) continue;
+      rows.push({
+        code: f.code,
+        label: ml(f.label) || f.code,
+        type: f.type || 'text',
+        required: f.required ?? false,
+        properties: f.properties,
+      });
+    }
+  }
   return rows;
 }
 
+function dl(blob: Blob, name: string) {
+  const u = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = u; a.download = name; a.click();
+  URL.revokeObjectURL(u);
+}
+
+// ── Types ──
+
+type Phase = 'upload' | 'resolving' | 'preview' | 'importing' | 'done';
+
+// ── Page Component ──
+
 export default function ImportPage() {
   const { id: campaignId, templateId } = useParams<{ id: string; templateId: string }>();
+  const router = useRouter();
   const t = useTranslations('collecte');
+  const locale = useLocaleStore((s) => s.locale);
+
   const { data: tplRes } = useFormBuilderTemplate(templateId);
   const template = tplRes?.data;
-  const name = tplName(template?.name);
+  const name = resolveTemplateName(ml(template?.name), locale);
   const fields = useMemo(() => extractFields(template?.schema), [template?.schema]);
 
+  const [phase, setPhase] = useState<Phase>('upload');
   const [file, setFile] = useState<File | null>(null);
-  const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState<{ success: number; errors: number; total: number } | null>(null);
+  const [rows, setRows] = useState<ResolvedRow[]>([]);
+  const [resolveProgress, setResolveProgress] = useState({ current: 0, total: 0 });
+  const [importResult, setImportResult] = useState<{ success: number; errors: number; total: number } | null>(null);
   const [error, setError] = useState('');
+  const [editingCell, setEditingCell] = useState<{ rowIdx: number; code: string } | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
 
+  const validRows = useMemo(() => rows.filter((r) => r.status === 'valid'), [rows]);
+  const errorRows = useMemo(() => rows.filter((r) => r.status === 'error'), [rows]);
+
+  // ── Template Generation ──
   const handleGenTemplate = useCallback(async () => {
     const ExcelJS = (await import('exceljs')).default;
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('Data Entry', { views: [{ state: 'frozen', ySplit: 1 }] });
+    const ws = wb.addWorksheet('Data Entry', { views: [{ state: 'frozen', ySplit: 2 }] });
+
+    // Row 1: field codes (hidden-ish, used for mapping)
     const hr = ws.addRow(fields.map((f) => f.code));
-    hr.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } }; });
-    ws.addRow(fields.map((f) => f.label));
-    for (let i = 0; i < 50; i++) ws.addRow([]);
-    ws.columns.forEach((col, i) => { col.width = Math.max(14, (fields[i]?.label.length ?? 10) + 4); });
+    hr.eachCell((c) => {
+      c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
+    });
+
+    // Row 2: human labels
+    const lr = ws.addRow(fields.map((f) => `${f.label}${f.required ? ' *' : ''}`));
+    lr.eachCell((c) => {
+      c.font = { bold: true, size: 10 };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+    });
+
+    for (let i = 0; i < 100; i++) ws.addRow([]);
+    ws.columns.forEach((col, i) => {
+      col.width = Math.max(16, (fields[i]?.label.length ?? 10) + 6);
+    });
+
+    // Instructions sheet
+    const inst = wb.addWorksheet('Instructions');
+    inst.addRow(['Field Code', 'Label', 'Type', 'Required', 'Notes']);
+    for (const f of fields) {
+      const notes = f.type === 'admin-location' ? 'Format: Country, Admin1, Admin2 (e.g., Madagascar, Antananarivo, Atsimondrano)'
+        : f.type === 'master-data-select' ? `Search by name or code (type: ${f.properties?.masterDataType ?? ''})`
+        : f.type === 'select' ? `Options: ${(f.properties?.options ?? []).map((o: any) => ml(o.label) || o.value).join(', ')}`
+        : f.type === 'date' ? 'Format: YYYY-MM-DD or DD/MM/YYYY'
+        : f.type === 'number' ? 'Numeric value'
+        : '';
+      inst.addRow([f.code, f.label, f.type, f.required ? 'Yes' : 'No', notes]);
+    }
+    inst.columns.forEach((col) => { col.width = 30; });
+
     const buf = await wb.xlsx.writeBuffer();
-    dl(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `ARIS_Template_${name.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
+    dl(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+      `ARIS_Template_${name.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
   }, [fields, name]);
 
-  const handleImport = useCallback(async () => {
-    if (!file) return;
-    setImporting(true); setError(''); setResult(null);
+  // ── Excel Parsing + Resolution ──
+  const handleParse = useCallback(async () => {
+    if (!file || fields.length === 0) return;
+    setPhase('resolving');
+    setError('');
+
     try {
       const ExcelJS = (await import('exceljs')).default;
       const wb = new ExcelJS.Workbook();
       await wb.xlsx.load(await file.arrayBuffer());
       const ws = wb.worksheets[0];
-      if (!ws || ws.rowCount < 2) { setError(t('fileEmpty')); setImporting(false); return; }
+      if (!ws || ws.rowCount < 2) {
+        setError('File is empty or has no data rows');
+        setPhase('upload');
+        return;
+      }
+
+      // Row 1: headers (field codes)
       const headers: string[] = [];
-      ws.getRow(1).eachCell((cell, col) => { headers[col - 1] = String(cell.value ?? '').trim(); });
-      const startRow = fields.some((f) => f.label === String(ws.getRow(2).getCell(1).value ?? '')) ? 3 : 2;
-      const rows: Record<string, unknown>[] = [];
+      ws.getRow(1).eachCell((cell, col) => {
+        headers[col - 1] = String(cell.value ?? '').trim();
+      });
+
+      // Skip row 2 if it's labels
+      const row2Val = String(ws.getRow(2).getCell(1).value ?? '');
+      const isLabel = fields.some((f) => f.label === row2Val);
+      const startRow = isLabel ? 3 : 2;
+
+      // Parse raw data
+      const rawRows: Record<string, unknown>[] = [];
       for (let r = startRow; r <= ws.rowCount; r++) {
-        const row = ws.getRow(r); const d: Record<string, unknown> = {}; let has = false;
-        headers.forEach((h, i) => { if (!h) return; const v = row.getCell(i + 1).value; if (v != null && v !== '') { d[h] = v; has = true; } });
-        if (has) rows.push(d);
+        const row = ws.getRow(r);
+        const d: Record<string, unknown> = {};
+        let hasValue = false;
+        headers.forEach((h, i) => {
+          if (!h) return;
+          const v = row.getCell(i + 1).value;
+          if (v !== null && v !== undefined && v !== '') {
+            d[h] = v;
+            hasValue = true;
+          }
+        });
+        if (hasValue) rawRows.push(d);
       }
-      if (rows.length === 0) { setError(t('noDataRowsFound')); setImporting(false); return; }
-      const token = localStorage.getItem('accessToken') || '';
-      let success = 0, errors = 0;
-      for (let i = 0; i < rows.length; i += 20) {
-        await Promise.all(rows.slice(i, i + 20).map((data) =>
-          fetch('/api/v1/collecte/submissions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ campaignId, data }) })
-            .then((r) => { if (r.ok) success++; else errors++; }).catch(() => { errors++; })
-        ));
+
+      if (rawRows.length === 0) {
+        setError('No data rows found in the file');
+        setPhase('upload');
+        return;
       }
-      setResult({ success, errors, total: rows.length });
-    } catch (e: any) { setError(e?.message || t('importFailed')); } finally { setImporting(false); }
-  }, [file, campaignId, fields]);
+
+      // Resolve each row
+      setResolveProgress({ current: 0, total: rawRows.length });
+      const resolved: ResolvedRow[] = [];
+
+      for (let i = 0; i < rawRows.length; i++) {
+        const row = await resolveRow(i + 1, rawRows[i], fields);
+        resolved.push(row);
+        setResolveProgress({ current: i + 1, total: rawRows.length });
+      }
+
+      setRows(resolved);
+      setPhase('preview');
+    } catch (err: any) {
+      setError(err?.message || 'Failed to parse Excel file');
+      setPhase('upload');
+    }
+  }, [file, fields]);
+
+  // Auto-parse when file is selected
+  useEffect(() => {
+    if (file && phase === 'upload') handleParse();
+  }, [file, phase, handleParse]);
+
+  // ── Re-resolve a single cell after edit ──
+  const handleCellEdit = useCallback(async (rowIdx: number, code: string, newValue: string) => {
+    const field = fields.find((f) => f.code === code);
+    if (!field) return;
+
+    const row = rows[rowIdx];
+    if (!row) return;
+
+    // Re-resolve just this field
+    const fakeRow: Record<string, unknown> = {};
+    for (const [c, cell] of Object.entries(row.cells)) {
+      fakeRow[c] = c === code ? newValue : cell.raw;
+    }
+    const reResolved = await resolveRow(row.index, fakeRow, fields);
+
+    setRows((prev) => {
+      const next = [...prev];
+      next[rowIdx] = reResolved;
+      return next;
+    });
+    setEditingCell(null);
+  }, [fields, rows]);
+
+  // ── Import ──
+  const handleImport = useCallback(async (onlyValid: boolean) => {
+    const toImport = onlyValid ? validRows : rows;
+    if (toImport.length === 0) return;
+
+    setPhase('importing');
+    let token = '';
+    let tenantId = '';
+    try {
+      const raw = localStorage.getItem('aris-auth');
+      if (raw) {
+        const p = JSON.parse(raw);
+        token = p?.state?.accessToken || '';
+        tenantId = p?.state?.user?.tenantId || '';
+      }
+    } catch { /* ignore */ }
+
+    let success = 0;
+    let errors = 0;
+
+    for (let i = 0; i < toImport.length; i += 5) {
+      const batch = toImport.slice(i, i + 5);
+      await Promise.all(batch.map(async (row) => {
+        const data = buildSubmissionData(row);
+        try {
+          const res = await fetch('/api/v1/collecte/submissions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+              ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
+            },
+            body: JSON.stringify({
+              campaignId,
+              formTemplateId: templateId,
+              data,
+              status: 'SUBMITTED',
+            }),
+          });
+          if (res.ok) success++;
+          else errors++;
+        } catch {
+          errors++;
+        }
+      }));
+    }
+
+    setImportResult({ success, errors, total: toImport.length });
+    setPhase('done');
+  }, [validRows, rows, campaignId, templateId]);
+
+  // ── Render ──
+
+  if (!template) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 pb-12">
-      <Link href={`/collecte/campaigns/${campaignId}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
-        <ArrowLeft className="h-4 w-4" /> {t('backToCampaign')}
-      </Link>
-
-      <div className="rounded-2xl border bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
-        <div className="px-6 py-5 bg-gradient-to-r from-emerald-600 to-teal-600">
-          <div className="flex items-center gap-3 text-white">
-            <Upload className="h-6 w-6" />
-            <div>
-              <h1 className="text-lg font-semibold">{t('importData')}</h1>
-              <p className="text-sm text-emerald-100">{name || t('loading')}</p>
-            </div>
-          </div>
+    <div className="mx-auto max-w-7xl space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Link href={`/collecte/campaigns/${campaignId}`} className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800">
+          <ArrowLeft className="h-5 w-5 text-gray-500" />
+        </Link>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Import — {name}</h1>
+          <p className="text-sm text-gray-500">{fields.length} fields</p>
         </div>
+      </div>
 
-        <div className="p-6 space-y-6">
-          {/* Generate template */}
-          <button onClick={handleGenTemplate} disabled={!template} className="w-full flex items-center gap-4 rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50 p-5 hover:bg-emerald-100 transition-colors text-left">
-            <FileDown className="h-10 w-10 text-emerald-500 shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-emerald-700">{t('downloadRefTemplate')}</p>
-              <p className="text-xs text-emerald-600/70 mt-0.5">{t('fieldsReadyForEntry').replace('{count}', String(fields.length))}</p>
-            </div>
+      {/* Phase: Upload */}
+      {phase === 'upload' && (
+        <div className="space-y-4">
+          {/* Template download */}
+          <button onClick={handleGenTemplate} className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+            <FileDown className="h-4 w-4" /> Download Excel Template
           </button>
 
           {/* File upload */}
-          <div className={cn('rounded-xl border-2 border-dashed p-8 text-center transition-colors', file ? 'border-green-300 bg-green-50' : 'border-gray-300 hover:border-gray-400')}>
-            {file ? (
-              <div className="flex flex-col items-center gap-2">
-                <FileSpreadsheet className="h-12 w-12 text-green-500" />
-                <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
-                <button onClick={() => { setFile(null); setResult(null); }} className="text-xs text-red-500 hover:text-red-600 mt-1">{t('remove')}</button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-3">
-                <Upload className="h-12 w-12 text-gray-400" />
-                <p className="text-sm text-gray-600">{t('selectExcelFile')}</p>
-                <label className="cursor-pointer rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200">
-                  {t('browseFiles')}
-                  <input type="file" accept=".xlsx,.xls,.csv" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setFile(f); setResult(null); setError(''); } }} className="hidden" />
-                </label>
-                <p className="text-[11px] text-gray-400">.xlsx, .xls, .csv</p>
-              </div>
-            )}
+          <div
+            onDragOver={(e) => { e.preventDefault(); }}
+            onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) setFile(f); }}
+            className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-12 dark:border-gray-700 dark:bg-gray-900/50"
+          >
+            <Upload className="h-10 w-10 text-gray-400" />
+            <p className="mt-3 text-sm font-medium text-gray-600 dark:text-gray-400">
+              Drag & drop your Excel file here
+            </p>
+            <p className="mt-1 text-xs text-gray-400">or</p>
+            <label className="mt-2 cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+              Browse files
+              <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) setFile(f); }} />
+            </label>
           </div>
 
-          {/* Result */}
-          {result && (
-            <div className="rounded-xl border border-green-200 bg-green-50 p-5">
-              <div className="flex items-center gap-2 mb-3"><Check className="h-5 w-5 text-green-600" /><span className="font-semibold text-gray-900">{t('importComplete')}</span></div>
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div><p className="text-2xl font-bold">{result.total}</p><p className="text-xs text-gray-500 uppercase mt-0.5">{t('totalRows')}</p></div>
-                <div><p className="text-2xl font-bold text-green-600">{result.success}</p><p className="text-xs text-gray-500 uppercase mt-0.5">{t('success')}</p></div>
-                <div><p className="text-2xl font-bold text-red-600">{result.errors}</p><p className="text-xs text-gray-500 uppercase mt-0.5">{t('errors')}</p></div>
-              </div>
+          {error && (
+            <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+              <AlertCircle className="h-4 w-4 shrink-0" /> {error}
             </div>
           )}
-
-          {error && <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3"><AlertCircle className="h-4 w-4 text-red-500" /><p className="text-sm text-red-600">{error}</p></div>}
-
-          {!result && (
-            <button onClick={handleImport} disabled={!file || importing} className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
-              {importing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
-              {importing ? t('importing') : t('importData')}
-            </button>
-          )}
         </div>
-      </div>
+      )}
+
+      {/* Phase: Resolving */}
+      {phase === 'resolving' && (
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+          <p className="mt-4 text-sm font-medium text-gray-600 dark:text-gray-400">
+            Resolving data... {resolveProgress.current} / {resolveProgress.total}
+          </p>
+          <div className="mt-3 h-2 w-64 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+            <div
+              className="h-full rounded-full bg-blue-600 transition-all duration-300"
+              style={{ width: `${resolveProgress.total > 0 ? (resolveProgress.current / resolveProgress.total) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Phase: Preview */}
+      {phase === 'preview' && (
+        <div className="space-y-4">
+          {/* Summary bar */}
+          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <span className="text-sm font-semibold text-green-700 dark:text-green-400">{validRows.length} valid</span>
+              </div>
+              {errorRows.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <XCircle className="h-5 w-5 text-red-500" />
+                  <span className="text-sm font-semibold text-red-600 dark:text-red-400">{errorRows.length} with errors</span>
+                </div>
+              )}
+              <span className="text-xs text-gray-400">{rows.length} total rows</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {validRows.length > 0 && (
+                <button
+                  onClick={() => handleImport(true)}
+                  className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                >
+                  <Check className="mr-1.5 inline h-4 w-4" />
+                  Import Valid ({validRows.length})
+                </button>
+              )}
+              {errorRows.length > 0 && validRows.length > 0 && (
+                <button
+                  onClick={() => handleImport(false)}
+                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                >
+                  Import All ({rows.length})
+                </button>
+              )}
+              <button
+                onClick={() => { setPhase('upload'); setFile(null); setRows([]); }}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          {/* Preview table */}
+          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
+                  <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400 w-10">#</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400 w-20">Status</th>
+                  {fields.slice(0, 8).map((f) => (
+                    <th key={f.code} className="px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400 max-w-[180px]">
+                      {f.label}{f.required ? <span className="text-red-500 ml-0.5">*</span> : ''}
+                    </th>
+                  ))}
+                  {fields.length > 8 && <th className="px-3 py-2 text-gray-400">+{fields.length - 8}</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {rows.map((row, rowIdx) => (
+                  <React.Fragment key={rowIdx}>
+                    <tr
+                      className={cn(
+                        'hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer',
+                        row.status === 'error' && 'bg-red-50/50 dark:bg-red-900/10',
+                      )}
+                      onClick={() => setExpandedRow(expandedRow === rowIdx ? null : rowIdx)}
+                    >
+                      <td className="px-3 py-2 text-xs text-gray-400">{row.index}</td>
+                      <td className="px-3 py-2">
+                        {row.status === 'valid' ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                            <Check className="h-3 w-3" /> OK
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                            <XCircle className="h-3 w-3" /> {row.errorCount}
+                          </span>
+                        )}
+                      </td>
+                      {fields.slice(0, 8).map((f) => {
+                        const cell = row.cells[f.code];
+                        if (!cell) return <td key={f.code} className="px-3 py-2 text-gray-300">—</td>;
+                        return (
+                          <td key={f.code} className="px-3 py-2 max-w-[180px]">
+                            {editingCell?.rowIdx === rowIdx && editingCell?.code === f.code ? (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  autoFocus
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleCellEdit(rowIdx, f.code, editValue);
+                                    if (e.key === 'Escape') setEditingCell(null);
+                                  }}
+                                  className="w-full rounded border border-blue-400 px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 dark:bg-gray-900"
+                                />
+                                <button onClick={() => handleCellEdit(rowIdx, f.code, editValue)} className="text-blue-600"><Check className="h-3 w-3" /></button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <span className={cn(
+                                  'truncate text-xs',
+                                  cell.status === 'ok' ? 'text-gray-700 dark:text-gray-300' :
+                                  cell.status === 'warning' ? 'text-amber-600 dark:text-amber-400' :
+                                  'text-red-600 dark:text-red-400',
+                                )}>
+                                  {cell.status === 'error' ? String(cell.raw ?? '—') : String(cell.resolved ?? cell.raw ?? '—')}
+                                </span>
+                                {cell.status === 'error' && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setEditingCell({ rowIdx, code: f.code }); setEditValue(String(cell.raw ?? '')); }}
+                                    className="shrink-0 text-blue-500 hover:text-blue-700"
+                                    title="Edit"
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                      {fields.length > 8 && (
+                        <td className="px-3 py-2">
+                          {expandedRow === rowIdx ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+                        </td>
+                      )}
+                    </tr>
+                    {/* Expanded row details */}
+                    {expandedRow === rowIdx && (
+                      <tr className="bg-gray-50/50 dark:bg-gray-900/30">
+                        <td colSpan={10 + (fields.length > 8 ? 1 : 0)} className="px-6 py-3">
+                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                            {fields.map((f) => {
+                              const cell = row.cells[f.code];
+                              return (
+                                <div key={f.code} className="flex items-start gap-2 rounded-lg border border-gray-100 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-medium text-gray-400">{f.label}</p>
+                                    <p className={cn('text-xs truncate', cell?.status === 'error' ? 'text-red-600' : 'text-gray-700 dark:text-gray-300')}>
+                                      {cell ? (cell.status === 'error' ? String(cell.raw ?? '—') : String(cell.resolved ?? cell.raw ?? '—')) : '—'}
+                                    </p>
+                                    {cell?.message && <p className="text-[10px] text-amber-600 mt-0.5">{cell.message}</p>}
+                                  </div>
+                                  {cell?.status === 'error' && (
+                                    <button
+                                      onClick={() => { setEditingCell({ rowIdx, code: f.code }); setEditValue(String(cell.raw ?? '')); }}
+                                      className="shrink-0 rounded p-1 text-blue-500 hover:bg-blue-50"
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                  {cell?.status === 'ok' && <Check className="h-3.5 w-3.5 shrink-0 text-green-500 mt-1" />}
+                                  {cell?.status === 'warning' && <AlertCircle className="h-3.5 w-3.5 shrink-0 text-amber-500 mt-1" />}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Phase: Importing */}
+      {phase === 'importing' && (
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+          <p className="mt-4 text-sm font-medium text-gray-600">Importing submissions...</p>
+        </div>
+      )}
+
+      {/* Phase: Done */}
+      {phase === 'done' && importResult && (
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className={cn('flex h-16 w-16 items-center justify-center rounded-full', importResult.errors === 0 ? 'bg-green-100' : 'bg-amber-100')}>
+            {importResult.errors === 0 ? (
+              <CheckCircle2 className="h-8 w-8 text-green-600" />
+            ) : (
+              <AlertCircle className="h-8 w-8 text-amber-600" />
+            )}
+          </div>
+          <h2 className="mt-4 text-lg font-bold text-gray-900 dark:text-white">Import Complete</h2>
+          <div className="mt-3 flex items-center gap-4">
+            <span className="text-sm text-green-600 font-semibold">{importResult.success} imported</span>
+            {importResult.errors > 0 && (
+              <span className="text-sm text-red-600 font-semibold">{importResult.errors} failed</span>
+            )}
+          </div>
+          <div className="mt-6 flex items-center gap-3">
+            <Link href={`/collecte/campaigns/${campaignId}`} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+              Back to Campaign
+            </Link>
+            <button
+              onClick={() => { setPhase('upload'); setFile(null); setRows([]); setImportResult(null); }}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300"
+            >
+              Import More
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
-
-function dl(blob: Blob, filename: string) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a);
 }
