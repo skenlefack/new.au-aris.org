@@ -56,8 +56,8 @@ interface CountryPageContentProps {
   showRealSections: boolean;
   apiStatistics: any[];
   apiKpiScores: any[];
-  highlights: any[];
-  gauges: any[];
+  highlights?: any[];
+  gauges?: any[];
   welcomeMessage: string | null;
 }
 
@@ -173,92 +173,18 @@ export function CountryPageContent({
 
             {showRealSections ? (
               <>
-                {/* Country Statistics — real data or illustrative fallback */}
-                {apiStatistics.length > 0 ? (
+                {/* Country Statistics — real data from API */}
+                {apiStatistics.length > 0 && (
                   <StatisticsSection statistics={apiStatistics} locale={locale} />
-                ) : (
-                  <div className="space-y-2">
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      {highlights.map((h: any) => {
-                        const HIcon = ICON_MAP[h.icon] ?? BarChart3;
-                        return (
-                        <div
-                          key={h.domain}
-                          className="group relative overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-5 shadow-md transition-all duration-200 hover:-translate-y-1 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800"
-                        >
-                          <div className="absolute inset-x-0 top-0 h-1" style={{ background: `linear-gradient(90deg, ${h.color}, ${h.color}80)` }} />
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="flex h-11 w-11 items-center justify-center rounded-xl shadow-sm"
-                              style={{ backgroundColor: `${h.color}14`, color: h.color }}
-                            >
-                              <HIcon className="h-5 w-5" strokeWidth={1.8} />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-medium text-gray-400 dark:text-gray-500">{h.domain}</p>
-                              <p className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">{h.value}</p>
-                            </div>
-                          </div>
-                          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{h.subtitle}</p>
-                          <div className="mt-3 flex items-center gap-1">
-                            <TrendBadge dir={h.trend} value={h.trendValue} />
-                            <span className="text-[10px] text-gray-400">{t('vsLastYear')}</span>
-                          </div>
-                        </div>
-                        );
-                      })}
-                    </div>
-                    <IllustrativeDisclaimer label={t('illustrativeData')} />
-                  </div>
                 )}
 
-                {/* Performance — real KPI scores or illustrative fallback */}
-                {apiKpiScores.length > 0 ? (
+                {/* Performance — real KPI scores from API */}
+                {apiKpiScores.length > 0 && (
                   <PerformanceSection kpiScores={apiKpiScores} locale={locale} t={t} />
-                ) : (
-                  <div className="space-y-2">
-                    <div className="rounded-2xl border border-gray-200/60 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
-                      <div className="border-b border-gray-100 px-5 py-3 dark:border-gray-700">
-                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">
-                          {t('sectorPerformance')}
-                        </h3>
-                        <p className="text-[11px] text-gray-400">{t('nationalIndicators')}</p>
-                      </div>
-                      <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {gauges.map((g: any) => {
-                          const GIcon = ICON_MAP[g.icon] ?? Activity;
-                          return (
-                          <div key={g.domain} className="group flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-700/20">
-                            <div
-                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                              style={{ backgroundColor: `${g.color}14`, color: g.color }}
-                            >
-                              <GIcon className="h-4 w-4" strokeWidth={2} />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{g.domain}</p>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-extrabold text-gray-900 dark:text-white">{g.score}%</span>
-                                  <StatusDot status={g.status} label={g.statusLabel} />
-                                </div>
-                              </div>
-                              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
-                                <div
-                                  className="h-full rounded-full transition-all duration-500"
-                                  style={{ width: `${g.score}%`, backgroundColor: g.color }}
-                                />
-                              </div>
-                              <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">{g.detail}</p>
-                            </div>
-                          </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <IllustrativeDisclaimer label={t('illustrativeData')} />
-                  </div>
                 )}
+
+                {/* Country Dashboard from dashboard builder */}
+                <PublicDashboardSection scope="COUNTRY" code={country.code} showEmptyState />
               </>
             ) : (
               <NotYetActiveBanner countryName={countryName} t={t} />
@@ -284,8 +210,7 @@ export function CountryPageContent({
         </div>
       </section>
 
-      {/* Public Dashboard Section — show empty state if country is active but has no dashboard */}
-      <PublicDashboardSection scope="COUNTRY" code={country.code} showEmptyState={isActive} />
+      {/* Public Dashboard Section for non-active countries is handled in the main content above */}
     </>
   );
 }
