@@ -62,6 +62,134 @@ function extractFields(schema: unknown): FieldDef[] {
   return rows;
 }
 
+/** Format a resolved cell value for display */
+function formatCellValue(value: unknown, fieldType: string): string {
+  if (value === null || value === undefined) return '—';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return value.toLocaleString();
+  if (typeof value === 'object') {
+    // admin_location: {level_0: "MG", level_1: uuid, ...}
+    if (fieldType === 'admin-location') {
+      const loc = value as Record<string, string>;
+      const parts: string[] = [];
+      if (loc.level_0) parts.push(loc.level_0);
+      if (loc.level_1) parts.push(loc.level_1.startsWith('__new:') ? loc.level_1.slice(6) : loc.level_1.slice(0, 8) + '...');
+      if (loc.level_2) parts.push(loc.level_2.startsWith('__new:') ? loc.level_2.slice(6) : loc.level_2.slice(0, 8) + '...');
+      return parts.join(' > ') || '—';
+    }
+    // Generic object
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
+/** Inline editor — renders a select for ref fields, text input for others */
+function CellEditor({ field, value, onSave, onCancel }: {
+  field: FieldDef;
+  value: string;
+  onSave: (val: string) => void;
+  onCancel: () => void;
+}) {
+  const [val, setVal] = useState(value);
+  const [options, setOptions] = useState<{ value: string; label: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+
+  // Load options for select/master-data-select fields
+  useEffect(() => {
+    if (field.type === 'select' && field.properties?.options) {
+      const opts = (field.properties.options as any[]).map((o) => ({
+        value: o.value,
+        label: typeof o.label === 'object' ? (o.label.en ?? o.label.fr ?? o.value) : String(o.label),
+      }));
+      setOptions(opts);
+    } else if (field.type === 'master-data-select' && field.properties?.masterDataType) {
+      setLoading(true);
+      const mdType = field.properties.masterDataType;
+      const url = mdType === 'fish-species'
+        ? `/api/v1/master-data/ref/fish-species/for-select?search=${encodeURIComponent(value)}`
+        : `/api/v1/master-data/ref/${mdType}/for-select`;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      try {
+        const raw = localStorage.getItem('aris-auth');
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (p?.state?.accessToken) headers['Authorization'] = `Bearer ${p.state.accessToken}`;
+          if (p?.state?.user?.tenantId) headers['X-Tenant-Id'] = p.state.user.tenantId;
+        }
+      } catch {}
+      fetch(url, { headers })
+        .then((r) => r.json())
+        .then((data) => {
+          const items = (data.data ?? []).map((item: any) => ({
+            value: item.id ?? item.code,
+            label: typeof item.name === 'object'
+              ? (item.name.en ?? item.name.fr ?? item.code ?? '')
+              : String(item.name ?? item.code ?? ''),
+          }));
+          setOptions(items);
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
+  }, [field, value]);
+
+  // Select-type fields
+  if (field.type === 'select' || field.type === 'master-data-select') {
+    const filtered = search
+      ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
+      : options;
+
+    return (
+      <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
+        <input
+          autoFocus
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search..."
+          className="w-full rounded border border-blue-400 px-1.5 py-0.5 text-xs focus:outline-none dark:bg-gray-900"
+        />
+        <div className="max-h-32 overflow-y-auto rounded border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+          {loading ? (
+            <p className="px-2 py-1 text-xs text-gray-400">Loading...</p>
+          ) : filtered.length === 0 ? (
+            <p className="px-2 py-1 text-xs text-gray-400">No results</p>
+          ) : (
+            filtered.slice(0, 20).map((o) => (
+              <button
+                key={o.value}
+                onClick={() => onSave(o.value)}
+                className="block w-full px-2 py-1 text-left text-xs text-gray-700 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-blue-900/20 truncate"
+              >
+                {o.label}
+              </button>
+            ))
+          )}
+        </div>
+        <button onClick={onCancel} className="text-[10px] text-gray-400 hover:text-gray-600">Cancel</button>
+      </div>
+    );
+  }
+
+  // Text/number/date fields
+  return (
+    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      <input
+        autoFocus
+        type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') onSave(val);
+          if (e.key === 'Escape') onCancel();
+        }}
+        className="w-full rounded border border-blue-400 px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 dark:bg-gray-900"
+      />
+      <button onClick={() => onSave(val)} className="text-blue-600"><Check className="h-3 w-3" /></button>
+    </div>
+  );
+}
+
 function dl(blob: Blob, name: string) {
   const u = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -451,19 +579,12 @@ export default function ImportPage() {
                         return (
                           <td key={f.code} className="px-3 py-2 max-w-[180px]">
                             {editingCell?.rowIdx === rowIdx && editingCell?.code === f.code ? (
-                              <div className="flex items-center gap-1">
-                                <input
-                                  autoFocus
-                                  value={editValue}
-                                  onChange={(e) => setEditValue(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleCellEdit(rowIdx, f.code, editValue);
-                                    if (e.key === 'Escape') setEditingCell(null);
-                                  }}
-                                  className="w-full rounded border border-blue-400 px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 dark:bg-gray-900"
-                                />
-                                <button onClick={() => handleCellEdit(rowIdx, f.code, editValue)} className="text-blue-600"><Check className="h-3 w-3" /></button>
-                              </div>
+                              <CellEditor
+                                field={f}
+                                value={String(cell.raw ?? '')}
+                                onSave={(v) => handleCellEdit(rowIdx, f.code, v)}
+                                onCancel={() => setEditingCell(null)}
+                              />
                             ) : (
                               <div className="flex items-center gap-1">
                                 <span className={cn(
@@ -472,11 +593,11 @@ export default function ImportPage() {
                                   cell.status === 'warning' ? 'text-amber-600 dark:text-amber-400' :
                                   'text-red-600 dark:text-red-400',
                                 )}>
-                                  {cell.status === 'error' ? String(cell.raw ?? '—') : String(cell.resolved ?? cell.raw ?? '—')}
+                                  {cell.status === 'error' ? formatCellValue(cell.raw, f.type) : formatCellValue(cell.resolved ?? cell.raw, f.type)}
                                 </span>
                                 {cell.status === 'error' && (
                                   <button
-                                    onClick={(e) => { e.stopPropagation(); setEditingCell({ rowIdx, code: f.code }); setEditValue(String(cell.raw ?? '')); }}
+                                    onClick={(e) => { e.stopPropagation(); setEditingCell({ rowIdx, code: f.code }); }}
                                     className="shrink-0 text-blue-500 hover:text-blue-700"
                                     title="Edit"
                                   >
@@ -512,7 +633,7 @@ export default function ImportPage() {
                                   </div>
                                   {cell?.status === 'error' && (
                                     <button
-                                      onClick={() => { setEditingCell({ rowIdx, code: f.code }); setEditValue(String(cell.raw ?? '')); }}
+                                      onClick={() => { setEditingCell({ rowIdx, code: f.code }); }}
                                       className="shrink-0 rounded p-1 text-blue-500 hover:bg-blue-50"
                                     >
                                       <Pencil className="h-3 w-3" />
