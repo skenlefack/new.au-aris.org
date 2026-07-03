@@ -87,7 +87,7 @@ function formatCellValue(value: unknown, fieldType: string): string {
 function CellEditor({ field, value, onSave, onCancel }: {
   field: FieldDef;
   value: string;
-  onSave: (val: string) => void;
+  onSave: (val: string, label?: string) => void;
   onCancel: () => void;
 }) {
   const [val, setVal] = useState(value);
@@ -158,7 +158,7 @@ function CellEditor({ field, value, onSave, onCancel }: {
             filtered.slice(0, 20).map((o) => (
               <button
                 key={o.value}
-                onClick={() => onSave(o.value)}
+                onClick={() => onSave(o.value, o.label)}
                 className="block w-full px-2 py-1 text-left text-xs text-gray-700 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-blue-900/20 truncate"
               >
                 {o.label}
@@ -345,15 +345,38 @@ export default function ImportPage() {
     if (file && phase === 'upload') handleParse();
   }, [file, phase, handleParse]);
 
-  // ── Re-resolve a single cell after edit ──
-  const handleCellEdit = useCallback(async (rowIdx: number, code: string, newValue: string) => {
+  // ── Re-resolve or directly set a single cell after edit ──
+  const handleCellEdit = useCallback(async (rowIdx: number, code: string, newValue: string, label?: string) => {
     const field = fields.find((f) => f.code === code);
     if (!field) return;
 
     const row = rows[rowIdx];
     if (!row) return;
 
-    // Re-resolve just this field
+    // For select/master-data-select: the CellEditor already returns the resolved ID
+    // so we directly update the cell without re-resolving
+    if (field.type === 'select' || field.type === 'master-data-select') {
+      setRows((prev) => {
+        const next = [...prev];
+        const updatedCells = { ...row.cells };
+        updatedCells[code] = {
+          raw: label || newValue,
+          resolved: newValue,
+          status: 'ok',
+        };
+        // Recount errors
+        let errorCount = 0;
+        for (const cell of Object.values(updatedCells)) {
+          if (cell.status === 'error') errorCount++;
+        }
+        next[rowIdx] = { ...row, cells: updatedCells, errorCount, status: errorCount > 0 ? 'error' : 'valid' };
+        return next;
+      });
+      setEditingCell(null);
+      return;
+    }
+
+    // For other fields: re-resolve the full row with the new value
     const fakeRow: Record<string, unknown> = {};
     for (const [c, cell] of Object.entries(row.cells)) {
       fakeRow[c] = c === code ? newValue : cell.raw;
@@ -582,7 +605,7 @@ export default function ImportPage() {
                               <CellEditor
                                 field={f}
                                 value={String(cell.raw ?? '')}
-                                onSave={(v) => handleCellEdit(rowIdx, f.code, v)}
+                                onSave={(v, label) => handleCellEdit(rowIdx, f.code, v, label)}
                                 onCancel={() => setEditingCell(null)}
                               />
                             ) : (
