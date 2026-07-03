@@ -166,8 +166,8 @@ export function SearchableSelect({
       {/* Dropdown — same width as trigger */}
       {open && (
         <div className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
-          {/* Search */}
-          {options.length > 5 && (
+          {/* Search — always show when server search is enabled, otherwise only for 5+ options */}
+          {(onSearchChange || options.length > 5) && (
             <div className="flex items-center gap-2 border-b border-gray-100 px-3 py-2 dark:border-gray-800">
               <Search className="h-4 w-4 shrink-0 text-gray-400" />
               <input
