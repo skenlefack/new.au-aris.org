@@ -470,28 +470,55 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
       }
 
       // Submit rows as form submissions
-      const token = document.cookie
-        .split('; ')
-        .find((c) => c.startsWith('token='))
-        ?.split('=')[1] || localStorage.getItem('accessToken') || '';
+      let token = '';
+      let tenantId = '';
+      try {
+        const raw = localStorage.getItem('aris-auth');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          token = parsed?.state?.accessToken || '';
+          tenantId = parsed?.state?.user?.tenantId || '';
+        }
+      } catch { /* ignore */ }
 
       let success = 0;
       let errors = 0;
-      const BATCH_SIZE = 20;
+      const errorMessages: string[] = [];
+      const BATCH_SIZE = 10;
 
       for (let i = 0; i < rows.length; i += BATCH_SIZE) {
         const batch = rows.slice(i, i + BATCH_SIZE);
         const promises = batch.map((rowData) =>
           fetch('/api/v1/collecte/submissions', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ campaignId, data: rowData }),
-          }).then((r) => {
-            if (r.ok) success++;
-            else errors++;
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+              ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
+            },
+            body: JSON.stringify({
+              campaignId,
+              formTemplateId: template.id,
+              data: rowData,
+              status: 'SUBMITTED',
+            }),
+          }).then(async (r) => {
+            if (r.ok) {
+              success++;
+            } else {
+              errors++;
+              try {
+                const body = await r.json();
+                if (errorMessages.length < 3) errorMessages.push(body.message || `Row error: HTTP ${r.status}`);
+              } catch { /* ignore */ }
+            }
           }).catch(() => { errors++; }),
         );
         await Promise.all(promises);
+      }
+
+      if (errorMessages.length > 0) {
+        console.warn('[Import] Sample errors:', errorMessages);
       }
 
       setResult({ success, errors, total: rows.length });
