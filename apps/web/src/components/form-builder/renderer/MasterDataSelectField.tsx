@@ -95,12 +95,13 @@ export function MasterDataSelectField({
     staleTime: 30_000,
   });
 
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout>>();
   const handleFishSearch = useCallback((term: string) => {
-    if (isFishSpecies && term.length >= 2) {
-      setServerSearch(term);
-    } else if (isFishSpecies && term.length === 0) {
-      setServerSearch('');
-    }
+    if (!isFishSpecies) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setServerSearch(term.length >= 2 ? term : '');
+    }, 300);
   }, [isFishSpecies]);
 
   // Standard ref-data hook (non-PAID, non-fish-species)

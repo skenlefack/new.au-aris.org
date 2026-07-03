@@ -47,6 +47,9 @@ export function SearchableSelect({
   const selectedOption = options.find((o) => o.value === value);
 
   const filtered = useMemo(() => {
+    // When onSearchChange is provided, the parent handles server-side filtering
+    // so we skip client-side filtering and show all options as-is
+    if (onSearchChange) return options;
     if (!query) return options;
     const q = query.toLowerCase();
     return options.filter((o) =>
