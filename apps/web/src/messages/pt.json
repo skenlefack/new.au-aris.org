@@ -962,8 +962,8 @@
     "good": "Bom",
     "moderate": "Moderado",
     "low": "Baixo",
-    "defaultWelcomeP1": "{country} ainda não está ativo ou interoperável no ARIS.",
-    "defaultWelcomeP2": "Para informações sobre prazos de integração ou para iniciar o processo, as autoridades nacionais são convidadas a contactar a equipa técnica ARIS do UA-BIRA em <a href=\"mailto:aris@au-ibar.org\">aris@au-ibar.org</a>."
+    "defaultWelcomeP1": "Bem-vindo à página de {country} no ARIS — o Sistema de Informação sobre Recursos Animais da União Africana.",
+    "defaultWelcomeP2": "Esta página exibirá estatísticas nacionais, indicadores-chave e painéis de dados assim que o processo de recolha de dados do país estiver configurado. Para começar ou saber mais, as autoridades nacionais são convidadas a contactar a equipa ARIS do UA-BIRA em <a href=\"mailto:aris@au-ibar.org\">aris@au-ibar.org</a>."
   },
   "animalHealth": {
     "title": "Saúde Animal",

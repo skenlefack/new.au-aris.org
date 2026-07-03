@@ -962,8 +962,8 @@
     "good": "Good",
     "moderate": "Moderate",
     "low": "Low",
-    "defaultWelcomeP1": "{country} is not yet active or interoperable on ARIS.",
-    "defaultWelcomeP2": "For information on onboarding timelines or to initiate the integration process, national authorities are invited to contact the AU-IBAR ARIS technical team at <a href=\"mailto:aris@au-ibar.org\">aris@au-ibar.org</a>."
+    "defaultWelcomeP1": "Welcome to the {country} page on ARIS — the African Union's Animal Resources Information System.",
+    "defaultWelcomeP2": "This page will display national statistics, key indicators and data dashboards once the country data collection process is configured. To get started or learn more, national authorities are invited to contact the AU-IBAR ARIS team at <a href=\"mailto:aris@au-ibar.org\">aris@au-ibar.org</a>."
   },
   "animalHealth": {
     "title": "Animal Health",
