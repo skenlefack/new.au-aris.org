@@ -289,7 +289,7 @@ export default function ImportPage() {
     const refLists: { fieldCode: string; label: string; options: string[] }[] = [];
 
     // Load ref-data options from API for master-data-select fields
-    const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    const authHeaders: Record<string, string> = {};
     try {
       const raw = localStorage.getItem('aris-auth');
       if (raw) {
@@ -297,7 +297,14 @@ export default function ImportPage() {
         if (p?.state?.accessToken) authHeaders['Authorization'] = `Bearer ${p.state.accessToken}`;
         if (p?.state?.user?.tenantId) authHeaders['X-Tenant-Id'] = p.state.user.tenantId;
       }
+      // Also try tenant store
+      const tenantRaw = localStorage.getItem('aris-tenant');
+      if (tenantRaw && !authHeaders['X-Tenant-Id']) {
+        const tp = JSON.parse(tenantRaw);
+        if (tp?.state?.selectedTenantId) authHeaders['X-Tenant-Id'] = tp.state.selectedTenantId;
+      }
     } catch {}
+    console.log('[Template] Auth headers:', !!authHeaders['Authorization'], 'Tenant:', authHeaders['X-Tenant-Id']?.slice(0, 8) ?? 'none');
 
     for (const f of fields) {
       if (f.type === 'select' && f.properties?.options?.length) {
@@ -324,9 +331,16 @@ export default function ImportPage() {
               refLists.push({ fieldCode: f.code, label: fieldLabel(f), options: opts });
             }
           }
-        } catch {}
+        } catch (err) {
+          console.warn(`[Template] Failed to load ref data for ${f.code}:`, err);
+        }
       }
     }
+
+    // Also check for select fields that use master-data-select under a different structure
+    // Some templates store options inline in properties.options even for reference fields
+    // Log what we collected for debugging
+    console.log(`[Template] Collected ${refLists.length} reference lists:`, refLists.map((r) => `${r.fieldCode}(${r.options.length})`));
 
     // ── Sheet 2: Reference Data (dropdown lists) ──
     if (refLists.length > 0) {
