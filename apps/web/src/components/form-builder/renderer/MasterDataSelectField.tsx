@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useRefDataForSelect, usePaidReferentials, type RefDataType, type PaidRefCategory } from '@/lib/api/ref-data-hooks';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { MultiSearchCombobox } from '@/components/ui/MultiSearchCombobox';
@@ -68,12 +69,45 @@ export function MasterDataSelectField({
   const locale = useLocaleStore((s) => s.locale);
   const usePaid = isPaidType(masterDataType);
   const isValidType = usePaid || VALID_REF_TYPES.has(masterDataType);
+  const isFishSpecies = masterDataType === 'fish-species';
 
-  // Standard ref-data hook (non-PAID)
+  // Server-side search for large datasets (fish-species: 13K+ items)
+  const [serverSearch, setServerSearch] = useState('');
+  const fishSearchQuery = useQuery({
+    queryKey: ['fish-species-search', serverSearch],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (serverSearch) params.set('search', serverSearch);
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      try {
+        const raw = localStorage.getItem('aris-auth');
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (p?.state?.accessToken) headers['Authorization'] = `Bearer ${p.state.accessToken}`;
+          if (p?.state?.user?.tenantId) headers['X-Tenant-Id'] = p.state.user.tenantId;
+        }
+      } catch { /* ignore */ }
+      const res = await fetch(`/api/v1/master-data/ref/fish-species/for-select?${params}`, { headers });
+      if (!res.ok) return { data: [] };
+      return res.json();
+    },
+    enabled: isFishSpecies,
+    staleTime: 30_000,
+  });
+
+  const handleFishSearch = useCallback((term: string) => {
+    if (isFishSpecies && term.length >= 2) {
+      setServerSearch(term);
+    } else if (isFishSpecies && term.length === 0) {
+      setServerSearch('');
+    }
+  }, [isFishSpecies]);
+
+  // Standard ref-data hook (non-PAID, non-fish-species)
   const stdQuery = useRefDataForSelect(
     masterDataType as RefDataType,
     parentFilter,
-    isValidType && !usePaid,
+    isValidType && !usePaid && !isFishSpecies,
   );
 
   // PAID ref-data hook
@@ -99,7 +133,7 @@ export function MasterDataSelectField({
   );
 
   // Select data source
-  const activeQuery = usePaid ? paidQuery : stdQuery;
+  const activeQuery = isFishSpecies ? fishSearchQuery : (usePaid ? paidQuery : stdQuery);
   const isLoading = activeQuery.isLoading;
   const isError = activeQuery.isError;
 
@@ -229,6 +263,7 @@ export function MasterDataSelectField({
             : placeholder || `Select ${masterDataType.replace('paid-', '')}...`
       }
       disabled={isLoading}
+      onSearchChange={isFishSpecies ? handleFishSearch : undefined}
     />
   );
 }

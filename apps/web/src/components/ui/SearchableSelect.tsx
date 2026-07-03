@@ -18,6 +18,8 @@ interface SearchableSelectProps {
   className?: string;
   /** Show a clear button when a value is selected */
   clearable?: boolean;
+  /** Callback when search term changes (for server-side search) */
+  onSearchChange?: (term: string) => void;
 }
 
 /**
@@ -33,6 +35,7 @@ export function SearchableSelect({
   disabled = false,
   className,
   clearable = true,
+  onSearchChange,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -168,7 +171,7 @@ export function SearchableSelect({
                 ref={inputRef}
                 type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => { setQuery(e.target.value); onSearchChange?.(e.target.value); }}
                 placeholder="Search..."
                 className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
               />
