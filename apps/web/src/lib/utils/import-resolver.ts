@@ -10,6 +10,7 @@ import { COUNTRIES } from '@/data/countries-config';
 export interface FieldDef {
   code: string;
   label: string;
+  labelI18n?: Record<string, string>;
   type: string;
   required: boolean;
   properties?: {

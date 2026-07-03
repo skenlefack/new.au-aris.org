@@ -50,9 +50,11 @@ function extractFields(schema: unknown): FieldDef[] {
     for (const f of sec.fields || []) {
       if (!f.code) continue;
       if (['heading', 'divider', 'spacer', 'info-box', 'geo-selector'].includes(f.type ?? '')) continue;
+      const labelObj = (typeof f.label === 'object' && f.label) ? f.label as Record<string, string> : {};
       rows.push({
         code: f.code,
         label: ml(f.label) || f.code,
+        labelI18n: labelObj,
         type: f.type || 'text',
         required: f.required ?? false,
         properties: f.properties,
@@ -227,49 +229,197 @@ export default function ImportPage() {
   const validRows = useMemo(() => rows.filter((r) => r.status === 'valid'), [rows]);
   const errorRows = useMemo(() => rows.filter((r) => r.status === 'error'), [rows]);
 
-  // ── Template Generation ──
+  // ── Template Generation (multilingual + data validation + instructions) ──
   const handleGenTemplate = useCallback(async () => {
     const ExcelJS = (await import('exceljs')).default;
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('Data Entry', { views: [{ state: 'frozen', ySplit: 2 }] });
 
-    // Row 1: field codes (hidden-ish, used for mapping)
+    const loc = locale;
+    const i18n: Record<string, Record<string, string>> = {
+      dataEntry: { en: 'Data Entry', fr: 'Saisie des données', pt: 'Entrada de dados', ar: 'إدخال البيانات' },
+      instructions: { en: 'Instructions', fr: 'Instructions', pt: 'Instruções', ar: 'تعليمات' },
+      referenceData: { en: 'Reference Data', fr: 'Données de référence', pt: 'Dados de referência', ar: 'بيانات مرجعية' },
+      fieldCode: { en: 'Field Code', fr: 'Code du champ', pt: 'Código do campo', ar: 'رمز الحقل' },
+      fieldLabel: { en: 'Label', fr: 'Libellé', pt: 'Rótulo', ar: 'التسمية' },
+      fieldType: { en: 'Type', fr: 'Type', pt: 'Tipo', ar: 'النوع' },
+      required: { en: 'Required', fr: 'Obligatoire', pt: 'Obrigatório', ar: 'مطلوب' },
+      howToFill: { en: 'How to fill', fr: 'Comment remplir', pt: 'Como preencher', ar: 'كيفية الملء' },
+      yes: { en: 'Yes', fr: 'Oui', pt: 'Sim', ar: 'نعم' },
+      no: { en: 'No', fr: 'Non', pt: 'Não', ar: 'لا' },
+      adminLocHelp: { en: 'Enter: Country, Region, District (e.g., Madagascar, Diana, Antsiranana)', fr: 'Saisir : Pays, Région, District (ex: Madagascar, Diana, Antsiranana)', pt: 'Inserir: País, Região, Distrito (ex: Madagáscar, Diana, Antsiranana)', ar: 'أدخل: البلد، المنطقة، المقاطعة' },
+      selectFromList: { en: 'Select from the reference list in sheet "Reference Data"', fr: 'Choisir dans la liste de référence dans la feuille "Données de référence"', pt: 'Selecionar da lista de referência na folha "Dados de referência"', ar: 'اختر من القائمة المرجعية' },
+      dateHelp: { en: 'Date format: YYYY-MM-DD or DD/MM/YYYY', fr: 'Format de date : AAAA-MM-JJ ou JJ/MM/AAAA', pt: 'Formato de data: AAAA-MM-DD ou DD/MM/AAAA', ar: 'تنسيق التاريخ: YYYY-MM-DD' },
+      numberHelp: { en: 'Numeric value (use . for decimals)', fr: 'Valeur numérique (utiliser . pour les décimales)', pt: 'Valor numérico (usar . para decimais)', ar: 'قيمة رقمية' },
+      textHelp: { en: 'Free text', fr: 'Texte libre', pt: 'Texto livre', ar: 'نص حر' },
+      headerTitle: { en: 'ARIS 4.0 — Import Template', fr: 'ARIS 4.0 — Modèle d\'importation', pt: 'ARIS 4.0 — Modelo de importação', ar: 'ARIS 4.0 — قالب الاستيراد' },
+      headerInstr: { en: 'Fill data starting from row 3. Row 1 contains field codes (do not modify). Row 2 contains labels.', fr: 'Remplir les données à partir de la ligne 3. La ligne 1 contient les codes (ne pas modifier). La ligne 2 contient les libellés.', pt: 'Preencher dados a partir da linha 3. Linha 1 contém códigos (não modificar). Linha 2 contém rótulos.', ar: 'ملء البيانات من السطر 3. السطر 1 يحتوي على الرموز (لا تعدل). السطر 2 يحتوي على التسميات.' },
+    };
+    const tt = (key: string) => i18n[key]?.[loc] ?? i18n[key]?.en ?? key;
+
+    // Helper to get field label in user locale
+    const fieldLabel = (f: FieldDef) => f.labelI18n?.[loc] ?? f.labelI18n?.en ?? f.label;
+
+    // ── Sheet 1: Data Entry ──
+    const ws = wb.addWorksheet(tt('dataEntry'), { views: [{ state: 'frozen', ySplit: 2 }] });
+
+    // Row 1: field codes
     const hr = ws.addRow(fields.map((f) => f.code));
     hr.eachCell((c) => {
-      c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+      c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
       c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
     });
 
-    // Row 2: human labels
-    const lr = ws.addRow(fields.map((f) => `${f.label}${f.required ? ' *' : ''}`));
+    // Row 2: labels in user locale
+    const lr = ws.addRow(fields.map((f) => `${fieldLabel(f)}${f.required ? ' *' : ''}`));
     lr.eachCell((c) => {
-      c.font = { bold: true, size: 10 };
-      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+      c.font = { bold: true, size: 10, color: { argb: 'FF1F2937' } };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
+      c.border = { bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } } };
     });
 
-    for (let i = 0; i < 100; i++) ws.addRow([]);
+    // 200 empty data rows
+    for (let i = 0; i < 200; i++) ws.addRow([]);
+
+    // Column widths
     ws.columns.forEach((col, i) => {
-      col.width = Math.max(16, (fields[i]?.label.length ?? 10) + 6);
+      col.width = Math.max(18, (fieldLabel(fields[i]).length ?? 10) + 6);
     });
 
-    // Instructions sheet
-    const inst = wb.addWorksheet('Instructions');
-    inst.addRow(['Field Code', 'Label', 'Type', 'Required', 'Notes']);
+    // ── Collect select options for Reference Data sheet + Excel validation ──
+    const refLists: { fieldCode: string; label: string; options: string[] }[] = [];
+
+    // Load ref-data options from API for master-data-select fields
+    const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    try {
+      const raw = localStorage.getItem('aris-auth');
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p?.state?.accessToken) authHeaders['Authorization'] = `Bearer ${p.state.accessToken}`;
+        if (p?.state?.user?.tenantId) authHeaders['X-Tenant-Id'] = p.state.user.tenantId;
+      }
+    } catch {}
+
     for (const f of fields) {
-      const notes = f.type === 'admin-location' ? 'Format: Country, Admin1, Admin2 (e.g., Madagascar, Antananarivo, Atsimondrano)'
-        : f.type === 'master-data-select' ? `Search by name or code (type: ${f.properties?.masterDataType ?? ''})`
-        : f.type === 'select' ? `Options: ${(f.properties?.options ?? []).map((o: any) => ml(o.label) || o.value).join(', ')}`
-        : f.type === 'date' ? 'Format: YYYY-MM-DD or DD/MM/YYYY'
-        : f.type === 'number' ? 'Numeric value'
-        : '';
-      inst.addRow([f.code, f.label, f.type, f.required ? 'Yes' : 'No', notes]);
+      if (f.type === 'select' && f.properties?.options?.length) {
+        const opts = (f.properties.options as any[]).map((o) => {
+          const lbl = typeof o.label === 'object' ? (o.label[loc] ?? o.label.en ?? o.value) : String(o.label);
+          return lbl;
+        });
+        refLists.push({ fieldCode: f.code, label: fieldLabel(f), options: opts });
+      } else if (f.type === 'master-data-select' && f.properties?.masterDataType) {
+        try {
+          const mdType = f.properties.masterDataType;
+          const url = mdType === 'fish-species'
+            ? `/api/v1/master-data/ref/fish-species/for-select`
+            : `/api/v1/master-data/ref/${mdType}/for-select`;
+          const res = await fetch(url, { headers: authHeaders });
+          if (res.ok) {
+            const data = await res.json();
+            const items = (data.data ?? []).slice(0, 500);
+            const opts = items.map((item: any) => {
+              if (typeof item.name === 'object') return item.name[loc] ?? item.name.en ?? item.code ?? '';
+              return item.name ?? item.code ?? '';
+            }).filter(Boolean);
+            if (opts.length > 0) {
+              refLists.push({ fieldCode: f.code, label: fieldLabel(f), options: opts });
+            }
+          }
+        } catch {}
+      }
     }
-    inst.columns.forEach((col) => { col.width = 30; });
+
+    // ── Sheet 2: Reference Data (dropdown lists) ──
+    if (refLists.length > 0) {
+      const refWs = wb.addWorksheet(tt('referenceData'));
+
+      // Write each reference list as a column
+      refLists.forEach((ref, colIdx) => {
+        const col = colIdx + 1;
+        // Header
+        const headerCell = refWs.getCell(1, col);
+        headerCell.value = `${ref.label} (${ref.fieldCode})`;
+        headerCell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+        headerCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF059669' } };
+
+        // Values
+        ref.options.forEach((opt, rowIdx) => {
+          refWs.getCell(rowIdx + 2, col).value = opt;
+        });
+
+        refWs.getColumn(col).width = Math.max(20, ref.label.length + 4);
+      });
+
+      // Add Excel data validation (dropdown) to Data Entry columns
+      refLists.forEach((ref, refIdx) => {
+        const fieldIdx = fields.findIndex((f) => f.code === ref.fieldCode);
+        if (fieldIdx < 0) return;
+
+        const refCol = refIdx + 1;
+        const dataCol = fieldIdx + 1;
+        const lastRow = ref.options.length + 1;
+
+        // Apply dropdown validation to rows 3-202 in Data Entry
+        for (let r = 3; r <= 202; r++) {
+          const cell = ws.getCell(r, dataCol);
+          cell.dataValidation = {
+            type: 'list',
+            allowBlank: !fields[fieldIdx].required,
+            formulae: [`'${tt('referenceData')}'!$${String.fromCharCode(64 + refCol)}$2:$${String.fromCharCode(64 + refCol)}$${lastRow}`],
+            showErrorMessage: true,
+            errorTitle: fieldLabel(fields[fieldIdx]),
+            error: tt('selectFromList'),
+          };
+        }
+      });
+    }
+
+    // ── Sheet 3: Instructions ──
+    const inst = wb.addWorksheet(tt('instructions'));
+
+    // Title
+    const titleRow = inst.addRow([tt('headerTitle')]);
+    titleRow.getCell(1).font = { bold: true, size: 14, color: { argb: 'FF1E40AF' } };
+    inst.mergeCells('A1:E1');
+
+    // Subtitle
+    const subRow = inst.addRow([tt('headerInstr')]);
+    subRow.getCell(1).font = { size: 10, italic: true, color: { argb: 'FF6B7280' } };
+    inst.mergeCells('A2:E2');
+
+    inst.addRow([]); // spacer
+
+    // Field reference table
+    const hdrRow = inst.addRow([tt('fieldCode'), tt('fieldLabel'), tt('fieldType'), tt('required'), tt('howToFill')]);
+    hdrRow.eachCell((c) => {
+      c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF374151' } };
+    });
+
+    for (const f of fields) {
+      let help = '';
+      if (f.type === 'admin-location') help = tt('adminLocHelp');
+      else if (f.type === 'master-data-select') help = tt('selectFromList') + ` (${f.properties?.masterDataType ?? ''})`;
+      else if (f.type === 'select') help = tt('selectFromList');
+      else if (f.type === 'date') help = tt('dateHelp');
+      else if (f.type === 'number') help = tt('numberHelp');
+      else help = tt('textHelp');
+
+      const row = inst.addRow([f.code, fieldLabel(f), f.type, f.required ? tt('yes') : tt('no'), help]);
+      if (f.required) {
+        row.getCell(4).font = { bold: true, color: { argb: 'FFDC2626' } };
+      }
+    }
+
+    inst.getColumn(1).width = 22;
+    inst.getColumn(2).width = 30;
+    inst.getColumn(3).width = 20;
+    inst.getColumn(4).width = 14;
+    inst.getColumn(5).width = 60;
 
     const buf = await wb.xlsx.writeBuffer();
     dl(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
       `ARIS_Template_${name.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
-  }, [fields, name]);
+  }, [fields, name, locale]);
 
   // ── Excel Parsing + Resolution ──
   const handleParse = useCallback(async () => {
