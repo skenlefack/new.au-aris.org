@@ -72,12 +72,13 @@ export function MasterDataSelectField({
   const isFishSpecies = masterDataType === 'fish-species';
 
   // Server-side search for large datasets (fish-species: 13K+ items)
+  // Only fetches when user types 3+ chars; starts empty (no initial 200-item load)
   const [serverSearch, setServerSearch] = useState('');
   const fishSearchQuery = useQuery({
     queryKey: ['fish-species-search', serverSearch],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (serverSearch) params.set('search', serverSearch);
+      if (!serverSearch) return { data: [] };
+      const params = new URLSearchParams({ search: serverSearch });
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       try {
         const raw = localStorage.getItem('aris-auth');
@@ -91,8 +92,9 @@ export function MasterDataSelectField({
       if (!res.ok) return { data: [] };
       return res.json();
     },
-    enabled: isFishSpecies,
-    staleTime: 30_000,
+    enabled: isFishSpecies && serverSearch.length >= 3,
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,  // keep previous results while loading new ones
   });
 
   const debounceRef = React.useRef<ReturnType<typeof setTimeout>>();
@@ -100,8 +102,8 @@ export function MasterDataSelectField({
     if (!isFishSpecies) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      setServerSearch(term.length >= 2 ? term : '');
-    }, 300);
+      setServerSearch(term.length >= 3 ? term : '');
+    }, 500);
   }, [isFishSpecies]);
 
   // Standard ref-data hook (non-PAID, non-fish-species)
@@ -257,13 +259,15 @@ export function MasterDataSelectField({
       }}
       options={options}
       placeholder={
-        isLoading
-          ? 'Loading...'
-          : isError
-            ? `Error loading ${masterDataType}`
-            : placeholder || `Select ${masterDataType.replace('paid-', '')}...`
+        isFishSpecies
+          ? (placeholder || 'Type 3+ characters to search species...')
+          : isLoading
+            ? 'Loading...'
+            : isError
+              ? `Error loading ${masterDataType}`
+              : placeholder || `Select ${masterDataType.replace('paid-', '')}...`
       }
-      disabled={isLoading}
+      disabled={!isFishSpecies && isLoading}
       onSearchChange={isFishSpecies ? handleFishSearch : undefined}
     />
   );

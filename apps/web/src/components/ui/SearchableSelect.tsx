@@ -185,7 +185,7 @@ export function SearchableSelect({
           <ul ref={listRef} className="max-h-56 overflow-y-auto py-1">
             {filtered.length === 0 ? (
               <li className="px-3 py-3 text-center text-sm text-gray-400 dark:text-gray-500">
-                No results
+                {onSearchChange && query.length < 3 ? 'Type 3+ characters to search...' : 'No results'}
               </li>
             ) : (
               filtered.map((opt, idx) => {
