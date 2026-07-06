@@ -43,7 +43,7 @@ export default function SubmissionEditPage() {
   // Pre-fill values from existing submission data
   const initialValues = useMemo(() => {
     if (!submission) return {};
-    const data = (submission as any).data ?? (submission as any).formData ?? {};
+    const data = submission.data ?? {};
     return typeof data === 'object' && data !== null ? (data as Record<string, unknown>) : {};
   }, [submission]);
 

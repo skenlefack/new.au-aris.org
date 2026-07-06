@@ -447,7 +447,7 @@ export default function SubmissionReviewPage() {
     );
   }
 
-  const formData = submission.formData ?? {};
+  const formData = submission.data ?? {};
   const isSubmitted = submission.status === 'submitted';
   const currentLevel = workflowInstance?.currentLevel as WorkflowLevel | undefined;
   const transitions = (workflowInstance?.transitions ?? []) as WorkflowTransition[];

@@ -866,7 +866,7 @@ export interface CollecteSubmission {
   campaignId: string;
   campaignName: string;
   templateId?: string;
-  formData: Record<string, unknown>;
+  data: Record<string, unknown>;
   status: 'draft' | 'submitted' | 'validated' | 'rejected' | 'corrected';
   submittedBy: string;
   submittedByName: string;

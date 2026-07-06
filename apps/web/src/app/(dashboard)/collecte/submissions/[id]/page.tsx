@@ -288,7 +288,7 @@ export default function SubmissionDetailPage() {
         <h2 className="mb-3 text-lg font-semibold text-gray-900">Form Data</h2>
         <div className="rounded-card border border-gray-200 bg-white p-5">
           <pre className="overflow-auto text-xs text-gray-600">
-            {JSON.stringify(submission.formData, null, 2)}
+            {JSON.stringify(submission.data, null, 2)}
           </pre>
         </div>
       </div>
