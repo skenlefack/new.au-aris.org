@@ -717,7 +717,7 @@ function FormsSubTab() {
 
 function CampaignsSubTab() {
   const t = useTranslations('settings');
-  const { data: campaignsRes, isLoading } = useCollectionCampaigns({ limit: 200 });
+  const { data: campaignsRes, isLoading, error } = useCollectionCampaigns({ limit: 200 });
   const updateCampaign = useUpdateCollectionCampaign();
   const translateMut = useTranslateText();
 
@@ -729,13 +729,10 @@ function CampaignsSubTab() {
   const [saving, setSaving] = useState(false);
   const [autoTranslating, setAutoTranslating] = useState(false);
 
-  // campaignsRes from useQuery .data = API response { data: [...], meta: {...} }
-  // Safely extract the array regardless of wrapping
+  // campaignsRes = useQuery .data = raw API response { data: [...], meta: {...} }
   const campaigns: any[] = useMemo(() => {
     if (!campaignsRes) return [];
-    // Direct array
     if (Array.isArray(campaignsRes)) return campaignsRes;
-    // { data: [...] } format
     if (Array.isArray((campaignsRes as any).data)) return (campaignsRes as any).data;
     return [];
   }, [campaignsRes]);
@@ -934,6 +931,17 @@ function CampaignsSubTab() {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/10">
+        <div className="flex items-center gap-2 text-sm text-red-700 dark:text-red-400">
+          <AlertTriangle className="h-4 w-4" />
+          <span>Erreur de chargement des campagnes: {(error as Error)?.message || 'Erreur inconnue'}</span>
+        </div>
       </div>
     );
   }
