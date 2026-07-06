@@ -20,6 +20,7 @@ import {
   Pencil,
   Check,
   X,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -29,6 +30,7 @@ import { useSettingsConfig, useBulkUpdateConfig } from '@/lib/api/settings-hooks
 import { useSystranStatus, useTranslateText } from '@/lib/api/translation-hooks';
 import { useI18nOverridesStore } from '@/lib/stores/i18n-overrides-store';
 import { SaveBar } from '@/components/settings/SaveBar';
+import { CollecteTranslationsTab } from '@/components/settings/CollecteTranslationsTab';
 import { toast } from 'sonner';
 
 // Import message files for the reference browser
@@ -54,7 +56,7 @@ const LANGUAGES = [
   { code: 'es', name: 'Espa\u00f1ol', flag: '\uD83C\uDDEA\uD83C\uDDF8' },
 ] as const;
 
-type TabId = 'config' | 'references' | 'review';
+type TabId = 'config' | 'references' | 'review' | 'collecte';
 
 /* ──────────────────────────────────────────────────────────────
    Flatten nested JSON messages into flat key→value maps
@@ -86,6 +88,7 @@ export default function TranslationsPage() {
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     { id: 'references', label: t('i18nReferences'), icon: <BookOpen className="h-4 w-4" /> },
+    { id: 'collecte', label: t('collecteTranslations') !== 'collecteTranslations' ? t('collecteTranslations') : 'Collecte', icon: <ClipboardList className="h-4 w-4" /> },
     { id: 'review', label: t('translationReview'), icon: <Languages className="h-4 w-4" /> },
     { id: 'config', label: t('systranConfig'), icon: <Settings2 className="h-4 w-4" /> },
   ];
@@ -129,6 +132,7 @@ export default function TranslationsPage() {
       {/* Tab content */}
       {activeTab === 'config' && <ConfigTab />}
       {activeTab === 'references' && <ReferencesTab />}
+      {activeTab === 'collecte' && <CollecteTranslationsTab />}
       {activeTab === 'review' && <ReviewTab />}
     </div>
   );
