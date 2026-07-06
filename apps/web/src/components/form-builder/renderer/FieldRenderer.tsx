@@ -1061,11 +1061,6 @@ function CalculatedField({
       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
         {value !== null && value !== undefined ? String(value) : '—'}
       </span>
-      {formula && (
-        <span className="text-xs text-gray-400 ml-auto">
-          = {formula}
-        </span>
-      )}
     </div>
   );
 }
