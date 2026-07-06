@@ -240,18 +240,68 @@ export function FieldRenderer({ field, value, onChange, onAutoFill, error, formV
         </div>
       )}
 
-      {field.type === 'select' && (
-        <SearchableSelect
-          value={(value as string) || ''}
-          onChange={(v) => onChange(v)}
-          options={((field.properties.options || []) as SelectOption[]).map((opt) => ({
+      {field.type === 'select' && (() => {
+        // Dynamic options: read from another field's stored data (e.g., farm's production_nodes)
+        const dynFrom = field.properties.dynamicOptionsFrom as string | undefined;
+        let selectOptions: Array<{ label: string; value: string }>;
+
+        if (dynFrom && formValues) {
+          const sourceData = formValues[dynFrom] as Record<string, unknown> | undefined;
+          const path = (field.properties.dynamicOptionsPath as string) || '';
+          const arr = path ? (sourceData as Record<string, unknown> | undefined)?.[path] : sourceData;
+          const valueKey = (field.properties.dynamicOptionValue as string) || 'value';
+          const labelMap = (field.properties.optionLabels || {}) as Record<string, MultilingualText>;
+
+          selectOptions = Array.isArray(arr)
+            ? (arr as Array<Record<string, unknown>>)
+                .map((row) => ({
+                  value: String(row[valueKey] || ''),
+                  label: ml(labelMap[String(row[valueKey])]) || String(row[valueKey] || ''),
+                }))
+                .filter((o) => o.value)
+            : [];
+        } else {
+          selectOptions = ((field.properties.options || []) as SelectOption[]).map((opt) => ({
             label: ml(opt.label) || opt.value,
             value: opt.value,
-          }))}
-          placeholder={placeholder || 'Select...'}
-          disabled={field.readOnly}
-        />
-      )}
+          }));
+        }
+
+        return (
+          <SearchableSelect
+            value={(value as string) || ''}
+            onChange={(v) => {
+              onChange(v);
+              // Auto-fill from matching row in dynamic data
+              if (dynFrom && formValues && onAutoFill) {
+                const sourceData = formValues[dynFrom] as Record<string, unknown> | undefined;
+                const path = (field.properties.dynamicOptionsPath as string) || '';
+                const arr = path ? (sourceData as Record<string, unknown> | undefined)?.[path] : sourceData;
+                const valueKey = (field.properties.dynamicOptionValue as string) || 'value';
+                const autoFillMap = field.properties.autoFillOnSelect as Record<string, string> | undefined;
+                if (autoFillMap && Array.isArray(arr)) {
+                  const row = (arr as Array<Record<string, unknown>>).find((r) => String(r[valueKey]) === v);
+                  if (row) {
+                    for (const [target, source] of Object.entries(autoFillMap)) {
+                      onAutoFill(target, row[source]);
+                    }
+                  }
+                }
+              }
+              // Static auto-fill: map select values to fixed field values
+              const staticFill = field.properties.staticAutoFill as Record<string, Record<string, unknown>> | undefined;
+              if (staticFill?.[v] && onAutoFill) {
+                for (const [target, val] of Object.entries(staticFill[v])) {
+                  onAutoFill(target, val);
+                }
+              }
+            }}
+            options={selectOptions}
+            placeholder={placeholder || 'Select...'}
+            disabled={field.readOnly}
+          />
+        );
+      })()}
 
       {field.type === 'master-data-select' && (
         <Suspense fallback={
@@ -307,7 +357,7 @@ export function FieldRenderer({ field, value, onChange, onAutoFill, error, formV
       )}
 
       {field.type === 'form-data-select' && (
-        <FormDataSelectField field={field} value={value} onChange={onChange} placeholder={placeholder} ml={ml} />
+        <FormDataSelectField field={field} value={value} onChange={onChange} placeholder={placeholder} ml={ml} formValues={formValues} onAutoFill={onAutoFill} />
       )}
 
       {field.type === 'multi-select' && (() => {
@@ -1026,6 +1076,7 @@ function CalculatedField({
   field, value, onChange, formValues,
 }: { field: FormField; value: unknown; onChange: (v: unknown) => void; formValues?: Record<string, unknown> }) {
   const formula = (field.properties.formula as string) || '';
+  const decimals = typeof field.properties.decimals === 'number' ? field.properties.decimals : 2;
 
   React.useEffect(() => {
     if (!formula || !formValues) return;
@@ -1044,8 +1095,9 @@ function CalculatedField({
     try {
       // Safe evaluation using Function (no eval)
       const result = new Function(`"use strict"; return (${expr})`)();
-      const rounded = typeof result === 'number' && !isNaN(result)
-        ? Math.round(result * 100) / 100
+      const factor = Math.pow(10, decimals);
+      const rounded = typeof result === 'number' && !isNaN(result) && isFinite(result)
+        ? Math.round(result * factor) / factor
         : null;
       if (rounded !== value) {
         onChange(rounded);
@@ -1156,43 +1208,94 @@ function LookupField({
 
 function FormDataSelectField({
   field, value, onChange, placeholder, ml,
-}: { field: FormField; value: unknown; onChange: (v: unknown) => void; placeholder: string; ml: (t?: MultilingualText) => string }) {
-  const [options, setOptions] = React.useState<Array<{ value: string; label: string }>>([]);
+  formValues, onAutoFill,
+}: {
+  field: FormField; value: unknown; onChange: (v: unknown) => void; placeholder: string;
+  ml: (t?: MultilingualText) => string;
+  formValues?: Record<string, unknown>;
+  onAutoFill?: (fieldCode: string, value: unknown) => void;
+}) {
+  const [options, setOptions] = React.useState<Array<{ value: string; label: string; _data?: Record<string, unknown> }>>([]);
   const [loading, setLoading] = React.useState(false);
   const sourceFormId = (field.properties.sourceFormId as string) || '';
+  const sourceTemplateName = (field.properties.sourceTemplateName as string) || '';
   const sourceFieldCode = (field.properties.sourceFieldCode as string) || '';
   const valueFieldCode = (field.properties.valueFieldCode as string) || sourceFieldCode;
+  const filterByAdmin = !!field.properties.filterByAdminLocation;
+  const exposeDataAs = (field.properties.exposeDataAs as string) || '';
+
+  // Get selected country from admin_location
+  const adminLoc = formValues?.admin_location as Record<string, string> | undefined;
+  const selectedCountry = adminLoc?.level_0 || '';
 
   React.useEffect(() => {
-    if (!sourceFormId) return;
-    setLoading(true);
+    const token = localStorage.getItem('accessToken') || '';
+    const headers = { Authorization: `Bearer ${token}` };
 
-    fetch(`/api/v1/collecte/submissions?templateId=${sourceFormId}&limit=200&status=SUBMITTED`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}` },
-    })
-      .then((r) => r.json())
-      .then((json) => {
-        const items = (json.data || []) as Array<{ data: Record<string, unknown>; id: string }>;
+    async function load() {
+      setLoading(true);
+      try {
+        // Resolve template ID from name if needed
+        let templateId = sourceFormId;
+        if (!templateId && sourceTemplateName) {
+          const tRes = await fetch(
+            `/api/v1/form-builder/templates?search=${encodeURIComponent(sourceTemplateName)}&status=PUBLISHED&limit=1`,
+            { headers },
+          );
+          const tJson = await tRes.json();
+          const templates = tJson.data || [];
+          if (templates.length > 0) templateId = templates[0].id;
+        }
+        if (!templateId) { setOptions([]); return; }
+
+        // Fetch submissions
+        const sRes = await fetch(
+          `/api/v1/form-builder/templates/${templateId}/submissions?limit=100&status=SUBMITTED`,
+          { headers },
+        );
+        const sJson = await sRes.json();
+        let items = (sJson.data || []) as Array<{ data: Record<string, unknown>; id: string }>;
+
+        // Filter by admin_location country if needed
+        if (filterByAdmin && selectedCountry) {
+          items = items.filter((item) => {
+            const loc = item.data?.admin_location as Record<string, string> | undefined;
+            return loc?.level_0 === selectedCountry;
+          });
+        }
+
         const opts = items
-          .map((item) => {
-            const label = String(item.data?.[sourceFieldCode] ?? item.id);
-            const val = String(item.data?.[valueFieldCode] ?? item.id);
-            return { value: val, label };
-          })
+          .map((item) => ({
+            value: String(item.data?.[valueFieldCode] ?? item.id),
+            label: String(item.data?.[sourceFieldCode] ?? item.id),
+            _data: item.data,
+          }))
           .filter((o) => o.label && o.value);
+
         // Deduplicate
         const seen = new Set<string>();
         setOptions(opts.filter((o) => { if (seen.has(o.value)) return false; seen.add(o.value); return true; }));
-      })
-      .catch(() => setOptions([]))
-      .finally(() => setLoading(false));
-  }, [sourceFormId, sourceFieldCode, valueFieldCode]);
+      } catch {
+        setOptions([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [sourceFormId, sourceTemplateName, sourceFieldCode, valueFieldCode, filterByAdmin, selectedCountry]);
 
   return (
     <SearchableSelect
       value={(value as string) || ''}
-      onChange={(v) => onChange(v)}
-      options={options}
+      onChange={(v) => {
+        onChange(v);
+        // Expose full submission data for dependent fields
+        if (exposeDataAs && onAutoFill) {
+          const selected = options.find((o) => o.value === v);
+          onAutoFill(exposeDataAs, selected?._data || null);
+        }
+      }}
+      options={options.map((o) => ({ value: o.value, label: o.label }))}
       placeholder={loading ? 'Loading...' : (placeholder || 'Select...')}
       disabled={field.readOnly || loading}
     />

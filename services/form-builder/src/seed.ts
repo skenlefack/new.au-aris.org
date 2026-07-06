@@ -1485,12 +1485,64 @@ function buildAquacultureFarmRegistration() {
 // 26. Aquaculture Production Report
 function buildAquacultureProductionReport() {
   fieldOrder = 0;
+
+  // Production node option labels (for dynamic select from farm data)
+  const nodeLabels: Record<string, I18n> = {
+    HATCHERY: { en: 'Hatchery', fr: 'Écloserie', pt: 'Incubadora', ar: 'مفرخة' },
+    OUT_GROWER: { en: 'Out-grower', fr: 'Sous-traitant grossissement', pt: 'Produtor externo', ar: 'مزارع خارجي' },
+    BROODSTOCK: { en: 'Broodstock Production', fr: 'Production de géniteurs', pt: 'Produção de reprodutores', ar: 'إنتاج أمهات' },
+    OFFSHORE_CAGES: { en: 'Marine aquaculture in offshore cages', fr: 'Aquaculture marine en cages offshore', pt: 'Aquicultura marinha em gaiolas offshore', ar: 'استزراع بحري في أقفاص بعيدة' },
+  };
+
+  // Production system option labels (for auto-fill display)
+  const systemLabels: Record<string, I18n> = {
+    POND_CULTURE: { en: 'Pond culture', fr: 'Pisciculture en étang', pt: 'Cultura em tanque', ar: 'استزراع في أحواض' },
+    CAGE_CULTURE: { en: 'Cage culture', fr: 'Élevage en cage', pt: 'Cultura em gaiola', ar: 'استزراع في أقفاص' },
+    RACEWAY_CULTURE: { en: 'Raceway culture', fr: 'Élevage en raceway', pt: 'Cultura em canal', ar: 'استزراع في مجاري' },
+    RAS_CULTURE: { en: 'RAS culture', fr: 'Élevage en RAS', pt: 'Cultura em RAS', ar: 'نظام إعادة تدوير المياه' },
+    PEN_CULTURE: { en: 'Pen culture', fr: 'Élevage en enclos', pt: 'Cultura em cercado', ar: 'استزراع في حظائر' },
+    INTEGRATED: { en: 'Integrated aquaculture', fr: 'Aquaculture intégrée', pt: 'Aquicultura integrada', ar: 'استزراع متكامل' },
+  };
+
   const sectionProd = makeSection(
     { en: 'Production Details', fr: 'Détails de Production', pt: 'Detalhes de Produção', ar: 'تفاصيل الإنتاج' }, 1,
     [
-      textField('farm_name', { en: 'Farm Name / ID', fr: 'Nom / ID de la Ferme', pt: 'Nome / ID da Fazenda', ar: 'اسم / رقم المزرعة' }, { required: true }),
+      // Farm select — loads farms from Aquaculture Farm Registration submissions
+      f('form-data-select', 'farm_name', { en: 'Farm', fr: 'Ferme', pt: 'Fazenda', ar: 'المزرعة' }, {
+        required: true,
+        properties: {
+          sourceTemplateName: 'Aquaculture Farm Registration',
+          sourceFieldCode: 'farm_name',
+          valueFieldCode: 'farm_name',
+          filterByAdminLocation: true,
+          exposeDataAs: '__farm_data',
+        },
+      }),
+      // Production node — dynamic options from selected farm's production_nodes
+      f('select', 'production_node', { en: 'Production Node', fr: 'Nœud de Production', pt: 'Nó de Produção', ar: 'عقدة الإنتاج' }, {
+        required: true,
+        properties: {
+          dynamicOptionsFrom: '__farm_data',
+          dynamicOptionsPath: 'production_nodes',
+          dynamicOptionValue: 'production_node',
+          optionLabels: nodeLabels,
+          autoFillOnSelect: { production_system: 'production_system' },
+          staticAutoFill: {
+            HATCHERY: { quantity_unit: 'milliers' },
+            OUT_GROWER: { quantity_unit: 'kg' },
+            BROODSTOCK: { quantity_unit: 'kg' },
+            OFFSHORE_CAGES: { quantity_unit: 'tonnes' },
+          },
+        },
+      }),
+      // Production system — auto-filled from selected node (read-only)
+      f('text', 'production_system', { en: 'Production System', fr: 'Système de Production', pt: 'Sistema de Produção', ar: 'نظام الإنتاج' }, {
+        readOnly: true,
+      }),
       speciesSelect('species', { en: 'Species', fr: 'Espèce', pt: 'Espécie', ar: 'النوع' }, { required: true }),
-      decimalField('quantity_kg', { en: 'Quantity Harvested (kg)', fr: 'Quantité Récoltée (kg)', pt: 'Quantidade Colhida (kg)', ar: 'الكمية المحصودة (كجم)' }, { required: true }),
+      decimalField('quantity_kg', { en: 'Quantity Harvested', fr: 'Quantité Récoltée', pt: 'Quantidade Colhida', ar: 'الكمية المحصودة' }, { required: true }),
+      // Unit — auto-filled from production node
+      f('text', 'quantity_unit', { en: 'Unit', fr: 'Unité', pt: 'Unidade', ar: 'الوحدة' }, { readOnly: true }),
       dateField('harvest_date', { en: 'Harvest Date', fr: 'Date de Récolte', pt: 'Data da Colheita', ar: 'تاريخ الحصاد' }, { required: true }),
       selectField('method_of_culture', { en: 'Method of Culture', fr: 'Méthode de Culture', pt: 'Método de Cultura', ar: 'طريقة الاستزراع' }, [
         { en: 'Extensive', fr: 'Extensif', pt: 'Extensivo', ar: 'مفتوح' },
@@ -1498,14 +1550,18 @@ function buildAquacultureProductionReport() {
         { en: 'Intensive', fr: 'Intensif', pt: 'Intensivo', ar: 'مكثف' },
         { en: 'Super-intensive', fr: 'Super-intensif', pt: 'Super-intensivo', ar: 'مكثف جداً' },
       ]),
-      decimalField('feed_used_kg', { en: 'Feed Used (kg)', fr: 'Aliment Utilisé (kg)', pt: 'Ração Utilizada (kg)', ar: 'العلف المستخدم (كجم)' }),
-      decimalField('fcr', { en: 'Feed Conversion Ratio (FCR)', fr: 'Ratio de Conversion Alimentaire', pt: 'Taxa de Conversão Alimentar', ar: 'معدل التحويل الغذائي' }, {
-        helpText: { en: 'Feed (kg) / Weight gain (kg)', fr: 'Aliment (kg) / Gain de poids (kg)', pt: 'Ração (kg) / Ganho de peso (kg)', ar: 'العلف (كجم) / زيادة الوزن (كجم)' },
+      decimalField('feed_used_kg', { en: 'Feed Quantity (kg)', fr: 'Quantité d\'Aliment (kg)', pt: 'Quantidade de Ração (kg)', ar: 'كمية العلف (كجم)' }),
+      decimalField('avg_harvest_weight_g', { en: 'Avg. Unit Marketing Weight (g)', fr: 'Poids Unitaire Moyen de Commercialisation (g)', pt: 'Peso Unitário Médio de Comercialização (g)', ar: 'متوسط الوزن الوحدوي للتسويق (جم)' }),
+      // FCR théorique — saisie libre
+      decimalField('fcr_theoretical', { en: 'Theoretical FCR', fr: 'Ratio de Conversion Alimentaire Théorique', pt: 'RCA Teórico', ar: 'معدل التحويل الغذائي النظري' }),
+      // FCR réel — calculé = feed_used_kg / avg_harvest_weight_g (arrondi 1 décimale)
+      f('calculated', 'fcr_real', { en: 'Actual FCR', fr: 'Ratio de Conversion Alimentaire Réel', pt: 'RCA Real', ar: 'معدل التحويل الغذائي الفعلي' }, {
+        readOnly: true,
+        properties: { formula: '{feed_used_kg} / {avg_harvest_weight_g}', decimals: 1 },
       }),
       textField('batch_id', { en: 'Batch / Cycle ID', fr: 'ID du Lot / Cycle', pt: 'ID do Lote / Ciclo', ar: 'رقم الدُفعة / الدورة' }),
       dateField('stocking_date', { en: 'Stocking Date', fr: 'Date d\'Ensemencement', pt: 'Data de Estocagem', ar: 'تاريخ التخزين' }),
-      decimalField('survival_rate', { en: 'Survival Rate (%)', fr: 'Taux de Survie (%)', pt: 'Taxa de Sobrevivência (%)', ar: 'معدل البقاء (%)' }),
-      decimalField('avg_harvest_weight_g', { en: 'Avg. Harvest Weight (g)', fr: 'Poids Moyen de Récolte (g)', pt: 'Peso Médio de Colheita (g)', ar: 'متوسط وزن الحصاد (جم)' }),
+      decimalField('mortality_rate', { en: 'Mortality Rate (%)', fr: 'Taux de Mortalité (%)', pt: 'Taxa de Mortalidade (%)', ar: 'معدل الوفيات (%)' }),
       textareaField('remarks', { en: 'Remarks', fr: 'Remarques', pt: 'Observações', ar: 'ملاحظات' }, { columnSpan: 2 }),
     ],
     { icon: 'BarChart3', color: '#10B981' },
