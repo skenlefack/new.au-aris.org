@@ -134,7 +134,13 @@ function FormsSubTab() {
   const [saving, setSaving] = useState(false);
   const [autoTranslating, setAutoTranslating] = useState<string | null>(null);
 
-  const templates: FormTemplateListItem[] = templatesRes?.data ?? [];
+  // templatesRes from useQuery .data = API response { data: [...], meta: {...} }
+  const templates: FormTemplateListItem[] = useMemo(() => {
+    if (!templatesRes) return [];
+    if (Array.isArray(templatesRes)) return templatesRes;
+    if (Array.isArray((templatesRes as any).data)) return (templatesRes as any).data;
+    return [];
+  }, [templatesRes]);
 
   // Build translatable groups from templates
   const groups: TranslatableGroup[] = useMemo(() => {
@@ -217,6 +223,11 @@ function FormsSubTab() {
     if (search) {
       const q = search.toLowerCase();
       result = result.map((g) => {
+        // Match on form name → show all rows of that form
+        if (g.name.toLowerCase().includes(q) || g.domain.replace(/_/g, ' ').toLowerCase().includes(q)) {
+          return g;
+        }
+        // Otherwise filter rows
         const filtered = g.rows.filter((r) => {
           if (r.path.toLowerCase().includes(q)) return true;
           return LANGUAGES.some((l) => getCellValue(r, l.code).toLowerCase().includes(q));
@@ -718,7 +729,16 @@ function CampaignsSubTab() {
   const [saving, setSaving] = useState(false);
   const [autoTranslating, setAutoTranslating] = useState(false);
 
-  const campaigns: any[] = campaignsRes?.data ?? [];
+  // campaignsRes from useQuery .data = API response { data: [...], meta: {...} }
+  // Safely extract the array regardless of wrapping
+  const campaigns: any[] = useMemo(() => {
+    if (!campaignsRes) return [];
+    // Direct array
+    if (Array.isArray(campaignsRes)) return campaignsRes;
+    // { data: [...] } format
+    if (Array.isArray((campaignsRes as any).data)) return (campaignsRes as any).data;
+    return [];
+  }, [campaignsRes]);
 
   // Build translatable rows from campaigns
   const rows = useMemo(() => {
