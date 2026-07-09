@@ -330,7 +330,7 @@ export class SubmissionService {
     const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
     const skip = (page - 1) * limit;
 
-    const where = this.buildFilter(user, query);
+    const where = await this.buildFilter(user, query);
 
     const [data, total] = await Promise.all([
       (this.prisma as any).submission.findMany({
@@ -835,10 +835,10 @@ export class SubmissionService {
     return false;
   }
 
-  private buildFilter(
+  private async buildFilter(
     user: AuthenticatedUser,
     query: { campaignId?: string; status?: string; agent?: string },
-  ): Record<string, unknown> {
+  ): Promise<Record<string, unknown>> {
     const where: Record<string, unknown> = {};
 
     if (user.tenantLevel !== TenantLevel.CONTINENTAL) {
@@ -847,7 +847,24 @@ export class SubmissionService {
 
     if (query.campaignId) where['campaignId'] = query.campaignId;
     if (query.status) where['status'] = query.status;
-    if (query.agent) where['submittedBy'] = query.agent;
+
+    // When agent is specified, show: own submissions + submissions from users who assigned this agent as validator
+    if (query.agent) {
+      // Find users who have this agent as their validator
+      let assignedUserIds: string[] = [];
+      try {
+        const chains = await (this.prisma as any).collecteValidationChain.findMany({
+          where: { validatorId: query.agent, isActive: true },
+          select: { userId: true },
+        });
+        assignedUserIds = chains.map((c: { userId: string }) => c.userId);
+      } catch {
+        // Table may not exist — fall back to own submissions only
+      }
+
+      const submitterIds = [query.agent, ...assignedUserIds];
+      where['submittedBy'] = { in: submitterIds };
+    }
 
     return where;
   }

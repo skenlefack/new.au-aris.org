@@ -526,22 +526,24 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
 
                   {isSubmitted && (
                     <>
+                      {/* Validation finale — approuve directement */}
                       <button
                         onClick={() => setActionType('validate')}
                         disabled={isActionPending}
                         className={cn('flex items-center gap-3 rounded-xl border-2 p-4 transition-all', actionType === 'validate' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 hover:border-green-300 dark:border-gray-700')}
                       >
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30"><CheckCircle className="h-5 w-5 text-green-600" /></div>
-                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('validate')}</p><p className="text-xs text-gray-500">Mark as validated</p></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('validate')}</p><p className="text-xs text-gray-500">Validation finale</p></div>
                       </button>
 
+                      {/* Envoyer à un validateur — voie parallèle */}
                       <button
                         onClick={() => onStartWorkflow(item.id, domain ?? 'collecte')}
                         disabled={isActionPending}
                         className="flex items-center gap-3 rounded-xl border-2 border-gray-200 p-4 transition-all hover:border-blue-300 dark:border-gray-700"
                       >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"><Play className="h-5 w-5 text-blue-600" /></div>
-                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">Start Pipeline</p><p className="text-xs text-gray-500">Submit to 4-level validation</p></div>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"><Send className="h-5 w-5 text-blue-600" /></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">Envoyer pour validation</p><p className="text-xs text-gray-500">Choisir un validateur</p></div>
                       </button>
 
                       <button
@@ -552,7 +554,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                           actionType === 'return' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 hover:border-orange-300 dark:border-gray-700')}
                       >
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30"><RotateCcw className="h-5 w-5 text-orange-600" /></div>
-                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('returnAction')}</p><p className="text-xs text-gray-500">{isMine ? t('disabledFirstStage') : 'Send back for correction'}</p></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('returnAction')}</p><p className="text-xs text-gray-500">{isMine ? t('disabledFirstStage') : 'Retourner pour correction'}</p></div>
                       </button>
 
                       <button
@@ -563,7 +565,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                           actionType === 'reject' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-200 hover:border-red-300 dark:border-gray-700')}
                       >
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30"><XCircle className="h-5 w-5 text-red-600" /></div>
-                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('reject')}</p><p className="text-xs text-gray-500">{isMine ? t('disabledFirstStage') : 'Reject this submission'}</p></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('reject')}</p><p className="text-xs text-gray-500">{isMine ? t('disabledFirstStage') : 'Rejeter cette soumission'}</p></div>
                       </button>
                     </>
                   )}
@@ -785,7 +787,8 @@ export default function WorkflowPage() {
   };
   const primaryStatus = TAB_PRIMARY_STATUS[activeTab];
 
-  const agentFilter = dataFilter === 'mine' ? user?.id : undefined;
+  // Always filter by current user: show own submissions + submissions assigned to user for validation
+  const agentFilter = user?.id;
   const { submissionData, workflowData, hasWorkflowData, isLoading, isError, refetch } =
     useWorkflowItems({ page, limit: pageSize, status: primaryStatus, level: levelFilter, agent: agentFilter });
   const { data: dashboardRes } = useWorkflowDashboard();
@@ -806,8 +809,10 @@ export default function WorkflowPage() {
   const wfItems = workflowData?.data ?? [];
   const wfTotal = workflowData?.meta?.total ?? 0;
 
-  // Filter by data ownership: mine (submitted by me) vs toReview (submitted by others)
-  const filteredSubmissions = dataFilter === 'toReview'
+  // Filter by data ownership: mine (submitted by me) vs toReview (assigned to me for validation)
+  const filteredSubmissions = dataFilter === 'mine'
+    ? allSubmissions.filter((s) => s.submittedBy === user?.id)
+    : dataFilter === 'toReview'
     ? allSubmissions.filter((s) => s.submittedBy !== user?.id)
     : allSubmissions;
   const filteredWfItems = wfItems.length > 0
@@ -863,15 +868,8 @@ export default function WorkflowPage() {
     updateStatus.mutate({ id, status: 'RETURNED', reason }, { onSuccess: () => setViewingSub(null) });
   }
   function handleStartWorkflow(entityId: string, domain: string) {
-    // If user has no validation chain, show validator chooser dialog
-    if (!hasValidationChain) {
-      setShowValidatorChooser({ submissionId: entityId, domain });
-      return;
-    }
-    startValidation.mutate(
-      { entityType: 'Submission', entityId, domain },
-      { onSuccess: () => setViewingSub(null) },
-    );
+    // Always show validator chooser to let user pick who validates
+    setShowValidatorChooser({ submissionId: entityId, domain });
   }
   function handleSelectValidator(validatorId: string) {
     if (!showValidatorChooser || !user) return;
