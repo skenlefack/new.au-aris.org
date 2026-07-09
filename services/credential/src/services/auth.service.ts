@@ -137,7 +137,8 @@ export class AuthService {
     // the user can perform their very first login. The password is never
     // persisted outside of the user record's bcrypt hash, and the user is
     // forced to change it immediately by the ForcePasswordChangeModal.
-    const publicBase = process.env['PUBLIC_WEB_URL'] ?? 'https://au-aris.org';
+    const publicBase = process.env['PUBLIC_WEB_URL']
+      ?? (process.env['NODE_ENV'] === 'staging' ? 'https://test.au-aris.org' : 'https://au-aris.org');
     const eventPayload = {
       ...safeUser,
       email: user.email,
