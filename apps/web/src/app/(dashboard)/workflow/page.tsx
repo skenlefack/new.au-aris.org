@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import {
   ChevronLeft,
@@ -29,6 +30,7 @@ import {
   Users,
   BarChart3,
   Search,
+  Pencil,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
@@ -1192,9 +1194,19 @@ function SubmissionsTable({ items, total, page, totalPages, pageSize, setPage, o
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">{formatDate(item.submittedAt)}</td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => onView(item)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20 transition-colors">
-                      <Eye className="h-3.5 w-3.5" />{t('details')}
-                    </button>
+                    <div className="inline-flex items-center gap-1.5">
+                      <button onClick={() => onView(item)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20 transition-colors">
+                        <Eye className="h-3.5 w-3.5" />{t('details')}
+                      </button>
+                      {isMine && (item.status === 'SUBMITTED' || item.status === 'RETURNED' || item.status === 'REJECTED') && (
+                        <Link
+                          href={`/collecte/submissions/${item.id}/edit`}
+                          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 dark:text-orange-400 dark:bg-orange-900/20 transition-colors"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />{t('edit')}
+                        </Link>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );

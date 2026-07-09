@@ -68,9 +68,9 @@ export default function SubmissionEditPage() {
     );
   }
 
-  // Guard: only RETURNED or REJECTED submissions can be edited
+  // Guard: RETURNED/REJECTED can always be edited; SUBMITTED can be edited by the original author
   const status = (submission.status ?? '').toUpperCase();
-  const canEdit = status === 'RETURNED' || status === 'REJECTED';
+  const canEdit = status === 'RETURNED' || status === 'REJECTED' || status === 'SUBMITTED';
 
   if (!canEdit) {
     return (
