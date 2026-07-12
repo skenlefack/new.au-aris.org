@@ -120,7 +120,7 @@ export function CollecteTranslationsTab() {
 
 function FormsSubTab() {
   const t = useTranslations('settings');
-  const { data: templatesRes, isLoading } = useFormBuilderTemplates({ limit: 200 });
+  const { data: templatesRes, isLoading } = useFormBuilderTemplates({ limit: 100 });
   const updateTemplate = useUpdateFormTemplate();
   const translateMut = useTranslateText();
 
@@ -717,7 +717,7 @@ function FormsSubTab() {
 
 function CampaignsSubTab() {
   const t = useTranslations('settings');
-  const { data: campaignsRes, isLoading, error } = useCollectionCampaigns({ limit: 200 });
+  const { data: campaignsRes, isLoading, error } = useCollectionCampaigns({ limit: 100 });
   const updateCampaign = useUpdateCollectionCampaign();
   const translateMut = useTranslateText();
 
