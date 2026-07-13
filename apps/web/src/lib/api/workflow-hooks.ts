@@ -464,6 +464,43 @@ export function useCampaignSubmissions(campaignId: string | undefined, params?: 
 }
 
 // ═══════════════════════════════════════════════════════
+// DOMAIN-LEVEL SUBMISSIONS (all campaigns for a domain)
+// ═══════════════════════════════════════════════════════
+
+/**
+ * Fetch ALL submissions for a given domain (e.g. 'paid') across all campaigns.
+ * Auto-paginates through all pages and auto-refreshes every `refreshInterval` ms.
+ */
+export function useDomainSubmissions(domain: string | undefined, opts?: { refreshInterval?: number }) {
+  return useQuery({
+    queryKey: ['domain-submissions', domain],
+    queryFn: async () => {
+      if (!domain) return { data: [], meta: { total: 0, page: 1, limit: 100 } };
+      const allData: any[] = [];
+      let page = 1;
+      const limit = 100;
+      let total = Infinity;
+
+      while (allData.length < total) {
+        const qs = new URLSearchParams({ domain, page: String(page), limit: String(limit) });
+        const res = await wfFetch<any>(`/api/v1/collecte/submissions?${qs}`);
+        const items = Array.isArray(res?.data) ? res.data : [];
+        allData.push(...items);
+        total = res?.meta?.total ?? items.length;
+        if (items.length < limit) break; // last page
+        page++;
+        if (page > 200) break; // safety guard
+      }
+
+      return { data: allData, meta: { total: allData.length, page: 1, limit: allData.length } };
+    },
+    enabled: !!domain,
+    staleTime: 15_000,
+    refetchInterval: opts?.refreshInterval ?? 30_000,
+  });
+}
+
+// ═══════════════════════════════════════════════════════
 // CONFLICT RESOLUTION
 // ═══════════════════════════════════════════════════════
 

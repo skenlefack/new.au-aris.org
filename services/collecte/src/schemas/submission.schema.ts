@@ -23,6 +23,7 @@ export const ListSubmissionsQuerySchema = Type.Object({
   page: Type.Optional(Type.Integer({ minimum: 1 })),
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
   campaign: Type.Optional(Type.String({ format: 'uuid' })),
+  domain: Type.Optional(Type.String({ maxLength: 50 })),
   status: Type.Optional(Type.String()),
   agent: Type.Optional(Type.String({ format: 'uuid' })),
 });

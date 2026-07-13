@@ -3,7 +3,6 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  Plus,
   ChevronLeft,
   ChevronRight,
   Activity,
@@ -11,15 +10,13 @@ import {
   Download,
   Upload,
   FileText,
-  ArrowRight,
   Globe2,
   BarChart3,
-  ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { CampaignDataDashboard } from '@/components/domain/CampaignDataDashboard';
-import { useCollectionCampaigns, useCampaignSubmissions } from '@/lib/api/workflow-hooks';
+import { useCollectionCampaigns, useDomainSubmissions } from '@/lib/api/workflow-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import {
@@ -49,7 +46,7 @@ export default function PaidPage() {
   // Filters
   const [filters, setFilters] = useState<PaidFilters>({});
 
-  // Fetch all PAID campaigns (domain = 'paid' or cross-domain)
+  // Fetch all PAID campaigns (domain = 'paid')
   const campaignsQuery = useCollectionCampaigns({ domain: 'paid', limit: 50 });
   const rawCampaigns: any[] = Array.isArray(campaignsQuery.data?.data) ? campaignsQuery.data.data : [];
   // Sort: Q1, Q2, Q3, Q4, Annual (by code alphabetically, Q before Annual)
@@ -57,7 +54,6 @@ export default function PaidPage() {
     return [...rawCampaigns].sort((a, b) => {
       const codeA = a.code || '';
       const codeB = b.code || '';
-      // Q1-Q4 first (sorted), then Annual last
       const isQA = /Q\d/.test(codeA);
       const isQB = /Q\d/.test(codeB);
       if (isQA && !isQB) return -1;
@@ -67,10 +63,8 @@ export default function PaidPage() {
   }, [rawCampaigns]);
   const activeCampaigns = campaigns.filter((c: any) => c.status === 'ACTIVE');
 
-  // Select first active campaign for submission data
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string | undefined>();
-  const effectiveCampaignId = selectedCampaignId ?? activeCampaigns[0]?.id;
-  const subsQuery = useCampaignSubmissions(effectiveCampaignId, { limit: 5000 });
+  // Fetch ALL submissions across ALL PAID campaigns (auto-refresh 30s)
+  const subsQuery = useDomainSubmissions('paid', { refreshInterval: 30_000 });
   const rawSubmissions: any[] = Array.isArray(subsQuery.data?.data) ? subsQuery.data.data : [];
 
   // Apply filters and compute aggregates
@@ -131,18 +125,10 @@ export default function PaidPage() {
           projects={projects}
           t={t}
         />
-        {activeCampaigns.length > 1 && (
-          <select
-            value={effectiveCampaignId ?? ''}
-            onChange={(e) => setSelectedCampaignId(e.target.value || undefined)}
-            className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-          >
-            {activeCampaigns.map((c: any) => (
-              <option key={c.id} value={c.id}>
-                {typeof c.name === 'object' ? c.name?.en ?? c.name?.fr : c.name}
-              </option>
-            ))}
-          </select>
+        {rawSubmissions.length > 0 && (
+          <span className="text-xs text-gray-400">
+            {rawSubmissions.length} submissions &middot; auto-refresh 30s
+          </span>
         )}
       </div>
 

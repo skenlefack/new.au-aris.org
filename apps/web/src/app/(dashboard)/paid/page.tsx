@@ -5,7 +5,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { Globe2, NotebookPen, RotateCcw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { useCollectionCampaigns, useCampaignSubmissions } from '@/lib/api/workflow-hooks';
+import { useDomainSubmissions, useCollectionCampaigns } from '@/lib/api/workflow-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 import {
   aggregatePaidSubmissions,
@@ -53,12 +53,9 @@ export default function PaidDashboardPage() {
   const t = useTranslations('paid');
   const [filters, setFilters] = useState<PaidFilters>({});
 
-  // Data
-  const cQ = useCollectionCampaigns({ domain: 'paid', limit: 50 });
-  const campaigns: any[] = Array.isArray(cQ.data?.data) ? cQ.data.data : [];
-  const firstActive = campaigns.find((c: any) => c.status === 'ACTIVE');
-  const sQ = useCampaignSubmissions(firstActive?.id, { limit: 5000 });
-  const rawSubs: any[] = Array.isArray(sQ.data?.data) ? sQ.data.data : [];
+  // Data — fetch ALL submissions across ALL PAID campaigns (auto-refresh 30s)
+  const subsQ = useDomainSubmissions('paid', { refreshInterval: 30_000 });
+  const rawSubs: any[] = Array.isArray(subsQ.data?.data) ? subsQ.data.data : [];
 
   const filtered = useMemo(() => filterPaidSubmissions(rawSubs, filters), [rawSubs, filters]);
   const agg = useMemo(() => aggregatePaidSubmissions(filtered), [filtered]);
@@ -66,7 +63,7 @@ export default function PaidDashboardPage() {
   const countries = useMemo(() => [...new Set(rawSubs.map((s: any) => s.data?.adm0_name).filter(Boolean))].sort(), [rawSubs]);
   const projects = useMemo(() => [...new Set(rawSubs.map((s: any) => s.data?.prj_symbol).filter(Boolean))].sort(), [rawSubs]);
 
-  const loading = cQ.isLoading || sQ.isLoading;
+  const loading = subsQ.isLoading;
   const hasF = !!(filters.quarter || filters.country || filters.sector || filters.project);
 
   // Chart data
@@ -134,6 +131,11 @@ export default function PaidDashboardPage() {
           <div className="flex items-center gap-2">
             <Globe2 className="h-4 w-4 text-white/80" />
             <span className="text-[11px] font-bold tracking-wide text-white lg:text-xs">AU-IBAR PAID OVERVIEW</span>
+            {!loading && (
+              <span className="rounded bg-white/20 px-1.5 py-0.5 text-[8px] text-white/80">
+                {rawSubs.length} submissions &middot; live
+              </span>
+            )}
           </div>
           {hasF && (
             <button onClick={() => setFilters({})} className="rounded bg-white/20 px-2 py-0.5 text-[8px] font-bold text-white hover:bg-white/30">

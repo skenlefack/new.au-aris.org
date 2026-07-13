@@ -4,17 +4,14 @@ import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, BarChart3 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { useCollectionCampaigns, useCampaignSubmissions } from '@/lib/api/workflow-hooks';
+import { useDomainSubmissions } from '@/lib/api/workflow-hooks';
 import { useTranslations } from '@/lib/i18n/translations';
 import { aggregatePaidSubmissions, SECTOR_COLORS } from '@/lib/paid';
 
 export default function PaidBySectorPage() {
   const t = useTranslations('paid');
 
-  const campaignsQuery = useCollectionCampaigns({ domain: 'paid', limit: 50 });
-  const campaigns: any[] = Array.isArray(campaignsQuery.data?.data) ? campaignsQuery.data.data : [];
-  const activeCampaign = campaigns.find((c: any) => c.status === 'ACTIVE');
-  const subsQuery = useCampaignSubmissions(activeCampaign?.id, { limit: 5000 });
+  const subsQuery = useDomainSubmissions('paid', { refreshInterval: 30_000 });
   const rawSubmissions: any[] = Array.isArray(subsQuery.data?.data) ? subsQuery.data.data : [];
 
   const agg = useMemo(() => aggregatePaidSubmissions(rawSubmissions), [rawSubmissions]);
@@ -23,7 +20,7 @@ export default function PaidBySectorPage() {
     [agg],
   );
 
-  const isLoading = campaignsQuery.isLoading || subsQuery.isLoading;
+  const isLoading = subsQuery.isLoading;
   const maxBenef = sectorsSorted[0]?.beneficiaries || 1;
 
   return (

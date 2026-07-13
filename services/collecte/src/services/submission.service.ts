@@ -322,6 +322,7 @@ export class SubmissionService {
     user: AuthenticatedUser,
     query: PaginationQuery & {
       campaignId?: string;
+      domain?: string;
       status?: string;
       agent?: string;
     },
@@ -837,7 +838,7 @@ export class SubmissionService {
 
   private async buildFilter(
     user: AuthenticatedUser,
-    query: { campaignId?: string; status?: string; agent?: string },
+    query: { campaignId?: string; domain?: string; status?: string; agent?: string },
   ): Promise<Record<string, unknown>> {
     const where: Record<string, unknown> = {};
 
@@ -845,7 +846,26 @@ export class SubmissionService {
       where['tenantId'] = user.tenantId;
     }
 
-    if (query.campaignId) where['campaignId'] = query.campaignId;
+    if (query.campaignId) {
+      where['campaignId'] = query.campaignId;
+    } else if (query.domain) {
+      // Look up all campaign IDs for this domain
+      try {
+        const domainCampaigns = await (this.prisma as any).collectionCampaign.findMany({
+          where: { domain: query.domain },
+          select: { id: true },
+        });
+        const ids = domainCampaigns.map((c: { id: string }) => c.id);
+        if (ids.length > 0) {
+          where['campaignId'] = { in: ids };
+        } else {
+          // No campaigns for this domain — return empty result
+          where['id'] = '__NO_MATCH__';
+        }
+      } catch {
+        // CollectionCampaign table may not exist — fall back to no filter
+      }
+    }
     if (query.status) where['status'] = query.status;
 
     // When agent is specified, show: own submissions + submissions from users who assigned this agent as validator

@@ -52,6 +52,7 @@ export default async function submissionRoutes(app: FastifyInstance): Promise<vo
     return service.findAll(user, {
       ...request.query,
       campaignId: request.query.campaign,
+      domain: request.query.domain,
     });
   });
 
