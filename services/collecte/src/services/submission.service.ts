@@ -233,7 +233,7 @@ export class SubmissionService {
 
   /**
    * Update submission data for correction/resubmission.
-   * Only allowed when status is RETURNED or REJECTED.
+   * Only allowed when status is RETURNED, REJECTED, or SUBMITTED.
    * Resets status to SUBMITTED, increments version, and re-triggers quality validation.
    */
   async updateData(
@@ -258,12 +258,12 @@ export class SubmissionService {
       throw new HttpError(404, `Submission ${id} not found`);
     }
 
-    // 2. Guard: only allow update if status is RETURNED or REJECTED
-    const editableStatuses = ['RETURNED', 'REJECTED'];
+    // 2. Guard: only allow update if status is RETURNED, REJECTED, or SUBMITTED
+    const editableStatuses = ['RETURNED', 'REJECTED', 'SUBMITTED'];
     if (!editableStatuses.includes(submission.status)) {
       throw new HttpError(
         400,
-        `Submission ${id} cannot be edited (status: ${submission.status}). Only RETURNED or REJECTED submissions can be corrected.`,
+        `Submission ${id} cannot be edited (status: ${submission.status}). Only RETURNED, REJECTED, or SUBMITTED submissions can be corrected.`,
       );
     }
 
