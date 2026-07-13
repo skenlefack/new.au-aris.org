@@ -10,6 +10,7 @@ import { useTranslations } from '@/lib/i18n/translations';
 import {
   aggregatePaidSubmissions,
   filterPaidSubmissions,
+  extractPaidFilterOptions,
   PAID_SECTORS,
   SECTOR_COLORS,
   PAID_QUARTERS,
@@ -60,30 +61,32 @@ export default function PaidDashboardPage() {
   const filtered = useMemo(() => filterPaidSubmissions(rawSubs, filters), [rawSubs, filters]);
   const agg = useMemo(() => aggregatePaidSubmissions(filtered), [filtered]);
 
-  const countries = useMemo(() => [...new Set(rawSubs.map((s: any) => s.data?.adm0_name).filter(Boolean))].sort(), [rawSubs]);
-  const projects = useMemo(() => [...new Set(rawSubs.map((s: any) => s.data?.prj_symbol).filter(Boolean))].sort(), [rawSubs]);
+  const filterOpts = useMemo(() => extractPaidFilterOptions(rawSubs), [rawSubs]);
+  const countries = filterOpts.countries;
+  const projects = filterOpts.projects;
 
   const loading = subsQ.isLoading;
   const hasF = !!(filters.quarter || filters.country || filters.sector || filters.project);
 
   // Chart data
   const sectorArr = useMemo(() => Array.from(agg.bySector.values()).sort((a, b) => b.projects.size - a.projects.size), [agg]);
-  const countryArr = useMemo(() => Array.from(agg.byCountry.values()).sort((a, b) => b.beneficiaries - a.beneficiaries), [agg]);
-  const activityArr = useMemo(() => Array.from(agg.byActivity.entries()).sort(([, a], [, b]) => b - a).slice(0, 12), [agg]);
-  const projectArr = useMemo(() => Array.from(agg.byProject.values()).sort((a, b) => b.beneficiaries - a.beneficiaries), [agg]);
+  const countryArr = useMemo(() => Array.from(agg.byCountry.values()).sort((a, b) => b.quantityImplemented - a.quantityImplemented), [agg]);
+  const activityArr = useMemo(() =>
+    Array.from(agg.byActivity.values()).sort((a, b) => b.quantityImplemented - a.quantityImplemented).slice(0, 12),
+  [agg]);
+  const projectArr = useMemo(() => Array.from(agg.byProject.values()).sort((a, b) => b.quantityImplemented - a.quantityImplemented), [agg]);
   const totalSP = sectorArr.reduce((s, e) => s + e.projects.size, 0) || 1;
-  const maxCB = countryArr[0]?.beneficiaries || 1;
-  const totalAB = activityArr.reduce((s, [, v]) => s + v, 0) || 1;
+  const maxCB = countryArr[0]?.quantityImplemented || 1;
 
   // Map data — convert PAID aggregates to CountryOutbreakData for ChoroplethMap
   const mapData: CountryOutbreakData[] = useMemo(() =>
     Array.from(agg.byCountry.values()).map((c) => ({
       code: c.code,
       name: c.country,
-      outbreaks: c.projects.size,        // use projects as "outbreaks" for color scale
-      cases: c.beneficiaries,
+      outbreaks: c.submissions,
+      cases: c.quantityImplemented,
       deaths: 0,
-      vaccinations: c.trained,
+      vaccinations: c.projects.size,
       submissions: c.submissions,
       rec: '',
     })),
@@ -151,13 +154,13 @@ export default function PaidDashboardPage() {
           ) : (
             [
               { val: String(agg.totalProjects), sub: 'Projects' },
-              { val: String(agg.totalRegions), sub: 'Regions' },
-              { val: fmt(agg.totalBeneficiaries), sub: '# received donors' },
-              { val: fmt(agg.totalHouseholds), sub: 'HH' },
-              { val: fmt(agg.totalTrained), sub: 'trained' },
-              { val: fmt(agg.totalFemale), sub: 'female' },
-              { val: fmt(agg.totalDisabled), sub: 'people w/ disability' },
-              { val: `USD ${fmt(agg.totalQuantityImplemented)}`, sub: 'beneficiaries' },
+              { val: String(agg.totalCountries), sub: 'Countries' },
+              { val: String(agg.totalRecs), sub: 'RECs' },
+              { val: String(agg.totalSubmissions), sub: 'Submissions' },
+              { val: fmt(agg.totalQuantityImplemented), sub: 'Qty Implemented' },
+              { val: fmt(agg.totalQuantityTargeted), sub: 'Qty Targeted' },
+              { val: `${agg.completionRate}%`, sub: 'Completion' },
+              { val: `$${fmt(agg.totalExpenditure)}`, sub: 'Expenditure' },
             ].map((k, i) => (
               <div key={i} className="px-1.5 py-2.5 text-center">
                 <p className="text-base font-black text-[#003366] lg:text-xl dark:text-blue-300">{k.val}</p>
@@ -196,12 +199,12 @@ export default function PaidDashboardPage() {
                 </div>
               </Panel>
 
-              {/* 2: Beneficiaries reached by donor — DONUT */}
-              <Panel title="Beneficiaries reached by donor">
+              {/* 2: Quantity implemented by project — DONUT */}
+              <Panel title="Quantity implemented by project">
                 <div className="flex items-start gap-2">
                   <div className="relative h-[120px] w-[120px] shrink-0 rounded-full shadow-inner" style={{
                     background: projectArr.length > 0
-                      ? conicGradient(projectArr.map((e) => [e.symbol, e.beneficiaries]), PIE_COLORS)
+                      ? conicGradient(projectArr.map((e) => [e.symbol, e.quantityImplemented]), PIE_COLORS)
                       : '#e5e7eb'
                   }}>
                     <div className="absolute inset-[18px] rounded-full bg-white dark:bg-gray-800" />
@@ -210,47 +213,48 @@ export default function PaidDashboardPage() {
                     {projectArr.slice(0, 6).map((e, i) => (
                       <div key={e.symbol} className="flex items-center gap-1">
                         <span className="h-[8px] w-[8px] shrink-0 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                        <span className="truncate text-[9px] leading-tight text-gray-500">{e.symbol.split('/').pop()}</span>
+                        <span className="truncate text-[9px] leading-tight text-gray-500">{e.symbol} ({fmt(e.quantityImplemented)})</span>
                       </div>
                     ))}
                   </div>
                 </div>
               </Panel>
 
-              {/* 3: Livestock restocking — BARS */}
-              <Panel title="Livestock restocking and distribution">
+              {/* 3: Quantity by country — BARS */}
+              <Panel title="Quantity implemented by country">
                 <div className="space-y-[4px]">
                   {countryArr.slice(0, 12).map((e) => {
-                    const pct = Math.round((e.beneficiaries / maxCB) * 100);
+                    const pct = Math.round((e.quantityImplemented / maxCB) * 100);
                     return (
                       <div key={e.country} className="flex items-center gap-[3px]">
                         <span className="w-[36px] shrink-0 text-right text-[9px] font-medium text-gray-500">{e.code || e.country.slice(0, 3)}</span>
                         <div className="h-[12px] flex-1 overflow-hidden rounded-[2px] bg-gray-100 dark:bg-gray-700">
                           <div className="h-full rounded-[2px] bg-teal-600" style={{ width: `${pct}%` }} />
                         </div>
+                        <span className="w-[24px] text-right text-[8px] font-bold text-gray-600">{fmt(e.quantityImplemented)}</span>
                       </div>
                     );
                   })}
                 </div>
               </Panel>
 
-              {/* 4: Activities included — BARS */}
-              <Panel title="Projects that include the following activities">
+              {/* 4: Top activities — BARS */}
+              <Panel title="Top activities by quantity">
                 <div className="space-y-[4px]">
-                  {activityArr.slice(0, 12).map(([act, count], idx) => {
-                    const max = activityArr[0]?.[1] || 1;
-                    const pct = Math.round((count / max) * 100);
+                  {activityArr.slice(0, 12).map((act, idx) => {
+                    const max = activityArr[0]?.quantityImplemented || 1;
+                    const pct = Math.round((act.quantityImplemented / max) * 100);
                     return (
-                      <div key={act} className="flex items-center gap-[3px]">
-                        <span className="w-[80px] shrink-0 truncate text-right text-[8px] text-gray-500" title={act}>{act}</span>
+                      <div key={act.label} className="flex items-center gap-[3px]">
+                        <span className="w-[80px] shrink-0 truncate text-right text-[8px] text-gray-500" title={act.label}>{act.label}</span>
                         <div className="h-[12px] flex-1 overflow-hidden rounded-[2px] bg-gray-100 dark:bg-gray-700">
                           <div className="h-full rounded-[2px]" style={{ width: `${pct}%`, backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
                         </div>
-                        <span className="w-[14px] text-right text-[8px] font-bold text-gray-600">{count}</span>
+                        <span className="w-[20px] text-right text-[8px] font-bold text-gray-600">{fmt(act.quantityImplemented)}</span>
                       </div>
                     );
                   })}
-                  <p className="text-right text-[8px] text-gray-400">{activityArr.reduce((s, [, v]) => s + v, 0)} Total projects</p>
+                  <p className="text-right text-[8px] text-gray-400">{activityArr.reduce((s, a) => s + a.submissions, 0)} Total submissions</p>
                 </div>
               </Panel>
             </div>
@@ -273,40 +277,41 @@ export default function PaidDashboardPage() {
                 </div>
               </div>
 
-              {/* 6: Beneficiaries by country — BAR */}
-              <Panel title="Beneficiaries by country">
+              {/* 6: Submissions by country — BAR */}
+              <Panel title="Submissions by country">
                 <div className="space-y-[4px]">
                   {countryArr.slice(0, 14).map((e) => {
-                    const pct = Math.round((e.beneficiaries / maxCB) * 100);
+                    const maxSubs = countryArr[0]?.submissions || 1;
+                    const pct = Math.round((e.submissions / maxSubs) * 100);
                     return (
                       <div key={e.country} className="flex items-center gap-[3px]">
                         <span className="w-[50px] shrink-0 truncate text-right text-[9px] font-medium text-gray-500">{e.country}</span>
                         <div className="h-[12px] flex-1 overflow-hidden rounded-[2px] bg-gray-100 dark:bg-gray-700">
                           <div className="h-full rounded-[2px] bg-[#1565C0]" style={{ width: `${pct}%` }} />
                         </div>
-                        <span className="w-[24px] text-right text-[9px] font-bold text-gray-600 dark:text-gray-300">{fmt(e.beneficiaries)}</span>
+                        <span className="w-[24px] text-right text-[9px] font-bold text-gray-600 dark:text-gray-300">{e.submissions}</span>
                       </div>
                     );
                   })}
                 </div>
               </Panel>
 
-              {/* 7: Beneficiaries by type of activity — PIE */}
-              <Panel title="Beneficiaries by type of activity">
+              {/* 7: Activities by submissions — PIE */}
+              <Panel title="Submissions by type of activity">
                 <div className="flex items-start gap-2">
                   <div className="h-[120px] w-[120px] shrink-0 rounded-full shadow-inner" style={{
                     background: activityArr.length > 0
-                      ? conicGradient(activityArr, PIE_COLORS)
+                      ? conicGradient(activityArr.map((a) => [a.label, a.submissions]), PIE_COLORS)
                       : '#e5e7eb'
                   }} />
                   <div className="min-w-0 space-y-[4px] pt-0.5">
-                    {activityArr.slice(0, 10).map(([act], idx) => (
-                      <div key={act} className="flex items-center gap-1">
+                    {activityArr.slice(0, 10).map((act, idx) => (
+                      <div key={act.label} className="flex items-center gap-1">
                         <span className="h-[8px] w-[8px] shrink-0 rounded-[1px]" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
-                        <span className="truncate text-[8px] leading-tight text-gray-500" title={act}>{act}</span>
+                        <span className="truncate text-[8px] leading-tight text-gray-500" title={act.label}>{act.label}</span>
                       </div>
                     ))}
-                    <p className="pt-0.5 text-[8px] italic text-gray-400">% annual target by species-level interventions</p>
+                    <p className="pt-0.5 text-[8px] italic text-gray-400">{activityArr.reduce((s, a) => s + a.submissions, 0)} total across all activities</p>
                   </div>
                 </div>
               </Panel>

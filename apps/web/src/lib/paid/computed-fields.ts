@@ -108,7 +108,33 @@ export function computePaidFields(data: PaidSubmissionData): PaidSubmissionData 
  * The aggregation engine expects `adm0_name`, `prj_symbol`, `reporting_quarter`.
  * This function maps real form data to the expected structure.
  */
-function normalizePaidData(raw: Record<string, unknown>): PaidSubmissionData {
+/** Normalized PAID data shape — matches actual form fields */
+export interface NormalizedPaidData {
+  reporting_quarter: string;
+  reporting_year: string;
+  adm0_name: string;
+  adm0_code: string;
+  adm1_name: string;
+  prj_symbol: string;
+  prj_title: string;
+  activity_type: string;
+  logframe_label: string;
+  sub_activity_label: string;
+  prod_sector: string;
+  executive_partner: string;
+  quantity_implemented: number;
+  quantity_targeted_annual: number;
+  unit_of_measure: string;
+  expenditure_amount: number;
+  section_of_project: string;
+  recs: string[];
+  countries_benefiting: string[];
+  n_hh_benefitting: number;
+  n_female_trained: number;
+  n_male_trained: number;
+}
+
+function normalizePaidData(raw: Record<string, unknown>): NormalizedPaidData {
   const d = raw as Record<string, any>;
 
   // Country: resolve from __meta or code lookup
@@ -122,38 +148,57 @@ function normalizePaidData(raw: Record<string, unknown>): PaidSubmissionData {
   const prjSymbol = d.project_symbol || metaProject?.code || d.prj_symbol || '';
   const prjTitle = d.project_title || metaProject?.title || d.prj_title || '';
 
-  // Activity: from __meta_paid_activity label or logframe
+  // Activity labels from __meta cascade
   const metaActivity = d.__meta_paid_activity;
   const metaLogframe = d.__meta_logframe_activity;
-  const activityLabel = metaActivity?.label || metaLogframe?.label || d.activity_type || d.activity || '';
+  const metaSubActivity = d.__meta_sub_activity;
+  const activityLabel = metaActivity?.label || d.activity_type || '';
+  const logframeLabel = metaLogframe?.label || '';
+  const subActivityLabel = metaSubActivity?.label || '';
 
   // Sector: from __meta_project_symbol or prod_sector
   const sector = d.prod_sector || metaProject?.sector || '';
 
-  // Quarter
+  // Quarter + Year
   const quarter = d.reporting_period || d.reporting_quarter || '';
+  const year = d.reporting_year ? String(d.reporting_year) : '';
 
   // Admin regions
   const metaAdmin1 = d.__meta_admin1;
   const admin1 = metaAdmin1?.name?.en || metaAdmin1?.name?.fr || metaAdmin1?.code || d.adm1_name || '';
 
+  // RECs & countries benefiting
+  const recsCountries = d.recs_countries || {};
+  const recs: string[] = Array.isArray(recsCountries.recs) ? recsCountries.recs : [];
+  const countriesBenefiting: string[] = Array.isArray(recsCountries.countries) ? recsCountries.countries : [];
+
+  // Executive partner
+  const metaExec = d.__meta_executive_partner;
+  const execPartner = metaExec?.name || (d.executive_partner != null ? String(d.executive_partner) : '');
+
   return {
     reporting_quarter: quarter,
+    reporting_year: year,
     adm0_name: resolvedCountry,
+    adm0_code: countryCode,
+    adm1_name: admin1,
     prj_symbol: prjSymbol,
     prj_title: prjTitle,
-    adm1_name: admin1,
     activity_type: activityLabel,
+    logframe_label: logframeLabel,
+    sub_activity_label: subActivityLabel,
     prod_sector: sector,
-    executive_partner: d.executive_partner != null ? String(d.executive_partner) : d.__meta_executive_partner?.name,
+    executive_partner: execPartner,
     quantity_implemented: Number(d.quantity_implemented) || 0,
     quantity_targeted_annual: Number(d.total_quantity_targeted ?? d.quantity_targeted_annual) || 0,
-    unit_of_measure: d.unit_of_measure,
+    unit_of_measure: d.unit_of_measure || '',
+    expenditure_amount: Number(d.expenditure_amount) || 0,
+    section_of_project: d.section_of_project || '',
+    recs,
+    countries_benefiting: countriesBenefiting,
     n_hh_benefitting: Number(d.n_hh_benefitting ?? d.n_hh_benefiting) || 0,
-    n_interv_per_hh: Number(d.n_interv_per_hh) || 0,
     n_female_trained: Number(d.n_female_trained) || 0,
     n_male_trained: Number(d.n_male_trained) || 0,
-    comments: d.comments_text || d.comments,
   };
 }
 
@@ -163,27 +208,35 @@ function normalizePaidData(raw: Record<string, unknown>): PaidSubmissionData {
 
 export interface PaidAggregates {
   totalProjects: number;
+  totalCountries: number;
   totalRegions: number;
+  totalRecs: number;
+  totalSubmissions: number;
+  totalQuantityImplemented: number;
+  totalQuantityTargeted: number;
+  totalExpenditure: number;
+  completionRate: number;
+  // Legacy (from HH/trained fields, may be 0 if form doesn't have them)
   totalBeneficiaries: number;
   totalHouseholds: number;
   totalTrained: number;
   totalFemale: number;
   totalMale: number;
   totalDisabled: number;
-  totalQuantityImplemented: number;
-  totalQuantityTargeted: number;
-  completionRate: number;
   // Breakdown maps
   byCountry: Map<string, PaidCountryAgg>;
   bySector: Map<string, PaidSectorAgg>;
   byProject: Map<string, PaidProjectAgg>;
   byQuarter: Map<string, PaidQuarterAgg>;
-  byActivity: Map<string, number>; // activity_type → beneficiaries
+  byActivity: Map<string, PaidActivityAgg>;
 }
 
 export interface PaidCountryAgg {
   country: string;
   code: string;
+  quantityImplemented: number;
+  quantityTargeted: number;
+  expenditure: number;
   beneficiaries: number;
   households: number;
   trained: number;
@@ -194,6 +247,7 @@ export interface PaidCountryAgg {
 
 export interface PaidSectorAgg {
   sector: string;
+  quantityImplemented: number;
   beneficiaries: number;
   trained: number;
   quantity: number;
@@ -204,6 +258,9 @@ export interface PaidSectorAgg {
 export interface PaidProjectAgg {
   symbol: string;
   title: string;
+  quantityImplemented: number;
+  quantityTargeted: number;
+  expenditure: number;
   beneficiaries: number;
   trained: number;
   countries: Set<string>;
@@ -212,7 +269,16 @@ export interface PaidProjectAgg {
 
 export interface PaidQuarterAgg {
   quarter: string;
+  quantityImplemented: number;
+  expenditure: number;
   beneficiaries: number;
+  submissions: number;
+}
+
+export interface PaidActivityAgg {
+  label: string;
+  quantityImplemented: number;
+  quantityTargeted: number;
   submissions: number;
 }
 
@@ -227,9 +293,11 @@ export function aggregatePaidSubmissions(
   const bySector = new Map<string, PaidSectorAgg>();
   const byProject = new Map<string, PaidProjectAgg>();
   const byQuarter = new Map<string, PaidQuarterAgg>();
-  const byActivity = new Map<string, number>();
+  const byActivity = new Map<string, PaidActivityAgg>();
   const allProjects = new Set<string>();
+  const allCountries = new Set<string>();
   const allRegions = new Set<string>();
+  const allRecs = new Set<string>();
 
   let totalBeneficiaries = 0;
   let totalHouseholds = 0;
@@ -239,44 +307,58 @@ export function aggregatePaidSubmissions(
   let totalDisabled = 0;
   let totalQtyImpl = 0;
   let totalQtyTarget = 0;
+  let totalExpenditure = 0;
 
   for (const sub of submissions) {
-    // Normalize real form data to expected field codes
-    const normalized = normalizePaidData(sub.data as Record<string, unknown>);
-    const d = computePaidFields(normalized);
-    const country = d.adm0_name || 'Unknown';
-    const countryMeta = d.adm0_name ? getCountryMeta(d.adm0_name) : undefined;
-    const countryCode = countryMeta?.code ?? '';
-    const sector = d.prod_sector || 'Unknown';
-    const project = d.prj_symbol || 'Unknown';
-    const quarter = d.reporting_quarter || 'Unknown';
-    const activity = d.activity_type || 'Unknown';
+    const n = normalizePaidData(sub.data as Record<string, unknown>);
+    const country = n.adm0_name || 'Unknown';
+    const countryCode = n.adm0_code || getCountryMeta(country)?.code || '';
+    const sector = n.prod_sector || 'Unknown';
+    const project = n.prj_symbol || 'Unknown';
+    const quarter = n.reporting_quarter || 'Unknown';
+    const activity = n.activity_type || 'Unknown';
 
-    const benef = d.n_benef_per_prj || 0;
-    const hh = d.n_hh_benefitting || 0;
-    const trained = d.n_individual_trained || 0;
-    const female = d.n_female_trained || 0;
-    const male = d.n_male_trained || 0;
-    const disabled = d.n_disabled_benef || 0;
-    const qtyImpl = d.quantity_implemented || 0;
-    const qtyTarget = d.quantity_targeted_annual || 0;
+    const qtyImpl = n.quantity_implemented;
+    const qtyTarget = n.quantity_targeted_annual;
+    const expenditure = n.expenditure_amount;
 
-    totalBeneficiaries += benef;
-    totalHouseholds += hh;
-    totalTrained += trained;
-    totalFemale += female;
-    totalMale += male;
-    totalDisabled += disabled;
+    // Compute legacy beneficiary fields (from HH data if available)
+    const computedBenef = computePaidFields({
+      adm0_name: country,
+      n_hh_benefitting: n.n_hh_benefitting,
+      n_female_trained: n.n_female_trained,
+      n_male_trained: n.n_male_trained,
+    });
+    const benef = computedBenef.n_benef_per_prj || 0;
+    const trained = computedBenef.n_individual_trained || 0;
+    const disabled = computedBenef.n_disabled_benef || 0;
+
     totalQtyImpl += qtyImpl;
     totalQtyTarget += qtyTarget;
+    totalExpenditure += expenditure;
+    totalBeneficiaries += benef;
+    totalHouseholds += n.n_hh_benefitting;
+    totalTrained += trained;
+    totalFemale += n.n_female_trained;
+    totalMale += n.n_male_trained;
+    totalDisabled += disabled;
 
     if (project !== 'Unknown') allProjects.add(project);
-    if (d.adm1_name) allRegions.add(`${country}:${d.adm1_name}`);
+    if (country !== 'Unknown') allCountries.add(country);
+    if (n.adm1_name) allRegions.add(`${country}:${n.adm1_name}`);
+    for (const rec of n.recs) allRecs.add(rec.toUpperCase());
 
     // By Country
-    const ca = byCountry.get(country) ?? { country, code: countryCode, beneficiaries: 0, households: 0, trained: 0, disabled: 0, projects: new Set(), submissions: 0 };
+    const ca = byCountry.get(country) ?? {
+      country, code: countryCode, quantityImplemented: 0, quantityTargeted: 0,
+      expenditure: 0, beneficiaries: 0, households: 0, trained: 0, disabled: 0,
+      projects: new Set(), submissions: 0,
+    };
+    ca.quantityImplemented += qtyImpl;
+    ca.quantityTargeted += qtyTarget;
+    ca.expenditure += expenditure;
     ca.beneficiaries += benef;
-    ca.households += hh;
+    ca.households += n.n_hh_benefitting;
     ca.trained += trained;
     ca.disabled += disabled;
     if (project !== 'Unknown') ca.projects.add(project);
@@ -284,7 +366,11 @@ export function aggregatePaidSubmissions(
     byCountry.set(country, ca);
 
     // By Sector
-    const sa = bySector.get(sector) ?? { sector, beneficiaries: 0, trained: 0, quantity: 0, projects: new Set(), submissions: 0 };
+    const sa = bySector.get(sector) ?? {
+      sector, quantityImplemented: 0, beneficiaries: 0, trained: 0,
+      quantity: 0, projects: new Set(), submissions: 0,
+    };
+    sa.quantityImplemented += qtyImpl;
     sa.beneficiaries += benef;
     sa.trained += trained;
     sa.quantity += qtyImpl;
@@ -293,7 +379,14 @@ export function aggregatePaidSubmissions(
     bySector.set(sector, sa);
 
     // By Project
-    const pa = byProject.get(project) ?? { symbol: project, title: d.prj_title || project, beneficiaries: 0, trained: 0, countries: new Set(), submissions: 0 };
+    const pa = byProject.get(project) ?? {
+      symbol: project, title: n.prj_title || project,
+      quantityImplemented: 0, quantityTargeted: 0, expenditure: 0,
+      beneficiaries: 0, trained: 0, countries: new Set(), submissions: 0,
+    };
+    pa.quantityImplemented += qtyImpl;
+    pa.quantityTargeted += qtyTarget;
+    pa.expenditure += expenditure;
     pa.beneficiaries += benef;
     pa.trained += trained;
     if (country !== 'Unknown') pa.countries.add(country);
@@ -301,27 +394,41 @@ export function aggregatePaidSubmissions(
     byProject.set(project, pa);
 
     // By Quarter
-    const qa = byQuarter.get(quarter) ?? { quarter, beneficiaries: 0, submissions: 0 };
+    const qa = byQuarter.get(quarter) ?? {
+      quarter, quantityImplemented: 0, expenditure: 0, beneficiaries: 0, submissions: 0,
+    };
+    qa.quantityImplemented += qtyImpl;
+    qa.expenditure += expenditure;
     qa.beneficiaries += benef;
     qa.submissions += 1;
     byQuarter.set(quarter, qa);
 
     // By Activity
-    byActivity.set(activity, (byActivity.get(activity) ?? 0) + benef);
+    const aa = byActivity.get(activity) ?? {
+      label: activity, quantityImplemented: 0, quantityTargeted: 0, submissions: 0,
+    };
+    aa.quantityImplemented += qtyImpl;
+    aa.quantityTargeted += qtyTarget;
+    aa.submissions += 1;
+    byActivity.set(activity, aa);
   }
 
   return {
     totalProjects: allProjects.size,
+    totalCountries: allCountries.size,
     totalRegions: allRegions.size,
+    totalRecs: allRecs.size,
+    totalSubmissions: submissions.length,
+    totalQuantityImplemented: totalQtyImpl,
+    totalQuantityTargeted: totalQtyTarget,
+    totalExpenditure: totalExpenditure,
+    completionRate: totalQtyTarget > 0 ? Math.round((totalQtyImpl / totalQtyTarget) * 100) : 0,
     totalBeneficiaries,
     totalHouseholds,
     totalTrained,
     totalFemale,
     totalMale,
     totalDisabled,
-    totalQuantityImplemented: totalQtyImpl,
-    totalQuantityTargeted: totalQtyTarget,
-    completionRate: totalQtyTarget > 0 ? Math.round((totalQtyImpl / totalQtyTarget) * 100) : 0,
     byCountry,
     bySector,
     byProject,
@@ -359,4 +466,27 @@ export function filterPaidSubmissions(
     if (filters.activity && d.activity_type !== filters.activity) return false;
     return true;
   });
+}
+
+/** Extract normalized field values from raw submissions (for filter dropdowns) */
+export function extractPaidFilterOptions(submissions: Array<{ data: Record<string, unknown> }>) {
+  const countries = new Set<string>();
+  const projects = new Set<string>();
+  const quarters = new Set<string>();
+  const activities = new Set<string>();
+
+  for (const sub of submissions) {
+    const n = normalizePaidData(sub.data);
+    if (n.adm0_name) countries.add(n.adm0_name);
+    if (n.prj_symbol) projects.add(n.prj_symbol);
+    if (n.reporting_quarter) quarters.add(n.reporting_quarter);
+    if (n.activity_type) activities.add(n.activity_type);
+  }
+
+  return {
+    countries: [...countries].sort(),
+    projects: [...projects].sort(),
+    quarters: [...quarters].sort(),
+    activities: [...activities].sort(),
+  };
 }

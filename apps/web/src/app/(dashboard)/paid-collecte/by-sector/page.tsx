@@ -16,12 +16,12 @@ export default function PaidBySectorPage() {
 
   const agg = useMemo(() => aggregatePaidSubmissions(rawSubmissions), [rawSubmissions]);
   const sectorsSorted = useMemo(
-    () => Array.from(agg.bySector.values()).sort((a, b) => b.beneficiaries - a.beneficiaries),
+    () => Array.from(agg.bySector.values()).sort((a, b) => b.quantityImplemented - a.quantityImplemented),
     [agg],
   );
 
   const isLoading = subsQuery.isLoading;
-  const maxBenef = sectorsSorted[0]?.beneficiaries || 1;
+  const maxBenef = sectorsSorted[0]?.quantityImplemented || 1;
 
   return (
     <div className="space-y-6">
@@ -46,7 +46,7 @@ export default function PaidBySectorPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {sectorsSorted.map((s) => {
             const color = SECTOR_COLORS[s.sector] ?? '#9E9E9E';
-            const pct = Math.round((s.beneficiaries / maxBenef) * 100);
+            const pct = Math.round((s.quantityImplemented / maxBenef) * 100);
             return (
               <div
                 key={s.sector}
@@ -59,20 +59,16 @@ export default function PaidBySectorPage() {
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <p className="text-gray-500">{t('beneficiariesReached')}</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">{s.beneficiaries.toLocaleString()}</p>
+                    <p className="text-gray-500">Qty Implemented</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{s.quantityImplemented.toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">{t('individualsTrained')}</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">{s.trained.toLocaleString()}</p>
+                    <p className="text-gray-500">{t('submissions')}</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{s.submissions}</p>
                   </div>
                   <div>
                     <p className="text-gray-500">{t('totalProjects')}</p>
                     <p className="font-semibold text-gray-700 dark:text-gray-300">{s.projects.size}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">{t('submissions')}</p>
-                    <p className="font-semibold text-gray-700 dark:text-gray-300">{s.submissions}</p>
                   </div>
                 </div>
                 <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">

@@ -22,6 +22,7 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import {
   aggregatePaidSubmissions,
   filterPaidSubmissions,
+  extractPaidFilterOptions,
   type PaidFilters,
   type PaidSubmissionData,
 } from '@/lib/paid';
@@ -77,15 +78,10 @@ export default function PaidPage() {
     [filteredSubs],
   );
 
-  // Extract unique values for filter dropdowns
-  const countries = useMemo(() =>
-    [...new Set(rawSubmissions.map((s: any) => s.data?.adm0_name).filter(Boolean))].sort(),
-    [rawSubmissions],
-  );
-  const projects = useMemo(() =>
-    [...new Set(rawSubmissions.map((s: any) => s.data?.prj_symbol).filter(Boolean))].sort(),
-    [rawSubmissions],
-  );
+  // Extract unique values for filter dropdowns (using normalized field names)
+  const filterOpts = useMemo(() => extractPaidFilterOptions(rawSubmissions), [rawSubmissions]);
+  const countries = filterOpts.countries;
+  const projects = filterOpts.projects;
 
   const isLoading = campaignsQuery.isLoading || subsQuery.isLoading;
 

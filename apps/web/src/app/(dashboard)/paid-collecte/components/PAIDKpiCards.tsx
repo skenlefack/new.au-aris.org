@@ -28,13 +28,13 @@ const fmt = (n: number) => {
 export function PAIDKpiCards({ agg, t }: PAIDKpiCardsProps) {
   const cards = [
     { label: t('totalProjects'), value: agg.totalProjects, icon: FolderKanban, color: '#1565C0' },
-    { label: t('totalRegions'), value: agg.totalRegions, icon: MapPin, color: '#00838F' },
-    { label: t('beneficiariesReached'), value: fmt(agg.totalBeneficiaries), icon: Users, color: '#2E7D32' },
-    { label: t('householdsReached'), value: fmt(agg.totalHouseholds), icon: Home, color: '#6A1B9A' },
-    { label: t('individualsTrained'), value: fmt(agg.totalTrained), icon: GraduationCap, color: '#E65100' },
-    { label: t('femaleTrained'), value: fmt(agg.totalFemale), icon: UserCheck, color: '#AD1457' },
-    { label: t('disabledBenef'), value: fmt(agg.totalDisabled), icon: Accessibility, color: '#4E342E' },
-    { label: t('completionRate'), value: `${agg.completionRate}%`, icon: DollarSign, color: '#37474F' },
+    { label: t('allCountries'), value: agg.totalCountries, icon: MapPin, color: '#00838F' },
+    { label: 'RECs', value: agg.totalRecs, icon: Users, color: '#2E7D32' },
+    { label: 'Submissions', value: agg.totalSubmissions, icon: Home, color: '#6A1B9A' },
+    { label: 'Qty Implemented', value: fmt(agg.totalQuantityImplemented), icon: GraduationCap, color: '#E65100' },
+    { label: 'Qty Targeted', value: fmt(agg.totalQuantityTargeted), icon: UserCheck, color: '#AD1457' },
+    { label: t('completionRate'), value: `${agg.completionRate}%`, icon: Accessibility, color: '#4E342E' },
+    { label: 'Expenditure', value: `$${fmt(agg.totalExpenditure)}`, icon: DollarSign, color: '#37474F' },
   ];
 
   return (
