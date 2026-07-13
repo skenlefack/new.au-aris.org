@@ -99,6 +99,65 @@ export function computePaidFields(data: PaidSubmissionData): PaidSubmissionData 
 }
 
 /* ------------------------------------------------------------------ */
+/*  Normalize actual form data → expected field codes                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The PAID form uses field codes like `country_of_implementation` (UUID),
+ * `project_symbol` (code), `reporting_period`, etc.
+ * The aggregation engine expects `adm0_name`, `prj_symbol`, `reporting_quarter`.
+ * This function maps real form data to the expected structure.
+ */
+function normalizePaidData(raw: Record<string, unknown>): PaidSubmissionData {
+  const d = raw as Record<string, any>;
+
+  // Country: resolve from __meta or code lookup
+  const metaCountry = d.__meta_country_of_implementation;
+  const countryName = metaCountry?.name?.en || metaCountry?.name?.fr || '';
+  const countryCode = metaCountry?.code || '';
+  const resolvedCountry = countryName || (countryCode ? getCountryMeta(countryCode)?.name : '') || d.adm0_name || '';
+
+  // Project symbol + title
+  const metaProject = d.__meta_project_symbol;
+  const prjSymbol = d.project_symbol || metaProject?.code || d.prj_symbol || '';
+  const prjTitle = d.project_title || metaProject?.title || d.prj_title || '';
+
+  // Activity: from __meta_paid_activity label or logframe
+  const metaActivity = d.__meta_paid_activity;
+  const metaLogframe = d.__meta_logframe_activity;
+  const activityLabel = metaActivity?.label || metaLogframe?.label || d.activity_type || d.activity || '';
+
+  // Sector: from __meta_project_symbol or prod_sector
+  const sector = d.prod_sector || metaProject?.sector || '';
+
+  // Quarter
+  const quarter = d.reporting_period || d.reporting_quarter || '';
+
+  // Admin regions
+  const metaAdmin1 = d.__meta_admin1;
+  const admin1 = metaAdmin1?.name?.en || metaAdmin1?.name?.fr || metaAdmin1?.code || d.adm1_name || '';
+
+  return {
+    reporting_quarter: quarter,
+    adm0_name: resolvedCountry,
+    prj_symbol: prjSymbol,
+    prj_title: prjTitle,
+    adm1_name: admin1,
+    activity_type: activityLabel,
+    prod_sector: sector,
+    executive_partner: d.executive_partner != null ? String(d.executive_partner) : d.__meta_executive_partner?.name,
+    quantity_implemented: Number(d.quantity_implemented) || 0,
+    quantity_targeted_annual: Number(d.total_quantity_targeted ?? d.quantity_targeted_annual) || 0,
+    unit_of_measure: d.unit_of_measure,
+    n_hh_benefitting: Number(d.n_hh_benefitting ?? d.n_hh_benefiting) || 0,
+    n_interv_per_hh: Number(d.n_interv_per_hh) || 0,
+    n_female_trained: Number(d.n_female_trained) || 0,
+    n_male_trained: Number(d.n_male_trained) || 0,
+    comments: d.comments_text || d.comments,
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /*  Aggregate PAID submissions for dashboard KPIs                      */
 /* ------------------------------------------------------------------ */
 
@@ -162,7 +221,7 @@ export interface PaidQuarterAgg {
  * All computed fields are recalculated to ensure consistency.
  */
 export function aggregatePaidSubmissions(
-  submissions: Array<{ data: PaidSubmissionData; status?: string; id?: string }>,
+  submissions: Array<{ data: PaidSubmissionData | Record<string, unknown>; status?: string; id?: string }>,
 ): PaidAggregates {
   const byCountry = new Map<string, PaidCountryAgg>();
   const bySector = new Map<string, PaidSectorAgg>();
@@ -182,7 +241,9 @@ export function aggregatePaidSubmissions(
   let totalQtyTarget = 0;
 
   for (const sub of submissions) {
-    const d = computePaidFields(sub.data);
+    // Normalize real form data to expected field codes
+    const normalized = normalizePaidData(sub.data as Record<string, unknown>);
+    const d = computePaidFields(normalized);
     const country = d.adm0_name || 'Unknown';
     const countryMeta = d.adm0_name ? getCountryMeta(d.adm0_name) : undefined;
     const countryCode = countryMeta?.code ?? '';
@@ -283,11 +344,14 @@ export interface PaidFilters {
 }
 
 export function filterPaidSubmissions(
-  submissions: Array<{ data: PaidSubmissionData }>,
+  submissions: Array<{ data: PaidSubmissionData | Record<string, unknown> }>,
   filters: PaidFilters,
-): Array<{ data: PaidSubmissionData }> {
+): Array<{ data: PaidSubmissionData | Record<string, unknown> }> {
+  if (!filters.quarter && !filters.country && !filters.sector && !filters.project && !filters.activity) {
+    return submissions;
+  }
   return submissions.filter((sub) => {
-    const d = sub.data;
+    const d = normalizePaidData(sub.data as Record<string, unknown>);
     if (filters.quarter && d.reporting_quarter !== filters.quarter) return false;
     if (filters.country && d.adm0_name !== filters.country) return false;
     if (filters.sector && d.prod_sector !== filters.sector) return false;
