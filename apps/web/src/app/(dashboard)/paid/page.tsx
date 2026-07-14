@@ -9,16 +9,11 @@ import {
   MapPin,
   Building2,
   FileCheck2,
-  TrendingUp,
-  Target,
-  Percent,
   DollarSign,
+  ChevronDown,
   RotateCcw,
   NotebookPen,
   BarChart3,
-  Upload,
-  ChevronDown,
-  RefreshCw,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useDomainSubmissions } from '@/lib/api/workflow-hooks';
@@ -27,20 +22,16 @@ import {
   aggregatePaidSubmissions,
   filterPaidSubmissions,
   extractPaidFilterOptions,
-  PAID_SECTORS,
-  SECTOR_COLORS,
   PAID_QUARTERS,
   type PaidFilters,
 } from '@/lib/paid';
 import type { CountryOutbreakData } from '@/components/dashboard/demo-data';
 
-/* Leaflet map — dynamic import (no SSR) */
 const ChoroplethMap = dynamic(
   () => import('@/components/dashboard/maps/ChoroplethMap').then((m) => m.ChoroplethMap),
-  { ssr: false, loading: () => <Skeleton className="h-full w-full rounded-xl" /> },
+  { ssr: false, loading: () => <Skeleton className="h-full w-full" /> },
 );
 
-/* ── Helpers ── */
 const fmt = (n: number) => {
   if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -48,7 +39,7 @@ const fmt = (n: number) => {
   return n.toLocaleString();
 };
 
-const PIE_COLORS = ['#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2', '#dc2626', '#92400e', '#475569', '#be185d', '#4d7c0f', '#0369a1', '#65a30d'];
+const PIE_COLORS = ['#2563eb', '#059669', '#d97706', '#7c3aed', '#0891b2', '#dc2626', '#92400e', '#475569', '#be185d', '#4d7c0f'];
 
 function conicGradient(entries: [string, number][], colors: string[]): string {
   const total = entries.reduce((s, [, v]) => s + v, 0) || 1;
@@ -62,360 +53,410 @@ function conicGradient(entries: [string, number][], colors: string[]): string {
   return `conic-gradient(${stops.join(', ')})`;
 }
 
-/* ── KPI icon map ── */
-const KPI_CONFIG = [
-  { key: 'projects', icon: FolderKanban, color: '#2563eb', bg: '#eff6ff' },
-  { key: 'countries', icon: MapPin, color: '#059669', bg: '#ecfdf5' },
-  { key: 'recs', icon: Building2, color: '#7c3aed', bg: '#f5f3ff' },
-  { key: 'submissions', icon: FileCheck2, color: '#0891b2', bg: '#ecfeff' },
-  { key: 'qtyImpl', icon: TrendingUp, color: '#d97706', bg: '#fffbeb' },
-  { key: 'qtyTarget', icon: Target, color: '#dc2626', bg: '#fef2f2' },
-  { key: 'completion', icon: Percent, color: '#059669', bg: '#ecfdf5' },
-  { key: 'expenditure', icon: DollarSign, color: '#92400e', bg: '#fffbeb' },
-] as const;
-
 /* ================================================================== */
-/*  PAID Dashboard — FAO-style Professional Layout                     */
+/*  PAID Dashboard — FAO Reference Layout                              */
 /* ================================================================== */
 
 export default function PaidDashboardPage() {
   const t = useTranslations('paid');
   const [filters, setFilters] = useState<PaidFilters>({});
+  const [activeTab, setActiveTab] = useState<'outcomes' | 'activities'>('outcomes');
   const [mapCountry, setMapCountry] = useState<string | undefined>();
 
-  // Data — fetch ALL submissions across ALL PAID campaigns (auto-refresh 30s)
   const subsQ = useDomainSubmissions('paid', { refreshInterval: 30_000 });
   const rawSubs: any[] = Array.isArray(subsQ.data?.data) ? subsQ.data.data : [];
-
   const filtered = useMemo(() => filterPaidSubmissions(rawSubs, filters), [rawSubs, filters]);
   const agg = useMemo(() => aggregatePaidSubmissions(filtered), [filtered]);
-
   const filterOpts = useMemo(() => extractPaidFilterOptions(rawSubs), [rawSubs]);
 
   const loading = subsQ.isLoading;
-  const hasF = !!(filters.quarter || filters.country || filters.sector || filters.project);
+  const hasF = !!(filters.quarter || filters.country || filters.project);
 
-  // Chart data
   const countryArr = useMemo(() => Array.from(agg.byCountry.values()).sort((a, b) => b.quantityImplemented - a.quantityImplemented), [agg]);
-  const activityArr = useMemo(() =>
-    Array.from(agg.byActivity.values()).sort((a, b) => b.quantityImplemented - a.quantityImplemented).slice(0, 10),
-  [agg]);
+  const activityArr = useMemo(() => Array.from(agg.byActivity.values()).sort((a, b) => b.quantityImplemented - a.quantityImplemented).slice(0, 10), [agg]);
   const projectArr = useMemo(() => Array.from(agg.byProject.values()).sort((a, b) => b.quantityImplemented - a.quantityImplemented), [agg]);
   const quarterArr = useMemo(() => Array.from(agg.byQuarter.values()).sort((a, b) => a.quarter.localeCompare(b.quarter)), [agg]);
 
-  // Map data
   const mapData: CountryOutbreakData[] = useMemo(() =>
     Array.from(agg.byCountry.values()).map((c) => ({
-      code: c.code,
-      name: c.country,
-      outbreaks: c.submissions,
-      cases: c.quantityImplemented,
-      deaths: c.quantityTargeted,
-      vaccinations: c.projects.size,
-      submissions: c.submissions,
-      rec: '',
+      code: c.code, name: c.country, outbreaks: c.submissions,
+      cases: c.quantityImplemented, deaths: c.quantityTargeted,
+      vaccinations: c.projects.size, submissions: c.submissions, rec: '',
     })),
   [agg]);
 
-  const kpiValues = [
-    { val: String(agg.totalProjects), label: 'Projects' },
-    { val: String(agg.totalCountries), label: 'Countries' },
-    { val: String(agg.totalRecs), label: 'RECs' },
-    { val: String(agg.totalSubmissions), label: 'Submissions' },
-    { val: fmt(agg.totalQuantityImplemented), label: 'Qty Implemented' },
-    { val: fmt(agg.totalQuantityTargeted), label: 'Qty Targeted' },
-    { val: `${agg.completionRate}%`, label: 'Completion' },
-    { val: `$${fmt(agg.totalExpenditure)}`, label: 'Expenditure' },
-  ];
+  // For expenditure donut — group by project title
+  const expenditureByProject = useMemo(() =>
+    projectArr.filter((p) => p.expenditure > 0).sort((a, b) => b.expenditure - a.expenditure),
+  [projectArr]);
+  const totalExpenditure = agg.totalExpenditure;
+
+  // Progress gauge
+  const progressPct = agg.completionRate;
+
+  if (loading) {
+    return (
+      <div className="space-y-4 bg-white p-6 dark:bg-gray-950">
+        <Skeleton className="h-10 w-full rounded-lg" />
+        <div className="grid grid-cols-6 gap-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}</div>
+        <div className="grid gap-4 lg:grid-cols-12">
+          <Skeleton className="h-[440px] rounded-lg lg:col-span-6" />
+          <Skeleton className="h-[440px] rounded-lg lg:col-span-3" />
+          <Skeleton className="h-[440px] rounded-lg lg:col-span-3" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-950 dark:to-gray-900">
-      {/* ═══════════ HEADER BAR ═══════════ */}
-      <div className="border-b border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/80">
-        <div className="flex items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-md shadow-emerald-500/20">
-              <Globe2 className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-sm font-bold text-gray-900 dark:text-white">AU-IBAR PAID Dashboard</h1>
-              <p className="text-[10px] text-gray-500">Programme Activity Information Database &middot; LICS Projects</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {!loading && rawSubs.length > 0 && (
-              <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                {rawSubs.length} submissions &middot; Live
-              </span>
-            )}
-            <Link href="/paid-collecte" className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-emerald-700">
-              <NotebookPen className="h-3 w-3" /> Data Collection
-            </Link>
-          </div>
+    <div className="min-h-screen bg-white dark:bg-gray-950">
+      {/* ═══ FILTER BAR ═══ */}
+      <div className="flex flex-wrap items-center gap-3 border-b border-gray-200 bg-white px-5 py-2.5 dark:border-gray-800 dark:bg-gray-950">
+        <FilterSelect label="Quarter" value={filters.quarter} options={[...PAID_QUARTERS]}
+          onChange={(v) => setFilters({ ...filters, quarter: v || undefined })} />
+        <FilterSelect label="Country" value={filters.country} options={filterOpts.countries}
+          onChange={(v) => setFilters({ ...filters, country: v || undefined })} />
+        <FilterSelect label="Project" value={filters.project} options={filterOpts.projects}
+          onChange={(v) => setFilters({ ...filters, project: v || undefined })} />
+        <FilterSelect label="Year" value="2026" options={['2026']} onChange={() => {}} />
+
+        {hasF && (
+          <button onClick={() => setFilters({})} className="ml-1 flex items-center gap-1 text-[11px] font-medium text-red-500 hover:text-red-700">
+            <RotateCcw className="h-3 w-3" /> Reset
+          </button>
+        )}
+
+        <div className="ml-auto flex items-center gap-1">
+          <TabBtn active={activeTab === 'outcomes'} onClick={() => setActiveTab('outcomes')}>AMERT Outcomes</TabBtn>
+          <TabBtn active={activeTab === 'activities'} onClick={() => setActiveTab('activities')}>Activities</TabBtn>
         </div>
 
-        {/* ── Filters Row ── */}
-        <div className="flex items-center gap-2 border-t border-gray-100 px-6 py-2 dark:border-gray-800">
-          <FilterPill label="Quarter" value={filters.quarter} options={[...PAID_QUARTERS]}
-            onChange={(v) => setFilters({ ...filters, quarter: v || undefined })} />
-          <FilterPill label="Country" value={filters.country} options={filterOpts.countries}
-            onChange={(v) => setFilters({ ...filters, country: v || undefined })} />
-          <FilterPill label="Project" value={filters.project} options={filterOpts.projects}
-            onChange={(v) => setFilters({ ...filters, project: v || undefined })} />
-          {hasF && (
-            <button onClick={() => setFilters({})} className="flex items-center gap-1 rounded-md bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400">
-              <RotateCcw className="h-3 w-3" /> Reset
-            </button>
-          )}
-          <div className="flex-1" />
-          <Link href="/paid-collecte/by-country" className="text-[10px] font-medium text-blue-600 hover:underline">By Country</Link>
-          <Link href="/paid-collecte/by-sector" className="text-[10px] font-medium text-blue-600 hover:underline">By Sector</Link>
-          <Link href="/paid-collecte/import" className="text-[10px] font-medium text-blue-600 hover:underline">Import</Link>
+        {rawSubs.length > 0 && (
+          <span className="flex items-center gap-1.5 text-[10px] text-gray-400">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
+            Live &middot; {rawSubs.length} records
+          </span>
+        )}
+
+        <Link href="/paid-collecte" className="rounded bg-emerald-600 px-3 py-1 text-[10px] font-semibold text-white hover:bg-emerald-700">
+          <NotebookPen className="mr-1 inline h-3 w-3" />Collecte
+        </Link>
+      </div>
+
+      {/* ═══ KPI ROW ═══ */}
+      <div className="flex flex-wrap items-stretch gap-3 border-b border-gray-200 bg-white px-5 py-3 dark:border-gray-800 dark:bg-gray-950">
+        <KpiCard value={agg.totalProjects} label="PROJECTS" color="#2563eb" icon={<FolderKanban className="h-4 w-4" />} />
+        <KpiCard value={agg.totalCountries} label="COUNTRIES" color="#059669" icon={<MapPin className="h-4 w-4" />} />
+        <KpiCard value={agg.totalRecs} label="RECS" color="#dc2626" icon={<Building2 className="h-4 w-4" />} />
+        <KpiCard value={agg.totalSubmissions} label="SUBMISSIONS" color="#2563eb" icon={<FileCheck2 className="h-4 w-4" />} />
+        <div className="flex items-center rounded-lg bg-gray-900 px-4 py-2 text-white dark:bg-gray-800">
+          <div>
+            <p className="text-xl font-black">${fmt(agg.totalExpenditure)}</p>
+            <p className="text-[9px] uppercase tracking-wider text-gray-400">Expenditure</p>
+          </div>
+        </div>
+        <div className="flex items-center rounded-lg bg-gray-900 px-4 py-2 text-white dark:bg-gray-800">
+          <div>
+            <p className="text-[9px] text-gray-400">Qty Implemented</p>
+            <p className="text-xl font-black">{fmt(agg.totalQuantityImplemented)}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 px-3">
+          <MiniStat label="Qty Targeted" value={fmt(agg.totalQuantityTargeted)} />
+          <MiniStat label="Completion" value={`${progressPct}%`} />
         </div>
       </div>
 
-      {/* ═══════════ KPI CARDS ROW ═══════════ */}
-      <div className="px-6 pt-5 pb-2">
-        <div className="grid grid-cols-4 gap-3 lg:grid-cols-8">
-          {loading ? (
-            Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-[72px] rounded-xl" />)
-          ) : (
-            kpiValues.map((kpi, i) => {
-              const cfg = KPI_CONFIG[i];
-              const Icon = cfg.icon;
-              return (
-                <div key={cfg.key} className="group relative overflow-hidden rounded-xl border border-gray-100 bg-white p-3 shadow-sm transition-all hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
-                  <div className="absolute -right-2 -top-2 h-12 w-12 rounded-full opacity-[0.07]" style={{ backgroundColor: cfg.color }} />
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-[22px] font-extrabold leading-tight" style={{ color: cfg.color }}>{kpi.val}</p>
-                      <p className="mt-0.5 text-[9px] font-medium uppercase tracking-wider text-gray-400">{kpi.label}</p>
-                    </div>
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ backgroundColor: cfg.bg }}>
-                      <Icon className="h-3.5 w-3.5" style={{ color: cfg.color }} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
+      {/* ═══ MAIN GRID ═══ */}
+      <div className="grid gap-0 lg:grid-cols-12">
+        {/* ──── LEFT: MAP (6 cols) ──── */}
+        <div className="border-r border-gray-200 lg:col-span-6 dark:border-gray-800">
+          <SectionTitle>RECs and Countries Benefitting</SectionTitle>
+          <div className="relative h-[460px]">
+            <ChoroplethMap
+              title=""
+              data={mapData}
+              indicator="submissions"
+              height="460px"
+              bare
+              selectedCountry={mapCountry}
+              onCountryClick={(code) => setMapCountry(mapCountry === code ? undefined : code)}
+            />
+          </div>
 
-      {/* ═══════════ MAIN CONTENT GRID ═══════════ */}
-      {loading ? (
-        <div className="grid gap-4 px-6 py-4 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[300px] rounded-xl" />)}
-        </div>
-      ) : (
-        <div className="space-y-4 px-6 py-4">
-          {/* ── ROW 1: Map + Country bars + Project donut ── */}
-          <div className="grid gap-4 lg:grid-cols-12">
-            {/* MAP — 6 cols */}
-            <div className="lg:col-span-6 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-              <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5 dark:border-gray-800">
-                <h3 className="text-xs font-bold text-gray-900 dark:text-white">Activity Coverage Map</h3>
-                <span className="text-[9px] text-gray-400">{agg.totalCountries} countries with data</span>
-              </div>
-              <div className="relative h-[380px]">
-                <ChoroplethMap
-                  title=""
-                  data={mapData}
-                  indicator="submissions"
-                  height="380px"
-                  bare
-                  selectedCountry={mapCountry}
-                  onCountryClick={(code) => setMapCountry(mapCountry === code ? undefined : code)}
-                />
-              </div>
-            </div>
-
-            {/* COUNTRY BARS — 3 cols */}
-            <Card title="Quantity by Country" className="lg:col-span-3">
-              <div className="space-y-1.5">
-                {countryArr.slice(0, 10).map((e, idx) => {
-                  const max = countryArr[0]?.quantityImplemented || 1;
-                  const pct = Math.round((e.quantityImplemented / max) * 100);
-                  return (
-                    <div key={e.country} className="group flex items-center gap-2">
-                      <span className="w-[52px] shrink-0 truncate text-right text-[10px] font-medium text-gray-600 dark:text-gray-400">{e.country}</span>
-                      <div className="h-[16px] flex-1 overflow-hidden rounded bg-gray-50 dark:bg-gray-800">
-                        <div className="h-full rounded transition-all duration-500" style={{
-                          width: `${pct}%`,
-                          background: `linear-gradient(90deg, ${PIE_COLORS[idx % PIE_COLORS.length]}cc, ${PIE_COLORS[idx % PIE_COLORS.length]})`,
-                        }} />
-                      </div>
-                      <span className="w-[32px] shrink-0 text-right text-[10px] font-bold text-gray-700 dark:text-gray-300">{fmt(e.quantityImplemented)}</span>
-                    </div>
-                  );
-                })}
-                {countryArr.length === 0 && <EmptyState />}
-              </div>
-            </Card>
-
-            {/* PROJECT DONUT — 3 cols */}
-            <Card title="Implementation by Project" className="lg:col-span-3">
-              {projectArr.length > 0 ? (
-                <div className="flex flex-col items-center gap-4">
-                  <div className="relative h-[140px] w-[140px]">
-                    <div className="h-full w-full rounded-full shadow-inner" style={{
-                      background: conicGradient(projectArr.map((e) => [e.symbol, e.quantityImplemented]), PIE_COLORS),
-                    }} />
-                    <div className="absolute inset-[28px] flex items-center justify-center rounded-full bg-white text-center dark:bg-gray-900">
-                      <div>
-                        <p className="text-lg font-extrabold text-gray-900 dark:text-white">{agg.totalProjects}</p>
-                        <p className="text-[8px] uppercase tracking-wider text-gray-400">projects</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="w-full space-y-1">
-                    {projectArr.map((e, i) => (
-                      <div key={e.symbol} className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                          <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400">{e.symbol}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold text-gray-900 dark:text-white">{fmt(e.quantityImplemented)}</span>
-                          <span className="text-[9px] text-gray-400">{e.countries.size} ctry</span>
-                        </div>
-                      </div>
+          {/* Activity Table */}
+          {activeTab === 'activities' && (
+            <div className="border-t border-gray-200 dark:border-gray-800">
+              <SectionTitle>Activity Breakdown</SectionTitle>
+              <div className="max-h-[200px] overflow-auto">
+                <table className="w-full text-[10px]">
+                  <thead className="sticky top-0 bg-gray-100 dark:bg-gray-800">
+                    <tr>
+                      <th className="px-3 py-1.5 text-left font-bold text-gray-600 dark:text-gray-400">PAID ACTIVITY</th>
+                      <th className="px-3 py-1.5 text-right font-bold text-gray-600 dark:text-gray-400">QTY IMPLEMENTED</th>
+                      <th className="px-3 py-1.5 text-right font-bold text-gray-600 dark:text-gray-400">QTY TARGETED</th>
+                      <th className="px-3 py-1.5 text-right font-bold text-gray-600 dark:text-gray-400">SUBMISSIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.from(agg.byActivity.values()).sort((a, b) => b.quantityImplemented - a.quantityImplemented).map((a) => (
+                      <tr key={a.label} className="border-t border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900">
+                        <td className="max-w-[250px] truncate px-3 py-1.5 text-gray-700 dark:text-gray-300" title={a.label}>{a.label}</td>
+                        <td className="px-3 py-1.5 text-right font-semibold text-gray-900 dark:text-white">{a.quantityImplemented.toLocaleString()}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-500">{a.quantityTargeted.toLocaleString()}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-500">{a.submissions}</td>
+                      </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ──── MIDDLE (3 cols) ──── */}
+        <div className="border-r border-gray-200 lg:col-span-3 dark:border-gray-800">
+          {/* Expenditure Trend */}
+          <SectionTitle>Expenditure Trend (USD)</SectionTitle>
+          <div className="px-4 py-3">
+            <p className="mb-2 text-[9px] text-gray-400">Year to Date</p>
+            <div className="flex items-end gap-1" style={{ height: 100 }}>
+              {quarterArr.map((q) => {
+                const maxE = Math.max(...quarterArr.map(qq => qq.expenditure), 1);
+                const h = Math.max(8, Math.round((q.expenditure / maxE) * 90));
+                return (
+                  <div key={q.quarter} className="flex flex-1 flex-col items-center gap-1">
+                    <span className="text-[8px] font-bold text-gray-600 dark:text-gray-300">${fmt(q.expenditure)}</span>
+                    <div className="w-full rounded-t bg-gradient-to-t from-blue-600 to-blue-400" style={{ height: h }} />
+                    <span className="text-[8px] text-gray-400">{q.quarter}</span>
+                  </div>
+                );
+              })}
+              {quarterArr.length === 0 && <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-300">No data</div>}
+            </div>
+          </div>
+
+          {/* Expenditure by Programme — Donut */}
+          <div className="border-t border-gray-200 dark:border-gray-800">
+            <SectionTitle>Expenditure by Programme (USD)</SectionTitle>
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="relative h-[110px] w-[110px] shrink-0">
+                <div className="h-full w-full rounded-full" style={{
+                  background: expenditureByProject.length > 0
+                    ? conicGradient(expenditureByProject.map((p) => [p.symbol, p.expenditure]), PIE_COLORS)
+                    : '#e5e7eb',
+                }} />
+                <div className="absolute inset-[22px] flex items-center justify-center rounded-full bg-white dark:bg-gray-950">
+                  <div className="text-center">
+                    <p className="text-[10px] font-extrabold text-gray-900 dark:text-white">${fmt(totalExpenditure)}</p>
+                    <p className="text-[7px] text-gray-400">Total</p>
                   </div>
                 </div>
-              ) : <EmptyState />}
-            </Card>
+              </div>
+              <div className="min-w-0 space-y-1">
+                {expenditureByProject.slice(0, 6).map((p, i) => (
+                  <div key={p.symbol} className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                    <span className="truncate text-[9px] text-gray-600 dark:text-gray-400">{p.title.length > 22 ? p.title.slice(0, 22) + '...' : p.title}</span>
+                  </div>
+                ))}
+                {expenditureByProject.length === 0 && <p className="text-[9px] text-gray-300">No expenditure data</p>}
+              </div>
+            </div>
           </div>
 
-          {/* ── ROW 2: Activities bar + Quarter trend + Submissions pie ── */}
-          <div className="grid gap-4 lg:grid-cols-12">
-            {/* ACTIVITIES — 5 cols */}
-            <Card title="Top Activities" className="lg:col-span-5">
-              <div className="space-y-2">
-                {activityArr.map((act, idx) => {
-                  const max = activityArr[0]?.quantityImplemented || 1;
-                  const pct = Math.round((act.quantityImplemented / max) * 100);
-                  const color = PIE_COLORS[idx % PIE_COLORS.length];
-                  return (
-                    <div key={act.label}>
-                      <div className="mb-0.5 flex items-center justify-between">
-                        <span className="max-w-[70%] truncate text-[10px] font-medium text-gray-700 dark:text-gray-300" title={act.label}>{act.label}</span>
-                        <span className="text-[10px] font-bold text-gray-900 dark:text-white">{fmt(act.quantityImplemented)} <span className="font-normal text-gray-400">({act.submissions})</span></span>
-                      </div>
-                      <div className="h-[6px] w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: color }} />
-                      </div>
-                    </div>
-                  );
-                })}
-                {activityArr.length === 0 && <EmptyState />}
-              </div>
-            </Card>
-
-            {/* QUARTER TREND — 4 cols */}
-            <Card title="Quarterly Progress" className="lg:col-span-4">
-              {quarterArr.length > 0 ? (
-                <div className="space-y-3">
-                  {quarterArr.map((q) => {
-                    const maxQ = Math.max(...quarterArr.map(qq => qq.quantityImplemented)) || 1;
-                    const pct = Math.round((q.quantityImplemented / maxQ) * 100);
-                    return (
-                      <div key={q.quarter} className="rounded-lg border border-gray-100 p-3 dark:border-gray-800">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-gray-900 dark:text-white">{q.quarter}</span>
-                          <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{q.submissions} subs</span>
-                        </div>
-                        <div className="mt-2 flex items-center gap-2">
-                          <div className="h-[8px] flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                            <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-700" style={{ width: `${pct}%` }} />
-                          </div>
-                          <span className="shrink-0 text-[11px] font-bold text-gray-900 dark:text-white">{fmt(q.quantityImplemented)}</span>
-                        </div>
-                        {q.expenditure > 0 && (
-                          <p className="mt-1 text-[9px] text-gray-400">${q.expenditure.toLocaleString()} expenditure</p>
-                        )}
-                      </div>
-                    );
-                  })}
+          {/* Progress Against Annual Target — Gauge */}
+          <div className="border-t border-gray-200 dark:border-gray-800">
+            <SectionTitle>Progress Against Annual Target</SectionTitle>
+            <div className="flex flex-col items-center px-4 py-4">
+              <div className="relative h-[80px] w-[160px] overflow-hidden">
+                {/* Semi-circle background */}
+                <div className="absolute inset-0 rounded-t-full bg-gray-200 dark:bg-gray-800" style={{
+                  clipPath: 'polygon(0 100%, 0 0, 100% 0, 100% 100%)',
+                }} />
+                {/* Progress arc */}
+                <div className="absolute inset-0" style={{
+                  background: `conic-gradient(#059669 0deg, #059669 ${progressPct * 1.8}deg, transparent ${progressPct * 1.8}deg)`,
+                  borderRadius: '160px 160px 0 0',
+                  clipPath: 'polygon(0 100%, 0 0, 100% 0, 100% 100%)',
+                }} />
+                {/* Inner cutout */}
+                <div className="absolute bottom-0 left-1/2 h-[55px] w-[110px] -translate-x-1/2 rounded-t-full bg-white dark:bg-gray-950" />
+                {/* Value */}
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
+                  <p className="text-2xl font-black text-emerald-600">{progressPct}%</p>
                 </div>
-              ) : <EmptyState />}
-            </Card>
-
-            {/* SUBMISSIONS BY COUNTRY — 3 cols */}
-            <Card title="Submissions per Country" className="lg:col-span-3">
-              <div className="space-y-1">
-                {countryArr.slice(0, 10).map((e) => {
-                  const maxS = countryArr[0]?.submissions || 1;
-                  const pct = Math.round((e.submissions / maxS) * 100);
-                  return (
-                    <div key={e.country} className="flex items-center gap-2 rounded-md px-1 py-0.5 transition hover:bg-gray-50 dark:hover:bg-gray-800">
-                      <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                      <span className="flex-1 truncate text-[10px] font-medium text-gray-700 dark:text-gray-300">{e.country}</span>
-                      <div className="w-14 h-[5px] overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                        <div className="h-full rounded-full bg-blue-500" style={{ width: `${pct}%` }} />
-                      </div>
-                      <span className="w-5 text-right text-[10px] font-bold text-gray-900 dark:text-white">{e.submissions}</span>
-                    </div>
-                  );
-                })}
-                {countryArr.length === 0 && <EmptyState />}
               </div>
-            </Card>
+              <div className="mt-2 flex w-full justify-between text-[8px] text-gray-400">
+                <span>0%</span>
+                <span>100%</span>
+              </div>
+              <p className="mt-1 text-[9px] text-gray-400">All figures in local units</p>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* ═══════════ DISCLAIMER FOOTER ═══════════ */}
-      <div className="mx-6 mb-6 rounded-lg bg-gray-900 px-4 py-2.5 text-[10px] leading-relaxed text-gray-400 dark:bg-gray-800">
-        <strong className="text-gray-300">Disclaimer:</strong> The data presented reflects quarterly PAID submissions from LICS projects across AU Member States.
-        Quantities represent aggregated activity outputs. Data source: PAID quarterly submissions via ARIS 4.0 &middot; Auto-refreshed every 30s.
+        {/* ──── RIGHT (3 cols) ──── */}
+        <div className="lg:col-span-3">
+          {/* People Trained */}
+          <SectionTitle>People Trained</SectionTitle>
+          <div className="flex items-center justify-center gap-8 px-4 py-4">
+            <PersonStat gender="female" value={agg.totalFemale} total={agg.totalTrained} />
+            <PersonStat gender="male" value={agg.totalMale} total={agg.totalTrained} />
+          </div>
+
+          {/* Implementation by Project — Big Donut */}
+          <div className="border-t border-gray-200 dark:border-gray-800">
+            <SectionTitle>Implementation by Project</SectionTitle>
+            <div className="px-4 py-3">
+              <div className="flex items-start gap-4">
+                {/* Donut */}
+                <div className="relative h-[130px] w-[130px] shrink-0">
+                  <div className="h-full w-full rounded-full shadow-sm" style={{
+                    background: projectArr.length > 0
+                      ? conicGradient(projectArr.map((p) => [p.symbol, p.quantityImplemented]), PIE_COLORS)
+                      : '#e5e7eb',
+                  }} />
+                  <div className="absolute inset-[30px] flex items-center justify-center rounded-full bg-white dark:bg-gray-950">
+                    <div className="text-center">
+                      <p className="text-2xl font-black text-blue-600">{agg.totalProjects}</p>
+                      <p className="text-[8px] uppercase tracking-wider text-gray-400">Projects</p>
+                    </div>
+                  </div>
+                </div>
+                {/* Legend */}
+                <div className="min-w-0 space-y-1.5 pt-1">
+                  {projectArr.map((p, i) => (
+                    <div key={p.symbol} className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                      <span className="min-w-0 flex-1 truncate text-[10px] font-medium text-gray-700 dark:text-gray-300">{p.symbol}</span>
+                      <span className="shrink-0 text-[10px] font-bold text-gray-900 dark:text-white">{fmt(p.quantityImplemented)}</span>
+                      <span className="shrink-0 text-[9px] text-gray-400">{p.countries.size} ctry</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Top Activities by Expenditure */}
+          <div className="border-t border-gray-200 dark:border-gray-800">
+            <SectionTitle>Top PAID Activities by Quantity</SectionTitle>
+            <div className="space-y-1.5 px-4 py-3">
+              {activityArr.map((act) => {
+                const max = activityArr[0]?.quantityImplemented || 1;
+                const pct = Math.round((act.quantityImplemented / max) * 100);
+                return (
+                  <div key={act.label}>
+                    <div className="flex items-center justify-between">
+                      <span className="max-w-[65%] truncate text-[9px] text-gray-600 dark:text-gray-400" title={act.label}>{act.label}</span>
+                      <span className="text-[9px] font-bold text-gray-900 dark:text-white">{fmt(act.quantityImplemented)}</span>
+                    </div>
+                    <div className="mt-0.5 h-[10px] w-full overflow-hidden rounded-sm bg-gray-100 dark:bg-gray-800">
+                      <div className="h-full rounded-sm bg-emerald-600 transition-all duration-500" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+              {activityArr.length === 0 && <p className="py-4 text-center text-[10px] text-gray-300">No data</p>}
+            </div>
+          </div>
+
+          {/* Projects by Country */}
+          <div className="border-t border-gray-200 dark:border-gray-800">
+            <SectionTitle>Submissions by Country</SectionTitle>
+            <div className="space-y-1 px-4 py-3">
+              {countryArr.slice(0, 8).map((c) => {
+                const maxS = countryArr[0]?.submissions || 1;
+                const pct = Math.round((c.submissions / maxS) * 100);
+                return (
+                  <div key={c.country} className="flex items-center gap-2">
+                    <span className="w-[60px] shrink-0 truncate text-right text-[9px] text-gray-600 dark:text-gray-400">{c.country}</span>
+                    <div className="h-[12px] flex-1 overflow-hidden rounded-sm bg-gray-100 dark:bg-gray-800">
+                      <div className="h-full rounded-sm bg-blue-600" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="w-[18px] text-right text-[9px] font-bold text-gray-900 dark:text-white">{c.submissions}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ FOOTER ═══ */}
+      <div className="border-t border-gray-200 bg-gray-50 px-5 py-2 text-[9px] text-gray-400 dark:border-gray-800 dark:bg-gray-900">
+        Source: AU-IBAR M&E System &middot; PAID quarterly submissions via ARIS 4.0 &middot; Last updated: {new Date().toLocaleDateString()} &middot; Auto-refresh 30s
       </div>
     </div>
   );
 }
 
-/* ═══════════ Reusable Components ═══════════ */
+/* ═══════════ Sub-components ═══════════ */
 
-function Card({ title, children, className = '' }: { title: string; children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 ${className}`}>
-      <div className="border-b border-gray-100 px-4 py-2.5 dark:border-gray-800">
-        <h3 className="text-xs font-bold text-gray-900 dark:text-white">{title}</h3>
-      </div>
-      <div className="p-4">{children}</div>
-    </div>
-  );
-}
-
-function FilterPill({ label, value, options, onChange }: {
-  label: string; value?: string; options: string[];
-  onChange: (v: string) => void;
+function FilterSelect({ label, value, options, onChange }: {
+  label: string; value?: string; options: string[]; onChange: (v: string) => void;
 }) {
   return (
-    <div className="relative">
-      <select
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value)}
-        className={`appearance-none rounded-md border py-1 pl-2.5 pr-6 text-[10px] font-medium transition
-          ${value
-            ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400'
-          }`}
-      >
+    <div className="relative inline-block">
+      <select value={value ?? ''} onChange={(e) => onChange(e.target.value)}
+        className="appearance-none rounded border border-gray-300 bg-white py-1 pl-2 pr-6 text-[11px] text-gray-700 focus:border-blue-400 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
         <option value="">{label}: All</option>
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400" />
+      <ChevronDown className="pointer-events-none absolute right-1 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400" />
     </div>
   );
 }
 
-function EmptyState() {
+function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center py-8 text-center">
-      <BarChart3 className="h-8 w-8 text-gray-200 dark:text-gray-700" />
-      <p className="mt-2 text-xs text-gray-400">No data available</p>
+    <button onClick={onClick} className={`px-3 py-1 text-[11px] font-semibold transition ${
+      active ? 'border-b-2 border-blue-600 text-blue-700 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700'
+    }`}>{children}</button>
+  );
+}
+
+function KpiCard({ value, label, color, icon }: { value: number | string; label: string; color: string; icon: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-lg border border-gray-200 bg-white px-3.5 py-2 dark:border-gray-700 dark:bg-gray-900">
+      <p className="text-2xl font-black" style={{ color }}>{typeof value === 'number' ? value : value}</p>
+      <div className="text-gray-400">{icon}</div>
+      <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="text-center">
+      <p className="text-[9px] text-gray-400">{label}</p>
+      <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{value}</p>
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="border-b border-gray-200 px-4 py-2 dark:border-gray-800">
+      <h3 className="text-[11px] font-bold text-gray-900 dark:text-white">{children}</h3>
+    </div>
+  );
+}
+
+function PersonStat({ gender, value, total }: { gender: 'female' | 'male'; value: number; total: number }) {
+  const pct = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
+  const color = gender === 'female' ? '#ec4899' : '#3b82f6';
+  return (
+    <div className="flex flex-col items-center gap-1">
+      {/* Person icon */}
+      <svg width="36" height="48" viewBox="0 0 36 48" fill="none">
+        <circle cx="18" cy="10" r="8" fill={color} />
+        <path d="M4 46c0-7.7 6.3-14 14-14s14 6.3 14 14" stroke={color} strokeWidth="4" fill="none" />
+      </svg>
+      <p className="text-[9px] font-semibold capitalize text-gray-500">{gender}</p>
+      <p className="text-lg font-black" style={{ color }}>{fmt(value)}</p>
+      <p className="text-[9px] text-gray-400">({pct}%)</p>
     </div>
   );
 }
