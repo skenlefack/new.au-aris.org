@@ -143,28 +143,16 @@ export default function PaidDashboardPage() {
         </Link>
       </div>
 
-      {/* ═══ KPI ROW ═══ */}
-      <div className="flex flex-wrap items-stretch gap-3 border-b border-gray-200 bg-white px-5 py-3 dark:border-gray-800 dark:bg-gray-950">
-        <KpiCard value={agg.totalProjects} label="PROJECTS" color="#2563eb" icon={<FolderKanban className="h-4 w-4" />} />
-        <KpiCard value={agg.totalCountries} label="COUNTRIES" color="#059669" icon={<MapPin className="h-4 w-4" />} />
-        <KpiCard value={agg.totalRecs} label="RECS" color="#dc2626" icon={<Building2 className="h-4 w-4" />} />
-        <KpiCard value={agg.totalSubmissions} label="SUBMISSIONS" color="#2563eb" icon={<FileCheck2 className="h-4 w-4" />} />
-        <div className="flex items-center rounded-lg bg-gray-900 px-4 py-2 text-white dark:bg-gray-800">
-          <div>
-            <p className="text-xl font-black">${fmt(agg.totalExpenditure)}</p>
-            <p className="text-[9px] uppercase tracking-wider text-gray-400">Expenditure</p>
-          </div>
-        </div>
-        <div className="flex items-center rounded-lg bg-gray-900 px-4 py-2 text-white dark:bg-gray-800">
-          <div>
-            <p className="text-[9px] text-gray-400">Qty Implemented</p>
-            <p className="text-xl font-black">{fmt(agg.totalQuantityImplemented)}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 px-3">
-          <MiniStat label="Qty Targeted" value={fmt(agg.totalQuantityTargeted)} />
-          <MiniStat label="Completion" value={`${progressPct}%`} />
-        </div>
+      {/* ═══ KPI ROW — full width grid ═══ */}
+      <div className="grid grid-cols-4 border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950 lg:grid-cols-8">
+        <KpiCell value={String(agg.totalProjects)} label="PROJECTS" color="#2563eb" icon={<FolderKanban className="h-4 w-4" />} />
+        <KpiCell value={String(agg.totalCountries)} label="COUNTRIES" color="#059669" icon={<MapPin className="h-4 w-4" />} />
+        <KpiCell value={String(agg.totalRecs)} label="RECS" color="#dc2626" icon={<Building2 className="h-4 w-4" />} />
+        <KpiCell value={String(agg.totalSubmissions)} label="SUBMISSIONS" color="#2563eb" icon={<FileCheck2 className="h-4 w-4" />} />
+        <KpiCell value={`$${fmt(agg.totalExpenditure)}`} label="EXPENDITURE" dark />
+        <KpiCell value={fmt(agg.totalQuantityImplemented)} label="QTY IMPLEMENTED" dark />
+        <KpiCell value={fmt(agg.totalQuantityTargeted)} label="QTY TARGETED" color="#7c3aed" icon={<BarChart3 className="h-4 w-4" />} />
+        <KpiCell value={`${progressPct}%`} label="COMPLETION" color="#059669" icon={<span className="text-[14px]">◔</span>} />
       </div>
 
       {/* ═══ MAIN GRID ═══ */}
@@ -216,23 +204,30 @@ export default function PaidDashboardPage() {
 
         {/* ──── MIDDLE (3 cols) ──── */}
         <div className="border-r border-gray-200 lg:col-span-3 dark:border-gray-800">
-          {/* Expenditure Trend */}
-          <SectionTitle>Expenditure Trend (USD)</SectionTitle>
+          {/* Quarterly Progress */}
+          <SectionTitle>{totalExpenditure > 0 ? 'Expenditure Trend (USD)' : 'Quarterly Submissions'}</SectionTitle>
           <div className="px-4 py-3">
             <p className="mb-2 text-[9px] text-gray-400">Year to Date</p>
-            <div className="flex items-end gap-1" style={{ height: 100 }}>
+            <div className="flex items-end gap-2" style={{ height: 110 }}>
               {quarterArr.map((q) => {
-                const maxE = Math.max(...quarterArr.map(qq => qq.expenditure), 1);
-                const h = Math.max(8, Math.round((q.expenditure / maxE) * 90));
+                const metric = totalExpenditure > 0 ? q.expenditure : q.submissions;
+                const maxVal = Math.max(...quarterArr.map(qq => totalExpenditure > 0 ? qq.expenditure : qq.submissions), 1);
+                const h = Math.max(12, Math.round((metric / maxVal) * 90));
                 return (
                   <div key={q.quarter} className="flex flex-1 flex-col items-center gap-1">
-                    <span className="text-[8px] font-bold text-gray-600 dark:text-gray-300">${fmt(q.expenditure)}</span>
-                    <div className="w-full rounded-t bg-gradient-to-t from-blue-600 to-blue-400" style={{ height: h }} />
-                    <span className="text-[8px] text-gray-400">{q.quarter}</span>
+                    <span className="text-[8px] font-bold text-gray-700 dark:text-gray-300">
+                      {totalExpenditure > 0 ? `$${fmt(metric)}` : metric}
+                    </span>
+                    <div className="w-full rounded-t bg-gradient-to-t from-blue-600 to-blue-400 transition-all duration-500" style={{ height: h }} />
+                    <span className="text-[9px] font-medium text-gray-500">{q.quarter}</span>
                   </div>
                 );
               })}
-              {quarterArr.length === 0 && <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-300">No data</div>}
+              {quarterArr.length === 0 && (
+                <div className="flex h-full w-full flex-col items-center justify-center text-gray-300">
+                  <BarChart3 className="h-6 w-6" /><p className="mt-1 text-[10px]">No quarterly data yet</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -298,12 +293,35 @@ export default function PaidDashboardPage() {
 
         {/* ──── RIGHT (3 cols) ──── */}
         <div className="lg:col-span-3">
-          {/* People Trained */}
-          <SectionTitle>People Trained</SectionTitle>
-          <div className="flex items-center justify-center gap-8 px-4 py-4">
-            <PersonStat gender="female" value={agg.totalFemale} total={agg.totalTrained} />
-            <PersonStat gender="male" value={agg.totalMale} total={agg.totalTrained} />
-          </div>
+          {/* People Trained — or Submissions summary when no training data */}
+          {agg.totalTrained > 0 ? (
+            <>
+              <SectionTitle>People Trained</SectionTitle>
+              <div className="flex items-center justify-center gap-8 px-4 py-4">
+                <PersonStat gender="female" value={agg.totalFemale} total={agg.totalTrained} />
+                <PersonStat gender="male" value={agg.totalMale} total={agg.totalTrained} />
+              </div>
+            </>
+          ) : (
+            <>
+              <SectionTitle>Submissions by Country</SectionTitle>
+              <div className="space-y-1 px-4 py-3">
+                {countryArr.slice(0, 6).map((c) => {
+                  const maxS = countryArr[0]?.submissions || 1;
+                  const pct = Math.round((c.submissions / maxS) * 100);
+                  return (
+                    <div key={c.country} className="flex items-center gap-2">
+                      <span className="w-[55px] shrink-0 truncate text-right text-[9px] font-medium text-gray-600 dark:text-gray-400">{c.country}</span>
+                      <div className="h-[13px] flex-1 overflow-hidden rounded-sm bg-gray-100 dark:bg-gray-800">
+                        <div className="h-full rounded-sm bg-blue-600" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="w-[18px] text-right text-[9px] font-bold text-gray-900 dark:text-white">{c.submissions}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
           {/* Implementation by Project — Big Donut */}
           <div className="border-t border-gray-200 dark:border-gray-800">
@@ -364,18 +382,18 @@ export default function PaidDashboardPage() {
 
           {/* Projects by Country */}
           <div className="border-t border-gray-200 dark:border-gray-800">
-            <SectionTitle>Submissions by Country</SectionTitle>
+            <SectionTitle>Projects by Country</SectionTitle>
             <div className="space-y-1 px-4 py-3">
               {countryArr.slice(0, 8).map((c) => {
-                const maxS = countryArr[0]?.submissions || 1;
-                const pct = Math.round((c.submissions / maxS) * 100);
+                const maxP = Math.max(...countryArr.map(cc => cc.projects.size), 1);
+                const pct = Math.round((c.projects.size / maxP) * 100);
                 return (
                   <div key={c.country} className="flex items-center gap-2">
                     <span className="w-[60px] shrink-0 truncate text-right text-[9px] text-gray-600 dark:text-gray-400">{c.country}</span>
-                    <div className="h-[12px] flex-1 overflow-hidden rounded-sm bg-gray-100 dark:bg-gray-800">
+                    <div className="h-[13px] flex-1 overflow-hidden rounded-sm bg-gray-100 dark:bg-gray-800">
                       <div className="h-full rounded-sm bg-blue-600" style={{ width: `${pct}%` }} />
                     </div>
-                    <span className="w-[18px] text-right text-[9px] font-bold text-gray-900 dark:text-white">{c.submissions}</span>
+                    <span className="w-[18px] text-right text-[9px] font-bold text-gray-900 dark:text-white">{c.projects.size}</span>
                   </div>
                 );
               })}
@@ -417,21 +435,25 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
   );
 }
 
-function KpiCard({ value, label, color, icon }: { value: number | string; label: string; color: string; icon: React.ReactNode }) {
+function KpiCell({ value, label, color, icon, dark }: {
+  value: string; label: string; color?: string; icon?: React.ReactNode; dark?: boolean;
+}) {
+  if (dark) {
+    return (
+      <div className="flex items-center justify-center gap-2 border-r border-gray-200 bg-gray-900 px-2 py-3 text-white last:border-r-0 dark:border-gray-700 dark:bg-gray-800">
+        <DollarSign className="h-4 w-4 text-gray-500" />
+        <div className="text-center">
+          <p className="text-xl font-black leading-tight">{value}</p>
+          <p className="text-[8px] uppercase tracking-widest text-gray-400">{label}</p>
+        </div>
+      </div>
+    );
+  }
   return (
-    <div className="flex items-center gap-2.5 rounded-lg border border-gray-200 bg-white px-3.5 py-2 dark:border-gray-700 dark:bg-gray-900">
-      <p className="text-2xl font-black" style={{ color }}>{typeof value === 'number' ? value : value}</p>
-      <div className="text-gray-400">{icon}</div>
-      <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
-    </div>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="text-center">
-      <p className="text-[9px] text-gray-400">{label}</p>
-      <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{value}</p>
+    <div className="flex items-center justify-center gap-2 border-r border-gray-200 bg-white px-2 py-3 last:border-r-0 dark:border-gray-800 dark:bg-gray-950">
+      <p className="text-2xl font-black leading-tight" style={{ color }}>{value}</p>
+      {icon && <span style={{ color }} className="opacity-60">{icon}</span>}
+      <p className="text-[8px] font-bold uppercase tracking-widest text-gray-400">{label}</p>
     </div>
   );
 }
