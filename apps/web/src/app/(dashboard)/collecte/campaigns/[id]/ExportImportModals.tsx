@@ -26,14 +26,26 @@ interface SchemaSection {
   name?: { en?: string; fr?: string };
   order?: number;
   fields?: SchemaField[];
+  conditions?: SchemaCondition[];
+}
+
+interface SchemaCondition {
+  id?: string;
+  type?: string;
+  action?: 'show' | 'hide' | 'enable' | 'disable' | 'setRequired' | 'setValue';
+  logic?: 'all' | 'any';
+  rules?: { field: string; operator: string; value: unknown }[];
 }
 
 interface SchemaField {
   code?: string;
   type?: string;
   label?: { en?: string; fr?: string };
+  helpText?: { en?: string; fr?: string };
   required?: boolean;
+  hidden?: boolean;
   properties?: Record<string, unknown>;
+  conditions?: SchemaCondition[];
 }
 
 interface SelectOpt {
@@ -195,6 +207,128 @@ function buildExportColumns(fields: ExportField[]): ExportColumn[] {
   }
   return cols;
 }
+
+// ── Template field extraction (enriched for template generation) ──
+
+interface TemplateField {
+  code: string;
+  label: string;
+  type: string;
+  required: boolean;
+  helpText?: string;
+  masterDataType?: string;
+  options?: { label: string; value: string }[];
+  levels?: number[];
+  /** Condition: field only shows when this condition is met */
+  conditionText?: string;
+  /** Parent filter: this field's options depend on another field */
+  parentFilterText?: string;
+  parentFilterField?: string;
+}
+
+function extractTemplateFields(sections: SchemaSection[]): TemplateField[] {
+  const rows: TemplateField[] = [];
+  const sorted = [...sections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  for (const sec of sorted) {
+    for (const f of sec.fields || []) {
+      if (!f.code || f.hidden) continue;
+      if (['heading', 'divider', 'spacer', 'info-box'].includes(f.type || '')) continue;
+      const props = f.properties || {};
+      const opts = ((props.options || []) as SelectOpt[]).map((o) => ({
+        label: ml(o.label) || o.value || '',
+        value: o.value || '',
+      }));
+
+      // Parse conditions for visibility
+      let conditionText: string | undefined;
+      const conds = f.conditions || [];
+      const showConds = conds.filter((c) => c.action === 'show' || c.action === 'hide');
+      if (showConds.length > 0) {
+        const parts: string[] = [];
+        for (const cond of showConds) {
+          for (const rule of cond.rules || []) {
+            const op = rule.operator === 'equals' ? '=' :
+              rule.operator === 'notEquals' ? '!=' :
+              rule.operator === 'isNotEmpty' ? 'is filled' :
+              rule.operator === 'isEmpty' ? 'is empty' :
+              rule.operator === 'in' ? 'in' : rule.operator;
+            const valStr = rule.value === null || rule.value === undefined ? ''
+              : Array.isArray(rule.value) ? (rule.value as string[]).join(', ')
+              : String(rule.value);
+            parts.push(`${cond.action === 'hide' ? 'Hidden' : 'Visible'} when "${rule.field}" ${op} ${valStr}`.trim());
+          }
+        }
+        if (parts.length > 0) conditionText = parts.join(' ; ');
+      }
+
+      // Parse parent filter / cascade
+      let parentFilterText: string | undefined;
+      let parentFilterField: string | undefined;
+      const pf = props.parentFilter as Record<string, string> | undefined;
+      const cascadeSource = props.cascadeSource as string | undefined;
+      if (pf) {
+        const entries = Object.entries(pf);
+        if (entries.length > 0) {
+          const refs = entries.map(([, v]) => typeof v === 'string' && v.startsWith('$') ? v.slice(1) : v);
+          parentFilterField = refs[0];
+          parentFilterText = `Filtered by: ${refs.join(', ')}`;
+        }
+      } else if (cascadeSource) {
+        parentFilterField = cascadeSource;
+        parentFilterText = `Filtered by: ${cascadeSource}`;
+      }
+
+      rows.push({
+        code: f.code,
+        label: ml(f.label) || f.code,
+        type: f.type || 'text',
+        required: f.required === true,
+        helpText: ml(f.helpText) || undefined,
+        masterDataType: (props.masterDataType || props.referenceType) as string | undefined,
+        options: opts.length > 0 ? opts : undefined,
+        levels: f.type === 'admin-location' ? ((props.levels as number[]) || [0, 1, 2]) : undefined,
+        conditionText,
+        parentFilterText,
+        parentFilterField,
+      });
+    }
+  }
+  return rows;
+}
+
+/** Fetch ref data and return both id→label and label→id maps */
+async function fetchRefDataBidirectional(type: string): Promise<{ idToLabel: Record<string, string>; labelToId: Record<string, string> }> {
+  const token = useAuthStore.getState().accessToken || '';
+  try {
+    const res = await fetch(`/api/v1/master-data/ref/${type}/for-select?limit=1000`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return { idToLabel: {}, labelToId: {} };
+    const json = await res.json();
+    const idToLabel: Record<string, string> = {};
+    const labelToId: Record<string, string> = {};
+    for (const item of json?.data || []) {
+      if (!item.id) continue;
+      const name = item.name;
+      let label = item.label || '';
+      if (!label && name) {
+        if (typeof name === 'string') label = name;
+        else if (typeof name === 'object') label = name.en || name.fr || name.pt || Object.values(name).find((v: any) => v) || '';
+      }
+      if (!label) label = item.code || '';
+      if (label) {
+        idToLabel[item.id] = label;
+        labelToId[label] = item.id;
+      }
+    }
+    return { idToLabel, labelToId };
+  } catch { return { idToLabel: {}, labelToId: {} }; }
+}
+
+// Country list for admin-location dropdowns
+const COUNTRY_NAMES = Object.entries(COUNTRIES)
+  .sort(([, a], [, b]) => a.name.localeCompare(b.name))
+  .map(([code, c]) => ({ code: code.toUpperCase(), name: c.name }));
 
 // ── Export Modal ──
 
@@ -506,69 +640,414 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
     }
   }, []);
 
+  // Extract enriched template fields
+  const tplFields = useMemo(() => extractTemplateFields(schema?.sections || []), [schema]);
+
+  const [generating, setGenerating] = useState(false);
+
   const handleGenerateTemplate = useCallback(async () => {
-    // Generate a reference Excel template with form fields as headers
-    const ExcelJS = (await import('exceljs')).default;
-    const wb = new ExcelJS.Workbook();
-    wb.creator = 'ARIS 4.0 — AU-IBAR';
+    setGenerating(true);
+    try {
+      // 1. Fetch all master-data reference values
+      const mdTypes = new Set<string>();
+      for (const f of tplFields) {
+        if (f.masterDataType) mdTypes.add(f.masterDataType);
+      }
+      const refDataMap: Record<string, { labels: string[]; idToLabel: Record<string, string>; labelToId: Record<string, string> }> = {};
+      const fetches = await Promise.all(
+        [...mdTypes].map(async (type) => {
+          const data = await fetchRefDataBidirectional(type);
+          return { type, ...data };
+        }),
+      );
+      for (const { type, idToLabel, labelToId } of fetches) {
+        refDataMap[type] = { labels: Object.values(idToLabel).sort(), idToLabel, labelToId };
+      }
 
-    // Data Entry sheet
-    const ws = wb.addWorksheet('Data Entry', {
-      properties: { defaultColWidth: 18 },
-      views: [{ state: 'frozen', ySplit: 1 }],
-    });
+      const ExcelJS = (await import('exceljs')).default;
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'ARIS 4.0 — AU-IBAR';
 
-    // Header row with field codes
-    const headerRow = ws.addRow(fields.map((f) => f.code));
-    headerRow.eachCell((cell, colNumber) => {
-      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      cell.border = {
-        bottom: { style: 'thin', color: { argb: 'FF000000' } },
-      };
-    });
+      // ── Build column list (expand admin-location into separate columns) ──
+      interface TplCol {
+        code: string;       // field code (for row 1)
+        label: string;      // display label (for row 2)
+        type: string;       // field type
+        required: boolean;
+        helpText?: string;
+        conditionText?: string;
+        parentFilterText?: string;
+        /** For static selects: option labels */
+        selectOptions?: string[];
+        /** For master-data-select: ref data type key */
+        refDataType?: string;
+        /** For admin-location sub-columns */
+        adminLevel?: number;
+        /** Original field code (for admin-location sub-columns) */
+        sourceFieldCode?: string;
+      }
 
-    // Label row (row 2) for human reference
-    const labelRow = ws.addRow(fields.map((f) => f.label));
-    labelRow.eachCell((cell) => {
-      cell.font = { italic: true, size: 9, color: { argb: 'FF666666' } };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
-    });
+      const columns: TplCol[] = [];
+      for (const f of tplFields) {
+        if (f.type === 'admin-location' && f.levels) {
+          for (const level of f.levels) {
+            columns.push({
+              code: level === 0 ? `${f.code}__country` : `${f.code}__admin${level}`,
+              label: ADMIN_LEVEL_LABELS[level] || `Admin${level}`,
+              type: 'admin-location-level',
+              required: f.required && level === 0,
+              helpText: level === 0 ? 'Select the country name' : `Select Admin level ${level} division`,
+              conditionText: f.conditionText,
+              adminLevel: level,
+              sourceFieldCode: f.code,
+              selectOptions: level === 0 ? COUNTRY_NAMES.map((c) => c.name) : undefined,
+            });
+          }
+        } else if (f.type === 'repeater' || f.type === 'matrix') {
+          // Skip complex nested fields — document in instructions
+          columns.push({
+            code: f.code, label: f.label, type: f.type, required: f.required,
+            helpText: `Complex field (${f.type}) — fill via the web/mobile app`,
+            conditionText: f.conditionText,
+          });
+        } else {
+          columns.push({
+            code: f.code,
+            label: f.label,
+            type: f.type,
+            required: f.required,
+            helpText: f.helpText,
+            conditionText: f.conditionText,
+            parentFilterText: f.parentFilterText,
+            selectOptions: f.options?.map((o) => o.label),
+            refDataType: f.masterDataType,
+          });
+        }
+      }
 
-    // 50 empty rows for data entry
-    for (let i = 0; i < 50; i++) {
-      ws.addRow(fields.map(() => ''));
+      // ── Create reference data sheets (hidden) ──
+      const refSheetNames: Record<string, string> = {};
+      for (const [type, data] of Object.entries(refDataMap)) {
+        if (data.labels.length === 0) continue;
+        // Excel sheet name max 31 chars
+        const sheetName = `_ref_${type}`.slice(0, 31);
+        refSheetNames[type] = sheetName;
+        const refSheet = wb.addWorksheet(sheetName);
+        refSheet.state = 'veryHidden'; // hidden from user but accessible for formulas
+        refSheet.getColumn(1).width = 40;
+        refSheet.getColumn(2).width = 40;
+        // Header
+        refSheet.addRow(['Label', 'ID']);
+        for (const label of data.labels) {
+          refSheet.addRow([label, data.labelToId[label] || '']);
+        }
+      }
+
+      // Also create a country reference sheet
+      const countrySheetName = '_ref_countries';
+      const csSheet = wb.addWorksheet(countrySheetName);
+      csSheet.state = 'veryHidden';
+      csSheet.getColumn(1).width = 30;
+      csSheet.getColumn(2).width = 5;
+      csSheet.addRow(['Name', 'Code']);
+      for (const c of COUNTRY_NAMES) {
+        csSheet.addRow([c.name, c.code]);
+      }
+
+      // ── Data Entry sheet ──
+      const ws = wb.addWorksheet('Data Entry', {
+        properties: { defaultColWidth: 18 },
+        views: [{ state: 'frozen', ySplit: 2 }],
+      });
+
+      const DATA_START_ROW = 3;
+      const DATA_ROWS = 200;
+
+      // Colors
+      const BLUE_BG = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FF1E40AF' } };
+      const GRAY_BG = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFF3F4F6' } };
+      const ORANGE_BG = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFFFF3E0' } };
+      const GREEN_BG = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFE8F5E9' } };
+
+      // Row 1: Field codes (system row)
+      const codeRow = ws.addRow(columns.map((c) => c.code));
+      codeRow.eachCell((cell, colIdx) => {
+        const col = columns[colIdx - 1];
+        const isConditional = !!col?.conditionText;
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+        cell.fill = isConditional
+          ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFED6C02' } } // orange for conditional
+          : BLUE_BG;
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = { bottom: { style: 'thin', color: { argb: 'FF000000' } } };
+      });
+
+      // Row 2: Labels + type + required indicator
+      const labelRow = ws.addRow(columns.map((c) => {
+        let label = c.label;
+        if (c.required) label += ' *';
+        return label;
+      }));
+      labelRow.eachCell((cell, colIdx) => {
+        const col = columns[colIdx - 1];
+        cell.font = { bold: true, size: 10, color: { argb: col?.required ? 'FFC62828' : 'FF333333' } };
+        cell.fill = col?.conditionText ? ORANGE_BG : GRAY_BG;
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+
+        // Add comment with help text, condition, cascade info
+        const notes: string[] = [];
+        if (col?.required) notes.push('REQUIRED FIELD');
+        if (col?.helpText) notes.push(col.helpText);
+        const typeLabel = col?.type === 'master-data-select' ? `Select from list (${col.refDataType})`
+          : col?.type === 'select' ? 'Select from dropdown'
+          : col?.type === 'date' ? 'Format: YYYY-MM-DD'
+          : col?.type === 'number' ? 'Numeric value'
+          : col?.type === 'checkbox' || col?.type === 'toggle' ? 'Yes / No'
+          : col?.type === 'geo-selector' ? 'Format: lat, lng (ex: -1.2921, 36.8219)'
+          : col?.type === 'repeater' || col?.type === 'matrix' ? 'Complex field — use web/mobile app'
+          : col?.type === 'admin-location-level' ? 'Select from dropdown'
+          : col?.type === 'text' ? 'Free text'
+          : col?.type === 'textarea' ? 'Free text (multiline)'
+          : col?.type || '';
+        notes.push(`Type: ${typeLabel}`);
+        if (col?.conditionText) notes.push(`CONDITIONAL: ${col.conditionText}`);
+        if (col?.parentFilterText) notes.push(`CASCADE: ${col.parentFilterText}`);
+        if (notes.length > 0) {
+          cell.note = { texts: [{ text: notes.join('\n'), font: { size: 9 } }] };
+        }
+      });
+
+      // Apply data validation (dropdowns) to data rows
+      for (let colIdx = 0; colIdx < columns.length; colIdx++) {
+        const col = columns[colIdx];
+        const colLetter = ws.getColumn(colIdx + 1).letter;
+
+        if (col.type === 'admin-location-level' && col.adminLevel === 0) {
+          // Country dropdown from hidden reference sheet
+          const count = COUNTRY_NAMES.length;
+          for (let r = DATA_START_ROW; r < DATA_START_ROW + DATA_ROWS; r++) {
+            const cell = ws.getCell(`${colLetter}${r}`);
+            cell.dataValidation = {
+              type: 'list',
+              formulae: [`'${countrySheetName}'!$A$2:$A$${count + 1}`],
+              showErrorMessage: true,
+              errorTitle: 'Invalid country',
+              error: 'Please select a country from the list',
+            };
+          }
+        } else if (col.selectOptions && col.selectOptions.length > 0) {
+          // Static select options — inline if short, reference sheet if long
+          const joined = col.selectOptions.map((o) => o.replace(/,/g, '')).join(',');
+          if (joined.length <= 250) {
+            for (let r = DATA_START_ROW; r < DATA_START_ROW + DATA_ROWS; r++) {
+              const cell = ws.getCell(`${colLetter}${r}`);
+              cell.dataValidation = {
+                type: 'list',
+                formulae: [`"${joined}"`],
+                showErrorMessage: true,
+                errorTitle: 'Invalid value',
+                error: `Please select: ${col.selectOptions.slice(0, 5).join(', ')}${col.selectOptions.length > 5 ? '...' : ''}`,
+              };
+            }
+          }
+        } else if (col.refDataType && refSheetNames[col.refDataType]) {
+          // Master-data-select dropdown from hidden reference sheet
+          const sheetName = refSheetNames[col.refDataType];
+          const count = refDataMap[col.refDataType]?.labels.length || 0;
+          if (count > 0) {
+            for (let r = DATA_START_ROW; r < DATA_START_ROW + DATA_ROWS; r++) {
+              const cell = ws.getCell(`${colLetter}${r}`);
+              cell.dataValidation = {
+                type: 'list',
+                formulae: [`'${sheetName}'!$A$2:$A$${count + 1}`],
+                showErrorMessage: true,
+                errorTitle: 'Invalid value',
+                error: `Please select a valid ${col.label} from the dropdown list`,
+              };
+            }
+          }
+        } else if (col.type === 'checkbox' || col.type === 'toggle') {
+          for (let r = DATA_START_ROW; r < DATA_START_ROW + DATA_ROWS; r++) {
+            const cell = ws.getCell(`${colLetter}${r}`);
+            cell.dataValidation = {
+              type: 'list',
+              formulae: ['"Yes,No"'],
+              showErrorMessage: true,
+              errorTitle: 'Invalid value',
+              error: 'Please select Yes or No',
+            };
+          }
+        }
+
+        // Color data cells for conditional columns
+        if (col.conditionText) {
+          for (let r = DATA_START_ROW; r < DATA_START_ROW + DATA_ROWS; r++) {
+            const cell = ws.getCell(`${colLetter}${r}`);
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFDE7' } };
+          }
+        }
+
+        // Light green for required columns
+        if (col.required && !col.conditionText) {
+          for (let r = DATA_START_ROW; r < DATA_START_ROW + DATA_ROWS; r++) {
+            const cell = ws.getCell(`${colLetter}${r}`);
+            cell.fill = GREEN_BG;
+          }
+        }
+      }
+
+      // Auto-width columns
+      ws.columns.forEach((col, i) => {
+        const c = columns[i];
+        col.width = Math.max(16, (c?.label.length ?? 10) + 6);
+      });
+
+      // ── Instructions sheet ──
+      const wsInst = wb.addWorksheet('Instructions');
+      wsInst.getColumn(1).width = 25;
+      wsInst.getColumn(2).width = 35;
+      wsInst.getColumn(3).width = 20;
+      wsInst.getColumn(4).width = 15;
+      wsInst.getColumn(5).width = 40;
+      wsInst.getColumn(6).width = 40;
+      wsInst.getColumn(7).width = 40;
+
+      // Title
+      const titleRow = wsInst.addRow(['ARIS 4.0 — Import Template']);
+      titleRow.getCell(1).font = { bold: true, size: 14, color: { argb: 'FF1E40AF' } };
+      wsInst.addRow([`Form: ${tplName(template.name)}`]).getCell(1).font = { bold: true, size: 11 };
+      wsInst.addRow([`Version: ${template.version}`]);
+      wsInst.addRow([`Fields: ${columns.length}`]);
+      wsInst.addRow([`Generated: ${new Date().toLocaleDateString()}`]);
+      wsInst.addRow(['']);
+
+      // General instructions
+      const instrTitle = wsInst.addRow(['INSTRUCTIONS']);
+      instrTitle.getCell(1).font = { bold: true, size: 12, color: { argb: 'FF1E40AF' } };
+      wsInst.addRow(['1. Go to the "Data Entry" sheet to fill in data']);
+      wsInst.addRow(['2. Row 1 contains field CODES — DO NOT MODIFY']);
+      wsInst.addRow(['3. Row 2 contains field labels with * for required fields']);
+      wsInst.addRow(['4. Start entering data from row 3 (one submission per row)']);
+      wsInst.addRow(['5. Fields with dropdowns: click the cell and select from the list']);
+      wsInst.addRow(['6. Hover over column headers (row 2) to see detailed instructions']);
+      wsInst.addRow(['7. Orange columns = conditional fields (may not always apply)']);
+      wsInst.addRow(['8. Green cells = required fields that must be filled']);
+      wsInst.addRow(['9. For cascade fields, fill the parent first, then the child']);
+      wsInst.addRow(['10. Dates must use YYYY-MM-DD format (e.g. 2026-01-15)']);
+      wsInst.addRow(['11. Coordinates: latitude, longitude (e.g. -1.2921, 36.8219)']);
+      wsInst.addRow(['']);
+
+      // Color legend
+      const legendTitle = wsInst.addRow(['COLOR LEGEND']);
+      legendTitle.getCell(1).font = { bold: true, size: 12, color: { argb: 'FF1E40AF' } };
+      const legend = [
+        { color: 'FF1E40AF', text: 'Blue header', desc: 'Standard field' },
+        { color: 'FFED6C02', text: 'Orange header', desc: 'Conditional field (depends on another field value)' },
+        { color: 'FFE8F5E9', text: 'Green cell', desc: 'Required field' },
+        { color: 'FFFFFDE7', text: 'Yellow cell', desc: 'Conditional field (fill only if condition is met)' },
+      ];
+      for (const l of legend) {
+        const row = wsInst.addRow([l.text, l.desc]);
+        row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: l.color } };
+        row.getCell(1).font = { bold: true, color: { argb: l.color === 'FFE8F5E9' || l.color === 'FFFFFDE7' ? 'FF333333' : 'FFFFFFFF' } };
+      }
+      wsInst.addRow(['']);
+
+      // Field reference table
+      const refTitle = wsInst.addRow(['FIELD REFERENCE']);
+      refTitle.getCell(1).font = { bold: true, size: 12, color: { argb: 'FF1E40AF' } };
+      const refHeader = wsInst.addRow(['Code', 'Label', 'Type', 'Required', 'Accepted Values', 'Condition', 'Cascade']);
+      refHeader.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF374151' } };
+      });
+
+      for (const col of columns) {
+        let acceptedValues = '';
+        if (col.selectOptions && col.selectOptions.length > 0) {
+          acceptedValues = col.selectOptions.join(', ');
+        } else if (col.refDataType && refDataMap[col.refDataType]) {
+          const labels = refDataMap[col.refDataType].labels;
+          acceptedValues = labels.length <= 15
+            ? labels.join(', ')
+            : `${labels.slice(0, 10).join(', ')} ... (${labels.length} total)`;
+        } else if (col.type === 'date') {
+          acceptedValues = 'YYYY-MM-DD';
+        } else if (col.type === 'number') {
+          acceptedValues = 'Numeric';
+        } else if (col.type === 'checkbox' || col.type === 'toggle') {
+          acceptedValues = 'Yes, No';
+        } else if (col.type === 'geo-selector') {
+          acceptedValues = 'lat, lng';
+        } else if (col.type === 'admin-location-level' && col.adminLevel === 0) {
+          acceptedValues = `Country name (${COUNTRY_NAMES.length} countries)`;
+        }
+
+        wsInst.addRow([
+          col.code,
+          col.label + (col.required ? ' *' : ''),
+          col.type === 'master-data-select' ? `Reference (${col.refDataType})` : col.type,
+          col.required ? 'YES' : 'No',
+          acceptedValues,
+          col.conditionText || '',
+          col.parentFilterText || '',
+        ]);
+      }
+
+      wsInst.addRow(['']);
+
+      // Cascade dependencies documentation
+      const cascadeFields = columns.filter((c) => c.parentFilterText);
+      if (cascadeFields.length > 0) {
+        const cascTitle = wsInst.addRow(['CASCADE DEPENDENCIES']);
+        cascTitle.getCell(1).font = { bold: true, size: 12, color: { argb: 'FFED6C02' } };
+        wsInst.addRow(['The following fields filter their options based on another field:']);
+        wsInst.addRow(['']);
+        const cascHdr = wsInst.addRow(['Child Field', 'Parent Field', 'Instructions']);
+        cascHdr.eachCell((cell) => {
+          cell.font = { bold: true };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3E0' } };
+        });
+        for (const c of cascadeFields) {
+          wsInst.addRow([
+            c.label,
+            c.parentFilterText?.replace('Filtered by: ', '') || '',
+            `Fill "${c.parentFilterText?.replace('Filtered by: ', '')}" FIRST. The dropdown for "${c.label}" shows all values — select the correct one for the chosen parent.`,
+          ]);
+        }
+        wsInst.addRow(['']);
+      }
+
+      // Conditional fields documentation
+      const condFields = columns.filter((c) => c.conditionText);
+      if (condFields.length > 0) {
+        const condTitle = wsInst.addRow(['CONDITIONAL FIELDS']);
+        condTitle.getCell(1).font = { bold: true, size: 12, color: { argb: 'FFED6C02' } };
+        wsInst.addRow(['These fields only apply when certain conditions are met:']);
+        wsInst.addRow(['']);
+        const condHdr = wsInst.addRow(['Field', 'Condition', 'Instructions']);
+        condHdr.eachCell((cell) => {
+          cell.font = { bold: true };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFDE7' } };
+        });
+        for (const c of condFields) {
+          wsInst.addRow([
+            c.label,
+            c.conditionText || '',
+            `Only fill this field when the condition is met. Leave empty otherwise.`,
+          ]);
+        }
+      }
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      downloadBlob(blob, `ARIS_Import_Template_${tplName(template.name).replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
+    } catch (err) {
+      console.error('[Template] Generation failed:', err);
+    } finally {
+      setGenerating(false);
     }
-
-    // Auto-width
-    ws.columns.forEach((col, i) => {
-      col.width = Math.max(14, (fields[i]?.label.length ?? 10) + 4);
-    });
-
-    // Instructions sheet
-    const wsInst = wb.addWorksheet('Instructions');
-    wsInst.addRow(['ARIS 4.0 — Import Template']);
-    wsInst.addRow([`Form: ${tplName(template.name)}`]);
-    wsInst.addRow([`Version: ${template.version}`]);
-    wsInst.addRow([`Fields: ${fields.length}`]);
-    wsInst.addRow(['']);
-    wsInst.addRow(['Instructions:']);
-    wsInst.addRow(['1. Fill data starting from row 3 in the Data Entry sheet']);
-    wsInst.addRow(['2. Row 1 contains field CODES (do not modify)']);
-    wsInst.addRow(['3. Row 2 contains human-readable labels (for reference only)']);
-    wsInst.addRow(['4. Each row after row 2 = one submission']);
-    wsInst.addRow(['5. Required fields must be filled for successful import']);
-    wsInst.addRow(['']);
-    wsInst.addRow(['Field Reference:']);
-    for (const f of fields) {
-      wsInst.addRow([`  ${f.code} — ${f.label} (${f.type})`]);
-    }
-
-    const buffer = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    downloadBlob(blob, `ARIS_Import_Template_${tplName(template.name).replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
-  }, [fields, tplName(template.name), template.version]);
+  }, [tplFields, tplName(template.name), template.version, schema]);
 
   const handleImport = useCallback(async () => {
     if (!file) return;
@@ -577,6 +1056,43 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
     setResult(null);
 
     try {
+      // 1. Fetch reference data for resolving labels → UUIDs
+      const mdTypes = new Set<string>();
+      for (const f of tplFields) {
+        if (f.masterDataType) mdTypes.add(f.masterDataType);
+      }
+      const labelToIdMaps: Record<string, Record<string, string>> = {};
+      if (mdTypes.size > 0) {
+        const fetches = await Promise.all(
+          [...mdTypes].map(async (type) => {
+            const data = await fetchRefDataBidirectional(type);
+            return { type, labelToId: data.labelToId };
+          }),
+        );
+        for (const { type, labelToId } of fetches) {
+          labelToIdMaps[type] = labelToId;
+        }
+      }
+
+      // Build reverse country name → code map
+      const countryNameToCode: Record<string, string> = {};
+      for (const c of COUNTRY_NAMES) {
+        countryNameToCode[c.name.toLowerCase()] = c.code;
+      }
+
+      // Build select option label → value maps
+      const selectLabelToValue: Record<string, Record<string, string>> = {};
+      for (const f of tplFields) {
+        if (f.options) {
+          const map: Record<string, string> = {};
+          for (const o of f.options) { map[o.label.toLowerCase()] = o.value; }
+          selectLabelToValue[f.code] = map;
+        }
+      }
+
+      // Identify admin-location fields for reconstruction
+      const adminLocationFields = tplFields.filter((f) => f.type === 'admin-location' && f.levels);
+
       const ExcelJS = (await import('exceljs')).default;
       const wb = new ExcelJS.Workbook();
       const buffer = await file.arrayBuffer();
@@ -596,9 +1112,10 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
         headers[colNumber - 1] = String(cell.value ?? '').trim();
       });
 
-      // Skip row 2 if it looks like labels (check if first cell matches a field label)
+      // Skip row 2 if it looks like labels
       const row2Val = String(ws.getRow(2).getCell(1).value ?? '');
-      const startRow = fields.some((f) => f.label === row2Val) ? 3 : 2;
+      const isLabelRow = tplFields.some((f) => f.label === row2Val) || row2Val.endsWith(' *');
+      const startRow = isLabelRow ? 3 : 2;
 
       // Parse data rows
       const rows: Record<string, unknown>[] = [];
@@ -606,18 +1123,83 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
         const row = ws.getRow(r);
         if (!row || row.cellCount === 0) continue;
 
-        const rowData: Record<string, unknown> = {};
+        const rawData: Record<string, unknown> = {};
         let hasValue = false;
         headers.forEach((header, idx) => {
           if (!header) return;
           const cell = row.getCell(idx + 1);
           const val = cell.value;
           if (val !== null && val !== undefined && val !== '') {
-            rowData[header] = val;
+            rawData[header] = val;
             hasValue = true;
           }
         });
-        if (hasValue) rows.push(rowData);
+        if (!hasValue) continue;
+
+        // Resolve labels → IDs/values
+        const resolvedData: Record<string, unknown> = {};
+        for (const [key, val] of Object.entries(rawData)) {
+          const strVal = String(val).trim();
+
+          // Check if this is an admin-location sub-column
+          const adminMatch = key.match(/^(.+)__(country|admin(\d))$/);
+          if (adminMatch) {
+            // Will be reconstructed below
+            resolvedData[key] = strVal;
+            continue;
+          }
+
+          // Find the template field
+          const field = tplFields.find((f) => f.code === key);
+          if (!field) { resolvedData[key] = val; continue; }
+
+          // Resolve master-data-select: label → UUID
+          if (field.masterDataType && labelToIdMaps[field.masterDataType]) {
+            const resolved = labelToIdMaps[field.masterDataType][strVal];
+            resolvedData[key] = resolved || strVal;
+            continue;
+          }
+
+          // Resolve static select: label → value
+          if (field.options && selectLabelToValue[key]) {
+            const resolved = selectLabelToValue[key][strVal.toLowerCase()];
+            resolvedData[key] = resolved || strVal;
+            continue;
+          }
+
+          // Boolean fields
+          if (field.type === 'checkbox' || field.type === 'toggle') {
+            resolvedData[key] = strVal.toLowerCase() === 'yes' || strVal === 'true' || strVal === '1';
+            continue;
+          }
+
+          resolvedData[key] = val;
+        }
+
+        // Reconstruct admin-location objects from expanded columns
+        for (const alf of adminLocationFields) {
+          const loc: Record<string, string> = {};
+          let hasLoc = false;
+          for (const level of alf.levels || []) {
+            const colKey = level === 0 ? `${alf.code}__country` : `${alf.code}__admin${level}`;
+            const cellVal = String(resolvedData[colKey] || '').trim();
+            if (cellVal) {
+              if (level === 0) {
+                // Resolve country name → code
+                loc[`level_${level}`] = countryNameToCode[cellVal.toLowerCase()] || cellVal;
+              } else {
+                // For admin divisions, try to find GADM GID by name
+                const gid = Object.entries(GADM_MAP).find(([, name]) => name.toLowerCase() === cellVal.toLowerCase())?.[0];
+                loc[`level_${level}`] = gid || cellVal;
+              }
+              hasLoc = true;
+            }
+            delete resolvedData[colKey];
+          }
+          if (hasLoc) resolvedData[alf.code] = loc;
+        }
+
+        rows.push(resolvedData);
       }
 
       if (rows.length === 0) {
@@ -684,7 +1266,7 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
     } finally {
       setImporting(false);
     }
-  }, [file, campaignId, fields]);
+  }, [file, campaignId, tplFields]);
 
   if (!open) return null;
 
@@ -709,13 +1291,16 @@ export function ImportModal({ open, onClose, campaignId, template }: ImportModal
           {/* Generate template button */}
           <button
             onClick={handleGenerateTemplate}
-            className="w-full flex items-center gap-3 rounded-xl border-2 border-dashed border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/10 p-4 text-left hover:border-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/20 transition-colors"
+            disabled={generating}
+            className="w-full flex items-center gap-3 rounded-xl border-2 border-dashed border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/10 p-4 text-left hover:border-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/20 transition-colors disabled:opacity-60"
           >
-            <FileDown className="h-8 w-8 text-emerald-500" />
+            {generating ? <Loader2 className="h-8 w-8 text-emerald-500 animate-spin" /> : <FileDown className="h-8 w-8 text-emerald-500" />}
             <div>
-              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">{t('downloadRefTemplate')}</p>
+              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                {generating ? 'Generating template...' : t('downloadRefTemplate')}
+              </p>
               <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">
-                {t('generateTemplateDesc', { count: String(fields.length) })}
+                {generating ? 'Fetching reference data and building dropdowns...' : t('generateTemplateDesc', { count: String(tplFields.length) })}
               </p>
             </div>
           </button>
