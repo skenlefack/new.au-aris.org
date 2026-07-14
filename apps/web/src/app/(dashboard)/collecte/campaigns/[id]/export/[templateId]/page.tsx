@@ -35,6 +35,8 @@ interface Field {
   masterDataType?: string;
   options?: { label: string; value: string }[];
   searchable?: boolean;
+  /** Admin-location: configured admin levels (e.g. [0,1,2]) */
+  levels?: number[];
 }
 
 function extractFields(schema: unknown): Field[] {
@@ -56,6 +58,7 @@ function extractFields(schema: unknown): Field[] {
           masterDataType: props.masterDataType || props.referenceType || undefined,
           options: opts.length > 0 ? opts : undefined,
           searchable: f.searchable === true || props.searchable === true,
+          levels: f.type === 'admin-location' ? (props.levels as number[] || [0, 1, 2]) : undefined,
         });
       }
     }
@@ -79,6 +82,114 @@ for (const [, countryData] of Object.entries(ADMIN_DIVISIONS)) {
   for (const a2 of countryData.admin2 || []) {
     GADM_MAP[a2.gid] = a2.name;
   }
+}
+
+// Admin-location level labels for export columns
+const ADMIN_LEVEL_LABELS: Record<number, string> = {
+  0: 'Pays',
+  1: 'Admin1 (Région/Province)',
+  2: 'Admin2 (District/Département)',
+  3: 'Admin3 (Sous-district/Commune)',
+  4: 'Admin4 (Quartier/Village)',
+  5: 'Admin5 (Localité)',
+};
+
+/** Resolve a GADM GID or custom value to a display name */
+function resolveAdminValue(val: string | undefined, level: number): string {
+  if (!val) return '';
+  // Custom division: __new:Name → Name
+  if (val.startsWith('__new:')) return val.slice(6);
+  // Level 0 = country code
+  if (level === 0) return COUNTRY_MAP[val] || COUNTRY_MAP[val.toUpperCase()] || val;
+  // Admin1/Admin2 from GADM static map
+  return GADM_MAP[val] || val;
+}
+
+interface ExportColumn {
+  header: string;
+  /** Extract cell value from a submission row */
+  getValue: (row: Record<string, unknown>, refMap: Record<string, string>) => string;
+}
+
+/** Build expanded export columns: admin-location fields become multiple columns */
+function buildExportColumns(fields: Field[]): ExportColumn[] {
+  const cols: ExportColumn[] = [];
+  for (const field of fields) {
+    if (field.type === 'admin-location' && field.levels) {
+      // Expand into one column per admin level
+      for (const level of field.levels) {
+        cols.push({
+          header: ADMIN_LEVEL_LABELS[level] || `Admin${level}`,
+          getValue: (row, _refMap) => {
+            const loc = row[field.code];
+            if (!loc || typeof loc !== 'object' || Array.isArray(loc)) return '';
+            const val = (loc as Record<string, string>)[`level_${level}`];
+            return resolveAdminValue(val, level);
+          },
+        });
+      }
+    } else {
+      cols.push({
+        header: field.label,
+        getValue: (row, refMap) => formatCellForExport(row[field.code], field, refMap),
+      });
+    }
+  }
+  return cols;
+}
+
+/** Format a cell value for export (string output, resolves UUIDs/options/etc.) */
+function formatCellForExport(val: unknown, field: Field, refMap: Record<string, string>): string {
+  if (val === null || val === undefined || val === '') return '';
+
+  // Geo coordinates
+  if (field.type === 'geo-selector' && typeof val === 'object' && !Array.isArray(val)) {
+    const geo = val as { lat?: number; lng?: number };
+    if (geo.lat && geo.lng) return `${geo.lat.toFixed(6)}, ${geo.lng.toFixed(6)}`;
+    return '';
+  }
+
+  // Select with options — resolve value to label
+  if (field.options && typeof val === 'string') {
+    const opt = field.options.find((o) => o.value === val);
+    if (opt) return opt.label;
+  }
+
+  // UUID → try refMap
+  if (typeof val === 'string' && UUID_RE.test(val)) {
+    return refMap[val] || val;
+  }
+
+  // Array
+  if (Array.isArray(val)) {
+    if (val.length === 0) return '';
+    // Array of UUIDs
+    if (typeof val[0] === 'string') {
+      return val.map((v) => UUID_RE.test(v) ? (refMap[v] || v) : v).join(', ');
+    }
+    // Array of objects (repeater rows) — resolve UUIDs inside each row
+    return val.map((item, i) => {
+      if (typeof item !== 'object' || !item) return String(item);
+      const parts: string[] = [];
+      for (const [k, v] of Object.entries(item as Record<string, unknown>)) {
+        const label = FIELD_LABELS[k] || k;
+        let display = '';
+        if (typeof v === 'string' && UUID_RE.test(v)) {
+          display = refMap[v] || v;
+        } else if (typeof v === 'boolean') {
+          display = v ? 'Yes' : 'No';
+        } else {
+          display = String(v ?? '');
+        }
+        if (display) parts.push(`${label}: ${display}`);
+      }
+      return `[${i + 1}] ${parts.join(', ')}`;
+    }).join(' | ');
+  }
+
+  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+  if (typeof val === 'object') return JSON.stringify(val);
+  return String(val);
 }
 
 async function fetchSubmissions(campaignId: string, limit = 100): Promise<{ submissions: any[]; total: number }> {
@@ -469,6 +580,9 @@ export default function ExportPage() {
     }
   }, [isViewMode, viewPage, viewPageSize, fetchPage]);
 
+  // Build expanded export columns (admin-location → separate columns, values resolved)
+  const exportColumns = useMemo(() => buildExportColumns(fields), [fields]);
+
   const handleExport = useCallback(async () => {
     setExporting(true); setError('');
     try {
@@ -479,23 +593,35 @@ export default function ExportPage() {
       if (format === 'json') {
         dl(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), `${name}_export.json`);
       } else if (format === 'csv') {
-        const hdr = fields.map((f) => f.code);
-        const csv = [hdr.join(','), ...data.map((r) => hdr.map((h) => `"${String(r?.[h] ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+        const headers = exportColumns.map((c) => c.header);
+        const csvRows = data.map((row) =>
+          exportColumns.map((c) => `"${c.getValue(row || {}, refMap).replace(/"/g, '""')}"`).join(','),
+        );
+        const csv = [headers.join(','), ...csvRows].join('\n');
         dl(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }), `${name}_export.csv`);
       } else {
         const ExcelJS = (await import('exceljs')).default;
         const wb = new ExcelJS.Workbook();
+        wb.creator = 'ARIS 4.0 — AU-IBAR';
         const ws = wb.addWorksheet('Data');
-        const hr = ws.addRow(fields.map((f) => f.label));
-        hr.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } }; });
-        for (const row of data) ws.addRow(fields.map((f) => row?.[f.code] ?? ''));
-        ws.columns.forEach((col, i) => { col.width = Math.max(12, (fields[i]?.label.length ?? 10) + 4); });
+        const hr = ws.addRow(exportColumns.map((c) => c.header));
+        hr.eachCell((c) => {
+          c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
+          c.alignment = { horizontal: 'center' };
+        });
+        for (const row of data) {
+          ws.addRow(exportColumns.map((c) => c.getValue(row || {}, refMap)));
+        }
+        ws.columns.forEach((col, i) => {
+          col.width = Math.max(14, (exportColumns[i]?.header.length ?? 10) + 4);
+        });
         const buf = await wb.xlsx.writeBuffer();
         dl(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${name}_export.xlsx`);
       }
       setDone(true);
     } catch (e: any) { setError(e?.message || t('exportFailed')); } finally { setExporting(false); }
-  }, [campaignId, format, filters, fields, name]);
+  }, [campaignId, format, filters, exportColumns, refMap, name]);
 
   // Form-specific filter fields: searchable + auto-detected select/text
   const formFilterFields = useMemo(() => {

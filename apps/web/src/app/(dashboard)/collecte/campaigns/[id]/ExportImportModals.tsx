@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   X,
   Download,
@@ -15,7 +15,10 @@ import {
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import type { FormTemplateListItem } from '@/lib/api/form-builder-hooks';
+import { COUNTRIES } from '@/data/countries-config';
+import { ADMIN_DIVISIONS } from '@/data/admin-divisions';
 
 // ── Types ──
 
@@ -42,6 +45,58 @@ function ml(t?: { en?: string; fr?: string }): string {
   return t?.en || t?.fr || '';
 }
 
+// Country code → name map
+const COUNTRY_MAP: Record<string, string> = {};
+for (const [code, c] of Object.entries(COUNTRIES)) {
+  COUNTRY_MAP[code.toUpperCase()] = c.name;
+  COUNTRY_MAP[code.toLowerCase()] = c.name;
+}
+
+// GADM gid → name map for admin divisions (admin1 + admin2)
+const GADM_MAP: Record<string, string> = {};
+for (const [, countryData] of Object.entries(ADMIN_DIVISIONS)) {
+  for (const a1 of countryData.admin1 || []) GADM_MAP[a1.gid] = a1.name;
+  for (const a2 of countryData.admin2 || []) GADM_MAP[a2.gid] = a2.name;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const ADMIN_LEVEL_LABELS: Record<number, string> = {
+  0: 'Pays', 1: 'Admin1 (Région/Province)', 2: 'Admin2 (District/Département)',
+  3: 'Admin3 (Sous-district/Commune)', 4: 'Admin4 (Quartier/Village)', 5: 'Admin5 (Localité)',
+};
+
+function resolveAdminValue(val: string | undefined, level: number): string {
+  if (!val) return '';
+  if (val.startsWith('__new:')) return val.slice(6);
+  if (level === 0) return COUNTRY_MAP[val] || COUNTRY_MAP[val.toUpperCase()] || val;
+  return GADM_MAP[val] || val;
+}
+
+async function fetchRefData(type: string): Promise<Record<string, string>> {
+  const token = useAuthStore.getState().accessToken || '';
+  try {
+    const res = await fetch(`/api/v1/master-data/ref/${type}/for-select?limit=500`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return {};
+    const json = await res.json();
+    const map: Record<string, string> = {};
+    for (const item of json?.data || []) {
+      if (!item.id) continue;
+      const name = item.name;
+      let label = item.label || '';
+      if (!label && name) {
+        if (typeof name === 'string') label = name;
+        else if (typeof name === 'object') label = name.en || name.fr || name.pt || Object.values(name).find((v: any) => v) || '';
+      }
+      if (!label) label = item.code || '';
+      if (label) map[item.id] = label;
+    }
+    return map;
+  } catch { return {}; }
+}
+
 /** Safely extract a display string from a template name (may be string or i18n object) */
 function tplName(name: unknown): string {
   if (!name) return '';
@@ -53,15 +108,92 @@ function tplName(name: unknown): string {
   return String(name);
 }
 
-function flattenFields(sections: SchemaSection[]): { code: string; label: string; type: string }[] {
-  const rows: { code: string; label: string; type: string }[] = [];
+interface ExportField {
+  code: string;
+  label: string;
+  type: string;
+  levels?: number[];
+  masterDataType?: string;
+  options?: { label: string; value: string }[];
+}
+
+function flattenFields(sections: SchemaSection[]): ExportField[] {
+  const rows: ExportField[] = [];
   const sorted = [...sections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   for (const sec of sorted) {
     for (const f of sec.fields || []) {
-      if (f.code) rows.push({ code: f.code, label: ml(f.label) || f.code, type: f.type || 'text' });
+      if (f.code) {
+        const props = f.properties || {};
+        const opts = ((props.options || []) as SelectOpt[]).map((o) => ({
+          label: ml(o.label) || o.value || '',
+          value: o.value || '',
+        }));
+        rows.push({
+          code: f.code,
+          label: ml(f.label) || f.code,
+          type: f.type || 'text',
+          levels: f.type === 'admin-location' ? ((props.levels as number[]) || [0, 1, 2]) : undefined,
+          masterDataType: (props.masterDataType || props.referenceType) as string | undefined,
+          options: opts.length > 0 ? opts : undefined,
+        });
+      }
     }
   }
   return rows;
+}
+
+interface ExportColumn {
+  header: string;
+  getValue: (row: Record<string, unknown>, refMap: Record<string, string>) => string;
+}
+
+function buildExportColumns(fields: ExportField[]): ExportColumn[] {
+  const cols: ExportColumn[] = [];
+  for (const field of fields) {
+    if (field.type === 'admin-location' && field.levels) {
+      for (const level of field.levels) {
+        cols.push({
+          header: ADMIN_LEVEL_LABELS[level] || `Admin${level}`,
+          getValue: (row) => {
+            const loc = row[field.code];
+            if (!loc || typeof loc !== 'object' || Array.isArray(loc)) return '';
+            return resolveAdminValue((loc as Record<string, string>)[`level_${level}`], level);
+          },
+        });
+      }
+    } else {
+      cols.push({
+        header: field.label,
+        getValue: (row, refMap) => {
+          const val = row[field.code];
+          if (val === null || val === undefined || val === '') return '';
+          // Select with options
+          if (field.options && typeof val === 'string') {
+            const opt = field.options.find((o) => o.value === val);
+            if (opt) return opt.label;
+          }
+          // UUID → refMap
+          if (typeof val === 'string' && UUID_RE.test(val)) return refMap[val] || val;
+          // Array of UUIDs
+          if (Array.isArray(val)) {
+            if (val.length === 0) return '';
+            if (typeof val[0] === 'string') return val.map((v) => UUID_RE.test(v) ? (refMap[v] || v) : v).join(', ');
+            return `${val.length} item(s)`;
+          }
+          // Geo coordinates
+          if (field.type === 'geo-selector' && typeof val === 'object' && !Array.isArray(val)) {
+            const geo = val as { lat?: number; lng?: number };
+            if (geo.lat && geo.lng) return `${geo.lat.toFixed(6)}, ${geo.lng.toFixed(6)}`;
+            return '';
+          }
+          if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+          if (typeof val === 'object') return JSON.stringify(val);
+          return String(val);
+        },
+      });
+    }
+  }
+  return cols;
 }
 
 // ── Export Modal ──
@@ -80,9 +212,32 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
+  const [refMap, setRefMap] = useState<Record<string, string>>({});
 
   const schema = template.schema as { sections?: SchemaSection[] } | undefined;
   const fields = useMemo(() => flattenFields(schema?.sections || []), [schema]);
+  const exportColumns = useMemo(() => buildExportColumns(fields), [fields]);
+
+  // Load reference data for resolving UUIDs
+  const [refFetched, setRefFetched] = useState(false);
+  useEffect(() => {
+    if (open && fields.length > 0 && !refFetched) {
+      setRefFetched(true);
+      const mdTypes = new Set<string>();
+      for (const f of fields) {
+        if (f.masterDataType) mdTypes.add(f.masterDataType);
+      }
+      mdTypes.add('diseases'); mdTypes.add('species'); mdTypes.add('breeds');
+      mdTypes.add('age-groups'); mdTypes.add('vaccine-types'); mdTypes.add('control-measures');
+      mdTypes.add('production-systems'); mdTypes.add('sample-types'); mdTypes.add('test-types');
+      mdTypes.add('labs'); mdTypes.add('gear-types'); mdTypes.add('commodities');
+      Promise.all([...mdTypes].map((type) => fetchRefData(type))).then((maps) => {
+        const merged: Record<string, string> = {};
+        for (const m of maps) Object.assign(merged, m);
+        setRefMap(merged);
+      });
+    }
+  }, [open, fields, refFetched]);
 
   // Fields that are filterable (select, date, text)
   const filterableFields = useMemo(
@@ -155,10 +310,12 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
           const blob = new Blob([JSON.stringify(filtered.map((s: any) => s.data), null, 2)], { type: 'application/json' });
           downloadBlob(blob, `${tplName(template.name)}_export.json`);
         } else if (format === 'csv') {
-          const headers = fields.map((f) => f.code);
-          const rows = filtered.map((s: any) => headers.map((h) => String(s.data?.[h] ?? '')));
-          const csv = [headers.join(','), ...rows.map((r: string[]) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(','))].join('\n');
-          downloadBlob(new Blob([csv], { type: 'text/csv' }), `${tplName(template.name)}_export.csv`);
+          const headers = exportColumns.map((c) => c.header);
+          const csvRows = filtered.map((s: any) =>
+            exportColumns.map((c) => `"${c.getValue(s.data || {}, refMap).replace(/"/g, '""')}"`).join(','),
+          );
+          const csv = [headers.join(','), ...csvRows].join('\n');
+          downloadBlob(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }), `${tplName(template.name)}_export.csv`);
         } else {
           // XLSX export
           const ExcelJS = (await import('exceljs')).default;
@@ -166,22 +323,22 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
           wb.creator = 'ARIS 4.0 — AU-IBAR';
           const ws = wb.addWorksheet('Data');
 
-          // Header row
-          const headerRow = ws.addRow(fields.map((f) => f.label));
+          // Header row with expanded columns
+          const headerRow = ws.addRow(exportColumns.map((c) => c.header));
           headerRow.eachCell((cell) => {
             cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
             cell.alignment = { horizontal: 'center' };
           });
 
-          // Data rows
+          // Data rows with resolved values
           for (const sub of filtered) {
-            ws.addRow(fields.map((f) => sub.data?.[f.code] ?? ''));
+            ws.addRow(exportColumns.map((c) => c.getValue(sub.data || {}, refMap)));
           }
 
           // Auto-width columns
           ws.columns.forEach((col, i) => {
-            col.width = Math.max(12, (fields[i]?.label.length ?? 10) + 4);
+            col.width = Math.max(14, (exportColumns[i]?.header.length ?? 10) + 4);
           });
 
           const buffer = await wb.xlsx.writeBuffer();
@@ -201,7 +358,7 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
     } finally {
       setExporting(false);
     }
-  }, [campaignId, format, filters, fields, tplName(template.name)]);
+  }, [campaignId, format, filters, exportColumns, refMap, tplName(template.name)]);
 
   if (!open) return null;
 
