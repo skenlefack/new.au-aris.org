@@ -15,7 +15,8 @@ export type UserRole =
   | 'KNOWLEDGE_MANAGER'
   | 'NATIONAL_LABORATORY'
   | 'REGIONAL_LABORATORY'
-  | 'CONTINENTAL_LABORATORY';
+  | 'CONTINENTAL_LABORATORY'
+  | 'PAID_ADMIN';
 
 export interface AuthUser {
   id: string;

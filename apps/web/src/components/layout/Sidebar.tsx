@@ -250,6 +250,11 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
     '/home', '/my-dashboards', '/collecte', '/analytics', '/historical', '/reports',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
   ]),
+  PAID_ADMIN: new Set([
+    '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/workflow',
+    '/master-data',
+    '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+  ]),
 };
 
 /** Roles that have access to ALL business domains */
