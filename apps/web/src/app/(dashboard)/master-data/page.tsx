@@ -10,6 +10,7 @@ import {
   type DomainConfig,
 } from '@/components/master-data/ref-data-config';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 function ScopeBadge({ scope }: { scope: string }) {
   const t = useTranslations('masterData');
@@ -237,6 +238,12 @@ export default function MasterDataDashboard() {
   const t = useTranslations('masterData');
   const { data: countsData, isLoading } = useRefDataCounts();
   const counts = countsData?.data ?? {};
+  const role = useAuthStore((s) => s.user?.role);
+
+  // PAID_ADMIN only sees the PAID section
+  const visibleDomains = role === 'PAID_ADMIN'
+    ? DOMAIN_CONFIG.filter((d) => d.slug === 'paid')
+    : DOMAIN_CONFIG;
 
   return (
     <div className="space-y-6">
@@ -251,21 +258,23 @@ export default function MasterDataDashboard() {
       </div>
 
       {/* Scope legend */}
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
-        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('scopeLegend')}</span>
-        <ScopeBadge scope="continental" />
-        <span className="text-xs text-gray-400">{t('visibleByAll')}</span>
-        <span className="text-gray-300 dark:text-gray-600">|</span>
-        <ScopeBadge scope="regional" />
-        <span className="text-xs text-gray-400">{t('recMemberStates')}</span>
-        <span className="text-gray-300 dark:text-gray-600">|</span>
-        <ScopeBadge scope="national" />
-        <span className="text-xs text-gray-400">{t('countryOnly')}</span>
-      </div>
+      {role !== 'PAID_ADMIN' && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('scopeLegend')}</span>
+          <ScopeBadge scope="continental" />
+          <span className="text-xs text-gray-400">{t('visibleByAll')}</span>
+          <span className="text-gray-300 dark:text-gray-600">|</span>
+          <ScopeBadge scope="regional" />
+          <span className="text-xs text-gray-400">{t('recMemberStates')}</span>
+          <span className="text-gray-300 dark:text-gray-600">|</span>
+          <ScopeBadge scope="national" />
+          <span className="text-xs text-gray-400">{t('countryOnly')}</span>
+        </div>
+      )}
 
       {/* Domain sections */}
       <div className="space-y-10">
-        {DOMAIN_CONFIG.map((domain) => domain.slug === 'paid' ? (
+        {visibleDomains.map((domain) => domain.slug === 'paid' ? (
           <PaidDomainSection key="paid" domain={domain} />
         ) : (
           <DomainSection

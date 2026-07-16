@@ -254,6 +254,7 @@ const ROLE_STATIC_ACCESS: Record<UserRole, Set<string>> = {
     '/home', '/my-dashboards', '/paid', '/paid-collecte', '/collecte', '/workflow',
     '/master-data',
     '/bi-tools/superset', '/bi-tools/metabase', '/bi-tools/grafana',
+    '/support',
   ]),
 };
 
