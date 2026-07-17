@@ -94,17 +94,60 @@ function getCurrentLocale(): string {
   return 'fr';
 }
 
+/**
+ * Build the `dataSource` object that WidgetConfigPanel expects.
+ *
+ * Backend stores:
+ *   - `data_source` column (enum): 'INDICATOR' | 'FORM_AGGREGATION' | 'ANALYTICS_QUERY' | ...
+ *   - `config` JSON: contains both display config AND data source params (formId, queryType, etc.)
+ *
+ * Frontend WidgetConfigPanel reads:
+ *   - `widget.dataSource.type` → the data source type
+ *   - `widget.dataSource.formId`, `.indicatorCode`, `.queryType`, etc. → data source params
+ *   - `widget.config` → display config (colors, xKey, yKeys, etc.)
+ */
+const DS_PARAM_KEYS = [
+  'indicatorCode', 'kpiCode', 'formId', 'aggregation', 'field', 'groupBy',
+  'value', 'label', 'formula', 'query', 'referencedWidgetIds',
+  'queryType', 'domain', 'metric', 'sort', 'limit', 'sortBy', 'sortOrder', 'filters',
+];
+
+function buildDataSource(w: any): Record<string, unknown> {
+  // Determine the data source type from the DB column
+  const dsType = w.data_source ?? w.dataSource?.type ?? 'INDICATOR';
+
+  // If dataSource is already a properly formed object with type, use it
+  if (w.dataSource && typeof w.dataSource === 'object' && w.dataSource.type) {
+    return w.dataSource;
+  }
+
+  // Extract data source params from the config JSON
+  const configObj = typeof w.config === 'string' ? JSON.parse(w.config) : (w.config ?? {});
+  const ds: Record<string, unknown> = { type: dsType };
+
+  for (const k of DS_PARAM_KEYS) {
+    if (configObj[k] !== undefined) {
+      ds[k] = configObj[k];
+    }
+  }
+
+  return ds;
+}
+
 /** Map flat grid_x/grid_y/grid_w/grid_h from backend to layout object expected by frontend */
 function mapWidgetLayout(w: any): any {
   const locale = getCurrentLocale();
+  const dataSource = buildDataSource(w);
+
   if (w.layout) {
     // Still map the type even if layout is already mapped
-    return w.type ? { ...w, type: toFrontendType(w.type), title: pickTitle(w, locale) } : w;
+    return w.type ? { ...w, type: toFrontendType(w.type), title: pickTitle(w, locale), dataSource } : { ...w, dataSource };
   }
   return {
     ...w,
     type: toFrontendType(w.type ?? 'KPI_CARD'),
     title: pickTitle(w, locale),
+    dataSource,
     titleFr: w.title_fr ?? w.titleFr ?? '',
     titleEn: w.title_en ?? w.titleEn ?? '',
     titleAr: w.title_ar ?? w.titleAr ?? null,
@@ -586,7 +629,7 @@ export function useUpdateWidget() {
       dataSource?: Record<string, unknown>;
       layout?: { x: number; y: number; w: number; h: number };
     }) => {
-      const payload: Record<string, unknown> = { ...rest };
+      const payload: Record<string, unknown> = {};
       if (title !== undefined) {
         payload.titleFr = title;
         payload.titleEn = title;
@@ -596,8 +639,22 @@ export function useUpdateWidget() {
         payload.gridY = rest.layout.y;
         payload.gridW = rest.layout.w;
         payload.gridH = rest.layout.h;
-        delete payload.layout;
       }
+
+      // Split dataSource object into:
+      //   - dataSource (string enum) → stored in data_source column
+      //   - merge data source params into config → stored in config JSON
+      if (rest.dataSource && typeof rest.dataSource === 'object') {
+        const { type: dsType, ...dsParams } = rest.dataSource;
+        payload.dataSource = dsType || 'INDICATOR'; // string enum for the column
+
+        // Merge data source params + display config into one config object
+        const mergedConfig = { ...(rest.config || {}), ...dsParams };
+        payload.config = mergedConfig;
+      } else {
+        if (rest.config) payload.config = rest.config;
+      }
+
       return analyticsClient.patch<{ data: DashboardWidget }>(
         `/analytics/dashboards/${dashboardId}/widgets/${widgetId}`,
         payload,
