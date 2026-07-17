@@ -15,6 +15,7 @@ import {
   ExternalLink,
   ArrowUp,
   ArrowDown,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -200,28 +201,43 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
     return <div className="p-8 text-muted-foreground">Chargement...</div>;
   }
 
-  if (showPreview) {
-    return (
-      <div className="fixed inset-0 z-50 bg-background">
-        <SlideshowPlayer
-          slides={slides.map((s) => ({
-            ...s,
-            id: s.dashboardId,
-          }))}
-          transition={transition}
-          intervalMs={intervalMs}
-          autoPlay={autoPlay}
-          loop={loop}
-          showProgress={showProgress}
-          showControls={true}
-          onClose={() => setShowPreview(false)}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
+      {/* Preview modal overlay */}
+      {showPreview && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex flex-col">
+          {/* Modal header */}
+          <div className="flex items-center justify-between px-4 py-2 bg-gray-900 text-white">
+            <span className="text-sm font-medium">
+              {isFr ? 'Aperçu du diaporama' : 'Slideshow Preview'}
+            </span>
+            <button
+              onClick={() => setShowPreview(false)}
+              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
+              <X className="h-4 w-4" />
+              {isFr ? 'Fermer' : 'Close'}
+            </button>
+          </div>
+          {/* Player area */}
+          <div className="flex-1 relative">
+            <SlideshowPlayer
+              slides={slides.map((s) => ({
+                ...s,
+                id: s.dashboardId,
+              }))}
+              transition={transition}
+              intervalMs={intervalMs}
+              autoPlay={autoPlay}
+              loop={loop}
+              showProgress={showProgress}
+              showControls={true}
+              onClose={() => setShowPreview(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
