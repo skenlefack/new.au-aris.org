@@ -291,6 +291,7 @@
     "dbDsManualValue": "Manual Value",
     "dbDsCompositeFormula": "Composite Formula",
     "dbDsSqlQuery": "SQL Query",
+    "dbDsAnalyticsQuery": "Consulta analítica",
     "dbWtKpiCard": "KPI Card",
     "dbWtLineChart": "Line Chart",
     "dbWtBarChart": "Bar Chart",

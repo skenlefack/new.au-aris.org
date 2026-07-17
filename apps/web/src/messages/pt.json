@@ -415,6 +415,7 @@
     "dbDsManualValue": "Valor manual",
     "dbDsCompositeFormula": "Fórmula composta",
     "dbDsSqlQuery": "Consulta SQL",
+    "dbDsAnalyticsQuery": "Consulta analítica",
     "dbWtKpiCard": "Cartão KPI",
     "dbWtLineChart": "Gráfico de linhas",
     "dbWtBarChart": "Gráfico de barras",

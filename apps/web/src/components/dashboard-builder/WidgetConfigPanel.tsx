@@ -22,6 +22,7 @@ import { TableConfig } from './config/TableConfig';
 import { GaugeConfig } from './config/GaugeConfig';
 import { TextBlockConfig } from './config/TextBlockConfig';
 import { AlertFeedConfig } from './config/AlertFeedConfig';
+import { AnalyticsQueryConfig } from './config/AnalyticsQueryConfig';
 
 interface WidgetConfigPanelProps {
   widget: DashboardWidget | null;
@@ -32,6 +33,7 @@ interface WidgetConfigPanelProps {
 }
 
 const DATA_SOURCE_KEYS = [
+  { value: 'ANALYTICS_QUERY', labelKey: 'dbDsAnalyticsQuery' },
   { value: 'INDICATOR', labelKey: 'dbDsIndicator' },
   { value: 'FORM_AGGREGATION', labelKey: 'dbDsFormAggregation' },
   { value: 'KPI_CONTINENTAL', labelKey: 'dbDsKpiContinental' },
@@ -321,6 +323,8 @@ function DataSourceFields({
 }) {
   const t = useTranslations('dashboard');
   switch (type) {
+    case 'ANALYTICS_QUERY':
+      return <AnalyticsQueryConfig config={config} onChange={onChange} />;
     case 'INDICATOR':
       return <IndicatorPicker config={config} onChange={onChange} />;
     case 'FORM_AGGREGATION':
@@ -743,8 +747,60 @@ function FormAggregationPicker({
           <option value="count">{t('dbCount')} — Nombre de soumissions</option>
           <option value="sum">{t('dbSum')} — Somme d&apos;un champ numerique</option>
           <option value="avg">{t('dbAverage')} — Moyenne d&apos;un champ numerique</option>
+          <option value="min">Min — Valeur minimale</option>
+          <option value="max">Max — Valeur maximale</option>
         </select>
       </div>
+
+      {/* GroupBy (for charts) */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Regrouper par (optionnel)</label>
+        <select
+          value={(config.groupBy as string) ?? ''}
+          onChange={(e) => onChange({ groupBy: e.target.value || undefined })}
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
+        >
+          <option value="">Pas de regroupement (valeur unique)</option>
+          <option value="country">Par pays</option>
+          <option value="month">Par mois</option>
+          <option value="quarter">Par trimestre</option>
+          <option value="year">Par annee</option>
+          <option value="week">Par semaine</option>
+        </select>
+        {(config.groupBy as string) && (
+          <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+            Le resultat sera un tableau de donnees (ideal pour graphiques Bar, Line, Pie)
+          </p>
+        )}
+      </div>
+
+      {/* Sort + Limit when grouped */}
+      {(config.groupBy as string) && (
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-xs text-gray-500 mb-0.5 block">Tri</label>
+            <select
+              value={(config.sortBy as string) ?? 'value'}
+              onChange={(e) => onChange({ sortBy: e.target.value })}
+              className="w-full rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-xs"
+            >
+              <option value="value">Par valeur</option>
+              <option value="name">Par nom</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-0.5 block">Limite</label>
+            <input
+              type="number"
+              value={(config.limit as number) ?? 50}
+              onChange={(e) => onChange({ limit: Math.min(500, Math.max(1, parseInt(e.target.value) || 50)) })}
+              className="w-full rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-xs"
+              min={1}
+              max={500}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Field selector — dropdown from schema fields */}
       {config.formId && (

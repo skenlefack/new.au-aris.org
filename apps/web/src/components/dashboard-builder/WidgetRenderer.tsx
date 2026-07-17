@@ -86,13 +86,113 @@ function WidgetEmpty({ label }: { label: string }) {
   );
 }
 
+/**
+ * Normalize resolved data for chart/table/KPI widgets.
+ * ANALYTICS_QUERY and grouped FORM_AGGREGATION return { data: [{name, key, value}], ... }
+ * Charts expect { data: [...], xKey, yKeys, ... }
+ * KPI_CARD expects { value, label }
+ * TABLE expects { columns, rows }
+ */
+function normalizeResolvedData(
+  widgetType: string,
+  widgetConfig: Record<string, any>,
+  resolved: Record<string, any>,
+): Record<string, any> {
+  // If the resolved data has a `data` array (from ANALYTICS_QUERY or grouped aggregation)
+  const dataArray = resolved?.data;
+  if (!Array.isArray(dataArray)) return resolved;
+
+  const xKey = resolved.xKey || widgetConfig.xKey || 'name';
+  const yKey = resolved.yKey || widgetConfig.yKey || 'value';
+
+  // Charts: map data array + set axis keys
+  const CHART_TYPES = ['LINE', 'BAR', 'PIE', 'STACKED_BAR', 'AREA', 'EPI_CURVE', 'DUAL_AXIS'];
+  if (CHART_TYPES.includes(widgetType)) {
+    const chartData = dataArray.map((row: any) => ({
+      ...row,
+      // Ensure standard keys exist
+      name: row[xKey] ?? row.name ?? row.key ?? '',
+      value: typeof row[yKey] === 'number' ? row[yKey] : (parseFloat(row[yKey]) || 0),
+    }));
+    return {
+      ...resolved,
+      data: chartData,
+      chartConfig: {
+        ...widgetConfig,
+        xKey: 'name',
+        yKeys: [yKey],
+        nameKey: 'name',
+        valueKey: yKey,
+        colors: widgetConfig.colors || ['#1F4E79', '#C9A227', '#2E7D32', '#D84315', '#6A1B9A', '#0277BD', '#F57F17', '#455A64'],
+        showGrid: widgetConfig.showGrid ?? true,
+        showLegend: widgetConfig.showLegend ?? true,
+      },
+    };
+  }
+
+  // KPI_CARD / STAT_CARD / COUNTER / GAUGE: use first value or total
+  if (['KPI_CARD', 'STAT_CARD', 'COUNTER', 'GAUGE'].includes(widgetType)) {
+    // For continental_summary, map specific fields
+    if (resolved.total_submissions !== undefined) {
+      return { value: resolved.total_submissions, label: widgetConfig.label };
+    }
+    if (resolved.active_countries !== undefined) {
+      return { value: resolved.active_countries, label: widgetConfig.label };
+    }
+    // Single-value aggregation
+    if (resolved.value !== undefined) {
+      return resolved;
+    }
+    // Array → take first value or sum
+    if (dataArray.length === 1) {
+      return { value: dataArray[0].value, label: dataArray[0].name };
+    }
+    const total = dataArray.reduce((sum: number, r: any) => sum + (r.value || 0), 0);
+    return { value: total, label: widgetConfig.label || 'Total' };
+  }
+
+  // TABLE: auto-generate columns from data keys
+  if (widgetType === 'TABLE') {
+    if (dataArray.length > 0) {
+      const sampleKeys = Object.keys(dataArray[0]).filter((k) => k !== 'key');
+      const columns = widgetConfig.columns?.length > 0
+        ? widgetConfig.columns
+        : sampleKeys.map((k: string) => ({ key: k, label: k.charAt(0).toUpperCase() + k.slice(1) }));
+      return { columns, rows: dataArray, maxRows: widgetConfig.maxRows };
+    }
+  }
+
+  // RANKED_LIST: map to items
+  if (widgetType === 'RANKED_LIST') {
+    return {
+      items: dataArray.map((r: any) => ({ label: r.name || r.key, value: r.value })),
+      maxItems: widgetConfig.maxItems,
+      unit: widgetConfig.unit,
+    };
+  }
+
+  // PROGRESS_BAR: value / target from data
+  if (widgetType === 'PROGRESS_BAR' && dataArray.length >= 1) {
+    return { value: dataArray[0].value, target: widgetConfig.target || 100, label: widgetConfig.label };
+  }
+
+  // MAP: convert to map format
+  if (widgetType === 'MAP') {
+    return { data: dataArray };
+  }
+
+  return resolved;
+}
+
 export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererProps) {
   const t = useTranslations('dashboard');
   if (loading) return <WidgetSkeleton />;
   if (error) return <WidgetError message={error} />;
 
   const DEFAULT_WIDGET_CONFIGS = getDefaultWidgetConfigs(t);
-  const cfg = { ...DEFAULT_WIDGET_CONFIGS[widget.type], ...widget.config, ...data } as Record<string, any>;
+  // Normalize analytics query / grouped data into widget-expected format
+  const normalizedData = data ? normalizeResolvedData(widget.type, widget.config, data) : {};
+  const cfg = { ...DEFAULT_WIDGET_CONFIGS[widget.type], ...widget.config, ...normalizedData } as Record<string, any>;
 
   switch (widget.type) {
     case 'KPI_CARD':

@@ -49,6 +49,7 @@ export const WidgetDataSourceSchema = Type.Union([
   Type.Literal('MANUAL_VALUE'),
   Type.Literal('COMPOSITE'),
   Type.Literal('SQL_QUERY'),
+  Type.Literal('ANALYTICS_QUERY'),
 ]);
 
 export const SharePermissionSchema = Type.Union([
@@ -245,5 +246,16 @@ export const RenderQuerySchema = Type.Object({
   recCode: Type.Optional(Type.String({ maxLength: 20 })),
   year: Type.Optional(Type.Integer()),
   domainId: Type.Optional(Type.String({ format: 'uuid' })),
+  domainCode: Type.Optional(Type.String({ maxLength: 30 })),
+  dateFrom: Type.Optional(Type.String({ format: 'date' })),
+  dateTo: Type.Optional(Type.String({ format: 'date' })),
+  period: Type.Optional(Type.Union([
+    Type.Literal('last_7d'),
+    Type.Literal('last_30d'),
+    Type.Literal('last_90d'),
+    Type.Literal('last_12m'),
+    Type.Literal('ytd'),
+    Type.Literal('all'),
+  ])),
 });
 export type RenderQuery = Static<typeof RenderQuerySchema>;

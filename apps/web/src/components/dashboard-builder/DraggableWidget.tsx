@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
-import { GripVertical, Settings, Trash2, Copy } from 'lucide-react';
+import { GripVertical, Settings, Trash2, Copy, Download, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import type { DashboardWidget } from '@/lib/api/dashboard-hooks';
@@ -56,6 +56,60 @@ export function DraggableWidget({
   onDuplicate,
 }: DraggableWidgetProps) {
   const t = useTranslations('dashboard');
+  const widgetRef = React.useRef<HTMLDivElement>(null);
+
+  const handleExportCsv = React.useCallback(() => {
+    if (!data) return;
+    const dataArray = (data as any)?.data ?? (data as any)?.rows;
+    if (!Array.isArray(dataArray) || dataArray.length === 0) return;
+    const keys = Object.keys(dataArray[0]);
+    const csvRows = [keys.join(',')];
+    for (const row of dataArray) {
+      csvRows.push(keys.map((k) => {
+        const val = (row as any)[k];
+        return typeof val === 'string' && val.includes(',') ? `"${val}"` : String(val ?? '');
+      }).join(','));
+    }
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${widget.title || 'widget'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [data, widget.title]);
+
+  const handleExportPng = React.useCallback(async () => {
+    const el = widgetRef.current;
+    if (!el) return;
+    try {
+      const { default: html2canvas } = await import('html2canvas');
+      const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2 });
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${widget.title || 'widget'}.png`;
+      a.click();
+    } catch {
+      // html2canvas not available — fallback: copy SVG if present
+      const svg = el.querySelector('svg');
+      if (svg) {
+        const svgData = new XMLSerializer().serializeToString(svg);
+        const blob = new Blob([svgData], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${widget.title || 'widget'}.svg`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    }
+  }, [widget.title]);
+
+  const hasExportableData = data && (Array.isArray((data as any)?.data) || Array.isArray((data as any)?.rows));
+  const CHART_WIDGET_TYPES = ['LINE', 'BAR', 'PIE', 'STACKED_BAR', 'AREA', 'EPI_CURVE', 'DUAL_AXIS', 'HEATMAP', 'GAUGE'];
+  const isChartWidget = CHART_WIDGET_TYPES.includes(widget.type);
+
   const {
     listeners,
     setNodeRef,
@@ -109,39 +163,62 @@ export function DraggableWidget({
               {widget.title}
             </h3>
           </div>
-          {editable && (
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Export buttons (available in both edit and view mode) */}
+            {hasExportableData && (
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); onConfigure?.(); }}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                title={t('dbConfigure')}
+                onClick={(e) => { e.stopPropagation(); handleExportCsv(); }}
+                className="rounded p-1 text-gray-400 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-950/30 dark:hover:text-green-400"
+                title="Export CSV"
               >
-                <Settings className="h-3.5 w-3.5" />
+                <Download className="h-3.5 w-3.5" />
               </button>
+            )}
+            {isChartWidget && (
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); onDuplicate?.(); }}
-                className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/30 dark:hover:text-blue-400"
-                title={t('dbDuplicate')}
+                onClick={(e) => { e.stopPropagation(); handleExportPng(); }}
+                className="rounded p-1 text-gray-400 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-950/30 dark:hover:text-purple-400"
+                title="Export PNG"
               >
-                <Copy className="h-3.5 w-3.5" />
+                <Image className="h-3.5 w-3.5" />
               </button>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
-                className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400"
-                title={t('dbDelete')}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )}
+            )}
+            {editable && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onConfigure?.(); }}
+                  className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                  title={t('dbConfigure')}
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onDuplicate?.(); }}
+                  className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/30 dark:hover:text-blue-400"
+                  title={t('dbDuplicate')}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onRemove?.(); }}
+                  className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400"
+                  title={t('dbDelete')}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
 
       {/* Body — flex-1 fills remaining height so charts match sibling widgets */}
-      <div className="flex-1" style={{ minHeight: 0 }}>
+      <div ref={widgetRef} className="flex-1" style={{ minHeight: 0 }}>
         <WidgetRenderer widget={widget} data={data} />
       </div>
     </div>

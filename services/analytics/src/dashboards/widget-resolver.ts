@@ -141,6 +141,9 @@ export class WidgetResolver {
       case 'SQL_QUERY':
         return this.resolveSqlQuery(config, userId);
 
+      case 'ANALYTICS_QUERY':
+        return this.resolveAnalyticsQuery(config, globalFilters);
+
       default:
         throw new Error(`Unsupported data source: ${dataSource}`);
     }
@@ -194,6 +197,7 @@ export class WidgetResolver {
 
   /**
    * FORM_AGGREGATION — count/sum/avg submissions for a form.
+   * Enhanced: supports groupBy (country, month, year, field) for charts.
    */
   private async resolveFormAggregation(
     config: Record<string, unknown>,
@@ -202,6 +206,10 @@ export class WidgetResolver {
     const formId = config.formId as string;
     const aggregation = (config.aggregation as string) ?? 'count';
     const field = config.field as string | undefined;
+    const groupBy = config.groupBy as string | undefined;
+    const sortBy = (config.sortBy as string) ?? 'value';
+    const sortOrder = (config.sortOrder as string) ?? 'desc';
+    const limit = (config.limit as number) ?? 50;
 
     if (!formId) throw new Error('formId is required for FORM_AGGREGATION data source');
 
@@ -217,9 +225,69 @@ export class WidgetResolver {
       conditions.push(`EXTRACT(YEAR FROM s.submitted_at) = $${idx++}`);
       params.push(globalFilters.year);
     }
+    if (globalFilters.dateFrom) {
+      conditions.push(`s.submitted_at >= $${idx++}::date`);
+      params.push(globalFilters.dateFrom);
+    }
+    if (globalFilters.dateTo) {
+      conditions.push(`s.submitted_at <= $${idx++}::date`);
+      params.push(globalFilters.dateTo);
+    }
 
     const where = `WHERE ${conditions.join(' AND ')}`;
 
+    // ── Grouped aggregation (returns array for charts) ──
+    if (groupBy) {
+      let groupColumn: string;
+      let nameColumn: string;
+      switch (groupBy) {
+        case 'country':
+          groupColumn = 's.country_code';
+          nameColumn = 's.country_code';
+          break;
+        case 'month':
+          groupColumn = "to_char(s.submitted_at, 'YYYY-MM')";
+          nameColumn = "to_char(s.submitted_at, 'YYYY-MM')";
+          break;
+        case 'year':
+          groupColumn = 'EXTRACT(YEAR FROM s.submitted_at)::int';
+          nameColumn = 'EXTRACT(YEAR FROM s.submitted_at)::int';
+          break;
+        case 'quarter':
+          groupColumn = "to_char(s.submitted_at, 'YYYY-\"Q\"Q')";
+          nameColumn = "to_char(s.submitted_at, 'YYYY-\"Q\"Q')";
+          break;
+        case 'week':
+          groupColumn = "to_char(s.submitted_at, 'IYYY-IW')";
+          nameColumn = "to_char(s.submitted_at, 'IYYY-IW')";
+          break;
+        default:
+          // Group by a data field value: s.data->>'fieldName'
+          groupColumn = `s.data->>'${groupBy.replace(/'/g, "''")}'`;
+          nameColumn = groupColumn;
+          break;
+      }
+
+      const aggExpr = aggregation === 'count'
+        ? 'COUNT(*)::int'
+        : field
+          ? `${aggregation === 'sum' ? 'SUM' : aggregation === 'avg' ? 'AVG' : aggregation === 'min' ? 'MIN' : 'MAX'}((s.data->>'${field.replace(/'/g, "''")}')::numeric)`
+          : 'COUNT(*)::int';
+
+      const orderCol = sortBy === 'name' ? 'name' : 'value';
+      const { rows } = await this.pool.query(
+        `SELECT ${nameColumn}::text AS name, ${groupColumn}::text AS key, ${aggExpr} AS value
+         FROM public.form_submissions s ${where}
+         GROUP BY ${groupColumn}, ${nameColumn}
+         ORDER BY ${orderCol} ${sortOrder === 'asc' ? 'ASC' : 'DESC'}
+         LIMIT $${idx}`,
+        [...params, limit],
+      );
+
+      return { data: rows, aggregation, groupBy, field: field || null, total: rows.length };
+    }
+
+    // ── Single value aggregation (original behavior) ──
     if (aggregation === 'count') {
       const { rows } = await this.pool.query(
         `SELECT COUNT(*)::int AS value FROM public.form_submissions s ${where}`,
@@ -228,12 +296,11 @@ export class WidgetResolver {
       return { value: rows[0].value, aggregation: 'count' };
     }
 
-    // For sum/avg we need the field
     if (!field) throw new Error('field is required for sum/avg aggregation');
 
-    const aggFn = aggregation === 'sum' ? 'SUM' : 'AVG';
+    const aggFn = aggregation === 'sum' ? 'SUM' : aggregation === 'avg' ? 'AVG' : aggregation === 'min' ? 'MIN' : 'MAX';
     const { rows } = await this.pool.query(
-      `SELECT ${aggFn}((s.data->>'${field}')::numeric) AS value
+      `SELECT ${aggFn}((s.data->>'${field.replace(/'/g, "''")}')::numeric) AS value
        FROM public.form_submissions s ${where}`,
       params,
     );
@@ -466,6 +533,448 @@ export class WidgetResolver {
     const { rows } = await this.pool.query(limitedQuery);
 
     return { rows, rowCount: rows.length };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  ANALYTICS_QUERY — Structured query against datalake/domain tables
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * ANALYTICS_QUERY — Powerful structured queries for dashboard widgets.
+   *
+   * Config shape:
+   *   queryType: 'submissions_by_country' | 'submissions_by_domain' | 'submissions_timeline'
+   *              | 'domain_kpis' | 'continental_summary' | 'form_field_distribution'
+   *              | 'form_time_series' | 'historical_aggregate' | 'cross_domain_comparison'
+   *   domain:    optional domain code filter (e.g. 'animal-health', 'livestock-prod')
+   *   groupBy:   'country' | 'domain' | 'month' | 'year' | 'quarter' | 'week' | 'status' | 'rec'
+   *   metric:    'count' | 'sum' | 'avg' | 'min' | 'max'
+   *   field:     JSON field path for metric (when metric != 'count')
+   *   filters:   { countryCode?, dateFrom?, dateTo?, status?, formId? }
+   *   sort:      'value_desc' | 'value_asc' | 'name_asc' | 'name_desc'
+   *   limit:     max rows (default 50)
+   *   // For charts: field mapping hints
+   *   xKey:      field name for X axis (auto-detected from groupBy if omitted)
+   *   yKey:      field name for Y axis (defaults to 'value')
+   *   seriesKey: field for multi-series split
+   */
+  private async resolveAnalyticsQuery(
+    config: Record<string, unknown>,
+    globalFilters: RenderQuery,
+  ): Promise<unknown> {
+    const queryType = config.queryType as string;
+    if (!queryType) throw new Error('queryType is required for ANALYTICS_QUERY');
+
+    const domain = (config.domain as string) || globalFilters.domainCode || undefined;
+    const groupBy = (config.groupBy as string) || 'country';
+    const metric = (config.metric as string) || 'count';
+    const field = config.field as string | undefined;
+    const sort = (config.sort as string) || 'value_desc';
+    const limit = Math.min((config.limit as number) || 50, 500);
+    const localFilters = (config.filters as Record<string, unknown>) || {};
+
+    // Merge global + local filters
+    const countryCode = (localFilters.countryCode as string) || globalFilters.countryCode;
+    const recCode = (localFilters.recCode as string) || globalFilters.recCode;
+    const dateFrom = (localFilters.dateFrom as string) || globalFilters.dateFrom;
+    const dateTo = (localFilters.dateTo as string) || globalFilters.dateTo;
+    const year = (localFilters.year as number) || globalFilters.year;
+    const formId = localFilters.formId as string | undefined;
+    const status = localFilters.status as string | undefined;
+
+    switch (queryType) {
+      case 'submissions_by_country':
+        return this.aqSubmissionsByCountry(domain, countryCode, dateFrom, dateTo, year, limit, sort);
+
+      case 'submissions_by_domain':
+        return this.aqSubmissionsByDomain(countryCode, dateFrom, dateTo, year, limit);
+
+      case 'submissions_timeline':
+        return this.aqSubmissionsTimeline(domain, groupBy, countryCode, dateFrom, dateTo, year, limit);
+
+      case 'domain_kpis':
+        return this.aqDomainKpis(domain, countryCode, year);
+
+      case 'continental_summary':
+        return this.aqContinentalSummary(year);
+
+      case 'form_field_distribution':
+        return this.aqFormFieldDistribution(formId!, field!, metric, groupBy, countryCode, dateFrom, dateTo, limit, sort);
+
+      case 'form_time_series':
+        return this.aqFormTimeSeries(formId!, field, metric, groupBy, countryCode, dateFrom, dateTo, limit);
+
+      case 'historical_aggregate':
+        return this.aqHistoricalAggregate(domain, groupBy, metric, field, countryCode, recCode, dateFrom, dateTo, limit, sort);
+
+      case 'cross_domain_comparison':
+        return this.aqCrossDomainComparison(countryCode, year, limit);
+
+      default:
+        throw new Error(`Unknown queryType: ${queryType}`);
+    }
+  }
+
+  /** Submissions count grouped by country */
+  private async aqSubmissionsByCountry(
+    domain: string | undefined, countryCode: string | undefined,
+    dateFrom: string | undefined, dateTo: string | undefined,
+    year: number | undefined, limit: number, sort: string,
+  ) {
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    let idx = 1;
+
+    if (domain) { conditions.push(`ft.domain = $${idx++}`); params.push(domain); }
+    if (countryCode) { conditions.push(`s.country_code = $${idx++}`); params.push(countryCode); }
+    if (year) { conditions.push(`EXTRACT(YEAR FROM s.submitted_at) = $${idx++}`); params.push(year); }
+    if (dateFrom) { conditions.push(`s.submitted_at >= $${idx++}::date`); params.push(dateFrom); }
+    if (dateTo) { conditions.push(`s.submitted_at <= $${idx++}::date`); params.push(dateTo); }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const orderDir = sort.includes('asc') ? 'ASC' : 'DESC';
+    const orderCol = sort.startsWith('name') ? 's.country_code' : 'value';
+
+    const { rows } = await this.pool.query(
+      `SELECT s.country_code AS name, s.country_code AS key, COUNT(*)::int AS value
+       FROM public.form_submissions s
+       LEFT JOIN form_builder.form_templates ft ON ft.id = s.form_template_id
+       ${where}
+       GROUP BY s.country_code
+       ORDER BY ${orderCol} ${orderDir}
+       LIMIT $${idx}`,
+      [...params, limit],
+    );
+    return { data: rows, queryType: 'submissions_by_country', xKey: 'name', yKey: 'value' };
+  }
+
+  /** Submissions count grouped by domain */
+  private async aqSubmissionsByDomain(
+    countryCode: string | undefined,
+    dateFrom: string | undefined, dateTo: string | undefined,
+    year: number | undefined, limit: number,
+  ) {
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    let idx = 1;
+
+    if (countryCode) { conditions.push(`s.country_code = $${idx++}`); params.push(countryCode); }
+    if (year) { conditions.push(`EXTRACT(YEAR FROM s.submitted_at) = $${idx++}`); params.push(year); }
+    if (dateFrom) { conditions.push(`s.submitted_at >= $${idx++}::date`); params.push(dateFrom); }
+    if (dateTo) { conditions.push(`s.submitted_at <= $${idx++}::date`); params.push(dateTo); }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const { rows } = await this.pool.query(
+      `SELECT COALESCE(ft.domain, 'unknown') AS name, COALESCE(ft.domain, 'unknown') AS key, COUNT(*)::int AS value
+       FROM public.form_submissions s
+       LEFT JOIN form_builder.form_templates ft ON ft.id = s.form_template_id
+       ${where}
+       GROUP BY ft.domain
+       ORDER BY value DESC
+       LIMIT $${idx}`,
+      [...params, limit],
+    );
+    return { data: rows, queryType: 'submissions_by_domain', xKey: 'name', yKey: 'value' };
+  }
+
+  /** Submissions over time (month, week, quarter, year) */
+  private async aqSubmissionsTimeline(
+    domain: string | undefined, groupBy: string,
+    countryCode: string | undefined,
+    dateFrom: string | undefined, dateTo: string | undefined,
+    year: number | undefined, limit: number,
+  ) {
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    let idx = 1;
+
+    if (domain) { conditions.push(`ft.domain = $${idx++}`); params.push(domain); }
+    if (countryCode) { conditions.push(`s.country_code = $${idx++}`); params.push(countryCode); }
+    if (year) { conditions.push(`EXTRACT(YEAR FROM s.submitted_at) = $${idx++}`); params.push(year); }
+    if (dateFrom) { conditions.push(`s.submitted_at >= $${idx++}::date`); params.push(dateFrom); }
+    if (dateTo) { conditions.push(`s.submitted_at <= $${idx++}::date`); params.push(dateTo); }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    let timeExpr: string;
+    switch (groupBy) {
+      case 'week':   timeExpr = "to_char(s.submitted_at, 'IYYY-IW')"; break;
+      case 'quarter': timeExpr = "to_char(s.submitted_at, 'YYYY-\"Q\"Q')"; break;
+      case 'year':   timeExpr = 'EXTRACT(YEAR FROM s.submitted_at)::int'; break;
+      default:       timeExpr = "to_char(s.submitted_at, 'YYYY-MM')"; break;
+    }
+
+    const { rows } = await this.pool.query(
+      `SELECT ${timeExpr}::text AS name, ${timeExpr}::text AS key, COUNT(*)::int AS value
+       FROM public.form_submissions s
+       LEFT JOIN form_builder.form_templates ft ON ft.id = s.form_template_id
+       ${where}
+       GROUP BY ${timeExpr}
+       ORDER BY name ASC
+       LIMIT $${idx}`,
+      [...params, limit],
+    );
+    return { data: rows, queryType: 'submissions_timeline', xKey: 'name', yKey: 'value', groupBy };
+  }
+
+  /** Domain-specific KPIs from indicator_values */
+  private async aqDomainKpis(
+    domain: string | undefined, countryCode: string | undefined, year: number | undefined,
+  ) {
+    if (!domain) throw new Error('domain is required for domain_kpis queryType');
+
+    const yearFilter = year ?? new Date().getFullYear();
+    const conditions = ['i.active = true', 'iv.year = $2'];
+    const params: unknown[] = [domain, yearFilter];
+    let idx = 3;
+
+    if (countryCode) {
+      conditions.push(`iv.country_code = $${idx++}`);
+      params.push(countryCode);
+    }
+
+    // Resolve domain UUID from code
+    const { rows: domRows } = await this.pool.query(
+      `SELECT id FROM governance.domains WHERE code = $1 LIMIT 1`, [domain],
+    );
+    if (domRows.length === 0) {
+      return { data: [], queryType: 'domain_kpis', message: `Domain not found: ${domain}` };
+    }
+    params[0] = domRows[0].id;
+    conditions.unshift('i.domain_id = $1');
+
+    const { rows } = await this.pool.query(
+      `SELECT i.code AS name, i.name_en AS label, i.name_fr AS label_fr, i.unit,
+              SUM(iv.value)::float AS value, COUNT(*)::int AS count
+       FROM analytics.indicator_values iv
+       JOIN analytics.indicators i ON i.id = iv.indicator_id
+       WHERE ${conditions.join(' AND ')}
+       GROUP BY i.code, i.name_en, i.name_fr, i.unit
+       ORDER BY value DESC
+       LIMIT 30`,
+      params,
+    );
+    return { data: rows, queryType: 'domain_kpis', xKey: 'name', yKey: 'value', domain };
+  }
+
+  /** Continental summary: total submissions, countries, domains */
+  private async aqContinentalSummary(year: number | undefined) {
+    const yearFilter = year ?? new Date().getFullYear();
+
+    const { rows } = await this.pool.query(`
+      SELECT
+        COUNT(*)::int AS total_submissions,
+        COUNT(DISTINCT s.country_code)::int AS active_countries,
+        COUNT(DISTINCT ft.domain)::int AS active_domains,
+        COUNT(DISTINCT s.form_template_id)::int AS active_forms
+      FROM public.form_submissions s
+      LEFT JOIN form_builder.form_templates ft ON ft.id = s.form_template_id
+      WHERE EXTRACT(YEAR FROM s.submitted_at) = $1
+    `, [yearFilter]);
+
+    // Also get per-domain breakdown
+    const { rows: domainRows } = await this.pool.query(`
+      SELECT COALESCE(ft.domain, 'unknown') AS domain, COUNT(*)::int AS count
+      FROM public.form_submissions s
+      LEFT JOIN form_builder.form_templates ft ON ft.id = s.form_template_id
+      WHERE EXTRACT(YEAR FROM s.submitted_at) = $1
+      GROUP BY ft.domain ORDER BY count DESC
+    `, [yearFilter]);
+
+    return {
+      ...rows[0],
+      domainBreakdown: domainRows,
+      queryType: 'continental_summary',
+      year: yearFilter,
+    };
+  }
+
+  /** Distribution of a form field's values (for pie/bar charts) */
+  private async aqFormFieldDistribution(
+    formId: string, field: string, metric: string, groupBy: string,
+    countryCode: string | undefined,
+    dateFrom: string | undefined, dateTo: string | undefined,
+    limit: number, sort: string,
+  ) {
+    if (!formId) throw new Error('formId required for form_field_distribution');
+    if (!field) throw new Error('field required for form_field_distribution');
+
+    const conditions: string[] = ['s.form_template_id = $1'];
+    const params: unknown[] = [formId];
+    let idx = 2;
+
+    if (countryCode) { conditions.push(`s.country_code = $${idx++}`); params.push(countryCode); }
+    if (dateFrom) { conditions.push(`s.submitted_at >= $${idx++}::date`); params.push(dateFrom); }
+    if (dateTo) { conditions.push(`s.submitted_at <= $${idx++}::date`); params.push(dateTo); }
+
+    const where = `WHERE ${conditions.join(' AND ')}`;
+    const fieldExpr = `s.data->>'${field.replace(/'/g, "''")}'`;
+
+    const aggExpr = metric === 'count' ? 'COUNT(*)::int' : `${metric.toUpperCase()}((${fieldExpr})::numeric)`;
+    const groupExpr = groupBy === 'country' ? 's.country_code' : fieldExpr;
+    const orderDir = sort.includes('asc') ? 'ASC' : 'DESC';
+
+    const { rows } = await this.pool.query(
+      `SELECT ${groupExpr}::text AS name, ${groupExpr}::text AS key, ${aggExpr} AS value
+       FROM public.form_submissions s ${where}
+       GROUP BY ${groupExpr}
+       ORDER BY value ${orderDir}
+       LIMIT $${idx}`,
+      [...params, limit],
+    );
+    return { data: rows, queryType: 'form_field_distribution', xKey: 'name', yKey: 'value', field };
+  }
+
+  /** Form data as time series (for line/area charts) */
+  private async aqFormTimeSeries(
+    formId: string, field: string | undefined, metric: string, groupBy: string,
+    countryCode: string | undefined,
+    dateFrom: string | undefined, dateTo: string | undefined,
+    limit: number,
+  ) {
+    if (!formId) throw new Error('formId required for form_time_series');
+
+    const conditions: string[] = ['s.form_template_id = $1'];
+    const params: unknown[] = [formId];
+    let idx = 2;
+
+    if (countryCode) { conditions.push(`s.country_code = $${idx++}`); params.push(countryCode); }
+    if (dateFrom) { conditions.push(`s.submitted_at >= $${idx++}::date`); params.push(dateFrom); }
+    if (dateTo) { conditions.push(`s.submitted_at <= $${idx++}::date`); params.push(dateTo); }
+
+    const where = `WHERE ${conditions.join(' AND ')}`;
+
+    let timeExpr: string;
+    switch (groupBy) {
+      case 'week':    timeExpr = "to_char(s.submitted_at, 'IYYY-IW')"; break;
+      case 'quarter': timeExpr = "to_char(s.submitted_at, 'YYYY-\"Q\"Q')"; break;
+      case 'year':    timeExpr = 'EXTRACT(YEAR FROM s.submitted_at)::int'; break;
+      default:        timeExpr = "to_char(s.submitted_at, 'YYYY-MM')"; break;
+    }
+
+    const aggExpr = metric === 'count' || !field
+      ? 'COUNT(*)::int'
+      : `${metric.toUpperCase()}((s.data->>'${field.replace(/'/g, "''")}')::numeric)`;
+
+    const { rows } = await this.pool.query(
+      `SELECT ${timeExpr}::text AS name, ${timeExpr}::text AS key, ${aggExpr} AS value
+       FROM public.form_submissions s ${where}
+       GROUP BY ${timeExpr}
+       ORDER BY name ASC
+       LIMIT $${idx}`,
+      [...params, limit],
+    );
+    return { data: rows, queryType: 'form_time_series', xKey: 'name', yKey: 'value', groupBy };
+  }
+
+  /** Historical dataset aggregate (from datalake.historical schema) */
+  private async aqHistoricalAggregate(
+    domain: string | undefined, groupBy: string, metric: string, field: string | undefined,
+    countryCode: string | undefined, recCode: string | undefined,
+    dateFrom: string | undefined, dateTo: string | undefined,
+    limit: number, sort: string,
+  ) {
+    // Query historical_datasets to find relevant tables
+    const conditions: string[] = ["hd.status = 'READY'"];
+    const params: unknown[] = [];
+    let idx = 1;
+
+    if (domain) { conditions.push(`hd.domain = $${idx++}`); params.push(domain); }
+
+    const { rows: datasets } = await this.pool.query(
+      `SELECT hd.id, hd.table_name, hd.domain, hd.name
+       FROM datalake.historical_datasets hd
+       WHERE ${conditions.join(' AND ')}
+       ORDER BY hd.created_at DESC LIMIT 10`,
+      params,
+    );
+
+    if (datasets.length === 0) {
+      return { data: [], queryType: 'historical_aggregate', message: 'No historical datasets found' };
+    }
+
+    // Query across the first matching dataset's table
+    const tableName = datasets[0].table_name;
+    // Verify table exists and get columns
+    const { rows: colRows } = await this.pool.query(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_schema = 'historical' AND table_name = $1`,
+      [tableName],
+    );
+    const columns = colRows.map((r: any) => r.column_name);
+
+    if (columns.length === 0) {
+      return { data: [], queryType: 'historical_aggregate', message: `Table historical.${tableName} not found` };
+    }
+
+    // Build query based on available columns
+    const hasCountry = columns.includes('admin_location') || columns.includes('country') || columns.includes('country_code');
+    const countryCol = columns.includes('country_code') ? 'country_code' : columns.includes('country') ? 'country' : 'admin_location';
+
+    let groupCol = countryCol;
+    if (groupBy === 'year' && columns.includes('year')) groupCol = 'year';
+    else if (groupBy === 'month' && columns.includes('month')) groupCol = 'month';
+    else if (groupBy === 'disease' && columns.includes('disease')) groupCol = 'disease';
+    else if (groupBy === 'species' && columns.includes('species')) groupCol = 'species';
+
+    const filterConds: string[] = [];
+    const fParams: unknown[] = [];
+    let fIdx = 1;
+    if (countryCode && hasCountry) {
+      filterConds.push(`${countryCol} = $${fIdx++}`);
+      fParams.push(countryCode);
+    }
+
+    const fWhere = filterConds.length > 0 ? `WHERE ${filterConds.join(' AND ')}` : '';
+    const aggExpr = metric === 'count' ? 'COUNT(*)::int' :
+      field && columns.includes(field) ? `${metric.toUpperCase()}(${field}::numeric)` : 'COUNT(*)::int';
+    const orderDir = sort.includes('asc') ? 'ASC' : 'DESC';
+
+    const { rows } = await this.pool.query(
+      `SELECT ${groupCol}::text AS name, ${groupCol}::text AS key, ${aggExpr} AS value
+       FROM historical."${tableName}" ${fWhere}
+       GROUP BY ${groupCol}
+       ORDER BY value ${orderDir}
+       LIMIT $${fIdx}`,
+      [...fParams, limit],
+    );
+
+    return {
+      data: rows,
+      queryType: 'historical_aggregate',
+      dataset: { id: datasets[0].id, name: datasets[0].name, domain: datasets[0].domain },
+      xKey: 'name', yKey: 'value', groupBy,
+    };
+  }
+
+  /** Cross-domain comparison: submissions per domain for a country */
+  private async aqCrossDomainComparison(
+    countryCode: string | undefined, year: number | undefined, limit: number,
+  ) {
+    const yearFilter = year ?? new Date().getFullYear();
+    const conditions: string[] = ['EXTRACT(YEAR FROM s.submitted_at) = $1'];
+    const params: unknown[] = [yearFilter];
+    let idx = 2;
+
+    if (countryCode) { conditions.push(`s.country_code = $${idx++}`); params.push(countryCode); }
+
+    const where = `WHERE ${conditions.join(' AND ')}`;
+
+    const { rows } = await this.pool.query(
+      `SELECT COALESCE(ft.domain, 'unknown') AS name,
+              COALESCE(ft.domain, 'unknown') AS key,
+              COUNT(*)::int AS value,
+              COUNT(DISTINCT s.country_code)::int AS countries
+       FROM public.form_submissions s
+       LEFT JOIN form_builder.form_templates ft ON ft.id = s.form_template_id
+       ${where}
+       GROUP BY ft.domain
+       ORDER BY value DESC
+       LIMIT $${idx}`,
+      [...params, limit],
+    );
+    return { data: rows, queryType: 'cross_domain_comparison', xKey: 'name', yKey: 'value', year: yearFilter };
   }
 
   // ═══════════════════════════════════════════════════════════════════════

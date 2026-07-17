@@ -21,6 +21,7 @@ import type {
 } from '@/lib/api/dashboard-hooks';
 import { SectionList } from './SectionList';
 import { WidgetPalette } from './WidgetPalette';
+import { GlobalFilterBar, type GlobalFilters } from './GlobalFilterBar';
 import { useTranslations } from '@/lib/i18n/translations';
 
 interface DashboardEditorProps {
@@ -40,6 +41,8 @@ interface DashboardEditorProps {
   onWidgetRemove?: (widgetId: string) => void;
   onWidgetDuplicate?: (widgetId: string) => void;
   onSectionDuplicate?: (sectionId: string) => void;
+  globalFilters?: GlobalFilters;
+  onGlobalFiltersChange?: (filters: GlobalFilters) => void;
 }
 
 let tempIdCounter = 0;
@@ -60,6 +63,8 @@ export function DashboardEditor({
   onWidgetRemove,
   onWidgetDuplicate,
   onSectionDuplicate,
+  globalFilters,
+  onGlobalFiltersChange,
 }: DashboardEditorProps) {
   const t = useTranslations('dashboard');
   const [activeDragItem, setActiveDragItem] = useState<{
@@ -287,7 +292,7 @@ export function DashboardEditor({
         {/* Main content — Title + Sections */}
         <div className="flex-1 overflow-auto bg-slate-50 dark:bg-gray-950 p-6">
           {/* Dashboard title & description */}
-          <div className="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5">
+          <div className="mb-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5">
             <input
               type="text"
               value={title}
@@ -303,6 +308,16 @@ export function DashboardEditor({
               placeholder={t('addDescription')}
             />
           </div>
+
+          {/* Global Filter Bar */}
+          {onGlobalFiltersChange && (
+            <div className="mb-4">
+              <GlobalFilterBar
+                filters={globalFilters ?? {}}
+                onChange={onGlobalFiltersChange}
+              />
+            </div>
+          )}
 
           <SectionList
             sections={sections}

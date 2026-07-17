@@ -58,6 +58,7 @@ enum WidgetDataSource {
   MANUAL_VALUE
   COMPOSITE
   SQL_QUERY
+  ANALYTICS_QUERY
 
   @@schema("dashboard_builder")
 }

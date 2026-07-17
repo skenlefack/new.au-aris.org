@@ -415,6 +415,7 @@
     "dbDsManualValue": "قيمة يدوية",
     "dbDsCompositeFormula": "صيغة مركبة",
     "dbDsSqlQuery": "استعلام SQL",
+    "dbDsAnalyticsQuery": "استعلام تحليلي",
     "dbWtKpiCard": "بطاقة KPI",
     "dbWtLineChart": "رسم خطي",
     "dbWtBarChart": "رسم شريطي",

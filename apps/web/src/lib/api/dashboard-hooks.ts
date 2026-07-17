@@ -662,6 +662,32 @@ export function useRemoveWidget() {
   });
 }
 
+// ─── Query Catalogue ────────────────────────────────────────────────────────
+
+export interface QueryCatalogueData {
+  queryTypes: Array<{
+    code: string;
+    labelFr: string;
+    labelEn: string;
+    description: string;
+    params: string[];
+    groupBy: string[];
+    suggestedWidgets: string[];
+  }>;
+  domains: Array<{ code: string; labelFr: string; labelEn: string }>;
+  groupByOptions: Array<{ code: string; labelFr: string; labelEn: string }>;
+  metrics: Array<{ code: string; labelFr: string; labelEn: string }>;
+  sortOptions: Array<{ code: string; labelFr: string; labelEn: string }>;
+}
+
+export function useQueryCatalogue() {
+  return useQuery<{ data: QueryCatalogueData }>({
+    queryKey: ['dashboards', 'query-catalogue'],
+    queryFn: () => analyticsClient.get<{ data: QueryCatalogueData }>('/analytics/dashboards/query-catalogue'),
+    staleTime: 30 * 60_000, // 30 minutes — catalogue is static
+  });
+}
+
 // ─── Sharing & preferences ──────────────────────────────────────────────────
 
 // Dashboard sharing — re-export from dedicated hooks file

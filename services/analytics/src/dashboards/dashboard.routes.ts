@@ -111,6 +111,139 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
   });
 
   // ═══════════════════════════════════════════════════════════════════════
+  //  Query Catalogue — available query types for ANALYTICS_QUERY widgets
+  // ═══════════════════════════════════════════════════════════════════════
+
+  app.get(`${PREFIX}/query-catalogue`, {
+    preHandler: [app.authHookFn, tenantHook()],
+    schema: { tags: ['dashboards'] },
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
+    return reply.code(200).send({
+      data: {
+        queryTypes: [
+          {
+            code: 'submissions_by_country',
+            labelFr: 'Soumissions par pays',
+            labelEn: 'Submissions by country',
+            description: 'Number of form submissions grouped by country code',
+            params: ['domain'],
+            groupBy: ['country'],
+            suggestedWidgets: ['BAR_CHART', 'PIE_CHART', 'MAP_AFRICA', 'TABLE', 'RANKED_LIST'],
+          },
+          {
+            code: 'submissions_by_domain',
+            labelFr: 'Soumissions par domaine',
+            labelEn: 'Submissions by domain',
+            description: 'Submissions count grouped by business domain',
+            params: [],
+            groupBy: ['domain'],
+            suggestedWidgets: ['PIE_CHART', 'BAR_CHART', 'TABLE'],
+          },
+          {
+            code: 'submissions_timeline',
+            labelFr: 'Tendance des soumissions',
+            labelEn: 'Submissions timeline',
+            description: 'Submissions over time (month, week, quarter, year)',
+            params: ['domain'],
+            groupBy: ['month', 'week', 'quarter', 'year'],
+            suggestedWidgets: ['LINE_CHART', 'AREA_CHART', 'BAR_CHART', 'EPI_CURVE'],
+          },
+          {
+            code: 'domain_kpis',
+            labelFr: 'KPIs par domaine',
+            labelEn: 'Domain KPIs',
+            description: 'Indicator values for a specific domain',
+            params: ['domain'],
+            groupBy: ['country', 'indicator'],
+            suggestedWidgets: ['KPI_CARD', 'TABLE', 'BAR_CHART'],
+          },
+          {
+            code: 'continental_summary',
+            labelFr: 'Résumé continental',
+            labelEn: 'Continental summary',
+            description: 'Total submissions, active countries, active domains, form count',
+            params: [],
+            groupBy: [],
+            suggestedWidgets: ['KPI_CARD', 'STAT_CARD', 'COUNTER'],
+          },
+          {
+            code: 'form_field_distribution',
+            labelFr: 'Distribution d\'un champ',
+            labelEn: 'Form field distribution',
+            description: 'Distribution of values for a specific form field',
+            params: ['formId', 'field'],
+            groupBy: ['field_value', 'country'],
+            suggestedWidgets: ['PIE_CHART', 'BAR_CHART', 'RANKED_LIST'],
+          },
+          {
+            code: 'form_time_series',
+            labelFr: 'Série temporelle formulaire',
+            labelEn: 'Form time series',
+            description: 'Time series of form submissions or field aggregation',
+            params: ['formId'],
+            groupBy: ['month', 'week', 'quarter', 'year'],
+            suggestedWidgets: ['LINE_CHART', 'AREA_CHART', 'BAR_CHART'],
+          },
+          {
+            code: 'historical_aggregate',
+            labelFr: 'Données historiques agrégées',
+            labelEn: 'Historical data aggregate',
+            description: 'Aggregation from imported historical datasets (datalake)',
+            params: ['domain'],
+            groupBy: ['country', 'year', 'month', 'disease', 'species'],
+            suggestedWidgets: ['BAR_CHART', 'LINE_CHART', 'TABLE', 'HEATMAP'],
+          },
+          {
+            code: 'cross_domain_comparison',
+            labelFr: 'Comparaison inter-domaines',
+            labelEn: 'Cross-domain comparison',
+            description: 'Compare submissions and activity across all domains',
+            params: [],
+            groupBy: ['domain'],
+            suggestedWidgets: ['BAR_CHART', 'PIE_CHART', 'STACKED_BAR', 'TABLE'],
+          },
+        ],
+        domains: [
+          { code: 'animal-health', labelFr: 'Santé animale', labelEn: 'Animal Health' },
+          { code: 'livestock-prod', labelFr: 'Élevage & Production', labelEn: 'Livestock & Production' },
+          { code: 'fisheries', labelFr: 'Pêche & Aquaculture', labelEn: 'Fisheries & Aquaculture' },
+          { code: 'trade-sps', labelFr: 'Commerce & SPS', labelEn: 'Trade & SPS' },
+          { code: 'governance', labelFr: 'Gouvernance', labelEn: 'Governance & Capacities' },
+          { code: 'wildlife', labelFr: 'Faune sauvage', labelEn: 'Wildlife & Biodiversity' },
+          { code: 'apiculture', labelFr: 'Apiculture', labelEn: 'Apiculture & Pollination' },
+          { code: 'climate-env', labelFr: 'Climat & Environnement', labelEn: 'Climate & Environment' },
+          { code: 'paid', labelFr: 'PAID', labelEn: 'PAID' },
+        ],
+        groupByOptions: [
+          { code: 'country', labelFr: 'Pays', labelEn: 'Country' },
+          { code: 'domain', labelFr: 'Domaine', labelEn: 'Domain' },
+          { code: 'month', labelFr: 'Mois', labelEn: 'Month' },
+          { code: 'week', labelFr: 'Semaine', labelEn: 'Week' },
+          { code: 'quarter', labelFr: 'Trimestre', labelEn: 'Quarter' },
+          { code: 'year', labelFr: 'Année', labelEn: 'Year' },
+          { code: 'disease', labelFr: 'Maladie', labelEn: 'Disease' },
+          { code: 'species', labelFr: 'Espèce', labelEn: 'Species' },
+          { code: 'status', labelFr: 'Statut', labelEn: 'Status' },
+          { code: 'rec', labelFr: 'CER', labelEn: 'REC' },
+        ],
+        metrics: [
+          { code: 'count', labelFr: 'Nombre', labelEn: 'Count' },
+          { code: 'sum', labelFr: 'Somme', labelEn: 'Sum' },
+          { code: 'avg', labelFr: 'Moyenne', labelEn: 'Average' },
+          { code: 'min', labelFr: 'Minimum', labelEn: 'Min' },
+          { code: 'max', labelFr: 'Maximum', labelEn: 'Max' },
+        ],
+        sortOptions: [
+          { code: 'value_desc', labelFr: 'Valeur décroissante', labelEn: 'Value descending' },
+          { code: 'value_asc', labelFr: 'Valeur croissante', labelEn: 'Value ascending' },
+          { code: 'name_asc', labelFr: 'Nom A→Z', labelEn: 'Name A→Z' },
+          { code: 'name_desc', labelFr: 'Nom Z→A', labelEn: 'Name Z→A' },
+        ],
+      },
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
   //  Dashboards
   // ═══════════════════════════════════════════════════════════════════════
 

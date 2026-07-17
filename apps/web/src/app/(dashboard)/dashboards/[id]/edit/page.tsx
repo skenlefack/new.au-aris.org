@@ -18,6 +18,7 @@ import { DashboardEditor } from '@/components/dashboard-builder/DashboardEditor'
 import { WidgetConfigPanel } from '@/components/dashboard-builder/WidgetConfigPanel';
 import { AiSuggestionDialog } from '@/components/ai/AiSuggestionDialog';
 import { ShareDashboardDialog } from '@/components/dashboard-builder/ShareDashboardDialog';
+import type { GlobalFilters } from '@/components/dashboard-builder/GlobalFilterBar';
 
 export default function DashboardEditPage() {
   const params = useParams();
@@ -118,6 +119,9 @@ export default function DashboardEditPage() {
 
   // Share dialog
   const [shareOpen, setShareOpen] = useState(false);
+
+  // Global filters
+  const [globalFilters, setGlobalFilters] = useState<GlobalFilters>({});
 
   const handleAiAccept = useCallback(
     (draft: any) => {
@@ -435,12 +439,15 @@ export default function DashboardEditPage() {
           onWidgetRemove={handleRemoveWidget}
           onWidgetDuplicate={handleDuplicateWidget}
           onSectionDuplicate={handleDuplicateSection}
+          globalFilters={globalFilters}
+          onGlobalFiltersChange={setGlobalFilters}
         />
       </div>
 
       <WidgetConfigPanel
         widget={configWidget}
         dashboardId={id}
+        allWidgets={localSections.flatMap((s) => s.widgets)}
         onClose={() => setConfigWidget(null)}
         onSaved={() => {
           setConfigWidget(null);
