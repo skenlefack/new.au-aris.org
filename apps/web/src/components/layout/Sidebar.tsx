@@ -42,6 +42,7 @@ import {
   ClipboardCheck,
   NotebookPen,
   LifeBuoy,
+  Presentation,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -106,6 +107,7 @@ const STATIC_GROUPS: NavGroup[] = [
       { tKey: 'analytics', href: '/analytics', icon: BarChart3, matchPrefix: '/analytics' },
       { tKey: 'historicalData', href: '/historical', icon: HardDrive, matchPrefix: '/historical' },
       { tKey: 'reports', href: '/reports', icon: FileBarChart, matchPrefix: '/reports' },
+      { tKey: 'slideshows', href: '/slideshows', icon: Presentation, matchPrefix: '/slideshows' },
     ],
   },
   {

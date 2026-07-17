@@ -254,3 +254,60 @@ model UserDashboardPreference {
   @@map("user_dashboard_preferences")
   @@schema("dashboard_builder")
 }
+
+// ── Dashboard Slideshow ───────────────────────────────────────────────
+
+enum SlideshowTransition {
+  FADE
+  SLIDE_LEFT
+  SLIDE_RIGHT
+  ZOOM
+  FLIP
+
+  @@schema("dashboard_builder")
+}
+
+model DashboardSlideshow {
+  id              String               @id @default(uuid()) @db.Uuid
+  tenantId        String               @map("tenant_id") @db.Uuid
+  titleFr         String               @map("title_fr")
+  titleEn         String               @map("title_en")
+  titleAr         String?              @map("title_ar")
+  titlePt         String?              @map("title_pt")
+  description     String?              @db.Text
+  publicToken     String               @unique @default(uuid()) @map("public_token") @db.Uuid
+  isActive        Boolean              @default(true) @map("is_active")
+  transition      SlideshowTransition  @default(FADE)
+  intervalMs      Int                  @default(15000) @map("interval_ms")
+  autoPlay        Boolean              @default(true) @map("auto_play")
+  loop            Boolean              @default(true)
+  showProgress    Boolean              @default(true) @map("show_progress")
+  showControls    Boolean              @default(false) @map("show_controls")
+  createdBy       String               @map("created_by") @db.Uuid
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+
+  slides          DashboardSlideshowSlide[]
+
+  @@index([tenantId], map: "idx_slideshow_tenant_id")
+  @@index([publicToken], map: "idx_slideshow_public_token")
+  @@index([isActive], map: "idx_slideshow_is_active")
+  @@map("dashboard_slideshows")
+  @@schema("dashboard_builder")
+}
+
+model DashboardSlideshowSlide {
+  id              String               @id @default(uuid()) @db.Uuid
+  slideshowId     String               @map("slideshow_id") @db.Uuid
+  slideshow       DashboardSlideshow   @relation(fields: [slideshowId], references: [id], onDelete: Cascade)
+  dashboardId     String               @map("dashboard_id") @db.Uuid
+  sortOrder       Int                  @default(0) @map("sort_order")
+  durationMs      Int?                 @map("duration_ms")
+  transition      SlideshowTransition?
+
+  @@unique([slideshowId, dashboardId], map: "uq_slideshow_dashboard")
+  @@index([slideshowId], map: "idx_slide_slideshow_id")
+  @@index([slideshowId, sortOrder], map: "idx_slide_sort_order")
+  @@map("dashboard_slideshow_slides")
+  @@schema("dashboard_builder")
+}

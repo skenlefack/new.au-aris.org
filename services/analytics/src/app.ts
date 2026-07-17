@@ -22,6 +22,8 @@ import { registerCompositeRecomputeConsumer } from './indicators/composite-recom
 import { DashboardService } from './dashboards/dashboard.service';
 import { WidgetResolver } from './dashboards/widget-resolver';
 import { registerDashboardRoutes } from './dashboards/dashboard.routes';
+import { SlideshowService } from './slideshows/slideshow.service';
+import { registerSlideshowRoutes } from './slideshows/slideshow.routes';
 import { ReportService } from './reports/report.service';
 import { registerReportRoutes } from './reports/report.routes';
 import { registerFlashDetectorConsumer } from './reports/flash-detector';
@@ -110,6 +112,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.decorate('dashboardService', dashboardService);
   app.decorate('widgetResolver', widgetResolver);
 
+  // --- Slideshow service ---
+  const slideshowService = new SlideshowService(redisClient, app.kafka);
+  app.decorate('slideshowService', slideshowService);
+
   // --- Report service ---
   const reportService = new ReportService(redisClient, app.kafka);
   app.decorate('reportService', reportService);
@@ -126,6 +132,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(registerAnalyticsRoutes);
   await app.register(registerIndicatorRoutes);
   await app.register(registerDashboardRoutes);
+  await app.register(registerSlideshowRoutes);
   await app.register(registerReportRoutes);
   await app.register(registerDomainSummaryRoutes);
 
