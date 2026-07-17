@@ -203,9 +203,9 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
 
   return (
     <div className="space-y-6">
-      {/* Preview modal overlay */}
+      {/* Preview modal overlay — z-[60] to be above sidebar (z-50) */}
       {showPreview && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex flex-col">
+        <div className="fixed inset-0 z-[60] bg-black/80 flex flex-col">
           {/* Modal header */}
           <div className="flex items-center justify-between px-4 py-2 bg-gray-900 text-white">
             <span className="text-sm font-medium">

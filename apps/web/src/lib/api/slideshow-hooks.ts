@@ -47,8 +47,11 @@ export function useSlideshows(page = 1, limit = 20) {
   return useQuery({
     queryKey: ['slideshows', page, limit],
     queryFn: async () => {
-      const res = await analyticsClient.get('/analytics/slideshows', { params: { page, limit } });
-      return res.data;
+      const res = await analyticsClient.get('/analytics/slideshows', {
+        page: String(page),
+        limit: String(limit),
+      });
+      return res as any;
     },
   });
 }
@@ -58,7 +61,7 @@ export function useSlideshow(id: string | undefined) {
     queryKey: ['slideshow', id],
     queryFn: async () => {
       const res = await analyticsClient.get(`/analytics/slideshows/${id}`);
-      return res.data?.data as Slideshow;
+      return (res as any)?.data as Slideshow;
     },
     enabled: !!id,
   });
@@ -69,7 +72,7 @@ export function usePublicSlideshow(token: string | undefined) {
     queryKey: ['slideshow-public', token],
     queryFn: async () => {
       const res = await analyticsClient.get(`/analytics/slideshows/public/${token}`);
-      return res.data?.data as Slideshow;
+      return (res as any)?.data as Slideshow;
     },
     enabled: !!token,
   });
@@ -79,11 +82,11 @@ export function usePublicSlideshowRender(token: string | undefined) {
   return useQuery({
     queryKey: ['slideshow-public-render', token],
     queryFn: async () => {
-      const res = await analyticsClient.get(`/slideshows/public/${token}/render`);
-      return res.data?.data;
+      const res = await analyticsClient.get(`/analytics/slideshows/public/${token}/render`);
+      return (res as any)?.data;
     },
     enabled: !!token,
-    refetchInterval: 5 * 60 * 1000, // refresh data every 5 min
+    refetchInterval: 5 * 60 * 1000,
   });
 }
 
@@ -92,7 +95,7 @@ export function useCreateSlideshow() {
   return useMutation({
     mutationFn: async (data: any) => {
       const res = await analyticsClient.post('/analytics/slideshows', data);
-      return res.data?.data;
+      return (res as any)?.data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['slideshows'] }),
   });
@@ -103,7 +106,7 @@ export function useUpdateSlideshow() {
   return useMutation({
     mutationFn: async ({ id, ...data }: any) => {
       const res = await analyticsClient.patch(`/analytics/slideshows/${id}`, data);
-      return res.data?.data;
+      return (res as any)?.data;
     },
     onSuccess: (_d: any, vars: any) => {
       qc.invalidateQueries({ queryKey: ['slideshows'] });
@@ -127,7 +130,7 @@ export function useUpdateSlides() {
   return useMutation({
     mutationFn: async ({ id, slides }: { id: string; slides: any[] }) => {
       const res = await analyticsClient.put(`/analytics/slideshows/${id}/slides`, { slides });
-      return res.data?.data;
+      return (res as any)?.data;
     },
     onSuccess: (_d: any, vars: any) => {
       qc.invalidateQueries({ queryKey: ['slideshow', vars.id] });
@@ -141,7 +144,7 @@ export function useRegenerateToken() {
   return useMutation({
     mutationFn: async (id: string) => {
       const res = await analyticsClient.post(`/analytics/slideshows/${id}/regenerate-token`);
-      return res.data?.data;
+      return (res as any)?.data;
     },
     onSuccess: (_d: any, id: string) => {
       qc.invalidateQueries({ queryKey: ['slideshow', id] });
