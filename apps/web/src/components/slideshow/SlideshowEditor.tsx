@@ -2,19 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Save,
   ArrowLeft,
@@ -29,6 +16,7 @@ import {
   ArrowUp,
   ArrowDown,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import {
@@ -237,9 +225,12 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/slideshows')}>
+          <button
+            onClick={() => router.push('/slideshows')}
+            className="inline-flex items-center justify-center rounded-md h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
             <ArrowLeft className="h-5 w-5" />
-          </Button>
+          </button>
           <h1 className="text-2xl font-bold">
             {slideshowId
               ? isFr
@@ -252,12 +243,19 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
         </div>
         <div className="flex gap-2">
           {slides.length > 0 && (
-            <Button variant="outline" onClick={() => setShowPreview(true)}>
+            <button
+              onClick={() => setShowPreview(true)}
+              className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800"
+            >
               <Play className="h-4 w-4 mr-2" />
-              {isFr ? 'Aperçu' : 'Preview'}
-            </Button>
+              {isFr ? 'Apercu' : 'Preview'}
+            </button>
           )}
-          <Button onClick={handleSave} disabled={isSaving || !titleFr || !titleEn}>
+          <button
+            onClick={handleSave}
+            disabled={isSaving || !titleFr || !titleEn}
+            className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <Save className="h-4 w-4 mr-2" />
             {isSaving
               ? isFr
@@ -266,7 +264,7 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
               : isFr
                 ? 'Enregistrer'
                 : 'Save'}
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -274,75 +272,91 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
         {/* Left: Config */}
         <div className="lg:col-span-1 space-y-4">
           {/* Metadata */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
+          <div className="rounded-lg border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
+            <div className="p-4 border-b dark:border-gray-700">
+              <h3 className="font-semibold text-base">
                 {isFr ? 'Informations' : 'Information'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </h3>
+            </div>
+            <div className="p-4 space-y-4">
               <div>
-                <Label>{isFr ? 'Titre (FR)' : 'Title (FR)'}</Label>
-                <Input
+                <label className="text-sm font-medium">{isFr ? 'Titre (FR)' : 'Title (FR)'}</label>
+                <input
                   value={titleFr}
                   onChange={(e) => setTitleFr(e.target.value)}
                   placeholder="Mon diaporama"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                 />
               </div>
               <div>
-                <Label>{isFr ? 'Titre (EN)' : 'Title (EN)'}</Label>
-                <Input
+                <label className="text-sm font-medium">{isFr ? 'Titre (EN)' : 'Title (EN)'}</label>
+                <input
                   value={titleEn}
                   onChange={(e) => setTitleEn(e.target.value)}
                   placeholder="My slideshow"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                 />
               </div>
               <div>
-                <Label>Description</Label>
+                <label className="text-sm font-medium">Description</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={2}
-                  className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 min-h-[60px]"
                 />
               </div>
               {slideshowId && (
                 <div className="flex items-center justify-between">
-                  <Label>{isFr ? 'Actif' : 'Active'}</Label>
-                  <Switch checked={isActive} onCheckedChange={setIsActive} />
+                  <label className="text-sm font-medium">{isFr ? 'Actif' : 'Active'}</label>
+                  <button
+                    role="switch"
+                    aria-checked={isActive}
+                    onClick={() => setIsActive(!isActive)}
+                    className={cn(
+                      'relative inline-flex h-5 w-9 rounded-full transition-colors',
+                      isActive ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'inline-block h-4 w-4 rounded-full bg-white transition-transform mt-0.5',
+                        isActive ? 'translate-x-4' : 'translate-x-0.5',
+                      )}
+                    />
+                  </button>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Transition config */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
+          <div className="rounded-lg border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
+            <div className="p-4 border-b dark:border-gray-700">
+              <h3 className="font-semibold text-base">
                 {isFr ? 'Transition & Lecture' : 'Transition & Playback'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </h3>
+            </div>
+            <div className="p-4 space-y-4">
               <div>
-                <Label>{isFr ? 'Effet de transition' : 'Transition Effect'}</Label>
-                <Select value={transition} onValueChange={setTransition}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TRANSITIONS.map((tr) => (
-                      <SelectItem key={tr.value} value={tr.value}>
-                        {isFr ? tr.labelFr : tr.labelEn}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="text-sm font-medium">{isFr ? 'Effet de transition' : 'Transition Effect'}</label>
+                <select
+                  value={transition}
+                  onChange={(e) => setTransition(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                >
+                  {TRANSITIONS.map((tr) => (
+                    <option key={tr.value} value={tr.value}>
+                      {isFr ? tr.labelFr : tr.labelEn}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
-                <Label>
-                  {isFr ? 'Durée par slide' : 'Duration per slide'}:{' '}
+                <label className="text-sm font-medium">
+                  {isFr ? 'Duree par slide' : 'Duration per slide'}:{' '}
                   {Math.round(intervalMs / 1000)}s
-                </Label>
+                </label>
                 <input
                   type="range"
                   min={3000}
@@ -359,123 +373,194 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
               </div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label>{isFr ? 'Lecture auto' : 'Auto-play'}</Label>
-                  <Switch checked={autoPlay} onCheckedChange={setAutoPlay} />
+                  <label className="text-sm font-medium">{isFr ? 'Lecture auto' : 'Auto-play'}</label>
+                  <button
+                    role="switch"
+                    aria-checked={autoPlay}
+                    onClick={() => setAutoPlay(!autoPlay)}
+                    className={cn(
+                      'relative inline-flex h-5 w-9 rounded-full transition-colors',
+                      autoPlay ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'inline-block h-4 w-4 rounded-full bg-white transition-transform mt-0.5',
+                        autoPlay ? 'translate-x-4' : 'translate-x-0.5',
+                      )}
+                    />
+                  </button>
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label>{isFr ? 'Boucle infinie' : 'Loop'}</Label>
-                  <Switch checked={loop} onCheckedChange={setLoop} />
+                  <label className="text-sm font-medium">{isFr ? 'Boucle infinie' : 'Loop'}</label>
+                  <button
+                    role="switch"
+                    aria-checked={loop}
+                    onClick={() => setLoop(!loop)}
+                    className={cn(
+                      'relative inline-flex h-5 w-9 rounded-full transition-colors',
+                      loop ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'inline-block h-4 w-4 rounded-full bg-white transition-transform mt-0.5',
+                        loop ? 'translate-x-4' : 'translate-x-0.5',
+                      )}
+                    />
+                  </button>
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label>{isFr ? 'Barre de progression' : 'Progress bar'}</Label>
-                  <Switch checked={showProgress} onCheckedChange={setShowProgress} />
+                  <label className="text-sm font-medium">{isFr ? 'Barre de progression' : 'Progress bar'}</label>
+                  <button
+                    role="switch"
+                    aria-checked={showProgress}
+                    onClick={() => setShowProgress(!showProgress)}
+                    className={cn(
+                      'relative inline-flex h-5 w-9 rounded-full transition-colors',
+                      showProgress ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'inline-block h-4 w-4 rounded-full bg-white transition-transform mt-0.5',
+                        showProgress ? 'translate-x-4' : 'translate-x-0.5',
+                      )}
+                    />
+                  </button>
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label>{isFr ? 'Contrôles navigation' : 'Navigation controls'}</Label>
-                  <Switch checked={showControls} onCheckedChange={setShowControls} />
+                  <label className="text-sm font-medium">{isFr ? 'Controles navigation' : 'Navigation controls'}</label>
+                  <button
+                    role="switch"
+                    aria-checked={showControls}
+                    onClick={() => setShowControls(!showControls)}
+                    className={cn(
+                      'relative inline-flex h-5 w-9 rounded-full transition-colors',
+                      showControls ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'inline-block h-4 w-4 rounded-full bg-white transition-transform mt-0.5',
+                        showControls ? 'translate-x-4' : 'translate-x-0.5',
+                      )}
+                    />
+                  </button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Public link */}
           {slideshowId && publicToken && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
+            <div className="rounded-lg border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
+              <div className="p-4 border-b dark:border-gray-700">
+                <h3 className="font-semibold text-base flex items-center gap-2">
                   <Link2 className="h-4 w-4" />
                   {isFr ? 'Lien public' : 'Public Link'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+                </h3>
+              </div>
+              <div className="p-4 space-y-3">
                 <div className="flex gap-2">
-                  <Input value={publicUrl} readOnly className="text-xs" />
-                  <Button size="icon" variant="outline" onClick={copyLink} title="Copy">
+                  <input
+                    value={publicUrl}
+                    readOnly
+                    className="flex-1 w-full rounded-md border border-gray-300 px-3 py-2 text-xs focus:outline-none dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                  />
+                  <button
+                    onClick={copyLink}
+                    title="Copy"
+                    className="inline-flex items-center justify-center rounded-md h-9 w-9 border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800"
+                  >
                     <Copy className="h-4 w-4" />
-                  </Button>
+                  </button>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" asChild className="flex-1">
-                    <a href={publicUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      {isFr ? 'Ouvrir' : 'Open'}
-                    </a>
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  <a
+                    href={publicUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800 flex-1"
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    {isFr ? 'Ouvrir' : 'Open'}
+                  </a>
+                  <button
                     onClick={handleRegenerateToken}
                     disabled={regenerateTokenMutation.isPending}
-                    className="flex-1"
+                    className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800 flex-1"
                   >
                     <RefreshCw className="h-3 w-3 mr-1" />
-                    {isFr ? 'Régénérer' : 'Regenerate'}
-                  </Button>
+                    {isFr ? 'Regenerer' : 'Regenerate'}
+                  </button>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {isFr
                     ? 'Ce lien permet de visualiser le diaporama sans connexion.'
                     : 'This link allows viewing the slideshow without login.'}
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </div>
 
         {/* Right: Slides */}
         <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
+          <div className="rounded-lg border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
+            <div className="p-4 border-b dark:border-gray-700">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">
+                <h3 className="font-semibold text-base">
                   {isFr ? 'Tableaux de bord' : 'Dashboards'} ({slides.length})
-                </CardTitle>
+                </h3>
                 <div className="flex gap-2">
-                  <Select onValueChange={addSlide}>
-                    <SelectTrigger className="w-[280px]">
-                      <SelectValue
-                        placeholder={
-                          isFr ? '+ Ajouter un tableau de bord' : '+ Add a dashboard'
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dashboards
-                        .filter(
-                          (d: any) =>
-                            !slides.some((s) => s.dashboardId === (d.id || d.Id)),
-                        )
-                        .map((d: any) => (
-                          <SelectItem key={d.id || d.Id} value={d.id || d.Id}>
-                            {isFr
-                              ? d.titleFr || d.title_fr || d.titleEn || d.title_en
-                              : d.titleEn || d.title_en || d.titleFr || d.title_fr}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        addSlide(e.target.value);
+                        e.target.value = '';
+                      }
+                    }}
+                    defaultValue=""
+                    className="w-[280px] rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                  >
+                    <option value="" disabled>
+                      {isFr ? '+ Ajouter un tableau de bord' : '+ Add a dashboard'}
+                    </option>
+                    {dashboards
+                      .filter(
+                        (d: any) =>
+                          !slides.some((s) => s.dashboardId === (d.id || d.Id)),
+                      )
+                      .map((d: any) => (
+                        <option key={d.id || d.Id} value={d.id || d.Id}>
+                          {isFr
+                            ? d.titleFr || d.title_fr || d.titleEn || d.title_en
+                            : d.titleEn || d.title_en || d.titleFr || d.title_fr}
+                        </option>
+                      ))}
+                  </select>
+                  <button
                     onClick={() => router.push('/my-dashboards')}
+                    className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800"
                   >
                     <Plus className="h-4 w-4 mr-1" />
-                    {isFr ? 'Créer' : 'Create'}
-                  </Button>
+                    {isFr ? 'Creer' : 'Create'}
+                  </button>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
+            </div>
+            <div className="p-4">
               {slides.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <p className="text-lg">
                     {isFr
-                      ? 'Aucun tableau de bord sélectionné'
+                      ? 'Aucun tableau de bord selectionne'
                       : 'No dashboards selected'}
                   </p>
                   <p className="text-sm mt-2">
                     {isFr
-                      ? 'Utilisez le sélecteur ci-dessus pour ajouter des tableaux de bord au diaporama.'
+                      ? 'Utilisez le selecteur ci-dessus pour ajouter des tableaux de bord au diaporama.'
                       : 'Use the selector above to add dashboards to the slideshow.'}
                   </p>
                 </div>
@@ -484,12 +569,12 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                   {slides.map((slide, idx) => (
                     <div
                       key={slide.dashboardId}
-                      className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                      className="flex items-center gap-3 p-3 rounded-lg border bg-white hover:bg-gray-50 transition-colors dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800"
                     >
                       <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <Badge variant="outline" className="flex-shrink-0">
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border border-gray-300 bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 flex-shrink-0">
                         {idx + 1}
-                      </Badge>
+                      </span>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">
                           {isFr
@@ -502,10 +587,10 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                         </p>
                         <div className="flex gap-4 mt-1">
                           <div className="flex items-center gap-1">
-                            <Label className="text-xs text-muted-foreground">
-                              {isFr ? 'Durée:' : 'Duration:'}
-                            </Label>
-                            <Input
+                            <label className="text-xs text-muted-foreground">
+                              {isFr ? 'Duree:' : 'Duration:'}
+                            </label>
+                            <input
                               type="number"
                               min={3}
                               max={300}
@@ -523,78 +608,67 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                                 newSlides[idx] = { ...newSlides[idx], durationMs: val };
                                 setSlides(newSlides);
                               }}
-                              className="h-7 w-16 text-xs"
+                              className="h-7 w-16 text-xs rounded-md border border-gray-300 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                             />
                             <span className="text-xs text-muted-foreground">s</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <Label className="text-xs text-muted-foreground">
+                            <label className="text-xs text-muted-foreground">
                               Transition:
-                            </Label>
-                            <Select
+                            </label>
+                            <select
                               value={slide.transition || ''}
-                              onValueChange={(v) => {
+                              onChange={(e) => {
                                 const newSlides = [...slides];
+                                const v = e.target.value;
                                 newSlides[idx] = {
                                   ...newSlides[idx],
-                                  transition: v || undefined,
+                                  transition: v === '__default' ? undefined : v || undefined,
                                 };
                                 setSlides(newSlides);
                               }}
+                              className="h-7 w-32 text-xs rounded-md border border-gray-300 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                             >
-                              <SelectTrigger className="h-7 w-32 text-xs">
-                                <SelectValue
-                                  placeholder={isFr ? 'Par défaut' : 'Default'}
-                                />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__default">
-                                  {isFr ? 'Par défaut' : 'Default'}
-                                </SelectItem>
-                                {TRANSITIONS.map((tr) => (
-                                  <SelectItem key={tr.value} value={tr.value}>
-                                    {isFr ? tr.labelFr : tr.labelEn}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              <option value="">
+                                {isFr ? 'Par defaut' : 'Default'}
+                              </option>
+                              {TRANSITIONS.map((tr) => (
+                                <option key={tr.value} value={tr.value}>
+                                  {isFr ? tr.labelFr : tr.labelEn}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                         </div>
                       </div>
                       <div className="flex gap-1 flex-shrink-0">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7"
+                        <button
+                          className="inline-flex items-center justify-center rounded-md h-7 w-7 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
                           onClick={() => moveSlide(idx, 'up')}
                           disabled={idx === 0}
                         >
                           <ArrowUp className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7"
+                        </button>
+                        <button
+                          className="inline-flex items-center justify-center rounded-md h-7 w-7 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
                           onClick={() => moveSlide(idx, 'down')}
                           disabled={idx === slides.length - 1}
                         >
                           <ArrowDown className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-destructive"
+                        </button>
+                        <button
+                          className="inline-flex items-center justify-center rounded-md h-7 w-7 hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600"
                           onClick={() => removeSlide(idx)}
                         >
                           <Trash2 className="h-3 w-3" />
-                        </Button>
+                        </button>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </div>

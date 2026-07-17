@@ -2,9 +2,6 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Plus, Play, Edit, Trash2, Copy, Presentation } from 'lucide-react';
 import { useLocaleStore } from '@/lib/stores/locale-store';
 import {
@@ -48,14 +45,17 @@ export default function SlideshowsPage() {
           </h1>
           <p className="text-muted-foreground mt-1">
             {isFr
-              ? 'Configurez et partagez des présentations de tableaux de bord.'
+              ? 'Configurez et partagez des presentations de tableaux de bord.'
               : 'Configure and share dashboard presentations.'}
           </p>
         </div>
-        <Button onClick={() => router.push('/slideshows/new')}>
+        <button
+          onClick={() => router.push('/slideshows/new')}
+          className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700"
+        >
           <Plus className="h-4 w-4 mr-2" />
           {isFr ? 'Nouveau diaporama' : 'New Slideshow'}
-        </Button>
+        </button>
       </div>
 
       {/* Content */}
@@ -64,28 +64,34 @@ export default function SlideshowsPage() {
           {isFr ? 'Chargement...' : 'Loading...'}
         </div>
       ) : slideshows.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
+        <div className="rounded-lg border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
+          <div className="py-12 text-center p-4">
             <Presentation className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
             <p className="text-lg text-muted-foreground">
-              {isFr ? 'Aucun diaporama créé' : 'No slideshows created'}
+              {isFr ? 'Aucun diaporama cree' : 'No slideshows created'}
             </p>
             <p className="text-sm text-muted-foreground mt-2">
               {isFr
-                ? 'Créez un diaporama pour afficher vos tableaux de bord en mode présentation.'
+                ? 'Creez un diaporama pour afficher vos tableaux de bord en mode presentation.'
                 : 'Create a slideshow to display your dashboards in presentation mode.'}
             </p>
-            <Button className="mt-4" onClick={() => router.push('/slideshows/new')}>
+            <button
+              className="mt-4 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700"
+              onClick={() => router.push('/slideshows/new')}
+            >
               <Plus className="h-4 w-4 mr-2" />
-              {isFr ? 'Créer un diaporama' : 'Create a slideshow'}
-            </Button>
-          </CardContent>
-        </Card>
+              {isFr ? 'Creer un diaporama' : 'Create a slideshow'}
+            </button>
+          </div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {slideshows.map((s) => (
-            <Card key={s.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-5">
+            <div
+              key={s.id}
+              className="rounded-lg border bg-white shadow-sm hover:shadow-md transition-shadow dark:bg-gray-900 dark:border-gray-700"
+            >
+              <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold truncate">
@@ -97,7 +103,13 @@ export default function SlideshowsPage() {
                       </p>
                     )}
                   </div>
-                  <Badge variant={s.isActive ? 'default' : 'secondary'}>
+                  <span
+                    className={
+                      s.isActive
+                        ? 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                        : 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                    }
+                  >
                     {s.isActive
                       ? isFr
                         ? 'Actif'
@@ -105,7 +117,7 @@ export default function SlideshowsPage() {
                       : isFr
                         ? 'Inactif'
                         : 'Inactive'}
-                  </Badge>
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
@@ -119,43 +131,37 @@ export default function SlideshowsPage() {
                 </div>
 
                 <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1"
+                  <button
+                    className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800 flex-1"
                     onClick={() => router.push(`/slideshows/${s.id}/edit`)}
                   >
                     <Edit className="h-3 w-3 mr-1" />
                     {isFr ? 'Modifier' : 'Edit'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  </button>
+                  <button
+                    className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800"
                     onClick={() =>
                       window.open(`/slideshow/${s.publicToken}`, '_blank')
                     }
                   >
                     <Play className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  </button>
+                  <button
+                    className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800"
                     onClick={() => copyLink(s.publicToken)}
                     title={isFr ? 'Copier le lien' : 'Copy link'}
                   >
                     <Copy className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-destructive"
+                  </button>
+                  <button
+                    className="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600"
                     onClick={() => setDeleteId(s.id)}
                   >
                     <Trash2 className="h-3 w-3" />
-                  </Button>
+                  </button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -168,7 +174,7 @@ export default function SlideshowsPage() {
         title={isFr ? 'Supprimer le diaporama ?' : 'Delete slideshow?'}
         message={
           isFr
-            ? 'Cette action est irréversible. Le lien public sera invalidé.'
+            ? 'Cette action est irreversible. Le lien public sera invalide.'
             : 'This action is irreversible. The public link will be invalidated.'
         }
         confirmLabel={isFr ? 'Supprimer' : 'Delete'}

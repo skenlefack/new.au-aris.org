@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Pause, Play, Maximize, Minimize, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { SectionList } from '@/components/dashboard-builder/SectionList';
 import { useDashboard, useDashboardRender } from '@/lib/api/dashboard-hooks';
@@ -253,7 +252,7 @@ export function SlideshowPlayer({
   if (!slides.length) {
     return (
       <div className="flex items-center justify-center h-full min-h-[400px] text-muted-foreground">
-        Aucun tableau de bord sélectionné
+        Aucun tableau de bord selectionne
       </div>
     );
   }
@@ -338,29 +337,39 @@ export function SlideshowPlayer({
         <div className="absolute top-4 right-4 flex gap-2 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity z-20">
           {slides.length > 1 && (
             <>
-              <Button size="icon" variant="secondary" onClick={goPrev} className="h-8 w-8">
+              <button
+                onClick={goPrev}
+                className="inline-flex items-center justify-center rounded-md h-8 w-8 bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              >
                 <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                size="icon"
-                variant="secondary"
+              </button>
+              <button
                 onClick={() => setIsPlaying(!isPlaying)}
-                className="h-8 w-8"
+                className="inline-flex items-center justify-center rounded-md h-8 w-8 bg-secondary text-secondary-foreground hover:bg-secondary/80"
               >
                 {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-              </Button>
-              <Button size="icon" variant="secondary" onClick={goNext} className="h-8 w-8">
+              </button>
+              <button
+                onClick={goNext}
+                className="inline-flex items-center justify-center rounded-md h-8 w-8 bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              >
                 <ChevronRight className="h-4 w-4" />
-              </Button>
+              </button>
             </>
           )}
-          <Button size="icon" variant="secondary" onClick={toggleFullscreen} className="h-8 w-8">
+          <button
+            onClick={toggleFullscreen}
+            className="inline-flex items-center justify-center rounded-md h-8 w-8 bg-secondary text-secondary-foreground hover:bg-secondary/80"
+          >
             {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-          </Button>
+          </button>
           {onClose && (
-            <Button size="icon" variant="secondary" onClick={onClose} className="h-8 w-8">
+            <button
+              onClick={onClose}
+              className="inline-flex items-center justify-center rounded-md h-8 w-8 bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            >
               <X className="h-4 w-4" />
-            </Button>
+            </button>
           )}
         </div>
       )}
