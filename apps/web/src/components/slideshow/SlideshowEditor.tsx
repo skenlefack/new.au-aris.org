@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
   Save,
@@ -203,24 +204,37 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
 
   return (
     <div className="space-y-6">
-      {/* Preview modal overlay — z-[60] to be above sidebar (z-50) */}
-      {showPreview && (
-        <div className="fixed inset-0 z-[60] bg-black/80 flex flex-col">
-          {/* Modal header */}
-          <div className="flex items-center justify-between px-4 py-2 bg-gray-900 text-white">
-            <span className="text-sm font-medium">
-              {isFr ? 'Aperçu du diaporama' : 'Slideshow Preview'}
-            </span>
+      {/* Preview modal — rendered via portal at document.body to escape all stacking contexts */}
+      {showPreview && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 flex flex-col"
+          style={{ zIndex: 99999 }}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/90" onClick={() => setShowPreview(false)} />
+
+          {/* Modal header bar */}
+          <div className="relative flex items-center justify-between px-6 py-3 bg-gray-900/95 backdrop-blur border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <Play className="h-4 w-4 text-blue-400" />
+              <span className="text-sm font-semibold text-white">
+                {isFr ? 'Aperçu du diaporama' : 'Slideshow Preview'}
+              </span>
+              <span className="text-xs text-white/50">
+                {slides.length} {isFr ? 'slides' : 'slides'} • {Math.round(intervalMs / 1000)}s
+              </span>
+            </div>
             <button
               onClick={() => setShowPreview(false)}
-              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium bg-white/10 hover:bg-white/20 text-white transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all hover:border-white/40"
             >
               <X className="h-4 w-4" />
-              {isFr ? 'Fermer' : 'Close'}
+              {isFr ? 'Fermer l\'aperçu' : 'Close Preview'}
             </button>
           </div>
+
           {/* Player area */}
-          <div className="flex-1 relative">
+          <div className="relative flex-1 overflow-hidden">
             <SlideshowPlayer
               slides={slides.map((s) => ({
                 ...s,
@@ -235,7 +249,8 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
               onClose={() => setShowPreview(false)}
             />
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* Header */}
