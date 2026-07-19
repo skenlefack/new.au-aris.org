@@ -16,16 +16,16 @@ import { useLocaleStore } from '@/lib/stores/locale-store';
 // ═══════════════════════════════════════════════════════════════════════
 
 const THEME_COLORS = [
-  { code: 'navy', label: 'Navy', bg: 'from-[#0a1628] via-[#0d1f3c] to-[#0a1628]', accent: '#1F4E79', accentLight: '#1F4E79' },
-  { code: 'gold', label: 'Gold', bg: 'from-[#1a1400] via-[#2d2200] to-[#1a1400]', accent: '#C9A227', accentLight: '#B8860B' },
-  { code: 'emerald', label: 'Emerald', bg: 'from-[#021a12] via-[#03291c] to-[#021a12]', accent: '#059669', accentLight: '#047857' },
-  { code: 'crimson', label: 'Crimson', bg: 'from-[#1a0507] via-[#2d0a0e] to-[#1a0507]', accent: '#DC2626', accentLight: '#B91C1C' },
-  { code: 'violet', label: 'Violet', bg: 'from-[#0f0720] via-[#1a0d35] to-[#0f0720]', accent: '#7C3AED', accentLight: '#6D28D9' },
-  { code: 'ocean', label: 'Ocean', bg: 'from-[#021a2b] via-[#032d47] to-[#021a2b]', accent: '#0891B2', accentLight: '#0E7490' },
-  { code: 'sunset', label: 'Sunset', bg: 'from-[#1a0d02] via-[#2d1604] to-[#1a0d02]', accent: '#EA580C', accentLight: '#C2410C' },
-  { code: 'slate', label: 'Slate', bg: 'from-[#0f1114] via-[#1a1e24] to-[#0f1114]', accent: '#64748B', accentLight: '#475569' },
-  { code: 'rose', label: 'Rose', bg: 'from-[#1a0510] via-[#2d0a1c] to-[#1a0510]', accent: '#E11D48', accentLight: '#BE123C' },
-  { code: 'teal', label: 'Teal', bg: 'from-[#021a1a] via-[#032d2d] to-[#021a1a]', accent: '#0D9488', accentLight: '#0F766E' },
+  { code: 'navy', label: 'Navy', darkBg: '#0a1628', darkVia: '#0d1f3c', accent: '#1F4E79', lightBg: '#f0f5fa', lightAccent: '#1F4E79' },
+  { code: 'gold', label: 'Gold', darkBg: '#1a1400', darkVia: '#2d2200', accent: '#C9A227', lightBg: '#fdf8e8', lightAccent: '#92750B' },
+  { code: 'emerald', label: 'Emerald', darkBg: '#021a12', darkVia: '#03291c', accent: '#059669', lightBg: '#ecfdf5', lightAccent: '#047857' },
+  { code: 'crimson', label: 'Crimson', darkBg: '#1a0507', darkVia: '#2d0a0e', accent: '#DC2626', lightBg: '#fef2f2', lightAccent: '#B91C1C' },
+  { code: 'violet', label: 'Violet', darkBg: '#0f0720', darkVia: '#1a0d35', accent: '#7C3AED', lightBg: '#f5f3ff', lightAccent: '#6D28D9' },
+  { code: 'ocean', label: 'Ocean', darkBg: '#021a2b', darkVia: '#032d47', accent: '#0891B2', lightBg: '#ecfeff', lightAccent: '#0E7490' },
+  { code: 'sunset', label: 'Sunset', darkBg: '#1a0d02', darkVia: '#2d1604', accent: '#EA580C', lightBg: '#fff7ed', lightAccent: '#C2410C' },
+  { code: 'slate', label: 'Slate', darkBg: '#0f1114', darkVia: '#1a1e24', accent: '#64748B', lightBg: '#f8fafc', lightAccent: '#475569' },
+  { code: 'rose', label: 'Rose', darkBg: '#1a0510', darkVia: '#2d0a1c', accent: '#E11D48', lightBg: '#fff1f2', lightAccent: '#BE123C' },
+  { code: 'teal', label: 'Teal', darkBg: '#021a1a', darkVia: '#032d2d', accent: '#0D9488', lightBg: '#f0fdfa', lightAccent: '#0F766E' },
 ];
 
 const LANGUAGES = [
@@ -341,10 +341,12 @@ export function SlideshowPlayer({
   return (
     <div
       ref={containerRef}
-      className={cn(
-        'fixed inset-0 z-50 flex flex-col overflow-hidden transition-colors duration-700',
-        isDark ? `bg-gradient-to-br ${themeColor.bg}` : 'bg-gradient-to-br from-gray-50 via-white to-gray-100',
-      )}
+      className="fixed inset-0 z-50 flex flex-col overflow-hidden transition-all duration-700"
+      style={{
+        background: isDark
+          ? `linear-gradient(135deg, ${themeColor.darkBg} 0%, ${themeColor.darkVia} 50%, ${themeColor.darkBg} 100%)`
+          : `linear-gradient(135deg, ${themeColor.lightBg} 0%, #ffffff 50%, ${themeColor.lightBg} 100%)`,
+      }}
     >
       {/* ── Global Styles ── */}
       <style jsx global>{`
@@ -374,39 +376,35 @@ export function SlideshowPlayer({
       {/* ═════════════════════════════��═════════════════════════════════
           HEADER — Always visible, fixed
       ═══════════════════════════════════════════════════════════════ */}
-      <header className={cn(
-        'relative z-30 flex items-center justify-between px-5 py-2.5 shrink-0',
-        isDark
-          ? 'bg-black/40 backdrop-blur-2xl border-b border-white/[0.06]'
-          : 'bg-white/70 backdrop-blur-2xl border-b border-gray-200/60 shadow-sm',
-      )}>
+      <header
+        className={cn(
+          'relative z-30 flex items-center justify-between px-5 py-2.5 shrink-0 backdrop-blur-2xl',
+          isDark ? 'bg-black/40' : 'bg-white/70 shadow-sm',
+        )}
+        style={{ borderBottom: `1px solid ${isDark ? themeColor.accent + '15' : themeColor.lightAccent + '20'}` }}
+      >
         {/* Left: Logo + Title */}
         <div className="flex items-center gap-3">
           <Image
             src="/aris-logo.png"
             alt="ARIS"
-            width={32}
-            height={32}
-            className="rounded-md"
+            width={40}
+            height={40}
+            className="rounded-lg"
           />
-          <div className="flex items-center gap-2.5">
-            <span className={cn('text-sm font-bold tracking-tight', isDark ? 'text-white' : 'text-gray-900')}>
-              ARIS
-            </span>
-            <div className={cn('w-px h-4', isDark ? 'bg-white/10' : 'bg-gray-200')} />
-            <span className={cn('text-sm font-medium truncate max-w-[280px]', isDark ? 'text-white/70' : 'text-gray-600')}>
-              {displayTitle}
-            </span>
-          </div>
+          <div className={cn('w-px h-5', isDark ? 'bg-white/10' : 'bg-gray-200')} />
+          <span className={cn('text-sm font-semibold truncate max-w-[300px]', isDark ? 'text-white/80' : 'text-gray-700')}>
+            {displayTitle}
+          </span>
 
           {/* Current dashboard badge */}
           {currentDashboardTitle && (
             <div className={cn(
-              'hidden lg:flex items-center gap-2 ml-3 pl-3 border-l',
+              'hidden lg:flex items-center gap-2 ml-2 pl-3 border-l',
               isDark ? 'border-white/10' : 'border-gray-200',
             )}>
               <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: themeColor.accent }} />
-              <span className={cn('text-[11px] truncate max-w-[180px]', isDark ? 'text-white/40' : 'text-gray-400')}>
+              <span className={cn('text-[11px] truncate max-w-[200px]', isDark ? 'text-white/40' : 'text-gray-400')}>
                 {currentDashboardTitle}
               </span>
             </div>
@@ -468,23 +466,34 @@ export function SlideshowPlayer({
             </Btn>
             {showColorMenu && (
               <div className={cn(
-                'absolute right-0 top-full mt-1 rounded-lg overflow-hidden shadow-xl z-50 p-2',
-                isDark ? 'bg-gray-900 border border-white/10' : 'bg-white border border-gray-200',
+                'absolute right-0 top-full mt-1 rounded-xl overflow-hidden shadow-2xl z-50 p-3 min-w-[200px]',
+                isDark ? 'bg-gray-900/95 border border-white/10 backdrop-blur-xl' : 'bg-white border border-gray-200 backdrop-blur-xl',
               )}>
-                <div className="grid grid-cols-5 gap-1.5">
+                <p className={cn('text-[10px] font-medium uppercase tracking-wider mb-2 px-1', isDark ? 'text-white/40' : 'text-gray-400')}>
+                  Theme
+                </p>
+                <div className="grid grid-cols-5 gap-2">
                   {THEME_COLORS.map((c) => (
                     <button
                       key={c.code}
                       onClick={() => { setThemeColor(c); setShowColorMenu(false); }}
                       title={c.label}
                       className={cn(
-                        'w-7 h-7 rounded-full transition-all border-2',
+                        'w-8 h-8 rounded-full transition-all duration-200 relative group',
                         themeColor.code === c.code
-                          ? 'border-white scale-110 ring-2 ring-white/30'
-                          : 'border-transparent hover:scale-110',
+                          ? 'scale-110 ring-2 ring-offset-2'
+                          : 'hover:scale-110',
+                        themeColor.code === c.code && isDark && 'ring-white/60 ring-offset-gray-900',
+                        themeColor.code === c.code && !isDark && 'ring-gray-400 ring-offset-white',
                       )}
                       style={{ backgroundColor: c.accent }}
-                    />
+                    >
+                      {themeColor.code === c.code && (
+                        <svg className="absolute inset-0 m-auto w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -554,12 +563,13 @@ export function SlideshowPlayer({
       {/* ═══════════════════════════════════════════════════════════════
           FOOTER — Progress + Dots + Smart Ticker
       ═══════════════════════════════════════════════════════════════ */}
-      <footer className={cn(
-        'relative z-30 shrink-0',
-        isDark
-          ? 'bg-black/50 backdrop-blur-2xl border-t border-white/[0.06]'
-          : 'bg-white/70 backdrop-blur-2xl border-t border-gray-200/60',
-      )}>
+      <footer
+        className={cn(
+          'relative z-30 shrink-0 backdrop-blur-2xl',
+          isDark ? 'bg-black/50' : 'bg-white/70',
+        )}
+        style={{ borderTop: `1px solid ${isDark ? themeColor.accent + '15' : themeColor.lightAccent + '20'}` }}
+      >
         {/* Progress bar */}
         {showProgress && slides.length > 1 && (
           <div className="h-[2px]">
@@ -614,14 +624,16 @@ export function SlideshowPlayer({
 //  Button
 // ═══════════════════════════════════════════════════════════════════════
 
-function Btn({ isDark, onClick, tip, children }: { isDark: boolean; onClick: () => void; tip: string; children: React.ReactNode }) {
+function Btn({ isDark, onClick, tip, children, active }: { isDark: boolean; onClick: () => void; tip: string; children: React.ReactNode; active?: boolean }) {
   return (
     <button
       onClick={onClick}
       title={tip}
       className={cn(
         'inline-flex items-center justify-center rounded-lg w-8 h-8 transition-all',
-        isDark ? 'text-white/50 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100',
+        active
+          ? isDark ? 'text-white bg-white/15' : 'text-gray-900 bg-gray-200'
+          : isDark ? 'text-white/50 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100',
       )}
     >
       {children}
