@@ -83,7 +83,7 @@ function SlideRenderer({ dashboardId }: { dashboardId: string }) {
 //  Smart Ticker
 // ═══════════════════════════════════════════════════════════════════════
 
-function SmartTicker({ dashboardId, accentColor }: { dashboardId: string; accentColor: string }) {
+function SmartTicker({ dashboardId, accentColor, isDark }: { dashboardId: string; accentColor: string; isDark: boolean }) {
   const { data: renderData } = useDashboardRender(dashboardId);
   const { data: dashboardData } = useDashboard(dashboardId);
   const locale = useLocaleStore((s) => s.locale);
@@ -144,7 +144,7 @@ function SmartTicker({ dashboardId, accentColor }: { dashboardId: string; accent
         className="inline-block animate-ticker"
         style={{ animationDuration: `${Math.max(25, messages.length * 10)}s` }}
       >
-        <span className="text-[11px] font-light tracking-wide text-white/50">
+        <span className={cn('text-[11px] font-light tracking-wide', isDark ? 'text-white/60' : 'text-gray-600')}>
           {doubledText}
         </span>
       </div>
@@ -606,12 +606,12 @@ export function SlideshowPlayer({
           {/* Ticker */}
           <div className="flex-1 overflow-hidden min-w-0">
             {currentSlide?.dashboardId && (
-              <SmartTicker dashboardId={currentSlide.dashboardId} accentColor={themeColor.accent} />
+              <SmartTicker dashboardId={currentSlide.dashboardId} accentColor={themeColor.accent} isDark={isDark} />
             )}
           </div>
 
           {/* Branding */}
-          <span className={cn('shrink-0 text-[9px] font-medium tracking-[0.15em] uppercase', isDark ? 'text-white/20' : 'text-gray-300')}>
+          <span className={cn('shrink-0 text-[9px] font-medium tracking-[0.15em] uppercase', isDark ? 'text-white/25' : 'text-gray-400')}>
             AU-IBAR
           </span>
         </div>
