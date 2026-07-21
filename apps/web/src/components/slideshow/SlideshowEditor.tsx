@@ -273,13 +273,22 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
           </h1>
         </div>
         <div className="flex gap-2">
-          {slides.length > 0 && (
+          {slides.length > 0 && publicToken && (
+            <button
+              onClick={() => window.open(`/slideshow/${publicToken}`, '_blank')}
+              className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              {isFr ? 'Aperçu' : 'Preview'}
+            </button>
+          )}
+          {slides.length > 0 && !publicToken && (
             <button
               onClick={() => setShowPreview(true)}
               className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800"
             >
               <Play className="h-4 w-4 mr-2" />
-              {isFr ? 'Apercu' : 'Preview'}
+              {isFr ? 'Aperçu' : 'Preview'}
             </button>
           )}
           <button
