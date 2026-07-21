@@ -537,7 +537,7 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {isFr
-                    ? 'Ce lien permet de visualiser le diaporama sans connexion.'
+                    ? 'Ce lien permet de visualiser le diaporama sans connexion au système.'
                     : 'This link allows viewing the slideshow without login.'}
                 </p>
               </div>

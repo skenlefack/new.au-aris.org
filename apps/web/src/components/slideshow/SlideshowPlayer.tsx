@@ -39,12 +39,55 @@ const LANGUAGES = [
 //  Slide Renderer
 // ═══════════════════════════════════════════════════════════════════════
 
-function SlideRenderer({ dashboardId }: { dashboardId: string }) {
+function SlideRenderer({ dashboardId, durationMs }: { dashboardId: string; durationMs: number }) {
   const { data: dashboardData, isLoading: loadingDash } = useDashboard(dashboardId);
   const { data: renderData, isLoading: loadingRender } = useDashboardRender(dashboardId);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const dashboard = dashboardData?.data;
   const widgetData = (renderData?.data?.widgetData ?? {}) as Record<string, Record<string, unknown>>;
+
+  // Auto-scroll: screen-by-screen when content overflows
+  useEffect(() => {
+    if (loadingDash || loadingRender || !dashboard) return;
+
+    // Wait for content to render and measure
+    const measureTimer = setTimeout(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+
+      const contentHeight = el.scrollHeight;
+      const viewHeight = el.clientHeight;
+      if (contentHeight <= viewHeight) return; // No overflow, nothing to scroll
+
+      // Calculate number of "screens" (pages)
+      const totalScreens = Math.ceil(contentHeight / viewHeight);
+      // Time per screen: divide total duration equally, reserve 500ms for initial view
+      const initialPause = 800;
+      const remainingTime = durationMs - initialPause;
+      const timePerScreen = remainingTime / (totalScreens - 1);
+
+      // Scroll to each screen sequentially
+      scrollTimersRef.current = [];
+      for (let i = 1; i < totalScreens; i++) {
+        const t = setTimeout(() => {
+          if (!scrollRef.current) return;
+          const targetScroll = Math.min(i * viewHeight, contentHeight - viewHeight);
+          scrollRef.current.scrollTo({
+            top: targetScroll,
+            behavior: 'smooth',
+          });
+        }, initialPause + (i - 1) * timePerScreen);
+        scrollTimersRef.current.push(t);
+      }
+    }, 600); // Wait for dashboard widgets to render
+
+    return () => {
+      clearTimeout(measureTimer);
+      scrollTimersRef.current.forEach(clearTimeout);
+    };
+  }, [loadingDash, loadingRender, dashboard, durationMs]);
 
   if (loadingDash || loadingRender) {
     return (
@@ -69,7 +112,7 @@ function SlideRenderer({ dashboardId }: { dashboardId: string }) {
   }
 
   return (
-    <div className="px-6 py-4 overflow-auto h-full">
+    <div ref={scrollRef} className="px-6 py-4 overflow-hidden h-full">
       <SectionList
         sections={dashboard.sections ?? []}
         widgetData={widgetData}
@@ -527,7 +570,7 @@ export function SlideshowPlayer({
       <div className="flex-1 relative overflow-hidden min-h-0">
         <div key={currentIndex} className={cn('absolute inset-0 overflow-auto', animClass)}>
           {currentSlide?.dashboardId ? (
-            <SlideRenderer dashboardId={currentSlide.dashboardId} />
+            <SlideRenderer dashboardId={currentSlide.dashboardId} durationMs={currentDuration} />
           ) : (
             <div className="flex items-center justify-center h-full">
               <p className="text-sm text-white/30">Chargement...</p>
