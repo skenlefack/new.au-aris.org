@@ -63,7 +63,7 @@ const fb = {
 // TYPES
 // ════════════════════════════════════════════════════════════════
 
-export type FormType = 'CAMPAIGN' | 'EVENT_ALERT';
+export type FormType = 'CAMPAIGN' | 'EVENT_ALERT' | 'PAID';
 
 export interface FormTemplateListItem {
   id: string;

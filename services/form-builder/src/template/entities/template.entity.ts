@@ -1,7 +1,7 @@
 import type { DataClassification } from '@aris/shared-types';
 
 export type FormTemplateStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
-export type FormType = 'CAMPAIGN' | 'EVENT_ALERT';
+export type FormType = 'CAMPAIGN' | 'EVENT_ALERT' | 'PAID';
 
 /**
  * ARIS domain-specific form component types beyond standard JSON Schema.

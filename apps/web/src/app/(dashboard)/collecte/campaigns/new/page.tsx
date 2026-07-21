@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { Suspense, useState, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -58,8 +58,18 @@ const allRecs = getAllRecs();
 // Domains to exclude from campaign forms
 const EXCLUDED_DOMAINS = new Set(['knowledge-hub']);
 
-export default function NewCampaignPage() {
+export default function NewCampaignPageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>}>
+      <NewCampaignPage />
+    </Suspense>
+  );
+}
+
+function NewCampaignPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isPaidMode = searchParams.get('type') === 'paid';
   const t = useTranslations('collecte');
   const tAi = useTranslations('ai');
   const locale = useLocaleStore((s) => s.locale);
@@ -117,8 +127,8 @@ export default function NewCampaignPage() {
   const [name, setName] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
   const [description, setDescription] = useState<Record<string, string>>({ en: '', fr: '', pt: '', ar: '', es: '' });
 
-  // Multi-domain selection
-  const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
+  // Multi-domain selection — PAID mode auto-selects 'paid'
+  const [selectedDomains, setSelectedDomains] = useState<string[]>(isPaidMode ? ['paid'] : []);
 
   // Sub-domain selection (optional)
   const [selectedSubDomains, setSelectedSubDomains] = useState<string[]>([]);
@@ -211,7 +221,12 @@ export default function NewCampaignPage() {
 
     return apiData.filter((tmpl) => {
       if (tmpl.status !== 'PUBLISHED') return false;
-      if (selectedDomains.length > 0 && !selectedNorm.has(normalize(tmpl.domain))) return false;
+      // PAID mode: only show PAID-type templates
+      if (isPaidMode) {
+        if (tmpl.formType !== 'PAID' && normalize(tmpl.domain) !== 'paid') return false;
+      } else {
+        if (selectedDomains.length > 0 && !selectedNorm.has(normalize(tmpl.domain))) return false;
+      }
       // Show templates from user's own tenant + parent tenants (continental always visible)
       if (selectedTenantId && tmpl.tenantId !== selectedTenantId) {
         const tmplTenant = findTenantById(tenantTree, tmpl.tenantId);
@@ -227,7 +242,7 @@ export default function NewCampaignPage() {
       }
       return true;
     });
-  }, [templatesData, selectedDomains, selectedTenantId, tenantTree, userLevel, userCountryCode]);
+  }, [templatesData, selectedDomains, selectedTenantId, tenantTree, userLevel, userCountryCode, isPaidMode]);
 
   // Form codes use underscores (animal_health), store uses hyphens (animal-health)
   const FORM_TO_STORE: Record<string, string> = {
@@ -275,7 +290,7 @@ export default function NewCampaignPage() {
   function validate(): boolean {
     const e: Record<string, string> = {};
     if (!(name.en?.trim() || name.fr?.trim())) e.name = t('campaignNameRequired');
-    if (selectedDomains.length === 0) e.domains = t('domainRequired');
+    if (!isPaidMode && selectedDomains.length === 0) e.domains = t('domainRequired');
     if (selectedTemplates.length === 0) e.templates = t('templateRequired');
     if (selectedCountries.length === 0 && userLevel !== 'MEMBER_STATE') e.countries = t('countriesRequired');
     if (!isPermanent) {
@@ -291,7 +306,7 @@ export default function NewCampaignPage() {
     ev.preventDefault();
     if (!validate()) return;
 
-    const primaryDomain = selectedDomains[0];
+    const primaryDomain = isPaidMode ? 'paid' : selectedDomains[0];
     const uniqueSuffix = Math.random().toString(36).slice(2, 6).toUpperCase();
     const datePart = isPermanent ? 'PERM' : startDate.replace(/-/g, '');
     const code = `${primaryDomain.replace(/[^a-zA-Z]/g, '_').toUpperCase().slice(0, 10)}_${datePart}_${uniqueSuffix}`;
@@ -380,14 +395,19 @@ export default function NewCampaignPage() {
       <div className="flex items-start justify-between">
         <div>
           <Link
-            href="/collecte"
+            href={isPaidMode ? '/paid-collecte' : '/collecte'}
             className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <ArrowLeft className="h-4 w-4" />
-            {t('backToCampaigns')}
+            {isPaidMode ? 'Retour au PAID' : t('backToCampaigns')}
           </Link>
-          <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-            {t('createCampaign')}
+          <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+            {isPaidMode ? (t('createPaidCampaign') || 'Nouvelle campagne PAID') : t('createCampaign')}
+            {isPaidMode && (
+              <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                PAID
+              </span>
+            )}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {t('collectionCampaignsDesc')}
@@ -735,7 +755,21 @@ export default function NewCampaignPage() {
 
         {/* ROW 2 — Domains + Sub-domains */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5 dark:border-gray-700 dark:bg-gray-900">
-          {/* Domains (required) */}
+          {/* Domains (required) — hidden in PAID mode */}
+          {isPaidMode ? (
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <ClipboardList className="h-4 w-4 text-gray-400" />
+                {t('domains')}
+              </h2>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:border-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400">
+                  <Shield className="h-3 w-3" />
+                  PAID — Programme d&apos;Amélioration de l&apos;Information sur les Données
+                </span>
+              </div>
+            </div>
+          ) : (
           <div className="space-y-3">
             <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <ClipboardList className="h-4 w-4 text-gray-400" />
@@ -768,9 +802,10 @@ export default function NewCampaignPage() {
             </div>
             {errors.domains && <p className="mt-1 text-xs text-red-600">{errors.domains}</p>}
           </div>
+          )}
 
           {/* Sub-domains (optional) */}
-          {selectedDomains.length > 0 && (
+          {!isPaidMode && selectedDomains.length > 0 && (
             <div className="space-y-3 border-t border-gray-100 pt-4 dark:border-gray-800">
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t('subDomains')}

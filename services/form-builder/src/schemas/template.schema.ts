@@ -10,7 +10,7 @@ export type TargetInput = Static<typeof TargetSchema>;
 export const CreateTemplateSchema = Type.Object({
   name: Type.String({ minLength: 2, maxLength: 255 }),
   domain: Type.Optional(Type.String({ minLength: 2, maxLength: 50 })),
-  formType: Type.Optional(Type.Union([Type.Literal('CAMPAIGN'), Type.Literal('EVENT_ALERT')])),
+  formType: Type.Optional(Type.Union([Type.Literal('CAMPAIGN'), Type.Literal('EVENT_ALERT'), Type.Literal('PAID')])),
   parentTemplateId: Type.Optional(Type.String({ format: 'uuid' })),
   schema: Type.Record(Type.String(), Type.Unknown()),
   uiSchema: Type.Optional(Type.Record(Type.String(), Type.Unknown())),

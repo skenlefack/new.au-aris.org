@@ -12,6 +12,7 @@ import {
   FileText,
   Globe2,
   BarChart3,
+  PlusCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -174,6 +175,7 @@ export default function PaidPage() {
       {/* ── Quick Links ────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {[
+          { href: '/collecte/campaigns/new?type=paid', label: t('newPaidCampaign') || 'Nouvelle campagne PAID', desc: t('newPaidCampaignDesc') || 'Créer une campagne de collecte PAID', icon: PlusCircle, color: '#00796B' },
           { href: '/paid-collecte/by-country', label: t('byCountry'), desc: t('byCountryDesc'), icon: Globe2, color: '#1565C0' },
           { href: '/paid-collecte/by-sector', label: t('bySector'), desc: t('bySectorDesc'), icon: BarChart3, color: '#2E7D32' },
           { href: '/collecte/campaigns?domain=paid', label: t('manageCampaigns'), desc: t('manageCampaignsDesc'), icon: FileText, color: '#6A1B9A' },

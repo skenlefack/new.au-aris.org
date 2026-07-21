@@ -12,6 +12,7 @@ enum FormTemplateStatus {
 enum FormType {
   CAMPAIGN
   EVENT_ALERT
+  PAID
 
   @@schema("form_builder")
 }

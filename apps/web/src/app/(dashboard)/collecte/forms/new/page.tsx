@@ -60,9 +60,9 @@ export default function NewFormPage() {
       schema.sections[0].name = { en: 'General Information' };
     }
 
-    // Derive domain from primary target for backward compat
+    // Derive domain from primary target for backward compat; PAID forms always use 'paid'
     const primaryTarget = targets.find((t) => t.isPrimary) ?? targets[0];
-    const effectiveDomain = primaryTarget?.domainCode || domain;
+    const effectiveDomain = formType === 'PAID' ? 'paid' : (primaryTarget?.domainCode || domain);
 
     try {
       const result = await createMutation.mutateAsync({
@@ -203,7 +203,7 @@ export default function NewFormPage() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 {t('formType')} <span className="text-red-500">*</span>
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
                   onClick={() => setFormType('CAMPAIGN')}
@@ -231,6 +231,20 @@ export default function NewFormPage() {
                     {t('formTypeEventAlert')}
                   </p>
                   <p className="mt-0.5 text-[11px] text-gray-400">{t('formTypeEventAlertDesc')}</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormType('PAID')}
+                  className={`rounded-lg border-2 p-3 text-left transition-all ${
+                    formType === 'PAID'
+                      ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-900/20'
+                      : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <p className={`text-sm font-semibold ${formType === 'PAID' ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                    PAID
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-gray-400">{t('formTypePaidDesc') || 'Programme d\'Amélioration de l\'Information sur les Données'}</p>
                 </button>
               </div>
             </div>
