@@ -168,6 +168,22 @@ export default function CampaignDetailPage() {
   const editable = canEditCampaign(user, campaign);
 
   const [activeTab, setActiveTab] = useState<'details' | 'submissions' | 'lab-results' | 'dashboards'>('details');
+  const [editingTarget, setEditingTarget] = useState(false);
+  const [targetDraft, setTargetDraft] = useState<string>('');
+  const savingTargetRef = React.useRef(false);
+
+  const saveTargetSubmissions = async () => {
+    if (savingTargetRef.current) return;
+    savingTargetRef.current = true;
+    const val = parseInt(targetDraft, 10);
+    if (!isNaN(val) && val >= 0) {
+      try {
+        await updateCampaign.mutateAsync({ id: campaignId, targetSubmissions: val } as AnyCampaign);
+      } catch { /* ignore */ }
+    }
+    setEditingTarget(false);
+    savingTargetRef.current = false;
+  };
 
   // Resolve each campaign templateId to a { name, tpl, tplId } object.
   // Matching strategy: try ID match first (real DB IDs), then fall back to
@@ -629,11 +645,42 @@ export default function CampaignDetailPage() {
                   {campaign.endDate ? new Date(campaign.endDate).toLocaleDateString() : '—'}
                 </dd>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
                   <Target className="h-3.5 w-3.5" /> {t('target')}
                 </dt>
-                <dd className="text-xs font-medium text-gray-900 dark:text-white">{target || '—'} {t('submissions').toLowerCase()}</dd>
+                <dd className="text-xs font-medium text-gray-900 dark:text-white flex items-center gap-1">
+                  {editingTarget ? (
+                    <form
+                      onSubmit={(e) => { e.preventDefault(); saveTargetSubmissions(); }}
+                      className="flex items-center gap-1"
+                    >
+                      <input
+                        type="number"
+                        min={0}
+                        autoFocus
+                        value={targetDraft}
+                        onChange={(e) => setTargetDraft(e.target.value)}
+                        onBlur={() => saveTargetSubmissions()}
+                        onKeyDown={(e) => { if (e.key === 'Escape') { setEditingTarget(false); } }}
+                        className="w-20 rounded border border-gray-300 px-1.5 py-0.5 text-xs text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </form>
+                  ) : (
+                    <>
+                      {target || '—'} {t('submissions').toLowerCase()}
+                      {editable && (campaign.status === 'ACTIVE' || campaign.status === 'PLANNED') && (
+                        <button
+                          onClick={() => { setTargetDraft(String(target || '')); setEditingTarget(true); }}
+                          className="ml-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                          title={t('edit')}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      )}
+                    </>
+                  )}
+                </dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
@@ -764,9 +811,9 @@ function CampaignDashboardsTab({ campaignId, campaignName }: { campaignId: strin
 
   const renderCampaignDashboard = (cId: string, cName: string) => {
     const nameLower = cName.toLowerCase();
-    // Allocation Kits → uses linked dashboard builder dashboard only (no custom component)
+    // Allocation Kits → generic campaign dashboard from submission data
     if (nameLower.includes('allocation') && nameLower.includes('kit')) {
-      return null;
+      return <GenericCampaignDashboard campaignId={cId} campaignName={cName} />;
     }
     // Surveillance & Outils Numériques → custom digital tools dashboard
     if (nameLower.includes('surveillance') && (nameLower.includes('outil') || nameLower.includes('numérique') || nameLower.includes('numerique'))) {
