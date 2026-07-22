@@ -145,74 +145,87 @@ function DonutChart({ data, title }: { data: { name: string; value: number }[]; 
   );
 }
 
-/* ── Year Trend Chart (histogram + line curve) ── */
+/* ── Year Trend Chart (vertical bar histogram + outbreak curve) ── */
 function YearTrend({ data }: { data: { year: number; reports: number; outbreaks: number }[] }) {
   if (!data.length) return null;
   const filtered = data.filter((d) => d.year >= 2007 && d.year <= 2025);
   const maxReports = Math.max(...filtered.map((d) => d.reports), 1);
   const maxOutbreaks = Math.max(...filtered.map((d) => d.outbreaks), 1);
 
-  // SVG line path for outbreaks curve
-  const chartH = 160;
-  const chartW = filtered.length * 40;
-  const points = filtered.map((d, i) => {
-    const x = (i / (filtered.length - 1)) * 100;
-    const y = 100 - (d.outbreaks / maxOutbreaks) * 100;
-    return `${x},${y}`;
-  }).join(' ');
+  const n = filtered.length;
+  const padding = 8; // % padding left/right for SVG
+  const barW = (100 - padding * 2) / n;
 
+  // SVG bars + curve rendered together for perfect alignment
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-      <h3 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+    <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800 flex flex-col">
+      <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
         <TrendingUp className="h-4 w-4 text-gray-400" />
-        Rapports et foyers par année
+        Rapports et foyers par année (2007–2025)
       </h3>
-      <div className="relative" style={{ height: chartH }}>
-        {/* Bars (reports) */}
-        <div className="absolute inset-0 flex items-end gap-[2px]">
-          {filtered.map((d) => (
-            <div key={d.year} className="flex-1 flex flex-col items-center gap-0.5">
-              <div
-                className="w-full rounded-t bg-[#1F4E79]/70 hover:bg-[#1F4E79] transition-colors relative group"
-                style={{ height: `${(d.reports / maxReports) * 100}%`, minHeight: 2 }}
-              >
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap z-10">
-                  {d.reports.toLocaleString()} rapports
-                </div>
-              </div>
-            </div>
+
+      {/* Chart area — fills available height */}
+      <div className="flex-1 min-h-[280px]">
+        <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" className="overflow-visible">
+          {/* Y-axis grid lines */}
+          {[0.25, 0.5, 0.75].map((pct) => (
+            <line key={pct} x1={padding} y1={pct * 88} x2={100 - padding} y2={pct * 88} stroke="currentColor" className="text-gray-100 dark:text-gray-700" strokeWidth="0.3" vectorEffect="non-scaling-stroke" />
           ))}
-        </div>
-        {/* Line curve (outbreaks) */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+
+          {/* Bars (reports) */}
+          {filtered.map((d, i) => {
+            const x = padding + i * barW + barW * 0.1;
+            const w = barW * 0.8;
+            const h = (d.reports / maxReports) * 88;
+            const y = 88 - h;
+            return (
+              <g key={d.year}>
+                <rect x={x} y={y} width={w} height={h} rx="0.4" fill="#1F4E79" opacity="0.75">
+                  <title>{d.year}: {d.reports.toLocaleString()} rapports</title>
+                </rect>
+              </g>
+            );
+          })}
+
+          {/* Outbreak curve (line + dots) */}
           <polyline
-            points={points}
+            points={filtered.map((d, i) => {
+              const x = padding + i * barW + barW / 2;
+              const y = 88 - (d.outbreaks / maxOutbreaks) * 88;
+              return `${x},${y}`;
+            }).join(' ')}
             fill="none"
             stroke="#DC2626"
-            strokeWidth="2"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"
           />
           {filtered.map((d, i) => {
-            const x = (i / (filtered.length - 1)) * 100;
-            const y = 100 - (d.outbreaks / maxOutbreaks) * 100;
+            const x = padding + i * barW + barW / 2;
+            const y = 88 - (d.outbreaks / maxOutbreaks) * 88;
             return (
-              <circle key={d.year} cx={x} cy={y} r="1.5" fill="#DC2626" vectorEffect="non-scaling-stroke" />
+              <circle key={`dot-${d.year}`} cx={x} cy={y} r="2" fill="#DC2626" stroke="white" strokeWidth="1" vectorEffect="non-scaling-stroke">
+                <title>{d.year}: {d.outbreaks.toLocaleString()} foyers</title>
+              </circle>
+            );
+          })}
+
+          {/* Year labels (bottom) */}
+          {filtered.map((d, i) => {
+            const x = padding + i * barW + barW / 2;
+            return (
+              <text key={`lbl-${d.year}`} x={x} y="96" textAnchor="middle" fontSize="3.2" fill="currentColor" className="text-gray-400" vectorEffect="non-scaling-stroke">
+                {String(d.year).slice(2)}
+              </text>
             );
           })}
         </svg>
       </div>
-      {/* Year labels */}
-      <div className="flex gap-[2px] mt-1">
-        {filtered.map((d) => (
-          <div key={d.year} className="flex-1 text-center text-[9px] text-gray-400">
-            {String(d.year).slice(2)}
-          </div>
-        ))}
-      </div>
+
       {/* Legend */}
-      <div className="mt-3 flex items-center gap-5 text-[10px] text-gray-500">
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[#1F4E79]/70" /> Rapports</span>
-        <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 bg-[#DC2626] rounded" /> Foyers déclarés</span>
+      <div className="mt-2 flex items-center gap-5 text-[11px] text-gray-500 dark:text-gray-400">
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-[#1F4E79]/75" /> Rapports sanitaires</span>
+        <span className="flex items-center gap-1.5"><span className="h-[3px] w-5 bg-[#DC2626] rounded-full" /><span className="h-2 w-2 rounded-full bg-[#DC2626]" /> Foyers déclarés</span>
       </div>
     </div>
   );
