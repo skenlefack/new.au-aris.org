@@ -380,129 +380,79 @@ export class DbStatsService {
 
     const client = await this.pool.connect();
     try {
-      // Valid country set for fast lookup
-      const validCountrySet = new Set([
-        'Algeria','Angola','Benin','Botswana','Burkina Faso','Burundi','Cameroon',
-        'Cape Verde','Central African Republic','Chad','Comoros','Congo','Cote d\'Ivoire',
+      const VALID = `'Algeria','Angola','Benin','Botswana','Burkina Faso','Burundi','Cameroon',
+        'Cape Verde','Central African Republic','Chad','Comoros','Congo','Cote d''Ivoire',
         'DR Congo','Djibouti','Egypt','Equatorial Guinea','Eritrea','Eswatini',
         'Ethiopia','Gabon','Gambia','Ghana','Guinea','Guinea-Bissau',
         'Kenya','Lesotho','Liberia','Libya','Madagascar','Malawi','Mali','Mauritania',
         'Mauritius','Morocco','Mozambique','Namibia','Niger','Nigeria','Rwanda',
         'Sao Tome and Principe','Senegal','Seychelles','Sierra Leone',
         'Somalia','South Africa','South Sudan','Sudan','Tanzania','Togo','Tunisia',
-        'Uganda','Zambia','Zimbabwe',
+        'Uganda','Zambia','Zimbabwe'`;
+
+      const CF = `campaign_id = $1 AND data->>'admin_location' IS NOT NULL
+        AND SPLIT_PART(data->>'admin_location', ' / ', 1) IN (${VALID})`;
+
+      // All 7 queries run in PARALLEL — each returns small aggregated result
+      const [kpiRes, diseaseRes, countryRes, yearRes, statusRes, typeRes, mapRes] = await Promise.all([
+        client.query(`SELECT
+          COUNT(*)::int AS total_reports,
+          COUNT(DISTINCT SPLIT_PART(data->>'admin_location', ' / ', 1)) FILTER (WHERE ${CF})::int AS countries,
+          COUNT(DISTINCT data->>'disease') FILTER (WHERE data->>'disease' IN (
+            SELECT name->>'en' FROM animal_health.ref_diseases WHERE is_active = true))::int AS diseases,
+          COALESCE(SUM(CASE WHEN (data->>'num_new_outbreaks') ~ '^[0-9]+\\.?[0-9]*$'
+            THEN (data->>'num_new_outbreaks')::numeric ELSE 0 END), 0)::bigint AS total_outbreaks,
+          COUNT(*) FILTER (WHERE LOWER(data->>'outbreak_in_month') IN ('yes','true','1','oui'))::int AS reports_with_outbreak,
+          COUNT(*) FILTER (WHERE LOWER(data->>'vaccination_in_period') IN ('yes','true','1','oui'))::int AS reports_with_vaccination,
+          MIN(submitted_at) FILTER (WHERE ${CF})::text AS earliest_date,
+          MAX(submitted_at) FILTER (WHERE ${CF})::text AS latest_date
+          FROM public.submissions WHERE campaign_id = $1`, [campaignId]),
+
+        client.query(`SELECT data->>'disease' AS name, COUNT(*)::int AS value
+          FROM public.submissions WHERE campaign_id = $1
+            AND data->>'disease' IN (SELECT name->>'en' FROM animal_health.ref_diseases WHERE is_active = true)
+          GROUP BY 1 ORDER BY value DESC LIMIT 15`, [campaignId]),
+
+        client.query(`SELECT SPLIT_PART(data->>'admin_location', ' / ', 1) AS name, COUNT(*)::int AS value
+          FROM public.submissions WHERE ${CF} GROUP BY 1 ORDER BY value DESC LIMIT 15`, [campaignId]),
+
+        client.query(`SELECT EXTRACT(YEAR FROM submitted_at)::int AS year, COUNT(*)::int AS reports,
+          COALESCE(SUM(CASE WHEN (data->>'num_new_outbreaks') ~ '^[0-9]+\\.?[0-9]*$'
+            THEN (data->>'num_new_outbreaks')::numeric ELSE 0 END), 0)::int AS outbreaks
+          FROM public.submissions WHERE ${CF}
+            AND EXTRACT(YEAR FROM submitted_at) BETWEEN 2007 AND 2025
+          GROUP BY 1 ORDER BY 1`, [campaignId]),
+
+        client.query(`SELECT data->>'outbreak_status' AS name, COUNT(*)::int AS value
+          FROM public.submissions WHERE campaign_id = $1 AND data->>'outbreak_status' IS NOT NULL
+          GROUP BY 1 ORDER BY value DESC`, [campaignId]),
+
+        client.query(`SELECT data->>'new_or_followup' AS name, COUNT(*)::int AS value
+          FROM public.submissions WHERE campaign_id = $1 AND data->>'new_or_followup' IS NOT NULL
+          GROUP BY 1 ORDER BY value DESC`, [campaignId]),
+
+        client.query(`SELECT SPLIT_PART(data->>'admin_location', ' / ', 1) AS country, COUNT(*)::int AS value
+          FROM public.submissions WHERE ${CF} GROUP BY 1 ORDER BY value DESC`, [campaignId]),
       ]);
 
-      // ARIS ref_diseases for filtering valid disease names
-      const refDiseases = await client.query(
-        `SELECT name->>'en' AS n FROM animal_health.ref_diseases WHERE is_active = true`,
-      );
-      const validDiseases = new Set(refDiseases.rows.map((r: any) => r.n));
-
-      // Single-pass aggregation: scan the table ONCE, compute everything
-      const { rows } = await client.query(`
-        SELECT
-          SPLIT_PART(data->>'admin_location', ' / ', 1) AS country,
-          data->>'disease' AS disease,
-          data->>'outbreak_in_month' AS outbreak_flag,
-          data->>'vaccination_in_period' AS vacc_flag,
-          data->>'num_new_outbreaks' AS num_outbreaks,
-          data->>'outbreak_status' AS ob_status,
-          data->>'new_or_followup' AS ob_type,
-          EXTRACT(YEAR FROM submitted_at)::int AS yr,
-          submitted_at
-        FROM public.submissions
-        WHERE campaign_id = $1
-      `, [campaignId]);
-
-      // Process in JS (single scan, much faster than 7 SQL round-trips)
-      let totalReports = rows.length;
-      let totalOutbreaks = 0;
-      let reportsWithOutbreak = 0;
-      let reportsWithVaccination = 0;
-      let minDate: string | null = null;
-      let maxDate: string | null = null;
-
-      const countryCounts = new Map<string, number>();
-      const diseaseCounts = new Map<string, number>();
-      const yearData = new Map<number, { reports: number; outbreaks: number }>();
-      const statusCounts = new Map<string, number>();
-      const typeCounts = new Map<string, number>();
-
-      for (const r of rows) {
-        // Country (filter to valid AU countries)
-        const country = r.country?.trim();
-        if (country && (country.length > 3 || country === 'Chad') && validCountrySet.has(country)) {
-          countryCounts.set(country, (countryCounts.get(country) ?? 0) + 1);
-          // Date range (only from valid countries)
-          const dt = r.submitted_at?.toISOString?.() ?? String(r.submitted_at ?? '');
-          if (dt && (!minDate || dt < minDate)) minDate = dt;
-          if (dt && (!maxDate || dt > maxDate)) maxDate = dt;
-        }
-
-        // Disease (filter to ARIS ref_diseases)
-        const disease = r.disease?.trim();
-        if (disease && validDiseases.has(disease)) {
-          diseaseCounts.set(disease, (diseaseCounts.get(disease) ?? 0) + 1);
-        }
-
-        // Outbreak flag
-        const obFlag = r.outbreak_flag?.toLowerCase();
-        if (obFlag === 'yes' || obFlag === 'true' || obFlag === '1' || obFlag === 'oui') {
-          reportsWithOutbreak++;
-        }
-
-        // Vaccination flag
-        const vFlag = r.vacc_flag?.toLowerCase();
-        if (vFlag === 'yes' || vFlag === 'true' || vFlag === '1' || vFlag === 'oui') {
-          reportsWithVaccination++;
-        }
-
-        // Outbreaks sum
-        const numOb = r.num_outbreaks;
-        if (numOb && /^[0-9]+\.?[0-9]*$/.test(numOb)) {
-          totalOutbreaks += parseFloat(numOb);
-        }
-
-        // Outbreak status
-        if (r.ob_status) statusCounts.set(r.ob_status, (statusCounts.get(r.ob_status) ?? 0) + 1);
-
-        // New vs Follow-up
-        if (r.ob_type) typeCounts.set(r.ob_type, (typeCounts.get(r.ob_type) ?? 0) + 1);
-
-        // Yearly trend (only valid years)
-        const yr = r.yr;
-        if (yr >= 2007 && yr <= 2025) {
-          const existing = yearData.get(yr) ?? { reports: 0, outbreaks: 0 };
-          existing.reports++;
-          if (numOb && /^[0-9]+\.?[0-9]*$/.test(numOb)) existing.outbreaks += parseFloat(numOb);
-          yearData.set(yr, existing);
-        }
-      }
-
-      // Sort and format results
-      const sortDesc = (m: Map<string, number>) =>
-        [...m.entries()].sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value }));
-
+      const k = kpiRes.rows[0];
       const result = {
         kpis: {
-          totalReports,
-          countries: countryCounts.size,
-          diseases: diseaseCounts.size,
-          totalOutbreaks: Math.round(totalOutbreaks),
-          reportsWithOutbreak,
-          reportsWithVaccination,
-          earliestDate: minDate,
-          latestDate: maxDate,
+          totalReports: Number(k.total_reports ?? 0),
+          countries: Number(k.countries ?? 0),
+          diseases: Number(k.diseases ?? 0),
+          totalOutbreaks: Number(k.total_outbreaks ?? 0),
+          reportsWithOutbreak: Number(k.reports_with_outbreak ?? 0),
+          reportsWithVaccination: Number(k.reports_with_vaccination ?? 0),
+          earliestDate: k.earliest_date,
+          latestDate: k.latest_date,
         },
-        diseaseDistribution: sortDesc(diseaseCounts).slice(0, 15),
-        countryDistribution: sortDesc(countryCounts).slice(0, 15),
-        yearlyTrend: [...yearData.entries()]
-          .sort((a, b) => a[0] - b[0])
-          .map(([year, d]) => ({ year, reports: d.reports, outbreaks: Math.round(d.outbreaks) })),
-        outbreakStatus: sortDesc(statusCounts),
-        outbreakType: sortDesc(typeCounts),
-        countryMapData: sortDesc(countryCounts),
+        diseaseDistribution: diseaseRes.rows,
+        countryDistribution: countryRes.rows,
+        yearlyTrend: yearRes.rows,
+        outbreakStatus: statusRes.rows,
+        outbreakType: typeRes.rows,
+        countryMapData: mapRes.rows,
       };
 
       await this.redis.set(cacheKey, JSON.stringify(result), CAMPAIGN_CACHE_TTL);
