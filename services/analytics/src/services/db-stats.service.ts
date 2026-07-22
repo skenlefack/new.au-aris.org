@@ -367,11 +367,11 @@ export class DbStatsService {
   }
 
   /**
-   * Campaign-level aggregated stats — server-side computation for large campaigns.
-   * Returns KPIs, disease distribution, country distribution, yearly trend, outbreak status.
-   * Filters out Excel header noise and normalizes country names to AU 55 Member States.
+   * Campaign-level aggregated stats — single-pass computation for large campaigns.
+   * Cached 30 min (historical data rarely changes). All aggregations in one query.
    */
   async getCampaignStats(campaignId: string): Promise<Record<string, unknown>> {
+    const CAMPAIGN_CACHE_TTL = 1800; // 30 minutes for historical campaigns
     const cacheKey = `analytics:campaign-stats:${campaignId}`;
     const cached = await this.redis.get(cacheKey);
     if (cached) {
@@ -380,189 +380,132 @@ export class DbStatsService {
 
     const client = await this.pool.connect();
     try {
-      // CTE: normalize country names and filter to valid AU Member States only
-      const COUNTRY_CTE = `
-        WITH valid_countries AS (
-          SELECT unnest(ARRAY[
-            'Algeria','Angola','Benin','Botswana','Burkina Faso','Burundi','Cameroon',
-            'Cape Verde','Central African Republic','Chad','Comoros','Congo','Cote d''Ivoire',
-            'DRC','DR Congo','Djibouti','Egypt','Equatorial Guinea','Eritrea','Eswatini',
-            'Ethiopia','Gabon','Gambia','The Gambia','Ghana','Guinea','Guinea-Bissau',
-            'Kenya','Lesotho','Liberia','Libya','Madagascar','Malawi','Mali','Mauritania',
-            'Mauritius','Morocco','Mozambique','Namibia','Niger','Nigeria','Rwanda',
-            'Sao Tome and Principe','Senegal','Sénégal','Seychelles','Sierra Leone',
-            'Somalia','South Africa','South Sudan','Sudan','Tanzania','Togo','Tunisia',
-            'Uganda','Zambia','Zimbabwe'
-          ]) AS name
-        ),
-        normalized AS (
-          SELECT s.*,
-            CASE LOWER(SPLIT_PART(s.data->>'admin_location', ' / ', 1))
-              WHEN 'the gambia' THEN 'Gambia'
-              WHEN 'drc' THEN 'DR Congo'
-              WHEN 'sénégal' THEN 'Senegal'
-              WHEN 'cote d''ivoire' THEN 'Cote d''Ivoire'
-              WHEN 'eswatini' THEN 'Eswatini'
-              WHEN 'swaziland' THEN 'Eswatini'
-              WHEN 'tchad' THEN 'Chad'
-              WHEN 'congo brazaville' THEN 'Congo'
-              WHEN 'guinee conakry' THEN 'Guinea'
-              WHEN 'guinea conakry' THEN 'Guinea'
-              WHEN 'car' THEN 'Central African Republic'
-              ELSE SPLIT_PART(s.data->>'admin_location', ' / ', 1)
-            END AS country
-          FROM public.submissions s
-          WHERE s.campaign_id = $1
-            AND s.data->>'admin_location' IS NOT NULL
-            AND SPLIT_PART(s.data->>'admin_location', ' / ', 1) IN (SELECT name FROM valid_countries)
-        )
-      `;
+      // Valid country set for fast lookup
+      const validCountrySet = new Set([
+        'Algeria','Angola','Benin','Botswana','Burkina Faso','Burundi','Cameroon',
+        'Cape Verde','Central African Republic','Chad','Comoros','Congo','Cote d\'Ivoire',
+        'DR Congo','Djibouti','Egypt','Equatorial Guinea','Eritrea','Eswatini',
+        'Ethiopia','Gabon','Gambia','Ghana','Guinea','Guinea-Bissau',
+        'Kenya','Lesotho','Liberia','Libya','Madagascar','Malawi','Mali','Mauritania',
+        'Mauritius','Morocco','Mozambique','Namibia','Niger','Nigeria','Rwanda',
+        'Sao Tome and Principe','Senegal','Seychelles','Sierra Leone',
+        'Somalia','South Africa','South Sudan','Sudan','Tanzania','Togo','Tunisia',
+        'Uganda','Zambia','Zimbabwe',
+      ]);
 
-      // Disease normalization mapping (variants → ARIS canonical names)
-      const DISEASE_MAP_CTE = `
-        disease_map(variant, canonical) AS (VALUES
-          ('New Castle Disease','Newcastle Disease'),('New Castle','Newcastle Disease'),
-          ('Newcastle disease Not typed','Newcastle Disease'),('Newcastle/Infectious bronchitis','Newcastle Disease'),
-          ('Peste des petit ruminants','Peste des Petits Ruminants'),('Peste des Petits Ruminantes','Peste des Petits Ruminants'),
-          ('Peste des Petis Ruminant','Peste des Petits Ruminants'),('Pest Des Pettit Ruminant','Peste des Petits Ruminants'),
-          ('Pest Des Petit Ruminant','Peste des Petits Ruminants'),('Pest des petits ruminants','Peste des Petits Ruminants'),
-          ('PEST DES PETITS RUMINANTS','Peste des Petits Ruminants'),('Peste de petit ruminant','Peste des Petits Ruminants'),
-          ('Peste des Petits Ruminates','Peste des Petits Ruminants'),('Peste des Petis Ruminant (PPR)','Peste des Petits Ruminants'),
-          ('Blackquarter','Blackleg'),('BLACKQUARTER','Blackleg'),
-          ('Trypanosomiasi','Trypanosomosis'),('Typanosomosis','Trypanosomosis'),
-          ('theileriosis','Theileriosis (tropical)'),('Tick fever','Theileriosis (tropical)'),('CORRIDOR DISEASE','Theileriosis (tropical)'),
-          ('Blue tongue','Bluetongue'),
-          ('Rage canine','Rabies'),
-          ('Contagious Caprine Pleuro-pneumonia','Contagious Caprine Pleuropneumonia'),
-          ('Heamorrhagic Septicaemia','Haemorrhagic Septicaemia'),
-          ('Pasteurellose bovine','Haemorrhagic Septicaemia'),('Pasteurellose ovine','Haemorrhagic Septicaemia'),
-          ('Pasteurellose des petits ruminants','Haemorrhagic Septicaemia'),('Pastuerellosis','Haemorrhagic Septicaemia'),
-          ('Pateurellose','Haemorrhagic Septicaemia'),
-          ('Piroplasmose','Babesiosis'),
-          ('Avian Influenza','Highly Pathogenic Avian Influenza'),('Avia Influenza','Highly Pathogenic Avian Influenza'),
-          ('AVIAN','Highly Pathogenic Avian Influenza'),('LPAI6','Highly Pathogenic Avian Influenza'),
-          ('Coryza','Infectious Coryza'),('CONTAGIOUS OPTHALMA','Infectious Coryza'),
-          ('LIVER FLUKE','Fasciolosis'),('Distomatose','Fasciolosis'),
-          ('Parvovirus','Canine Parvoviral Enteritis'),('Parvo virus enteritis','Canine Parvoviral Enteritis'),
-          ('Canine Parvoviral Enteritis','Canine Parvoviral Enteritis'),
-          ('Pullorum disease','Avian Salmonellosis (S. pullorum)'),
-          ('Avian salmonellosis (excluding B308 and B313)','Avian Salmonellosis (S. pullorum)'),
-          ('SHEEP & GOAT MANGE','Mange'),('Ectoparasitism','Mange'),('Ectoparasite','Mange'),
-          ('Ticks infestation','Mange'),('Myasis','Mange'),('Varroase','Mange'),
-          ('Erlichiosis','Heartwater'),
-          ('Turkey pox','Fowl Pox'),
-          ('Foot rot','Foot Rot'),('Foot Rot','Foot Rot'),
-          ('FMDSAT3','Foot and Mouth Disease'),
-          ('BOVINE EPHEMERAL FEVER','Bovine Ephemeral Fever'),
-          ('Agalactia','Contagious Agalactia'),('Mycoplasmosis','Contagious Agalactia'),
-          ('Dermatophilosis','Dermatophilosis'),
-          ('Dermatose nodulaire contagieuse bovine','Lumpy Skin Disease')
-        ),
-        ref_diseases AS (
-          SELECT name->>'en' AS canonical_name
-          FROM animal_health.ref_diseases WHERE is_active = true
-        )
-      `;
+      // ARIS ref_diseases for filtering valid disease names
+      const refDiseases = await client.query(
+        `SELECT name->>'en' AS n FROM animal_health.ref_diseases WHERE is_active = true`,
+      );
+      const validDiseases = new Set(refDiseases.rows.map((r: any) => r.n));
 
-      // KPIs — use normalized CTE for accurate country count + disease normalization
-      const { rows: [k] } = await client.query(`
-        ${COUNTRY_CTE},
-        ${DISEASE_MAP_CTE}
+      // Single-pass aggregation: scan the table ONCE, compute everything
+      const { rows } = await client.query(`
         SELECT
-          (SELECT COUNT(*) FROM public.submissions WHERE campaign_id = $1)::int AS total_reports,
-          (SELECT COUNT(DISTINCT country) FROM normalized)::int AS countries,
-          (SELECT COUNT(DISTINCT COALESCE(dm.canonical, s.data->>'disease'))
-           FROM public.submissions s
-           LEFT JOIN disease_map dm ON dm.variant = s.data->>'disease'
-           WHERE s.campaign_id = $1 AND s.data->>'disease' IS NOT NULL
-             AND (dm.canonical IS NOT NULL OR s.data->>'disease' IN (SELECT canonical_name FROM ref_diseases))
-          )::int AS diseases,
-          (SELECT COALESCE(SUM(CASE WHEN (data->>'num_new_outbreaks') ~ '^[0-9]+\\.?[0-9]*$'
-            THEN (data->>'num_new_outbreaks')::numeric ELSE 0 END), 0)
-           FROM public.submissions WHERE campaign_id = $1)::bigint AS total_outbreaks,
-          (SELECT COUNT(*) FROM public.submissions
-           WHERE campaign_id = $1 AND LOWER(data->>'outbreak_in_month') IN ('yes','true','1','oui'))::int AS reports_with_outbreak,
-          (SELECT COUNT(*) FROM public.submissions
-           WHERE campaign_id = $1 AND LOWER(data->>'vaccination_in_period') IN ('yes','true','1','oui'))::int AS reports_with_vaccination,
-          (SELECT MIN(submitted_at)::text FROM normalized) AS earliest_date,
-          (SELECT MAX(submitted_at)::text FROM normalized) AS latest_date
-      `, [campaignId]);
-
-      // Top 15 diseases — normalized to ARIS canonical names, filtered to known diseases only
-      const { rows: diseaseRows } = await client.query(`
-        WITH ${DISEASE_MAP_CTE}
-        SELECT COALESCE(dm.canonical, s.data->>'disease') AS name, COUNT(*)::int AS value
-        FROM public.submissions s
-        LEFT JOIN disease_map dm ON dm.variant = s.data->>'disease'
-        WHERE s.campaign_id = $1 AND s.data->>'disease' IS NOT NULL
-          AND (dm.canonical IS NOT NULL OR s.data->>'disease' IN (SELECT canonical_name FROM ref_diseases))
-        GROUP BY 1 ORDER BY value DESC LIMIT 15
-      `, [campaignId]);
-
-      // Top 15 countries (only valid AU member states)
-      const { rows: countryRows } = await client.query(`
-        ${COUNTRY_CTE}
-        SELECT country AS name, COUNT(*)::int AS value
-        FROM normalized
-        GROUP BY 1 ORDER BY value DESC LIMIT 15
-      `, [campaignId]);
-
-      // Yearly trend (only valid country data, skip noise years)
-      const { rows: yearRows } = await client.query(`
-        ${COUNTRY_CTE}
-        SELECT EXTRACT(YEAR FROM submitted_at)::int AS year,
-          COUNT(*)::int AS reports,
-          COALESCE(SUM(CASE WHEN (data->>'num_new_outbreaks') ~ '^[0-9]+\\.?[0-9]*$'
-            THEN (data->>'num_new_outbreaks')::numeric ELSE 0 END), 0)::int AS outbreaks
-        FROM normalized
-        WHERE EXTRACT(YEAR FROM submitted_at) BETWEEN 2007 AND 2025
-        GROUP BY 1 ORDER BY 1
-      `, [campaignId]);
-
-      // Outbreak status distribution
-      const { rows: statusRows } = await client.query(`
-        SELECT data->>'outbreak_status' AS name, COUNT(*)::int AS value
+          SPLIT_PART(data->>'admin_location', ' / ', 1) AS country,
+          data->>'disease' AS disease,
+          data->>'outbreak_in_month' AS outbreak_flag,
+          data->>'vaccination_in_period' AS vacc_flag,
+          data->>'num_new_outbreaks' AS num_outbreaks,
+          data->>'outbreak_status' AS ob_status,
+          data->>'new_or_followup' AS ob_type,
+          EXTRACT(YEAR FROM submitted_at)::int AS yr,
+          submitted_at
         FROM public.submissions
-        WHERE campaign_id = $1 AND data->>'outbreak_status' IS NOT NULL
-        GROUP BY 1 ORDER BY value DESC
+        WHERE campaign_id = $1
       `, [campaignId]);
 
-      // New vs Follow-up
-      const { rows: typeRows } = await client.query(`
-        SELECT data->>'new_or_followup' AS name, COUNT(*)::int AS value
-        FROM public.submissions
-        WHERE campaign_id = $1 AND data->>'new_or_followup' IS NOT NULL
-        GROUP BY 1 ORDER BY value DESC
-      `, [campaignId]);
+      // Process in JS (single scan, much faster than 7 SQL round-trips)
+      let totalReports = rows.length;
+      let totalOutbreaks = 0;
+      let reportsWithOutbreak = 0;
+      let reportsWithVaccination = 0;
+      let minDate: string | null = null;
+      let maxDate: string | null = null;
 
-      // Country map data (valid countries only, normalized)
-      const { rows: mapRows } = await client.query(`
-        ${COUNTRY_CTE}
-        SELECT country, COUNT(*)::int AS value
-        FROM normalized
-        GROUP BY 1 ORDER BY value DESC
-      `, [campaignId]);
+      const countryCounts = new Map<string, number>();
+      const diseaseCounts = new Map<string, number>();
+      const yearData = new Map<number, { reports: number; outbreaks: number }>();
+      const statusCounts = new Map<string, number>();
+      const typeCounts = new Map<string, number>();
+
+      for (const r of rows) {
+        // Country (filter to valid AU countries)
+        const country = r.country?.trim();
+        if (country && (country.length > 3 || country === 'Chad') && validCountrySet.has(country)) {
+          countryCounts.set(country, (countryCounts.get(country) ?? 0) + 1);
+          // Date range (only from valid countries)
+          const dt = r.submitted_at?.toISOString?.() ?? String(r.submitted_at ?? '');
+          if (dt && (!minDate || dt < minDate)) minDate = dt;
+          if (dt && (!maxDate || dt > maxDate)) maxDate = dt;
+        }
+
+        // Disease (filter to ARIS ref_diseases)
+        const disease = r.disease?.trim();
+        if (disease && validDiseases.has(disease)) {
+          diseaseCounts.set(disease, (diseaseCounts.get(disease) ?? 0) + 1);
+        }
+
+        // Outbreak flag
+        const obFlag = r.outbreak_flag?.toLowerCase();
+        if (obFlag === 'yes' || obFlag === 'true' || obFlag === '1' || obFlag === 'oui') {
+          reportsWithOutbreak++;
+        }
+
+        // Vaccination flag
+        const vFlag = r.vacc_flag?.toLowerCase();
+        if (vFlag === 'yes' || vFlag === 'true' || vFlag === '1' || vFlag === 'oui') {
+          reportsWithVaccination++;
+        }
+
+        // Outbreaks sum
+        const numOb = r.num_outbreaks;
+        if (numOb && /^[0-9]+\.?[0-9]*$/.test(numOb)) {
+          totalOutbreaks += parseFloat(numOb);
+        }
+
+        // Outbreak status
+        if (r.ob_status) statusCounts.set(r.ob_status, (statusCounts.get(r.ob_status) ?? 0) + 1);
+
+        // New vs Follow-up
+        if (r.ob_type) typeCounts.set(r.ob_type, (typeCounts.get(r.ob_type) ?? 0) + 1);
+
+        // Yearly trend (only valid years)
+        const yr = r.yr;
+        if (yr >= 2007 && yr <= 2025) {
+          const existing = yearData.get(yr) ?? { reports: 0, outbreaks: 0 };
+          existing.reports++;
+          if (numOb && /^[0-9]+\.?[0-9]*$/.test(numOb)) existing.outbreaks += parseFloat(numOb);
+          yearData.set(yr, existing);
+        }
+      }
+
+      // Sort and format results
+      const sortDesc = (m: Map<string, number>) =>
+        [...m.entries()].sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value }));
 
       const result = {
         kpis: {
-          totalReports: Number(k.total_reports ?? 0),
-          countries: Number(k.countries ?? 0),
-          diseases: Number(k.diseases ?? 0),
-          totalOutbreaks: Number(k.total_outbreaks ?? 0),
-          reportsWithOutbreak: Number(k.reports_with_outbreak ?? 0),
-          reportsWithVaccination: Number(k.reports_with_vaccination ?? 0),
-          earliestDate: k.earliest_date,
-          latestDate: k.latest_date,
+          totalReports,
+          countries: countryCounts.size,
+          diseases: diseaseCounts.size,
+          totalOutbreaks: Math.round(totalOutbreaks),
+          reportsWithOutbreak,
+          reportsWithVaccination,
+          earliestDate: minDate,
+          latestDate: maxDate,
         },
-        diseaseDistribution: diseaseRows,
-        countryDistribution: countryRows,
-        yearlyTrend: yearRows,
-        outbreakStatus: statusRows,
-        outbreakType: typeRows,
-        countryMapData: mapRows,
+        diseaseDistribution: sortDesc(diseaseCounts).slice(0, 15),
+        countryDistribution: sortDesc(countryCounts).slice(0, 15),
+        yearlyTrend: [...yearData.entries()]
+          .sort((a, b) => a[0] - b[0])
+          .map(([year, d]) => ({ year, reports: d.reports, outbreaks: Math.round(d.outbreaks) })),
+        outbreakStatus: sortDesc(statusCounts),
+        outbreakType: sortDesc(typeCounts),
+        countryMapData: sortDesc(countryCounts),
       };
 
-      await this.redis.set(cacheKey, JSON.stringify(result), CACHE_TTL);
+      await this.redis.set(cacheKey, JSON.stringify(result), CAMPAIGN_CACHE_TTL);
       return result;
     } catch (err) {
       console.error('[DbStatsService] Campaign stats query failed:', err);
