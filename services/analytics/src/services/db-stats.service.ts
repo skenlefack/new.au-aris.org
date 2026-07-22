@@ -369,6 +369,7 @@ export class DbStatsService {
   /**
    * Campaign-level aggregated stats — server-side computation for large campaigns.
    * Returns KPIs, disease distribution, country distribution, yearly trend, outbreak status.
+   * Filters out Excel header noise and normalizes country names to AU 55 Member States.
    */
   async getCampaignStats(campaignId: string): Promise<Record<string, unknown>> {
     const cacheKey = `analytics:campaign-stats:${campaignId}`;
@@ -379,49 +380,90 @@ export class DbStatsService {
 
     const client = await this.pool.connect();
     try {
-      // KPIs
+      // CTE: normalize country names and filter to valid AU Member States only
+      const COUNTRY_CTE = `
+        WITH valid_countries AS (
+          SELECT unnest(ARRAY[
+            'Algeria','Angola','Benin','Botswana','Burkina Faso','Burundi','Cameroon',
+            'Cape Verde','Central African Republic','Chad','Comoros','Congo','Cote d''Ivoire',
+            'DRC','DR Congo','Djibouti','Egypt','Equatorial Guinea','Eritrea','Eswatini',
+            'Ethiopia','Gabon','Gambia','The Gambia','Ghana','Guinea','Guinea-Bissau',
+            'Kenya','Lesotho','Liberia','Libya','Madagascar','Malawi','Mali','Mauritania',
+            'Mauritius','Morocco','Mozambique','Namibia','Niger','Nigeria','Rwanda',
+            'Sao Tome and Principe','Senegal','Sénégal','Seychelles','Sierra Leone',
+            'Somalia','South Africa','South Sudan','Sudan','Tanzania','Togo','Tunisia',
+            'Uganda','Zambia','Zimbabwe'
+          ]) AS name
+        ),
+        normalized AS (
+          SELECT s.*,
+            CASE LOWER(SPLIT_PART(s.data->>'admin_location', ' / ', 1))
+              WHEN 'the gambia' THEN 'Gambia'
+              WHEN 'drc' THEN 'DR Congo'
+              WHEN 'sénégal' THEN 'Senegal'
+              WHEN 'cote d''ivoire' THEN 'Cote d''Ivoire'
+              WHEN 'eswatini' THEN 'Eswatini'
+              WHEN 'swaziland' THEN 'Eswatini'
+              WHEN 'tchad' THEN 'Chad'
+              WHEN 'congo brazaville' THEN 'Congo'
+              WHEN 'guinee conakry' THEN 'Guinea'
+              WHEN 'guinea conakry' THEN 'Guinea'
+              WHEN 'car' THEN 'Central African Republic'
+              ELSE SPLIT_PART(s.data->>'admin_location', ' / ', 1)
+            END AS country
+          FROM public.submissions s
+          WHERE s.campaign_id = $1
+            AND s.data->>'admin_location' IS NOT NULL
+            AND SPLIT_PART(s.data->>'admin_location', ' / ', 1) IN (SELECT name FROM valid_countries)
+        )
+      `;
+
+      // KPIs — use normalized CTE for accurate country count
       const { rows: [k] } = await client.query(`
+        ${COUNTRY_CTE}
         SELECT
-          COUNT(*)::int AS total_reports,
-          COUNT(DISTINCT SPLIT_PART(data->>'admin_location', ' / ', 1))
-            FILTER (WHERE data->>'admin_location' IS NOT NULL AND LENGTH(data->>'admin_location') > 2)::int AS countries,
-          COUNT(DISTINCT data->>'disease')
-            FILTER (WHERE data->>'disease' IS NOT NULL AND data->>'disease' ~ '^[A-Za-z]' AND LENGTH(data->>'disease') > 2)::int AS diseases,
-          COALESCE(SUM(CASE WHEN (data->>'num_new_outbreaks') ~ '^[0-9]+\\.?[0-9]*$'
-            THEN (data->>'num_new_outbreaks')::numeric ELSE 0 END), 0)::bigint AS total_outbreaks,
-          COUNT(*) FILTER (WHERE LOWER(data->>'outbreak_in_month') IN ('yes','true','1','oui'))::int AS reports_with_outbreak,
-          COUNT(*) FILTER (WHERE LOWER(data->>'vaccination_in_period') IN ('yes','true','1','oui'))::int AS reports_with_vaccination,
-          MIN(submitted_at)::text AS earliest_date,
-          MAX(submitted_at)::text AS latest_date
-        FROM public.submissions WHERE campaign_id = $1
+          (SELECT COUNT(*) FROM public.submissions WHERE campaign_id = $1)::int AS total_reports,
+          (SELECT COUNT(DISTINCT country) FROM normalized)::int AS countries,
+          (SELECT COUNT(DISTINCT data->>'disease') FROM public.submissions
+           WHERE campaign_id = $1 AND data->>'disease' IS NOT NULL
+             AND LENGTH(data->>'disease') > 3 AND data->>'disease' ~ '^[A-Z]')::int AS diseases,
+          (SELECT COALESCE(SUM(CASE WHEN (data->>'num_new_outbreaks') ~ '^[0-9]+\\.?[0-9]*$'
+            THEN (data->>'num_new_outbreaks')::numeric ELSE 0 END), 0)
+           FROM public.submissions WHERE campaign_id = $1)::bigint AS total_outbreaks,
+          (SELECT COUNT(*) FROM public.submissions
+           WHERE campaign_id = $1 AND LOWER(data->>'outbreak_in_month') IN ('yes','true','1','oui'))::int AS reports_with_outbreak,
+          (SELECT COUNT(*) FROM public.submissions
+           WHERE campaign_id = $1 AND LOWER(data->>'vaccination_in_period') IN ('yes','true','1','oui'))::int AS reports_with_vaccination,
+          (SELECT MIN(submitted_at)::text FROM normalized) AS earliest_date,
+          (SELECT MAX(submitted_at)::text FROM normalized) AS latest_date
       `, [campaignId]);
 
-      // Top 12 diseases
+      // Top 15 diseases (only proper disease names starting with uppercase, min length 4)
       const { rows: diseaseRows } = await client.query(`
         SELECT data->>'disease' AS name, COUNT(*)::int AS value
         FROM public.submissions
         WHERE campaign_id = $1 AND data->>'disease' IS NOT NULL
-          AND data->>'disease' ~ '^[A-Za-z]' AND LENGTH(data->>'disease') > 2
-        GROUP BY 1 ORDER BY value DESC LIMIT 12
-      `, [campaignId]);
-
-      // Top 15 countries
-      const { rows: countryRows } = await client.query(`
-        SELECT SPLIT_PART(data->>'admin_location', ' / ', 1) AS name, COUNT(*)::int AS value
-        FROM public.submissions
-        WHERE campaign_id = $1 AND data->>'admin_location' IS NOT NULL
-          AND data->>'admin_location' ~ '^[A-Za-z]' AND LENGTH(data->>'admin_location') > 3
+          AND data->>'disease' ~ '^[A-Z][a-z]' AND LENGTH(data->>'disease') > 3
         GROUP BY 1 ORDER BY value DESC LIMIT 15
       `, [campaignId]);
 
-      // Yearly trend
+      // Top 15 countries (only valid AU member states)
+      const { rows: countryRows } = await client.query(`
+        ${COUNTRY_CTE}
+        SELECT country AS name, COUNT(*)::int AS value
+        FROM normalized
+        GROUP BY 1 ORDER BY value DESC LIMIT 15
+      `, [campaignId]);
+
+      // Yearly trend (only valid country data, skip noise years)
       const { rows: yearRows } = await client.query(`
+        ${COUNTRY_CTE}
         SELECT EXTRACT(YEAR FROM submitted_at)::int AS year,
           COUNT(*)::int AS reports,
           COALESCE(SUM(CASE WHEN (data->>'num_new_outbreaks') ~ '^[0-9]+\\.?[0-9]*$'
             THEN (data->>'num_new_outbreaks')::numeric ELSE 0 END), 0)::int AS outbreaks
-        FROM public.submissions
-        WHERE campaign_id = $1 AND submitted_at IS NOT NULL
+        FROM normalized
+        WHERE EXTRACT(YEAR FROM submitted_at) BETWEEN 2007 AND 2025
         GROUP BY 1 ORDER BY 1
       `, [campaignId]);
 
@@ -441,12 +483,11 @@ export class DbStatsService {
         GROUP BY 1 ORDER BY value DESC
       `, [campaignId]);
 
-      // Country map data (country → report count)
+      // Country map data (valid countries only, normalized)
       const { rows: mapRows } = await client.query(`
-        SELECT SPLIT_PART(data->>'admin_location', ' / ', 1) AS country, COUNT(*)::int AS value
-        FROM public.submissions
-        WHERE campaign_id = $1 AND data->>'admin_location' IS NOT NULL
-          AND data->>'admin_location' ~ '^[A-Za-z]'
+        ${COUNTRY_CTE}
+        SELECT country, COUNT(*)::int AS value
+        FROM normalized
         GROUP BY 1 ORDER BY value DESC
       `, [campaignId]);
 

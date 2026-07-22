@@ -24,11 +24,22 @@ for (const c of AFRICA_COUNTRIES) {
 }
 const EXTRA: Record<string, string> = {
   'south africa': 'ZA', 'dr congo': 'CD', 'drc': 'CD', 'ivory coast': 'CI',
-  "cote d'ivoire": 'CI', 'eswatini': 'SZ', 'swaziland': 'SZ', 'tanzania': 'TZ',
-  'congo brazaville': 'CG', 'congo': 'CG', 'the gambia': 'GM', 'gambia': 'GM',
-  'guinea conakry': 'GN', 'guinee conakry': 'GN', 'chad': 'TD', 'tchad': 'TD',
+  "cote d'ivoire": 'CI', "cote d'ivoire": 'CI', 'eswatini': 'SZ', 'swaziland': 'SZ',
+  'tanzania': 'TZ', 'congo brazaville': 'CG', 'congo': 'CG',
+  'the gambia': 'GM', 'gambia': 'GM', 'guinea conakry': 'GN', 'guinee conakry': 'GN',
+  'guinea': 'GN', 'guinea-bissau': 'GW', 'chad': 'TD', 'tchad': 'TD',
   'south sudan': 'SS', 'cape verde': 'CV', 'central african republic': 'CF',
-  'equatorial guinea': 'GQ', 'guinea-bissau': 'GW', 'sierra leone': 'SL',
+  'equatorial guinea': 'GQ', 'sierra leone': 'SL', 'burkina faso': 'BF',
+  'sao tome and principe': 'ST', 'lesotho': 'LS', 'namibia': 'NA',
+  'mozambique': 'MZ', 'botswana': 'BW', 'zambia': 'ZM', 'zimbabwe': 'ZW',
+  'kenya': 'KE', 'ethiopia': 'ET', 'nigeria': 'NG', 'ghana': 'GH',
+  'benin': 'BJ', 'cameroon': 'CM', 'senegal': 'SN', 'mali': 'ML',
+  'niger': 'NE', 'togo': 'TG', 'uganda': 'UG', 'burundi': 'BI',
+  'gabon': 'GA', 'somalia': 'SO', 'sudan': 'SD', 'tunisia': 'TN',
+  'madagascar': 'MG', 'djibouti': 'DJ', 'angola': 'AO', 'rwanda': 'RW',
+  'mauritania': 'MR', 'malawi': 'MW', 'liberia': 'LR', 'libya': 'LY',
+  'morocco': 'MA', 'algeria': 'DZ', 'egypt': 'EG', 'eritrea': 'ER',
+  'mauritius': 'MU', 'seychelles': 'SC', 'comoros': 'KM',
 };
 Object.assign(NAME_TO_ISO2, EXTRA);
 
