@@ -180,6 +180,16 @@ export async function registerAnalyticsRoutes(app: FastifyInstance): Promise<voi
     return reply.code(200).send({ data: { diseaseDistribution: [], countryDistribution: [], monthlyTrend: [] } });
   });
 
+  // ── Campaign Stats (server-side aggregation for large campaigns) ──
+
+  app.get<{ Params: { campaignId: string } }>(`${PREFIX}/campaigns/:campaignId/stats`, {
+    preHandler: [app.authHookFn, tenantHook()],
+  }, async (request, reply) => {
+    const { campaignId } = request.params;
+    const data = await app.dbStatsService.getCampaignStats(campaignId);
+    return reply.code(200).send({ data });
+  });
+
   // ── Generic Domain KPIs (mobile app uses /{domainKey}/kpis) ──
 
   app.get(`${PREFIX}/:domainKey/kpis`, {

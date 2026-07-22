@@ -366,6 +366,119 @@ export class DbStatsService {
     }
   }
 
+  /**
+   * Campaign-level aggregated stats — server-side computation for large campaigns.
+   * Returns KPIs, disease distribution, country distribution, yearly trend, outbreak status.
+   */
+  async getCampaignStats(campaignId: string): Promise<Record<string, unknown>> {
+    const cacheKey = `analytics:campaign-stats:${campaignId}`;
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      try { return JSON.parse(cached); } catch { /* re-fetch */ }
+    }
+
+    const client = await this.pool.connect();
+    try {
+      // KPIs
+      const { rows: [k] } = await client.query(`
+        SELECT
+          COUNT(*)::int AS total_reports,
+          COUNT(DISTINCT SPLIT_PART(data->>'admin_location', ' / ', 1))
+            FILTER (WHERE data->>'admin_location' IS NOT NULL AND LENGTH(data->>'admin_location') > 2)::int AS countries,
+          COUNT(DISTINCT data->>'disease')
+            FILTER (WHERE data->>'disease' IS NOT NULL AND data->>'disease' ~ '^[A-Za-z]' AND LENGTH(data->>'disease') > 2)::int AS diseases,
+          COALESCE(SUM(CASE WHEN (data->>'num_new_outbreaks') ~ '^[0-9]+\\.?[0-9]*$'
+            THEN (data->>'num_new_outbreaks')::numeric ELSE 0 END), 0)::bigint AS total_outbreaks,
+          COUNT(*) FILTER (WHERE LOWER(data->>'outbreak_in_month') IN ('yes','true','1','oui'))::int AS reports_with_outbreak,
+          COUNT(*) FILTER (WHERE LOWER(data->>'vaccination_in_period') IN ('yes','true','1','oui'))::int AS reports_with_vaccination,
+          MIN(submitted_at)::text AS earliest_date,
+          MAX(submitted_at)::text AS latest_date
+        FROM public.submissions WHERE campaign_id = $1
+      `, [campaignId]);
+
+      // Top 12 diseases
+      const { rows: diseaseRows } = await client.query(`
+        SELECT data->>'disease' AS name, COUNT(*)::int AS value
+        FROM public.submissions
+        WHERE campaign_id = $1 AND data->>'disease' IS NOT NULL
+          AND data->>'disease' ~ '^[A-Za-z]' AND LENGTH(data->>'disease') > 2
+        GROUP BY 1 ORDER BY value DESC LIMIT 12
+      `, [campaignId]);
+
+      // Top 15 countries
+      const { rows: countryRows } = await client.query(`
+        SELECT SPLIT_PART(data->>'admin_location', ' / ', 1) AS name, COUNT(*)::int AS value
+        FROM public.submissions
+        WHERE campaign_id = $1 AND data->>'admin_location' IS NOT NULL
+          AND data->>'admin_location' ~ '^[A-Za-z]' AND LENGTH(data->>'admin_location') > 3
+        GROUP BY 1 ORDER BY value DESC LIMIT 15
+      `, [campaignId]);
+
+      // Yearly trend
+      const { rows: yearRows } = await client.query(`
+        SELECT EXTRACT(YEAR FROM submitted_at)::int AS year,
+          COUNT(*)::int AS reports,
+          COALESCE(SUM(CASE WHEN (data->>'num_new_outbreaks') ~ '^[0-9]+\\.?[0-9]*$'
+            THEN (data->>'num_new_outbreaks')::numeric ELSE 0 END), 0)::int AS outbreaks
+        FROM public.submissions
+        WHERE campaign_id = $1 AND submitted_at IS NOT NULL
+        GROUP BY 1 ORDER BY 1
+      `, [campaignId]);
+
+      // Outbreak status distribution
+      const { rows: statusRows } = await client.query(`
+        SELECT data->>'outbreak_status' AS name, COUNT(*)::int AS value
+        FROM public.submissions
+        WHERE campaign_id = $1 AND data->>'outbreak_status' IS NOT NULL
+        GROUP BY 1 ORDER BY value DESC
+      `, [campaignId]);
+
+      // New vs Follow-up
+      const { rows: typeRows } = await client.query(`
+        SELECT data->>'new_or_followup' AS name, COUNT(*)::int AS value
+        FROM public.submissions
+        WHERE campaign_id = $1 AND data->>'new_or_followup' IS NOT NULL
+        GROUP BY 1 ORDER BY value DESC
+      `, [campaignId]);
+
+      // Country map data (country → report count)
+      const { rows: mapRows } = await client.query(`
+        SELECT SPLIT_PART(data->>'admin_location', ' / ', 1) AS country, COUNT(*)::int AS value
+        FROM public.submissions
+        WHERE campaign_id = $1 AND data->>'admin_location' IS NOT NULL
+          AND data->>'admin_location' ~ '^[A-Za-z]'
+        GROUP BY 1 ORDER BY value DESC
+      `, [campaignId]);
+
+      const result = {
+        kpis: {
+          totalReports: Number(k.total_reports ?? 0),
+          countries: Number(k.countries ?? 0),
+          diseases: Number(k.diseases ?? 0),
+          totalOutbreaks: Number(k.total_outbreaks ?? 0),
+          reportsWithOutbreak: Number(k.reports_with_outbreak ?? 0),
+          reportsWithVaccination: Number(k.reports_with_vaccination ?? 0),
+          earliestDate: k.earliest_date,
+          latestDate: k.latest_date,
+        },
+        diseaseDistribution: diseaseRows,
+        countryDistribution: countryRows,
+        yearlyTrend: yearRows,
+        outbreakStatus: statusRows,
+        outbreakType: typeRows,
+        countryMapData: mapRows,
+      };
+
+      await this.redis.set(cacheKey, JSON.stringify(result), CACHE_TTL);
+      return result;
+    } catch (err) {
+      console.error('[DbStatsService] Campaign stats query failed:', err);
+      return {};
+    } finally {
+      client.release();
+    }
+  }
+
   async close(): Promise<void> {
     await this.pool.end();
   }

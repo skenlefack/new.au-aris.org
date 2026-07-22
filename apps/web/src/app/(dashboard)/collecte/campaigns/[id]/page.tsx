@@ -54,6 +54,11 @@ const DiagnosticsDashboard = dynamic(
   { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
 );
 
+const HistoricalHealthDashboard = dynamic(
+  () => import('@/components/collecte/HistoricalHealthDashboard'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
+);
+
 const GenericCampaignDashboard = dynamic(
   () => import('@/components/collecte/GenericCampaignDashboard'),
   { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
@@ -811,6 +816,10 @@ function CampaignDashboardsTab({ campaignId, campaignName }: { campaignId: strin
 
   const renderCampaignDashboard = (cId: string, cName: string) => {
     const nameLower = cName.toLowerCase();
+    // Historical animal health → dedicated server-side aggregated dashboard
+    if (nameLower.includes('historique') || nameLower.includes('historical')) {
+      return <HistoricalHealthDashboard campaignId={cId} />;
+    }
     // Allocation Kits → generic campaign dashboard from submission data
     if (nameLower.includes('allocation') && nameLower.includes('kit')) {
       return <GenericCampaignDashboard campaignId={cId} campaignName={cName} />;
