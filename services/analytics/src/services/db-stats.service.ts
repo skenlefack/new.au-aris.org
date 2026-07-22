@@ -418,15 +418,65 @@ export class DbStatsService {
         )
       `;
 
-      // KPIs — use normalized CTE for accurate country count
+      // Disease normalization mapping (variants → ARIS canonical names)
+      const DISEASE_MAP_CTE = `
+        disease_map(variant, canonical) AS (VALUES
+          ('New Castle Disease','Newcastle Disease'),('New Castle','Newcastle Disease'),
+          ('Newcastle disease Not typed','Newcastle Disease'),('Newcastle/Infectious bronchitis','Newcastle Disease'),
+          ('Peste des petit ruminants','Peste des Petits Ruminants'),('Peste des Petits Ruminantes','Peste des Petits Ruminants'),
+          ('Peste des Petis Ruminant','Peste des Petits Ruminants'),('Pest Des Pettit Ruminant','Peste des Petits Ruminants'),
+          ('Pest Des Petit Ruminant','Peste des Petits Ruminants'),('Pest des petits ruminants','Peste des Petits Ruminants'),
+          ('PEST DES PETITS RUMINANTS','Peste des Petits Ruminants'),('Peste de petit ruminant','Peste des Petits Ruminants'),
+          ('Peste des Petits Ruminates','Peste des Petits Ruminants'),('Peste des Petis Ruminant (PPR)','Peste des Petits Ruminants'),
+          ('Blackquarter','Blackleg'),('BLACKQUARTER','Blackleg'),
+          ('Trypanosomiasi','Trypanosomosis'),('Typanosomosis','Trypanosomosis'),
+          ('theileriosis','Theileriosis (tropical)'),('Tick fever','Theileriosis (tropical)'),('CORRIDOR DISEASE','Theileriosis (tropical)'),
+          ('Blue tongue','Bluetongue'),
+          ('Rage canine','Rabies'),
+          ('Contagious Caprine Pleuro-pneumonia','Contagious Caprine Pleuropneumonia'),
+          ('Heamorrhagic Septicaemia','Haemorrhagic Septicaemia'),
+          ('Pasteurellose bovine','Haemorrhagic Septicaemia'),('Pasteurellose ovine','Haemorrhagic Septicaemia'),
+          ('Pasteurellose des petits ruminants','Haemorrhagic Septicaemia'),('Pastuerellosis','Haemorrhagic Septicaemia'),
+          ('Pateurellose','Haemorrhagic Septicaemia'),
+          ('Piroplasmose','Babesiosis'),
+          ('Avian Influenza','Highly Pathogenic Avian Influenza'),('Avia Influenza','Highly Pathogenic Avian Influenza'),
+          ('AVIAN','Highly Pathogenic Avian Influenza'),('LPAI6','Highly Pathogenic Avian Influenza'),
+          ('Coryza','Infectious Coryza'),('CONTAGIOUS OPTHALMA','Infectious Coryza'),
+          ('LIVER FLUKE','Fasciolosis'),('Distomatose','Fasciolosis'),
+          ('Parvovirus','Canine Parvoviral Enteritis'),('Parvo virus enteritis','Canine Parvoviral Enteritis'),
+          ('Canine Parvoviral Enteritis','Canine Parvoviral Enteritis'),
+          ('Pullorum disease','Avian Salmonellosis (S. pullorum)'),
+          ('Avian salmonellosis (excluding B308 and B313)','Avian Salmonellosis (S. pullorum)'),
+          ('SHEEP & GOAT MANGE','Mange'),('Ectoparasitism','Mange'),('Ectoparasite','Mange'),
+          ('Ticks infestation','Mange'),('Myasis','Mange'),('Varroase','Mange'),
+          ('Erlichiosis','Heartwater'),
+          ('Turkey pox','Fowl Pox'),
+          ('Foot rot','Foot Rot'),('Foot Rot','Foot Rot'),
+          ('FMDSAT3','Foot and Mouth Disease'),
+          ('BOVINE EPHEMERAL FEVER','Bovine Ephemeral Fever'),
+          ('Agalactia','Contagious Agalactia'),('Mycoplasmosis','Contagious Agalactia'),
+          ('Dermatophilosis','Dermatophilosis'),
+          ('Dermatose nodulaire contagieuse bovine','Lumpy Skin Disease')
+        ),
+        ref_diseases AS (
+          SELECT name->>'en' AS canonical_name
+          FROM animal_health.ref_diseases WHERE is_active = true
+        )
+      `;
+
+      // KPIs — use normalized CTE for accurate country count + disease normalization
       const { rows: [k] } = await client.query(`
-        ${COUNTRY_CTE}
+        ${COUNTRY_CTE},
+        ${DISEASE_MAP_CTE}
         SELECT
           (SELECT COUNT(*) FROM public.submissions WHERE campaign_id = $1)::int AS total_reports,
           (SELECT COUNT(DISTINCT country) FROM normalized)::int AS countries,
-          (SELECT COUNT(DISTINCT data->>'disease') FROM public.submissions
-           WHERE campaign_id = $1 AND data->>'disease' IS NOT NULL
-             AND LENGTH(data->>'disease') > 3 AND data->>'disease' ~ '^[A-Z]')::int AS diseases,
+          (SELECT COUNT(DISTINCT COALESCE(dm.canonical, s.data->>'disease'))
+           FROM public.submissions s
+           LEFT JOIN disease_map dm ON dm.variant = s.data->>'disease'
+           WHERE s.campaign_id = $1 AND s.data->>'disease' IS NOT NULL
+             AND (dm.canonical IS NOT NULL OR s.data->>'disease' IN (SELECT canonical_name FROM ref_diseases))
+          )::int AS diseases,
           (SELECT COALESCE(SUM(CASE WHEN (data->>'num_new_outbreaks') ~ '^[0-9]+\\.?[0-9]*$'
             THEN (data->>'num_new_outbreaks')::numeric ELSE 0 END), 0)
            FROM public.submissions WHERE campaign_id = $1)::bigint AS total_outbreaks,
@@ -438,12 +488,14 @@ export class DbStatsService {
           (SELECT MAX(submitted_at)::text FROM normalized) AS latest_date
       `, [campaignId]);
 
-      // Top 15 diseases (only proper disease names starting with uppercase, min length 4)
+      // Top 15 diseases — normalized to ARIS canonical names, filtered to known diseases only
       const { rows: diseaseRows } = await client.query(`
-        SELECT data->>'disease' AS name, COUNT(*)::int AS value
-        FROM public.submissions
-        WHERE campaign_id = $1 AND data->>'disease' IS NOT NULL
-          AND data->>'disease' ~ '^[A-Z][a-z]' AND LENGTH(data->>'disease') > 3
+        WITH ${DISEASE_MAP_CTE}
+        SELECT COALESCE(dm.canonical, s.data->>'disease') AS name, COUNT(*)::int AS value
+        FROM public.submissions s
+        LEFT JOIN disease_map dm ON dm.variant = s.data->>'disease'
+        WHERE s.campaign_id = $1 AND s.data->>'disease' IS NOT NULL
+          AND (dm.canonical IS NOT NULL OR s.data->>'disease' IN (SELECT canonical_name FROM ref_diseases))
         GROUP BY 1 ORDER BY value DESC LIMIT 15
       `, [campaignId]);
 
