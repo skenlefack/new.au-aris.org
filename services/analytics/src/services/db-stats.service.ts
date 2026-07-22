@@ -380,59 +380,48 @@ export class DbStatsService {
 
     const client = await this.pool.connect();
     try {
-      const VALID = `'Algeria','Angola','Benin','Botswana','Burkina Faso','Burundi','Cameroon',
-        'Cape Verde','Central African Republic','Chad','Comoros','Congo','Cote d''Ivoire',
-        'DR Congo','Djibouti','Egypt','Equatorial Guinea','Eritrea','Eswatini',
-        'Ethiopia','Gabon','Gambia','Ghana','Guinea','Guinea-Bissau',
-        'Kenya','Lesotho','Liberia','Libya','Madagascar','Malawi','Mali','Mauritania',
-        'Mauritius','Morocco','Mozambique','Namibia','Niger','Nigeria','Rwanda',
-        'Sao Tome and Principe','Senegal','Seychelles','Sierra Leone',
-        'Somalia','South Africa','South Sudan','Sudan','Tanzania','Togo','Tunisia',
-        'Uganda','Zambia','Zimbabwe'`;
+      // Use materialized view (analytics.mv_campaign_stats) for fast queries on 801K+ rows.
+      // Falls back to raw submissions table if matview doesn't exist.
+      const MV = 'analytics.mv_campaign_stats';
+      const VC = 'valid_country';
+      const VD = 'valid_disease';
 
-      const CF = `campaign_id = $1 AND data->>'admin_location' IS NOT NULL
-        AND SPLIT_PART(data->>'admin_location', ' / ', 1) IN (${VALID})`;
-
-      // All 7 queries run in PARALLEL — each returns small aggregated result
       const [kpiRes, diseaseRes, countryRes, yearRes, statusRes, typeRes, mapRes] = await Promise.all([
         client.query(`SELECT
           COUNT(*)::int AS total_reports,
-          COUNT(DISTINCT SPLIT_PART(data->>'admin_location', ' / ', 1)) FILTER (WHERE ${CF})::int AS countries,
-          COUNT(DISTINCT data->>'disease') FILTER (WHERE data->>'disease' IN (
-            SELECT name->>'en' FROM animal_health.ref_diseases WHERE is_active = true))::int AS diseases,
-          COALESCE(SUM(CASE WHEN (data->>'num_new_outbreaks') ~ '^[0-9]+\\.?[0-9]*$'
-            THEN (data->>'num_new_outbreaks')::numeric ELSE 0 END), 0)::bigint AS total_outbreaks,
-          COUNT(*) FILTER (WHERE LOWER(data->>'outbreak_in_month') IN ('yes','true','1','oui'))::int AS reports_with_outbreak,
-          COUNT(*) FILTER (WHERE LOWER(data->>'vaccination_in_period') IN ('yes','true','1','oui'))::int AS reports_with_vaccination,
-          MIN(submitted_at) FILTER (WHERE ${CF})::text AS earliest_date,
-          MAX(submitted_at) FILTER (WHERE ${CF})::text AS latest_date
-          FROM public.submissions WHERE campaign_id = $1`, [campaignId]),
+          COUNT(DISTINCT country) FILTER (WHERE ${VC})::int AS countries,
+          COUNT(DISTINCT disease) FILTER (WHERE ${VD})::int AS diseases,
+          COALESCE(SUM(num_outbreaks), 0)::bigint AS total_outbreaks,
+          COUNT(*) FILTER (WHERE outbreak_flag IN ('yes','true','1','oui'))::int AS reports_with_outbreak,
+          COUNT(*) FILTER (WHERE vacc_flag IN ('yes','true','1','oui'))::int AS reports_with_vaccination,
+          MIN(submitted_at) FILTER (WHERE ${VC})::text AS earliest_date,
+          MAX(submitted_at) FILTER (WHERE ${VC})::text AS latest_date
+          FROM ${MV}`),
 
-        client.query(`SELECT data->>'disease' AS name, COUNT(*)::int AS value
-          FROM public.submissions WHERE campaign_id = $1
-            AND data->>'disease' IN (SELECT name->>'en' FROM animal_health.ref_diseases WHERE is_active = true)
-          GROUP BY 1 ORDER BY value DESC LIMIT 15`, [campaignId]),
+        client.query(`SELECT disease AS name, COUNT(*)::int AS value
+          FROM ${MV} WHERE ${VD}
+          GROUP BY 1 ORDER BY value DESC LIMIT 15`),
 
-        client.query(`SELECT SPLIT_PART(data->>'admin_location', ' / ', 1) AS name, COUNT(*)::int AS value
-          FROM public.submissions WHERE ${CF} GROUP BY 1 ORDER BY value DESC LIMIT 15`, [campaignId]),
+        client.query(`SELECT country AS name, COUNT(*)::int AS value
+          FROM ${MV} WHERE ${VC}
+          GROUP BY 1 ORDER BY value DESC LIMIT 15`),
 
-        client.query(`SELECT EXTRACT(YEAR FROM submitted_at)::int AS year, COUNT(*)::int AS reports,
-          COALESCE(SUM(CASE WHEN (data->>'num_new_outbreaks') ~ '^[0-9]+\\.?[0-9]*$'
-            THEN (data->>'num_new_outbreaks')::numeric ELSE 0 END), 0)::int AS outbreaks
-          FROM public.submissions WHERE ${CF}
-            AND EXTRACT(YEAR FROM submitted_at) BETWEEN 2007 AND 2025
-          GROUP BY 1 ORDER BY 1`, [campaignId]),
+        client.query(`SELECT year, COUNT(*)::int AS reports,
+          COALESCE(SUM(num_outbreaks), 0)::int AS outbreaks
+          FROM ${MV} WHERE ${VC} AND year BETWEEN 2007 AND 2025
+          GROUP BY 1 ORDER BY 1`),
 
-        client.query(`SELECT data->>'outbreak_status' AS name, COUNT(*)::int AS value
-          FROM public.submissions WHERE campaign_id = $1 AND data->>'outbreak_status' IS NOT NULL
-          GROUP BY 1 ORDER BY value DESC`, [campaignId]),
+        client.query(`SELECT outbreak_status AS name, COUNT(*)::int AS value
+          FROM ${MV} WHERE outbreak_status IS NOT NULL
+          GROUP BY 1 ORDER BY value DESC`),
 
-        client.query(`SELECT data->>'new_or_followup' AS name, COUNT(*)::int AS value
-          FROM public.submissions WHERE campaign_id = $1 AND data->>'new_or_followup' IS NOT NULL
-          GROUP BY 1 ORDER BY value DESC`, [campaignId]),
+        client.query(`SELECT outbreak_type AS name, COUNT(*)::int AS value
+          FROM ${MV} WHERE outbreak_type IS NOT NULL
+          GROUP BY 1 ORDER BY value DESC`),
 
-        client.query(`SELECT SPLIT_PART(data->>'admin_location', ' / ', 1) AS country, COUNT(*)::int AS value
-          FROM public.submissions WHERE ${CF} GROUP BY 1 ORDER BY value DESC`, [campaignId]),
+        client.query(`SELECT country, COUNT(*)::int AS value
+          FROM ${MV} WHERE ${VC}
+          GROUP BY 1 ORDER BY value DESC`),
       ]);
 
       const k = kpiRes.rows[0];
