@@ -145,29 +145,74 @@ function DonutChart({ data, title }: { data: { name: string; value: number }[]; 
   );
 }
 
-/* ── Year Trend Chart (bar) ── */
+/* ── Year Trend Chart (histogram + line curve) ── */
 function YearTrend({ data }: { data: { year: number; reports: number; outbreaks: number }[] }) {
   if (!data.length) return null;
-  const maxReports = Math.max(...data.map((d) => d.reports), 1);
+  const filtered = data.filter((d) => d.year >= 2007 && d.year <= 2025);
+  const maxReports = Math.max(...filtered.map((d) => d.reports), 1);
+  const maxOutbreaks = Math.max(...filtered.map((d) => d.outbreaks), 1);
+
+  // SVG line path for outbreaks curve
+  const chartH = 160;
+  const chartW = filtered.length * 40;
+  const points = filtered.map((d, i) => {
+    const x = (i / (filtered.length - 1)) * 100;
+    const y = 100 - (d.outbreaks / maxOutbreaks) * 100;
+    return `${x},${y}`;
+  }).join(' ');
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
       <h3 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
         <TrendingUp className="h-4 w-4 text-gray-400" />
-        Rapports par année
+        Rapports et foyers par année
       </h3>
-      <div className="flex items-end gap-1 h-40">
-        {data.map((d) => (
-          <div key={d.year} className="flex-1 flex flex-col items-center gap-1">
-            <span className="text-[9px] font-semibold text-gray-500">{(d.reports / 1000).toFixed(0)}K</span>
-            <div className="w-full flex flex-col gap-px" style={{ height: `${(d.reports / maxReports) * 100}%` }}>
-              <div className="flex-1 rounded-t bg-[#1F4E79] min-h-[2px]" />
+      <div className="relative" style={{ height: chartH }}>
+        {/* Bars (reports) */}
+        <div className="absolute inset-0 flex items-end gap-[2px]">
+          {filtered.map((d) => (
+            <div key={d.year} className="flex-1 flex flex-col items-center gap-0.5">
+              <div
+                className="w-full rounded-t bg-[#1F4E79]/70 hover:bg-[#1F4E79] transition-colors relative group"
+                style={{ height: `${(d.reports / maxReports) * 100}%`, minHeight: 2 }}
+              >
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap z-10">
+                  {d.reports.toLocaleString()} rapports
+                </div>
+              </div>
             </div>
-            <span className="text-[9px] text-gray-400">{String(d.year).slice(2)}</span>
+          ))}
+        </div>
+        {/* Line curve (outbreaks) */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <polyline
+            points={points}
+            fill="none"
+            stroke="#DC2626"
+            strokeWidth="2"
+            vectorEffect="non-scaling-stroke"
+          />
+          {filtered.map((d, i) => {
+            const x = (i / (filtered.length - 1)) * 100;
+            const y = 100 - (d.outbreaks / maxOutbreaks) * 100;
+            return (
+              <circle key={d.year} cx={x} cy={y} r="1.5" fill="#DC2626" vectorEffect="non-scaling-stroke" />
+            );
+          })}
+        </svg>
+      </div>
+      {/* Year labels */}
+      <div className="flex gap-[2px] mt-1">
+        {filtered.map((d) => (
+          <div key={d.year} className="flex-1 text-center text-[9px] text-gray-400">
+            {String(d.year).slice(2)}
           </div>
         ))}
       </div>
-      <div className="mt-2 flex items-center gap-4 text-[10px] text-gray-400">
-        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-[#1F4E79]" /> Rapports</span>
+      {/* Legend */}
+      <div className="mt-3 flex items-center gap-5 text-[10px] text-gray-500">
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[#1F4E79]/70" /> Rapports</span>
+        <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 bg-[#DC2626] rounded" /> Foyers déclarés</span>
       </div>
     </div>
   );
@@ -194,11 +239,13 @@ export default function HistoricalHealthDashboard({ campaignId }: { campaignId: 
 
   const { kpis, diseaseDistribution, countryDistribution, yearlyTrend, outbreakStatus, outbreakType, countryMapData } = data;
 
-  // Build map data
+  // Build map data — ChoroplethMap expects { code, name, outbreaks, cases, deaths, vaccinations, submissions, rec }
   const mapData: CountryOutbreakData[] = (countryMapData ?? []).map((c: any) => {
-    const iso = toIso2(c.country ?? c.name);
-    return iso ? { countryCode: iso, outbreaks: c.value, country: c.country ?? c.name } : null;
-  }).filter(Boolean);
+    const name = c.country ?? c.name;
+    const iso = toIso2(name);
+    if (!iso) return null;
+    return { code: iso, name, outbreaks: c.value, cases: 0, deaths: 0, vaccinations: 0, submissions: c.value, rec: '' } as CountryOutbreakData;
+  }).filter(Boolean) as CountryOutbreakData[];
 
   return (
     <div className="space-y-6">
@@ -224,7 +271,7 @@ export default function HistoricalHealthDashboard({ campaignId }: { campaignId: 
           </div>
           <div className="h-[350px]">
             {mapData.length > 0 ? (
-              <ChoroplethMap data={mapData} metricLabel="Rapports" />
+              <ChoroplethMap title="Couverture géographique" data={mapData} indicator="submissions" bare />
             ) : (
               <div className="flex items-center justify-center h-full text-sm text-gray-400">Carte non disponible</div>
             )}
