@@ -29,6 +29,7 @@ import {
   useRegenerateToken,
 } from '@/lib/api/slideshow-hooks';
 import { useDashboards } from '@/lib/api/dashboard-hooks';
+import { useBiDashboards, type BiDashboard } from '@/lib/api/bi-hooks';
 import { SlideshowPlayer } from './SlideshowPlayer';
 
 const TRANSITIONS = [
@@ -50,8 +51,35 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
   const isFr = locale === 'fr';
 
   const { data: existing, isLoading } = useSlideshow(slideshowId);
-  const { data: dashboardsData } = useDashboards({ limit: 100 });
-  const dashboards = (dashboardsData as any)?.data ?? [];
+  const { data: dashboardsData } = useDashboards({ limit: 200 });
+  const { data: biDashboardsData } = useBiDashboards();
+  const builderDashboards = (dashboardsData as any)?.data ?? [];
+  const biDashboards: BiDashboard[] = (biDashboardsData as any)?.data ?? [];
+
+  // Unified dashboard list: builder + BI
+  const dashboards = [
+    ...builderDashboards.map((d: any) => ({
+      id: d.id || d.Id,
+      titleFr: d.titleFr || d.title_fr || '',
+      titleEn: d.titleEn || d.title_en || '',
+      source: 'builder' as const,
+      domain: d.domainCode || d.domain_code || '',
+      scope: d.scope || '',
+    })),
+    ...biDashboards.filter((d) => d.isActive).map((d) => ({
+      id: `bi:${d.id}`,
+      titleFr: d.name?.fr || d.name?.en || '',
+      titleEn: d.name?.en || d.name?.fr || '',
+      source: 'bi' as const,
+      domain: d.category || '',
+      scope: d.scope || '',
+      tool: d.tool,
+      embedUrl: d.embedUrl,
+    })),
+  ];
+
+  // Domain filter state
+  const [domainFilter, setDomainFilter] = useState('all');
 
   const createMutation = useCreateSlideshow();
   const updateMutation = useUpdateSlideshow();
@@ -155,16 +183,16 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
   };
 
   const addSlide = (dashboardId: string) => {
-    const db = dashboards.find((d: any) => (d.id || d.Id) === dashboardId);
+    const db = dashboards.find((d: any) => d.id === dashboardId);
     if (!db) return;
-    if (slides.some((s) => s.dashboardId === dashboardId)) return; // no duplicates
+    if (slides.some((s) => s.dashboardId === dashboardId)) return;
     setSlides([
       ...slides,
       {
         dashboardId,
         sortOrder: slides.length,
-        dashboardTitleFr: db.titleFr ?? db.title_fr,
-        dashboardTitleEn: db.titleEn ?? db.title_en,
+        dashboardTitleFr: db.titleFr,
+        dashboardTitleEn: db.titleEn,
       },
     ]);
   };
@@ -553,7 +581,23 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                 <h3 className="font-semibold text-base">
                   {isFr ? 'Tableaux de bord' : 'Dashboards'} ({slides.length})
                 </h3>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  {/* Domain filter */}
+                  <select
+                    value={domainFilter}
+                    onChange={(e) => setDomainFilter(e.target.value)}
+                    className="rounded-md border border-gray-300 px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                  >
+                    <option value="all">{isFr ? 'Tous les domaines' : 'All domains'}</option>
+                    <option value="animal-health">{isFr ? 'Santé animale' : 'Animal Health'}</option>
+                    <option value="livestock">{isFr ? 'Élevage' : 'Livestock'}</option>
+                    <option value="fisheries">{isFr ? 'Pêche' : 'Fisheries'}</option>
+                    <option value="trade">{isFr ? 'Commerce' : 'Trade'}</option>
+                    <option value="governance">{isFr ? 'Gouvernance' : 'Governance'}</option>
+                    <option value="paid">PAID</option>
+                    <option value="bi">{isFr ? 'Outils BI' : 'BI Tools'}</option>
+                  </select>
+                  {/* Dashboard selector */}
                   <select
                     onChange={(e) => {
                       if (e.target.value) {
@@ -562,30 +606,54 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                       }
                     }}
                     defaultValue=""
-                    className="w-[280px] rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                    className="w-[320px] rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                   >
                     <option value="" disabled>
                       {isFr ? '+ Ajouter un tableau de bord' : '+ Add a dashboard'}
                     </option>
-                    {dashboards
-                      .filter(
-                        (d: any) =>
-                          !slides.some((s) => s.dashboardId === (d.id || d.Id)),
-                      )
-                      .map((d: any) => (
-                        <option key={d.id || d.Id} value={d.id || d.Id}>
-                          {isFr
-                            ? d.titleFr || d.title_fr || d.titleEn || d.title_en
-                            : d.titleEn || d.title_en || d.titleFr || d.title_fr}
-                        </option>
-                      ))}
+                    {/* Builder dashboards */}
+                    {(() => {
+                      const filtered = dashboards.filter((d: any) => {
+                        if (slides.some((s) => s.dashboardId === d.id)) return false;
+                        if (domainFilter === 'all') return true;
+                        if (domainFilter === 'bi') return d.source === 'bi';
+                        if (d.source === 'bi') return d.domain === domainFilter;
+                        return d.domain?.includes(domainFilter) || d.scope?.toLowerCase() === domainFilter;
+                      });
+                      const builders = filtered.filter((d: any) => d.source === 'builder');
+                      const bis = filtered.filter((d: any) => d.source === 'bi');
+                      return (
+                        <>
+                          {builders.length > 0 && (
+                            <optgroup label={isFr ? '📊 Tableaux de bord' : '📊 Dashboards'}>
+                              {builders.map((d: any) => (
+                                <option key={d.id} value={d.id}>
+                                  {isFr ? (d.titleFr || d.titleEn) : (d.titleEn || d.titleFr)}
+                                  {d.scope ? ` [${d.scope}]` : ''}
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
+                          {bis.length > 0 && (
+                            <optgroup label={isFr ? '📈 Outils BI (Metabase / Superset)' : '📈 BI Tools'}>
+                              {bis.map((d: any) => (
+                                <option key={d.id} value={d.id}>
+                                  {isFr ? (d.titleFr || d.titleEn) : (d.titleEn || d.titleFr)}
+                                  {d.tool ? ` (${d.tool})` : ''}
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
+                        </>
+                      );
+                    })()}
                   </select>
                   <button
                     onClick={() => router.push('/my-dashboards')}
                     className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800"
                   >
                     <Plus className="h-4 w-4 mr-1" />
-                    {isFr ? 'Creer' : 'Create'}
+                    {isFr ? 'Créer' : 'Create'}
                   </button>
                 </div>
               </div>

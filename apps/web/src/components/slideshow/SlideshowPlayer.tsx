@@ -40,6 +40,20 @@ const LANGUAGES = [
 // ═══════════════════════════════════════════════════════════════════════
 
 function SlideRenderer({ dashboardId, durationMs }: { dashboardId: string; durationMs: number }) {
+  // BI dashboard (iframe) — id starts with "bi:"
+  if (dashboardId.startsWith('bi:')) {
+    // Extract embed URL from slide metadata (stored in dashboard field)
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-white dark:bg-gray-900">
+        <p className="text-sm text-gray-400">BI Dashboard (iframe non disponible en mode diaporama)</p>
+      </div>
+    );
+  }
+
+  return <DashboardSlideRenderer dashboardId={dashboardId} durationMs={durationMs} />;
+}
+
+function DashboardSlideRenderer({ dashboardId, durationMs }: { dashboardId: string; durationMs: number }) {
   const { data: dashboardData, isLoading: loadingDash } = useDashboard(dashboardId);
   const { data: renderData, isLoading: loadingRender } = useDashboardRender(dashboardId);
   const scrollRef = useRef<HTMLDivElement>(null);
