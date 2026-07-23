@@ -215,9 +215,7 @@ export class DbStatsService {
 
       const { rows: [r] } = await client.query(`
         SELECT
-          (SELECT COUNT(DISTINCT country) FROM ${MV} WHERE valid_country AND country IN (
-            SELECT country FROM ${MV} WHERE valid_country GROUP BY country HAVING COUNT(*) > 1000
-          ))::int AS countries_reporting,
+          (SELECT COUNT(DISTINCT country) FROM ${MV} WHERE valid_country)::int AS countries_reporting,
           (SELECT COUNT(*) FROM ${MV})::int AS health_reports,
           (SELECT COALESCE(SUM(num_outbreaks), 0) FROM ${MV})::bigint AS outbreaks,
           (SELECT COUNT(DISTINCT disease) FROM ${MV} WHERE valid_disease)::int AS diseases_monitored,
