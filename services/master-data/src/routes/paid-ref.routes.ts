@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { tenantHook, rolesHook } from '@aris/auth-middleware/fastify';
 
-const ADMIN_ROLES = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN'] as const;
+const ADMIN_ROLES = ['SUPER_ADMIN', 'CONTINENTAL_ADMIN', 'PAID_ADMIN'] as const;
 const PREFIX = '/api/v1/master-data/paid';
 
 /**
