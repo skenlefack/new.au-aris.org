@@ -591,19 +591,17 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                   {isFr ? 'Tableaux de bord' : 'Dashboards'} ({slides.length})
                 </h3>
                 <div className="flex gap-2 flex-wrap">
-                  {/* Domain filter */}
+                  {/* Scope/type filter */}
                   <select
                     value={domainFilter}
                     onChange={(e) => setDomainFilter(e.target.value)}
                     className="rounded-md border border-gray-300 px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                   >
-                    <option value="all">{isFr ? 'Tous les domaines' : 'All domains'}</option>
-                    <option value="animal-health">{isFr ? 'Santé animale' : 'Animal Health'}</option>
-                    <option value="livestock">{isFr ? 'Élevage' : 'Livestock'}</option>
-                    <option value="fisheries">{isFr ? 'Pêche' : 'Fisheries'}</option>
-                    <option value="trade">{isFr ? 'Commerce' : 'Trade'}</option>
-                    <option value="governance">{isFr ? 'Gouvernance' : 'Governance'}</option>
-                    <option value="paid">PAID</option>
+                    <option value="all">{isFr ? 'Tous' : 'All'}</option>
+                    <option value="continental">{isFr ? 'Continental' : 'Continental'}</option>
+                    <option value="rec">REC</option>
+                    <option value="country">{isFr ? 'Pays' : 'Country'}</option>
+                    <option value="campaign">{isFr ? 'Campagnes' : 'Campaigns'}</option>
                     <option value="bi">{isFr ? 'Outils BI' : 'BI Tools'}</option>
                   </select>
                   {/* Dashboard selector */}
@@ -627,8 +625,8 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                         if (slides.some((s) => s.dashboardId === did)) return false;
                         if (domainFilter === 'bi') return false;
                         if (domainFilter === 'all') return true;
-                        const dom = (d.domain_code || d.domainCode || d.scope || '').toLowerCase();
-                        return dom.includes(domainFilter);
+                        if (domainFilter === 'campaign') return !!d.campaign_id;
+                        return (d.scope || '').toUpperCase() === domainFilter.toUpperCase();
                       })
                       .map((d: any) => {
                         const did = d.id || d.Id;
