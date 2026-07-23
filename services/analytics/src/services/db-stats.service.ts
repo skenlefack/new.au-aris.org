@@ -209,72 +209,27 @@ export class DbStatsService {
 
     const client = await this.pool.connect();
     try {
-      // All KPIs read from public.submissions (single source of truth).
-      // Campaign IDs:
-      //   HIST_ANIMAL_HEALTH = 805e4141-dc1c-4f82-b7e0-686c1efacee9
-      //   HIST_LIVESTOCK      = 35ddef54-7df3-4c2d-ae52-cf84febcd8c4
-      // Data is stored as JSONB with human-readable keys (admin_location, disease, etc.)
-      const HEALTH_CAMPAIGN = '805e4141-dc1c-4f82-b7e0-686c1efacee9';
+      // Read from materialized view (fast) + livestock from submissions (small table)
       const LIVESTOCK_CAMPAIGN = '35ddef54-7df3-4c2d-ae52-cf84febcd8c4';
+      const MV = 'analytics.mv_campaign_stats';
 
       const { rows: [r] } = await client.query(`
         SELECT
-          -- Countries reporting: count countries with >1000 health reports (normalized variants)
-          (SELECT COUNT(DISTINCT canonical) FROM (
-            SELECT CASE LOWER(SPLIT_PART(data->>'admin_location', ' / ', 1))
-              WHEN 'swaziland' THEN 'eswatini' WHEN 'cote d''ivore' THEN 'cote d''ivoire'
-              WHEN 'côte d''ivoire' THEN 'cote d''ivoire' WHEN 'tunisa' THEN 'tunisia'
-              WHEN 'sénégal' THEN 'senegal' WHEN 'guinée' THEN 'guinea'
-              WHEN 'guinea conackry' THEN 'guinea' WHEN 'guinea conakry' THEN 'guinea'
-              WHEN 'guinee conakry' THEN 'guinea' WHEN 'the gambia' THEN 'gambia'
-              WHEN 'drc' THEN 'dr congo' WHEN 'congo brazaville' THEN 'congo'
-              ELSE LOWER(SPLIT_PART(data->>'admin_location', ' / ', 1))
-            END AS canonical
-            FROM public.submissions
-            WHERE campaign_id = $1
-              AND data->>'admin_location' IS NOT NULL
-              AND data->>'admin_location' ~ '^[A-Za-z]'
-              AND SPLIT_PART(data->>'admin_location', ' / ', 1) !~ '[0-9]'
-              AND LENGTH(SPLIT_PART(data->>'admin_location', ' / ', 1)) > 3
-            GROUP BY canonical HAVING COUNT(*) > 1000
-          ) x)::int AS countries_reporting,
-          -- Total health reports
-          (SELECT COUNT(*) FROM public.submissions WHERE campaign_id = $1)::int AS health_reports,
-          -- Outbreaks: SUM of num_new_outbreaks
+          (SELECT COUNT(DISTINCT country) FROM ${MV} WHERE valid_country AND country IN (
+            SELECT country FROM ${MV} WHERE valid_country GROUP BY country HAVING COUNT(*) > 1000
+          ))::int AS countries_reporting,
+          (SELECT COUNT(*) FROM ${MV})::int AS health_reports,
+          (SELECT COALESCE(SUM(num_outbreaks), 0) FROM ${MV})::bigint AS outbreaks,
+          (SELECT COUNT(DISTINCT disease) FROM ${MV} WHERE valid_disease)::int AS diseases_monitored,
+          0::bigint AS animals_vaccinated,
+          (SELECT COUNT(*) FROM ${MV} WHERE vacc_flag IN ('yes','true','1','oui'))::int AS mass_vaccinations,
           (SELECT COALESCE(SUM(
-            CASE WHEN (data->>'num_new_outbreaks') ~ '^[0-9]+\.?[0-9]*$'
-              THEN (data->>'num_new_outbreaks')::numeric ELSE 0 END
-          ), 0)
-           FROM public.submissions WHERE campaign_id = $1)::bigint AS outbreaks,
-          -- Diseases monitored (distinct disease names, excluding empty/null)
-          (SELECT COUNT(DISTINCT data->>'disease')
-           FROM public.submissions
-           WHERE campaign_id = $1
-             AND data->>'disease' IS NOT NULL
-             AND LENGTH(data->>'disease') > 2)::int AS diseases_monitored,
-          -- Animals vaccinated: SUM from all submissions with vaccination data
-          (SELECT COALESCE(SUM(
-            CASE WHEN (data->>'num_animals_vaccinated') ~ '^[0-9]+\.?[0-9]*$'
-              THEN (data->>'num_animals_vaccinated')::numeric ELSE 0 END
-          ), 0)
-           FROM public.submissions WHERE campaign_id = $1)::bigint AS animals_vaccinated,
-          -- Mass vaccination campaigns: count submissions where vaccination_in_period = yes
-          (SELECT COUNT(*)
-           FROM public.submissions
-           WHERE campaign_id = $1
-             AND LOWER(data->>'vaccination_in_period') IN ('yes','true','1','oui'))::int AS mass_vaccinations,
-          -- Livestock censused: SUM from livestock campaign
-          (SELECT COALESCE(SUM(
-            CASE WHEN (data->>'num_animals') ~ '^[0-9]+\.?[0-9]*$'
-              THEN (data->>'num_animals')::numeric ELSE 0 END
-          ), 0)
-           FROM public.submissions WHERE campaign_id = $2)::bigint AS livestock_censused,
-          -- Total records across all campaigns
-          (SELECT
-            (SELECT COUNT(*) FROM public.submissions WHERE campaign_id = $1) +
-            (SELECT COUNT(*) FROM public.submissions WHERE campaign_id = $2)
-          )::int AS total_records
-      `, [HEALTH_CAMPAIGN, LIVESTOCK_CAMPAIGN]);
+            CASE WHEN (data->>'num_animals') ~ '^[0-9]+\\.?[0-9]*$'
+              THEN (data->>'num_animals')::numeric ELSE 0 END), 0)
+           FROM public.submissions WHERE campaign_id = $1)::bigint AS livestock_censused,
+          ((SELECT COUNT(*) FROM ${MV}) +
+           (SELECT COUNT(*) FROM public.submissions WHERE campaign_id = $1))::int AS total_records
+      `, [LIVESTOCK_CAMPAIGN]);
 
       const countriesReporting = Number(r.countries_reporting ?? 0);
       const kpis = [
@@ -314,41 +269,25 @@ export class DbStatsService {
 
     const client = await this.pool.connect();
     try {
-      const HEALTH_CAMPAIGN = '805e4141-dc1c-4f82-b7e0-686c1efacee9';
+      const MV = 'analytics.mv_campaign_stats';
 
-      // Disease distribution (top 8, clean names only — exclude UUIDs, ZERO, noise)
-      const { rows: diseaseRows } = await client.query(`
-        SELECT data->>'disease' AS label, COUNT(*)::int AS value
-        FROM public.submissions
-        WHERE campaign_id = $1
-          AND data->>'disease' IS NOT NULL
-          AND data->>'disease' ~ '^[A-Za-z]' AND LENGTH(data->>'disease') > 2
-          AND UPPER(data->>'disease') NOT LIKE '%ZERO%'
-        GROUP BY data->>'disease' ORDER BY value DESC LIMIT 8
-      `, [HEALTH_CAMPAIGN]);
+      // All 3 queries from materialized view (fast)
+      const [{ rows: diseaseRows }, { rows: countryRows }, { rows: trendRows }] = await Promise.all([
+        client.query(`SELECT disease AS label, COUNT(*)::int AS value
+          FROM ${MV} WHERE valid_disease
+          GROUP BY 1 ORDER BY value DESC LIMIT 8`),
 
-      // Country distribution (top 10, clean country names only)
-      const { rows: countryRows } = await client.query(`
-        SELECT SPLIT_PART(data->>'admin_location', ' / ', 1) AS label, COUNT(*)::int AS value
-        FROM public.submissions
-        WHERE campaign_id = $1
-          AND data->>'admin_location' IS NOT NULL
-          AND data->>'admin_location' ~ '^[A-Za-z]' AND LENGTH(data->>'admin_location') > 3
-        GROUP BY label HAVING COUNT(*) > 100 ORDER BY value DESC LIMIT 10
-      `, [HEALTH_CAMPAIGN]);
+        client.query(`SELECT country AS label, COUNT(*)::int AS value
+          FROM ${MV} WHERE valid_country
+          GROUP BY 1 ORDER BY value DESC LIMIT 10`),
 
-      // Monthly trend (last 12 months of report dates)
-      const { rows: trendRows } = await client.query(`
-        SELECT
-          TO_CHAR(submitted_at, 'Mon') AS month,
-          COUNT(*) FILTER (WHERE LOWER(data->>'outbreak_in_month') IN ('yes','true','1','oui'))::int AS outbreaks,
+        client.query(`SELECT TO_CHAR(submitted_at, 'Mon') AS month,
+          COUNT(*) FILTER (WHERE outbreak_flag IN ('yes','true','1','oui'))::int AS outbreaks,
           COUNT(*)::int AS reports
-        FROM public.submissions
-        WHERE campaign_id = $1 AND submitted_at IS NOT NULL
-        GROUP BY EXTRACT(YEAR FROM submitted_at), EXTRACT(MONTH FROM submitted_at), TO_CHAR(submitted_at, 'Mon')
-        ORDER BY MAX(submitted_at) DESC
-        LIMIT 12
-      `, [HEALTH_CAMPAIGN]);
+          FROM ${MV} WHERE valid_country AND submitted_at IS NOT NULL
+          GROUP BY EXTRACT(YEAR FROM submitted_at), EXTRACT(MONTH FROM submitted_at), TO_CHAR(submitted_at, 'Mon')
+          ORDER BY MAX(submitted_at) DESC LIMIT 12`),
+      ]);
 
       const result = {
         diseaseDistribution: diseaseRows.map((r: any) => ({ label: r.label, value: r.value })),
