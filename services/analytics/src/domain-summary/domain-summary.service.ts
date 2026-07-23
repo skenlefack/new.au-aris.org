@@ -12,6 +12,8 @@ import { Pool } from 'pg';
 import type { RedisClient } from '../services/redis-client';
 
 const CACHE_TTL = 120; // 2 minutes
+const ANIMAL_HEALTH_CACHE_TTL = 1800; // 30 min for animal-health (801K rows)
+const MV = 'analytics.mv_campaign_stats'; // materialized view for historical health data
 
 // ── Interfaces ──
 
@@ -202,10 +204,59 @@ export class DomainSummaryService {
     }
 
     const domain = dbDomain(domainCode);
-    const result = await this.querySummary(domain);
 
+    // For animal-health: use materialized view (801K rows — too slow for raw queries)
+    if (domain === 'animal_health' || domainCode === 'animal-health') {
+      const result = await this.queryAnimalHealthFromMatview();
+      await this.redis.set(cacheKey, JSON.stringify(result), ANIMAL_HEALTH_CACHE_TTL);
+      return result;
+    }
+
+    const result = await this.querySummary(domain);
     await this.redis.set(cacheKey, JSON.stringify(result), CACHE_TTL);
     return result;
+  }
+
+  /** Fast path for animal-health using pre-computed materialized view */
+  private async queryAnimalHealthFromMatview(): Promise<DomainSummary> {
+    const client = await this.pool.connect();
+    try {
+      const [kpiRes, countryRes, yearRes] = await Promise.all([
+        client.query(`SELECT
+          COUNT(*)::int AS total_submissions,
+          COUNT(DISTINCT country) FILTER (WHERE valid_country)::int AS active_countries,
+          COUNT(DISTINCT disease) FILTER (WHERE valid_disease)::int AS diseases
+          FROM ${MV}`),
+        client.query(`SELECT country AS code, country AS name, COUNT(*)::int AS count
+          FROM ${MV} WHERE valid_country
+          GROUP BY country ORDER BY count DESC LIMIT 20`),
+        client.query(`SELECT TO_CHAR(make_date(year, 1, 1), 'YYYY-MM') AS month, COUNT(*)::int AS count
+          FROM ${MV} WHERE valid_country AND year BETWEEN 2007 AND 2025
+          GROUP BY year ORDER BY year`),
+      ]);
+
+      const k = kpiRes.rows[0];
+      const activeCampaigns = 1; // historical campaign
+
+      return {
+        kpis: {
+          totalSubmissions: k.total_submissions,
+          activeCountries: k.active_countries,
+          activeCampaigns,
+          completionRate: 100,
+          qualityScore: 0,
+          trend: { current: 0, previous: 0, delta: 0 },
+        },
+        synthesis: {
+          countryDistribution: countryRes.rows,
+          monthlyTrend: yearRes.rows,
+          subDomainBreakdown: [],
+        },
+        recentActivity: [],
+      };
+    } finally {
+      client.release();
+    }
   }
 
   private async querySummary(domain: string): Promise<DomainSummary> {
