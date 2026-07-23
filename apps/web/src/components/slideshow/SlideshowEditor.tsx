@@ -422,21 +422,42 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
               </div>
               <div>
                 <label className="text-sm font-medium">
-                  {isFr ? 'Duree par slide' : 'Duration per slide'}:{' '}
-                  {Math.round(intervalMs / 1000)}s
+                  {isFr ? 'Durée par slide' : 'Duration per slide'}
                 </label>
-                <input
-                  type="range"
-                  min={3000}
-                  max={120000}
-                  step={1000}
-                  value={intervalMs}
-                  onChange={(e) => setIntervalMs(parseInt(e.target.value))}
-                  className="w-full mt-2"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>3s</span>
-                  <span>120s</span>
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="number"
+                    min={3}
+                    max={86400}
+                    value={Math.round(intervalMs / 1000)}
+                    onChange={(e) => setIntervalMs(Math.max(3, parseInt(e.target.value) || 15) * 1000)}
+                    className="h-8 w-20 text-sm rounded-md border border-gray-300 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                  />
+                  <span className="text-xs text-muted-foreground">secondes</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {[
+                    { label: '15s', ms: 15000 },
+                    { label: '30s', ms: 30000 },
+                    { label: '1min', ms: 60000 },
+                    { label: '5min', ms: 300000 },
+                    { label: '15min', ms: 900000 },
+                    { label: '30min', ms: 1800000 },
+                    { label: '1h', ms: 3600000 },
+                  ].map((p) => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => setIntervalMs(p.ms)}
+                      className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                        intervalMs === p.ms
+                          ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-400'
+                          : 'border-gray-200 text-gray-500 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
                 </div>
               </div>
               <div className="space-y-3">
@@ -611,42 +632,22 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                     <option value="" disabled>
                       {isFr ? '+ Ajouter un tableau de bord' : '+ Add a dashboard'}
                     </option>
-                    {/* Builder dashboards */}
-                    {(() => {
-                      const filtered = dashboards.filter((d: any) => {
+                    {dashboards
+                      .filter((d: any) => {
                         if (slides.some((s) => s.dashboardId === d.id)) return false;
                         if (domainFilter === 'all') return true;
                         if (domainFilter === 'bi') return d.source === 'bi';
                         if (d.source === 'bi') return d.domain === domainFilter;
                         return d.domain?.includes(domainFilter) || d.scope?.toLowerCase() === domainFilter;
-                      });
-                      const builders = filtered.filter((d: any) => d.source === 'builder');
-                      const bis = filtered.filter((d: any) => d.source === 'bi');
-                      return (
-                        <>
-                          {builders.length > 0 && (
-                            <optgroup label={isFr ? '📊 Tableaux de bord' : '📊 Dashboards'}>
-                              {builders.map((d: any) => (
-                                <option key={d.id} value={d.id}>
-                                  {isFr ? (d.titleFr || d.titleEn) : (d.titleEn || d.titleFr)}
-                                  {d.scope ? ` [${d.scope}]` : ''}
-                                </option>
-                              ))}
-                            </optgroup>
-                          )}
-                          {bis.length > 0 && (
-                            <optgroup label={isFr ? '📈 Outils BI (Metabase / Superset)' : '📈 BI Tools'}>
-                              {bis.map((d: any) => (
-                                <option key={d.id} value={d.id}>
-                                  {isFr ? (d.titleFr || d.titleEn) : (d.titleEn || d.titleFr)}
-                                  {d.tool ? ` (${d.tool})` : ''}
-                                </option>
-                              ))}
-                            </optgroup>
-                          )}
-                        </>
-                      );
-                    })()}
+                      })
+                      .map((d: any) => (
+                        <option key={d.id} value={d.id}>
+                          {d.source === 'bi' ? '[BI] ' : ''}
+                          {isFr ? (d.titleFr || d.titleEn) : (d.titleEn || d.titleFr)}
+                          {d.source === 'bi' && d.tool ? ` (${d.tool})` : ''}
+                          {d.source === 'builder' && d.scope ? ` [${d.scope}]` : ''}
+                        </option>
+                      ))}
                   </select>
                   <button
                     onClick={() => router.push('/my-dashboards')}
@@ -701,7 +702,7 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                             <input
                               type="number"
                               min={3}
-                              max={300}
+                              max={86400}
                               value={
                                 slide.durationMs
                                   ? Math.round(slide.durationMs / 1000)
