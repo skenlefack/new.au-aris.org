@@ -184,11 +184,12 @@ export async function registerRefDataRoutes(app: FastifyInstance): Promise<void>
         { nameFr: { contains: search, mode: 'insensitive' } },
       ];
     }
+    const take = Math.min(parseInt(request.query.limit || '500', 10) || 500, 10000);
     const rows = await (app.prisma as any).geoEntity.findMany({
       where,
       select: { id: true, code: true, nameEn: true, nameFr: true, namePt: true, nameAr: true, level: true, countryCode: true },
       orderBy: { nameEn: 'asc' },
-      take: 500,
+      take,
     });
     return {
       data: rows.map((r: any) => ({
@@ -219,6 +220,9 @@ export async function registerRefDataRoutes(app: FastifyInstance): Promise<void>
         { faoAlphaCode: { contains: search, mode: 'insensitive' } },
       ];
     }
+    // When searching: limit to 500 results. When browsing all: allow up to 15000 (full ASFIS list)
+    const defaultLimit = search ? 500 : 15000;
+    const take = Math.min(parseInt(request.query.limit || String(defaultLimit), 10) || defaultLimit, 15000);
     const rows = await (app.prisma as any).species.findMany({
       where,
       select: {
@@ -232,7 +236,7 @@ export async function registerRefDataRoutes(app: FastifyInstance): Promise<void>
         habitatType: true,
       },
       orderBy: { scientificName: 'asc' },
-      take: 200,
+      take,
     });
     return {
       data: rows.map((r: any) => ({

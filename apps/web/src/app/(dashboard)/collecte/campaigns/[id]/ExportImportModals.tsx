@@ -53,7 +53,9 @@ interface SelectOpt {
   value?: string;
 }
 
-function ml(t?: { en?: string; fr?: string }): string {
+function ml(t?: { en?: string; fr?: string }, locale?: string): string {
+  if (!t) return '';
+  if (locale && (t as any)[locale]) return (t as any)[locale];
   return t?.en || t?.fr || '';
 }
 
@@ -78,17 +80,17 @@ const ADMIN_LEVEL_LABELS: Record<number, string> = {
   3: 'Admin3 (Sous-district/Commune)', 4: 'Admin4 (Quartier/Village)', 5: 'Admin5 (Localité)',
 };
 
-function resolveAdminValue(val: string | undefined, level: number): string {
+function resolveAdminValue(val: string | undefined, level: number, geoMap?: Record<string, string>): string {
   if (!val) return '';
   if (val.startsWith('__new:')) return val.slice(6);
   if (level === 0) return COUNTRY_MAP[val] || COUNTRY_MAP[val.toUpperCase()] || val;
-  return GADM_MAP[val] || val;
+  return GADM_MAP[val] || geoMap?.[val] || val;
 }
 
-async function fetchRefData(type: string): Promise<Record<string, string>> {
+async function fetchRefData(type: string, locale = 'en'): Promise<Record<string, string>> {
   const token = useAuthStore.getState().accessToken || '';
   try {
-    const res = await fetch(`/api/v1/master-data/ref/${type}/for-select?limit=500`, {
+    const res = await fetch(`/api/v1/master-data/ref/${type}/for-select?limit=10000`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return {};
@@ -100,10 +102,37 @@ async function fetchRefData(type: string): Promise<Record<string, string>> {
       let label = item.label || '';
       if (!label && name) {
         if (typeof name === 'string') label = name;
-        else if (typeof name === 'object') label = name.en || name.fr || name.pt || Object.values(name).find((v: any) => v) || '';
+        else if (typeof name === 'object') label = (name as any)[locale] || name.en || name.fr || name.pt || Object.values(name).find((v: any) => v) || '';
       }
       if (!label) label = item.code || '';
-      if (label) map[item.id] = label;
+      if (label) {
+        map[item.id] = label;
+        // Also map by code for non-UUID lookups
+        if (item.code) map[item.code] = label;
+      }
+    }
+    return map;
+  } catch { return {}; }
+}
+
+/** Fetch geo-entities (admin divisions) for resolving admin3+ levels */
+async function fetchGeoEntities(locale = 'en'): Promise<Record<string, string>> {
+  const token = useAuthStore.getState().accessToken || '';
+  try {
+    const res = await fetch('/api/v1/master-data/ref/geo-entities/for-select?limit=10000', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return {};
+    const json = await res.json();
+    const map: Record<string, string> = {};
+    for (const item of json?.data || []) {
+      if (!item.id) continue;
+      const name = item.name;
+      const label = name ? ((name as any)[locale] || name.en || name.fr || '') : '';
+      if (label) {
+        map[item.id] = label;
+        if (item.code) map[item.code] = label;
+      }
     }
     return map;
   } catch { return {}; }
@@ -159,7 +188,7 @@ interface ExportColumn {
   getValue: (row: Record<string, unknown>, refMap: Record<string, string>) => string;
 }
 
-function buildExportColumns(fields: ExportField[]): ExportColumn[] {
+function buildExportColumns(fields: ExportField[], geoMap?: Record<string, string>): ExportColumn[] {
   const cols: ExportColumn[] = [];
   for (const field of fields) {
     if (field.type === 'admin-location' && field.levels) {
@@ -169,7 +198,7 @@ function buildExportColumns(fields: ExportField[]): ExportColumn[] {
           getValue: (row) => {
             const loc = row[field.code];
             if (!loc || typeof loc !== 'object' || Array.isArray(loc)) return '';
-            return resolveAdminValue((loc as Record<string, string>)[`level_${level}`], level);
+            return resolveAdminValue((loc as Record<string, string>)[`level_${level}`], level, geoMap);
           },
         });
       }
@@ -186,10 +215,32 @@ function buildExportColumns(fields: ExportField[]): ExportColumn[] {
           }
           // UUID → refMap
           if (typeof val === 'string' && UUID_RE.test(val)) return refMap[val] || val;
-          // Array of UUIDs
+          // Non-UUID string that might be a code in refMap
+          if (typeof val === 'string' && field.masterDataType && refMap[val]) return refMap[val];
+          // Array
           if (Array.isArray(val)) {
             if (val.length === 0) return '';
-            if (typeof val[0] === 'string') return val.map((v) => UUID_RE.test(v) ? (refMap[v] || v) : v).join(', ');
+            // Array of strings (UUIDs or codes)
+            if (typeof val[0] === 'string') return val.map((v) => (UUID_RE.test(v) ? (refMap[v] || v) : (refMap[v] || v))).join(', ');
+            // Array of objects (repeater rows) — resolve UUIDs inside
+            if (typeof val[0] === 'object') {
+              return val.map((item, i) => {
+                if (typeof item !== 'object' || !item) return String(item);
+                const parts: string[] = [];
+                for (const [k, v] of Object.entries(item as Record<string, unknown>)) {
+                  let display = '';
+                  if (typeof v === 'string' && UUID_RE.test(v)) {
+                    display = refMap[v] || v;
+                  } else if (typeof v === 'boolean') {
+                    display = v ? 'Yes' : 'No';
+                  } else if (v !== null && v !== undefined) {
+                    display = String(v);
+                  }
+                  if (display) parts.push(`${k}: ${display}`);
+                }
+                return `[${i + 1}] ${parts.join(', ')}`;
+              }).join(' | ');
+            }
             return `${val.length} item(s)`;
           }
           // Geo coordinates
@@ -300,7 +351,7 @@ function extractTemplateFields(sections: SchemaSection[]): TemplateField[] {
 async function fetchRefDataBidirectional(type: string): Promise<{ idToLabel: Record<string, string>; labelToId: Record<string, string> }> {
   const token = useAuthStore.getState().accessToken || '';
   try {
-    const res = await fetch(`/api/v1/master-data/ref/${type}/for-select?limit=1000`, {
+    const res = await fetch(`/api/v1/master-data/ref/${type}/for-select?limit=15000`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return { idToLabel: {}, labelToId: {} };
@@ -350,9 +401,10 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
 
   const schema = template.schema as { sections?: SchemaSection[] } | undefined;
   const fields = useMemo(() => flattenFields(schema?.sections || []), [schema]);
-  const exportColumns = useMemo(() => buildExportColumns(fields), [fields]);
+  const [geoMap, setGeoMap] = useState<Record<string, string>>({});
+  const exportColumns = useMemo(() => buildExportColumns(fields, geoMap), [fields, geoMap]);
 
-  // Load reference data for resolving UUIDs
+  // Load reference data for resolving UUIDs + geo-entities for admin divisions
   const [refFetched, setRefFetched] = useState(false);
   useEffect(() => {
     if (open && fields.length > 0 && !refFetched) {
@@ -365,13 +417,19 @@ export function ExportModal({ open, onClose, campaignId, template }: ExportModal
       mdTypes.add('age-groups'); mdTypes.add('vaccine-types'); mdTypes.add('control-measures');
       mdTypes.add('production-systems'); mdTypes.add('sample-types'); mdTypes.add('test-types');
       mdTypes.add('labs'); mdTypes.add('gear-types'); mdTypes.add('commodities');
-      Promise.all([...mdTypes].map((type) => fetchRefData(type))).then((maps) => {
+      mdTypes.add('countries');
+      Promise.all([
+        ...([...mdTypes].map((type) => fetchRefData(type, locale))),
+        fetchGeoEntities(locale),
+      ]).then((maps) => {
+        const geoResult = maps.pop() as Record<string, string>;
+        setGeoMap(geoResult);
         const merged: Record<string, string> = {};
-        for (const m of maps) Object.assign(merged, m);
+        for (const m of maps) Object.assign(merged, m as Record<string, string>);
         setRefMap(merged);
       });
     }
-  }, [open, fields, refFetched]);
+  }, [open, fields, refFetched, locale]);
 
   // Fields that are filterable (select, date, text)
   const filterableFields = useMemo(
