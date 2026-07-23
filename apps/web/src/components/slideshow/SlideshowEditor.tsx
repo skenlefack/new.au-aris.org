@@ -51,7 +51,7 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
   const isFr = locale === 'fr';
 
   const { data: existing, isLoading } = useSlideshow(slideshowId);
-  const { data: dashboardsRaw } = useDashboards({ limit: 200 });
+  const { data: dashboardsRaw } = useDashboards({ limit: 100 });
   const { data: biRaw } = useBiDashboards();
 
   // Raw arrays
