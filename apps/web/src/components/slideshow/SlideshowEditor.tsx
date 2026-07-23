@@ -51,32 +51,12 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
   const isFr = locale === 'fr';
 
   const { data: existing, isLoading } = useSlideshow(slideshowId);
-  const { data: dashboardsData } = useDashboards({ limit: 200 });
-  const { data: biDashboardsData } = useBiDashboards();
-  const builderDashboards = (dashboardsData as any)?.data ?? [];
-  const biDashboards: BiDashboard[] = (biDashboardsData as any)?.data ?? [];
+  const { data: dashboardsRaw } = useDashboards({ limit: 200 });
+  const { data: biRaw } = useBiDashboards();
 
-  // Unified dashboard list: builder + BI
-  const dashboards = [
-    ...builderDashboards.map((d: any) => ({
-      id: d.id || d.Id,
-      titleFr: d.titleFr || d.title_fr || '',
-      titleEn: d.titleEn || d.title_en || '',
-      source: 'builder' as const,
-      domain: d.domainCode || d.domain_code || '',
-      scope: d.scope || '',
-    })),
-    ...biDashboards.filter((d) => d.isActive).map((d) => ({
-      id: `bi:${d.id}`,
-      titleFr: d.name?.fr || d.name?.en || '',
-      titleEn: d.name?.en || d.name?.fr || '',
-      source: 'bi' as const,
-      domain: d.category || '',
-      scope: d.scope || '',
-      tool: d.tool,
-      embedUrl: d.embedUrl,
-    })),
-  ];
+  // Raw arrays
+  const builderList: any[] = (dashboardsRaw as any)?.data ?? [];
+  const biList: BiDashboard[] = (biRaw as any)?.data ?? [];
 
   // Domain filter state
   const [domainFilter, setDomainFilter] = useState('all');
@@ -183,17 +163,25 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
   };
 
   const addSlide = (dashboardId: string) => {
-    const db = dashboards.find((d: any) => d.id === dashboardId);
-    if (!db) return;
     if (slides.some((s) => s.dashboardId === dashboardId)) return;
+
+    let titleFr = '';
+    let titleEn = '';
+
+    if (dashboardId.startsWith('bi:')) {
+      const bi = biList.find((d) => `bi:${d.id}` === dashboardId);
+      titleFr = bi?.name?.fr || bi?.name?.en || '';
+      titleEn = bi?.name?.en || bi?.name?.fr || '';
+    } else {
+      const db = builderList.find((d: any) => (d.id || d.Id) === dashboardId);
+      if (!db) return;
+      titleFr = db.title_fr || db.titleFr || db.title_en || db.titleEn || '';
+      titleEn = db.title_en || db.titleEn || db.title_fr || db.titleFr || '';
+    }
+
     setSlides([
       ...slides,
-      {
-        dashboardId,
-        sortOrder: slides.length,
-        dashboardTitleFr: db.titleFr,
-        dashboardTitleEn: db.titleEn,
-      },
+      { dashboardId, sortOrder: slides.length, dashboardTitleFr: titleFr, dashboardTitleEn: titleEn },
     ]);
   };
 
@@ -632,20 +620,40 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                     <option value="" disabled>
                       {isFr ? '+ Ajouter un tableau de bord' : '+ Add a dashboard'}
                     </option>
-                    {dashboards
+                    {/* Dashboard Builder dashboards */}
+                    {builderList
                       .filter((d: any) => {
-                        if (slides.some((s) => s.dashboardId === d.id)) return false;
+                        const did = d.id || d.Id;
+                        if (slides.some((s) => s.dashboardId === did)) return false;
+                        if (domainFilter === 'bi') return false;
                         if (domainFilter === 'all') return true;
-                        if (domainFilter === 'bi') return d.source === 'bi';
-                        if (d.source === 'bi') return d.domain === domainFilter;
-                        return d.domain?.includes(domainFilter) || d.scope?.toLowerCase() === domainFilter;
+                        const dom = (d.domain_code || d.domainCode || d.scope || '').toLowerCase();
+                        return dom.includes(domainFilter);
                       })
-                      .map((d: any) => (
-                        <option key={d.id} value={d.id}>
-                          {d.source === 'bi' ? '[BI] ' : ''}
-                          {isFr ? (d.titleFr || d.titleEn) : (d.titleEn || d.titleFr)}
-                          {d.source === 'bi' && d.tool ? ` (${d.tool})` : ''}
-                          {d.source === 'builder' && d.scope ? ` [${d.scope}]` : ''}
+                      .map((d: any) => {
+                        const did = d.id || d.Id;
+                        const label = isFr
+                          ? (d.title_fr || d.titleFr || d.title_en || d.titleEn || did)
+                          : (d.title_en || d.titleEn || d.title_fr || d.titleFr || did);
+                        return (
+                          <option key={did} value={did}>
+                            {label} {d.scope ? `[${d.scope}]` : ''}
+                          </option>
+                        );
+                      })}
+                    {/* BI dashboards */}
+                    {biList
+                      .filter((d) => {
+                        if (!d.isActive) return false;
+                        if (slides.some((s) => s.dashboardId === `bi:${d.id}`)) return false;
+                        if (domainFilter !== 'all' && domainFilter !== 'bi') {
+                          return (d.category || '').includes(domainFilter);
+                        }
+                        return true;
+                      })
+                      .map((d) => (
+                        <option key={`bi:${d.id}`} value={`bi:${d.id}`}>
+                          [BI] {isFr ? (d.name?.fr || d.name?.en) : (d.name?.en || d.name?.fr)} ({d.tool})
                         </option>
                       ))}
                   </select>
