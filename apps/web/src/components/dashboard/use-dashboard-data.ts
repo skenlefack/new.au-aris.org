@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { histFetch, HIST_API_BASE } from '@/lib/api/historical-hooks';
+import { analyticsClient } from '@/lib/api/client';
 import type { DashboardFilters } from './GlobalFilterContext';
 import {
   DEMO_KPIS,
@@ -147,6 +148,14 @@ export function useDashboardData(filters?: DashboardFilters) {
   const massVaccIds = allDatasets.filter((d) => d.type === 'mass_vacc').map((d) => d.id);
   const popIds = allDatasets.filter((d) => d.type === 'population').map((d) => d.id);
   const hasHealth = healthIds.length > 0;
+
+  // Fallback: continental KPIs from analytics service (reads from materialized view)
+  const continentalKpisQuery = useQuery<{ data: { kpis: Array<{ key: string; value: number }> } }>({
+    queryKey: ['continental-kpis-fallback'],
+    queryFn: () => analyticsClient.get('/analytics/continental/kpis'),
+    enabled: !hasHealth && !datasetsQuery.isLoading,
+    staleTime: 30 * 60_000, // 30 min
+  });
 
   // 2. Country distribution
   const countryDistQuery = useQuery<{ data: Array<{ label: string; value: number }> }>({
@@ -308,7 +317,28 @@ export function useDashboardData(filters?: DashboardFilters) {
       .reduce((s, d) => s + d.rowCount, 0);
     const livestockCensused = popSumQuery.data?.data?.[0]?.value ?? 0;
 
-    if (!hasHealth) return DEMO_KPIS;
+    if (!hasHealth) {
+      // Fallback: use continental KPIs from analytics matview
+      const ck = continentalKpisQuery.data?.data?.kpis;
+      if (ck && ck.length > 0) {
+        const kv = (key: string) => ck.find((k) => k.key === key)?.value ?? 0;
+        return {
+          countriesReporting: kv('countries_reporting'),
+          totalCountries: 55,
+          totalReports: kv('health_reports'),
+          totalOutbreaks: kv('outbreaks'),
+          diseasesMonitored: kv('diseases_monitored'),
+          animalsVaccinated: kv('animals_vaccinated'),
+          vaccinationCampaigns: kv('mass_vaccinations'),
+          livestockCensused: kv('livestock_censused'),
+          datasetsImported: 0,
+          totalRecords: kv('total_records'),
+          periodStart: '2007',
+          periodEnd: '2025',
+        };
+      }
+      return DEMO_KPIS;
+    }
 
     return {
       countriesReporting: uniqueCountries.size || DEMO_KPIS.countriesReporting,
