@@ -58,8 +58,9 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
   const builderList: any[] = (dashboardsRaw as any)?.data ?? [];
   const biList: BiDashboard[] = (biRaw as any)?.data ?? [];
 
-  // Domain filter state
+  // Filter state
   const [domainFilter, setDomainFilter] = useState('all');
+  const [searchFilter, setSearchFilter] = useState('');
 
   const createMutation = useCreateSlideshow();
   const updateMutation = useUpdateSlideshow();
@@ -590,20 +591,15 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                 <h3 className="font-semibold text-base">
                   {isFr ? 'Tableaux de bord' : 'Dashboards'} ({slides.length})
                 </h3>
-                <div className="flex gap-2 flex-wrap">
-                  {/* Scope/type filter */}
-                  <select
-                    value={domainFilter}
-                    onChange={(e) => setDomainFilter(e.target.value)}
-                    className="rounded-md border border-gray-300 px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                  >
-                    <option value="all">{isFr ? 'Tous' : 'All'}</option>
-                    <option value="continental">{isFr ? 'Continental' : 'Continental'}</option>
-                    <option value="rec">REC</option>
-                    <option value="country">{isFr ? 'Pays' : 'Country'}</option>
-                    <option value="campaign">{isFr ? 'Campagnes' : 'Campaigns'}</option>
-                    <option value="bi">{isFr ? 'Outils BI' : 'BI Tools'}</option>
-                  </select>
+                <div className="flex gap-2 flex-wrap items-center">
+                  {/* Search filter */}
+                  <input
+                    type="text"
+                    value={searchFilter}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    placeholder={isFr ? 'Rechercher...' : 'Search...'}
+                    className="w-[200px] rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                  />
                   {/* Dashboard selector */}
                   <select
                     onChange={(e) => {
@@ -613,20 +609,21 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                       }
                     }}
                     defaultValue=""
-                    className="w-[320px] rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                    className="w-[350px] rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                   >
                     <option value="" disabled>
-                      {isFr ? '+ Ajouter un tableau de bord' : '+ Add a dashboard'}
+                      {isFr ? `+ Ajouter (${builderList.filter((d: any) => !slides.some((s) => s.dashboardId === (d.id || d.Id))).length} disponibles)` : `+ Add (${builderList.filter((d: any) => !slides.some((s) => s.dashboardId === (d.id || d.Id))).length} available)`}
                     </option>
-                    {/* Dashboard Builder dashboards */}
                     {builderList
                       .filter((d: any) => {
                         const did = d.id || d.Id;
                         if (slides.some((s) => s.dashboardId === did)) return false;
-                        if (domainFilter === 'bi') return false;
-                        if (domainFilter === 'all') return true;
-                        if (domainFilter === 'campaign') return !!d.campaign_id;
-                        return (d.scope || '').toUpperCase() === domainFilter.toUpperCase();
+                        if (searchFilter) {
+                          const q = searchFilter.toLowerCase();
+                          const title = ((d.title_fr || '') + ' ' + (d.title_en || '')).toLowerCase();
+                          return title.includes(q);
+                        }
+                        return true;
                       })
                       .map((d: any) => {
                         const did = d.id || d.Id;
@@ -635,25 +632,10 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                           : (d.title_en || d.titleEn || d.title_fr || d.titleFr || did);
                         return (
                           <option key={did} value={did}>
-                            {label} {d.scope ? `[${d.scope}]` : ''}
+                            {label}
                           </option>
                         );
                       })}
-                    {/* BI dashboards */}
-                    {biList
-                      .filter((d) => {
-                        if (!d.isActive) return false;
-                        if (slides.some((s) => s.dashboardId === `bi:${d.id}`)) return false;
-                        if (domainFilter !== 'all' && domainFilter !== 'bi') {
-                          return (d.category || '').includes(domainFilter);
-                        }
-                        return true;
-                      })
-                      .map((d) => (
-                        <option key={`bi:${d.id}`} value={`bi:${d.id}`}>
-                          [BI] {isFr ? (d.name?.fr || d.name?.en) : (d.name?.en || d.name?.fr)} ({d.tool})
-                        </option>
-                      ))}
                   </select>
                   <button
                     onClick={() => router.push('/my-dashboards')}
