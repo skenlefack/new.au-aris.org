@@ -275,7 +275,7 @@ function ChooseValidatorDialog({ onClose, onSelect, t }: {
   }, [validators, searchTerm]);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
           <div>
@@ -526,60 +526,43 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
 
                   {isSubmitted && (
                     <>
-                      {/* Mes propres données : envoyer pour validation uniquement */}
-                      {isMine && (
-                        <button
-                          onClick={() => onStartWorkflow(item.id, domain ?? 'collecte')}
-                          disabled={isActionPending}
-                          className="col-span-2 flex items-center gap-3 rounded-xl border-2 border-gray-200 p-4 transition-all hover:border-blue-300 dark:border-gray-700"
-                        >
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"><Send className="h-5 w-5 text-blue-600" /></div>
-                          <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">Envoyer pour validation</p><p className="text-xs text-gray-500">Choisir un validateur</p></div>
-                        </button>
-                      )}
+                      <button
+                        onClick={() => setActionType('validate')}
+                        disabled={isActionPending}
+                        className={cn('flex items-center gap-3 rounded-xl border-2 p-4 transition-all', actionType === 'validate' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 hover:border-green-300 dark:border-gray-700')}
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30"><CheckCircle className="h-5 w-5 text-green-600" /></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('validate')}</p><p className="text-xs text-gray-500">Validation finale</p></div>
+                      </button>
 
-                      {/* Données reçues pour validation : valider, retourner, rejeter */}
-                      {!isMine && (
-                        <>
-                          <button
-                            onClick={() => setActionType('validate')}
-                            disabled={isActionPending}
-                            className={cn('flex items-center gap-3 rounded-xl border-2 p-4 transition-all', actionType === 'validate' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 hover:border-green-300 dark:border-gray-700')}
-                          >
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30"><CheckCircle className="h-5 w-5 text-green-600" /></div>
-                            <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('validate')}</p><p className="text-xs text-gray-500">Validation finale</p></div>
-                          </button>
+                      <button
+                        onClick={() => onStartWorkflow(item.id, domain ?? 'collecte')}
+                        disabled={isActionPending}
+                        className="flex items-center gap-3 rounded-xl border-2 border-gray-200 p-4 transition-all hover:border-blue-300 dark:border-gray-700"
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"><Send className="h-5 w-5 text-blue-600" /></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">Envoyer pour validation</p><p className="text-xs text-gray-500">Transférer à un autre validateur</p></div>
+                      </button>
 
-                          <button
-                            onClick={() => onStartWorkflow(item.id, domain ?? 'collecte')}
-                            disabled={isActionPending}
-                            className="flex items-center gap-3 rounded-xl border-2 border-gray-200 p-4 transition-all hover:border-blue-300 dark:border-gray-700"
-                          >
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"><Send className="h-5 w-5 text-blue-600" /></div>
-                            <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">Envoyer pour validation</p><p className="text-xs text-gray-500">Transférer à un autre validateur</p></div>
-                          </button>
+                      <button
+                        onClick={() => setActionType('return')}
+                        disabled={isActionPending}
+                        className={cn('flex items-center gap-3 rounded-xl border-2 p-4 transition-all',
+                          actionType === 'return' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 hover:border-orange-300 dark:border-gray-700')}
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30"><RotateCcw className="h-5 w-5 text-orange-600" /></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('returnAction')}</p><p className="text-xs text-gray-500">Retourner pour correction</p></div>
+                      </button>
 
-                          <button
-                            onClick={() => setActionType('return')}
-                            disabled={isActionPending}
-                            className={cn('flex items-center gap-3 rounded-xl border-2 p-4 transition-all',
-                              actionType === 'return' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 hover:border-orange-300 dark:border-gray-700')}
-                          >
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30"><RotateCcw className="h-5 w-5 text-orange-600" /></div>
-                            <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('returnAction')}</p><p className="text-xs text-gray-500">Retourner pour correction</p></div>
-                          </button>
-
-                          <button
-                            onClick={() => setActionType('reject')}
-                            disabled={isActionPending}
-                            className={cn('flex items-center gap-3 rounded-xl border-2 p-4 transition-all',
-                              actionType === 'reject' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-200 hover:border-red-300 dark:border-gray-700')}
-                          >
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30"><XCircle className="h-5 w-5 text-red-600" /></div>
-                            <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('reject')}</p><p className="text-xs text-gray-500">Rejeter cette soumission</p></div>
-                          </button>
-                        </>
-                      )}
+                      <button
+                        onClick={() => setActionType('reject')}
+                        disabled={isActionPending}
+                        className={cn('flex items-center gap-3 rounded-xl border-2 p-4 transition-all',
+                          actionType === 'reject' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-200 hover:border-red-300 dark:border-gray-700')}
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30"><XCircle className="h-5 w-5 text-red-600" /></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('reject')}</p><p className="text-xs text-gray-500">Rejeter cette soumission</p></div>
+                      </button>
                     </>
                   )}
 
