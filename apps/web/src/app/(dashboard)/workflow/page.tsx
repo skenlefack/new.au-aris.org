@@ -104,7 +104,7 @@ const PAGE_SIZES = [10, 20, 50, 100];
 type TabKey = 'toValidate' | 'rejected' | 'returned' | 'validated';
 
 const TAB_STATUS_MAP: Record<TabKey, string[]> = {
-  toValidate: ['SUBMITTED', 'PENDING', 'IN_REVIEW', 'ESCALATED'],
+  toValidate: ['SUBMITTED', 'PENDING', 'IN_PROGRESS', 'IN_REVIEW', 'ESCALATED'],
   rejected: ['REJECTED'],
   returned: ['RETURNED'],
   validated: ['VALIDATED', 'APPROVED'],
@@ -1269,7 +1269,7 @@ function WorkflowTable({ items, total, page, totalPages, pageSize, setPage, onPa
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
             {items.map((item) => {
               const level = LEVEL_CONFIG[item.currentLevel] ?? LEVEL_CONFIG.NATIONAL_TECHNICAL;
-              const isActionable = showActions && ['PENDING', 'IN_REVIEW', 'RETURNED'].includes(item.status);
+              const isActionable = showActions && ['PENDING', 'IN_PROGRESS', 'IN_REVIEW', 'RETURNED'].includes(item.status);
               const isOverdue = item.slaDeadline && new Date(item.slaDeadline) < new Date() && isActionable;
               return (
                 <tr key={item.id} className={cn('hover:bg-gray-50 dark:hover:bg-gray-800/50', isOverdue && 'bg-red-50/30 dark:bg-red-900/5', selectedIds.has(item.id) && 'bg-blue-50/50 dark:bg-blue-900/10')}>

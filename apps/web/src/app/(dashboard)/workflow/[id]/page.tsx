@@ -115,7 +115,9 @@ export default function WorkflowInstancePage() {
   const timeline = data.timeline ?? [];
   const currentStep = data.currentStep;
   const steps = instance.workflow?.steps ?? [];
-  const isCurrentAssignee = user?.id === instance.currentAssigneeId;
+  const isCurrentAssignee = user?.id === instance.currentAssigneeId
+    || user?.role === 'SUPER_ADMIN'
+    || user?.role === 'CONTINENTAL_ADMIN';
   const isTerminal = ['COMPLETED', 'REJECTED', 'CANCELLED'].includes(instance.status);
 
   const handleValidate = async () => {
