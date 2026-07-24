@@ -261,14 +261,22 @@ export class ValidationChainService {
     }
 
     try {
+      // For MEMBER_STATE users, also look in parent REC and continental tenants
+      // For REC users, also look in continental tenant
       const users: any[] = await (this.prisma as any).$queryRawUnsafe(
-        `SELECT id, first_name || ' ' || last_name AS display_name, email, role
-         FROM public.users
-         WHERE tenant_id = $1::uuid
-           AND role = ANY($2::text[])
-           AND id != $3::uuid
-           AND is_active = true
-         ORDER BY role, first_name, last_name
+        `SELECT u.id, u.first_name || ' ' || u.last_name AS display_name, u.email, u.role
+         FROM public.users u
+         JOIN public.tenants t ON t.id = u.tenant_id
+         WHERE (
+           u.tenant_id = $1::uuid
+           OR t.parent_id = $1::uuid
+           OR t.id = (SELECT parent_id FROM public.tenants WHERE id = $1::uuid)
+           OR t.level = 'CONTINENTAL'
+         )
+           AND u.role = ANY($2::text[])
+           AND u.id != $3::uuid
+           AND u.is_active = true
+         ORDER BY u.role, u.first_name, u.last_name
          LIMIT 50`,
         user.tenantId,
         higherRoles,
