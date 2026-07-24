@@ -546,22 +546,24 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
 
                       <button
                         onClick={() => setActionType('return')}
-                        disabled={isActionPending}
+                        disabled={isActionPending || isMine}
                         className={cn('flex items-center gap-3 rounded-xl border-2 p-4 transition-all',
+                          isMine ? 'opacity-40 cursor-not-allowed border-gray-200 dark:border-gray-700' :
                           actionType === 'return' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 hover:border-orange-300 dark:border-gray-700')}
                       >
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30"><RotateCcw className="h-5 w-5 text-orange-600" /></div>
-                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('returnAction')}</p><p className="text-xs text-gray-500">{t('returnForCorrection')}</p></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('returnAction')}</p><p className="text-xs text-gray-500">{isMine ? t('disabledFirstStage') : t('returnForCorrection')}</p></div>
                       </button>
 
                       <button
                         onClick={() => setActionType('reject')}
-                        disabled={isActionPending}
+                        disabled={isActionPending || isMine}
                         className={cn('flex items-center gap-3 rounded-xl border-2 p-4 transition-all',
+                          isMine ? 'opacity-40 cursor-not-allowed border-gray-200 dark:border-gray-700' :
                           actionType === 'reject' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-200 hover:border-red-300 dark:border-gray-700')}
                       >
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30"><XCircle className="h-5 w-5 text-red-600" /></div>
-                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('reject')}</p><p className="text-xs text-gray-500">{t('rejectThisSubmission')}</p></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('reject')}</p><p className="text-xs text-gray-500">{isMine ? t('disabledFirstStage') : t('rejectThisSubmission')}</p></div>
                       </button>
                     </>
                   )}
