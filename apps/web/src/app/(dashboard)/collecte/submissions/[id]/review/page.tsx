@@ -441,7 +441,7 @@ export default function SubmissionReviewPage() {
           {t('backToCampaigns')}
         </Link>
         <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-500">
-          Submission not found
+          {t('submissionNotFound')}
         </div>
       </div>
     );
@@ -541,7 +541,7 @@ export default function SubmissionReviewPage() {
             {workflowInstance ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Current Level</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{t('currentLevel')}</span>
                   {currentLevel && (
                     <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium', LEVEL_CONFIG[currentLevel].bg)}>
                       <span className={cn('h-1.5 w-1.5 rounded-full', LEVEL_CONFIG[currentLevel].dot)} />
@@ -550,18 +550,18 @@ export default function SubmissionReviewPage() {
                   )}
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Status</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{t('status')}</span>
                   <StatusBadge status={workflowInstance.status} />
                 </div>
                 {workflowInstance.slaDeadline && (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">SLA Deadline</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{t('slaDeadline')}</span>
                     <span className="text-xs text-gray-700 dark:text-gray-300">{formatDate(workflowInstance.slaDeadline)}</span>
                   </div>
                 )}
                 {workflowInstance.wahisReady && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                    <CheckCircle className="h-3 w-3" /> WAHIS Ready
+                    <CheckCircle className="h-3 w-3" /> {t('wahisReady')}
                   </span>
                 )}
               </div>
@@ -576,7 +576,7 @@ export default function SubmissionReviewPage() {
           {/* ── Actions Card ── */}
           <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-              Actions
+              {t('actions')}
             </h3>
 
             {isSubmitted ? (
@@ -686,7 +686,7 @@ export default function SubmissionReviewPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('startPipeline')}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Submit to 4-level validation</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{t('submitTo4Level')}</p>
                     </div>
                   </button>
                 )}
@@ -695,7 +695,7 @@ export default function SubmissionReviewPage() {
               <div className="space-y-3">
                 <div className="rounded-lg bg-gray-50 p-3 text-center dark:bg-gray-800">
                   <StatusBadge status={submission.status} />
-                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">This submission has already been processed.</p>
+                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{t('submissionAlreadyProcessed')}</p>
                 </div>
                 {(submission.status === 'corrected' || submission.status === 'rejected') && (
                   <Link

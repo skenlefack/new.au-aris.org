@@ -456,7 +456,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                 {domain && <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium', DOMAIN_COLORS[domain] ?? 'bg-gray-100 text-gray-700')}>{DOMAIN_LABELS[domain] ?? domain}</span>}
                 <StatusBadge status={item.status} />
                 <span className="text-xs text-gray-500 font-mono">{item.id.slice(0, 8)}</span>
-                {item.submittedBy && <span className="text-xs text-gray-400">Soumis par: <span className="font-medium text-gray-600 dark:text-gray-300">{(item as any).submittedByName || item.submittedBy.slice(0, 8)}</span></span>}
+                {item.submittedBy && <span className="text-xs text-gray-400">{t('submittedByLabel')}: <span className="font-medium text-gray-600 dark:text-gray-300">{(item as any).submittedByName || item.submittedBy.slice(0, 8)}</span></span>}
               </div>
             </div>
           </div>
@@ -466,7 +466,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
         <div className="flex border-b border-gray-200 dark:border-gray-700">
           <button onClick={() => setActiveTab('data')}
             className={cn('flex-1 py-2.5 text-sm font-medium text-center transition-colors', activeTab === 'data' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300')}>
-            <Eye className="inline h-4 w-4 mr-1.5" />Donnees
+            <Eye className="inline h-4 w-4 mr-1.5" />{t('dataTab')}
           </button>
           <button onClick={() => setActiveTab('actions')}
             className={cn('flex-1 py-2.5 text-sm font-medium text-center transition-colors', activeTab === 'actions' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300')}>
@@ -474,7 +474,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
           </button>
           <button onClick={() => setActiveTab('timeline')}
             className={cn('flex-1 py-2.5 text-sm font-medium text-center transition-colors', activeTab === 'timeline' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300')}>
-            <Clock className="inline h-4 w-4 mr-1.5" />Suivi validation
+            <Clock className="inline h-4 w-4 mr-1.5" />{t('validationTracking')}
             {timeline.length > 0 && <span className="ml-1 inline-flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-1.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">{timeline.length}</span>}
           </button>
         </div>
@@ -498,15 +498,15 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
               <div className="grid grid-cols-3 gap-3 px-6 py-4">
                 <div className="flex items-center gap-2.5 rounded-xl bg-gray-50 p-3 dark:bg-gray-800">
                   <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
-                  <div><p className="text-[10px] font-medium uppercase tracking-wider text-gray-400">Submitted</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{formatDate(item.submittedAt)}</p></div>
+                  <div><p className="text-[10px] font-medium uppercase tracking-wider text-gray-400">{t('submitted')}</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{formatDate(item.submittedAt)}</p></div>
                 </div>
                 <div className="flex items-center gap-2.5 rounded-xl bg-gray-50 p-3 dark:bg-gray-800">
                   <Shield className="h-4 w-4 text-gray-400 shrink-0" />
-                  <div><p className="text-[10px] font-medium uppercase tracking-wider text-gray-400">Classification</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{item.dataClassification}</p></div>
+                  <div><p className="text-[10px] font-medium uppercase tracking-wider text-gray-400">{t('classification')}</p><p className="text-sm font-semibold text-gray-900 dark:text-white">{item.dataClassification}</p></div>
                 </div>
                 <div className="flex items-center gap-2.5 rounded-xl bg-gray-50 p-3 dark:bg-gray-800">
                   <Tag className="h-4 w-4 text-gray-400 shrink-0" />
-                  <div><p className="text-[10px] font-medium uppercase tracking-wider text-gray-400">Version</p><p className="text-sm font-semibold text-gray-900 dark:text-white">v{item.version}</p></div>
+                  <div><p className="text-[10px] font-medium uppercase tracking-wider text-gray-400">{t('version')}</p><p className="text-sm font-semibold text-gray-900 dark:text-white">v{item.version}</p></div>
                 </div>
               </div>
 
@@ -521,7 +521,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
 
               {/* Quick actions */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Actions</h3>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">{t('actions')}</h3>
                 <div className="grid grid-cols-2 gap-3">
 
                   {isSubmitted && (
@@ -532,7 +532,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                         className={cn('flex items-center gap-3 rounded-xl border-2 p-4 transition-all', actionType === 'validate' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 hover:border-green-300 dark:border-gray-700')}
                       >
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30"><CheckCircle className="h-5 w-5 text-green-600" /></div>
-                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('validate')}</p><p className="text-xs text-gray-500">Validation finale</p></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('validate')}</p><p className="text-xs text-gray-500">{t('finalValidation')}</p></div>
                       </button>
 
                       <button
@@ -541,7 +541,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                         className="flex items-center gap-3 rounded-xl border-2 border-gray-200 p-4 transition-all hover:border-blue-300 dark:border-gray-700"
                       >
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"><Send className="h-5 w-5 text-blue-600" /></div>
-                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">Envoyer pour validation</p><p className="text-xs text-gray-500">Transférer à un autre validateur</p></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('sendForValidation')}</p><p className="text-xs text-gray-500">{t('transferToValidator')}</p></div>
                       </button>
 
                       <button
@@ -551,7 +551,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                           actionType === 'return' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 hover:border-orange-300 dark:border-gray-700')}
                       >
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30"><RotateCcw className="h-5 w-5 text-orange-600" /></div>
-                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('returnAction')}</p><p className="text-xs text-gray-500">Retourner pour correction</p></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('returnAction')}</p><p className="text-xs text-gray-500">{t('returnForCorrection')}</p></div>
                       </button>
 
                       <button
@@ -561,7 +561,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                           actionType === 'reject' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-200 hover:border-red-300 dark:border-gray-700')}
                       >
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30"><XCircle className="h-5 w-5 text-red-600" /></div>
-                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('reject')}</p><p className="text-xs text-gray-500">Rejeter cette soumission</p></div>
+                        <div className="text-left"><p className="text-sm font-semibold text-gray-900 dark:text-white">{t('reject')}</p><p className="text-xs text-gray-500">{t('rejectThisSubmission')}</p></div>
                       </button>
                     </>
                   )}
@@ -569,7 +569,7 @@ function SubmissionDetailModal({ item, onClose, onValidate, onReject, onReturn, 
                   {!isSubmitted && (
                     <div className="col-span-2 rounded-xl bg-gray-50 p-4 text-center dark:bg-gray-800">
                       <StatusBadge status={item.status} />
-                      <p className="mt-2 text-sm text-gray-500">This submission has already been processed.</p>
+                      <p className="mt-2 text-sm text-gray-500">{t('submissionAlreadyProcessed')}</p>
                     </div>
                   )}
                 </div>
