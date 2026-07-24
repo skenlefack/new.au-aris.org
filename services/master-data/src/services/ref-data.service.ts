@@ -340,6 +340,8 @@ export class RefDataService {
       ];
     }
 
+    const take = Math.min(parseInt(query.limit || '200', 10) || 200, 10000);
+
     const data = await (this.prisma as any)[modelName].findMany({
       where,
       select: {
@@ -351,7 +353,7 @@ export class RefDataService {
         ...(parentField ? { [parentField]: true } : {}),
       },
       orderBy: { sortOrder: 'asc' },
-      take: 200,
+      take,
     });
 
     return { data };

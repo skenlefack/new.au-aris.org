@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
 import { useFormBuilderTemplate } from '@/lib/api/form-builder-hooks';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useLocaleStore } from '@/lib/stores/locale-store';
 import { COUNTRIES, type CountryConfig } from '@/data/countries-config';
 import { RECS } from '@/data/recs-config';
 import { ADMIN_DIVISIONS } from '@/data/admin-divisions';
@@ -95,14 +96,14 @@ const ADMIN_LEVEL_LABELS: Record<number, string> = {
 };
 
 /** Resolve a GADM GID or custom value to a display name */
-function resolveAdminValue(val: string | undefined, level: number): string {
+function resolveAdminValue(val: string | undefined, level: number, geoMap?: Record<string, string>): string {
   if (!val) return '';
   // Custom division: __new:Name → Name
   if (val.startsWith('__new:')) return val.slice(6);
   // Level 0 = country code
   if (level === 0) return COUNTRY_MAP[val] || COUNTRY_MAP[val.toUpperCase()] || val;
-  // Admin1/Admin2 from GADM static map
-  return GADM_MAP[val] || val;
+  // Admin1/Admin2 from GADM static map, then dynamic geoMap for admin3+
+  return GADM_MAP[val] || geoMap?.[val] || val;
 }
 
 interface ExportColumn {
@@ -112,7 +113,7 @@ interface ExportColumn {
 }
 
 /** Build expanded export columns: admin-location fields become multiple columns */
-function buildExportColumns(fields: Field[]): ExportColumn[] {
+function buildExportColumns(fields: Field[], geoMap?: Record<string, string>): ExportColumn[] {
   const cols: ExportColumn[] = [];
   for (const field of fields) {
     if (field.type === 'admin-location' && field.levels) {
@@ -124,7 +125,7 @@ function buildExportColumns(fields: Field[]): ExportColumn[] {
             const loc = row[field.code];
             if (!loc || typeof loc !== 'object' || Array.isArray(loc)) return '';
             const val = (loc as Record<string, string>)[`level_${level}`];
-            return resolveAdminValue(val, level);
+            return resolveAdminValue(val, level, geoMap);
           },
         });
       }
@@ -160,12 +161,17 @@ function formatCellForExport(val: unknown, field: Field, refMap: Record<string, 
     return refMap[val] || val;
   }
 
+  // Non-UUID string that might be a code in refMap (master-data fields)
+  if (typeof val === 'string' && field.masterDataType && refMap[val]) {
+    return refMap[val];
+  }
+
   // Array
   if (Array.isArray(val)) {
     if (val.length === 0) return '';
-    // Array of UUIDs
+    // Array of strings (UUIDs or codes)
     if (typeof val[0] === 'string') {
-      return val.map((v) => UUID_RE.test(v) ? (refMap[v] || v) : v).join(', ');
+      return val.map((v) => (UUID_RE.test(v) ? (refMap[v] || v) : (refMap[v] || v))).join(', ');
     }
     // Array of objects (repeater rows) — resolve UUIDs inside each row
     return val.map((item, i) => {
@@ -178,8 +184,8 @@ function formatCellForExport(val: unknown, field: Field, refMap: Record<string, 
           display = refMap[v] || v;
         } else if (typeof v === 'boolean') {
           display = v ? 'Yes' : 'No';
-        } else {
-          display = String(v ?? '');
+        } else if (v !== null && v !== undefined) {
+          display = String(v);
         }
         if (display) parts.push(`${label}: ${display}`);
       }
@@ -216,10 +222,10 @@ async function fetchSubmissions(campaignId: string, limit = 100): Promise<{ subm
 }
 
 /** Fetch ref-data for a master-data-select type → returns id→label map */
-async function fetchRefData(type: string): Promise<Record<string, string>> {
+async function fetchRefData(type: string, locale = 'en'): Promise<Record<string, string>> {
   const token = useAuthStore.getState().accessToken || '';
   try {
-    const res = await fetch(`/api/v1/master-data/ref/${type}/for-select?limit=500`, {
+    const res = await fetch(`/api/v1/master-data/ref/${type}/for-select?limit=10000`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return {};
@@ -227,20 +233,45 @@ async function fetchRefData(type: string): Promise<Record<string, string>> {
     const map: Record<string, string> = {};
     for (const item of json?.data || []) {
       if (!item.id) continue;
-      // API returns { id, code, name: { en, fr, pt, ar } } or { id, label }
       const name = item.name;
       let label = item.label || '';
       if (!label && name) {
         if (typeof name === 'string') label = name;
-        else if (typeof name === 'object') label = name.en || name.fr || name.pt || Object.values(name).find((v: any) => v) || '';
+        else if (typeof name === 'object') label = (name as any)[locale] || name.en || name.fr || name.pt || Object.values(name).find((v: any) => v) || '';
       }
       if (!label) label = item.code || '';
-      if (label) map[item.id] = label;
+      if (label) {
+        map[item.id] = label;
+        if (item.code) map[item.code] = label;
+      }
     }
     return map;
   } catch {
     return {};
   }
+}
+
+/** Fetch geo-entities (admin divisions) for resolving admin3+ levels */
+async function fetchGeoEntities(locale = 'en'): Promise<Record<string, string>> {
+  const token = useAuthStore.getState().accessToken || '';
+  try {
+    const res = await fetch('/api/v1/master-data/ref/geo-entities/for-select?limit=10000', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return {};
+    const json = await res.json();
+    const map: Record<string, string> = {};
+    for (const item of json?.data || []) {
+      if (!item.id) continue;
+      const name = item.name;
+      const label = name ? ((name as any)[locale] || name.en || name.fr || '') : '';
+      if (label) {
+        map[item.id] = label;
+        if (item.code) map[item.code] = label;
+      }
+    }
+    return map;
+  } catch { return {}; }
 }
 
 // UUID regex
@@ -259,16 +290,16 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 /** Format a cell value, resolving UUIDs via refMap */
-function formatCell(val: unknown, field: Field, refMap: Record<string, string>): string {
+function formatCell(val: unknown, field: Field, refMap: Record<string, string>, geoMap?: Record<string, string>): string {
   if (val === null || val === undefined || val === '') return '-';
 
   // Admin location object — resolve GADM gids to names
   if (field.type === 'admin-location' && typeof val === 'object' && !Array.isArray(val)) {
     const loc = val as Record<string, string>;
     const country = COUNTRY_MAP[loc.level_0] || loc.level_0 || '';
-    const admin1 = GADM_MAP[loc.level_1] || loc.level_1 || '';
-    const admin2 = GADM_MAP[loc.level_2] || loc.level_2 || '';
-    const admin3 = GADM_MAP[loc.level_3] || loc.level_3 || '';
+    const admin1 = GADM_MAP[loc.level_1] || geoMap?.[loc.level_1] || loc.level_1 || '';
+    const admin2 = GADM_MAP[loc.level_2] || geoMap?.[loc.level_2] || loc.level_2 || '';
+    const admin3 = GADM_MAP[loc.level_3] || geoMap?.[loc.level_3] || loc.level_3 || '';
     const parts = [country, admin1, admin2, admin3].filter(Boolean);
     return parts.join(' / ') || '-';
   }
@@ -308,7 +339,7 @@ function formatCell(val: unknown, field: Field, refMap: Record<string, string>):
 }
 
 /** Format a value for the detail panel (more verbose) */
-function formatDetail(val: unknown, field: Field, refMap: Record<string, string>): React.ReactNode {
+function formatDetail(val: unknown, field: Field, refMap: Record<string, string>, geoMap?: Record<string, string>): React.ReactNode {
   if (val === null || val === undefined || val === '') return '-';
 
   // Admin location — resolve GADM gids to names
@@ -317,9 +348,9 @@ function formatDetail(val: unknown, field: Field, refMap: Record<string, string>
     const country = COUNTRY_MAP[loc.level_0] || loc.level_0;
     const parts: string[] = [];
     if (country) parts.push(country);
-    if (loc.level_1) parts.push(GADM_MAP[loc.level_1] || loc.level_1);
-    if (loc.level_2) parts.push(GADM_MAP[loc.level_2] || loc.level_2);
-    if (loc.level_3) parts.push(GADM_MAP[loc.level_3] || loc.level_3);
+    if (loc.level_1) parts.push(GADM_MAP[loc.level_1] || geoMap?.[loc.level_1] || loc.level_1);
+    if (loc.level_2) parts.push(GADM_MAP[loc.level_2] || geoMap?.[loc.level_2] || loc.level_2);
+    if (loc.level_3) parts.push(GADM_MAP[loc.level_3] || geoMap?.[loc.level_3] || loc.level_3);
     return (
       <span className="inline-flex items-center gap-1.5">
         <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
@@ -400,9 +431,9 @@ function dl(blob: Blob, filename: string) {
 
 // ── Detail slide-over panel ──
 function DetailPanel({
-  submission, fields, refMap, onClose,
+  submission, fields, refMap, geoMap, onClose,
 }: {
-  submission: any; fields: Field[]; refMap: Record<string, string>; onClose: () => void;
+  submission: any; fields: Field[]; refMap: Record<string, string>; geoMap?: Record<string, string>; onClose: () => void;
 }) {
   const t = useTranslations('collecte');
   const rowData = submission?.data || {};
@@ -464,7 +495,7 @@ function DetailPanel({
             return (
               <div key={field.code} className="flex items-start gap-3 py-2.5 border-b border-gray-50 dark:border-gray-800 last:border-0">
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-36 shrink-0 pt-0.5 uppercase tracking-wide">{field.label}</span>
-                <div className="text-sm text-gray-900 dark:text-white break-words min-w-0">{formatDetail(val, field, refMap)}</div>
+                <div className="text-sm text-gray-900 dark:text-white break-words min-w-0">{formatDetail(val, field, refMap, geoMap)}</div>
               </div>
             );
           })}
@@ -481,6 +512,7 @@ export default function ExportPage() {
   const searchParams = useSearchParams();
   const isViewMode = searchParams.get('view') === '1';
   const t = useTranslations('collecte');
+  const { locale } = useLocaleStore();
   const { data: tplRes } = useFormBuilderTemplate(templateId);
   const template = tplRes?.data;
   const name = tplName(template?.name);
@@ -501,10 +533,11 @@ export default function ExportPage() {
   const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
   const [selectedSub, setSelectedSub] = useState<any | null>(null);
   const [refMap, setRefMap] = useState<Record<string, string>>({});
+  const [geoMap, setGeoMap] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
   const [viewFilters, setViewFilters] = useState<Record<string, string>>({});
 
-  // Load reference data for master-data-select fields
+  // Load reference data for master-data-select fields + geo-entities
   const [refFetched, setRefFetched] = useState(false);
   useEffect(() => {
     if (fields.length > 0 && !refFetched) {
@@ -541,16 +574,20 @@ export default function ExportPage() {
       mdTypes.add('transport-modes');
       mdTypes.add('animal-husbandries');
       mdTypes.add('genetic-diversities');
+      mdTypes.add('countries');
 
-      Promise.all(
-        [...mdTypes].map((type) => fetchRefData(type)),
-      ).then((maps) => {
+      Promise.all([
+        ...([...mdTypes].map((type) => fetchRefData(type, locale))),
+        fetchGeoEntities(locale),
+      ]).then((maps) => {
+        const geoResult = maps.pop() as Record<string, string>;
+        setGeoMap(geoResult);
         const merged: Record<string, string> = {};
-        for (const m of maps) Object.assign(merged, m);
+        for (const m of maps) Object.assign(merged, m as Record<string, string>);
         setRefMap(merged);
       });
     }
-  }, [fields, refFetched]);
+  }, [fields, refFetched, locale]);
 
   // Fetch submissions for current page (server-side pagination)
   const fetchPage = useCallback(async (page: number, limit: number) => {
@@ -581,7 +618,7 @@ export default function ExportPage() {
   }, [isViewMode, viewPage, viewPageSize, fetchPage]);
 
   // Build expanded export columns (admin-location → separate columns, values resolved)
-  const exportColumns = useMemo(() => buildExportColumns(fields), [fields]);
+  const exportColumns = useMemo(() => buildExportColumns(fields, geoMap), [fields, geoMap]);
 
   const handleExport = useCallback(async () => {
     setExporting(true); setError('');
@@ -847,7 +884,7 @@ export default function ExportPage() {
                           <td className="px-4 py-3 text-gray-400 text-xs font-mono">{globalIdx + 1}</td>
                           {summaryFields.map((f) => (
                             <td key={f.code} className="px-4 py-3 text-gray-700 dark:text-gray-300 text-sm truncate max-w-[200px]">
-                              {formatCell(rowData[f.code], f, refMap)}
+                              {formatCell(rowData[f.code], f, refMap, geoMap)}
                             </td>
                           ))}
                           <td className="px-4 py-3">
@@ -951,7 +988,7 @@ export default function ExportPage() {
             )}
           </div>
 
-          {selectedSub && <DetailPanel submission={selectedSub} fields={fields} refMap={refMap} onClose={() => setSelectedSub(null)} />}
+          {selectedSub && <DetailPanel submission={selectedSub} fields={fields} refMap={refMap} geoMap={geoMap} onClose={() => setSelectedSub(null)} />}
         </>
       )}
 
