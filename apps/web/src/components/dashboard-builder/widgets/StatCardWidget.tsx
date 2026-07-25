@@ -56,7 +56,7 @@ export function StatCardWidget({
       </div>
       {previousValue != null && (
         <p className="mt-1 text-[11px] text-gray-400">
-          {t('dbPrevious')} {previousValue.toLocaleString()}
+          {t('dbPrevious')} {(previousValue ?? 0).toLocaleString()}
         </p>
       )}
     </div>

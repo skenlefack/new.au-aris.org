@@ -14,11 +14,11 @@ function formatValue(value: number | string, format?: string): string {
   if (typeof value === 'string') return value;
   switch (format) {
     case 'percent':
-      return `${value.toLocaleString()}%`;
+      return `${(value ?? 0).toLocaleString()}%`;
     case 'currency':
-      return `$${value.toLocaleString()}`;
+      return `$${(value ?? 0).toLocaleString()}`;
     default:
-      return value.toLocaleString();
+      return (value ?? 0).toLocaleString();
   }
 }
 

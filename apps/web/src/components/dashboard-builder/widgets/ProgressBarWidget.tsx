@@ -40,7 +40,7 @@ export function ProgressBarWidget({
         )}
       </div>
       <p className="text-[11px] text-gray-400">
-        {value.toLocaleString()} / {target.toLocaleString()}
+        {(value ?? 0).toLocaleString()} / {(target ?? 0).toLocaleString()}
       </p>
     </div>
   );

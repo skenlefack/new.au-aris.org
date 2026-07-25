@@ -70,7 +70,7 @@ export function GaugeWidget({
           </p>
         )}
         <p className="text-[11px] text-gray-400">
-          {value.toLocaleString()} / {target.toLocaleString()}
+          {(value ?? 0).toLocaleString()} / {(target ?? 0).toLocaleString()}
         </p>
       </div>
     );
@@ -87,10 +87,10 @@ export function GaugeWidget({
       <div>
         <div className="mb-1 flex items-end justify-between">
           <span className="text-2xl font-bold" style={{ color }}>
-            {value.toLocaleString()}
+            {(value ?? 0).toLocaleString()}
           </span>
           <span className="text-sm text-gray-400">
-            / {target.toLocaleString()} {unit}
+            / {(target ?? 0).toLocaleString()} {unit}
           </span>
         </div>
         <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
