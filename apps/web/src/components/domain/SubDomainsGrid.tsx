@@ -41,7 +41,7 @@ function useSubDomainStats(domainCode: string) {
         return res.json();
       };
       const [campaignsRes, formsRes] = await Promise.allSettled([
-        fetchJson(`/api/v1/collecte/campaigns?domain=${domainCode}&limit=100`),
+        fetchJson(`/api/v1/workflow/campaigns?domain=${domainCode}&limit=100`),
         fetchJson(`/api/v1/form-builder/templates?domain=${domainCode}&limit=100&status=PUBLISHED`),
       ]);
 
