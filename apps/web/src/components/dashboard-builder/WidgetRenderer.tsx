@@ -106,7 +106,7 @@ function normalizeResolvedData(
   const yKey = resolved.yKey || widgetConfig.yKey || 'value';
 
   // Charts: map data array + set axis keys
-  const CHART_TYPES = ['LINE', 'BAR', 'PIE', 'STACKED_BAR', 'AREA', 'EPI_CURVE', 'DUAL_AXIS'];
+  const CHART_TYPES = ['LINE', 'LINE_CHART', 'BAR', 'BAR_CHART', 'PIE', 'PIE_CHART', 'STACKED_BAR', 'AREA', 'AREA_CHART', 'EPI_CURVE', 'DUAL_AXIS'];
   if (CHART_TYPES.includes(widgetType)) {
     const chartData = dataArray.map((row: any) => ({
       ...row,
@@ -212,10 +212,14 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
       );
 
     case 'LINE':
+    case 'LINE_CHART':
     case 'BAR':
+    case 'BAR_CHART':
     case 'PIE':
+    case 'PIE_CHART':
     case 'STACKED_BAR':
     case 'AREA':
+    case 'AREA_CHART':
       if (!Array.isArray(cfg.data) || cfg.data.length === 0) return <WidgetEmpty label={t('dbNoData')} />;
       {
         // Merge root-level colors into chartConfig (PIE charts store colors at cfg.colors)
@@ -233,6 +237,7 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
       }
 
     case 'MAP':
+    case 'MAP_AFRICA':
       return <MapWidget title={widget.title} config={cfg} data={cfg.data} />;
 
     case 'TABLE':
