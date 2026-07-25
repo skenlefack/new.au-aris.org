@@ -201,6 +201,7 @@ export default function PaidDashboardPage() {
               indicator="submissions"
               height="460px"
               bare
+              mode="benefiting"
               selectedCountry={mapCountry}
               onCountryClick={(code) => setMapCountry(mapCountry === code ? undefined : code)}
             />

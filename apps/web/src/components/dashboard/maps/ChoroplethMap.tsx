@@ -54,6 +54,8 @@ interface ChoroplethMapProps {
   bare?: boolean;
   selectedRec?: string;
   selectedCountry?: string;
+  /** 'benefiting' mode: green fill for countries with data, grey for others. Tooltip shows count only. */
+  mode?: 'default' | 'benefiting';
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
@@ -264,12 +266,14 @@ function ChoroplethLayer({
   indicator,
   onCountryClick,
   dimmed,
+  mode = 'default',
 }: {
   geoData: GeoFeatureCollection;
   dataMap: Map<string, CountryOutbreakData>;
   indicator: string;
   onCountryClick?: (code: string) => void;
   dimmed?: boolean;
+  mode?: 'default' | 'benefiting';
 }) {
   const geoRef = useRef<L.GeoJSON>(null);
 
@@ -277,6 +281,18 @@ function ChoroplethLayer({
     (feat?: GeoFeature) => {
       const iso2 = feat?.properties?.iso2 as string | undefined;
       const d = iso2 ? dataMap.get(iso2) : undefined;
+
+      if (mode === 'benefiting') {
+        const isBenefiting = !!d;
+        return {
+          fillColor: dimmed ? '#e2e8f0' : isBenefiting ? '#059669' : '#f1f5f9',
+          fillOpacity: dimmed ? 0.4 : isBenefiting ? 0.7 : 0.3,
+          color: '#fff',
+          weight: dimmed ? 0.5 : 1,
+          opacity: dimmed ? 0.5 : 0.9,
+        };
+      }
+
       const raw = d?.[indicator as keyof CountryOutbreakData] ?? 0;
       const v = typeof raw === 'number' ? raw : 0;
       const color = getOutbreakColor(
@@ -290,12 +306,12 @@ function ChoroplethLayer({
         opacity: dimmed ? 0.5 : 0.9,
       };
     },
-    [dataMap, indicator, dimmed],
+    [dataMap, indicator, dimmed, mode],
   );
 
   const onEachFeature = useCallback(
     (feat: GeoFeature, layer: L.Layer) => {
-      if (dimmed) return; // No interaction when dimmed
+      if (dimmed) return;
 
       const iso2 = feat.properties?.iso2 as string | undefined;
       const geo = iso2 ? AFRICA_COUNTRY_MAP.get(iso2) : undefined;
@@ -304,7 +320,14 @@ function ChoroplethLayer({
 
       let html = `<div style="font-size:12px;min-width:150px">`;
       html += `<div style="font-weight:600;margin-bottom:4px">${name}</div>`;
-      if (d) {
+      if (mode === 'benefiting') {
+        if (d) {
+          html += `<div style="color:#059669;font-weight:600">&#10003; Benefiting country</div>`;
+          html += `<div style="font-size:11px;color:#555;margin-top:2px">${d.submissions} submission(s)</div>`;
+        } else {
+          html += `<div style="color:#aaa">Not a benefiting country</div>`;
+        }
+      } else if (d) {
         html += `<table style="width:100%;font-size:11px;color:#555">`;
         html += `<tr><td>Outbreaks</td><td style="text-align:right;font-weight:600;color:#111">${d.outbreaks}</td></tr>`;
         html += `<tr><td>Cases</td><td style="text-align:right;font-weight:500">${d.cases.toLocaleString()}</td></tr>`;
@@ -469,6 +492,7 @@ export function ChoroplethMap({
   bare,
   selectedRec,
   selectedCountry,
+  mode = 'default',
 }: ChoroplethMapProps) {
   const [geoData, setGeoData] = useState<GeoFeatureCollection | null>(geoCache);
   const [admin1Data, setAdmin1Data] = useState<GeoFeatureCollection | null>(null);
@@ -555,6 +579,7 @@ export function ChoroplethMap({
           indicator={indicator}
           onCountryClick={onCountryClick}
           dimmed={!!showAdmin1}
+          mode={mode}
         />
       )}
 
