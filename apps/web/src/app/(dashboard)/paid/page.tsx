@@ -180,7 +180,7 @@ export default function PaidDashboardPage() {
       {/* ═══ KPI ROW — full width grid ═══ */}
       <div className="grid grid-cols-4 border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950 lg:grid-cols-8">
         <KpiCell value={String(agg.totalProjects)} label="PROJECTS" color="#2563eb" icon={<FolderKanban className="h-4 w-4" />} />
-        <KpiCell value={String(agg.totalCountries)} label="COUNTRIES" color="#059669" icon={<MapPin className="h-4 w-4" />} />
+        <KpiCell value={String(agg.totalCountriesBenefiting)} label="COUNTRIES" color="#059669" icon={<MapPin className="h-4 w-4" />} />
         <KpiCell value={String(agg.totalRecs)} label="RECS" color="#dc2626" icon={<Building2 className="h-4 w-4" />} />
         <KpiCell value={String(agg.totalSubmissions)} label="SUBMISSIONS" color="#2563eb" icon={<FileCheck2 className="h-4 w-4" />} />
         <KpiCell value={`$${fmt(agg.totalExpenditure)}`} label="EXPENDITURE" color="#d97706" icon={<DollarSign className="h-4 w-4" />} />

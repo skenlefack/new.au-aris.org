@@ -621,6 +621,14 @@ export function ChoroplethMap({
         {/* Floating legend */}
         {showAdmin1 ? (
           <MapLegend items={ADMIN1_LEGEND} label={`${countryName} — Cases`} />
+        ) : mode === 'benefiting' ? (
+          <MapLegend
+            items={[
+              { label: 'Benefiting', color: '#059669' },
+              { label: 'Not benefiting', color: '#f1f5f9' },
+            ]}
+            label="Countries"
+          />
         ) : (
           <MapLegend
             items={[

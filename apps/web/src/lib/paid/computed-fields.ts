@@ -209,6 +209,7 @@ function normalizePaidData(raw: Record<string, unknown>): NormalizedPaidData {
 export interface PaidAggregates {
   totalProjects: number;
   totalCountries: number;
+  totalCountriesBenefiting: number;
   totalRegions: number;
   totalRecs: number;
   totalSubmissions: number;
@@ -297,6 +298,7 @@ export function aggregatePaidSubmissions(
   const byActivity = new Map<string, PaidActivityAgg>();
   const allProjects = new Set<string>();
   const allCountries = new Set<string>();
+  const allCountriesBenefiting = new Set<string>();
   const allRegions = new Set<string>();
   const allRecs = new Set<string>();
 
@@ -355,6 +357,9 @@ export function aggregatePaidSubmissions(
     if (country !== 'Unknown') allCountries.add(country);
     if (n.adm1_name) allRegions.add(`${country}:${n.adm1_name}`);
     for (const rec of n.recs) allRecs.add(rec.toUpperCase());
+    // Countries benefiting (from recs_countries field + implementation country)
+    for (const bc of n.countries_benefiting) allCountriesBenefiting.add(bc);
+    if (countryCode) allCountriesBenefiting.add(countryCode);
 
     // By Country
     const ca = byCountry.get(country) ?? {
@@ -424,6 +429,7 @@ export function aggregatePaidSubmissions(
   return {
     totalProjects: allProjects.size,
     totalCountries: allCountries.size,
+    totalCountriesBenefiting: allCountriesBenefiting.size,
     totalRegions: allRegions.size,
     totalRecs: allRecs.size,
     totalSubmissions: submissions.length,
