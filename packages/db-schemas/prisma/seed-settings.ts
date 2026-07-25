@@ -1684,6 +1684,13 @@ const SUB_DOMAINS_BY_DOMAIN: Record<string, SubDomainSeed[]> = {
     { code: 'LABORATORIES',     labelFr: 'Laboratoires',             labelEn: 'Laboratories',       typeEnum: 'ORGANIZATIONAL', displayOrder: 60 },
   ],
 
+  // Animal Health — PATHOLOGY sub-domains
+  'animal-health': [
+    { code: 'PPR',            labelFr: 'Peste des Petits Ruminants',    labelEn: 'PPR (Peste des Petits Ruminants)', typeEnum: 'PATHOLOGY', displayOrder: 10 },
+    { code: 'AQUATIC_HEALTH', labelFr: 'Sante aquatique',               labelEn: 'Aquatic Health',                   typeEnum: 'PATHOLOGY', displayOrder: 20 },
+    { code: 'AMR',            labelFr: 'Resistance antimicrobienne',    labelEn: 'Antimicrobial Resistance',         typeEnum: 'PATHOLOGY', displayOrder: 30 },
+  ],
+
   // Trade & SPS — VALUE_CHAIN sub-domains (tags transverses partages avec livestock-prod)
   'trade-sps': [
     { code: 'DAIRY_TRADE',           valueChainCode: 'DAIRY',           labelFr: 'Commerce du lait',               labelEn: 'Dairy trade',             typeEnum: 'VALUE_CHAIN', displayOrder: 10 },

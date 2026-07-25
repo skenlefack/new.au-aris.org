@@ -52,34 +52,38 @@ function useSubDomainStats(domainCode: string) {
       const stats: Record<string, { campaigns: number; forms: number; submissions: number }> = {};
 
       for (const c of campaigns) {
-        const targets = c.targets ?? [];
+        const targets = c.targets ?? c.metadata?.targets ?? [];
+        let matched = false;
         for (const t of targets) {
           const sub = t.sub_domain_code ?? t.subDomainCode;
           if (sub) {
             if (!stats[sub]) stats[sub] = { campaigns: 0, forms: 0, submissions: 0 };
             stats[sub].campaigns++;
-            stats[sub].submissions += Number(c.submission_count ?? c.submissionCount ?? 0);
+            stats[sub].submissions += Number(c.submission_count ?? c.submissionCount ?? c.totalSubmissions ?? 0);
+            matched = true;
           }
         }
         // Also count by legacy domain field
-        if (!targets.length && c.domain === domainCode) {
+        if (!matched && c.domain === domainCode) {
           const key = '__all__';
           if (!stats[key]) stats[key] = { campaigns: 0, forms: 0, submissions: 0 };
           stats[key].campaigns++;
-          stats[key].submissions += Number(c.submission_count ?? c.submissionCount ?? 0);
+          stats[key].submissions += Number(c.submission_count ?? c.submissionCount ?? c.totalSubmissions ?? 0);
         }
       }
 
       for (const f of forms) {
         const targets = f.targets ?? [];
+        let matched = false;
         for (const t of targets) {
           const sub = t.sub_domain_code ?? t.subDomainCode;
           if (sub) {
             if (!stats[sub]) stats[sub] = { campaigns: 0, forms: 0, submissions: 0 };
             stats[sub].forms++;
+            matched = true;
           }
         }
-        if (!targets.length) {
+        if (!matched) {
           const key = '__all__';
           if (!stats[key]) stats[key] = { campaigns: 0, forms: 0, submissions: 0 };
           stats[key].forms++;
