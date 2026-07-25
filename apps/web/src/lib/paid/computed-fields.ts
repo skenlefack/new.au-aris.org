@@ -215,6 +215,7 @@ export interface PaidAggregates {
   totalQuantityImplemented: number;
   totalQuantityTargeted: number;
   totalExpenditure: number;
+  totalAnimalsVaccinated: number;
   completionRate: number;
   // Legacy (from HH/trained fields, may be 0 if form doesn't have them)
   totalBeneficiaries: number;
@@ -308,6 +309,7 @@ export function aggregatePaidSubmissions(
   let totalQtyImpl = 0;
   let totalQtyTarget = 0;
   let totalExpenditure = 0;
+  let totalAnimalsVaccinated = 0;
 
   for (const sub of submissions) {
     const n = normalizePaidData(sub.data as Record<string, unknown>);
@@ -336,6 +338,12 @@ export function aggregatePaidSubmissions(
     totalQtyImpl += qtyImpl;
     totalQtyTarget += qtyTarget;
     totalExpenditure += expenditure;
+
+    // Detect vaccination activities by keyword in activity/logframe/sub-activity labels
+    const actLower = (activity + ' ' + n.logframe_label + ' ' + n.sub_activity_label).toLowerCase();
+    if (actLower.includes('vaccin') || actLower.includes('immuniz') || actLower.includes('immunis')) {
+      totalAnimalsVaccinated += qtyImpl;
+    }
     totalBeneficiaries += benef;
     totalHouseholds += n.n_hh_benefitting;
     totalTrained += trained;
@@ -422,6 +430,7 @@ export function aggregatePaidSubmissions(
     totalQuantityImplemented: totalQtyImpl,
     totalQuantityTargeted: totalQtyTarget,
     totalExpenditure: totalExpenditure,
+    totalAnimalsVaccinated,
     completionRate: totalQtyTarget > 0 ? Math.round((totalQtyImpl / totalQtyTarget) * 100) : 0,
     totalBeneficiaries,
     totalHouseholds,

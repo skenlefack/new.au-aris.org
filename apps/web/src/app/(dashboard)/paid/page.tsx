@@ -14,6 +14,7 @@ import {
   RotateCcw,
   NotebookPen,
   BarChart3,
+  Syringe,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useDomainSubmissions } from '@/lib/api/workflow-hooks';
@@ -183,7 +184,7 @@ export default function PaidDashboardPage() {
         <KpiCell value={String(agg.totalRecs)} label="RECS" color="#dc2626" icon={<Building2 className="h-4 w-4" />} />
         <KpiCell value={String(agg.totalSubmissions)} label="SUBMISSIONS" color="#2563eb" icon={<FileCheck2 className="h-4 w-4" />} />
         <KpiCell value={`$${fmt(agg.totalExpenditure)}`} label="EXPENDITURE" color="#d97706" icon={<DollarSign className="h-4 w-4" />} />
-        <KpiCell value={fmt(agg.totalQuantityImplemented)} label="ANIMALS VACCINATED" color="#059669" icon={<BarChart3 className="h-4 w-4" />} />
+        <KpiCell value={fmt(agg.totalAnimalsVaccinated)} label="ANIMALS VACCINATED" color="#059669" icon={<Syringe className="h-4 w-4" />} />
         <KpiCell value={fmt(agg.totalQuantityTargeted)} label="QTY TARGETED" color="#7c3aed" icon={<BarChart3 className="h-4 w-4" />} />
         <KpiCell value={`${progressPct}%`} label="COMPLETION" color="#059669" icon={<span className="text-[14px]">◔</span>} />
       </div>
