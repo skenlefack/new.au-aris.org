@@ -77,13 +77,46 @@ export default function PaidDashboardPage() {
   const projectArr = useMemo(() => Array.from(agg.byProject.values()).sort((a, b) => b.quantityImplemented - a.quantityImplemented), [agg]);
   const quarterArr = useMemo(() => Array.from(agg.byQuarter.values()).sort((a, b) => a.quarter.localeCompare(b.quarter)), [agg]);
 
-  const mapData: CountryOutbreakData[] = useMemo(() =>
-    Array.from(agg.byCountry.values()).map((c) => ({
-      code: c.code, name: c.country, outbreaks: c.submissions,
-      cases: c.quantityImplemented, deaths: c.quantityTargeted,
-      vaccinations: c.projects.size, submissions: c.submissions, rec: '',
-    })),
-  [agg]);
+  // Build map data from countries_benefiting across all submissions
+  const mapData: CountryOutbreakData[] = useMemo(() => {
+    const benefitingMap = new Map<string, { code: string; name: string; count: number }>();
+    // Collect all benefiting countries from raw submissions
+    for (const sub of filtered) {
+      const d = (sub as any).data ?? {};
+      const rc = d.recs_countries ?? {};
+      const countries: string[] = Array.isArray(rc.countries) ? rc.countries : [];
+      for (const code of countries) {
+        const existing = benefitingMap.get(code);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          benefitingMap.set(code, { code, name: code, count: 1 });
+        }
+      }
+      // Also include the implementation country itself
+      const metaC = d.__meta_country_of_implementation;
+      const implCode = metaC?.code || d.adm0_code || '';
+      if (implCode && !benefitingMap.has(implCode)) {
+        const implName = metaC?.name?.en || metaC?.name?.fr || implCode;
+        benefitingMap.set(implCode, { code: implCode, name: implName, count: 1 });
+      } else if (implCode) {
+        benefitingMap.get(implCode)!.count += 1;
+      }
+    }
+    // Fallback to byCountry if no countries_benefiting data
+    if (benefitingMap.size === 0) {
+      return Array.from(agg.byCountry.values()).map((c) => ({
+        code: c.code, name: c.country, outbreaks: c.submissions,
+        cases: c.quantityImplemented, deaths: c.quantityTargeted,
+        vaccinations: c.projects.size, submissions: c.submissions, rec: '',
+      }));
+    }
+    return Array.from(benefitingMap.values()).map((c) => ({
+      code: c.code, name: c.name, outbreaks: c.count,
+      cases: c.count, deaths: 0,
+      vaccinations: c.count, submissions: c.count, rec: '',
+    }));
+  }, [filtered, agg]);
 
   // For expenditure donut — group by project title
   const expenditureByProject = useMemo(() =>
@@ -149,8 +182,8 @@ export default function PaidDashboardPage() {
         <KpiCell value={String(agg.totalCountries)} label="COUNTRIES" color="#059669" icon={<MapPin className="h-4 w-4" />} />
         <KpiCell value={String(agg.totalRecs)} label="RECS" color="#dc2626" icon={<Building2 className="h-4 w-4" />} />
         <KpiCell value={String(agg.totalSubmissions)} label="SUBMISSIONS" color="#2563eb" icon={<FileCheck2 className="h-4 w-4" />} />
-        <KpiCell value={`$${fmt(agg.totalExpenditure)}`} label="EXPENDITURE" dark />
-        <KpiCell value={fmt(agg.totalQuantityImplemented)} label="QTY IMPLEMENTED" dark />
+        <KpiCell value={`$${fmt(agg.totalExpenditure)}`} label="EXPENDITURE" color="#d97706" icon={<DollarSign className="h-4 w-4" />} />
+        <KpiCell value={fmt(agg.totalQuantityImplemented)} label="ANIMALS VACCINATED" color="#059669" icon={<BarChart3 className="h-4 w-4" />} />
         <KpiCell value={fmt(agg.totalQuantityTargeted)} label="QTY TARGETED" color="#7c3aed" icon={<BarChart3 className="h-4 w-4" />} />
         <KpiCell value={`${progressPct}%`} label="COMPLETION" color="#059669" icon={<span className="text-[14px]">◔</span>} />
       </div>
@@ -260,34 +293,16 @@ export default function PaidDashboardPage() {
             </div>
           </div>
 
-          {/* Progress Against Annual Target — Gauge */}
+          {/* Male & Female Trainers */}
           <div className="border-t border-gray-200 dark:border-gray-800">
-            <SectionTitle>Progress Against Annual Target</SectionTitle>
-            <div className="flex flex-col items-center px-4 py-4">
-              <div className="relative h-[80px] w-[160px] overflow-hidden">
-                {/* Semi-circle background */}
-                <div className="absolute inset-0 rounded-t-full bg-gray-200 dark:bg-gray-800" style={{
-                  clipPath: 'polygon(0 100%, 0 0, 100% 0, 100% 100%)',
-                }} />
-                {/* Progress arc */}
-                <div className="absolute inset-0" style={{
-                  background: `conic-gradient(#059669 0deg, #059669 ${progressPct * 1.8}deg, transparent ${progressPct * 1.8}deg)`,
-                  borderRadius: '160px 160px 0 0',
-                  clipPath: 'polygon(0 100%, 0 0, 100% 0, 100% 100%)',
-                }} />
-                {/* Inner cutout */}
-                <div className="absolute bottom-0 left-1/2 h-[55px] w-[110px] -translate-x-1/2 rounded-t-full bg-white dark:bg-gray-950" />
-                {/* Value */}
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
-                  <p className="text-2xl font-black text-emerald-600">{progressPct}%</p>
-                </div>
-              </div>
-              <div className="mt-2 flex w-full justify-between text-[8px] text-gray-400">
-                <span>0%</span>
-                <span>100%</span>
-              </div>
-              <p className="mt-1 text-[9px] text-gray-400">All figures in local units</p>
+            <SectionTitle>Male &amp; Female Trainers</SectionTitle>
+            <div className="flex items-center justify-center gap-8 px-4 py-4">
+              <PersonStat gender="female" value={agg.totalFemale} total={agg.totalTrained} />
+              <PersonStat gender="male" value={agg.totalMale} total={agg.totalTrained} />
             </div>
+            {agg.totalTrained === 0 && (
+              <p className="pb-3 text-center text-[9px] text-gray-300">No training data yet</p>
+            )}
           </div>
         </div>
 
