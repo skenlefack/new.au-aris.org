@@ -76,6 +76,7 @@ export function RankedListWidget({ items, maxItems = 10, unit }: RankedListWidge
               />
             </div>
             )}
+          </div>
         );
       })}
     </div>
