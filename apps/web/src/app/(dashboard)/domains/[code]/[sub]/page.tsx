@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
@@ -14,6 +14,11 @@ import type { DashboardScope } from '@/lib/api/dashboard-hooks';
 
 const PPRPerformanceDashboard = dynamic(
   () => import('@/components/collecte/PPRPerformanceDashboard'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
+);
+
+const PPRAnnualDashboard = dynamic(
+  () => import('@/components/collecte/PPRAnnualDashboard'),
   { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
 );
 
@@ -56,6 +61,36 @@ function resolveScope(role?: string, tenantLevel?: string): DashboardScope {
   if (tenantLevel === 'CONTINENTAL') return 'CONTINENTAL';
   if (tenantLevel === 'REC') return 'REC';
   return 'COUNTRY';
+}
+
+function PPRDashboardTabs() {
+  const [activeTab, setActiveTab] = useState<'performance' | 'annual'>('performance');
+  const tabs = [
+    { key: 'performance' as const, label: 'Performance Dashboard', labelFr: 'Tableau de bord Performance' },
+    { key: 'annual' as const, label: 'Annual Report 2026', labelFr: 'Rapport Annuel 2026' },
+  ];
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={cn(
+              'flex-1 rounded-md px-3 py-2 text-xs font-medium transition-colors',
+              activeTab === tab.key
+                ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400',
+            )}
+          >
+            {tab.labelFr}
+          </button>
+        ))}
+      </div>
+      {activeTab === 'performance' && <PPRPerformanceDashboard />}
+      {activeTab === 'annual' && <PPRAnnualDashboard />}
+    </div>
+  );
 }
 
 export default function SubDomainPage() {
@@ -129,7 +164,7 @@ export default function SubDomainPage() {
 
       {/* SECTION 1: Dashboard */}
       {subCode === 'PPR' ? (
-        <PPRPerformanceDashboard />
+        <PPRDashboardTabs />
       ) : (
         <DashboardSection
           scope={scope}
