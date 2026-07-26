@@ -189,13 +189,13 @@ export default function PPRPerformanceDashboard() {
   return (
     <div className="space-y-5">
       {/* ── Header ── */}
-      <div className="rounded-xl bg-[#1a3a4a] px-6 py-4 text-white">
-        <h1 className="text-xl font-bold">PPR Programme Performance Dashboard</h1>
-        <p className="text-sm text-white/60">AU-IBAR | Continental Delivery Platform for PPR Eradication</p>
+      <div className="rounded-xl bg-[#e8f5e9] px-6 py-4">
+        <h1 className="text-xl font-bold text-[#2E7D32]">PPR Programme Performance Dashboard</h1>
+        <p className="text-sm text-[#4CAF50]">AU-IBAR | Continental Delivery Platform for PPR Eradication</p>
         <div className="mt-2 flex flex-wrap gap-3">
-          <span className="rounded-full border border-white/20 px-3 py-0.5 text-xs">Programme period: 2024–2026</span>
-          <span className="rounded-full border border-white/20 px-3 py-0.5 text-xs">Reporting period: 2026</span>
-          <span className="rounded-full border border-white/20 px-3 py-0.5 text-xs">Region: All</span>
+          <span className="rounded-full border border-[#4CAF50]/30 px-3 py-0.5 text-xs text-[#2E7D32]">Programme period: 2024–2026</span>
+          <span className="rounded-full border border-[#4CAF50]/30 px-3 py-0.5 text-xs text-[#2E7D32]">Reporting period: 2026</span>
+          <span className="rounded-full border border-[#4CAF50]/30 px-3 py-0.5 text-xs text-[#2E7D32]">Region: All</span>
         </div>
       </div>
 
@@ -245,7 +245,7 @@ export default function PPRPerformanceDashboard() {
           </div>
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-[#1a3a4a] text-white text-[10px] font-semibold uppercase tracking-wide">
+              <tr className="bg-[#e8f5e9] text-[#2E7D32] text-[10px] font-semibold uppercase tracking-wide">
                 <th className="py-2 pl-3 rounded-tl">#</th>
                 <th className="py-2">Country</th>
                 <th className="py-2">REC</th>
@@ -267,7 +267,7 @@ export default function PPRPerformanceDashboard() {
         {/* Governance & Coordination */}
         <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-center gap-2 mb-4">
-            <Target className="h-4 w-4 text-[#1a3a4a]" />
+            <Target className="h-4 w-4 text-[#2E7D32]" />
             <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Governance & Coordination</h3>
           </div>
           <div className="space-y-3">
@@ -315,7 +315,7 @@ export default function PPRPerformanceDashboard() {
               'Follow up on missing surveillance reports',
             ].map((text, i) => (
               <div key={i} className="flex items-start gap-2.5">
-                <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#1a3a4a]" />
+                <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#e8f5e9]" />
                 <span className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{text}</span>
               </div>
             ))}
