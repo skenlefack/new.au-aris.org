@@ -22,6 +22,11 @@ const PPRAnnualDashboard = dynamic(
   { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
 );
 
+const PPRFrameworkDashboard = dynamic(
+  () => import('@/components/collecte/PPRFrameworkDashboard'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
+);
+
 /* ── Type badge config ──────────────────────────────── */
 
 const TYPE_BADGES: Record<SubDomainType, { label: string; classes: string }> = {
@@ -64,10 +69,11 @@ function resolveScope(role?: string, tenantLevel?: string): DashboardScope {
 }
 
 function PPRDashboardTabs() {
-  const [activeTab, setActiveTab] = useState<'performance' | 'annual'>('performance');
+  const [activeTab, setActiveTab] = useState<'performance' | 'annual' | 'framework'>('performance');
   const tabs = [
-    { key: 'performance' as const, label: 'Performance Dashboard', labelFr: 'Tableau de bord Performance' },
-    { key: 'annual' as const, label: 'Annual Report 2026', labelFr: 'Rapport Annuel 2026' },
+    { key: 'performance' as const, labelFr: 'Performance', icon: '📊' },
+    { key: 'annual' as const, labelFr: 'Rapport Annuel 2026', icon: '📋' },
+    { key: 'framework' as const, labelFr: 'Cadre de Resultats', icon: '🗂️' },
   ];
   return (
     <div className="space-y-4">
@@ -83,12 +89,13 @@ function PPRDashboardTabs() {
                 : 'text-gray-500 hover:text-gray-700 dark:text-gray-400',
             )}
           >
-            {tab.labelFr}
+            {tab.icon} {tab.labelFr}
           </button>
         ))}
       </div>
       {activeTab === 'performance' && <PPRPerformanceDashboard />}
       {activeTab === 'annual' && <PPRAnnualDashboard />}
+      {activeTab === 'framework' && <PPRFrameworkDashboard />}
     </div>
   );
 }
