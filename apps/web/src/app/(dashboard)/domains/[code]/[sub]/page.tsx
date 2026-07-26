@@ -7,9 +7,15 @@ import { ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDomainStore, type Domain, type SubDomain, type SubDomainType } from '@/lib/stores/domain-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import dynamic from 'next/dynamic';
 import { DashboardSection } from '@/components/domain/DashboardSection';
 import { PlanningsSection } from '@/components/domain/PlanningsSection';
 import type { DashboardScope } from '@/lib/api/dashboard-hooks';
+
+const PPRPerformanceDashboard = dynamic(
+  () => import('@/components/collecte/PPRPerformanceDashboard'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" /> },
+);
 
 /* ── Type badge config ──────────────────────────────── */
 
@@ -122,11 +128,15 @@ export default function SubDomainPage() {
       </div>
 
       {/* SECTION 1: Dashboard */}
-      <DashboardSection
-        scope={scope}
-        target={{ subDomainId: subDomain?.id }}
-        domainCode={domainCode}
-      />
+      {subCode === 'PPR' ? (
+        <PPRPerformanceDashboard />
+      ) : (
+        <DashboardSection
+          scope={scope}
+          target={{ subDomainId: subDomain?.id }}
+          domainCode={domainCode}
+        />
+      )}
 
       {/* SECTION 2: Planifications */}
       <PlanningsSection
