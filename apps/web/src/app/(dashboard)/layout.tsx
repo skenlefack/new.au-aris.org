@@ -29,8 +29,13 @@ export default function DashboardLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Embed mode — hide sidebar/header for iframe embedding (slideshow)
+  const [isEmbed] = useState(() =>
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('embed') === '1'
+  );
+
   // Full-bleed pages (no padding wrapper) — dashboard handles its own layout
-  const isFullBleed = pathname === '/home' || pathname === '/' || pathname.startsWith('/bi-tools/');
+  const isFullBleed = isEmbed || pathname === '/home' || pathname === '/' || pathname.startsWith('/bi-tools/');
 
   // Connect to WebSocket realtime service
   useRealtime();
@@ -130,6 +135,14 @@ export default function DashboardLayout({
 
   return (
     <AuthGuard>
+      {isEmbed ? (
+        /* Embed mode: content only, no chrome — used by slideshow iframe */
+        <div className="h-screen overflow-y-auto bg-slate-50 dark:bg-gray-950">
+          <PageReadyProvider>
+            <div className="h-full">{children}</div>
+          </PageReadyProvider>
+        </div>
+      ) : (
       <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gray-950">
         <Sidebar
           collapsed={sidebarCollapsed}
@@ -178,6 +191,7 @@ export default function DashboardLayout({
             locks the app until the password has been updated. */}
         <ForcePasswordChangeModal />
       </div>
+      )}
     </AuthGuard>
   );
 }

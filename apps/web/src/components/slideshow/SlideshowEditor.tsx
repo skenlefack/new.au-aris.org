@@ -17,6 +17,10 @@ import {
   ArrowUp,
   ArrowDown,
   X,
+  LayoutDashboard,
+  Globe,
+  BarChart3,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
@@ -31,6 +35,21 @@ import {
 import { useDashboards } from '@/lib/api/dashboard-hooks';
 import { useBiDashboards, type BiDashboard } from '@/lib/api/bi-hooks';
 import { SlideshowPlayer } from './SlideshowPlayer';
+
+// ─── System pages available as slideshow slides ────────────────────
+const SYSTEM_PAGES = [
+  { id: 'page:/home', labelFr: 'Tableau de bord principal (Accueil)', labelEn: 'Main Dashboard (Home)', group: 'system' },
+  { id: 'page:/paid', labelFr: 'Dashboard PAID', labelEn: 'PAID Dashboard', group: 'system' },
+  { id: 'page:/analytics', labelFr: 'Analytiques continentales', labelEn: 'Continental Analytics', group: 'system' },
+  { id: 'page:/domains/animal-health', labelFr: 'Sante animale', labelEn: 'Animal Health', group: 'domain' },
+  { id: 'page:/domains/livestock-prod', labelFr: 'Elevage & Production', labelEn: 'Livestock & Production', group: 'domain' },
+  { id: 'page:/domains/fisheries', labelFr: 'Peche & Aquaculture', labelEn: 'Fisheries & Aquaculture', group: 'domain' },
+  { id: 'page:/domains/trade-sps', labelFr: 'Commerce & SPS', labelEn: 'Trade & SPS', group: 'domain' },
+  { id: 'page:/domains/governance', labelFr: 'Gouvernance & Capacites', labelEn: 'Governance & Capacities', group: 'domain' },
+  { id: 'page:/domains/wildlife', labelFr: 'Faune sauvage & Biodiversite', labelEn: 'Wildlife & Biodiversity', group: 'domain' },
+  { id: 'page:/domains/apiculture', labelFr: 'Apiculture & Pollinisation', labelEn: 'Apiculture & Pollination', group: 'domain' },
+  { id: 'page:/domains/climate-env', labelFr: 'Climat & Environnement', labelEn: 'Climate & Environment', group: 'domain' },
+];
 
 const TRANSITIONS = [
   { value: 'FADE', labelFr: 'Fondu', labelEn: 'Fade' },
@@ -169,7 +188,11 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
     let titleFr = '';
     let titleEn = '';
 
-    if (dashboardId.startsWith('bi:')) {
+    if (dashboardId.startsWith('page:')) {
+      const sys = SYSTEM_PAGES.find((p) => p.id === dashboardId);
+      titleFr = sys?.labelFr || dashboardId;
+      titleEn = sys?.labelEn || dashboardId;
+    } else if (dashboardId.startsWith('bi:')) {
       const bi = biList.find((d) => `bi:${d.id}` === dashboardId);
       titleFr = bi?.name?.fr || bi?.name?.en || '';
       titleEn = bi?.name?.en || bi?.name?.fr || '';
@@ -584,68 +607,170 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
         </div>
 
         {/* Right: Slides */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-4">
+          {/* ── Dashboard Catalogue (categorized picker) ── */}
           <div className="rounded-lg border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
             <div className="p-4 border-b dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-base">
-                  {isFr ? 'Tableaux de bord' : 'Dashboards'} ({slides.length})
+                  {isFr ? 'Catalogue de tableaux de bord' : 'Dashboard Catalogue'}
                 </h3>
-                <div className="flex gap-2 flex-wrap items-center">
-                  {/* Search filter */}
+                <div className="flex gap-2 items-center">
                   <input
                     type="text"
                     value={searchFilter}
                     onChange={(e) => setSearchFilter(e.target.value)}
                     placeholder={isFr ? 'Rechercher...' : 'Search...'}
-                    className="w-[200px] rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                    className="w-[220px] rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                   />
-                  {/* Dashboard selector */}
-                  <select
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        addSlide(e.target.value);
-                        e.target.value = '';
-                      }
-                    }}
-                    defaultValue=""
-                    className="w-[350px] rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                  >
-                    <option value="" disabled>
-                      {isFr ? `+ Ajouter (${builderList.filter((d: any) => !slides.some((s) => s.dashboardId === (d.id || d.Id))).length} disponibles)` : `+ Add (${builderList.filter((d: any) => !slides.some((s) => s.dashboardId === (d.id || d.Id))).length} available)`}
-                    </option>
-                    {builderList
-                      .filter((d: any) => {
-                        const did = d.id || d.Id;
-                        if (slides.some((s) => s.dashboardId === did)) return false;
-                        if (searchFilter) {
-                          const q = searchFilter.toLowerCase();
-                          const title = ((d.title_fr || '') + ' ' + (d.title_en || '')).toLowerCase();
-                          return title.includes(q);
-                        }
-                        return true;
-                      })
-                      .map((d: any) => {
-                        const did = d.id || d.Id;
-                        const label = isFr
-                          ? (d.title_fr || d.titleFr || d.title_en || d.titleEn || did)
-                          : (d.title_en || d.titleEn || d.title_fr || d.titleFr || did);
-                        return (
-                          <option key={did} value={did}>
-                            {label}
-                          </option>
-                        );
-                      })}
-                  </select>
                   <button
                     onClick={() => router.push('/my-dashboards')}
                     className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800"
                   >
                     <Plus className="h-4 w-4 mr-1" />
-                    {isFr ? 'Créer' : 'Create'}
+                    {isFr ? 'Creer' : 'Create'}
                   </button>
                 </div>
               </div>
+            </div>
+            <div className="p-4 space-y-4 max-h-[400px] overflow-y-auto">
+              {/* System Pages */}
+              {(() => {
+                const systemItems = SYSTEM_PAGES.filter(p => p.group === 'system')
+                  .filter(p => !slides.some(s => s.dashboardId === p.id))
+                  .filter(p => !searchFilter || (isFr ? p.labelFr : p.labelEn).toLowerCase().includes(searchFilter.toLowerCase()));
+                return systemItems.length > 0 ? (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <LayoutDashboard className="h-4 w-4 text-blue-600" />
+                      <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">
+                        {isFr ? 'Pages systeme' : 'System Pages'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      {systemItems.map(p => (
+                        <button
+                          key={p.id}
+                          onClick={() => addSlide(p.id)}
+                          className="flex items-center gap-2 rounded-md border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-left hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-900/20 dark:hover:border-blue-700 transition-colors"
+                        >
+                          <Plus className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                          <span className="truncate">{isFr ? p.labelFr : p.labelEn}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Domain Pages */}
+              {(() => {
+                const domainItems = SYSTEM_PAGES.filter(p => p.group === 'domain')
+                  .filter(p => !slides.some(s => s.dashboardId === p.id))
+                  .filter(p => !searchFilter || (isFr ? p.labelFr : p.labelEn).toLowerCase().includes(searchFilter.toLowerCase()));
+                return domainItems.length > 0 ? (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Layers className="h-4 w-4 text-emerald-600" />
+                      <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">
+                        {isFr ? 'Domaines' : 'Domains'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      {domainItems.map(p => (
+                        <button
+                          key={p.id}
+                          onClick={() => addSlide(p.id)}
+                          className="flex items-center gap-2 rounded-md border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-left hover:bg-emerald-50 hover:border-emerald-300 dark:hover:bg-emerald-900/20 dark:hover:border-emerald-700 transition-colors"
+                        >
+                          <Plus className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                          <span className="truncate">{isFr ? p.labelFr : p.labelEn}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Dashboard Builder */}
+              {(() => {
+                const builderItems = builderList.filter((d: any) => {
+                  const did = d.id || d.Id;
+                  if (slides.some(s => s.dashboardId === did)) return false;
+                  if (searchFilter) {
+                    const q = searchFilter.toLowerCase();
+                    return ((d.title_fr || '') + ' ' + (d.title_en || '')).toLowerCase().includes(q);
+                  }
+                  return true;
+                });
+                return builderItems.length > 0 ? (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <BarChart3 className="h-4 w-4 text-violet-600" />
+                      <span className="text-xs font-semibold text-violet-600 uppercase tracking-wider">
+                        Dashboard Builder ({builderItems.length})
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      {builderItems.map((d: any) => {
+                        const did = d.id || d.Id;
+                        const label = isFr
+                          ? (d.title_fr || d.titleFr || d.title_en || d.titleEn || did)
+                          : (d.title_en || d.titleEn || d.title_fr || d.titleFr || did);
+                        return (
+                          <button
+                            key={did}
+                            onClick={() => addSlide(did)}
+                            className="flex items-center gap-2 rounded-md border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-left hover:bg-violet-50 hover:border-violet-300 dark:hover:bg-violet-900/20 dark:hover:border-violet-700 transition-colors"
+                          >
+                            <Plus className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                            <span className="truncate">{label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
+              {/* BI Tools */}
+              {(() => {
+                const biItems = biList
+                  .filter(d => !slides.some(s => s.dashboardId === `bi:${d.id}`))
+                  .filter(d => !searchFilter || ((d.name?.fr || '') + ' ' + (d.name?.en || '')).toLowerCase().includes(searchFilter.toLowerCase()));
+                return biItems.length > 0 ? (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Globe className="h-4 w-4 text-orange-600" />
+                      <span className="text-xs font-semibold text-orange-600 uppercase tracking-wider">
+                        {isFr ? 'Outils BI' : 'BI Tools'} ({biItems.length})
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      {biItems.map(d => (
+                        <button
+                          key={d.id}
+                          onClick={() => addSlide(`bi:${d.id}`)}
+                          className="flex items-center gap-2 rounded-md border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-left hover:bg-orange-50 hover:border-orange-300 dark:hover:bg-orange-900/20 dark:hover:border-orange-700 transition-colors"
+                        >
+                          <Plus className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                          <span className="truncate">{isFr ? (d.name?.fr || d.name?.en) : (d.name?.en || d.name?.fr)}</span>
+                          <span className="ml-auto text-[10px] text-gray-400 uppercase flex-shrink-0">{d.tool}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+            </div>
+          </div>
+
+          {/* ── Selected Slides ── */}
+          <div className="rounded-lg border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
+            <div className="p-4 border-b dark:border-gray-700">
+              <h3 className="font-semibold text-base">
+                {isFr ? 'Slides selectionnes' : 'Selected Slides'} ({slides.length})
+              </h3>
             </div>
             <div className="p-4">
               {slides.length === 0 ? (
@@ -673,15 +798,28 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                         {idx + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">
-                          {isFr
-                            ? slide.dashboardTitleFr ||
-                              slide.dashboardTitleEn ||
-                              slide.dashboardId
-                            : slide.dashboardTitleEn ||
-                              slide.dashboardTitleFr ||
-                              slide.dashboardId}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium truncate">
+                            {isFr
+                              ? slide.dashboardTitleFr ||
+                                slide.dashboardTitleEn ||
+                                slide.dashboardId
+                              : slide.dashboardTitleEn ||
+                                slide.dashboardTitleFr ||
+                                slide.dashboardId}
+                          </p>
+                          {slide.dashboardId.startsWith('page:') && (
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 flex-shrink-0">
+                              {SYSTEM_PAGES.find(p => p.id === slide.dashboardId)?.group === 'domain' ? (isFr ? 'Domaine' : 'Domain') : 'Page'}
+                            </span>
+                          )}
+                          {slide.dashboardId.startsWith('bi:') && (
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 flex-shrink-0">BI</span>
+                          )}
+                          {!slide.dashboardId.startsWith('page:') && !slide.dashboardId.startsWith('bi:') && (
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 flex-shrink-0">Builder</span>
+                          )}
+                        </div>
                         <div className="flex gap-4 mt-1">
                           <div className="flex items-center gap-1">
                             <label className="text-xs text-muted-foreground">

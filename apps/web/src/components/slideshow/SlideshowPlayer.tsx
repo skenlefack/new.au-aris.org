@@ -39,19 +39,29 @@ const LANGUAGES = [
 //  Slide Renderer
 // ═══════════════════════════════════════════════════════════════════════
 
-function BiSlideRenderer({ onReady }: { onReady?: () => void }) {
-  useEffect(() => { onReady?.(); }, [onReady]);
+function IframeSlideRenderer({ src, onReady }: { src: string; onReady?: () => void }) {
   return (
-    <div className="w-full h-full flex items-center justify-center bg-white dark:bg-gray-900">
-      <p className="text-sm text-gray-400">BI Dashboard (iframe non disponible en mode diaporama)</p>
-    </div>
+    <iframe
+      src={src}
+      className="w-full h-full border-0"
+      onLoad={() => onReady?.()}
+      allow="fullscreen"
+    />
   );
 }
 
 function SlideRenderer({ dashboardId, durationMs, onReady }: { dashboardId: string; durationMs: number; onReady?: () => void }) {
-  if (dashboardId.startsWith('bi:')) {
-    return <BiSlideRenderer onReady={onReady} />;
+  // System page — rendered as iframe (e.g. page:/home, page:/paid, page:/domains/animal-health)
+  if (dashboardId.startsWith('page:')) {
+    const path = dashboardId.replace('page:', '');
+    const sep = path.includes('?') ? '&' : '?';
+    return <IframeSlideRenderer src={`${path}${sep}embed=1`} onReady={onReady} />;
   }
+  // BI dashboard — rendered as iframe via embed URL
+  if (dashboardId.startsWith('bi:')) {
+    return <IframeSlideRenderer src={`/bi-embed/${dashboardId.replace('bi:', '')}`} onReady={onReady} />;
+  }
+  // Dashboard Builder — rendered natively
   return <DashboardSlideRenderer dashboardId={dashboardId} durationMs={durationMs} onReady={onReady} />;
 }
 
