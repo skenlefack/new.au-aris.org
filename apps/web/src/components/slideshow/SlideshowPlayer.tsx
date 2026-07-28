@@ -86,12 +86,10 @@ function DashboardSlideRenderer({ dashboardId, durationMs, onReady }: { dashboar
 
       // Calculate number of "screens" (pages)
       const totalScreens = Math.ceil(contentHeight / viewHeight);
-      // Time per screen: divide total duration equally, reserve time for initial view
-      const initialPause = Math.min(2000, durationMs * 0.15); // 15% of duration or 2s max for first screen
-      const remainingTime = durationMs - initialPause;
-      const timePerScreen = remainingTime / (totalScreens - 1);
+      // Equal time per screen — first screen gets the same time as all others
+      const timePerScreen = durationMs / totalScreens;
 
-      // Scroll to each screen sequentially
+      // Scroll to each screen sequentially — first scroll at timePerScreen (after first screen has had its full time)
       scrollTimersRef.current = [];
       for (let i = 1; i < totalScreens; i++) {
         const t = setTimeout(() => {
@@ -101,7 +99,7 @@ function DashboardSlideRenderer({ dashboardId, durationMs, onReady }: { dashboar
             top: targetScroll,
             behavior: 'smooth',
           });
-        }, initialPause + (i - 1) * timePerScreen);
+        }, i * timePerScreen);
         scrollTimersRef.current.push(t);
       }
     }, 600); // Wait for dashboard widgets to render
