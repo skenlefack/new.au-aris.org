@@ -39,25 +39,28 @@ const LANGUAGES = [
 //  Slide Renderer
 // ═══════════════════════════════════════════════════════════════════════
 
-function SlideRenderer({ dashboardId, durationMs }: { dashboardId: string; durationMs: number }) {
-  // BI dashboard (iframe) — id starts with "bi:"
-  if (dashboardId.startsWith('bi:')) {
-    // Extract embed URL from slide metadata (stored in dashboard field)
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-white dark:bg-gray-900">
-        <p className="text-sm text-gray-400">BI Dashboard (iframe non disponible en mode diaporama)</p>
-      </div>
-    );
-  }
-
-  return <DashboardSlideRenderer dashboardId={dashboardId} durationMs={durationMs} />;
+function BiSlideRenderer({ onReady }: { onReady?: () => void }) {
+  useEffect(() => { onReady?.(); }, [onReady]);
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-white dark:bg-gray-900">
+      <p className="text-sm text-gray-400">BI Dashboard (iframe non disponible en mode diaporama)</p>
+    </div>
+  );
 }
 
-function DashboardSlideRenderer({ dashboardId, durationMs }: { dashboardId: string; durationMs: number }) {
+function SlideRenderer({ dashboardId, durationMs, onReady }: { dashboardId: string; durationMs: number; onReady?: () => void }) {
+  if (dashboardId.startsWith('bi:')) {
+    return <BiSlideRenderer onReady={onReady} />;
+  }
+  return <DashboardSlideRenderer dashboardId={dashboardId} durationMs={durationMs} onReady={onReady} />;
+}
+
+function DashboardSlideRenderer({ dashboardId, durationMs, onReady }: { dashboardId: string; durationMs: number; onReady?: () => void }) {
   const { data: dashboardData, isLoading: loadingDash } = useDashboard(dashboardId);
   const { data: renderData, isLoading: loadingRender } = useDashboardRender(dashboardId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const readyCalledRef = useRef(false);
 
   const dashboard = dashboardData?.data;
   const widgetData = (renderData?.data?.widgetData ?? {}) as Record<string, Record<string, unknown>>;
@@ -68,6 +71,12 @@ function DashboardSlideRenderer({ dashboardId, durationMs }: { dashboardId: stri
 
     // Wait for content to render and measure
     const measureTimer = setTimeout(() => {
+      // Signal ready — auto-play timer starts NOW in the parent
+      if (!readyCalledRef.current) {
+        readyCalledRef.current = true;
+        onReady?.();
+      }
+
       const el = scrollRef.current;
       if (!el) return;
 
@@ -77,8 +86,8 @@ function DashboardSlideRenderer({ dashboardId, durationMs }: { dashboardId: stri
 
       // Calculate number of "screens" (pages)
       const totalScreens = Math.ceil(contentHeight / viewHeight);
-      // Time per screen: divide total duration equally, reserve 500ms for initial view
-      const initialPause = 800;
+      // Time per screen: divide total duration equally, reserve time for initial view
+      const initialPause = Math.min(2000, durationMs * 0.15); // 15% of duration or 2s max for first screen
       const remainingTime = durationMs - initialPause;
       const timePerScreen = remainingTime / (totalScreens - 1);
 
@@ -101,7 +110,7 @@ function DashboardSlideRenderer({ dashboardId, durationMs }: { dashboardId: stri
       clearTimeout(measureTimer);
       scrollTimersRef.current.forEach(clearTimeout);
     };
-  }, [loadingDash, loadingRender, dashboard, durationMs]);
+  }, [loadingDash, loadingRender, dashboard, durationMs, onReady]);
 
   if (loadingDash || loadingRender) {
     return (
@@ -278,6 +287,7 @@ export function SlideshowPlayer({
   const [copied, setCopied] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showColorMenu, setShowColorMenu] = useState(false);
+  const [slideReady, setSlideReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -307,6 +317,7 @@ export function SlideshowPlayer({
       return prev + 1;
     });
     setProgress(0);
+    setSlideReady(false);
     setAnimClass(TRANSITION_CLASSES[currentTransition] ?? 'animate-fadeIn');
   }, [slides.length, loop, currentTransition]);
 
@@ -316,25 +327,30 @@ export function SlideshowPlayer({
       return prev - 1;
     });
     setProgress(0);
+    setSlideReady(false);
     setAnimClass(TRANSITION_CLASSES[currentTransition] ?? 'animate-fadeIn');
   }, [slides.length, loop, currentTransition]);
 
-  // Auto-play
+  const handleSlideReady = useCallback(() => {
+    setSlideReady(true);
+  }, []);
+
+  // Auto-play — wait until slide content is ready before starting the timer
   useEffect(() => {
-    if (!isPlaying || slides.length <= 1) return;
+    if (!isPlaying || slides.length <= 1 || !slideReady) return;
     timerRef.current = setTimeout(goNext, currentDuration);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [isPlaying, currentIndex, currentDuration, goNext, slides.length]);
+  }, [isPlaying, currentIndex, currentDuration, goNext, slides.length, slideReady]);
 
-  // Progress
+  // Progress — also waits for slide to be ready
   useEffect(() => {
-    if (!isPlaying || !showProgress || slides.length <= 1) { setProgress(0); return; }
+    if (!isPlaying || !showProgress || slides.length <= 1 || !slideReady) { setProgress(0); return; }
     const step = 50;
     const increment = (step / currentDuration) * 100;
     setProgress(0);
     progressRef.current = setInterval(() => setProgress((p) => Math.min(p + increment, 100)), step);
     return () => { if (progressRef.current) clearInterval(progressRef.current); };
-  }, [isPlaying, currentIndex, currentDuration, showProgress, slides.length]);
+  }, [isPlaying, currentIndex, currentDuration, showProgress, slides.length, slideReady]);
 
   useEffect(() => {
     setAnimClass(TRANSITION_CLASSES[currentTransition] ?? 'animate-fadeIn');
@@ -584,7 +600,7 @@ export function SlideshowPlayer({
       <div className="flex-1 relative overflow-hidden min-h-0">
         <div key={currentIndex} className={cn('absolute inset-0 overflow-auto', animClass)}>
           {currentSlide?.dashboardId ? (
-            <SlideRenderer dashboardId={currentSlide.dashboardId} durationMs={currentDuration} />
+            <SlideRenderer dashboardId={currentSlide.dashboardId} durationMs={currentDuration} onReady={handleSlideReady} />
           ) : (
             <div className="flex items-center justify-center h-full">
               <p className="text-sm text-white/30">Chargement...</p>
@@ -647,7 +663,7 @@ export function SlideshowPlayer({
               {slides.map((_, i) => (
                 <button
                   key={i}
-                  onClick={() => { setCurrentIndex(i); setProgress(0); }}
+                  onClick={() => { setCurrentIndex(i); setProgress(0); setSlideReady(false); }}
                   className={cn(
                     'transition-all duration-300 rounded-full',
                     i === currentIndex ? 'w-5 h-1.5' : cn('w-1.5 h-1.5', isDark ? 'bg-white/15 hover:bg-white/30' : 'bg-gray-300 hover:bg-gray-400'),
