@@ -45,7 +45,7 @@ export async function registerFlashDetectorConsumer(
   app: FastifyInstance,
   pool: Pool,
 ): Promise<void> {
-  if (!app.kafka) {
+  if (!(app as any).kafka) {
     app.log.warn('[FlashDetector] Kafka not available, skipping consumer registration');
     return;
   }
@@ -57,7 +57,7 @@ export async function registerFlashDetectorConsumer(
 
   for (const topic of topics) {
     try {
-      await app.kafka.subscribe(
+      await (app as any).kafka.subscribe(
         { topic, groupId: 'analytics-flash-detector' },
         async (payload: unknown) => {
           if (!payload) return;
@@ -165,10 +165,10 @@ async function evaluateStrategies(
     }
 
     // Publish flash alert event
-    if (app.kafka) {
+    if ((app as any).kafka) {
       try {
         await Promise.race([
-          app.kafka.send(
+          (app as any).kafka.send(
             TOPIC_SYS_ANALYTICS_FLASH_ALERT_CREATED,
             alertId,
             {

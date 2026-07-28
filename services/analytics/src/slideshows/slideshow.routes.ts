@@ -83,7 +83,7 @@ export async function registerSlideshowRoutes(app: FastifyInstance): Promise<voi
     schema: { querystring: ListSlideshowsQuerySchema } as any,
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const query = request.query as ListSlideshowsQuery;
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const result = await app.slideshowService.list(query, user.tenantId);
     return reply.code(200).send(result);
   });
@@ -93,7 +93,7 @@ export async function registerSlideshowRoutes(app: FastifyInstance): Promise<voi
     schema: { body: CreateSlideshowSchema } as any,
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = request.body as CreateSlideshowDto;
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const data = await app.slideshowService.create(body, user.userId, user.tenantId);
     return reply.code(201).send({ data });
   });
@@ -112,7 +112,7 @@ export async function registerSlideshowRoutes(app: FastifyInstance): Promise<voi
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const params = request.params as SlideshowIdParam;
     const body = request.body as UpdateSlideshowDto;
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const data = await app.slideshowService.update(params.id, body, user.userId);
     return reply.code(200).send({ data });
   });
@@ -121,7 +121,7 @@ export async function registerSlideshowRoutes(app: FastifyInstance): Promise<voi
     preHandler: [app.authHookFn, tenantHook()],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const params = request.params as SlideshowIdParam;
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     await app.slideshowService.delete(params.id, user.userId);
     return reply.code(204).send();
   });
@@ -136,7 +136,7 @@ export async function registerSlideshowRoutes(app: FastifyInstance): Promise<voi
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const params = request.params as SlideshowIdParam;
     const body = request.body as UpdateSlidesDto;
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const data = await app.slideshowService.updateSlides(params.id, body, user.userId);
     return reply.code(200).send({ data });
   });
@@ -149,7 +149,7 @@ export async function registerSlideshowRoutes(app: FastifyInstance): Promise<voi
     preHandler: [app.authHookFn, tenantHook()],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const params = request.params as SlideshowIdParam;
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const data = await app.slideshowService.regenerateToken(params.id, user.userId);
     return reply.code(200).send({ data });
   });

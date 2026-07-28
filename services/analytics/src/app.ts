@@ -101,23 +101,23 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.decorate('domainSummaryService', domainSummaryService);
 
   // --- Indicator service ---
-  const indicatorService = new IndicatorService(redisClient, app.kafka);
+  const indicatorService = new IndicatorService(redisClient, (app as any).kafka);
   const formulaEvaluator = new FormulaEvaluator(redisClient, indicatorService);
   app.decorate('indicatorService', indicatorService);
   app.decorate('formulaEvaluator', formulaEvaluator);
 
   // --- Dashboard builder service ---
-  const dashboardService = new DashboardService(redisClient, app.kafka);
+  const dashboardService = new DashboardService(redisClient, (app as any).kafka);
   const widgetResolver = new WidgetResolver(redisClient, indicatorService, dashboardService);
   app.decorate('dashboardService', dashboardService);
   app.decorate('widgetResolver', widgetResolver);
 
   // --- Slideshow service ---
-  const slideshowService = new SlideshowService(redisClient, app.kafka);
+  const slideshowService = new SlideshowService(redisClient, (app as any).kafka);
   app.decorate('slideshowService', slideshowService);
 
   // --- Report service ---
-  const reportService = new ReportService(redisClient, app.kafka);
+  const reportService = new ReportService(redisClient, (app as any).kafka);
   app.decorate('reportService', reportService);
 
   // --- Kafka Consumers (12 aggregation + 2 indicator subscriptions + flash detector) ---

@@ -133,7 +133,7 @@ export async function registerIndicatorRoutes(app: FastifyInstance): Promise<voi
     schema: { body: CreateIndicatorSchema } as any,
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = request.body as CreateIndicatorDto;
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const data = await app.indicatorService.createIndicator(body, user.userId);
     return reply.code(201).send({ data });
   });
@@ -187,7 +187,7 @@ export async function registerIndicatorRoutes(app: FastifyInstance): Promise<voi
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const params = request.params as { id: string };
     const body = request.body as CreateIndicatorValueDto;
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const data = await app.indicatorService.createValue(params.id, body, user.userId);
     return reply.code(201).send({ data });
   });
@@ -198,7 +198,7 @@ export async function registerIndicatorRoutes(app: FastifyInstance): Promise<voi
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const params = request.params as { id: string };
     const body = request.body as BulkIndicatorValueDto;
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const result = await app.indicatorService.bulkCreateValues(params.id, body, user.userId);
     return reply.code(201).send({ data: result });
   });

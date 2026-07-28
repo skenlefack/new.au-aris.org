@@ -94,7 +94,7 @@ export async function registerReportRoutes(app: FastifyInstance): Promise<void> 
     schema: { body: CreateReportTemplateSchema } as any,
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = request.body as CreateReportTemplateDto;
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const data = await app.reportService.createTemplate(body, user.userId);
     return reply.code(201).send({ data });
   });
@@ -128,7 +128,7 @@ export async function registerReportRoutes(app: FastifyInstance): Promise<void> 
     schema: { querystring: ListReportsQuerySchema } as any,
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const query = request.query as ListReportsQuery;
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const result = await app.reportService.listReports(query, user.tenantId);
     return reply.code(200).send(result);
   });
@@ -147,7 +147,7 @@ export async function registerReportRoutes(app: FastifyInstance): Promise<void> 
     schema: { body: GenerateReportBodySchema } as any,
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = request.body as GenerateReportBody;
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const data = await app.reportService.generateReport(body, user.userId, user.tenantId);
     return reply.code(201).send({ data });
   });
@@ -184,7 +184,7 @@ export async function registerReportRoutes(app: FastifyInstance): Promise<void> 
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const params = request.params as { id: string };
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const data = await app.reportService.approveReport(params.id, user.userId);
     if (!data) return reply.code(404).send({ statusCode: 404, message: 'Report not found or not in correct status' });
     return reply.code(200).send({ data });
@@ -194,7 +194,7 @@ export async function registerReportRoutes(app: FastifyInstance): Promise<void> 
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const params = request.params as { id: string };
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const data = await app.reportService.publishReport(params.id, user.userId);
     if (!data) return reply.code(404).send({ statusCode: 404, message: 'Report not found or not ready for publishing' });
     return reply.code(200).send({ data });
@@ -207,7 +207,7 @@ export async function registerReportRoutes(app: FastifyInstance): Promise<void> 
   app.get(`${PREFIX}/flash-alerts`, {
     preHandler: [app.authHookFn, tenantHook()],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const data = await app.reportService.listFlashAlerts(user.tenantId);
     return reply.code(200).send({ data });
   });
@@ -225,7 +225,7 @@ export async function registerReportRoutes(app: FastifyInstance): Promise<void> 
     preHandler: [app.authHookFn, tenantHook()],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const params = request.params as { id: string };
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const data = await app.reportService.dismissFlashAlert(params.id, user.userId);
     if (!data) return reply.code(404).send({ statusCode: 404, message: 'Flash alert not found' });
     return reply.code(200).send({ data });
@@ -247,7 +247,7 @@ export async function registerReportRoutes(app: FastifyInstance): Promise<void> 
     schema: { body: CreateFlashStrategySchema } as any,
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = request.body as CreateFlashStrategyDto;
-    const user = request.user as AuthenticatedUser;
+    const user = (request as any).user as AuthenticatedUser;
     const data = await app.reportService.createFlashStrategy(body, user.userId);
     return reply.code(201).send({ data });
   });

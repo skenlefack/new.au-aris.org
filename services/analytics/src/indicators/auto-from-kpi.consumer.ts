@@ -44,9 +44,9 @@ export async function registerAutoFromKpiConsumer(
   pool: Pool,
 ): Promise<void> {
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_SYS_ANALYTICS_KPI_SCORE_UPDATED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await handleKpiScoreUpdated(app, pool, payload as KpiScoreUpdatedPayload);
       },
     );
@@ -168,7 +168,7 @@ async function publishWithTimeout(
 ): Promise<void> {
   try {
     await Promise.race([
-      app.kafka.send(topic, key, payload, {
+      (app as any).kafka.send(topic, key, payload, {
         source: 'analytics-auto-from-kpi',
         correlationId: randomUUID(),
       } as any),

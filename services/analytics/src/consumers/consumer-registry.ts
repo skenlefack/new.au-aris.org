@@ -31,9 +31,9 @@ export async function registerConsumers(
 ): Promise<void> {
   // ── Health Event Created ──
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_MS_HEALTH_EVENT_CREATED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await aggregation.handleHealthEventCreated(payload as HealthEventPayload);
       },
     );
@@ -44,9 +44,9 @@ export async function registerConsumers(
 
   // ── Health Event Confirmed ──
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_MS_HEALTH_EVENT_CONFIRMED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await aggregation.handleHealthEventConfirmed(payload as HealthEventPayload);
       },
     );
@@ -57,9 +57,9 @@ export async function registerConsumers(
 
   // ── Vaccination Completed ──
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_MS_HEALTH_VACCINATION_COMPLETED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await aggregation.handleVaccinationCompleted(payload as VaccinationPayload);
       },
     );
@@ -70,9 +70,9 @@ export async function registerConsumers(
 
   // ── Lab Result Created ──
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_MS_HEALTH_LAB_RESULT_CREATED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await aggregation.handleLabResultCreated(payload as LabResultPayload);
       },
     );
@@ -83,9 +83,9 @@ export async function registerConsumers(
 
   // ── Quality Validated ──
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_AU_QUALITY_RECORD_VALIDATED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await aggregation.handleQualityValidated(payload as QualityRecordPayload);
       },
     );
@@ -96,9 +96,9 @@ export async function registerConsumers(
 
   // ── Quality Rejected ──
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_AU_QUALITY_RECORD_REJECTED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await aggregation.handleQualityRejected(payload as QualityRecordPayload);
       },
     );
@@ -109,9 +109,9 @@ export async function registerConsumers(
 
   // ── Workflow Approved ──
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_AU_WORKFLOW_VALIDATION_APPROVED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await aggregation.handleWorkflowApproved(payload as WorkflowApprovedPayload);
       },
     );
@@ -122,9 +122,9 @@ export async function registerConsumers(
 
   // ── Livestock Census Created ──
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_MS_LIVESTOCK_CENSUS_CREATED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await domainAggregation.handleLivestockCensusCreated(payload as LivestockCensusPayload);
       },
     );
@@ -135,9 +135,9 @@ export async function registerConsumers(
 
   // ── Fisheries Capture Recorded ──
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_MS_FISHERIES_CAPTURE_RECORDED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await domainAggregation.handleFishCaptureRecorded(payload as FishCapturePayload);
       },
     );
@@ -148,9 +148,9 @@ export async function registerConsumers(
 
   // ── Wildlife Crime Reported ──
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_MS_WILDLIFE_CRIME_REPORTED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await domainAggregation.handleWildlifeCrimeReported(payload as WildlifeCrimePayload);
       },
     );
@@ -161,9 +161,9 @@ export async function registerConsumers(
 
   // ── Trade Flow Created ──
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_MS_TRADE_FLOW_CREATED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await domainAggregation.handleTradeFlowCreated(payload as TradeFlowPayload);
       },
     );
@@ -174,9 +174,9 @@ export async function registerConsumers(
 
   // ── Climate Hotspot Detected ──
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_MS_CLIMATE_HOTSPOT_DETECTED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await domainAggregation.handleClimateHotspotDetected(payload as ClimateHotspotPayload);
       },
     );
@@ -187,9 +187,9 @@ export async function registerConsumers(
 
   // ── Apiculture Production Recorded ──
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_MS_APICULTURE_PRODUCTION_RECORDED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await domainAggregation.handleApicultureProductionRecorded(payload as ApicultureProductionPayload);
       },
     );
@@ -200,9 +200,9 @@ export async function registerConsumers(
 
   // ── Governance Vet Evaluation Created ──
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_MS_GOVERNANCE_VET_EVALUATION_CREATED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await domainAggregation.handleGovernanceVetEvaluated(payload as GovernanceVetEvalPayload);
       },
     );

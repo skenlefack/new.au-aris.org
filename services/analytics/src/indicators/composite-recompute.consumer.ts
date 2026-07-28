@@ -50,9 +50,9 @@ export async function registerCompositeRecomputeConsumer(
   formulaEvaluator: FormulaEvaluator,
 ): Promise<void> {
   try {
-    await app.kafka.subscribe(
+    await (app as any).kafka.subscribe(
       { topic: TOPIC_SYS_ANALYTICS_INDICATOR_VALUE_UPDATED, groupId: CONSUMER_GROUP, fromBeginning: false },
-      async (payload) => {
+      async (payload: any) => {
         await handleValueUpdated(app, pool, formulaEvaluator, payload as IndicatorValueUpdatedPayload);
       },
     );
@@ -190,7 +190,7 @@ async function publishWithTimeout(
 ): Promise<void> {
   try {
     await Promise.race([
-      app.kafka.send(topic, key, payload, {
+      (app as any).kafka.send(topic, key, payload, {
         source: 'analytics-composite-recompute',
         correlationId: randomUUID(),
       } as any),
