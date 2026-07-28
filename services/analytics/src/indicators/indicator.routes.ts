@@ -66,7 +66,7 @@ export async function registerIndicatorRoutes(app: FastifyInstance): Promise<voi
 
   app.get(`${PREFIX}/indicator-types`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['indicators'] },
+    schema: {} as any,
   }, async (_request: FastifyRequest, reply: FastifyReply) => {
     const data = await app.indicatorService.listIndicatorTypes();
     return reply.code(200).send({ data });
@@ -74,34 +74,28 @@ export async function registerIndicatorRoutes(app: FastifyInstance): Promise<voi
 
   app.post(`${PREFIX}/admin/indicator-types`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { body: CreateIndicatorTypeSchema, tags: ['indicators'] },
-  }, async (
-    request: FastifyRequest<{ Body: CreateIndicatorTypeDto }>,
-    reply: FastifyReply,
-  ) => {
-    const data = await app.indicatorService.createIndicatorType(request.body);
+    schema: { body: CreateIndicatorTypeSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = request.body as CreateIndicatorTypeDto;
+    const data = await app.indicatorService.createIndicatorType(body);
     return reply.code(201).send({ data });
   });
 
   app.patch(`${PREFIX}/admin/indicator-types/:code`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { body: UpdateIndicatorTypeSchema, tags: ['indicators'] },
-  }, async (
-    request: FastifyRequest<{ Params: { code: string }; Body: UpdateIndicatorTypeDto }>,
-    reply: FastifyReply,
-  ) => {
-    const data = await app.indicatorService.updateIndicatorType(request.params.code, request.body);
+    schema: { body: UpdateIndicatorTypeSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { code: string };
+    const body = request.body as UpdateIndicatorTypeDto;
+    const data = await app.indicatorService.updateIndicatorType(params.code, body);
     return reply.code(200).send({ data });
   });
 
   app.delete(`${PREFIX}/admin/indicator-types/:code`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { tags: ['indicators'] },
-  }, async (
-    request: FastifyRequest<{ Params: { code: string } }>,
-    reply: FastifyReply,
-  ) => {
-    await app.indicatorService.deleteIndicatorType(request.params.code);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { code: string };
+    await app.indicatorService.deleteIndicatorType(params.code);
     return reply.code(204).send();
   });
 
@@ -111,68 +105,54 @@ export async function registerIndicatorRoutes(app: FastifyInstance): Promise<voi
 
   app.get(`${PREFIX}/indicators`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { querystring: IndicatorListQuerySchema, tags: ['indicators'] },
-  }, async (
-    request: FastifyRequest<{ Querystring: IndicatorListQuery }>,
-    reply: FastifyReply,
-  ) => {
-    const result = await app.indicatorService.listIndicators(request.query);
+    schema: { querystring: IndicatorListQuerySchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const query = request.query as IndicatorListQuery;
+    const result = await app.indicatorService.listIndicators(query);
     return reply.code(200).send(result);
   });
 
   app.get(`${PREFIX}/indicators/by-code/:code`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['indicators'] },
-  }, async (
-    request: FastifyRequest<{ Params: { code: string } }>,
-    reply: FastifyReply,
-  ) => {
-    const data = await app.indicatorService.getIndicatorByCode(request.params.code);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { code: string };
+    const data = await app.indicatorService.getIndicatorByCode(params.code);
     return reply.code(200).send({ data });
   });
 
   app.get(`${PREFIX}/indicators/:id`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['indicators'] },
-  }, async (
-    request: FastifyRequest<{ Params: { id: string } }>,
-    reply: FastifyReply,
-  ) => {
-    const data = await app.indicatorService.getIndicatorById(request.params.id);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const data = await app.indicatorService.getIndicatorById(params.id);
     return reply.code(200).send({ data });
   });
 
   app.post(`${PREFIX}/admin/indicators`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { body: CreateIndicatorSchema, tags: ['indicators'] },
-  }, async (
-    request: FastifyRequest<{ Body: CreateIndicatorDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: CreateIndicatorSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = request.body as CreateIndicatorDto;
     const user = request.user as AuthenticatedUser;
-    const data = await app.indicatorService.createIndicator(request.body, user.userId);
+    const data = await app.indicatorService.createIndicator(body, user.userId);
     return reply.code(201).send({ data });
   });
 
   app.patch(`${PREFIX}/admin/indicators/:id`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { body: UpdateIndicatorSchema, tags: ['indicators'] },
-  }, async (
-    request: FastifyRequest<{ Params: { id: string }; Body: UpdateIndicatorDto }>,
-    reply: FastifyReply,
-  ) => {
-    const data = await app.indicatorService.updateIndicator(request.params.id, request.body);
+    schema: { body: UpdateIndicatorSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const body = request.body as UpdateIndicatorDto;
+    const data = await app.indicatorService.updateIndicator(params.id, body);
     return reply.code(200).send({ data });
   });
 
   app.delete(`${PREFIX}/admin/indicators/:id`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { tags: ['indicators'] },
-  }, async (
-    request: FastifyRequest<{ Params: { id: string } }>,
-    reply: FastifyReply,
-  ) => {
-    await app.indicatorService.deleteIndicator(request.params.id);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    await app.indicatorService.deleteIndicator(params.id);
     return reply.code(204).send();
   });
 
@@ -182,23 +162,19 @@ export async function registerIndicatorRoutes(app: FastifyInstance): Promise<voi
 
   app.get(`${PREFIX}/indicators/:id/values`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { querystring: IndicatorValueQuerySchema, tags: ['indicators'] },
-  }, async (
-    request: FastifyRequest<{ Params: { id: string }; Querystring: IndicatorValueQuery }>,
-    reply: FastifyReply,
-  ) => {
-    const result = await app.indicatorService.listValues(request.params.id, request.query);
+    schema: { querystring: IndicatorValueQuerySchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const query = request.query as IndicatorValueQuery;
+    const result = await app.indicatorService.listValues(params.id, query);
     return reply.code(200).send(result);
   });
 
   app.get(`${PREFIX}/indicators/:id/values/latest`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['indicators'] },
-  }, async (
-    request: FastifyRequest<{ Params: { id: string } }>,
-    reply: FastifyReply,
-  ) => {
-    const data = await app.indicatorService.getLatestValue(request.params.id);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const data = await app.indicatorService.getLatestValue(params.id);
     if (!data) {
       return reply.code(404).send({ statusCode: 404, message: 'No values found for this indicator' });
     }
@@ -207,25 +183,23 @@ export async function registerIndicatorRoutes(app: FastifyInstance): Promise<voi
 
   app.post(`${PREFIX}/indicators/:id/values`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { body: CreateIndicatorValueSchema, tags: ['indicators'] },
-  }, async (
-    request: FastifyRequest<{ Params: { id: string }; Body: CreateIndicatorValueDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: CreateIndicatorValueSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const body = request.body as CreateIndicatorValueDto;
     const user = request.user as AuthenticatedUser;
-    const data = await app.indicatorService.createValue(request.params.id, request.body, user.userId);
+    const data = await app.indicatorService.createValue(params.id, body, user.userId);
     return reply.code(201).send({ data });
   });
 
   app.post(`${PREFIX}/indicators/:id/values/bulk`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { body: BulkIndicatorValueSchema, tags: ['indicators'] },
-  }, async (
-    request: FastifyRequest<{ Params: { id: string }; Body: BulkIndicatorValueDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: BulkIndicatorValueSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const body = request.body as BulkIndicatorValueDto;
     const user = request.user as AuthenticatedUser;
-    const result = await app.indicatorService.bulkCreateValues(request.params.id, request.body, user.userId);
+    const result = await app.indicatorService.bulkCreateValues(params.id, body, user.userId);
     return reply.code(201).send({ data: result });
   });
 
@@ -235,16 +209,16 @@ export async function registerIndicatorRoutes(app: FastifyInstance): Promise<voi
 
   app.post(`${PREFIX}/admin/indicators/:id/formula`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { body: SetFormulaSchema, tags: ['indicators'] },
-  }, async (
-    request: FastifyRequest<{ Params: { id: string }; Body: SetFormulaDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: SetFormulaSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const body = request.body as SetFormulaDto;
+
     // Validate formula before saving
     const validation = await app.formulaEvaluator.validate(
-      request.params.id,
-      request.body.expression,
-      request.body.dependencies.map((d) => d.indicatorCode),
+      params.id,
+      body.expression,
+      body.dependencies.map((d) => d.indicatorCode),
     );
     if (!validation.valid) {
       return reply.code(400).send({
@@ -254,21 +228,20 @@ export async function registerIndicatorRoutes(app: FastifyInstance): Promise<voi
       });
     }
 
-    const data = await app.indicatorService.setFormula(request.params.id, request.body);
+    const data = await app.indicatorService.setFormula(params.id, body);
     return reply.code(200).send({ data });
   });
 
   app.post(`${PREFIX}/admin/indicators/:id/formula/validate`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { body: SetFormulaSchema, tags: ['indicators'] },
-  }, async (
-    request: FastifyRequest<{ Params: { id: string }; Body: SetFormulaDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: SetFormulaSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const body = request.body as SetFormulaDto;
     const result = await app.formulaEvaluator.validate(
-      request.params.id,
-      request.body.expression,
-      request.body.dependencies.map((d) => d.indicatorCode),
+      params.id,
+      body.expression,
+      body.dependencies.map((d) => d.indicatorCode),
     );
     return reply.code(200).send({ data: result });
   });
@@ -284,14 +257,12 @@ export async function registerIndicatorRoutes(app: FastifyInstance): Promise<voi
         },
         required: ['year'],
       },
-      tags: ['indicators'],
-    },
-  }, async (
-    request: FastifyRequest<{ Params: { id: string }; Querystring: { year: number; countryCode?: string } }>,
-    reply: FastifyReply,
-  ) => {
-    const { year, countryCode } = request.query;
-    const result = await app.formulaEvaluator.evaluate(request.params.id, year, countryCode);
+    } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const query = request.query as { year: number; countryCode?: string };
+    const { year, countryCode } = query;
+    const result = await app.formulaEvaluator.evaluate(params.id, year, countryCode);
     return reply.code(200).send({ data: result });
   });
 }

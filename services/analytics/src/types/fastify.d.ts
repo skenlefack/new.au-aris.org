@@ -10,6 +10,7 @@ import type { DashboardService } from '../dashboards/dashboard.service';
 import type { WidgetResolver } from '../dashboards/widget-resolver';
 import type { ReportService } from '../reports/report.service';
 import type { DomainSummaryService } from '../domain-summary/domain-summary.service';
+import type { SlideshowService } from '../slideshows/slideshow.service';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -25,5 +26,6 @@ declare module 'fastify' {
     widgetResolver: WidgetResolver;
     reportService: ReportService;
     domainSummaryService: DomainSummaryService;
+    slideshowService: SlideshowService;
   }
 }

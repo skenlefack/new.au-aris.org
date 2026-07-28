@@ -75,7 +75,6 @@ export async function registerReportRoutes(app: FastifyInstance): Promise<void> 
 
   app.get(`${PREFIX}/report-templates`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['reports'] },
   }, async (_request: FastifyRequest, reply: FastifyReply) => {
     const data = await app.reportService.listTemplates();
     return reply.code(200).send({ data });
@@ -83,42 +82,39 @@ export async function registerReportRoutes(app: FastifyInstance): Promise<void> 
 
   app.get(`${PREFIX}/report-templates/:id`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['reports'] },
-  }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const data = await app.reportService.getTemplateById(request.params.id);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const data = await app.reportService.getTemplateById(params.id);
     if (!data) return reply.code(404).send({ statusCode: 404, message: 'Template not found' });
     return reply.code(200).send({ data });
   });
 
   app.post(`${PREFIX}/admin/report-templates`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { body: CreateReportTemplateSchema, tags: ['reports'] },
-  }, async (
-    request: FastifyRequest<{ Body: CreateReportTemplateDto }>,
-    reply: FastifyReply,
-  ) => {
-    const user = (request as unknown as { user: AuthenticatedUser }).user;
-    const data = await app.reportService.createTemplate(request.body, user.userId);
+    schema: { body: CreateReportTemplateSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = request.body as CreateReportTemplateDto;
+    const user = request.user as AuthenticatedUser;
+    const data = await app.reportService.createTemplate(body, user.userId);
     return reply.code(201).send({ data });
   });
 
   app.patch(`${PREFIX}/admin/report-templates/:id`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { body: UpdateReportTemplateSchema, tags: ['reports'] },
-  }, async (
-    request: FastifyRequest<{ Params: { id: string }; Body: UpdateReportTemplateDto }>,
-    reply: FastifyReply,
-  ) => {
-    const data = await app.reportService.updateTemplate(request.params.id, request.body);
+    schema: { body: UpdateReportTemplateSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const body = request.body as UpdateReportTemplateDto;
+    const data = await app.reportService.updateTemplate(params.id, body);
     if (!data) return reply.code(404).send({ statusCode: 404, message: 'Template not found' });
     return reply.code(200).send({ data });
   });
 
   app.delete(`${PREFIX}/admin/report-templates/:id`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { tags: ['reports'] },
-  }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const ok = await app.reportService.deleteTemplate(request.params.id);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const ok = await app.reportService.deleteTemplate(params.id);
     if (!ok) return reply.code(404).send({ statusCode: 404, message: 'Template not found' });
     return reply.code(204).send();
   });
@@ -129,85 +125,77 @@ export async function registerReportRoutes(app: FastifyInstance): Promise<void> 
 
   app.get(`${PREFIX}/reports`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { querystring: ListReportsQuerySchema, tags: ['reports'] },
-  }, async (
-    request: FastifyRequest<{ Querystring: ListReportsQuery }>,
-    reply: FastifyReply,
-  ) => {
-    const user = (request as unknown as { user: AuthenticatedUser }).user;
-    const result = await app.reportService.listReports(request.query, user.tenantId);
+    schema: { querystring: ListReportsQuerySchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const query = request.query as ListReportsQuery;
+    const user = request.user as AuthenticatedUser;
+    const result = await app.reportService.listReports(query, user.tenantId);
     return reply.code(200).send(result);
   });
 
   app.get(`${PREFIX}/reports/:id`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['reports'] },
-  }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const data = await app.reportService.getReportById(request.params.id);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const data = await app.reportService.getReportById(params.id);
     if (!data) return reply.code(404).send({ statusCode: 404, message: 'Report not found' });
     return reply.code(200).send({ data });
   });
 
   app.post(`${PREFIX}/reports/generate`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...REPORT_ROLES)],
-    schema: { body: GenerateReportBodySchema, tags: ['reports'] },
-  }, async (
-    request: FastifyRequest<{ Body: GenerateReportBody }>,
-    reply: FastifyReply,
-  ) => {
-    const user = (request as unknown as { user: AuthenticatedUser }).user;
-    const data = await app.reportService.generateReport(request.body, user.userId, user.tenantId);
+    schema: { body: GenerateReportBodySchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = request.body as GenerateReportBody;
+    const user = request.user as AuthenticatedUser;
+    const data = await app.reportService.generateReport(body, user.userId, user.tenantId);
     return reply.code(201).send({ data });
   });
 
   app.get(`${PREFIX}/reports/:id/status`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['reports'] },
-  }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const data = await app.reportService.getReportStatus(request.params.id);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const data = await app.reportService.getReportStatus(params.id);
     if (!data) return reply.code(404).send({ statusCode: 404, message: 'Report not found' });
     return reply.code(200).send({ data });
   });
 
   app.post(`${PREFIX}/reports/:id/sections/:code/edit`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...REPORT_ROLES)],
-    schema: { body: EditSectionBodySchema, tags: ['reports'] },
-  }, async (
-    request: FastifyRequest<{ Params: { id: string; code: string }; Body: EditSectionBody }>,
-    reply: FastifyReply,
-  ) => {
-    const data = await app.reportService.editSection(request.params.id, request.params.code, request.body);
+    schema: { body: EditSectionBodySchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string; code: string };
+    const body = request.body as EditSectionBody;
+    const data = await app.reportService.editSection(params.id, params.code, body);
     if (!data) return reply.code(404).send({ statusCode: 404, message: 'Section not found' });
     return reply.code(200).send({ data });
   });
 
   app.post(`${PREFIX}/reports/:id/sections/:code/regenerate`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...REPORT_ROLES)],
-    schema: { tags: ['reports'] },
-  }, async (
-    request: FastifyRequest<{ Params: { id: string; code: string } }>,
-    reply: FastifyReply,
-  ) => {
-    const data = await app.reportService.regenerateSection(request.params.id, request.params.code);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string; code: string };
+    const data = await app.reportService.regenerateSection(params.id, params.code);
     return reply.code(200).send({ data });
   });
 
   app.post(`${PREFIX}/reports/:id/approve`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { tags: ['reports'] },
-  }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const user = (request as unknown as { user: AuthenticatedUser }).user;
-    const data = await app.reportService.approveReport(request.params.id, user.userId);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const user = request.user as AuthenticatedUser;
+    const data = await app.reportService.approveReport(params.id, user.userId);
     if (!data) return reply.code(404).send({ statusCode: 404, message: 'Report not found or not in correct status' });
     return reply.code(200).send({ data });
   });
 
   app.post(`${PREFIX}/reports/:id/publish`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { tags: ['reports'] },
-  }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const user = (request as unknown as { user: AuthenticatedUser }).user;
-    const data = await app.reportService.publishReport(request.params.id, user.userId);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const user = request.user as AuthenticatedUser;
+    const data = await app.reportService.publishReport(params.id, user.userId);
     if (!data) return reply.code(404).send({ statusCode: 404, message: 'Report not found or not ready for publishing' });
     return reply.code(200).send({ data });
   });
@@ -218,28 +206,27 @@ export async function registerReportRoutes(app: FastifyInstance): Promise<void> 
 
   app.get(`${PREFIX}/flash-alerts`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['reports'] },
   }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const user = (request as unknown as { user: AuthenticatedUser }).user;
+    const user = request.user as AuthenticatedUser;
     const data = await app.reportService.listFlashAlerts(user.tenantId);
     return reply.code(200).send({ data });
   });
 
   app.get(`${PREFIX}/flash-alerts/:id`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['reports'] },
-  }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const data = await app.reportService.getFlashAlertById(request.params.id);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const data = await app.reportService.getFlashAlertById(params.id);
     if (!data) return reply.code(404).send({ statusCode: 404, message: 'Flash alert not found' });
     return reply.code(200).send({ data });
   });
 
   app.post(`${PREFIX}/flash-alerts/:id/dismiss`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['reports'] },
-  }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const user = (request as unknown as { user: AuthenticatedUser }).user;
-    const data = await app.reportService.dismissFlashAlert(request.params.id, user.userId);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const user = request.user as AuthenticatedUser;
+    const data = await app.reportService.dismissFlashAlert(params.id, user.userId);
     if (!data) return reply.code(404).send({ statusCode: 404, message: 'Flash alert not found' });
     return reply.code(200).send({ data });
   });
@@ -250,7 +237,6 @@ export async function registerReportRoutes(app: FastifyInstance): Promise<void> 
 
   app.get(`${PREFIX}/flash-strategies`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['reports'] },
   }, async (_request: FastifyRequest, reply: FastifyReply) => {
     const data = await app.reportService.listFlashStrategies();
     return reply.code(200).send({ data });
@@ -258,33 +244,30 @@ export async function registerReportRoutes(app: FastifyInstance): Promise<void> 
 
   app.post(`${PREFIX}/admin/flash-strategies`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { body: CreateFlashStrategySchema, tags: ['reports'] },
-  }, async (
-    request: FastifyRequest<{ Body: CreateFlashStrategyDto }>,
-    reply: FastifyReply,
-  ) => {
-    const user = (request as unknown as { user: AuthenticatedUser }).user;
-    const data = await app.reportService.createFlashStrategy(request.body, user.userId);
+    schema: { body: CreateFlashStrategySchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = request.body as CreateFlashStrategyDto;
+    const user = request.user as AuthenticatedUser;
+    const data = await app.reportService.createFlashStrategy(body, user.userId);
     return reply.code(201).send({ data });
   });
 
   app.patch(`${PREFIX}/admin/flash-strategies/:id`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { body: UpdateFlashStrategySchema, tags: ['reports'] },
-  }, async (
-    request: FastifyRequest<{ Params: { id: string }; Body: UpdateFlashStrategyDto }>,
-    reply: FastifyReply,
-  ) => {
-    const data = await app.reportService.updateFlashStrategy(request.params.id, request.body);
+    schema: { body: UpdateFlashStrategySchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const body = request.body as UpdateFlashStrategyDto;
+    const data = await app.reportService.updateFlashStrategy(params.id, body);
     if (!data) return reply.code(404).send({ statusCode: 404, message: 'Strategy not found' });
     return reply.code(200).send({ data });
   });
 
   app.delete(`${PREFIX}/admin/flash-strategies/:id`, {
     preHandler: [app.authHookFn, tenantHook(), rolesHook(...ADMIN_ROLES)],
-    schema: { tags: ['reports'] },
-  }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const ok = await app.reportService.deleteFlashStrategy(request.params.id);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { id: string };
+    const ok = await app.reportService.deleteFlashStrategy(params.id);
     if (!ok) return reply.code(404).send({ statusCode: 404, message: 'Strategy not found' });
     return reply.code(204).send();
   });
@@ -295,7 +278,6 @@ export async function registerReportRoutes(app: FastifyInstance): Promise<void> 
 
   app.get(`${PREFIX}/ollama/health`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['reports'] },
   }, async (_request: FastifyRequest, reply: FastifyReply) => {
     const client = new OllamaClient();
     const healthy = await client.healthCheck();

@@ -193,7 +193,7 @@ async function publishWithTimeout(
       app.kafka.send(topic, key, payload, {
         source: 'analytics-composite-recompute',
         correlationId: randomUUID(),
-      }),
+      } as any),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Kafka publish timeout')), 5_000),
       ),

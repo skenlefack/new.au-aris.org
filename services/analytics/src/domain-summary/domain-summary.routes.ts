@@ -7,10 +7,10 @@ export async function registerDomainSummaryRoutes(app: FastifyInstance): Promise
   app.get(`${PREFIX}/:code/summary`, {
     preHandler: [app.authHookFn, tenantHook()],
   }, async (
-    request: FastifyRequest<{ Params: { code: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply,
   ) => {
-    const { code } = request.params;
+    const { code } = request.params as { code: string };
     const user = (request as any).user;
     const data = await app.domainSummaryService.getSummary(code, user?.tenantId);
     return reply.code(200).send({ data });

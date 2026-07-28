@@ -412,10 +412,10 @@ export class ReportGenerator {
     if (!this.kafka) return;
     try {
       await Promise.race([
-        this.kafka.producer.send({
-          topic,
-          messages: [{ key: payload['reportId'] as string, value: JSON.stringify(payload) }],
-        }),
+        this.kafka.send(topic, payload['reportId'] as string, payload, {
+          source: 'analytics-report-generator',
+          correlationId: payload['reportId'] as string,
+        } as any),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Kafka timeout')), KAFKA_TIMEOUT_MS)),
       ]);
     } catch (err) {

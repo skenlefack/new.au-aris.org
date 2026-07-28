@@ -39,7 +39,10 @@ export class SlideshowService {
     if (!this.kafka) return;
     try {
       await Promise.race([
-        this.kafka.producer.send({ topic, messages: [{ value: JSON.stringify(payload) }] }),
+        this.kafka.send(topic, randomUUID(), payload, {
+          source: 'analytics-slideshow-service',
+          correlationId: randomUUID(),
+        } as any),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Kafka timeout')), 5000)),
       ]);
     } catch { /* non-blocking */ }

@@ -82,16 +82,15 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
         recCode: Type.Optional(Type.String({ maxLength: 20 })),
         countryCode: Type.Optional(Type.String({ maxLength: 2 })),
       }),
-      tags: ['dashboards'],
-    },
+    } as any,
   }, async (
-    request: FastifyRequest<{ Querystring: { scope: string; recCode?: string; countryCode?: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply,
   ) => {
-    const { scope, recCode, countryCode } = request.query;
+    const { scope, recCode, countryCode } = request.query as { scope?: string; recCode?: string; countryCode?: string };
     const result = await app.dashboardService.list(
-      { scope, recCode, countryCode, ownership: 'USER_OWNED', limit: 1 },
-      undefined, undefined, undefined, // no user context — public
+      { scope, recCode, countryCode, ownership: 'USER_OWNED', limit: 1 } as any,
+      undefined as any, undefined, undefined, // no user context — public
     );
     const dashboard = result.data?.[0];
     if (!dashboard) {
@@ -101,7 +100,7 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
     try {
       const rendered = await app.widgetResolver.renderDashboard(
         (dashboard as any).id,
-        undefined,
+        undefined as any,
         { recCode, countryCode },
       );
       return reply.code(200).send({ data: rendered });
@@ -116,7 +115,6 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
 
   app.get(`${PREFIX}/query-catalogue`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['dashboards'] },
   }, async (_request: FastifyRequest, reply: FastifyReply) => {
     return reply.code(200).send({
       data: {
@@ -249,25 +247,19 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
 
   app.get(PREFIX, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { querystring: ListDashboardsQuerySchema, tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Querystring: ListDashboardsQuery }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { querystring: ListDashboardsQuerySchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const result = await app.dashboardService.list(request.query, user.userId, user.role, user.tenantId);
+    const result = await app.dashboardService.list(request.query as ListDashboardsQuery, user.userId, user.role, user.tenantId);
     return reply.code(200).send(result);
   });
 
   app.get(`${PREFIX}/default-for`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { querystring: DefaultForQuerySchema, tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Querystring: DefaultForQuery }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { querystring: DefaultForQuerySchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const data = await app.dashboardService.getDefaultFor(user.userId, request.query);
+    const data = await app.dashboardService.getDefaultFor(user.userId, request.query as DefaultForQuery);
     if (!data) {
       return reply.code(404).send({ statusCode: 404, message: 'No default dashboard found for this scope' });
     }
@@ -276,65 +268,52 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
 
   app.get(`${PREFIX}/:id`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Params: DashboardIdParam }>,
-    reply: FastifyReply,
-  ) => {
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const data = await app.dashboardService.getById(request.params.id, user.userId, user.role, user.tenantId);
+    const { id } = request.params as DashboardIdParam;
+    const data = await app.dashboardService.getById(id, user.userId, user.role, user.tenantId);
     return reply.code(200).send({ data });
   });
 
   app.get(`${PREFIX}/:id/render`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { querystring: RenderQuerySchema, tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Params: DashboardIdParam; Querystring: RenderQuery }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { querystring: RenderQuerySchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
+    const { id } = request.params as DashboardIdParam;
     const data = await app.widgetResolver.renderDashboard(
-      request.params.id,
+      id,
       user.userId,
-      request.query,
+      request.query as RenderQuery,
     );
     return reply.code(200).send({ data });
   });
 
   app.post(PREFIX, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { body: CreateDashboardSchema, tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Body: CreateDashboardDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: CreateDashboardSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const data = await app.dashboardService.create(request.body, user.userId);
+    const data = await app.dashboardService.create(request.body as CreateDashboardDto, user.userId);
     return reply.code(201).send({ data });
   });
 
   app.patch(`${PREFIX}/:id`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { body: UpdateDashboardSchema, tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Params: DashboardIdParam; Body: UpdateDashboardDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: UpdateDashboardSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const data = await app.dashboardService.update(request.params.id, request.body, user.userId);
+    const { id } = request.params as DashboardIdParam;
+    const data = await app.dashboardService.update(id, request.body as UpdateDashboardDto, user.userId);
     return reply.code(200).send({ data });
   });
 
   app.delete(`${PREFIX}/:id`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Params: DashboardIdParam }>,
-    reply: FastifyReply,
-  ) => {
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    await app.dashboardService.delete(request.params.id, user.userId, user.role);
+    const { id } = request.params as DashboardIdParam;
+    await app.dashboardService.delete(id, user.userId, user.role);
     return reply.code(204).send();
   });
 
@@ -344,58 +323,40 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
 
   app.post(`${PREFIX}/:id/widgets`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { body: CreateWidgetSchema, tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Params: DashboardIdParam; Body: CreateWidgetDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: CreateWidgetSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const data = await app.dashboardService.addWidget(request.params.id, request.body, user.userId);
+    const { id } = request.params as DashboardIdParam;
+    const data = await app.dashboardService.addWidget(id, request.body as CreateWidgetDto, user.userId);
     return reply.code(201).send({ data });
   });
 
   app.patch(`${PREFIX}/:id/widgets/:widgetId`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { body: UpdateWidgetSchema, tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Params: WidgetIdParam; Body: UpdateWidgetDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: UpdateWidgetSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const data = await app.dashboardService.updateWidget(
-      request.params.id,
-      request.params.widgetId,
-      request.body,
-      user.userId,
-    );
+    const { id, widgetId } = request.params as WidgetIdParam;
+    const data = await app.dashboardService.updateWidget(id, widgetId, request.body as UpdateWidgetDto, user.userId);
     return reply.code(200).send({ data });
   });
 
   app.post(`${PREFIX}/:id/widgets/batch`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { body: BatchUpdateWidgetsSchema, tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Params: DashboardIdParam; Body: BatchUpdateWidgetsDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: BatchUpdateWidgetsSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const data = await app.dashboardService.batchUpdateWidgets(
-      request.params.id,
-      request.body,
-      user.userId,
-    );
+    const { id } = request.params as DashboardIdParam;
+    const data = await app.dashboardService.batchUpdateWidgets(id, request.body as BatchUpdateWidgetsDto, user.userId);
     return reply.code(200).send({ data });
   });
 
   app.delete(`${PREFIX}/:id/widgets/:widgetId`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Params: WidgetIdParam }>,
-    reply: FastifyReply,
-  ) => {
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    await app.dashboardService.removeWidget(request.params.id, request.params.widgetId, user.userId);
+    const { id, widgetId } = request.params as WidgetIdParam;
+    await app.dashboardService.removeWidget(id, widgetId, user.userId);
     return reply.code(204).send();
   });
 
@@ -405,17 +366,11 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
 
   app.post(`${PREFIX}/:id/layout`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { body: SaveLayoutSchema, tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Params: DashboardIdParam; Body: SaveLayoutDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: SaveLayoutSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const data = await app.dashboardService.saveLayout(
-      request.params.id,
-      request.body,
-      user.userId,
-    );
+    const { id } = request.params as DashboardIdParam;
+    const data = await app.dashboardService.saveLayout(id, request.body as SaveLayoutDto, user.userId);
     return reply.code(200).send({ data });
   });
 
@@ -426,51 +381,42 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
   // GET /dashboards/:id/shares — list active shares
   app.get(`${PREFIX}/:id/shares`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { querystring: ListSharesQuerySchema, tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Params: DashboardIdParam; Querystring: ListSharesQuery }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { querystring: ListSharesQuerySchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
+    const { id } = request.params as DashboardIdParam;
     const query = request.query as ListSharesQuery;
-    const data = await app.dashboardService.listShares(request.params.id, user.userId, query.page, query.limit);
+    const data = await app.dashboardService.listShares(id, user.userId, query.page, query.limit);
     return reply.send(data);
   });
 
   // PATCH /dashboards/:id/share/:shareId — update share
   app.patch(`${PREFIX}/:id/share/:shareId`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { body: UpdateShareSchema, tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Params: ShareIdParam; Body: UpdateShareDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: UpdateShareSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const data = await app.dashboardService.updateShare(request.params.id, request.params.shareId, request.body, user.userId);
+    const { id, shareId } = request.params as ShareIdParam;
+    const data = await app.dashboardService.updateShare(id, shareId, request.body as UpdateShareDto, user.userId);
     return reply.send({ data });
   });
 
   app.post(`${PREFIX}/:id/share`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { body: CreateShareSchema, tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Params: DashboardIdParam; Body: CreateShareDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: CreateShareSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const data = await app.dashboardService.share(request.params.id, request.body, user.userId);
+    const { id } = request.params as DashboardIdParam;
+    const data = await app.dashboardService.share(id, request.body as CreateShareDto, user.userId);
     return reply.code(201).send({ data });
   });
 
   app.delete(`${PREFIX}/:id/share/:shareId`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Params: ShareIdParam }>,
-    reply: FastifyReply,
-  ) => {
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    await app.dashboardService.removeShare(request.params.id, request.params.shareId, user.userId);
+    const { id, shareId } = request.params as ShareIdParam;
+    await app.dashboardService.removeShare(id, shareId, user.userId);
     return reply.code(204).send();
   });
 
@@ -480,13 +426,10 @@ export async function registerDashboardRoutes(app: FastifyInstance): Promise<voi
 
   app.post(`${PREFIX}/preferences`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { body: SetPreferenceSchema, tags: ['dashboards'] },
-  }, async (
-    request: FastifyRequest<{ Body: SetPreferenceDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: SetPreferenceSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AuthenticatedUser;
-    const data = await app.dashboardService.setPreference(user.userId, request.body);
+    const data = await app.dashboardService.setPreference(user.userId, request.body as SetPreferenceDto);
     return reply.code(200).send({ data });
   });
 }

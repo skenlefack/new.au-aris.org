@@ -38,24 +38,16 @@ export async function registerSlideshowRoutes(app: FastifyInstance): Promise<voi
   //  Public — kiosk view (no auth)
   // ═══════════════════════════════════════════════════════════════════════
 
-  app.get(`${PREFIX}/public/:token`, {
-    schema: { tags: ['slideshows'] },
-  }, async (
-    request: FastifyRequest<{ Params: { token: string } }>,
-    reply: FastifyReply,
-  ) => {
-    const data = await app.slideshowService.getByPublicToken(request.params.token);
+  app.get(`${PREFIX}/public/:token`, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { token: string };
+    const data = await app.slideshowService.getByPublicToken(params.token);
     return reply.code(200).send({ data });
   });
 
   // Public render — resolves widget data for each slide's dashboard
-  app.get(`${PREFIX}/public/:token/render`, {
-    schema: { tags: ['slideshows'] },
-  }, async (
-    request: FastifyRequest<{ Params: { token: string } }>,
-    reply: FastifyReply,
-  ) => {
-    const slideshow = await app.slideshowService.getByPublicToken(request.params.token) as any;
+  app.get(`${PREFIX}/public/:token/render`, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { token: string };
+    const slideshow = await app.slideshowService.getByPublicToken(params.token) as any;
     const slides = slideshow.slides || [];
 
     // Resolve each dashboard's widgets in parallel
@@ -64,7 +56,7 @@ export async function registerSlideshowRoutes(app: FastifyInstance): Promise<voi
         try {
           const rendered = await app.widgetResolver.renderDashboard(
             slide.dashboardId,
-            undefined, // no user context
+            undefined as any,
             {},
           );
           return { ...slide, dashboard: rendered };
@@ -88,60 +80,49 @@ export async function registerSlideshowRoutes(app: FastifyInstance): Promise<voi
 
   app.get(PREFIX, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { querystring: ListSlideshowsQuerySchema, tags: ['slideshows'] },
-  }, async (
-    request: FastifyRequest<{ Querystring: ListSlideshowsQuery }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { querystring: ListSlideshowsQuerySchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const query = request.query as ListSlideshowsQuery;
     const user = request.user as AuthenticatedUser;
-    const result = await app.slideshowService.list(request.query, user.tenantId);
+    const result = await app.slideshowService.list(query, user.tenantId);
     return reply.code(200).send(result);
   });
 
   app.post(PREFIX, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { body: CreateSlideshowSchema, tags: ['slideshows'] },
-  }, async (
-    request: FastifyRequest<{ Body: CreateSlideshowDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: CreateSlideshowSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = request.body as CreateSlideshowDto;
     const user = request.user as AuthenticatedUser;
-    const data = await app.slideshowService.create(request.body, user.userId, user.tenantId);
+    const data = await app.slideshowService.create(body, user.userId, user.tenantId);
     return reply.code(201).send({ data });
   });
 
   app.get(`${PREFIX}/:id`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['slideshows'] },
-  }, async (
-    request: FastifyRequest<{ Params: SlideshowIdParam }>,
-    reply: FastifyReply,
-  ) => {
-    const data = await app.slideshowService.getById(request.params.id);
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as SlideshowIdParam;
+    const data = await app.slideshowService.getById(params.id);
     return reply.code(200).send({ data });
   });
 
   app.patch(`${PREFIX}/:id`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { body: UpdateSlideshowSchema, tags: ['slideshows'] },
-  }, async (
-    request: FastifyRequest<{ Params: SlideshowIdParam; Body: UpdateSlideshowDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: UpdateSlideshowSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as SlideshowIdParam;
+    const body = request.body as UpdateSlideshowDto;
     const user = request.user as AuthenticatedUser;
-    const data = await app.slideshowService.update(request.params.id, request.body, user.userId);
+    const data = await app.slideshowService.update(params.id, body, user.userId);
     return reply.code(200).send({ data });
   });
 
   app.delete(`${PREFIX}/:id`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['slideshows'] },
-  }, async (
-    request: FastifyRequest<{ Params: SlideshowIdParam }>,
-    reply: FastifyReply,
-  ) => {
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as SlideshowIdParam;
     const user = request.user as AuthenticatedUser;
-    await app.slideshowService.delete(request.params.id, user.userId);
+    await app.slideshowService.delete(params.id, user.userId);
     return reply.code(204).send();
   });
 
@@ -151,13 +132,12 @@ export async function registerSlideshowRoutes(app: FastifyInstance): Promise<voi
 
   app.put(`${PREFIX}/:id/slides`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { body: UpdateSlidesSchema, tags: ['slideshows'] },
-  }, async (
-    request: FastifyRequest<{ Params: SlideshowIdParam; Body: UpdateSlidesDto }>,
-    reply: FastifyReply,
-  ) => {
+    schema: { body: UpdateSlidesSchema } as any,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as SlideshowIdParam;
+    const body = request.body as UpdateSlidesDto;
     const user = request.user as AuthenticatedUser;
-    const data = await app.slideshowService.updateSlides(request.params.id, request.body, user.userId);
+    const data = await app.slideshowService.updateSlides(params.id, body, user.userId);
     return reply.code(200).send({ data });
   });
 
@@ -167,13 +147,10 @@ export async function registerSlideshowRoutes(app: FastifyInstance): Promise<voi
 
   app.post(`${PREFIX}/:id/regenerate-token`, {
     preHandler: [app.authHookFn, tenantHook()],
-    schema: { tags: ['slideshows'] },
-  }, async (
-    request: FastifyRequest<{ Params: SlideshowIdParam }>,
-    reply: FastifyReply,
-  ) => {
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as SlideshowIdParam;
     const user = request.user as AuthenticatedUser;
-    const data = await app.slideshowService.regenerateToken(request.params.id, user.userId);
+    const data = await app.slideshowService.regenerateToken(params.id, user.userId);
     return reply.code(200).send({ data });
   });
 }

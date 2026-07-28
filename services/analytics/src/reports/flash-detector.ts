@@ -55,26 +55,25 @@ export async function registerFlashDetectorConsumer(
     TOPIC_SYS_ANALYTICS_INDICATOR_VALUE_UPDATED,
   ];
 
-  try {
-    await app.kafka.consumer.subscribe({ topics, fromBeginning: false });
-    app.log.info(`[FlashDetector] Subscribed to ${topics.join(', ')}`);
-  } catch (err) {
-    app.log.warn(`[FlashDetector] Failed to subscribe: ${err}`);
-    return;
+  for (const topic of topics) {
+    try {
+      await app.kafka.subscribe(
+        { topic, groupId: 'analytics-flash-detector' },
+        async (payload: unknown) => {
+          if (!payload) return;
+          try {
+            const event = payload as IndicatorValueEvent;
+            await evaluateStrategies(app, pool, event);
+          } catch (err) {
+            app.log.error(`[FlashDetector] Error processing message: ${err}`);
+          }
+        },
+      );
+      app.log.info(`[FlashDetector] Subscribed to ${topic}`);
+    } catch (err) {
+      app.log.warn(`[FlashDetector] Failed to subscribe to ${topic}: ${err}`);
+    }
   }
-
-  await app.kafka.consumer.run({
-    eachMessage: async ({ message }) => {
-      if (!message.value) return;
-
-      try {
-        const event = JSON.parse(message.value.toString()) as IndicatorValueEvent;
-        await evaluateStrategies(app, pool, event);
-      } catch (err) {
-        app.log.error(`[FlashDetector] Error processing message: ${err}`);
-      }
-    },
-  });
 }
 
 async function evaluateStrategies(
@@ -169,21 +168,23 @@ async function evaluateStrategies(
     if (app.kafka) {
       try {
         await Promise.race([
-          app.kafka.producer.send({
-            topic: TOPIC_SYS_ANALYTICS_FLASH_ALERT_CREATED,
-            messages: [{
-              key: alertId,
-              value: JSON.stringify({
-                alertId,
-                strategyCode: strategy.code,
-                indicatorCode: event.indicatorCode,
-                triggerValue: event.numericValue,
-                thresholdValue: strategy.condition_value,
-                tenantId: event.tenantId,
-                createdAt: new Date().toISOString(),
-              }),
-            }],
-          }),
+          app.kafka.send(
+            TOPIC_SYS_ANALYTICS_FLASH_ALERT_CREATED,
+            alertId,
+            {
+              alertId,
+              strategyCode: strategy.code,
+              indicatorCode: event.indicatorCode,
+              triggerValue: event.numericValue,
+              thresholdValue: strategy.condition_value,
+              tenantId: event.tenantId,
+              createdAt: new Date().toISOString(),
+            },
+            {
+              source: 'analytics-flash-detector',
+              correlationId: randomUUID(),
+            } as any,
+          ),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Kafka timeout')), KAFKA_TIMEOUT_MS)),
         ]);
