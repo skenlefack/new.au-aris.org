@@ -3,6 +3,7 @@
 import React from 'react';
 import { useTranslations } from '@/lib/i18n/translations';
 import type { DashboardWidget } from '@/lib/api/dashboard-hooks';
+import { useViewerFilters } from './DashboardViewerContext';
 import { KpiCardWidget } from './widgets/KpiCardWidget';
 import { ChartWidget } from './widgets/ChartWidget';
 import { MapWidget } from './widgets/MapWidget';
@@ -22,6 +23,9 @@ import { ActivityFeedWidget } from './widgets/ActivityFeedWidget';
 import { EpiCurveWidget } from './widgets/EpiCurveWidget';
 import { DualAxisWidget } from './widgets/DualAxisWidget';
 import { CounterWidget } from './widgets/CounterWidget';
+import { ChoroplethMapWidget } from './widgets/ChoroplethMapWidget';
+import { KpiStripWidget } from './widgets/KpiStripWidget';
+import { PersonStatWidget } from './widgets/PersonStatWidget';
 
 function getDefaultWidgetConfigs(t: (key: string) => string): Record<string, Record<string, unknown>> {
   return {
@@ -48,6 +52,9 @@ function getDefaultWidgetConfigs(t: (key: string) => string): Record<string, Rec
     EPI_CURVE: { data: [] },
     DUAL_AXIS: { data: [], leftAxis: { key: 'left', label: 'Left', color: '#1F4E79' }, rightAxis: { key: 'right', label: 'Right', color: '#C9A227' } },
     COUNTER: { value: 0, label: 'Counter' },
+    CHOROPLETH_MAP: {},
+    KPI_STRIP: { items: [] },
+    PERSON_STAT: { data: {} },
   };
 }
 
@@ -71,9 +78,14 @@ function WidgetSkeleton() {
 }
 
 function WidgetError({ message }: { message: string }) {
+  const t = useTranslations('dashboard');
+  const friendlyMessage = message.includes('Unknown queryType') ? t('dbErrorUnknownQuery')
+    : message.includes('query is required') ? t('dbErrorQueryRequired')
+    : message.includes('not found') ? t('dbErrorNotFound')
+    : t('dbErrorDataUnavailable');
   return (
     <div className="flex h-full items-center justify-center p-4">
-      <p className="text-sm text-red-500">{message}</p>
+      <p className="text-sm text-red-500">{friendlyMessage}</p>
     </div>
   );
 }
@@ -181,11 +193,38 @@ function normalizeResolvedData(
     return { data: dataArray };
   }
 
+  // CHOROPLETH_MAP: pass through as-is (backend returns { byCountry, indicator, mode })
+  if (widgetType === 'CHOROPLETH_MAP') {
+    return resolved;
+  }
+
+  // PERSON_STAT: pass data as-is
+  if (widgetType === 'PERSON_STAT') {
+    return resolved;
+  }
+
+  // KPI_STRIP: use items array if present, otherwise try to build from data
+  if (widgetType === 'KPI_STRIP') {
+    if (resolved.items && Array.isArray(resolved.items)) {
+      return resolved;
+    }
+    // Build items from data array
+    return {
+      items: dataArray.map((r: any) => ({
+        label: r.name || r.key || '',
+        value: typeof r.value === 'number' ? r.value : (parseFloat(r.value) || 0),
+        icon: r.icon,
+        color: r.color,
+      })),
+    };
+  }
+
   return resolved;
 }
 
 export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererProps) {
   const t = useTranslations('dashboard');
+  const { filters } = useViewerFilters();
   if (loading) return <WidgetSkeleton />;
   if (error) return <WidgetError message={error} />;
 
@@ -246,6 +285,7 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
           columns={cfg.columns ?? []}
           rows={cfg.rows ?? []}
           maxRows={cfg.maxRows}
+          config={cfg}
         />
       );
 
@@ -387,6 +427,15 @@ export function WidgetRenderer({ widget, data, loading, error }: WidgetRendererP
           format={cfg.format}
         />
       );
+
+    case 'CHOROPLETH_MAP':
+      return <ChoroplethMapWidget data={cfg} config={cfg} />;
+
+    case 'KPI_STRIP':
+      return <KpiStripWidget items={cfg.items ?? []} config={cfg} />;
+
+    case 'PERSON_STAT':
+      return <PersonStatWidget data={cfg.data ?? cfg} config={cfg} />;
 
     default:
       return (

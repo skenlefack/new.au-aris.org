@@ -5,7 +5,8 @@ import {
   Activity,
   BarChart3,
   PieChart,
-  Map,
+  Map as MapIcon,
+  LayoutDashboard,
   Table2,
   Gauge,
   Type,
@@ -25,6 +26,7 @@ import {
   HeartPulse,
   GitBranch,
   Calculator,
+  Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { WidgetType } from '@/lib/api/dashboard-hooks';
@@ -45,7 +47,7 @@ const WIDGET_TEMPLATES: WidgetTemplate[] = [
   { type: 'STACKED_BAR', labelKey: 'widgetStackedBar', descKey: 'widgetStackedBarDesc', icon: Layers, defaultLayout: { w: 6, h: 4 } },
   { type: 'AREA', labelKey: 'widgetArea', descKey: 'widgetAreaDesc', icon: AreaChart, defaultLayout: { w: 6, h: 4 } },
   { type: 'PIE', labelKey: 'widgetPie', descKey: 'widgetPieDesc', icon: PieChart, defaultLayout: { w: 4, h: 4 } },
-  { type: 'MAP', labelKey: 'widgetMap', descKey: 'widgetMapDesc', icon: Map, defaultLayout: { w: 6, h: 5 } },
+  { type: 'MAP', labelKey: 'widgetMap', descKey: 'widgetMapDesc', icon: MapIcon, defaultLayout: { w: 6, h: 5 } },
   { type: 'TABLE', labelKey: 'widgetTable', descKey: 'widgetTableDesc', icon: Table2, defaultLayout: { w: 6, h: 4 } },
   { type: 'GAUGE', labelKey: 'widgetGauge', descKey: 'widgetGaugeDesc', icon: Gauge, defaultLayout: { w: 3, h: 3 } },
   { type: 'TEXT_BLOCK', labelKey: 'widgetTextBlock', descKey: 'widgetTextBlockDesc', icon: Type, defaultLayout: { w: 4, h: 3 } },
@@ -62,6 +64,9 @@ const WIDGET_TEMPLATES: WidgetTemplate[] = [
   { type: 'EPI_CURVE', labelKey: 'widgetEpiCurve', descKey: 'widgetEpiCurveDesc', icon: HeartPulse, defaultLayout: { w: 6, h: 4 } },
   { type: 'DUAL_AXIS', labelKey: 'widgetDualAxis', descKey: 'widgetDualAxisDesc', icon: GitBranch, defaultLayout: { w: 6, h: 4 } },
   { type: 'COUNTER', labelKey: 'widgetCounter', descKey: 'widgetCounterDesc', icon: Calculator, defaultLayout: { w: 3, h: 2 } },
+  { type: 'CHOROPLETH_MAP', labelKey: 'widgetChoroplethMap', descKey: 'widgetChoroplethMapDesc', icon: Globe, defaultLayout: { w: 6, h: 4 } },
+  { type: 'KPI_STRIP', labelKey: 'widgetKpiStrip', descKey: 'widgetKpiStripDesc', icon: LayoutDashboard, defaultLayout: { w: 12, h: 1 } },
+  { type: 'PERSON_STAT', labelKey: 'widgetPersonStat', descKey: 'widgetPersonStatDesc', icon: Users, defaultLayout: { w: 4, h: 3 } },
 ];
 
 interface WidgetPaletteProps {

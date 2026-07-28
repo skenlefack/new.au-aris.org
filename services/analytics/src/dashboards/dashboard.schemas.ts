@@ -40,6 +40,9 @@ export const WidgetTypeSchema = Type.Union([
   Type.Literal('EPI_CURVE'),
   Type.Literal('DUAL_AXIS'),
   Type.Literal('COUNTER'),
+  Type.Literal('CHOROPLETH_MAP'),
+  Type.Literal('KPI_STRIP'),
+  Type.Literal('PERSON_STAT'),
 ]);
 
 export const WidgetDataSourceSchema = Type.Union([
@@ -50,6 +53,7 @@ export const WidgetDataSourceSchema = Type.Union([
   Type.Literal('COMPOSITE'),
   Type.Literal('SQL_QUERY'),
   Type.Literal('ANALYTICS_QUERY'),
+  Type.Literal('GEO_AGGREGATION'),
 ]);
 
 export const SharePermissionSchema = Type.Union([
@@ -76,6 +80,7 @@ export const CreateDashboardSchema = Type.Object({
   gridColumns: Type.Optional(Type.Integer({ minimum: 1, maximum: 24, default: 12 })),
   rowHeight: Type.Optional(Type.Integer({ minimum: 20, maximum: 300, default: 80 })),
   isDefault: Type.Optional(Type.Boolean({ default: false })),
+  refreshInterval: Type.Optional(Type.Union([Type.Integer({ minimum: 5, maximum: 3600 }), Type.Null()])),
   cloneFrom: Type.Optional(Type.String({ format: 'uuid' })),
 });
 export type CreateDashboardDto = Static<typeof CreateDashboardSchema>;

@@ -25,6 +25,7 @@ interface ChartWidgetProps {
     nameKey?: string;
     valueKey?: string;
     layout?: 'horizontal' | 'vertical';
+    variant?: string;
   };
 }
 
@@ -166,6 +167,43 @@ export function ChartWidget({ type, data, config }: ChartWidgetProps) {
         );
 
       case 'PIE':
+        if (cfg.variant === 'conic' && data?.length) {
+          const total = data.reduce((sum, d) => sum + (Number(d[valueKey]) || 0), 0);
+          const CONIC_COLORS = ['#1F4E79', '#C9A227', '#2563eb', '#16a34a', '#dc2626', '#9333ea', '#0891b2', '#ea580c', '#6366f1', '#14b8a6'];
+          let cumPercent = 0;
+          const segments = data.map((d, i) => {
+            const pct = total > 0 ? (Number(d[valueKey]) / total) * 100 : 0;
+            const from = cumPercent;
+            cumPercent += pct;
+            return `${CONIC_COLORS[i % CONIC_COLORS.length]} ${from}% ${cumPercent}%`;
+          });
+          const gradient = `conic-gradient(${segments.join(', ')})`;
+
+          return (
+            <div className="flex items-center gap-4 h-full p-2">
+              <div className="relative flex-shrink-0">
+                <div className="rounded-full" style={{ width: 120, height: 120, background: gradient }} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="rounded-full bg-white dark:bg-gray-900" style={{ width: 60, height: 60 }}>
+                    <div className="flex h-full flex-col items-center justify-center">
+                      <span className="text-lg font-bold text-gray-900 dark:text-white">{total.toLocaleString()}</span>
+                      <span className="text-[9px] text-gray-500">Total</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 min-w-0 overflow-auto max-h-full">
+                {data.slice(0, 8).map((d, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-[11px]">
+                    <div className="h-2.5 w-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: CONIC_COLORS[i % CONIC_COLORS.length] }} />
+                    <span className="truncate text-gray-700 dark:text-gray-300">{String(d[nameKey] || '')}</span>
+                    <span className="ml-auto font-medium tabular-nums">{Number(d[valueKey]).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
         return (
           <PieChart>
             <Tooltip />

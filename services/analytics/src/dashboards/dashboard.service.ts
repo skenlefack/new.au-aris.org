@@ -303,8 +303,8 @@ export class DashboardService {
           (id, ownership, scope, domain_id, sub_domain_id, value_chain_code,
            rec_code, country_code, campaign_id, title_fr, title_en, title_ar, title_pt,
            description, grid_columns, row_height, owner_user_id, is_default,
-           created_at, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,NOW(),NOW())
+           refresh_interval, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,NOW(),NOW())
          RETURNING *`,
         [
           id,
@@ -325,6 +325,7 @@ export class DashboardService {
           input.rowHeight ?? 80,
           userId,
           input.isDefault ?? false,
+          (input as any).refreshInterval ?? null,
         ],
       );
 
@@ -429,6 +430,7 @@ export class DashboardService {
       gridColumns: 'grid_columns',
       rowHeight: 'row_height',
       isDefault: 'is_default',
+      refreshInterval: 'refresh_interval',
     };
 
     const sets: string[] = [];

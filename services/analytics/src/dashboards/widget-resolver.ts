@@ -92,8 +92,20 @@ export class WidgetResolver {
       },
     };
 
-    // Check cache
-    const cacheKey = this.buildCacheKey(widgetId, userId, globalFilters);
+    // Check cache — include extra context for COMPOSITE and SQL_QUERY sources
+    let cacheExtra: string | undefined;
+    if (dataSource === 'COMPOSITE') {
+      const referencedWidgetIds = config.referencedWidgetIds as string[] | undefined;
+      if (referencedWidgetIds) {
+        cacheExtra = JSON.stringify(referencedWidgetIds);
+      }
+    } else if (dataSource === 'SQL_QUERY') {
+      const query = config.query as string | undefined;
+      if (query) {
+        cacheExtra = query;
+      }
+    }
+    const cacheKey = this.buildCacheKey(widgetId, userId, globalFilters, cacheExtra);
     const cached = await this.redis.get(cacheKey);
     if (cached) {
       try {
@@ -143,6 +155,9 @@ export class WidgetResolver {
 
       case 'ANALYTICS_QUERY':
         return this.resolveAnalyticsQuery(config, globalFilters);
+
+      case 'GEO_AGGREGATION':
+        return this.resolveGeoAggregation(config, globalFilters);
 
       default:
         throw new Error(`Unsupported data source: ${dataSource}`);
@@ -521,18 +536,40 @@ export class WidgetResolver {
     }
 
     // Block dangerous keywords
-    const blocked = ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'TRUNCATE', 'GRANT', 'REVOKE', 'CREATE'];
+    const blocked = ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'TRUNCATE', 'GRANT', 'REVOKE', 'CREATE', 'EXEC', 'CALL', 'COPY', 'IMPORT', 'EXPLAIN'];
     for (const kw of blocked) {
       if (normalized.includes(kw)) {
         throw Object.assign(new Error(`Blocked keyword in query: ${kw}`), { statusCode: 403 });
       }
     }
 
+    // Block multi-statement queries (semicolons)
+    if (normalized.includes(';')) {
+      throw Object.assign(new Error('Multi-statement queries are not allowed'), { statusCode: 403 });
+    }
+
+    // Block SQL comments
+    if (query.includes('--') || query.includes('/*')) {
+      throw Object.assign(new Error('SQL comments are not allowed in queries'), { statusCode: 403 });
+    }
+
     // Limit results
     const limitedQuery = query.includes('LIMIT') ? query : `${query} LIMIT 1000`;
-    const { rows } = await this.pool.query(limitedQuery);
 
-    return { rows, rowCount: rows.length };
+    // Execute with statement_timeout to prevent long-running queries
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query("SET LOCAL statement_timeout = '10s'");
+      const { rows } = await client.query(limitedQuery);
+      await client.query('COMMIT');
+      return { rows, rowCount: rows.length };
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -978,14 +1015,80 @@ export class WidgetResolver {
   }
 
   // ═══════════════════════════════════════════════════════════════════════
+  //  GEO_AGGREGATION — country-level aggregation for choropleth maps
+  // ═══════════════════════════════════════════════════════════════════════
+
+  private async resolveGeoAggregation(
+    config: Record<string, unknown>,
+    globalFilters: RenderQuery,
+  ): Promise<unknown> {
+    const metric = (config.metric as string) || 'submissions';
+    const domain = config.domain as string | undefined;
+    const mode = (config.mode as string) || 'default';
+
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    let idx = 1;
+
+    if (domain) {
+      conditions.push(`domain_code = $${idx++}`);
+      params.push(domain);
+    }
+    if (globalFilters.countryCode) {
+      conditions.push(`country_code = $${idx++}`);
+      params.push(globalFilters.countryCode);
+    }
+    if (globalFilters.year) {
+      conditions.push(`EXTRACT(YEAR FROM created_at) = $${idx++}`);
+      params.push(globalFilters.year);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    let selectExpr = 'COUNT(*)::int AS value';
+    if (metric === 'cases') {
+      selectExpr = "COALESCE(SUM((data->>'cases')::numeric), 0)::int AS value";
+    } else if (metric === 'vaccinations') {
+      selectExpr = "COALESCE(SUM((data->>'animalsVaccinated')::numeric), 0)::int AS value";
+    }
+
+    const sql = `
+      SELECT country_code AS "countryCode", ${selectExpr}
+      FROM public.form_submissions
+      ${whereClause}
+      GROUP BY country_code
+      ORDER BY value DESC
+    `;
+
+    const { rows } = await this.pool.query(sql, params);
+
+    return {
+      byCountry: rows.map((r: any) => ({
+        countryCode: r.countryCode,
+        value: Number(r.value) || 0,
+        label: r.countryCode,
+      })),
+      indicator: metric,
+      mode,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
   //  Helpers
   // ═══════════════════════════════════════════════════════════════════════
 
-  private buildCacheKey(widgetId: string, userId: string, filters: RenderQuery): string {
+  private buildCacheKey(widgetId: string, userId: string, filters: RenderQuery, extra?: string): string {
     const filtersHash = createHash('md5')
       .update(JSON.stringify(filters))
       .digest('hex')
       .substring(0, 8);
+    if (extra) {
+      const extraHash = createHash('md5')
+        .update(extra)
+        .digest('hex')
+        .substring(0, 8);
+      return `${RESOLVE_CACHE_PREFIX}${widgetId}:${userId}:${filtersHash}:${extraHash}`;
+    }
     return `${RESOLVE_CACHE_PREFIX}${widgetId}:${userId}:${filtersHash}`;
   }
 

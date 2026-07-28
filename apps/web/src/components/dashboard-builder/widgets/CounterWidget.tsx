@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useAnimatedCounter } from './useAnimatedCounter';
 
 interface CounterWidgetProps {
   value: number | string;
@@ -23,6 +24,9 @@ function formatValue(value: number | string, format?: string): string {
 }
 
 export function CounterWidget({ value, label, icon, color = '#1F4E79', format }: CounterWidgetProps) {
+  const animatedValue = useAnimatedCounter(typeof value === 'number' ? value : 0);
+  const displayValue = typeof value === 'number' ? formatValue(animatedValue, format) : formatValue(value, format);
+
   return (
     <div className="flex h-full flex-col items-center justify-center p-4 text-center">
       {icon && (
@@ -34,7 +38,7 @@ export function CounterWidget({ value, label, icon, color = '#1F4E79', format }:
         className="text-4xl font-extrabold leading-none tracking-tight"
         style={{ color }}
       >
-        {formatValue(value, format)}
+        {displayValue}
       </span>
       <p className="mt-2 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
         {label}

@@ -9,6 +9,7 @@ import { analyticsClient } from './client';
 // ─── Widget type mapping (backend ↔ frontend) ──────────────────────────────
 // Backend (Prisma/DB) uses LINE_CHART, BAR_CHART etc.
 // Frontend uses shorter names: LINE, BAR, etc.
+// SYNC WITH: services/analytics/src/dashboards/dashboard.schemas.ts WidgetTypeSchema
 const BACKEND_TO_FRONTEND_TYPE: Record<string, WidgetType> = {
   LINE_CHART: 'LINE',
   BAR_CHART: 'BAR',
@@ -35,8 +36,12 @@ const BACKEND_TO_FRONTEND_TYPE: Record<string, WidgetType> = {
   EPI_CURVE: 'EPI_CURVE',
   DUAL_AXIS: 'DUAL_AXIS',
   COUNTER: 'COUNTER',
+  CHOROPLETH_MAP: 'CHOROPLETH_MAP',
+  KPI_STRIP: 'KPI_STRIP',
+  PERSON_STAT: 'PERSON_STAT',
 };
 
+// SYNC WITH: services/analytics/src/dashboards/dashboard.schemas.ts WidgetTypeSchema
 const FRONTEND_TO_BACKEND_TYPE: Record<string, string> = {
   LINE: 'LINE_CHART',
   BAR: 'BAR_CHART',
@@ -62,10 +67,17 @@ const FRONTEND_TO_BACKEND_TYPE: Record<string, string> = {
   EPI_CURVE: 'EPI_CURVE',
   DUAL_AXIS: 'DUAL_AXIS',
   COUNTER: 'COUNTER',
+  CHOROPLETH_MAP: 'CHOROPLETH_MAP',
+  KPI_STRIP: 'KPI_STRIP',
+  PERSON_STAT: 'PERSON_STAT',
 };
 
 function toFrontendType(backendType: string): WidgetType {
-  return BACKEND_TO_FRONTEND_TYPE[backendType] ?? (backendType as WidgetType);
+  const frontendType = BACKEND_TO_FRONTEND_TYPE[backendType] || (backendType as WidgetType);
+  if (!BACKEND_TO_FRONTEND_TYPE[backendType]) {
+    console.warn(`[DashboardBuilder] Unknown backend widget type: ${backendType}`);
+  }
+  return frontendType;
 }
 
 function toBackendType(frontendType: string): string {
@@ -106,10 +118,16 @@ function getCurrentLocale(): string {
  *   - `widget.dataSource.formId`, `.indicatorCode`, `.queryType`, etc. → data source params
  *   - `widget.config` → display config (colors, xKey, yKeys, etc.)
  */
+// SYNC WITH: backend widget config params — add new keys here when backend adds DS params
 const DS_PARAM_KEYS = [
-  'indicatorCode', 'kpiCode', 'formId', 'aggregation', 'field', 'groupBy',
-  'value', 'label', 'formula', 'query', 'referencedWidgetIds',
-  'queryType', 'domain', 'metric', 'sort', 'limit', 'sortBy', 'sortOrder', 'filters',
+  /* INDICATOR */    'indicatorCode',
+  /* KPI */          'kpiCode',
+  /* FORM_AGG */     'formId', 'aggregation', 'field', 'groupBy', 'sortBy', 'sortOrder',
+  /* MANUAL */       'value', 'label',
+  /* COMPOSITE */    'formula', 'referencedWidgetIds',
+  /* SQL_QUERY */    'query',
+  /* ANALYTICS */    'queryType', 'domain', 'metric', 'sort', 'limit', 'filters',
+  /* GEO_AGG */     'mode',
 ];
 
 function buildDataSource(w: any): Record<string, unknown> {
@@ -123,12 +141,13 @@ function buildDataSource(w: any): Record<string, unknown> {
 
   // Extract data source params from the config JSON
   const configObj = typeof w.config === 'string' ? JSON.parse(w.config) : (w.config ?? {});
+  // Try _ds namespace first (new format), then flat keys (legacy)
+  const dsObj = (configObj as any)?._ds || {};
   const ds: Record<string, unknown> = { type: dsType };
 
   for (const k of DS_PARAM_KEYS) {
-    if (configObj[k] !== undefined) {
-      ds[k] = configObj[k];
-    }
+    if (dsObj[k] !== undefined) ds[k] = dsObj[k];
+    else if ((configObj as any)?.[k] !== undefined) ds[k] = (configObj as any)[k];
   }
 
   return ds;
@@ -207,6 +226,11 @@ function mapDashboardWidgets(data: any): any {
   d.titleFr = d.title_fr || d.titleFr || d.title || '';
   d.titleEn = d.title_en || d.titleEn || d.title || '';
 
+  // Map refresh_interval from backend snake_case to camelCase
+  if (d.refresh_interval !== undefined) {
+    d.refreshInterval = d.refresh_interval;
+  }
+
   // Backward compat: if no sections exist, create a synthetic one from flat widgets
   if ((!d.sections || d.sections.length === 0) && d.widgets && d.widgets.length > 0) {
     d.sections = [{
@@ -254,7 +278,10 @@ export type WidgetType =
   | 'ACTIVITY_FEED'
   | 'EPI_CURVE'
   | 'DUAL_AXIS'
-  | 'COUNTER';
+  | 'COUNTER'
+  | 'CHOROPLETH_MAP'
+  | 'KPI_STRIP'
+  | 'PERSON_STAT';
 
 export interface DashboardWidget {
   id: string;
@@ -297,6 +324,7 @@ export interface Dashboard {
   isDefault: boolean;
   isTemplate: boolean;
   tags?: string[];
+  refreshInterval?: number | null;
   sections: DashboardSection[];
   widgets: DashboardWidget[];
   createdAt: string;
@@ -396,17 +424,31 @@ export function useDashboard(id: string) {
   });
 }
 
-export function useDashboardRender(id: string) {
+export function useDashboardRender(
+  id: string,
+  filters?: Record<string, unknown>,
+  options?: { refetchInterval?: number },
+) {
   return useQuery<{ data: DashboardRenderData }>({
-    queryKey: KEYS.render(id),
+    queryKey: [...KEYS.render(id), filters],
     queryFn: async () => {
+      const qp: Record<string, string> = {};
+      if (filters) {
+        Object.entries(filters).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== '') qp[k] = String(v);
+        });
+      }
       const res = await analyticsClient.get<{ data: DashboardRenderData }>(
         `/analytics/dashboards/${id}/render`,
+        Object.keys(qp).length > 0 ? qp : undefined,
       );
       return mapDashboardWidgets(res);
     },
     enabled: !!id,
     staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchInterval: options?.refetchInterval
+      ? options.refetchInterval * 1000
+      : undefined,
   });
 }
 
@@ -496,6 +538,7 @@ export function useUpdateDashboard() {
     mutationFn: ({
       id,
       title,
+      refreshInterval,
       ...body
     }: {
       id: string;
@@ -504,11 +547,15 @@ export function useUpdateDashboard() {
       scope?: DashboardScope;
       domainCode?: string;
       tags?: string[];
+      refreshInterval?: number | null;
     }) => {
       const payload: Record<string, unknown> = { ...body };
       if (title !== undefined) {
         payload.titleFr = title;
         payload.titleEn = title;
+      }
+      if (refreshInterval !== undefined) {
+        payload.refreshInterval = refreshInterval;
       }
       return analyticsClient.patch<{ data: Dashboard }>(
         `/analytics/dashboards/${id}`,
@@ -648,8 +695,8 @@ export function useUpdateWidget() {
         const { type: dsType, ...dsParams } = rest.dataSource;
         payload.dataSource = dsType || 'INDICATOR'; // string enum for the column
 
-        // Merge data source params + display config into one config object
-        const mergedConfig = { ...(rest.config || {}), ...dsParams };
+        // Namespace DS params under _ds to avoid key collisions with display config
+        const mergedConfig = { ...(rest.config || {}), _ds: dsParams };
         payload.config = mergedConfig;
       } else {
         if (rest.config) payload.config = rest.config;

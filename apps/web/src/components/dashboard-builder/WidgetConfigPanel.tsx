@@ -1,7 +1,4 @@
 'use client';
-// @ts-nocheck — Record<string, unknown> config props cause false-positive
-// "unknown is not ReactNode" errors with React 18 strict JSX inference.
-// TODO: replace Record<string, unknown> with typed WidgetConfig discriminated union.
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { X, Search, Check, AlertCircle, ChevronDown, Trash2, Shield, Zap } from 'lucide-react';
@@ -23,6 +20,7 @@ import { GaugeConfig } from './config/GaugeConfig';
 import { TextBlockConfig } from './config/TextBlockConfig';
 import { AlertFeedConfig } from './config/AlertFeedConfig';
 import { AnalyticsQueryConfig } from './config/AnalyticsQueryConfig';
+import { GeoAggregationConfig } from './config/GeoAggregationConfig';
 
 interface WidgetConfigPanelProps {
   widget: DashboardWidget | null;
@@ -40,6 +38,7 @@ const DATA_SOURCE_KEYS = [
   { value: 'MANUAL_VALUE', labelKey: 'dbDsManualValue' },
   { value: 'COMPOSITE', labelKey: 'dbDsCompositeFormula' },
   { value: 'SQL_QUERY', labelKey: 'dbDsSqlQuery' },
+  { value: 'GEO_AGGREGATION', labelKey: 'dbDsGeoAggregation' },
 ] as const;
 
 const WIDGET_TYPE_LABEL_KEYS: Record<WidgetType, string> = {
@@ -66,6 +65,9 @@ const WIDGET_TYPE_LABEL_KEYS: Record<WidgetType, string> = {
   EPI_CURVE: 'dbWtEpiCurve',
   DUAL_AXIS: 'dbWtDualAxis',
   COUNTER: 'dbWtCounter',
+  CHOROPLETH_MAP: 'dbWtChoroplethMap',
+  KPI_STRIP: 'dbWtKpiStrip',
+  PERSON_STAT: 'dbWtPersonStat',
 };
 
 const CHART_TYPES: WidgetType[] = ['LINE', 'BAR', 'PIE', 'STACKED_BAR', 'AREA'];
@@ -92,7 +94,7 @@ const KNOWN_KPI_CODES = [
   'NATIONAL_REPORTING_RATE',
 ];
 
-const SQL_BLOCKED_KEYWORDS = ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'TRUNCATE', 'CREATE', 'GRANT', 'REVOKE', 'EXEC'];
+const SQL_BLOCKED_KEYWORDS = ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'TRUNCATE', 'CREATE', 'GRANT', 'REVOKE', 'EXEC', 'CALL', 'COPY', 'IMPORT', 'EXPLAIN'];
 
 /* ─── Validation helpers ─────────────────────────────────────────────────── */
 
@@ -337,6 +339,8 @@ function DataSourceFields({
       return <CompositeFormulaEditor config={config} onChange={onChange} allWidgets={allWidgets} currentWidgetId={currentWidgetId} />;
     case 'SQL_QUERY':
       return <SqlQueryEditor config={config} onChange={onChange} />;
+    case 'GEO_AGGREGATION':
+      return <GeoAggregationConfig config={config} onChange={onChange} />;
     default:
       return <p className="text-sm text-gray-500">{t('dbSelectDataSourceAbove')}</p>;
   }
@@ -497,7 +501,7 @@ function IndicatorPicker({
       )}
 
       {/* Fallback: show raw code if set but indicator not resolved */}
-      {!selectedIndicator && config.indicatorCode && (
+      {!selectedIndicator && Boolean(config.indicatorCode) && (
         <div className="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2">
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600 dark:text-gray-300 font-mono">
@@ -730,7 +734,7 @@ function FormAggregationPicker({
             </div>
             <p className="mt-0.5 text-xs text-green-700 dark:text-green-300">
               {selectedTemplate.domain} - v{selectedTemplate.version}
-              {formFields.length > 0 && <span className="ml-2">{formFields.length} champs detectes</span>}
+              {formFields.length > 0 && <span className="ml-2">{t('dbFieldsDetected', { count: String(formFields.length) })}</span>}
             </p>
           </div>
         )}
@@ -744,52 +748,52 @@ function FormAggregationPicker({
           onChange={(e) => onChange({ aggregation: e.target.value })}
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
         >
-          <option value="count">{t('dbCount')} — Nombre de soumissions</option>
-          <option value="sum">{t('dbSum')} — Somme d&apos;un champ numerique</option>
-          <option value="avg">{t('dbAverage')} — Moyenne d&apos;un champ numerique</option>
-          <option value="min">Min — Valeur minimale</option>
-          <option value="max">Max — Valeur maximale</option>
+          <option value="count">{t('dbCount')} — {t('dbSubmissionCount')}</option>
+          <option value="sum">{t('dbSum')} — {t('dbFieldSum')}</option>
+          <option value="avg">{t('dbAverage')} — {t('dbFieldAvg')}</option>
+          <option value="min">Min — {t('dbFieldMin')}</option>
+          <option value="max">Max — {t('dbFieldMax')}</option>
         </select>
       </div>
 
       {/* GroupBy (for charts) */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Regrouper par (optionnel)</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('dbGroupByOptional')}</label>
         <select
           value={(config.groupBy as string) ?? ''}
           onChange={(e) => onChange({ groupBy: e.target.value || undefined })}
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
         >
-          <option value="">Pas de regroupement (valeur unique)</option>
-          <option value="country">Par pays</option>
-          <option value="month">Par mois</option>
-          <option value="quarter">Par trimestre</option>
-          <option value="year">Par annee</option>
-          <option value="week">Par semaine</option>
+          <option value="">{t('dbNoGrouping')}</option>
+          <option value="country">{t('dbGroupByCountry')}</option>
+          <option value="month">{t('dbGroupByMonth')}</option>
+          <option value="quarter">{t('dbGroupByQuarter')}</option>
+          <option value="year">{t('dbGroupByYear')}</option>
+          <option value="week">{t('dbGroupByWeek')}</option>
         </select>
-        {(config.groupBy as string) && (
+        {Boolean(config.groupBy) && (
           <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
-            Le resultat sera un tableau de donnees (ideal pour graphiques Bar, Line, Pie)
+            {t('dbGroupedResultHint')}
           </p>
         )}
       </div>
 
       {/* Sort + Limit when grouped */}
-      {(config.groupBy as string) && (
+      {Boolean(config.groupBy) && (
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-xs text-gray-500 mb-0.5 block">Tri</label>
+            <label className="text-xs text-gray-500 mb-0.5 block">{t('dbSort')}</label>
             <select
               value={(config.sortBy as string) ?? 'value'}
               onChange={(e) => onChange({ sortBy: e.target.value })}
               className="w-full rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-xs"
             >
-              <option value="value">Par valeur</option>
-              <option value="name">Par nom</option>
+              <option value="value">{t('dbSortByValue')}</option>
+              <option value="name">{t('dbSortByName')}</option>
             </select>
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-0.5 block">Limite</label>
+            <label className="text-xs text-gray-500 mb-0.5 block">{t('dbLimit')}</label>
             <input
               type="number"
               value={(config.limit as number) ?? 50}
@@ -803,7 +807,7 @@ function FormAggregationPicker({
       )}
 
       {/* Field selector — dropdown from schema fields */}
-      {config.formId && (
+      {Boolean(config.formId) && (
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t('dbField')}
@@ -819,7 +823,7 @@ function FormAggregationPicker({
                   type="text"
                   value={fieldSearch}
                   onChange={(e) => setFieldSearch(e.target.value)}
-                  placeholder="Rechercher un champ..."
+                  placeholder={t('dbSearchField')}
                   className="mb-2 w-full rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 placeholder-gray-400"
                 />
               )}
@@ -834,7 +838,7 @@ function FormAggregationPicker({
                       !config.field ? 'bg-[#1F4E79]/5 dark:bg-[#1F4E79]/20 text-[#1F4E79] font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
-                    <span className="italic">Toutes les soumissions (count total)</span>
+                    <span className="italic">{t('dbAllSubmissionsCount')}</span>
                   </button>
                 )}
                 {filteredFields.map((field) => (
@@ -867,7 +871,7 @@ function FormAggregationPicker({
                   </button>
                 ))}
                 {filteredFields.length === 0 && (
-                  <div className="px-3 py-3 text-center text-xs text-gray-500">Aucun champ trouve</div>
+                  <div className="px-3 py-3 text-center text-xs text-gray-500">{t('dbNoFieldFound')}</div>
                 )}
               </div>
 
@@ -887,12 +891,12 @@ function FormAggregationPicker({
               {selectedField && !selectedField.isNumeric && aggregation !== 'count' && (
                 <div className="mt-1 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
                   <AlertCircle className="h-3 w-3 shrink-0" />
-                  Ce champ n&apos;est pas numerique — {aggregation === 'sum' ? 'la somme' : 'la moyenne'} peut echouer
+                  {t('dbFieldNotNumericWarning')}
                 </div>
               )}
             </>
           ) : selectedFormId ? (
-            <div className="text-xs text-gray-400 italic py-2">Chargement des champs du formulaire...</div>
+            <div className="text-xs text-gray-400 italic py-2">{t('dbLoadingFormFields')}</div>
           ) : null}
         </div>
       )}
@@ -992,7 +996,7 @@ function KpiPicker({
             {kpiLoading ? (
               <div className="px-3 py-4 text-center text-sm text-gray-500">{t('dbLoading')}</div>
             ) : filteredKpis.length === 0 ? (
-              <div className="px-3 py-4 text-center text-sm text-gray-500">Aucun KPI trouve</div>
+              <div className="px-3 py-4 text-center text-sm text-gray-500">{t('dbNoKpiFound')}</div>
             ) : (
               filteredKpis.map((kpi) => (
                 <button
@@ -1232,6 +1236,16 @@ function SqlQueryEditor({
     // Must start with SELECT
     if (!query.toUpperCase().startsWith('SELECT')) {
       setTestResult({ valid: false, message: t('dbQueryMustStartSelect') });
+      return;
+    }
+    // Block multi-statement queries
+    if (query.includes(';')) {
+      setTestResult({ valid: false, message: t('dbMultiStatementBlocked') });
+      return;
+    }
+    // Block SQL comments
+    if (query.includes('--') || query.includes('/*')) {
+      setTestResult({ valid: false, message: t('dbSqlCommentsBlocked') });
       return;
     }
     // Check for blocked keywords

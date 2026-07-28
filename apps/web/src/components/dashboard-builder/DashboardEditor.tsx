@@ -41,6 +41,8 @@ interface DashboardEditorProps {
   onWidgetRemove?: (widgetId: string) => void;
   onWidgetDuplicate?: (widgetId: string) => void;
   onSectionDuplicate?: (sectionId: string) => void;
+  refreshInterval?: number | null;
+  onRefreshIntervalChange?: (interval: number | null) => void;
   globalFilters?: GlobalFilters;
   onGlobalFiltersChange?: (filters: GlobalFilters) => void;
 }
@@ -55,6 +57,8 @@ export function DashboardEditor({
   description,
   onTitleChange,
   onDescriptionChange,
+  refreshInterval,
+  onRefreshIntervalChange,
   sections,
   widgetData,
   onSectionsChange,
@@ -307,6 +311,24 @@ export function DashboardEditor({
               className="mt-2 w-full bg-transparent text-sm text-gray-500 dark:text-gray-400 border-none outline-none focus:ring-0 placeholder-gray-300 resize-none"
               placeholder={t('addDescription')}
             />
+            {onRefreshIntervalChange && (
+              <div className="mt-3">
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  {t('dbAutoRefresh')}
+                </label>
+                <select
+                  value={refreshInterval ?? ''}
+                  onChange={e => onRefreshIntervalChange(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full max-w-[200px] rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm"
+                >
+                  <option value="">{t('dbAutoRefreshOff')}</option>
+                  <option value="15">15s</option>
+                  <option value="30">30s</option>
+                  <option value="60">1 min</option>
+                  <option value="300">5 min</option>
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Global Filter Bar */}

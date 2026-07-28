@@ -51,7 +51,7 @@ export function SortableSection({
 
   // Group widgets by column index
   const cols: DashboardWidget[][] = [];
-  for (let i = 0; i < (Number(section.columnCount) || 2); i++) {
+  for (let i = 0; i < (Math.max(1, Math.min(12, Number(section.columnCount) || 2))); i++) {
     cols.push(section.widgets.filter((w) => (w.columnIndex ?? 0) === i));
   }
 
@@ -86,7 +86,7 @@ export function SortableSection({
           className="rounded-b-lg border border-t-0 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 p-3"
           style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${Number(section.columnCount) || 2}, 1fr)`,
+            gridTemplateColumns: `repeat(${Math.max(1, Math.min(12, Number(section.columnCount) || 2))}, 1fr)`,
             gap: '12px',
           }}
         >

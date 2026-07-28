@@ -4,6 +4,7 @@ import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n/translations';
+import { useAnimatedCounter } from './useAnimatedCounter';
 
 interface StatCardWidgetProps {
   value: number;
@@ -20,6 +21,7 @@ export function StatCardWidget({
   color = '#1F4E79',
 }: StatCardWidgetProps) {
   const t = useTranslations('dashboard');
+  const animatedValue = useAnimatedCounter(typeof value === 'number' ? value : 0);
   const delta =
     previousValue != null && previousValue !== 0
       ? ((value - previousValue) / Math.abs(previousValue)) * 100
@@ -38,7 +40,7 @@ export function StatCardWidget({
           className="text-4xl font-bold leading-none"
           style={{ color }}
         >
-          {typeof value === 'number' ? value.toLocaleString() : value}
+          {typeof value === 'number' ? animatedValue.toLocaleString() : value}
         </span>
         {delta != null && (
           <span

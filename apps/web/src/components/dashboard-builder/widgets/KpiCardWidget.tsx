@@ -22,6 +22,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAnimatedCounter } from './useAnimatedCounter';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   globe: Globe,
@@ -104,6 +105,7 @@ export function KpiCardWidget({
 
   const Icon = icon ? ICON_MAP[icon] : null;
   const displayLabel = resolveLabel(label, labels);
+  const animatedValue = useAnimatedCounter(typeof value === 'number' ? value : 0);
 
   return (
     <div className="flex h-full items-center gap-2.5 px-3 py-2">
@@ -124,7 +126,7 @@ export function KpiCardWidget({
           style={{ color: accentColor }}
         >
           {prefix}
-          {typeof value === 'number' ? value.toLocaleString() : value}
+          {typeof value === 'number' ? animatedValue.toLocaleString() : value}
           {suffix}
         </span>
         <p className="truncate text-[10px] font-medium leading-tight text-gray-500 dark:text-gray-400">

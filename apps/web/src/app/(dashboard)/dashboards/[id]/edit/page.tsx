@@ -36,6 +36,7 @@ export default function DashboardEditPage() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
   const titleInitRef = useRef(false);
 
   // Local sections state — synced from server, modified locally during editing
@@ -95,6 +96,7 @@ export default function DashboardEditPage() {
   if (d && !titleInitRef.current) {
     setTitle(d.title || d.title_fr || d.titleFr || '');
     setDescription(d.description || '');
+    setRefreshInterval(d.refreshInterval ?? d.refresh_interval ?? null);
     titleInitRef.current = true;
   }
 
@@ -302,10 +304,11 @@ export default function DashboardEditPage() {
   );
 
   const handleSave = async () => {
-    // 1. Update title if changed
+    // 1. Update title/description/refreshInterval if changed
     const dashTitle = d?.title || d?.title_fr || '';
-    if (title !== dashTitle || description !== (d?.description || '')) {
-      await updateDashboard.mutateAsync({ id, title, description });
+    const dashRefresh = d?.refreshInterval ?? d?.refresh_interval ?? null;
+    if (title !== dashTitle || description !== (d?.description || '') || refreshInterval !== dashRefresh) {
+      await updateDashboard.mutateAsync({ id, title, description, refreshInterval });
     }
 
     // 2. Save layout (sections + widget positions)
@@ -432,6 +435,8 @@ export default function DashboardEditPage() {
           description={description}
           onTitleChange={setTitle}
           onDescriptionChange={setDescription}
+          refreshInterval={refreshInterval}
+          onRefreshIntervalChange={setRefreshInterval}
           sections={localSections}
           onSectionsChange={handleSectionsChange}
           onAddWidget={handleAddWidget}
