@@ -21,7 +21,7 @@ export const CreateSlideshowSchema = Type.Object({
   showProgress: Type.Optional(Type.Boolean({ default: true })),
   showControls: Type.Optional(Type.Boolean({ default: false })),
   slides: Type.Optional(Type.Array(Type.Object({
-    dashboardId: Type.String({ format: 'uuid' }),
+    dashboardId: Type.String({ minLength: 1 }),
     sortOrder: Type.Integer({ minimum: 0 }),
     durationMs: Type.Optional(Type.Integer({ minimum: 3000, maximum: 300000 })),
     transition: Type.Optional(SlideshowTransitionSchema),
@@ -47,7 +47,7 @@ export type UpdateSlideshowDto = Static<typeof UpdateSlideshowSchema>;
 
 export const UpdateSlidesSchema = Type.Object({
   slides: Type.Array(Type.Object({
-    dashboardId: Type.String({ format: 'uuid' }),
+    dashboardId: Type.String({ minLength: 1 }),
     sortOrder: Type.Integer({ minimum: 0 }),
     durationMs: Type.Optional(Type.Integer({ minimum: 3000, maximum: 300000 })),
     transition: Type.Optional(SlideshowTransitionSchema),
