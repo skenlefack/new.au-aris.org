@@ -80,7 +80,7 @@ export class SlideshowService {
               ) FILTER (WHERE sl.id IS NOT NULL), '[]') AS slides
        FROM dashboard_builder.dashboard_slideshows s
        LEFT JOIN dashboard_builder.dashboard_slideshow_slides sl ON sl.slideshow_id = s.id
-       LEFT JOIN dashboard_builder.dashboards d ON d.id = sl.dashboard_id
+       LEFT JOIN dashboard_builder.dashboards d ON d.id::text = sl.dashboard_id
        WHERE s.tenant_id = $1
        GROUP BY s.id
        ORDER BY s.updated_at DESC
@@ -117,7 +117,7 @@ export class SlideshowService {
               ) FILTER (WHERE sl.id IS NOT NULL), '[]') AS slides
        FROM dashboard_builder.dashboard_slideshows s
        LEFT JOIN dashboard_builder.dashboard_slideshow_slides sl ON sl.slideshow_id = s.id
-       LEFT JOIN dashboard_builder.dashboards d ON d.id = sl.dashboard_id
+       LEFT JOIN dashboard_builder.dashboards d ON d.id::text = sl.dashboard_id
        WHERE s.id = $1
        GROUP BY s.id`,
       [id],
@@ -155,7 +155,7 @@ export class SlideshowService {
               ) FILTER (WHERE sl.id IS NOT NULL), '[]') AS slides
        FROM dashboard_builder.dashboard_slideshows s
        LEFT JOIN dashboard_builder.dashboard_slideshow_slides sl ON sl.slideshow_id = s.id
-       LEFT JOIN dashboard_builder.dashboards d ON d.id = sl.dashboard_id
+       LEFT JOIN dashboard_builder.dashboards d ON d.id::text = sl.dashboard_id
        WHERE s.public_token = $1 AND s.is_active = true
        GROUP BY s.id`,
       [token],
