@@ -197,8 +197,8 @@ function normalizePaidData(raw: Record<string, unknown>): NormalizedPaidData {
     recs,
     countries_benefiting: countriesBenefiting,
     n_hh_benefitting: Number(d.n_hh_benefitting ?? d.n_hh_benefiting) || 0,
-    n_female_trained: Number(d.n_female_trained) || 0,
-    n_male_trained: Number(d.n_male_trained) || 0,
+    n_female_trained: Number(d.breakdown?.n_female_trained ?? d.n_female_trained) || 0,
+    n_male_trained: Number(d.breakdown?.n_male_trained ?? d.n_male_trained) || 0,
   };
 }
 

@@ -61,7 +61,7 @@ function conicGradient(entries: [string, number][], colors: string[]): string {
 export default function PaidDashboardPage() {
   const t = useTranslations('paid');
   const [filters, setFilters] = useState<PaidFilters>({});
-  const [activeTab, setActiveTab] = useState<'outcomes' | 'activities'>('outcomes');
+  const [activeTab, setActiveTab] = useState<'outcomes' | 'activities'>('activities');
   const [mapCountry, setMapCountry] = useState<string | undefined>();
 
   const subsQ = useDomainSubmissions('paid', { refreshInterval: 30_000 });
