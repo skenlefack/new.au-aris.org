@@ -306,6 +306,67 @@ export default function PaidDashboardPage() {
               <p className="pb-3 text-center text-[9px] text-gray-300">No training data yet</p>
             )}
           </div>
+
+          {/* Completion Rate — Circular Gauge */}
+          <div className="border-t border-gray-200 dark:border-gray-800">
+            <SectionTitle>Completion Rate</SectionTitle>
+            <div className="flex items-center justify-center gap-4 px-4 py-3">
+              <div className="relative">
+                <svg width="100" height="100" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="#e5e7eb" strokeWidth="8" className="dark:stroke-gray-700" />
+                  <circle cx="50" cy="50" r="42" fill="none"
+                    stroke={agg.completionRate >= 75 ? '#059669' : agg.completionRate >= 50 ? '#d97706' : '#dc2626'}
+                    strokeWidth="8" strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 42}`}
+                    strokeDashoffset={`${2 * Math.PI * 42 * (1 - Math.min(agg.completionRate, 100) / 100)}`}
+                    transform="rotate(-90 50 50)"
+                    style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-xl font-black text-gray-900 dark:text-white">{agg.completionRate}%</span>
+                </div>
+              </div>
+              <div className="space-y-1 text-[9px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-blue-600" />
+                  <span className="text-gray-500">Implemented: <b className="text-gray-900 dark:text-white">{fmt(agg.totalQuantityImplemented)}</b></span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-gray-300 dark:bg-gray-600" />
+                  <span className="text-gray-500">Targeted: <b className="text-gray-900 dark:text-white">{fmt(agg.totalQuantityTargeted)}</b></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Top Executive Partners */}
+          <div className="border-t border-gray-200 dark:border-gray-800">
+            <SectionTitle>Top Executive Partners</SectionTitle>
+            <div className="space-y-1 px-4 py-3">
+              {(() => {
+                const partnerArr = Array.from(agg.byPartner.values())
+                  .sort((a, b) => b.submissions - a.submissions)
+                  .slice(0, 5);
+                const maxP = partnerArr[0]?.submissions || 1;
+                if (partnerArr.length === 0) return <p className="text-[9px] text-gray-300">No partner data</p>;
+                return partnerArr.map((p) => {
+                  const pct = Math.round((p.submissions / maxP) * 100);
+                  return (
+                    <div key={p.name} className="flex items-center gap-2">
+                      <span className="w-[55px] shrink-0 truncate text-right text-[9px] font-medium text-gray-600 dark:text-gray-400">
+                        {p.name.length > 10 ? p.name.slice(0, 10) + '..' : p.name}
+                      </span>
+                      <div className="h-[13px] flex-1 overflow-hidden rounded-sm bg-gray-100 dark:bg-gray-800">
+                        <div className="h-full rounded-sm bg-emerald-600" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="w-[18px] text-right text-[9px] font-bold text-gray-900 dark:text-white">{p.submissions}</span>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
         </div>
 
         {/* ──── RIGHT (3 cols) ──── */}

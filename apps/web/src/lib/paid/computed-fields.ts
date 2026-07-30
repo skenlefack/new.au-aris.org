@@ -231,6 +231,7 @@ export interface PaidAggregates {
   byProject: Map<string, PaidProjectAgg>;
   byQuarter: Map<string, PaidQuarterAgg>;
   byActivity: Map<string, PaidActivityAgg>;
+  byPartner: Map<string, PaidPartnerAgg>;
 }
 
 export interface PaidCountryAgg {
@@ -284,6 +285,12 @@ export interface PaidActivityAgg {
   submissions: number;
 }
 
+export interface PaidPartnerAgg {
+  name: string;
+  quantityImplemented: number;
+  submissions: number;
+}
+
 /**
  * Aggregate an array of PAID submissions into dashboard KPIs.
  * All computed fields are recalculated to ensure consistency.
@@ -296,6 +303,7 @@ export function aggregatePaidSubmissions(
   const byProject = new Map<string, PaidProjectAgg>();
   const byQuarter = new Map<string, PaidQuarterAgg>();
   const byActivity = new Map<string, PaidActivityAgg>();
+  const byPartner = new Map<string, PaidPartnerAgg>();
   const allProjects = new Set<string>();
   const allCountries = new Set<string>();
   const allCountriesBenefiting = new Set<string>();
@@ -424,6 +432,15 @@ export function aggregatePaidSubmissions(
     aa.quantityTargeted += qtyTarget;
     aa.submissions += 1;
     byActivity.set(activity, aa);
+
+    // By Executive Partner
+    const partner = n.executive_partner || 'Unknown';
+    if (partner !== 'Unknown') {
+      const ep = byPartner.get(partner) ?? { name: partner, quantityImplemented: 0, submissions: 0 };
+      ep.quantityImplemented += qtyImpl;
+      ep.submissions += 1;
+      byPartner.set(partner, ep);
+    }
   }
 
   return {
@@ -449,6 +466,7 @@ export function aggregatePaidSubmissions(
     byProject,
     byQuarter,
     byActivity,
+    byPartner,
   };
 }
 
