@@ -146,7 +146,7 @@ function PublicDashboardSlideRenderer({ dashboard: preRendered, durationMs, onRe
       clearTimeout(measureTimer);
       scrollTimersRef.current.forEach(clearTimeout);
     };
-  }, [dashboard, durationMs, onReady]);
+  }, [preRendered, durationMs, onReady]);
 
   if (!sections.length) {
     return (
