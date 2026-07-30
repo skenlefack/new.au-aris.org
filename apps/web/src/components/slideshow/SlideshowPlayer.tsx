@@ -50,8 +50,10 @@ function IframeSlideRenderer({ src, onReady }: { src: string; onReady?: () => vo
   );
 }
 
-function SlideRenderer({ dashboardId, durationMs, onReady }: { dashboardId: string; durationMs: number; onReady?: () => void }) {
-  // System page — rendered as iframe (e.g. page:/home, page:/paid, page:/domains/animal-health)
+function SlideRenderer({ dashboardId, durationMs, onReady, isPublic, preRendered }: {
+  dashboardId: string; durationMs: number; onReady?: () => void; isPublic?: boolean; preRendered?: any;
+}) {
+  // System page — rendered as iframe (requires auth session)
   if (dashboardId.startsWith('page:')) {
     const path = dashboardId.replace('page:', '');
     const sep = path.includes('?') ? '&' : '?';
@@ -61,8 +63,68 @@ function SlideRenderer({ dashboardId, durationMs, onReady }: { dashboardId: stri
   if (dashboardId.startsWith('bi:')) {
     return <IframeSlideRenderer src={`/bi-embed/${dashboardId.replace('bi:', '')}`} onReady={onReady} />;
   }
-  // Dashboard Builder — rendered natively
+  // Dashboard Builder — use pre-rendered data in public mode, otherwise fetch live
+  if (isPublic && preRendered) {
+    return <PublicDashboardSlideRenderer dashboard={preRendered} durationMs={durationMs} onReady={onReady} />;
+  }
   return <DashboardSlideRenderer dashboardId={dashboardId} durationMs={durationMs} onReady={onReady} />;
+}
+
+function PublicDashboardSlideRenderer({ dashboard, durationMs, onReady }: { dashboard: any; durationMs: number; onReady?: () => void }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const readyCalledRef = useRef(false);
+
+  const sections = dashboard?.sections ?? [];
+  const widgetData = (dashboard?.widgetData ?? {}) as Record<string, Record<string, unknown>>;
+
+  useEffect(() => {
+    const measureTimer = setTimeout(() => {
+      if (!readyCalledRef.current) {
+        readyCalledRef.current = true;
+        onReady?.();
+      }
+
+      const el = scrollRef.current;
+      if (!el) return;
+      const contentHeight = el.scrollHeight;
+      const viewHeight = el.clientHeight;
+      if (contentHeight <= viewHeight) return;
+
+      const totalScreens = Math.ceil(contentHeight / viewHeight);
+      const timePerScreen = durationMs / totalScreens;
+      scrollTimersRef.current = [];
+      for (let i = 1; i < totalScreens; i++) {
+        const t = setTimeout(() => {
+          if (!scrollRef.current) return;
+          scrollRef.current.scrollTo({
+            top: Math.min(i * viewHeight, contentHeight - viewHeight),
+            behavior: 'smooth',
+          });
+        }, i * timePerScreen);
+        scrollTimersRef.current.push(t);
+      }
+    }, 600);
+
+    return () => {
+      clearTimeout(measureTimer);
+      scrollTimersRef.current.forEach(clearTimeout);
+    };
+  }, [dashboard, durationMs, onReady]);
+
+  if (!sections.length) {
+    return (
+      <div className="flex items-center justify-center h-full text-white/40">
+        <p className="text-sm">Dashboard introuvable</p>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={scrollRef} className="px-6 py-4 overflow-hidden h-full">
+      <SectionList sections={sections} widgetData={widgetData} editable={false} />
+    </div>
+  );
 }
 
 function DashboardSlideRenderer({ dashboardId, durationMs, onReady }: { dashboardId: string; durationMs: number; onReady?: () => void }) {
@@ -608,7 +670,13 @@ export function SlideshowPlayer({
       <div className="flex-1 relative overflow-hidden min-h-0">
         <div key={currentIndex} className={cn('absolute inset-0 overflow-auto', animClass)}>
           {currentSlide?.dashboardId ? (
-            <SlideRenderer dashboardId={currentSlide.dashboardId} durationMs={currentDuration} onReady={handleSlideReady} />
+            <SlideRenderer
+              dashboardId={currentSlide.dashboardId}
+              durationMs={currentDuration}
+              onReady={handleSlideReady}
+              isPublic={isPublic}
+              preRendered={currentSlide.dashboard}
+            />
           ) : (
             <div className="flex items-center justify-center h-full">
               <p className="text-sm text-white/30">Chargement...</p>
