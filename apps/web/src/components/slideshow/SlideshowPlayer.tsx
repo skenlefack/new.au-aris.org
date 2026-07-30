@@ -347,6 +347,14 @@ export function SlideshowPlayer({
   isPublic = false,
   onClose,
 }: SlideshowPlayerProps) {
+  // In public mode, filter out slides that require authentication (page: and bi: prefixes)
+  const effectiveSlides = useMemo(() =>
+    isPublic
+      ? slides.filter((s) => !s.dashboardId.startsWith('page:') && !s.dashboardId.startsWith('bi:'))
+      : slides,
+    [slides, isPublic],
+  );
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -365,7 +373,7 @@ export function SlideshowPlayer({
   const locale = useLocaleStore((s) => s.locale);
   const setLocale = useLocaleStore((s) => s.setLocale);
 
-  const currentSlide = slides[currentIndex];
+  const currentSlide = effectiveSlides[currentIndex];
   const currentDuration = currentSlide?.durationMs ?? intervalMs;
   const currentTransition = currentSlide?.transition ?? transition;
   const currentDashboardTitle = locale === 'en'
@@ -383,23 +391,23 @@ export function SlideshowPlayer({
 
   const goNext = useCallback(() => {
     setCurrentIndex((prev) => {
-      if (prev >= slides.length - 1) { if (loop) return 0; setIsPlaying(false); return prev; }
+      if (prev >= effectiveSlides.length - 1) { if (loop) return 0; setIsPlaying(false); return prev; }
       return prev + 1;
     });
     setProgress(0);
     setSlideReady(false);
     setAnimClass(TRANSITION_CLASSES[currentTransition] ?? 'animate-fadeIn');
-  }, [slides.length, loop, currentTransition]);
+  }, [effectiveSlides.length, loop, currentTransition]);
 
   const goPrev = useCallback(() => {
     setCurrentIndex((prev) => {
-      if (prev <= 0) return loop ? slides.length - 1 : 0;
+      if (prev <= 0) return loop ? effectiveSlides.length - 1 : 0;
       return prev - 1;
     });
     setProgress(0);
     setSlideReady(false);
     setAnimClass(TRANSITION_CLASSES[currentTransition] ?? 'animate-fadeIn');
-  }, [slides.length, loop, currentTransition]);
+  }, [effectiveSlides.length, loop, currentTransition]);
 
   const handleSlideReady = useCallback(() => {
     setSlideReady(true);
@@ -407,20 +415,20 @@ export function SlideshowPlayer({
 
   // Auto-play — wait until slide content is ready before starting the timer
   useEffect(() => {
-    if (!isPlaying || slides.length <= 1 || !slideReady) return;
+    if (!isPlaying || effectiveSlides.length <= 1 || !slideReady) return;
     timerRef.current = setTimeout(goNext, currentDuration);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [isPlaying, currentIndex, currentDuration, goNext, slides.length, slideReady]);
+  }, [isPlaying, currentIndex, currentDuration, goNext, effectiveSlides.length, slideReady]);
 
   // Progress — also waits for slide to be ready
   useEffect(() => {
-    if (!isPlaying || !showProgress || slides.length <= 1 || !slideReady) { setProgress(0); return; }
+    if (!isPlaying || !showProgress || effectiveSlides.length <= 1 || !slideReady) { setProgress(0); return; }
     const step = 50;
     const increment = (step / currentDuration) * 100;
     setProgress(0);
     progressRef.current = setInterval(() => setProgress((p) => Math.min(p + increment, 100)), step);
     return () => { if (progressRef.current) clearInterval(progressRef.current); };
-  }, [isPlaying, currentIndex, currentDuration, showProgress, slides.length, slideReady]);
+  }, [isPlaying, currentIndex, currentDuration, showProgress, effectiveSlides.length, slideReady]);
 
   useEffect(() => {
     setAnimClass(TRANSITION_CLASSES[currentTransition] ?? 'animate-fadeIn');
@@ -470,7 +478,7 @@ export function SlideshowPlayer({
     }
   }, [showLangMenu, showColorMenu]);
 
-  if (!slides.length) {
+  if (!effectiveSlides.length) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-[#0a1628] via-[#0d1f3c] to-[#0a1628]">
         <div className="text-center text-white/50">
@@ -557,7 +565,7 @@ export function SlideshowPlayer({
         {/* Right: Controls */}
         <div className="flex items-center gap-1">
           {/* Playback */}
-          {slides.length > 1 && (
+          {effectiveSlides.length > 1 && (
             <div className={cn(
               'flex items-center gap-0.5 rounded-full px-1.5 py-0.5 mr-1',
               isDark ? 'bg-white/[0.06]' : 'bg-gray-100',
@@ -568,7 +576,7 @@ export function SlideshowPlayer({
               </Btn>
               <Btn isDark={isDark} onClick={goNext} tip="Suivant"><ChevronRight className="w-3.5 h-3.5" /></Btn>
               <span className={cn('text-[10px] font-mono px-1', isDark ? 'text-white/30' : 'text-gray-400')}>
-                {currentIndex + 1}/{slides.length}
+                {currentIndex + 1}/{effectiveSlides.length}
               </span>
             </div>
           )}
@@ -685,7 +693,7 @@ export function SlideshowPlayer({
         </div>
 
         {/* Side arrows */}
-        {slides.length > 1 && (
+        {effectiveSlides.length > 1 && (
           <>
             <button
               onClick={goPrev}
@@ -720,7 +728,7 @@ export function SlideshowPlayer({
         style={{ borderTop: `1px solid ${isDark ? themeColor.accent + '15' : themeColor.lightAccent + '20'}` }}
       >
         {/* Progress bar */}
-        {showProgress && slides.length > 1 && (
+        {showProgress && effectiveSlides.length > 1 && (
           <div className="h-[2px]">
             <div
               className="h-full rounded-full transition-all duration-100 ease-linear"
@@ -734,9 +742,9 @@ export function SlideshowPlayer({
 
         <div className="flex items-center gap-3 px-5 py-2.5">
           {/* Slide dots */}
-          {slides.length > 1 && (
+          {effectiveSlides.length > 1 && (
             <div className="flex items-center gap-1 shrink-0">
-              {slides.map((_, i) => (
+              {effectiveSlides.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => { setCurrentIndex(i); setProgress(0); setSlideReady(false); }}
@@ -750,7 +758,7 @@ export function SlideshowPlayer({
             </div>
           )}
 
-          {slides.length > 1 && <div className={cn('w-px h-3.5 shrink-0', isDark ? 'bg-white/10' : 'bg-gray-200')} />}
+          {effectiveSlides.length > 1 && <div className={cn('w-px h-3.5 shrink-0', isDark ? 'bg-white/10' : 'bg-gray-200')} />}
 
           {/* Ticker */}
           <div className="flex-1 overflow-hidden min-w-0">
