@@ -70,13 +70,49 @@ function SlideRenderer({ dashboardId, durationMs, onReady, isPublic, preRendered
   return <DashboardSlideRenderer dashboardId={dashboardId} durationMs={durationMs} onReady={onReady} />;
 }
 
-function PublicDashboardSlideRenderer({ dashboard, durationMs, onReady }: { dashboard: any; durationMs: number; onReady?: () => void }) {
+function PublicDashboardSlideRenderer({ dashboard: preRendered, durationMs, onReady }: { dashboard: any; durationMs: number; onReady?: () => void }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const readyCalledRef = useRef(false);
 
-  const sections = dashboard?.sections ?? [];
-  const widgetData = (dashboard?.widgetData ?? {}) as Record<string, Record<string, unknown>>;
+  // Public render returns { dashboard: {metadata}, renderedWidgets: [{widgetId, type, data, title, grid}] }
+  // Reconstruct sections + widgetData for SectionList
+  const { sections, widgetData } = useMemo(() => {
+    const rw: any[] = preRendered?.renderedWidgets ?? [];
+    if (!rw.length) return { sections: [], widgetData: {} };
+
+    // Build widgetData map
+    const wd: Record<string, Record<string, unknown>> = {};
+    const widgets = rw.map((w: any) => {
+      if (w.data) wd[w.widgetId] = w.data;
+      return {
+        id: w.widgetId,
+        type: w.type,
+        title: typeof w.title === 'object' ? (w.title?.fr || w.title?.en || '') : (w.title || ''),
+        config: w.config ?? {},
+        grid: w.grid ?? { x: 0, y: 0, w: 6, h: 4 },
+        dataSource: w.dataSource,
+      };
+    });
+
+    // Group by section_id, or put all in one default section
+    const sectionMap = new Map<string, any[]>();
+    for (const w of rw) {
+      const sid = w.section_id || 'default';
+      if (!sectionMap.has(sid)) sectionMap.set(sid, []);
+      sectionMap.get(sid)!.push(widgets.find((ww: any) => ww.id === w.widgetId));
+    }
+
+    const secs = Array.from(sectionMap.entries()).map(([id, wgts]) => ({
+      id,
+      title: id === 'default' ? '' : id,
+      collapsed: false,
+      config: {},
+      widgets: wgts,
+    }));
+
+    return { sections: secs, widgetData: wd };
+  }, [preRendered]);
 
   useEffect(() => {
     const measureTimer = setTimeout(() => {
