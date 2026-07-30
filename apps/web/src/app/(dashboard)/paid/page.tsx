@@ -310,35 +310,23 @@ export default function PaidDashboardPage() {
 
         {/* ──── RIGHT (3 cols) ──── */}
         <div className="lg:col-span-3">
-          {/* People Trained — or Submissions summary when no training data */}
-          {agg.totalTrained > 0 ? (
-            <>
-              <SectionTitle>People Trained</SectionTitle>
-              <div className="flex items-center justify-center gap-8 px-4 py-4">
-                <PersonStat gender="female" value={agg.totalFemale} total={agg.totalTrained} />
-                <PersonStat gender="male" value={agg.totalMale} total={agg.totalTrained} />
-              </div>
-            </>
-          ) : (
-            <>
-              <SectionTitle>Submissions by Country</SectionTitle>
-              <div className="space-y-1 px-4 py-3">
-                {countryArr.slice(0, 6).map((c) => {
-                  const maxS = countryArr[0]?.submissions || 1;
-                  const pct = Math.round((c.submissions / maxS) * 100);
-                  return (
-                    <div key={c.country} className="flex items-center gap-2">
-                      <span className="w-[55px] shrink-0 truncate text-right text-[9px] font-medium text-gray-600 dark:text-gray-400">{c.country}</span>
-                      <div className="h-[13px] flex-1 overflow-hidden rounded-sm bg-gray-100 dark:bg-gray-800">
-                        <div className="h-full rounded-sm bg-blue-600" style={{ width: `${pct}%` }} />
-                      </div>
-                      <span className="w-[18px] text-right text-[9px] font-bold text-gray-900 dark:text-white">{c.submissions}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
+          {/* Submissions by Country */}
+          <SectionTitle>Submissions by Country</SectionTitle>
+          <div className="space-y-1 px-4 py-3">
+            {countryArr.slice(0, 6).map((c) => {
+              const maxS = countryArr[0]?.submissions || 1;
+              const pct = Math.round((c.submissions / maxS) * 100);
+              return (
+                <div key={c.country} className="flex items-center gap-2">
+                  <span className="w-[55px] shrink-0 truncate text-right text-[9px] font-medium text-gray-600 dark:text-gray-400">{c.country}</span>
+                  <div className="h-[13px] flex-1 overflow-hidden rounded-sm bg-gray-100 dark:bg-gray-800">
+                    <div className="h-full rounded-sm bg-blue-600" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="w-[18px] text-right text-[9px] font-bold text-gray-900 dark:text-white">{c.submissions}</span>
+                </div>
+              );
+            })}
+          </div>
 
           {/* Implementation by Project — Big Donut */}
           <div className="border-t border-gray-200 dark:border-gray-800">
