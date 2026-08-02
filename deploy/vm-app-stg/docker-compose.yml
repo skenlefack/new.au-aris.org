@@ -854,6 +854,10 @@ services:
       <<: *service-env
       SERVICE_PORT: "3030"
       KAFKA_CLIENT_ID: aris-stg-analytics-service
+      # Slideshow auto-auth: read-only viewer account for public iframe embedding
+      SLIDESHOW_VIEWER_EMAIL: viewer@au-aris.org
+      SLIDESHOW_VIEWER_PASSWORD: "Aris2026@@Viewer!"
+      CREDENTIAL_SERVICE_URL: http://aris-stg-credential:3002
     volumes: *service-volumes
     labels:
       - "traefik.enable=true"

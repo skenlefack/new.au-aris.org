@@ -50,14 +50,15 @@ function IframeSlideRenderer({ src, onReady }: { src: string; onReady?: () => vo
   );
 }
 
-function SlideRenderer({ dashboardId, durationMs, onReady, isPublic, preRendered }: {
-  dashboardId: string; durationMs: number; onReady?: () => void; isPublic?: boolean; preRendered?: any;
+function SlideRenderer({ dashboardId, durationMs, onReady, isPublic, preRendered, viewerToken }: {
+  dashboardId: string; durationMs: number; onReady?: () => void; isPublic?: boolean; preRendered?: any; viewerToken?: string;
 }) {
-  // System page — rendered as iframe (requires auth session)
+  // System page — rendered as iframe (with viewerToken for public mode)
   if (dashboardId.startsWith('page:')) {
     const path = dashboardId.replace('page:', '');
     const sep = path.includes('?') ? '&' : '?';
-    return <IframeSlideRenderer src={`${path}${sep}embed=1`} onReady={onReady} />;
+    const tokenParam = viewerToken ? `&viewerToken=${encodeURIComponent(viewerToken)}` : '';
+    return <IframeSlideRenderer src={`${path}${sep}embed=1${tokenParam}`} onReady={onReady} />;
   }
   // BI dashboard — rendered as iframe via embed URL
   if (dashboardId.startsWith('bi:')) {
@@ -363,6 +364,7 @@ interface SlideshowPlayerProps {
   showProgress?: boolean;
   showControls?: boolean;
   isPublic?: boolean;
+  viewerToken?: string;
   onClose?: () => void;
 }
 
@@ -381,14 +383,16 @@ export function SlideshowPlayer({
   loop = true,
   showProgress = true,
   isPublic = false,
+  viewerToken,
   onClose,
 }: SlideshowPlayerProps) {
-  // In public mode, filter out slides that require authentication (page: and bi: prefixes)
+  // In public mode without a viewer token, filter out slides that require authentication.
+  // When a viewerToken is available, keep all slides — iframes will use it.
   const effectiveSlides = useMemo(() =>
-    isPublic
+    isPublic && !viewerToken
       ? slides.filter((s) => !s.dashboardId.startsWith('page:') && !s.dashboardId.startsWith('bi:'))
       : slides,
-    [slides, isPublic],
+    [slides, isPublic, viewerToken],
   );
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -720,6 +724,7 @@ export function SlideshowPlayer({
               onReady={handleSlideReady}
               isPublic={isPublic}
               preRendered={currentSlide.dashboard}
+              viewerToken={viewerToken}
             />
           ) : (
             <div className="flex items-center justify-center h-full">

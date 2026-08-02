@@ -66,6 +66,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const refreshInProgressRef = useRef(false);
 
+  // Embed mode with viewerToken: don't redirect on auth failure — the parent
+  // slideshow player handles token renewal via its own mechanism.
+  const [isEmbedViewer] = useState(() =>
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('embed') === '1' &&
+    !!new URLSearchParams(window.location.search).get('viewerToken')
+  );
+
   // Auto-load permissions for existing sessions that don't have them yet
   useMyPermissions();
 
@@ -136,11 +144,16 @@ export function AuthGuard({ children }: AuthGuardProps) {
     if (!hydrated) return;
 
     if (!isAuthenticated || !accessToken) {
+      // In embed viewer mode, don't redirect — the page will render with
+      // whatever data the viewerToken already fetched before it expired.
+      if (isEmbedViewer) return;
       router.replace('/');
       return;
     }
 
     if (isTokenExpired(accessToken)) {
+      // Embed viewer tokens have no refreshToken — skip refresh attempt
+      if (isEmbedViewer) return;
       attemptRefresh().then((errorCode) => {
         if (errorCode !== null && errorCode !== 'NETWORK_ERROR' && errorCode !== 'REFRESH_IN_PROGRESS') {
           // Before logging out, check if another path (e.g. fetchWithRefresh)
@@ -154,11 +167,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
         }
       });
     }
-  }, [hydrated, isAuthenticated, accessToken, attemptRefresh, handleAuthFailure, router]);
+  }, [hydrated, isAuthenticated, accessToken, attemptRefresh, handleAuthFailure, router, isEmbedViewer]);
 
   // Background interval: every 30s, check if token is expiring soon and proactively refresh
+  // Skip for embed viewer mode — the parent slideshow player handles token renewal.
   useEffect(() => {
-    if (!hydrated || !isAuthenticated) return;
+    if (!hydrated || !isAuthenticated || isEmbedViewer) return;
 
     const intervalId = setInterval(() => {
       const currentToken = useAuthStore.getState().accessToken;
@@ -180,7 +194,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }, CHECK_INTERVAL_MS);
 
     return () => clearInterval(intervalId);
-  }, [hydrated, isAuthenticated, attemptRefresh, handleAuthFailure]);
+  }, [hydrated, isAuthenticated, isEmbedViewer, attemptRefresh, handleAuthFailure]);
 
   // Loading state while Zustand hydrates from localStorage
   if (!hydrated) {
@@ -191,8 +205,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  // Not authenticated: render nothing while redirect runs
-  if (!isAuthenticated && !accessToken) {
+  // Not authenticated: render nothing while redirect runs (unless embed viewer)
+  if (!isAuthenticated && !accessToken && !isEmbedViewer) {
     return null;
   }
 

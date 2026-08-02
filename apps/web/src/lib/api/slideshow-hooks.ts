@@ -90,6 +90,21 @@ export function usePublicSlideshowRender(token: string | undefined) {
   });
 }
 
+/** Fetch a read-only viewer JWT for public slideshow iframe embedding. */
+export function usePublicSlideshowAuth(token: string | undefined) {
+  return useQuery({
+    queryKey: ['slideshow-public-auth', token],
+    queryFn: async () => {
+      const res = await analyticsClient.get(`/analytics/slideshows/public/${token}/auth`);
+      return (res as any)?.data?.accessToken as string | undefined;
+    },
+    enabled: !!token,
+    // Renew every 12 minutes (JWT cached 14 min server-side, expires at 15 min)
+    refetchInterval: 12 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
 export function useCreateSlideshow() {
   const qc = useQueryClient();
   return useMutation({

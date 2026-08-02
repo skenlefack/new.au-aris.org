@@ -34,6 +34,38 @@ export default function DashboardLayout({
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('embed') === '1'
   );
 
+  // Viewer token injection for public slideshow embeds.
+  // When an iframe loads a page with ?embed=1&viewerToken=xxx, inject the
+  // token into the auth store so AuthGuard allows access without a real login.
+  const setAuth = useAuthStore((s) => s.setAuth);
+  const existingToken = useAuthStore((s) => s.accessToken);
+  useEffect(() => {
+    if (!isEmbed || typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const viewerToken = params.get('viewerToken');
+    if (!viewerToken) return;
+    // Only inject if there is no existing authenticated session
+    if (existingToken) return;
+    // Decode JWT payload to extract minimal user info
+    try {
+      const payload = JSON.parse(atob(viewerToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      setAuth(
+        {
+          id: payload.sub ?? 'viewer',
+          email: payload.email ?? 'viewer@au-aris.org',
+          firstName: 'Slideshow',
+          lastName: 'Viewer',
+          role: (payload.role ?? 'ANALYST') as any,
+          roles: payload.roles ?? [payload.role ?? 'ANALYST'],
+          tenantId: payload.tenantId ?? '',
+          tenantLevel: payload.tenantLevel ?? 'CONTINENTAL',
+        },
+        viewerToken,
+        '', // no refresh token — the slideshow player handles renewal
+      );
+    } catch { /* ignore malformed token */ }
+  }, [isEmbed, setAuth, existingToken]);
+
   // Full-bleed pages (no padding wrapper) — dashboard handles its own layout
   const isFullBleed = isEmbed || pathname === '/home' || pathname === '/' || pathname.startsWith('/bi-tools/');
 

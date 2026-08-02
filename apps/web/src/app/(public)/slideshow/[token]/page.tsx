@@ -1,13 +1,14 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { usePublicSlideshowRender } from '@/lib/api/slideshow-hooks';
+import { usePublicSlideshowRender, usePublicSlideshowAuth } from '@/lib/api/slideshow-hooks';
 import { SlideshowPlayer } from '@/components/slideshow/SlideshowPlayer';
 
 export default function PublicSlideshowPage() {
   const params = useParams();
   const token = params?.token as string;
   const { data, isLoading, error } = usePublicSlideshowRender(token);
+  const { data: viewerToken } = usePublicSlideshowAuth(token);
 
   if (isLoading) {
     return (
@@ -57,6 +58,7 @@ export default function PublicSlideshowPage() {
       showProgress={data.showProgress}
       showControls={data.showControls}
       isPublic
+      viewerToken={viewerToken}
     />
   );
 }

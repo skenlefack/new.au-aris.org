@@ -34,6 +34,13 @@ import type {
 export async function registerSlideshowRoutes(app: FastifyInstance): Promise<void> {
   const PREFIX = '/api/v1/analytics/slideshows';
 
+  // Viewer account credentials for public slideshow auto-auth
+  const VIEWER_EMAIL = process.env['SLIDESHOW_VIEWER_EMAIL'] ?? 'viewer@au-aris.org';
+  const VIEWER_PASSWORD = process.env['SLIDESHOW_VIEWER_PASSWORD'] ?? 'Aris2026@@Viewer!';
+  const CREDENTIAL_URL = process.env['CREDENTIAL_SERVICE_URL'] ?? 'http://aris-credential:3002';
+  const VIEWER_TOKEN_CACHE_KEY = 'analytics:slideshow:viewer-token';
+  const VIEWER_TOKEN_CACHE_TTL = 840; // 14 minutes (JWT expires at 15 min)
+
   // ═══════════════════════════════════════════════════════════════════════
   //  Public — kiosk view (no auth)
   // ═══════════════════════════════════════════════════════════════════════
@@ -72,6 +79,50 @@ export async function registerSlideshowRoutes(app: FastifyInstance): Promise<voi
         slides: renderedSlides,
       },
     });
+  });
+
+  // Public auto-auth — generates a read-only viewer JWT for iframe embedding
+  app.get(`${PREFIX}/public/:token/auth`, async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as { token: string };
+
+    // Verify the slideshow exists and is active
+    await app.slideshowService.getByPublicToken(params.token);
+
+    // Check Redis cache for existing viewer token
+    const cached = await app.redis.get(VIEWER_TOKEN_CACHE_KEY);
+    if (cached) {
+      return reply.code(200).send({ data: { accessToken: cached } });
+    }
+
+    // Login as viewer via credential service
+    try {
+      const res = await fetch(`${CREDENTIAL_URL}/api/v1/credential/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: VIEWER_EMAIL, password: VIEWER_PASSWORD }),
+      });
+
+      if (!res.ok) {
+        request.log.error({ status: res.status }, 'Viewer auto-auth login failed');
+        return reply.code(503).send({ statusCode: 503, message: 'Viewer authentication unavailable' });
+      }
+
+      const body = await res.json() as any;
+      const accessToken = body?.data?.accessToken ?? body?.accessToken;
+
+      if (!accessToken) {
+        request.log.error('Viewer auto-auth: no accessToken in response');
+        return reply.code(503).send({ statusCode: 503, message: 'Viewer authentication unavailable' });
+      }
+
+      // Cache the token (14 min TTL — JWT expires at 15 min)
+      await app.redis.set(VIEWER_TOKEN_CACHE_KEY, accessToken, 'EX', VIEWER_TOKEN_CACHE_TTL);
+
+      return reply.code(200).send({ data: { accessToken } });
+    } catch (err) {
+      request.log.error(err, 'Viewer auto-auth error');
+      return reply.code(503).send({ statusCode: 503, message: 'Viewer authentication unavailable' });
+    }
   });
 
   // ═══════════════════════════════════════════════════════════════════════
