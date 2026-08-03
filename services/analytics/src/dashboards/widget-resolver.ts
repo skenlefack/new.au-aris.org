@@ -467,7 +467,8 @@ export class WidgetResolver {
    * MANUAL_VALUE — return a static value from config.
    */
   private resolveManualValue(config: Record<string, unknown>): unknown {
-    return { value: config.value ?? null, label: config.label ?? null };
+    // Return full config so charts/maps can access data, chartConfig, byCountry, etc.
+    return config;
   }
 
   /**

@@ -110,6 +110,10 @@ function normalizeResolvedData(
   widgetConfig: Record<string, any>,
   resolved: Record<string, any>,
 ): Record<string, any> {
+  // Handle SQL_QUERY results ({ rows }) — promote to { data } for uniform handling
+  if (Array.isArray(resolved?.rows) && !resolved?.data) {
+    resolved = { ...resolved, data: resolved.rows };
+  }
   // If the resolved data has a `data` array (from ANALYTICS_QUERY or grouped aggregation)
   const dataArray = resolved?.data;
   if (!Array.isArray(dataArray)) return resolved;
