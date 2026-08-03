@@ -585,57 +585,6 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
             </div>
           </div>
 
-          {/* Public link */}
-          {slideshowId && publicToken && (
-            <div className="rounded-lg border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
-              <div className="p-4 border-b dark:border-gray-700">
-                <h3 className="font-semibold text-base flex items-center gap-2">
-                  <Link2 className="h-4 w-4" />
-                  {isFr ? 'Lien public' : 'Public Link'}
-                </h3>
-              </div>
-              <div className="p-4 space-y-3">
-                <div className="flex gap-2">
-                  <input
-                    value={publicUrl}
-                    readOnly
-                    className="flex-1 w-full rounded-md border border-gray-300 px-3 py-2 text-xs focus:outline-none dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                  />
-                  <button
-                    onClick={copyLink}
-                    title="Copy"
-                    className="inline-flex items-center justify-center rounded-md h-9 w-9 border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="flex gap-2">
-                  <a
-                    href={publicUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800 flex-1"
-                  >
-                    <ExternalLink className="h-3 w-3 mr-1" />
-                    {isFr ? 'Ouvrir' : 'Open'}
-                  </a>
-                  <button
-                    onClick={handleRegenerateToken}
-                    disabled={regenerateTokenMutation.isPending}
-                    className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800 flex-1"
-                  >
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    {isFr ? 'Regenerer' : 'Regenerate'}
-                  </button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {isFr
-                    ? 'Ce lien permet de visualiser le diaporama sans connexion au système.'
-                    : 'This link allows viewing the slideshow without login.'}
-                </p>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Right: Dashboard Catalogue — stretches to match left column height */}
@@ -826,6 +775,53 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
           </div>
         </div>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+           PUBLIC LINK — full width, between catalogue and slides
+         ═══════════════════════════════════════════════════════════════ */}
+      {slideshowId && publicToken && (
+        <div className="rounded-lg border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
+          <div className="p-4 flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2 shrink-0">
+              <Link2 className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold">{isFr ? 'Lien public' : 'Public Link'}</span>
+            </div>
+            <div className="flex flex-1 gap-2 min-w-0">
+              <input
+                value={publicUrl}
+                readOnly
+                className="flex-1 min-w-0 rounded-md border border-gray-300 px-3 py-1.5 text-xs focus:outline-none dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              />
+              <button
+                onClick={copyLink}
+                title="Copy"
+                className="inline-flex items-center justify-center rounded-md h-8 w-8 border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800 shrink-0"
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <a
+                href={publicUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800"
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                {isFr ? 'Ouvrir' : 'Open'}
+              </a>
+              <button
+                onClick={handleRegenerateToken}
+                disabled={regenerateTokenMutation.isPending}
+                className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                {isFr ? 'Regenerer' : 'Regenerate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════
            BOTTOM: Selected Slides — full width
