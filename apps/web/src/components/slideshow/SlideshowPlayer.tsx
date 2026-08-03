@@ -104,13 +104,28 @@ function PublicDashboardSlideRenderer({ dashboard: preRendered, durationMs, onRe
       sectionMap.get(sid)!.push(widgets.find((ww: any) => ww.id === w.widgetId));
     }
 
-    const secs = Array.from(sectionMap.entries()).map(([id, wgts]) => ({
-      id,
-      title: id === 'default' ? '' : id,
-      collapsed: false,
-      config: {},
-      widgets: wgts,
-    }));
+    // Reconstruct section metadata from pre-rendered data (if available)
+    const sectionMeta = new Map<string, any>();
+    if (preRendered?.sections && Array.isArray(preRendered.sections)) {
+      for (const s of preRendered.sections) {
+        sectionMeta.set(s.id, s);
+      }
+    }
+
+    const secs = Array.from(sectionMap.entries()).map(([id, wgts]) => {
+      const meta = sectionMeta.get(id);
+      return {
+        id,
+        title: meta ? (meta.title_fr || meta.title_en || meta.title || '') : (id === 'default' ? '' : id),
+        titleFr: meta?.title_fr ?? '',
+        titleEn: meta?.title_en ?? '',
+        collapsed: false,
+        columnCount: meta?.column_count ?? meta?.columnCount ?? 1,
+        sortOrder: meta?.sort_order ?? meta?.sortOrder ?? 0,
+        config: meta?.config ?? {},
+        widgets: wgts,
+      };
+    });
 
     return { sections: secs, widgetData: wd };
   }, [preRendered]);
@@ -315,12 +330,29 @@ function SmartTicker({ dashboardId, accentColor, isDark }: { dashboardId: string
     <div className="relative overflow-hidden whitespace-nowrap">
       <div
         className="inline-block animate-ticker"
-        style={{ animationDuration: `${Math.max(25, messages.length * 10)}s` }}
+        style={{ animationDuration: `${Math.max(30, messages.length * 12)}s` }}
       >
-        <span className={cn('text-[11px] font-light tracking-wide', isDark ? 'text-white/60' : 'text-gray-600')}>
+        <span className="text-[13px] font-medium tracking-wide text-white">
           {doubledText}
         </span>
       </div>
+    </div>
+  );
+}
+
+/** Live clock — updates every second, BBC-style */
+function LiveClock({ isDark, accentColor }: { isDark: boolean; accentColor: string }) {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const date = now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return (
+    <div className="flex flex-col items-center leading-none gap-0.5">
+      <span className="text-sm font-bold tracking-wider text-white tabular-nums">{time}</span>
+      <span className="text-[10px] font-medium uppercase tracking-wider text-white/70">{date}</span>
     </div>
   );
 }
@@ -759,59 +791,94 @@ export function SlideshowPlayer({
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════
-          FOOTER — Progress + Dots + Smart Ticker
+          FOOTER — TV News-style ticker bar (BBC / Euronews)
       ═══════════════════════════════════════════════════════════════ */}
-      <footer
-        className={cn(
-          'relative z-30 shrink-0 backdrop-blur-2xl',
-          isDark ? 'bg-black/50' : 'bg-white/70',
-        )}
-        style={{ borderTop: `1px solid ${isDark ? themeColor.accent + '15' : themeColor.lightAccent + '20'}` }}
-      >
-        {/* Progress bar */}
+      <footer className="relative z-30 shrink-0">
+        {/* Progress bar — thin line above the ticker */}
         {showProgress && effectiveSlides.length > 1 && (
-          <div className="h-[2px]">
+          <div className="h-[3px] bg-black/30">
             <div
-              className="h-full rounded-full transition-all duration-100 ease-linear"
+              className="h-full transition-all duration-100 ease-linear"
               style={{
                 width: `${progress}%`,
-                background: `linear-gradient(90deg, ${themeColor.accent}, ${themeColor.accent}88)`,
+                background: `linear-gradient(90deg, ${themeColor.accent}, #fff)`,
               }}
             />
           </div>
         )}
 
-        <div className="flex items-center gap-3 px-5 py-2.5">
-          {/* Slide dots */}
-          {effectiveSlides.length > 1 && (
-            <div className="flex items-center gap-1 shrink-0">
-              {effectiveSlides.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => { setCurrentIndex(i); setProgress(0); setSlideReady(false); }}
-                  className={cn(
-                    'transition-all duration-300 rounded-full',
-                    i === currentIndex ? 'w-5 h-1.5' : cn('w-1.5 h-1.5', isDark ? 'bg-white/15 hover:bg-white/30' : 'bg-gray-300 hover:bg-gray-400'),
-                  )}
-                  style={i === currentIndex ? { background: `linear-gradient(90deg, ${themeColor.accent}, ${themeColor.accent}99)` } : undefined}
-                />
-              ))}
+        {/* ── Ticker bar ── */}
+        <div className="flex items-stretch" style={{ background: themeColor.accent }}>
+
+          {/* Left badge — ARIS branding with accent-dark background */}
+          <div
+            className="flex items-center gap-2.5 px-5 shrink-0"
+            style={{ background: 'rgba(0,0,0,0.35)' }}
+          >
+            <Image
+              src="/aris-logo.png"
+              alt="ARIS"
+              width={28}
+              height={28}
+              className="rounded"
+            />
+            <div className="flex flex-col leading-none gap-0.5">
+              <span className="text-[13px] font-extrabold tracking-wider text-white">
+                ARIS
+              </span>
+              <span className="text-[8px] font-semibold tracking-[0.12em] text-white/60 uppercase">
+                AU-IBAR
+              </span>
             </div>
-          )}
+          </div>
 
-          {effectiveSlides.length > 1 && <div className={cn('w-px h-3.5 shrink-0', isDark ? 'bg-white/10' : 'bg-gray-200')} />}
+          {/* Diagonal separator */}
+          <div className="w-3 shrink-0 relative overflow-hidden">
+            <div
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(115deg, rgba(0,0,0,0.35) 45%, transparent 45.5%)`,
+              }}
+            />
+          </div>
 
-          {/* Ticker */}
-          <div className="flex-1 overflow-hidden min-w-0">
+          {/* Scrolling ticker — main band */}
+          <div className="flex-1 flex items-center overflow-hidden min-w-0 py-3">
             {currentSlide?.dashboardId && (
               <SmartTicker dashboardId={currentSlide.dashboardId} accentColor={themeColor.accent} isDark={isDark} />
             )}
           </div>
 
-          {/* Branding */}
-          <span className={cn('shrink-0 text-[9px] font-medium tracking-[0.15em] uppercase', isDark ? 'text-white/25' : 'text-gray-400')}>
-            AU-IBAR
-          </span>
+          {/* Right section — slide dots + clock */}
+          <div
+            className="flex items-center gap-4 px-5 shrink-0"
+            style={{ background: 'rgba(0,0,0,0.25)' }}
+          >
+            {/* Slide indicator dots */}
+            {effectiveSlides.length > 1 && (
+              <div className="flex items-center gap-1">
+                {effectiveSlides.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setCurrentIndex(i); setProgress(0); setSlideReady(false); }}
+                    className={cn(
+                      'transition-all duration-300 rounded-full',
+                      i === currentIndex
+                        ? 'w-5 h-2 bg-white'
+                        : 'w-2 h-2 bg-white/30 hover:bg-white/50',
+                    )}
+                  />
+                ))}
+              </div>
+            )}
+
+            {effectiveSlides.length > 1 && (
+              <div className="w-px h-6 bg-white/20 shrink-0" />
+            )}
+
+            {/* Live clock */}
+            <LiveClock isDark={isDark} accentColor={themeColor.accent} />
+          </div>
         </div>
       </footer>
     </div>
