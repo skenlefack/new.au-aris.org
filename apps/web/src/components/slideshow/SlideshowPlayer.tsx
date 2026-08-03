@@ -93,6 +93,8 @@ function PublicDashboardSlideRenderer({ dashboard: preRendered, durationMs, onRe
         config: w.config ?? {},
         grid: w.grid ?? { x: 0, y: 0, w: 6, h: 4 },
         dataSource: w.dataSource,
+        columnIndex: w.column_index ?? w.columnIndex ?? 0,
+        sortOrder: w.sort_order ?? w.sortOrder ?? 0,
       };
     });
 

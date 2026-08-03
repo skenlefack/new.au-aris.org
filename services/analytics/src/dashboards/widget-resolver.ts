@@ -24,6 +24,9 @@ interface ResolvedWidget {
   dataSource: string;
   title: { fr: string; en: string; ar?: string; pt?: string };
   grid: { x: number; y: number; w: number; h: number };
+  section_id?: string | null;
+  column_index?: number;
+  sort_order?: number;
   data: unknown;
   error?: string;
 }
@@ -46,19 +49,19 @@ export class WidgetResolver {
     dashboardId: string,
     userId: string,
     globalFilters: RenderQuery,
-  ): Promise<{ dashboard: Record<string, unknown>; renderedWidgets: ResolvedWidget[] }> {
+  ): Promise<{ dashboard: Record<string, unknown>; renderedWidgets: ResolvedWidget[]; sections: Record<string, unknown>[] }> {
     const result = await this.dashboardService.getDashboardWithWidgets(dashboardId);
     if (!result) {
       throw Object.assign(new Error('Dashboard not found'), { statusCode: 404 });
     }
 
-    const { dashboard, widgets } = result;
+    const { dashboard, widgets, sections } = result;
 
     const renderedWidgets = await Promise.all(
       widgets.map((w) => this.resolveWidget(w, userId, globalFilters)),
     );
 
-    return { dashboard, renderedWidgets };
+    return { dashboard, renderedWidgets, sections };
   }
 
   /**
@@ -90,6 +93,9 @@ export class WidgetResolver {
         w: widget.grid_w as number,
         h: widget.grid_h as number,
       },
+      section_id: (widget.section_id as string) ?? null,
+      column_index: (widget.column_index as number) ?? 0,
+      sort_order: (widget.sort_order as number) ?? 0,
     };
 
     // Check cache — include extra context for COMPOSITE and SQL_QUERY sources

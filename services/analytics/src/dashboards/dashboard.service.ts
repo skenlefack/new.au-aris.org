@@ -934,7 +934,7 @@ export class DashboardService {
   //  Raw widget loading (for WidgetResolver)
   // ═══════════════════════════════════════════════════════════════════════
 
-  async getDashboardWithWidgets(id: string): Promise<{ dashboard: Record<string, unknown>; widgets: Record<string, unknown>[] } | null> {
+  async getDashboardWithWidgets(id: string): Promise<{ dashboard: Record<string, unknown>; widgets: Record<string, unknown>[]; sections: Record<string, unknown>[] } | null> {
     const { rows: dashRows } = await this.pool.query(
       `SELECT * FROM dashboard_builder.dashboards WHERE id = $1`,
       [id],
@@ -946,7 +946,12 @@ export class DashboardService {
       [id],
     );
 
-    return { dashboard: dashRows[0], widgets: widgetRows };
+    const { rows: sectionRows } = await this.pool.query(
+      `SELECT * FROM dashboard_builder.dashboard_sections WHERE dashboard_id = $1 ORDER BY sort_order`,
+      [id],
+    );
+
+    return { dashboard: dashRows[0], widgets: widgetRows, sections: sectionRows };
   }
 
   // ═══════════════════════════════════════════════════════════════════════
