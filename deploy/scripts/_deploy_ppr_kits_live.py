@@ -67,10 +67,12 @@ ISO_TO_REC = {
 def run_q(ssh, db_host, db_pass, sql):
     chan = ssh.get_transport().open_session()
     chan.exec_command(
-        "PGPASSWORD='{}' psql -h {} -p 5432 -U aris -d aris -t -A -c \"{}\"".format(
-            db_pass, db_host, sql.replace('"', '\\"'))
+        "echo '{}' | sudo -S docker run --rm --network host "
+        "-e PGPASSWORD={} postgres:16 "
+        "psql -h {} -p 5432 -U aris -d aris -t -A -c \"{}\"".format(
+            SSH_PASS, db_pass, db_host, sql.replace('"', '\\"'))
     )
-    chan.settimeout(15)
+    chan.settimeout(30)
     out = b""
     try:
         while True:
@@ -80,7 +82,10 @@ def run_q(ssh, db_host, db_pass, sql):
             out += ch
     except Exception:
         pass
-    return out.decode(errors="replace").strip()
+    # Filter out sudo password prompt and docker pull messages
+    result = out.decode(errors="replace").strip()
+    lines = [l for l in result.split("\n") if l.strip() and not l.startswith("[sudo]") and "Unable to find" not in l and "Pulling" not in l and "Digest:" not in l and "Status:" not in l and "docker.io" not in l]
+    return "\n".join(lines).strip()
 
 
 def parse_rows(raw):
@@ -320,7 +325,10 @@ def run_sql_file(ssh, db_host, db_pass, sql_content):
 
     chan = ssh.get_transport().open_session()
     chan.exec_command(
-        f"PGPASSWORD='{db_pass}' psql -h {db_host} -p 5432 -U aris -d aris -f /tmp/ppr_kits_update.sql 2>&1"
+        f"echo '{SSH_PASS}' | sudo -S docker run --rm --network host "
+        f"-v /tmp/ppr_kits_update.sql:/d.sql:ro "
+        f"-e PGPASSWORD={db_pass} postgres:16 "
+        f"psql -h {db_host} -p 5432 -U aris -d aris -f /d.sql 2>&1"
     )
     chan.settimeout(30)
     out = b""
