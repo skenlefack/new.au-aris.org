@@ -377,9 +377,12 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* ═══════════════════════════════════════════════════════════════
+           TOP ROW: Config (left) + Dashboard Catalogue (right, same height)
+         ═══════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         {/* Left: Config */}
-        <div className="lg:col-span-1 space-y-4">
+        <div className="lg:col-span-1 flex flex-col gap-4">
           {/* Metadata */}
           <div className="rounded-lg border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
             <div className="p-4 border-b dark:border-gray-700">
@@ -463,7 +466,7 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
               </div>
               <div>
                 <label className="text-sm font-medium">
-                  {isFr ? 'Durée par slide' : 'Duration per slide'}
+                  {isFr ? 'Duree par slide' : 'Duration per slide'}
                 </label>
                 <div className="flex items-center gap-2 mt-2">
                   <input
@@ -635,11 +638,10 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
           )}
         </div>
 
-        {/* Right: Slides */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* ── Dashboard Catalogue (categorized picker) ── */}
-          <div className="rounded-lg border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
-            <div className="p-4 border-b dark:border-gray-700">
+        {/* Right: Dashboard Catalogue — stretches to match left column height */}
+        <div className="lg:col-span-2 flex flex-col">
+          <div className="rounded-lg border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700 flex flex-col flex-1">
+            <div className="p-4 border-b dark:border-gray-700 shrink-0">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-base">
                   {isFr ? 'Catalogue de tableaux de bord' : 'Dashboard Catalogue'}
@@ -662,7 +664,7 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
                 </div>
               </div>
             </div>
-            <div className="p-4 space-y-4 max-h-[400px] overflow-y-auto">
+            <div className="p-4 space-y-4 overflow-y-auto flex-1 min-h-0">
               {/* System Pages */}
               {(() => {
                 const systemItems = SYSTEM_PAGES.filter(p => p.group === 'system')
@@ -822,158 +824,161 @@ export function SlideshowEditor({ slideshowId }: SlideshowEditorProps) {
               })()}
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* ── Selected Slides ── */}
-          <div className="rounded-lg border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
-            <div className="p-4 border-b dark:border-gray-700">
-              <h3 className="font-semibold text-base">
-                {isFr ? 'Slides selectionnes' : 'Selected Slides'} ({slides.length})
-              </h3>
+      {/* ═══════════════════════════════════════════════════════════════
+           BOTTOM: Selected Slides — full width
+         ═══════════════════════════════════════════════════════════════ */}
+      <div className="rounded-lg border bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700">
+        <div className="p-4 border-b dark:border-gray-700">
+          <h3 className="font-semibold text-base flex items-center gap-2">
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+            {isFr ? 'Slides selectionnes' : 'Selected Slides'} ({slides.length})
+          </h3>
+        </div>
+        <div className="p-4">
+          {slides.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="text-base">
+                {isFr
+                  ? 'Aucun tableau de bord selectionne'
+                  : 'No dashboards selected'}
+              </p>
+              <p className="text-sm mt-1">
+                {isFr
+                  ? 'Utilisez le catalogue ci-dessus pour ajouter des tableaux de bord au diaporama.'
+                  : 'Use the catalogue above to add dashboards to the slideshow.'}
+              </p>
             </div>
-            <div className="p-4">
-              {slides.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p className="text-lg">
-                    {isFr
-                      ? 'Aucun tableau de bord selectionne'
-                      : 'No dashboards selected'}
-                  </p>
-                  <p className="text-sm mt-2">
-                    {isFr
-                      ? 'Utilisez le selecteur ci-dessus pour ajouter des tableaux de bord au diaporama.'
-                      : 'Use the selector above to add dashboards to the slideshow.'}
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {slides.map((slide, idx) => (
-                    <div
-                      key={slide.dashboardId}
-                      className="flex items-center gap-3 p-3 rounded-lg border bg-white hover:bg-gray-50 transition-colors dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800"
-                    >
-                      <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border border-gray-300 bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 flex-shrink-0">
-                        {idx + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium truncate">
-                            {isFr
-                              ? slide.dashboardTitleFr ||
-                                slide.dashboardTitleEn ||
-                                slide.dashboardId
-                              : slide.dashboardTitleEn ||
-                                slide.dashboardTitleFr ||
-                                slide.dashboardId}
-                          </p>
-                          {slide.dashboardId.startsWith('page:') && (() => {
-                            const sp = SYSTEM_PAGES.find(p => p.id === slide.dashboardId);
-                            const grp = sp?.group;
-                            return grp === 'subdomain' ? (
-                              <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 flex-shrink-0">
-                                {isFr ? 'Sous-domaine' : 'Sub-domain'}
-                              </span>
-                            ) : grp === 'domain' ? (
-                              <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 flex-shrink-0">
-                                {isFr ? 'Domaine' : 'Domain'}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 flex-shrink-0">
-                                Page
-                              </span>
-                            );
-                          })()}
-                          {slide.dashboardId.startsWith('bi:') && (
-                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 flex-shrink-0">BI</span>
-                          )}
-                          {!slide.dashboardId.startsWith('page:') && !slide.dashboardId.startsWith('bi:') && (
-                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 flex-shrink-0">Builder</span>
-                          )}
-                        </div>
-                        <div className="flex gap-4 mt-1">
-                          <div className="flex items-center gap-1">
-                            <label className="text-xs text-muted-foreground">
-                              {isFr ? 'Duree:' : 'Duration:'}
-                            </label>
-                            <input
-                              type="number"
-                              min={3}
-                              max={86400}
-                              value={
-                                slide.durationMs
-                                  ? Math.round(slide.durationMs / 1000)
-                                  : ''
-                              }
-                              placeholder={`${Math.round(intervalMs / 1000)}s`}
-                              onChange={(e) => {
-                                const val = e.target.value
-                                  ? parseInt(e.target.value) * 1000
-                                  : undefined;
-                                const newSlides = [...slides];
-                                newSlides[idx] = { ...newSlides[idx], durationMs: val };
-                                setSlides(newSlides);
-                              }}
-                              className="h-7 w-16 text-xs rounded-md border border-gray-300 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                            />
-                            <span className="text-xs text-muted-foreground">s</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <label className="text-xs text-muted-foreground">
-                              Transition:
-                            </label>
-                            <select
-                              value={slide.transition || ''}
-                              onChange={(e) => {
-                                const newSlides = [...slides];
-                                const v = e.target.value;
-                                newSlides[idx] = {
-                                  ...newSlides[idx],
-                                  transition: v === '__default' ? undefined : v || undefined,
-                                };
-                                setSlides(newSlides);
-                              }}
-                              className="h-7 w-32 text-xs rounded-md border border-gray-300 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                            >
-                              <option value="">
-                                {isFr ? 'Par defaut' : 'Default'}
-                              </option>
-                              {TRANSITIONS.map((tr) => (
-                                <option key={tr.value} value={tr.value}>
-                                  {isFr ? tr.labelFr : tr.labelEn}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+              {slides.map((slide, idx) => (
+                <div
+                  key={slide.dashboardId}
+                  className="flex items-center gap-3 p-3 rounded-lg border bg-white hover:bg-gray-50 transition-colors dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800"
+                >
+                  <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border border-gray-300 bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 flex-shrink-0">
+                    {idx + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium truncate text-sm">
+                        {isFr
+                          ? slide.dashboardTitleFr ||
+                            slide.dashboardTitleEn ||
+                            slide.dashboardId
+                          : slide.dashboardTitleEn ||
+                            slide.dashboardTitleFr ||
+                            slide.dashboardId}
+                      </p>
+                      {slide.dashboardId.startsWith('page:') && (() => {
+                        const sp = SYSTEM_PAGES.find(p => p.id === slide.dashboardId);
+                        const grp = sp?.group;
+                        return grp === 'subdomain' ? (
+                          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 flex-shrink-0">
+                            {isFr ? 'Sous-domaine' : 'Sub-domain'}
+                          </span>
+                        ) : grp === 'domain' ? (
+                          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 flex-shrink-0">
+                            {isFr ? 'Domaine' : 'Domain'}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 flex-shrink-0">
+                            Page
+                          </span>
+                        );
+                      })()}
+                      {slide.dashboardId.startsWith('bi:') && (
+                        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 flex-shrink-0">BI</span>
+                      )}
+                      {!slide.dashboardId.startsWith('page:') && !slide.dashboardId.startsWith('bi:') && (
+                        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 flex-shrink-0">Builder</span>
+                      )}
+                    </div>
+                    <div className="flex gap-4 mt-1">
+                      <div className="flex items-center gap-1">
+                        <label className="text-xs text-muted-foreground">
+                          {isFr ? 'Duree:' : 'Duration:'}
+                        </label>
+                        <input
+                          type="number"
+                          min={3}
+                          max={86400}
+                          value={
+                            slide.durationMs
+                              ? Math.round(slide.durationMs / 1000)
+                              : ''
+                          }
+                          placeholder={`${Math.round(intervalMs / 1000)}s`}
+                          onChange={(e) => {
+                            const val = e.target.value
+                              ? parseInt(e.target.value) * 1000
+                              : undefined;
+                            const newSlides = [...slides];
+                            newSlides[idx] = { ...newSlides[idx], durationMs: val };
+                            setSlides(newSlides);
+                          }}
+                          className="h-7 w-16 text-xs rounded-md border border-gray-300 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                        />
+                        <span className="text-xs text-muted-foreground">s</span>
                       </div>
-                      <div className="flex gap-1 flex-shrink-0">
-                        <button
-                          className="inline-flex items-center justify-center rounded-md h-7 w-7 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
-                          onClick={() => moveSlide(idx, 'up')}
-                          disabled={idx === 0}
+                      <div className="flex items-center gap-1">
+                        <label className="text-xs text-muted-foreground">
+                          Transition:
+                        </label>
+                        <select
+                          value={slide.transition || ''}
+                          onChange={(e) => {
+                            const newSlides = [...slides];
+                            const v = e.target.value;
+                            newSlides[idx] = {
+                              ...newSlides[idx],
+                              transition: v === '__default' ? undefined : v || undefined,
+                            };
+                            setSlides(newSlides);
+                          }}
+                          className="h-7 w-32 text-xs rounded-md border border-gray-300 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                         >
-                          <ArrowUp className="h-3 w-3" />
-                        </button>
-                        <button
-                          className="inline-flex items-center justify-center rounded-md h-7 w-7 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
-                          onClick={() => moveSlide(idx, 'down')}
-                          disabled={idx === slides.length - 1}
-                        >
-                          <ArrowDown className="h-3 w-3" />
-                        </button>
-                        <button
-                          className="inline-flex items-center justify-center rounded-md h-7 w-7 hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600"
-                          onClick={() => removeSlide(idx)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
+                          <option value="">
+                            {isFr ? 'Par defaut' : 'Default'}
+                          </option>
+                          {TRANSITIONS.map((tr) => (
+                            <option key={tr.value} value={tr.value}>
+                              {isFr ? tr.labelFr : tr.labelEn}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
-                  ))}
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button
+                      className="inline-flex items-center justify-center rounded-md h-7 w-7 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
+                      onClick={() => moveSlide(idx, 'up')}
+                      disabled={idx === 0}
+                    >
+                      <ArrowUp className="h-3 w-3" />
+                    </button>
+                    <button
+                      className="inline-flex items-center justify-center rounded-md h-7 w-7 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
+                      onClick={() => moveSlide(idx, 'down')}
+                      disabled={idx === slides.length - 1}
+                    >
+                      <ArrowDown className="h-3 w-3" />
+                    </button>
+                    <button
+                      className="inline-flex items-center justify-center rounded-md h-7 w-7 hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600"
+                      onClick={() => removeSlide(idx)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
